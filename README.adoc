@@ -4,25 +4,21 @@
 
 We are busy making Cyberismo ready for your use.  Right now, the project is running in stealth mode as we're adding some remaining essentials such as certain important features, documentation and examples.  It won't take long, so stay tuned!
 
-== Usage
+== Building and running Cyberismo from source
 
-=== Building and running Cyberismo from source
+=== Prerequisites
 
-==== Prerequisites
+. Install Clingo. The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda, as instructed in https://github.com/potassco/clingo/releases/.
 
-. Install Clingo
-
-The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda, as instructed in https://github.com/potassco/clingo/releases/.
-
-. Install Node.js. 
-
-The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with 
+. Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with 
 
 [source,console]
 ----
 nvm install --lts
 nvm use --lts
 ----
+
+=== Building
 
 Take the following steps:
 
@@ -37,11 +33,13 @@ npm run build
 npm install -g
 ----
 
-After this, running `cyberismo --help` displays the command line help.
+=== Running
 
-== Using Cyberismo for content creation
+After building and installing, run `cyberismo --help` to see the command line help.
 
 For a quick look around, see the decision-records Cyberismo project in the examples folder of the source code repository.
+
+== Using the Cyberismo command line interface
 
 === Creating a project
 
@@ -82,14 +80,14 @@ Templates are containers that can contain entire hierarchies of cards of differe
 
 === Instantiating cards
 
-To add a new card from the risk template, enter:
+To create a new card from the risk template, enter:
 
 [source,console]
 ----
 cyberismo create card risk-template
 ----
 
-To add a new card as a child of an existing card (e.g. example_7), enter:
+To create a new card as a child of an existing card (e.g. example_7), enter:
 
 [source,console]
 ----
@@ -111,11 +109,8 @@ Then point your browser to http://localhost:3000/.
 
 == Generating a documentation site
 
-For now, you can generate the documentation site by following these steps:
+You can export a Cyberismo project as a static documentation site by entering the following command in the Cyberismo project directory:
 
-* Clone the Unified SDL project and check out the demo-content branch
-* Enter the following command:
-+
 [source,console]
 ----
 cyberismo export -f site -o /path/to/target/directory
