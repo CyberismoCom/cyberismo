@@ -1,0 +1,31 @@
+{
+  "name": "@cyberismocom/cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "bin": {
+    "cyberismo": "bin/run"
+  },
+  "files": [
+    "/bin",
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsc --build --declaration",
+    "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
+    "lint": "eslint . --ext .ts --config .eslintrc",
+    "test": "npm run lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.25",
+    "typescript": "^5.4.2"
+  },
+  "types": "dist/index.d.ts",
+  "type": "module"
+}

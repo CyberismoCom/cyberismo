@@ -1,0 +1,6 @@
+{
+    "name": "obsoletedBy",
+    "displayName": "Obsoleted by (from fieldtype)",
+    "fieldDescription": "Card is obsolete (from fieldtype)",
+    "dataType": "shorttext"
+}

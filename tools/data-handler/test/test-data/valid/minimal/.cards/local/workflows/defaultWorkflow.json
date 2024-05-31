@@ -1,0 +1,30 @@
+{
+    "name":"defaultWorkflow",
+    "states":[
+        { "name": "Open", "category": "initial" },
+        { "name": "In Progress", "category": "active" },
+        { "name": "Closed", "category": "closed" }
+    ],
+    "transitions":[
+        {
+            "name":"Create",
+            "fromState": [],
+            "toState": "Open"
+        },
+        {
+            "name":"Working",
+            "fromState": ["Open"],
+            "toState": "In Progress"
+        },
+        {
+            "name":"Done",
+            "fromState": ["*"],
+            "toState":"Closed"
+        },
+        {
+            "name":"Reopen",
+            "fromState": ["Closed"],
+            "toState":"Open"
+        }
+    ]
+}

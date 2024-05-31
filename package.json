@@ -1,0 +1,51 @@
+{
+  "name": "@cyberismocom/cyberismo",
+  "description": "Cards: a Tool for Managing Cybersecurity in Software",
+  "version": "0.0.1",
+  "bin": {
+    "cyberismo": "tools/cli/bin/run"
+  },
+  "dependencies": {
+    "@asciidoctor/core": "^3.0.4",
+    "antora": "^3.1.7",
+    "run": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "c8": "^9.1.0",
+    "npm-watch": "^0.11.0",
+    "nyc": "^15.1.0",
+    "shx": "^0.3.4"
+  },
+  "main": "src/index.ts",
+  "overrides": {
+    "npm-watch": {
+      "nodemon": "3.0.0"
+    },
+    "glob-parent": "latest"
+  },
+  "private": true,
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "clean": "rm -rf node_modules && npm run clean --workspaces --if-present",
+    "test": "npm run test --workspaces",
+    "test-app": "cd tools/app && npm run test && cd ../..",
+    "test-data-handler": "cd tools/data-handler && npm run test && cd ../..",
+    "watch": "npm-watch"
+  },
+  "watch": {
+    "build": {
+      "patterns": [
+        "tools/cli/src/",
+        "tools/data-handler/src/"
+      ],
+      "extensions": "ts"
+    }
+  },
+  "workspaces": [
+    "tools/data-handler",
+    "tools/cli",
+    "tools/app"
+  ]
+}

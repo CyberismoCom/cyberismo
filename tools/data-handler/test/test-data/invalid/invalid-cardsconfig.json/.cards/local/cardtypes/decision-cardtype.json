@@ -1,0 +1,12 @@
+{
+    "name": "decision",
+    "workflow": "decisionWorkflow",
+    "customFields": [
+        {
+            "fieldName": "obsoletedBy",
+            "fieldDisplayName": "Obsoleted By",
+            "fieldDescription": "The cardkey of the card that obsoleted this decision.",
+            "fieldType": "shorttext"
+        }
+    ]
+}

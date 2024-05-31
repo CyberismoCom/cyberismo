@@ -1,0 +1,13 @@
+= Decision Summary
+
+== Context
+
+Background information. What is motivating this decision. Which options were considered.
+
+== Decision
+
+What is the change that we're proposing or doing.
+
+== Consequences
+
+Benefits and drawbacks of the decision. What happens next.

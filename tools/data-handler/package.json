@@ -1,0 +1,51 @@
+{
+  "name": "@cyberismocom/data-handler",
+  "description": "Command handler for cards and web service",
+  "version": "1.0.0",
+  "author": "sami.merila@cyberismo.com",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/CyberismoCom/ismo",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/ismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/ismo/issues",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
+    "lint": "npx eslint .",
+    "posttest": "npm run lint",
+    "test": "mocha --forbid-only \"./test/**/*.test.ts\"",
+    "test-coverage": "c8 npm run test"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.14",
+    "@types/js-yaml": "^4.0.9",
+    "@types/json-schema": "^7.0.15",
+    "@types/mime-types": "^2.1.4",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.3",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.1",
+    "chai": "^5.1.1",
+    "eslint": "8.56.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.10.0"
+  },
+  "dependencies": {
+    "directory-schema-validator": "^1.0.17",
+    "isomorphic-git": "^1.25.2",
+    "js-yaml": "^4.1.0",
+    "json-schema": "^0.4.0",
+    "jsonschema": "^1.4.1",
+    "mime-types": "^2.1.35",
+    "tslib": "^2.6.2"
+  },
+  "type": "module"
+}

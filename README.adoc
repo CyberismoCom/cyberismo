@@ -1,0 +1,134 @@
+= Cyberismo: a tool for smooth adoption of cybersecurity management in software projects
+
+== You found us!
+
+We are busy making Cyberismo ready for your use.  Right now, the project is running in stealth mode as we're adding some remaining essentials such as certain important features, documentation and examples.  It won't take long, so stay tuned!
+
+== Usage
+
+=== Building and running Cyberismo from source
+
+==== Prerequisites
+
+. Install Clingo
+
+The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda, as instructed in https://github.com/potassco/clingo/releases/.
+
+. Install Node.js. 
+
+The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with 
+
+[source,console]
+----
+nvm install --lts
+nvm use --lts
+----
+
+Take the following steps:
+
+. Clone the source repository
+. Change to the source directory. If you have already cloned the repository earlier, remember to pull the latest changes.
+. Execute the following commands:
+
+[source,console]
+----
+npm install
+npm run build
+npm install -g
+----
+
+After this, running `cyberismo --help` displays the command line help.
+
+== Using Cyberismo for content creation
+
+For a quick look around, see the decision-records Cyberismo project in the examples folder of the source code repository.
+
+=== Creating a project
+
+All Cyberismo content belongs to a Cyberismo project. You can create a new project "Example project" in the example-project directory and with the card key prefix "example" as follows:
+
+[source,console]
+----
+cyberismo create project "Example project" example example-project
+----
+
+=== Adding a new type
+
+A new type requires a new or existing workflow and the actual card type. For instance:
+
+[source,console]
+----
+cyberismo create workflow risk-workflow
+cyberismo create cardtype risk risk-workflow
+----
+
+=== Adding a new template
+
+[source,console]
+----
+cyberismo create template risk-template
+----
+
+=== Adding a card to a new template
+
+In this example, we add a card of type risk to the risk template:
+
+[source,console]
+----
+cyberismo add risk-template risk
+----
+
+Templates are containers that can contain entire hierarchies of cards of different type.
+
+=== Instantiating cards
+
+To add a new card from the risk template, enter:
+
+[source,console]
+----
+cyberismo create card risk-template
+----
+
+To add a new card as a child of an existing card (e.g. example_7), enter:
+
+[source,console]
+----
+cyberismo create card risk-template example_7
+----
+
+== Running the Cyberismo app
+
+The Cyberismo app is a local web browser based user interface for working on the Cyberismo content.
+
+To launch the app, enter the following command in the Cyberismo project directory:
+
+[source,console]
+----
+cyberismo app
+----
+
+Then point your browser to http://localhost:3000/.
+
+== Generating a documentation site
+
+For now, you can generate the documentation site by following these steps:
+
+* Clone the Unified SDL project and check out the demo-content branch
+* Enter the following command:
++
+[source,console]
+----
+cyberismo export -f site -o /path/to/target/directory
+----
+
+When complete, the script will output:
+[source,console]
+----
+Site generation complete!
+Open file:///tmp/site/index.html in a browser to view your site.
+Done
+----
+
+== License and contributions
+
+See separate files LICENSE and CONTRIBUTING.
