@@ -1,6 +1,7 @@
 // node
 import { basename, join, sep } from 'node:path';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { Dirent } from 'node:fs';
+import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 // ismo
@@ -52,7 +53,9 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
 #include "modules.lp".
 `;
 
-    constructor() { }
+    constructor() {
+        // todo: set reusable paths here - problem is that project's path should be set
+    }
 
     // Write the base.lp that contains common definitions.
     private async generateBase(parentCard: card | undefined) {
@@ -65,8 +68,7 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
     }
 
     // Write the cardtree.lp that contain data from the selected card-tree.
-    private async generateCardTree(parentCard: card | undefined) {
-        const destinationFile = join(Calculate.project.calculationFolder, Calculate.cardTreeFileName);
+    private async generateCardTreeContent(parentCard: card | undefined) {
         const destinationFileBase = join(Calculate.project.calculationFolder, 'cards');
         const promiseContainer = [];
 
@@ -106,16 +108,27 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
             const cardLogicFile = `${filename}.lp`;
             promiseContainer.push(writeFile(cardLogicFile, logicProgram, { encoding: 'utf-8', flag: 'w' }));
         }
-
-        // Once card specific files have been done, write the cardtree.lp.
-        const allCards = parentCard ? await Calculate.project.cards() : cards;
-        let cardTreeContent: string = '';
-        for (const card of allCards) {
-            cardTreeContent += `#include "cards/${card.key}.lp".\n`;
-        }
-        promiseContainer.push(writeFile(destinationFile, cardTreeContent, { encoding: 'utf-8', flag: 'w' }));
-
         await Promise.all(promiseContainer);
+    }
+
+    // Once card specific files have been done, write the cardtree.lp.
+    private async genereteCardTree() {
+        const destinationFile = join(Calculate.project.calculationFolder, Calculate.cardTreeFileName);
+        const destinationFileBase = join(Calculate.project.calculationFolder, 'cards');
+
+        // Helper to remove extension from filename.
+        function removeExtension(dirent: Dirent) {
+            const name = dirent.name;
+            const index = name.lastIndexOf(".");
+            return (index === -1) ? name : name.substring(0, index);
+        }
+
+        const files = await opendir(destinationFileBase);
+        let cardTreeContent: string = '';
+        for await (const file of files) {
+            cardTreeContent += `#include "cards/${removeExtension(file)}.lp".\n`;
+        }
+        await writeFile(destinationFile, cardTreeContent, { encoding: 'utf-8', flag: 'w' });
     }
 
     // Write the main.lp that includes all other logic programs.
@@ -236,7 +249,8 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
         // Calculation files are in their own files, so they can be generated parallel.
         const promiseContainer = [
             this.generateBase(card),
-            this.generateCardTree(card),
+            this.generateCardTreeContent(card),
+            this.genereteCardTree(),
             this.generateModules(card),
             this.generateMainLogicFile(card)
         ];
@@ -307,11 +321,10 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
             return;
         }
 
-        const promiseContainer = [];
-        for (const card of cards) {
-            promiseContainer.push(this.generateCardTree(card));
-        }
-        await Promise.all(promiseContainer);
+        // @todo - should only generate card-tree for created cards' common ancestor (or root)
+        //         this might in some cases (sub-tree created) improve performance
+        await this.generateCardTreeContent(undefined);
+        await this.genereteCardTree();
     }
 
     /**
