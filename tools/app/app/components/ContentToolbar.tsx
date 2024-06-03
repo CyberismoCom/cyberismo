@@ -30,20 +30,16 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   onUpdate,
   onStateTransition,
 }) => {
-  const router = useRouter();
+  const router = useRouter()
 
   const workflow = findWorkflowForCard(selectedCard, project)
   const currentState =
     workflow?.states.find(
       (state) => state.name == selectedCard?.metadata?.workflowState
-    ) ?? null;
+    ) ?? null
 
   return (
-    <Toolbar
-      className="contentToolbar"
-      disableGutters
-      sx={{ display: 'flex', alignItems: 'top' }}
-    >
+    <Toolbar disableGutters sx={{ display: 'flex', alignItems: 'top' }}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs selectedCard={selectedCard} project={project} />
       </Box>
@@ -54,7 +50,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         <Button
           variant="text"
           aria-label="cancel"
-          style={{ marginLeft: 16, minWidth: 80, color: 'grey'}}
+          style={{ marginLeft: 16, minWidth: 80, color: 'grey' }}
           onClick={() => router.back()}
         >
           Cancel

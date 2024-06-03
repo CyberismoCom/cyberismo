@@ -9,7 +9,7 @@ import Box from '@mui/material/Box'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
-import { TextField } from '@mui/material'
+import { Stack, TextField } from '@mui/material'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
@@ -88,7 +88,7 @@ export default function Page({ params }: { params: { key: string } }) {
   }
 
   return (
-    <main className="mainArea">
+    <Stack height="100%">
       <ContentToolbar
         selectedCard={card}
         project={project}
@@ -96,53 +96,58 @@ export default function Page({ params }: { params: { key: string } }) {
         onUpdate={handleSave}
         onStateTransition={handleStateTransition}
       />
-      <div className="innerEdit">
-        <Box>
-          <Box
-            sx={{
-              width: '70%',
-              borderBottom: 1,
-              borderColor: 'divider',
-              display: 'flex',
-              alignItems: 'right',
-            }}
-          >
-            <Box sx={{ flexGrow: 1 }} />
-            <Tabs value={value} onChange={handleChange}>
-              <Tab label="Edit" />
-              <Tab label="Preview" />
-            </Tabs>
-          </Box>
+      <Stack paddingX={3} flexGrow={1} minHeight={0}>
+        <Stack
+          borderColor="divider"
+          borderBottom={1}
+          direction="row"
+          width="70%"
+        >
+          <Box flexGrow={1} />
+          <Tabs value={value} onChange={handleChange}>
+            <Tab label="Edit" />
+            <Tab label="Preview" />
+          </Tabs>
+        </Stack>
 
-          <TabPanel value={value} index={0}>
-            <div className="editContent">
-              <TextField
-                style={{ width: '100%', marginBottom: '10px' }}
-                inputProps={{
-                  style: { fontSize: '1.2em', fontWeight: 'bold' },
-                }}
-                multiline={true}
-                value={metadata?.summary ?? ''}
-                onChange={handleTitleChange}
-              />
-              <TextField
-                minRows={10}
-                multiline={true}
-                style={{ width: '100%' }}
-                value={content ?? ''}
-                onChange={handleContentChange}
-              />
-            </div>
-          </TabPanel>
-          <TabPanel value={value} index={1}>
-            {card && (
+        <TabPanel value={value} index={0}>
+          <Box
+            width="70%"
+            sx={{
+              overflowY: 'scroll',
+              scrollbarWidth: 'thin',
+            }}
+            height="100%"
+            minHeight={0}
+          >
+            <TextField
+              style={{ width: '100%', marginBottom: '10px' }}
+              inputProps={{
+                style: { fontSize: '1.2em', fontWeight: 'bold' },
+              }}
+              multiline={true}
+              value={metadata?.summary ?? ''}
+              onChange={handleTitleChange}
+            />
+            <TextField
+              minRows={10}
+              multiline={true}
+              style={{ width: '100%' }}
+              value={content ?? ''}
+              onChange={handleContentChange}
+            />
+          </Box>
+        </TabPanel>
+        <TabPanel value={value} index={1}>
+          {card && (
+            <Box height="100%">
               <ContentArea card={getPreview()} error={null} preview={true} />
-            )}
-          </TabPanel>
-        </Box>
-        <ErrorBar error={reason} onClose={handleClose} />
-      </div>
-    </main>
+            </Box>
+          )}
+        </TabPanel>
+      </Stack>
+      <ErrorBar error={reason} onClose={handleClose} />
+    </Stack>
   )
 }
 
@@ -156,17 +161,20 @@ function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props
 
   return (
-    <div
+    <Box
       role="tabpanel"
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       {...other}
+      height="100%"
     >
       {value === index && (
-        <Box sx={{ pt: 3 }}>
-          <Typography component="span">{children}</Typography>
+        <Box paddingTop={3} height="100%">
+          <Typography component="span" height="100%">
+            {children}
+          </Typography>
         </Box>
       )}
-    </div>
+    </Box>
   )
 }

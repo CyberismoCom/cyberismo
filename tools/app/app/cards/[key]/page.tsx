@@ -5,6 +5,7 @@ import ErrorBar from '@/app/components/ErrorBar'
 import { useCard, useProject } from '@/app/lib/api'
 import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
+import { Box, Stack } from '@mui/material'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,9 +21,8 @@ export default function Page({ params }: { params: { key: string } }) {
       if (error instanceof Error) setError(error.message)
     }
   }
-
   return (
-    <main className="mainArea">
+    <Stack height="100%">
       <ContentToolbar
         selectedCard={card}
         project={project}
@@ -30,10 +30,10 @@ export default function Page({ params }: { params: { key: string } }) {
         onUpdate={() => {}}
         onStateTransition={handleStateTransition}
       />
-      <div className="contentPadding">
+      <Box padding={3} flexGrow={1} minHeight={0}>
         <ContentArea card={card} error={error?.message} preview={false} />
-      </div>
+      </Box>
       <ErrorBar error={reason} onClose={handleClose} />
-    </main>
+    </Stack>
   )
 }

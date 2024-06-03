@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { CardAttachment, CardDetails, Project } from '../lib/definitions'
 import Processor from '@asciidoctor/core'
 import { parse } from 'node-html-parser'
+import { Box, Stack, Typography } from '@mui/material'
 
 type ContentAreaProps = {
   card: CardDetails | null
@@ -17,8 +18,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null)
 
-  if (error) return <div>Could not find card. ({error})</div>
-  if (!card) return <div>Loading...</div>
+  if (error) return <Box>Could not find card. ({error})</Box>
+  if (!card) return <Box>Loading...</Box>
 
   const asciidocContent = card.content ?? ''
   let htmlContent = Processor()
@@ -53,16 +54,28 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   }
 
   return (
-      <div className="contentArea">
-        <div className="adocContent" onScroll={handleScroll}>
-          <h1>{card.metadata?.summary ?? card.key}</h1>
-          <div
-            className="doc"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
-        </div>
-        {renderTableOfContents(htmlContent, visibleHeaderId)}
-      </div>
+    <Stack direction="row" height="100%">
+      <Box
+        width="100%"
+        paddingRight={3}
+        flexGrow={1}
+        minWidth={0}
+        sx={{
+          overflowY: 'scroll',
+          scrollbarWidth: 'thin',
+        }}
+        onScroll={handleScroll}
+      >
+        <Typography variant="h1">
+          {card.metadata?.summary ?? card.key}
+        </Typography>
+        <div
+          className="doc"
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      </Box>
+      {renderTableOfContents(htmlContent, visibleHeaderId)}
+    </Stack>
   )
 }
 

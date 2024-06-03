@@ -1,97 +1,3 @@
-body {
-  margin: 0px;
-}
-
-.main {
-  display: flex;
-  flex: auto;
-}
-
-.navigationSidebar {
-  display: flex;
-  flex-direction: column;
-  width: 250px;
-  min-width: 250px;
-  background-color: #f0f0f0;
-  position: sticky;
-  height: calc(100vh - 5rem);
-  padding: 12px;
-}
-
-.navigationSidebar h3 {
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-
-.treeView {
-  flex-grow: 1;
-  overflow-y: scroll;
-  scrollbar-width: thin;
-}
-
-.mainArea {
-  flex: auto;
-  padding-left: 12px;
-  padding-top: 6px;
-  padding-right: 12px;
-  padding-bottom: 6px;
-}
-
-.contentToolbar {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.contentPadding {
-  padding-left: 24px;
-}
-
-.contentArea {
-  display: flex;
-  padding-right: 24px;
-}
-
-.innerEdit {
-  width: 100%;
-  padding-right: 24px;
-  padding-left: 24px;
-}
-
-.editContent {
-  width: 70%;
-  height: calc(100vh - 13.5rem);
-  overflow-y: scroll;
-  scrollbar-width: thin;
-}
-
-.editTabContainer {
-  padding: 0,
-}
-
-.adocContent {
-  width: 100%;
-  height: calc(100vh - 8.7rem);
-  padding-right: 24px;
-  overflow-y: scroll;
-  scrollbar-width: thin;
-}
-
-.contentSidebar {
-  padding: 12px 8px 16px 16px;
-  min-width: 160px;
-}
-
-.editArea {
-  flex-grow: 1;
-  
-}
-
-.loading {
-  display: flex;
-  margin: 24px;
-}
-
 /* Antora default styles from https://gitlab.com/antora/antora-ui-default, only .doc scoped styles included */
 
 .doc {
@@ -1161,4 +1067,8 @@ body {
 }
 .toc .toc-menu .is-hidden-toc {
   display: none !important;
+}
+.contentSidebar {
+  padding: 12px 8px 16px 16px;
+  min-width: 160px;
 }
