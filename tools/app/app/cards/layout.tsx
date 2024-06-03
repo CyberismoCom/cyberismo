@@ -16,6 +16,7 @@ import { SWRConfig } from 'swr'
 import { getSwrConfig } from '../lib/swr'
 import { ThemeProvider } from '@emotion/react'
 import theme from '../theme'
+import '../lib/i18n'
 
 function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key

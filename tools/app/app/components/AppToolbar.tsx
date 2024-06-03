@@ -4,8 +4,10 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Image from 'next/image'
 import Button from '@mui/material/Button'
+import { useTranslation } from 'react-i18next'
 
 export default function AppToolbar() {
+  const { t } = useTranslation()
   return (
     <AppBar position="sticky" style={{ background: '#000000' }}>
       <Toolbar>
@@ -21,10 +23,10 @@ export default function AppToolbar() {
           component="div"
           sx={{ flexGrow: 1, marginLeft: 1 }}
         >
-          Cards
+          {t('appName')}
         </Typography>
-        <Button color="inherit">New card</Button>
-        <Button color="inherit">Import modules</Button>
+        <Button color="inherit">{t('toolbar.newCard')}</Button>
+        <Button color="inherit">{t('toolbar.importModules')}</Button>
       </Toolbar>
     </AppBar>
   )

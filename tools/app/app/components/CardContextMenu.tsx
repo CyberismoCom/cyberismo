@@ -22,6 +22,7 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 interface CardContextMenuProps {
   card: CardDetails | null
@@ -48,6 +49,8 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ card }) => {
     setIsMetadataDialogOpen(false)
   }
 
+  const { t } = useTranslation()
+
   return (
     <div>
       <IconButton
@@ -68,26 +71,26 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ card }) => {
           'aria-labelledby': 'context-button',
         }}
       >
-        <MenuItem onClick={handleMetadataDialogOpen}>Metadata</MenuItem>
+        <MenuItem onClick={handleMetadataDialogOpen}>{t('metadata')}</MenuItem>
         <Divider />
         <MenuItem onClick={handleClose}>
-          <Typography color="red">Delete card</Typography>
+          <Typography color="red">{t('deleteCard')}</Typography>
         </MenuItem>
       </Menu>
 
       <Dialog open={isMetadataDialogOpen} onClose={handleMetadataDialogClose}>
         <Box>
           <DialogTitle id="metadata-modal-title" variant="h6" component="h2">
-            {card?.key} metadata
+            {card?.key} {t('metadata').toLowerCase()}
           </DialogTitle>
           <DialogContent>
             <DialogContentText id="metadata-dialog-content">
-              {renderMetadata(card?.metadata)}
+              {renderMetadata(t, card?.metadata)}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleMetadataDialogClose} autoFocus>
-              Close
+              {t('close')}
             </Button>
           </DialogActions>
         </Box>
@@ -96,35 +99,40 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ card }) => {
   )
 }
 
-const renderMetadata = (metadata?: CardMetadata) => (
-  <div>
-    <Table size="small">
-      <TableHead>
-        <TableRow>
-          <TableCell>
-            <b>Name</b>
-          </TableCell>
-          <TableCell>
-            <b>Value</b>
-          </TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        <TableRow>
-          <TableCell>Card type</TableCell>
-          <TableCell>{metadata?.cardtype}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Summary</TableCell>
-          <TableCell>{metadata?.summary}</TableCell>
-        </TableRow>
-        <TableRow>
-          <TableCell>Workflow state</TableCell>
-          <TableCell>{metadata?.workflowState}</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
-  </div>
-)
+const renderMetadata = (
+  t: (key: string) => string,
+  metadata?: CardMetadata
+) => {
+  return (
+    <div>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>
+              <b>{t('name')}</b>
+            </TableCell>
+            <TableCell>
+              <b>{t('value')}</b>
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          <TableRow>
+            <TableCell>{t('cardType')}</TableCell>
+            <TableCell>{metadata?.cardtype}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>{t('summary')}</TableCell>
+            <TableCell>{metadata?.summary}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>{t('workflowState')}</TableCell>
+            <TableCell>{metadata?.workflowState}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
 
 export default CardContextMenu
