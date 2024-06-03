@@ -4,6 +4,7 @@ import { CardAttachment, CardDetails, Project } from '../lib/definitions'
 import Processor from '@asciidoctor/core'
 import { parse } from 'node-html-parser'
 import { Box, Stack, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 type ContentAreaProps = {
   card: CardDetails | null
@@ -18,8 +19,15 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null)
 
-  if (error) return <Box>Could not find card. ({error})</Box>
-  if (!card) return <Box>Loading...</Box>
+  const { t } = useTranslation()
+
+  if (error)
+    return (
+      <Box>
+        {t('cardNotFound')} ({error})
+      </Box>
+    )
+  if (!card) return <Box>{t('loading')}</Box>
 
   const asciidocContent = card.content ?? ''
   let htmlContent = Processor()

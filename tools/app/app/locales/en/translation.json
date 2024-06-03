@@ -1,0 +1,22 @@
+{
+  "appName": "Cards",
+  "toolbar": {
+    "newCard": "New Card",
+    "importModules": "Import Modules"
+  },
+  "cardType": "Card Type",
+  "value": "Value",
+  "name": "Name",
+  "summary": "Summary",
+  "workflowState": "Workflow State",
+  "metadata": "Metadata",
+  "deleteCard": "Delete Card",
+  "close": "Close",
+  "cardNotFound": "Could not find card",
+  "loading": "Loading...",
+  "update": "Update",
+  "edit": "Edit",
+  "selectCard": "Please select a card",
+  "preview": "Preview",
+  "cancel": "Cancel"
+}

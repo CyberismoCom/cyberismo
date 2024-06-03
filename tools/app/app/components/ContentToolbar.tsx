@@ -14,6 +14,7 @@ import StatusSelector from './StateSelector'
 import CardContextMenu from './CardContextMenu'
 import { findWorkflowForCard, useError } from '../lib/utils'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 
 interface ContentToolbarProps {
   selectedCard: CardDetails | null
@@ -31,6 +32,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   onStateTransition,
 }) => {
   const router = useRouter()
+  const { t } = useTranslation()
 
   const workflow = findWorkflowForCard(selectedCard, project)
   const currentState =
@@ -53,7 +55,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           style={{ marginLeft: 16, minWidth: 80, color: 'grey' }}
           onClick={() => router.back()}
         >
-          Cancel
+          {t('cancel')}
         </Button>
       )}
 
@@ -71,7 +73,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={() => router.push(`/cards/${selectedCard!.key}/edit`)}
         >
-          Edit
+          {t('edit')}
         </Button>
       )}
 
@@ -82,7 +84,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={onUpdate}
         >
-          Update
+          {t('update')}
         </Button>
       )}
     </Toolbar>

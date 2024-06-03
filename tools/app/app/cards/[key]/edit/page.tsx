@@ -16,12 +16,15 @@ import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
 import { useCard, useProject } from '@/app/lib/api/index'
 import { useError } from '@/app/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 type EditableMetadata = {
   summary: string | undefined
 }
 
 export default function Page({ params }: { params: { key: string } }) {
+  const { t } = useTranslation()
+
   // Original card and project
   const { project } = useProject()
   const { card, updateCard } = useCard(params.key)
@@ -105,8 +108,8 @@ export default function Page({ params }: { params: { key: string } }) {
         >
           <Box flexGrow={1} />
           <Tabs value={value} onChange={handleChange}>
-            <Tab label="Edit" />
-            <Tab label="Preview" />
+            <Tab label={t('edit')} />
+            <Tab label={t('preview')} />
           </Tabs>
         </Stack>
 
