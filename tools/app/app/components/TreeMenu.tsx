@@ -8,6 +8,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import Link from 'next/link'
 import { findPathTo } from '../lib/utils'
 import { useRouter } from 'next/navigation'
+import { Box, Stack, Typography } from '@mui/material'
 
 type TreeMenuProps = {
   project: Project
@@ -42,10 +43,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   }
 
   return (
-    <div className="navigationSidebar">
-      <h3>{project.name}</h3>
+    <Stack padding={2} bgcolor="#f0f0f0" height="100%" width="100%">
+      <Typography variant="h3">{project.name}</Typography>
       <TreeView
-        className="treeView"
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
         defaultExpanded={expanded}
@@ -60,11 +60,14 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           '& .MuiTreeItem-label': {
             fontSize: '1.0em',
             lineHeight: '1.3em',
-          }
+          },
+          overflowY: 'scroll',
+          scrollbarWidth: 'thin',
+          flexGrow: 1,
         }}
       >
         {project.cards.map((treeItem) => renderTree(treeItem, handleClick))}
       </TreeView>
-    </div>
+    </Stack>
   )
 }
