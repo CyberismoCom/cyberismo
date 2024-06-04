@@ -5,8 +5,32 @@
         {
             "name": "obsoletedBy",
             "isEditable": true
+        },
+        {
+            "name": "admins"
+        },
+        {
+            "name": "commit-description"
+        },
+        {
+            "name": "responsible"
+        },
+        {
+            "name": "number-of-commits"
+        },
+        {
+            "name": "percentage-ready"
+        },
+        {
+            "name": "last-changed-date"
+        },
+        {
+            "name": "last-changed-timestamp"
+        },
+        {
+            "name": "finished"
         }
     ],
-    "alwaysVisibleFields": [ "obsoletedBy" ],
+    "alwaysVisibleFields": [ "obsoletedBy", "admins", "commit-description" ],
     "optionallyVisibleFields": []
 }

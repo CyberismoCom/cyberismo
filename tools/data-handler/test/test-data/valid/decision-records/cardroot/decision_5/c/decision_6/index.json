@@ -2,5 +2,14 @@
     "cardtype": "decision-cardtype",
     "summary": "Document Decisions with Decision Records",
     "workflowState": "Approved",
-    "obsoletedBy": null
+    "obsoletedBy": null,
+    "admins": null,
+    "commit-description": null,
+    "finished": null,
+    "last-changed-date": null,
+    "last-changed-timestamp": null,
+    "number-of-commits": null,
+    "percentage-ready": null,
+    "commit-description": null,
+    "responsible": null
 }

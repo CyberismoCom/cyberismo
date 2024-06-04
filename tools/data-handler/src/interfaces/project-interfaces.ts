@@ -179,4 +179,4 @@ export interface fetchCardDetails {
     parent?: boolean,
 }
 
-export type metadataContent = number | boolean | string | string[];
+export type metadataContent = number | boolean | string | string[] | null;
