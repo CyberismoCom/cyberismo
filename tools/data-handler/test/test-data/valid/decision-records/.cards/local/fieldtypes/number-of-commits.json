@@ -1,0 +1,6 @@
+{
+    "name": "number-of-commits",
+    "displayName": "Number of commits",
+    "fieldDescription": "How many commits have been done related to this task",
+    "dataType": "integer"
+}
