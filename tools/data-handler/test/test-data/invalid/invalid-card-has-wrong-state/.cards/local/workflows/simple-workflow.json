@@ -1,0 +1,24 @@
+{
+    "name": "simple-workflow",
+    "states": [
+        { "name": "Created", "category": "initial" },
+        { "name": "Approved", "category": "closed" },
+        { "name": "Deprecated", "category": "hidden" } ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [],
+            "toState": "Created"
+        },
+        {
+            "name": "Approve",
+            "fromState": ["Created"],
+            "toState": "Approved"
+        },
+        {
+            "name": "Deprecate",
+            "fromState": ["Approved", "Create"],
+            "toState": "Deprecated"
+        }
+    ]
+}

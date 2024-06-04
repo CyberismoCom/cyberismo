@@ -1,16 +1,16 @@
 // node
 import { join } from 'node:path';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // testing
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-// ismo
+// data-handler
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/validate.js';
-
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { Project } from '../src/containers/project.js';
 
 describe('validate cmd tests', () => {
 
@@ -177,6 +177,47 @@ describe('validate cmd tests', () => {
         const schemaId = 'i-do-not-exists';
         const status = await validateCmd.validateSchema(path, schemaId);
         expect(status.statusCode).to.equal(400);
+    });
+
+    it('validateWorkflowState (success)', async () => {
+        const project = new Project('test/test-data/valid/decision-records/');
+        const card = await project.findSpecificCard('decision_5', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateWorkflowState(project, card);
+            expect(valid.statusCode).to.equal(200);
+        }
+    });
+    it('try to validateWorkflowState - invalid state', async () => {
+        const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
+        const card = await project.findSpecificCard('decision_6', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateWorkflowState(project, card);
+            expect(valid.statusCode).to.equal(400);
+        }
+    });
+    it('try to validateWorkflowState - cardtype not found', async () => {
+        const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
+        const card = await project.findSpecificCard('decision_5', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateWorkflowState(project, card);
+            expect(valid.statusCode).to.equal(500);
+        }
+    });
+    it('try to validateWorkflowState - workflow not found from project', async () => {
+        const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
+        const card = await project.findSpecificCard('decision_7', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateWorkflowState(project, card);
+            expect(valid.statusCode).to.equal(400);
+        }
+    });
+    it('try to validateWorkflowState - workflow not found from card', async () => {
+        const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
+        const card = await project.findSpecificCard('decision_8', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateWorkflowState(project, card);
+            expect(valid.statusCode).to.equal(500);
+        }
     });
 })
 

@@ -1,15 +1,20 @@
+// node
 import { Dirent, readdirSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
+// dependencies
 import { Validator as JSONValidator, Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 
+// data-handler
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
-import { fileURLToPath } from 'node:url';
+import { Project } from './containers/project.js';
+import { card } from './interfaces/project-interfaces.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 
@@ -171,6 +176,25 @@ export class Validate {
             } else {
                 // Then, validate that each 'contentSchema' children as well.
                 response = await this.readAndValidateContentFiles(projectPath);
+
+                // Finally, validate that each card is correct
+                const project = new Project(projectPath);
+                const cards = await project.cards();
+                const errorMsg: string[] = [];
+                for (const card of cards) {
+                    if (card.metadata) {
+                        // validate card's workflow
+                        const validWorkflow = await this.validateWorkflowState(project, card);
+                        if (validWorkflow.statusCode != 200) {
+                            errorMsg.push(validWorkflow.message || '');
+                        }
+
+                        // @todo: validate customfields
+                    }
+                }
+                if (errorMsg.length) {
+                    return { statusCode: 400, message: errorMsg.toString() };
+                }
             }
         } catch (error) {
             return { statusCode: 500, message: errorFunction(error) };
@@ -235,6 +259,61 @@ export class Validate {
             }
         }
         return response;
+    }
+
+    /**
+     * Checks if card's current workflow state matches workflow that card's cardtype is using.
+     * @param {Project} project Project object.
+     * @param {card} card Card object to validate
+     * @returns requestStatus 200 when validation succeeded
+     *  <br> statusCode 400 when schema validation failed
+     *  <br> statusCode 500 when schema has logical errors (e.g. missing cardtype)
+     *
+     */
+    public async validateWorkflowState(project: Project, card: card): Promise<requestStatus> {
+
+        if (!card.metadata) {
+            return {
+                statusCode: 500,
+                message: errorFunction(
+                    `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`)
+            };
+        }
+
+        const cardType = await project.cardType(card.metadata?.cardtype);
+        if (!cardType) {
+            return {
+                statusCode: 500,
+                message: errorFunction(`Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`)
+            };
+        }
+
+        if (!cardType.workflow) {
+            return {
+                statusCode: 500,
+                message: errorFunction(`Cardtype '${cardType?.name}' does not have 'workflow'`)
+            };
+        }
+
+        const workflow = await project.workflow(cardType?.workflow);
+        if (workflow) {
+            const states = workflow.states;
+            const cardState = card.metadata?.workflowState;
+            const found = states.find(item => item.name === cardState);
+            if (!found) {
+                return {
+                    statusCode: 400,
+                    message: errorFunction(`Card '${card.key}' has invalid state '${cardState}'`)
+                };
+            }
+        } else {
+            return {
+                statusCode: 400,
+                message: errorFunction(
+                    `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`)
+                };
+        }
+        return { statusCode: 200 };
     }
 
     /**
