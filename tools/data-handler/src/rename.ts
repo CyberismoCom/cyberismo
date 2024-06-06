@@ -79,7 +79,7 @@ export class Rename extends EventEmitter {
         }
 
         // Then rename all project cards. Sort cards so that cards that deeper in file hierarchy are renamed first.
-        const projectCards = (await Rename.project.cards())
+        const projectCards = (await Rename.project.cards(Rename.project.cardrootFolder, { metadata: true, attachments: true }))
             .sort((a, b) => {
                 return this.sortCards(a, b);
             });
@@ -94,7 +94,7 @@ export class Rename extends EventEmitter {
         const templates = await Rename.project.templates(true);
         for (const template of templates) {
             const templateObject = new Template(projectPath, template, Rename.project);
-            const templateCards = (await templateObject.cards())
+            const templateCards = (await templateObject.cards("", { metadata: true, attachments: true }))
                 .sort((a, b) => {
                     return this.sortCards(a, b);
                 });

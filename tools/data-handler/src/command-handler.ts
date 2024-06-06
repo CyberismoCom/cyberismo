@@ -650,7 +650,7 @@ export class Commands {
 
     /**
      * Changes project prefix, and renames all project cards.
-     * @param to New project prefix
+     * @param {string} to New project prefix
      * @param {string} path Optional. Path to the project. If omitted, project is set from current path.
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
