@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CardDetails,
   CardMode,
@@ -14,13 +14,20 @@ import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
-import { useCard, useProject } from '@/app/lib/api/index'
+import {
+  useCard,
+  useCardType,
+  useFieldTypes,
+  useProject,
+} from '@/app/lib/api/index'
 import { useError } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
-
-type EditableMetadata = {
-  summary: string | undefined
-}
+import ExpandingBox from '@/app/components/ExpandingBox'
+import {
+  generateExpandingBoxValues,
+  getEditableFields,
+} from '@/app/lib/components'
+import { Controller, useForm } from 'react-hook-form'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -28,16 +35,31 @@ export default function Page({ params }: { params: { key: string } }) {
   // Original card and project
   const { project } = useProject()
   const { card, updateCard } = useCard(params.key)
+  const { fieldTypes } = useFieldTypes()
+  const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
 
   // Edited card content and metadata
   const [value, setValue] = useState<number>(0)
-  const [content, setContent] = useState<string | undefined>(undefined)
-  const [metadata, setMetadata] = useState<EditableMetadata | undefined>(
-    undefined
-  )
 
   const { reason, setError, handleClose } = useError()
   const router = useRouter()
+
+  const { reset, handleSubmit, getValues, control } = useForm()
+
+  const fields = useMemo(() => {
+    if (!card || !cardType) return []
+    let { values, fields } = generateExpandingBoxValues(
+      card,
+      fieldTypes,
+      [],
+      getEditableFields(card, cardType)
+    )
+    values['__title__'] = card.metadata?.summary ?? ''
+    values['__content__'] = card.content ?? ''
+
+    reset(values)
+    return fields
+  }, [card, fieldTypes, cardType, reset])
 
   const handleStateTransition = async (transition: WorkflowTransition) => {
     try {
@@ -47,11 +69,15 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const handleSave = async () => {
+  const handleSave = async (data: any) => {
     try {
+      const { __content__, __title__, ...metadata } = data
       await updateCard({
-        content,
-        metadata,
+        content: __content__,
+        metadata: {
+          ...metadata,
+          summary: __title__,
+        },
       })
       router.push(`/cards/${card!.key}`)
     } catch (error) {
@@ -59,36 +85,20 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  if (card) {
-    if (!content) setContent(card.content ?? '')
-    if (!metadata) setMetadata({ summary: card.metadata?.summary ?? '' })
-  }
-
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue)
   }
 
-  const handleContentChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
-    setContent(event.target.value)
-  }
-
-  const handleTitleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMetadata({ ...metadata, summary: event.target.value })
-  }
-
-  const getPreview = () => {
-    const previewCard: CardDetails = {
+  const getPreview = useCallback(() => {
+    return {
       ...card!,
-      content: content,
+      content: getValues('__content__'),
       metadata: {
         ...card!.metadata!,
-        summary: metadata?.summary ?? '',
+        summary: getValues('__title__'),
       },
     }
-    return previewCard
-  }
+  }, [card, getValues])
 
   return (
     <Stack height="100%">
@@ -96,10 +106,18 @@ export default function Page({ params }: { params: { key: string } }) {
         selectedCard={card}
         project={project}
         mode={CardMode.EDIT}
-        onUpdate={handleSave}
+        onUpdate={() => handleSubmit(handleSave)()}
         onStateTransition={handleStateTransition}
       />
       <Stack paddingX={3} flexGrow={1} minHeight={0}>
+        <Box width="70%">
+          <ExpandingBox
+            values={fields}
+            color="bgsoft.main"
+            editMode={true}
+            control={control}
+          />
+        </Box>
         <Stack
           borderColor="divider"
           borderBottom={1}
@@ -123,21 +141,37 @@ export default function Page({ params }: { params: { key: string } }) {
             height="100%"
             minHeight={0}
           >
-            <TextField
-              style={{ width: '100%', marginBottom: '10px' }}
-              inputProps={{
-                style: { fontSize: '1.2em', fontWeight: 'bold' },
-              }}
-              multiline={true}
-              value={metadata?.summary ?? ''}
-              onChange={handleTitleChange}
+            <Controller
+              name="__title__"
+              control={control}
+              render={({ field: { value, onChange } }: any) => (
+                <TextField
+                  inputProps={{
+                    style: { fontSize: '1.2em', fontWeight: 'bold' },
+                  }}
+                  sx={{
+                    marginBottom: '10px',
+                  }}
+                  fullWidth
+                  multiline={true}
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
             />
-            <TextField
-              minRows={10}
-              multiline={true}
-              style={{ width: '100%' }}
-              value={content ?? ''}
-              onChange={handleContentChange}
+
+            <Controller
+              name="__content__"
+              control={control}
+              render={({ field: { value, onChange } }: any) => (
+                <TextField
+                  minRows={10}
+                  multiline={true}
+                  fullWidth
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
             />
           </Box>
         </TabPanel>

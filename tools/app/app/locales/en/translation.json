@@ -18,5 +18,9 @@
   "edit": "Edit",
   "selectCard": "Please select a card",
   "preview": "Preview",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "showMore": "Show More",
+  "showLess": "Show Less",
+  "true": "True",
+  "false": "False"
 }

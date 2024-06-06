@@ -1,10 +1,12 @@
-import { Project, CardDetails } from '../definitions'
+import { Project, CardDetails, FieldTypes, CardType } from '../definitions'
 
 import { SWRResponse } from 'swr'
 
 export type Resources = {
   project: Project
   card: CardDetails
+  fieldTypes: FieldTypes
+  cardType: CardType
 }
 
 export type ResourceName = keyof Resources
