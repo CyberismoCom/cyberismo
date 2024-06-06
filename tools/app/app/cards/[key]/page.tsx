@@ -12,6 +12,7 @@ import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/material'
 import { useMemo } from 'react'
+import { useForm } from 'react-hook-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,19 +32,23 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const fields = useMemo(
-    () =>
-      generateExpandingBoxValues(
-        card,
-        fieldTypes,
-        ['key', 'type'].concat(cardType?.alwaysVisibleFields ?? []) ?? [
-          'key',
-          'type',
-        ],
-        []
-      ).fields,
-    [card, fieldTypes, cardType]
-  )
+  const { control, reset } = useForm()
+
+  const fields = useMemo(() => {
+    if (!card || !cardType) return []
+    let { values, fields } = generateExpandingBoxValues(
+      card,
+      fieldTypes,
+      ['key', 'type'].concat(cardType.alwaysVisibleFields ?? []) ?? [
+        'key',
+        'type',
+      ],
+      []
+    )
+
+    reset(values)
+    return fields
+  }, [card, fieldTypes, cardType, reset])
 
   return (
     <Stack height="100%">
@@ -56,7 +61,12 @@ export default function Page({ params }: { params: { key: string } }) {
       />
       <Box flexGrow={1} minHeight={0}>
         <Box width="65%" maxWidth="46rem">
-          <ExpandingBox values={fields} color="bgsoft.main" editMode={false} />
+          <ExpandingBox
+            values={fields}
+            color="bgsoft.main"
+            editMode={false}
+            control={control}
+          />
         </Box>
         <Box padding={3}>
           <ContentArea card={card} error={error?.message} preview={false} />

@@ -2,7 +2,7 @@ import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
 import { Box, Button, Collapse, useTheme } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import EditableField from './EditableField'
-import { Controller, useForm, useFormContext } from 'react-hook-form'
+import { Control, Controller, FieldValues } from 'react-hook-form'
 import {
   CardMetadata,
   DataType,
@@ -20,12 +20,14 @@ export type ExpandingBoxProps = {
     alwaysVisible?: boolean
     enumValues?: Array<EnumDefinition>
   }>
+  control: Control<FieldValues, any>
   editMode?: boolean
   color?: string
   onChange?: (key: string, value: string) => void
 }
 function ExpandingBox({
   values,
+  control,
   editMode = false,
   color = 'background.default',
 }: ExpandingBoxProps) {
@@ -36,20 +38,6 @@ function ExpandingBox({
     () => values.every(({ alwaysVisible }) => alwaysVisible),
     [values]
   )
-
-  // might used with or without react-hook-form
-  const { control, reset } = editMode ? useFormContext() : useForm()
-
-  useEffect(() => {
-    if (!editMode) {
-      reset(
-        values.reduce<Partial<CardMetadata>>((acc, { key, value }) => {
-          acc[key] = value
-          return acc
-        }, {})
-      )
-    }
-  }, [values, reset])
 
   // TODO: replace with yup schemas
   const handleChange = useCallback(

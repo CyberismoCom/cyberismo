@@ -27,7 +27,7 @@ import {
   generateExpandingBoxValues,
   getEditableFields,
 } from '@/app/lib/components'
-import { Controller, FormProvider, useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -44,8 +44,7 @@ export default function Page({ params }: { params: { key: string } }) {
   const { reason, setError, handleClose } = useError()
   const router = useRouter()
 
-  const form = useForm()
-  const { reset, handleSubmit, getValues, control } = form
+  const { reset, handleSubmit, getValues, control } = useForm()
 
   const fields = useMemo(() => {
     if (!card || !cardType) return []
@@ -60,7 +59,7 @@ export default function Page({ params }: { params: { key: string } }) {
 
     reset(values)
     return fields
-  }, [card, fieldTypes])
+  }, [card, fieldTypes, cardType, reset])
 
   const handleStateTransition = async (transition: WorkflowTransition) => {
     try {
@@ -99,90 +98,93 @@ export default function Page({ params }: { params: { key: string } }) {
         summary: getValues('__title__'),
       },
     }
-  }, [card, form])
+  }, [card, getValues])
 
   return (
-    <FormProvider {...form}>
-      <Stack height="100%">
-        <ContentToolbar
-          selectedCard={card}
-          project={project}
-          mode={CardMode.EDIT}
-          onUpdate={() => handleSubmit(handleSave)()}
-          onStateTransition={handleStateTransition}
-        />
-        <Stack paddingX={3} flexGrow={1} minHeight={0}>
-          <Box width="70%">
-            <ExpandingBox values={fields} color="bgsoft.main" editMode={true} />
-          </Box>
-          <Stack
-            borderColor="divider"
-            borderBottom={1}
-            direction="row"
-            width="70%"
-          >
-            <Box flexGrow={1} />
-            <Tabs value={value} onChange={handleChange}>
-              <Tab label={t('edit')} />
-              <Tab label={t('preview')} />
-            </Tabs>
-          </Stack>
-
-          <TabPanel value={value} index={0}>
-            <Box
-              width="70%"
-              sx={{
-                overflowY: 'scroll',
-                scrollbarWidth: 'thin',
-              }}
-              height="100%"
-              minHeight={0}
-            >
-              <Controller
-                name="__title__"
-                control={control}
-                render={({ field: { value, onChange } }: any) => (
-                  <TextField
-                    inputProps={{
-                      style: { fontSize: '1.2em', fontWeight: 'bold' },
-                    }}
-                    sx={{
-                      marginBottom: '10px',
-                    }}
-                    fullWidth
-                    multiline={true}
-                    value={value}
-                    onChange={onChange}
-                  />
-                )}
-              />
-
-              <Controller
-                name="__content__"
-                control={control}
-                render={({ field: { value, onChange } }: any) => (
-                  <TextField
-                    minRows={10}
-                    multiline={true}
-                    fullWidth
-                    value={value}
-                    onChange={onChange}
-                  />
-                )}
-              />
-            </Box>
-          </TabPanel>
-          <TabPanel value={value} index={1}>
-            {card && (
-              <Box height="100%">
-                <ContentArea card={getPreview()} error={null} preview={true} />
-              </Box>
-            )}
-          </TabPanel>
+    <Stack height="100%">
+      <ContentToolbar
+        selectedCard={card}
+        project={project}
+        mode={CardMode.EDIT}
+        onUpdate={() => handleSubmit(handleSave)()}
+        onStateTransition={handleStateTransition}
+      />
+      <Stack paddingX={3} flexGrow={1} minHeight={0}>
+        <Box width="70%">
+          <ExpandingBox
+            values={fields}
+            color="bgsoft.main"
+            editMode={true}
+            control={control}
+          />
+        </Box>
+        <Stack
+          borderColor="divider"
+          borderBottom={1}
+          direction="row"
+          width="70%"
+        >
+          <Box flexGrow={1} />
+          <Tabs value={value} onChange={handleChange}>
+            <Tab label={t('edit')} />
+            <Tab label={t('preview')} />
+          </Tabs>
         </Stack>
-        <ErrorBar error={reason} onClose={handleClose} />
+
+        <TabPanel value={value} index={0}>
+          <Box
+            width="70%"
+            sx={{
+              overflowY: 'scroll',
+              scrollbarWidth: 'thin',
+            }}
+            height="100%"
+            minHeight={0}
+          >
+            <Controller
+              name="__title__"
+              control={control}
+              render={({ field: { value, onChange } }: any) => (
+                <TextField
+                  inputProps={{
+                    style: { fontSize: '1.2em', fontWeight: 'bold' },
+                  }}
+                  sx={{
+                    marginBottom: '10px',
+                  }}
+                  fullWidth
+                  multiline={true}
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
+            />
+
+            <Controller
+              name="__content__"
+              control={control}
+              render={({ field: { value, onChange } }: any) => (
+                <TextField
+                  minRows={10}
+                  multiline={true}
+                  fullWidth
+                  value={value}
+                  onChange={onChange}
+                />
+              )}
+            />
+          </Box>
+        </TabPanel>
+        <TabPanel value={value} index={1}>
+          {card && (
+            <Box height="100%">
+              <ContentArea card={getPreview()} error={null} preview={true} />
+            </Box>
+          )}
+        </TabPanel>
       </Stack>
-    </FormProvider>
+      <ErrorBar error={reason} onClose={handleClose} />
+    </Stack>
   )
 }
 
