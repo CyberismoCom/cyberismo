@@ -279,10 +279,14 @@ export class Project extends CardContainer {
 
     /**
      * Returns an array of all the cards in the project. Cards have content and metadata
-     * @returns all cards in the project.
+     * @param {string} path Optional path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
+     * @param {string} details Which details to include in the cards; by default only "content" and "metadata" are included.
+     * @returns all cards from the given path in the project.
      */
-    public async cards(): Promise<card[]> {
-        return super.cards(this.cardrootFolder, { content: true, metadata: true });
+    public async cards(
+        path: string = this.cardrootFolder,
+        details: fetchCardDetails = { content: true, metadata: true }): Promise<card[]> {
+        return super.cards(path, details);
     }
 
     /**
