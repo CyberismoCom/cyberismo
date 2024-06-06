@@ -3,7 +3,7 @@ import useSWR, { SWRConfiguration } from 'swr'
 import { Resources, ResourceName, SwrResult } from './types'
 
 export function useSWRHook<T extends ResourceName>(
-  swrKey: string,
+  swrKey: string | null,
   name: T,
   options?: SWRConfiguration
 ) {
