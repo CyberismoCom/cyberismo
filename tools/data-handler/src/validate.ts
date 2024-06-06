@@ -14,7 +14,7 @@ import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { card } from './interfaces/project-interfaces.js';
+import { card, fieldtype } from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -153,9 +153,11 @@ export class Validate {
     }
 
     // Validates that card's dataType can be used with JS types.
-    private validType<T>(value: T, field: string): boolean {
+    private validType<T>(value: T, fieldType: fieldtype): boolean {
+        const field = fieldType.dataType;
         const typeOfValue = typeof value;
 
+        // Nulls are always accepted.
         if (typeOfValue === 'object' && value === null) {
             return true;
         }
@@ -183,10 +185,10 @@ export class Validate {
             return EmailValidator.validate(<string>value) || this.length(<string>value) === 0;
         }
         if (field === 'enum') {
-            // @todo - not supported yet
-            return true;
+            const found = fieldType.enumValues?.find(item => item.enumValue === value);
+            return found ? true : false;
         }
-        console.error(`Type ${field} is not yet supported`);
+        console.error(`Type ${field} is not supported`);
         return false;
     }
 
@@ -363,10 +365,17 @@ export class Validate {
                         message: errorFunction(`Card '${card.key}' is missing custom field 'name' from ${field}`)};
                 }
                 const fieldType = await project.fieldType(field.name);
-                if (fieldType && !this.validType(card.metadata[field.name], fieldType.dataType)) {
-                    const fieldValue = card.metadata[field.name] ? card.metadata[field.name] : '<no value>'
+                if (fieldType && !this.validType(card.metadata[field.name], fieldType)) {
                     const typeOfValue = typeof card.metadata[field.name];
-                    errorMsg += `In card ${card.key} field "${field.name}"="${fieldValue}" is '${typeOfValue}', but it is defined as '${fieldType.dataType}'\n`;
+                    let fieldValue = card.metadata[field.name];
+                    if (typeOfValue === 'string') {
+                        fieldValue = card.metadata[field.name] ? `"${card.metadata[field.name]}"` : '""';
+                    }
+                    errorMsg += `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`;
+                    if (fieldType.dataType === 'enum') {
+                        let listOfEnumValues = fieldType.enumValues?.map(item => item.enumValue);
+                        errorMsg += `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`;
+                    }
                 }
             }
         }

@@ -77,7 +77,7 @@ export interface fieldtype {
     displayName?: string,
     fieldDescription?: string,
     dataType: string,
-    enumValues?: object[]
+    enumValues?: enumValue[]
 }
 
 // Project metadata details.
@@ -146,8 +146,8 @@ export interface workflowTransition {
 
 // Custom field enum value
 export interface enumValue {
-    value: string,
-    displayValue: string,
+    enumValue: string,
+    enumDisplayValue: string,
     enumDescription: string,
 }
 
