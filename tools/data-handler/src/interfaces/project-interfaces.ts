@@ -126,8 +126,7 @@ export interface workflowMetadata {
 export enum workflowCategory {
     initial = "initial",
     active = "active",
-    closed = "closed",
-    hidden = "hidden"
+    closed = "closed"
 }
 
 // Workflow state.
