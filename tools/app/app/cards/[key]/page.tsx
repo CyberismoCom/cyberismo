@@ -3,8 +3,11 @@ import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import ErrorBar from '@/app/components/ErrorBar'
 import ExpandingBox from '@/app/components/ExpandingBox'
-import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
-import { generateExpandingBoxValues } from '@/app/lib/components'
+import { useCard, useCardType, useFieldTypes, useProject } from '@/app/lib/api'
+import {
+  generateExpandingBoxValues,
+  getEditableFields,
+} from '@/app/lib/components'
 import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/material'
@@ -18,6 +21,7 @@ export default function Page({ params }: { params: { key: string } }) {
   const { reason, setError, handleClose } = useError()
 
   const { fieldTypes } = useFieldTypes()
+  const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
 
   const handleStateTransition = async (transition: WorkflowTransition) => {
     try {
@@ -26,9 +30,19 @@ export default function Page({ params }: { params: { key: string } }) {
       if (error instanceof Error) setError(error.message)
     }
   }
+
   const fields = useMemo(
-    () => generateExpandingBoxValues(card, fieldTypes, ['key', 'type']).fields,
-    [card, fieldTypes]
+    () =>
+      generateExpandingBoxValues(
+        card,
+        fieldTypes,
+        ['key', 'type'].concat(cardType?.alwaysVisibleFields ?? []) ?? [
+          'key',
+          'type',
+        ],
+        []
+      ).fields,
+    [card, fieldTypes, cardType]
   )
 
   return (

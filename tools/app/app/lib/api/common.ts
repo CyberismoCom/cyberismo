@@ -1,11 +1,15 @@
-import useSWR, { SWRConfiguration } from "swr"
+import useSWR, { SWRConfiguration } from 'swr'
 
-import { Resources, ResourceName, SwrResult } from "./types";
+import { Resources, ResourceName, SwrResult } from './types'
 
-export function useSWRHook<T extends ResourceName>(swrKey: string, name: T, options?: SWRConfiguration){
-    const {data, ...rest} = useSWR<Resources[T]>(swrKey);
-    return {
-        ...rest,
-        [name]: data || null,
-    } as SwrResult<T>;
+export function useSWRHook<T extends ResourceName>(
+  swrKey: string,
+  name: T,
+  options?: SWRConfiguration
+) {
+  const { data, ...rest } = useSWR<Resources[T]>(swrKey)
+  return {
+    ...rest,
+    [name]: data || null,
+  } as SwrResult<T>
 }

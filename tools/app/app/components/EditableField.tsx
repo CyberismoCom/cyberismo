@@ -6,7 +6,7 @@ import { metadataValueToString } from '../lib/utils'
 
 type EditableFieldProps = {
   value: MetadataValue
-  dataType?: DataType
+  dataType: DataType
   label: string
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
   edit: boolean
@@ -37,7 +37,9 @@ const EditableField = ({
             />
           </Box>
         ) : (
-          <Typography>{metadataValueToString(value)}</Typography>
+          <Typography>
+            {metadataValueToString(value, dataType, enumValues)}
+          </Typography>
         )}
       </Grid>
     </Grid>

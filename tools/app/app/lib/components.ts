@@ -1,10 +1,5 @@
 import { ExpandingBoxProps } from '../components/ExpandingBox'
-import {
-  CardDetails,
-  CardMetadata,
-  FieldTypes,
-  MetadataValue,
-} from './definitions'
+import { CardDetails, CardMetadata, CardType, FieldTypes } from './definitions'
 /**
  * Generates the values for the ExpandingBox component
  * @param card Card to generate values for
@@ -14,7 +9,8 @@ import {
 export function generateExpandingBoxValues(
   card: CardDetails | null,
   fieldTypes: FieldTypes | null,
-  visibleFields?: string[]
+  visibleFields: string[],
+  editableFields: string[]
 ): {
   fields: ExpandingBoxProps['values']
   values: Partial<CardMetadata>
@@ -25,14 +21,16 @@ export function generateExpandingBoxValues(
       label: 'Card key',
       value: card?.key ?? '',
       editable: false,
-      alwaysVisible: visibleFields?.includes('key'),
+      alwaysVisible: visibleFields.includes('key'),
+      dataType: 'shorttext',
     },
     {
       key: 'type',
       label: 'Card type',
       value: card?.metadata?.cardtype ?? '',
       editable: false,
-      alwaysVisible: visibleFields?.includes('type'),
+      alwaysVisible: visibleFields.includes('type'),
+      dataType: 'shorttext',
     },
   ]
 
@@ -49,9 +47,9 @@ export function generateExpandingBoxValues(
       key,
       label: fieldType.displayName || key,
       value,
-      editable: true,
+      editable: editableFields.includes(key),
       dataType: fieldType.dataType,
-      alwaysVisible: visibleFields?.includes(key),
+      alwaysVisible: visibleFields.includes(key),
       enumValues: fieldType.enumValues,
     })
   }
@@ -62,4 +60,18 @@ export function generateExpandingBoxValues(
       return acc
     }, {}),
   }
+}
+
+export function getEditableFields(
+  card: CardDetails,
+  cardType: CardType
+): string[] {
+  if (!card.metadata) {
+    return []
+  }
+  return Object.keys(card.metadata).filter(
+    (key) =>
+      cardType.customFields.find((field) => field.name === key)?.isEditable ||
+      false
+  )
 }

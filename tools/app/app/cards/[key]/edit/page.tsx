@@ -14,11 +14,19 @@ import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
-import { useCard, useFieldTypes, useProject } from '@/app/lib/api/index'
+import {
+  useCard,
+  useCardType,
+  useFieldTypes,
+  useProject,
+} from '@/app/lib/api/index'
 import { useError } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
-import { generateExpandingBoxValues } from '@/app/lib/components'
+import {
+  generateExpandingBoxValues,
+  getEditableFields,
+} from '@/app/lib/components'
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 
 export default function Page({ params }: { params: { key: string } }) {
@@ -28,6 +36,7 @@ export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
   const { card, updateCard } = useCard(params.key)
   const { fieldTypes } = useFieldTypes()
+  const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
 
   // Edited card content and metadata
   const [value, setValue] = useState<number>(0)
@@ -39,9 +48,15 @@ export default function Page({ params }: { params: { key: string } }) {
   const { reset, handleSubmit, getValues, control } = form
 
   const fields = useMemo(() => {
-    let { values, fields } = generateExpandingBoxValues(card, fieldTypes)
-    values['__title__'] = card?.metadata?.summary ?? ''
-    values['__content__'] = card?.content ?? ''
+    if (!card || !cardType) return []
+    let { values, fields } = generateExpandingBoxValues(
+      card,
+      fieldTypes,
+      [],
+      getEditableFields(card, cardType)
+    )
+    values['__title__'] = card.metadata?.summary ?? ''
+    values['__content__'] = card.content ?? ''
 
     reset(values)
     return fields

@@ -62,9 +62,17 @@ export interface WorkflowTransition {
   toState: string
 }
 
+export interface customField {
+  name: string
+  displayName: string
+  isEditable: boolean
+}
+
 export interface CardType {
   name: string
   workflow: string
+  alwaysVisibleFields: string[]
+  customFields: customField[]
 }
 
 export type FieldTypes = Array<FieldTypeDefinition>

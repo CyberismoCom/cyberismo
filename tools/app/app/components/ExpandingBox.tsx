@@ -14,7 +14,7 @@ export type ExpandingBoxProps = {
   values: Array<{
     key: string
     label: string
-    dataType?: DataType
+    dataType: DataType
     editable: boolean
     value: MetadataValue
     alwaysVisible?: boolean

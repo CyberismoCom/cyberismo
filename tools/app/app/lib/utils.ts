@@ -3,6 +3,8 @@ import {
   Card,
   CardDetails,
   CardMetadata,
+  DataType,
+  EnumDefinition,
   MetadataValue,
   Project,
   Workflow,
@@ -147,11 +149,22 @@ export function useError() {
  * @param metadata: metadata value to convert to string
  * @returns
  */
-export function metadataValueToString(metadata: MetadataValue): string {
+export function metadataValueToString(
+  metadata: MetadataValue,
+  dataType: DataType,
+  enumValues?: Array<EnumDefinition>
+): string {
   if (metadata instanceof Date) {
     return metadata.toISOString()
   } else if (metadata instanceof Array) {
     return metadata.join(', ')
+  } else if (dataType === 'enum') {
+    return (
+      enumValues?.find((enumValue) => enumValue.enumValue === metadata)
+        ?.enumDisplayValue ??
+      metadata?.toString() ??
+      ''
+    )
   } else {
     return metadata ? metadata.toString() : ''
   }
