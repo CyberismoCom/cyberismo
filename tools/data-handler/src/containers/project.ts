@@ -783,13 +783,35 @@ export class Project extends CardContainer {
         if (!card) {
             return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
         }
-        // todo: validation
+
+        const validCard = await this.validateCard(card);
+        if (validCard.statusCode !== 200) {
+            return validCard;
+        }
+
         if (card.metadata) {
             const cardAsRecord: MetadataTypes = card.metadata;
             cardAsRecord[changedKey] = newValue;
             return await this.saveCardMetadata(card);
         }
         return { statusCode: 200 };
+    }
+
+    /**
+     * Validates that card's data is valid.
+     * @param {card} card Card to validate.
+     * @returns request status 200 when success, 400 when validation does not succeed.
+     */
+    public async validateCard(card: card): Promise<requestStatus> {
+        const validCustomData = await this.validator.validateCustomFields(this, card);
+        const validWorkFlow = await this.validator.validateWorkflowState(this, card);
+        if (validCustomData.statusCode === 200 && validWorkFlow.statusCode === 200) {
+            return { statusCode: 200 };
+        }
+        return {
+            statusCode: 400,
+            message: `${validCustomData.message} +${validWorkFlow.message}`
+        };
     }
 
     /**
