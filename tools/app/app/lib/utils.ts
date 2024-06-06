@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Card, CardDetails, CardMetadata, Project, Workflow } from './definitions'
+import {
+  Card,
+  CardDetails,
+  CardMetadata,
+  MetadataValue,
+  Project,
+  Workflow,
+} from './definitions'
 import { ApiCallError } from './swr'
 
 /**
@@ -89,7 +96,7 @@ export function replaceCardMetadata(
   metadata: CardMetadata | undefined,
   cards: Card[]
 ): Card[] {
-  if(!metadata) return cards
+  if (!metadata) return cards
   let updatedCards = cards
   updateCard(updatedCards, key, metadata)
   return updatedCards
@@ -107,18 +114,20 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
   })
 }
 
+/**
+ * General helper for handling errors
+ */
 export function useError() {
   const [error, setError] = useState<Error | string | null>(null)
 
   // use memo to store human readable error messages
   const reason = useMemo(() => {
-    if(error instanceof ApiCallError){
-      return error.reason;
-    }
-    else if (error instanceof Error) {
-      return error.message;
+    if (error instanceof ApiCallError) {
+      return error.reason
+    } else if (error instanceof Error) {
+      return error.message
     } else {
-      return error;
+      return error
     }
   }, [error])
 
@@ -132,4 +141,18 @@ export function useError() {
     setError(null)
   }
   return { error, setError, handleClose, reason }
+}
+/**
+ * Converts metadata value to string
+ * @param metadata: metadata value to convert to string
+ * @returns
+ */
+export function metadataValueToString(metadata: MetadataValue): string {
+  if (metadata instanceof Date) {
+    return metadata.toISOString()
+  } else if (metadata instanceof Array) {
+    return metadata.join(', ')
+  } else {
+    return metadata ? metadata.toString() : ''
+  }
 }

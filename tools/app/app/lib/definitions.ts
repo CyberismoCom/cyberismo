@@ -26,11 +26,13 @@ export interface CardDetails {
   attachments?: CardAttachment[]
 }
 
-export interface CardMetadata {
-  cardtype: string
+export type CardMetadata = {
   summary: string
   workflowState: string
-}
+  cardtype: string
+} & Record<string, MetadataValue>
+
+export type MetadataValue = string | number | boolean | Date | string[] | null
 
 export interface CardAttachment {
   card: string
@@ -63,4 +65,36 @@ export interface WorkflowTransition {
 export interface CardType {
   name: string
   workflow: string
+}
+
+export type FieldTypes = Array<FieldTypeDefinition>
+
+export type FieldTypeKey = string
+
+export type DataType =
+  | 'shorttext'
+  | 'longtext'
+  | 'enum'
+  | 'date'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'enum'
+  | 'list'
+  | 'date'
+  | 'datetime'
+  | 'person'
+
+export type EnumDefinition = {
+  enumValue: string
+  enumDisplayValue: string
+  enumDescription?: string
+}
+
+export interface FieldTypeDefinition {
+  name: string
+  displayName?: string
+  fieldDescription?: string
+  dataType: DataType
+  enumValues?: Array<EnumDefinition>
 }
