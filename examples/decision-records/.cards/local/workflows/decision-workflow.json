@@ -4,7 +4,7 @@
         { "name": "Draft", "category": "initial" },
         { "name":"Approved", "category": "closed" },
         { "name":"Rejected", "category": "closed" },
-        { "name":"Deprecated", "category": "hidden" }
+        { "name":"Deprecated", "category": "closed" }
     ],
     "transitions": [
         {

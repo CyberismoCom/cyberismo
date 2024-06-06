@@ -38,7 +38,6 @@ const StateSelector: React.FC<StateSelectorProps> = ({
 
   if (
     currentState == null ||
-    currentState.category == workflowCategory.hidden ||
     workflow == null ||
     !workflow.states.find((state) => state.name == currentState.name)
   )

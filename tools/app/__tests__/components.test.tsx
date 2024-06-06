@@ -196,7 +196,7 @@ const testProject: Project = {
         },
         {
           name: 'Archived',
-          category: workflowCategory.hidden,
+          category: workflowCategory.closed,
         },
       ],
       transitions: [

@@ -3,7 +3,7 @@
     "states": [
         { "name": "Created", "category": "initial" },
         { "name": "Approved", "category": "closed" },
-        { "name": "Deprecated", "category": "hidden" } ],
+        { "name": "Deprecated", "category": "closed" } ],
     "transitions": [
         {
             "name": "Create",

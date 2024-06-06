@@ -5,7 +5,7 @@
         { "name": "Approved", "category": "closed" },
         { "name": "Rejected", "category": "closed" },
         { "name": "Rerejected", "category": "closed" },
-        { "name": "Deprecated", "category": "hidden" }
+        { "name": "Deprecated", "category": "closed" }
     ],
     "transitions": [
         {
