@@ -1,5 +1,5 @@
 import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
-import { Box, Button, Collapse, useTheme } from '@mui/material'
+import { Box, Button, Collapse, Stack, useTheme } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import EditableField from './EditableField'
 import { Control, Controller, FieldValues } from 'react-hook-form'
@@ -23,16 +23,19 @@ export type ExpandingBoxProps = {
   control: Control<FieldValues, any>
   editMode?: boolean
   color?: string
-  onChange?: (key: string, value: string) => void
+  onClick?: (e: any) => void
+  initialExpanded?: boolean
 }
 function ExpandingBox({
   values,
   control,
   editMode = false,
   color = 'background.default',
+  onClick,
+  initialExpanded = false,
 }: ExpandingBoxProps) {
   const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(initialExpanded)
 
   const allVisible = useMemo(
     () => values.every(({ alwaysVisible }) => alwaysVisible),
@@ -68,7 +71,16 @@ function ExpandingBox({
           { key, value, dataType, alwaysVisible, editable, label, enumValues },
           index
         ) => (
-          <Collapse key={index} in={expanded || alwaysVisible}>
+          <Collapse
+            key={index}
+            in={expanded || alwaysVisible}
+            sx={{
+              cursor: editMode
+                ? 'default'
+                : 'url("/static/images/cursor_pen_32x32.png") 16 32, default',
+            }}
+            onClick={onClick}
+          >
             {editable ? (
               <Controller
                 name={key}
