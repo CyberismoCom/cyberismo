@@ -14,9 +14,16 @@ import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { card } from './interfaces/project-interfaces.js';
+import { card, fieldtype } from './interfaces/project-interfaces.js';
+
+import * as EmailValidator from 'email-validator';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
+
+export interface LengthProvider {
+    length: number;
+}
+
 
 export class Validate {
 
@@ -41,6 +48,11 @@ export class Validate {
         this.directoryValidator = new DirectoryValidator();
         this.parentSchema = readJsonFileSync(Validate.parentSchemaFile);
         this.addChildSchemas();
+    }
+
+    // Helper to get length from types when needed.
+    private length<T extends LengthProvider>(item: T): number {
+        return item.length;
     }
 
     // Loads child schemas to validator.
@@ -140,6 +152,57 @@ export class Validate {
         return parsedErrorMessage;
     }
 
+    // Validates that card's dataType can be used with JS types.
+    private validType<T>(value: T, fieldType: fieldtype): boolean {
+        const field = fieldType.dataType;
+        const typeOfValue = typeof value;
+
+        // Nulls are always accepted.
+        if (typeOfValue === 'object' && value === null) {
+            return true;
+        }
+
+        if (field === 'date' || field === 'datetime') {
+            return !isNaN(Date.parse(<string>value));
+        }
+        if (field === 'list') {
+            return Array.isArray(value) && this.validateListValues(<string[]>value);
+        }
+        if (field === 'boolean' || field === 'number') {
+            return typeOfValue === field;
+        }
+        if (field === 'shorttext') {
+            return typeOfValue === 'string' && this.length(<string>value) <= 80;
+        }
+        if (field === 'longtext') {
+            return typeOfValue === 'string';
+        }
+        if (field === 'integer') {
+            return (typeOfValue === 'number') && Number.isInteger(value);
+        }
+        if (field === 'person') {
+            // Accept empty names
+            return EmailValidator.validate(<string>value) || this.length(<string>value) === 0;
+        }
+        if (field === 'enum') {
+            const found = fieldType.enumValues?.find(item => item.enumValue === value);
+            return found ? true : false;
+        }
+        console.error(`Type ${field} is not supported`);
+        return false;
+    }
+
+    // Validates that arrays have only string elements.
+    private validateListValues(list: string[]): boolean {
+        let valid = true;
+        list.forEach(value => {
+            if (typeof value !== 'string') {
+                valid = false;
+            }
+        });
+        return valid;
+    }
+
     /**
      * Validates that 'prefix' is valid project prefix.
      * @param prefix project prefix
@@ -190,10 +253,16 @@ export class Validate {
                         }
 
                         // @todo: validate customfields
+
+                        const validCustomFields = await this.validateCustomFields(project, card);
+                        if (validCustomFields.statusCode != 200) {
+                            errorMsg.push(validCustomFields.message || '');
+                        }
+
                     }
                 }
                 if (errorMsg.length) {
-                    return { statusCode: 400, message: errorMsg.toString() };
+                    return { statusCode: 400, message: errorMsg.join("\n") };
                 }
             }
         } catch (error) {
@@ -262,13 +331,68 @@ export class Validate {
     }
 
     /**
+     * Validates that card's custom fields are according to schema and have correct data in them.
+     * @param project currently used Project
+     * @param card specific card
+     * @returns requestStatus 200 when validation succeeded
+     *  <br> statusCode 400 when schema validation failed
+     *  <br> statusCode 500 when schema has logical errors (e.g. missing cardtype)
+     */
+    public async validateCustomFields(project: Project, card: card): Promise<requestStatus> {
+        let errorMsg = "";
+
+        if (!card.metadata) {
+            return {
+                statusCode: 500,
+                message: errorFunction(
+                    `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`)
+            };
+        }
+
+        const cardType = await project.cardType(card.metadata?.cardtype);
+        if (!cardType) {
+            return {
+                statusCode: 500,
+                message: errorFunction(`Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`)
+            };
+        }
+
+        if (cardType.customFields) {
+            for (const field of cardType.customFields) {
+                if (!card.metadata[field.name] === undefined) {
+                    return {
+                        statusCode: 400,
+                        message: errorFunction(`Card '${card.key}' is missing custom field 'name' from ${field}`)};
+                }
+                const fieldType = await project.fieldType(field.name);
+                if (fieldType && !this.validType(card.metadata[field.name], fieldType)) {
+                    const typeOfValue = typeof card.metadata[field.name];
+                    let fieldValue = card.metadata[field.name];
+                    if (typeOfValue === 'string') {
+                        fieldValue = card.metadata[field.name] ? `"${card.metadata[field.name]}"` : '""';
+                    }
+                    errorMsg += `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`;
+                    if (fieldType.dataType === 'enum') {
+                        const listOfEnumValues = fieldType.enumValues?.map(item => item.enumValue);
+                        errorMsg += `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`;
+                    }
+                }
+            }
+        }
+
+        if (errorMsg.length > 0) {
+            return { statusCode: 400, message: errorFunction(errorMsg) };
+        }
+        return { statusCode: 200 };
+    }
+
+    /**
      * Checks if card's current workflow state matches workflow that card's cardtype is using.
      * @param {Project} project Project object.
      * @param {card} card Card object to validate
      * @returns requestStatus 200 when validation succeeded
      *  <br> statusCode 400 when schema validation failed
      *  <br> statusCode 500 when schema has logical errors (e.g. missing cardtype)
-     *
      */
     public async validateWorkflowState(project: Project, card: card): Promise<requestStatus> {
 

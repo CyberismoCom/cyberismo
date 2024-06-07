@@ -219,5 +219,32 @@ describe('validate cmd tests', () => {
             expect(valid.statusCode).to.equal(500);
         }
     });
+
+    it('validate card custom fields data (success)', async () => {
+        const project = new Project('test/test-data/valid/decision-records/');
+        // card _6 has all of the types as custom fields (with null values)
+        const card = await project.findSpecificCard('decision_6', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateCustomFields(project, card);
+            expect(valid.statusCode).to.equal(200);
+        }
+    });
+    it('try to validate card custom fields - cardtype not found', async () => {
+        const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
+        const card = await project.findSpecificCard('decision_5', {metadata: true});
+        if (card) {
+            const valid = await validateCmd.validateCustomFields(project, card);
+            expect(valid.statusCode).to.equal(500);
+        }
+    });
+    it('try to validate card custom fields - no metadata for the card', async () => {
+        const project = new Project('test/test-data/valid/decision-records/');
+        const card = await project.findSpecificCard('decision_5', {metadata: false});
+        if (card) {
+            const valid = await validateCmd.validateCustomFields(project, card);
+            expect(valid.statusCode).to.equal(500);
+        }
+    });
+    // @todo add more tests that test various values types can have (correct and incorrect)
 })
 

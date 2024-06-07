@@ -107,9 +107,10 @@ export class Template extends CardContainer {
                     card.metadata.cardtype = cardtype.name;
                     if (cardtype.customFields !== undefined) {
                         for (const customField of cardtype.customFields) {
+                            const defaultValue = null;
                             card.metadata = {
                                 ...card.metadata,
-                                [customField.name]: card.metadata[customField.name]
+                                [customField.name]: card.metadata[customField.name] || defaultValue
                             };
                         }
                     }

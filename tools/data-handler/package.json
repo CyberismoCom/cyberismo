@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "directory-schema-validator": "^1.0.17",
+    "email-validator": "^2.0.4",
     "isomorphic-git": "^1.25.2",
     "js-yaml": "^4.1.0",
     "json-schema": "^0.4.0",
