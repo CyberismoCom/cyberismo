@@ -3,13 +3,17 @@
 # Please see the documentation for all configuration options:
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
-version: 2
+version: 3
 updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/data-handler" # Location of package manifests
     schedule:
       interval: "weekly"
   - package-ecosystem: "npm" # See documentation for possible values
-    directory: "/tools/cards" # Location of package manifests
+    directory: "/tools/cli" # Location of package manifests
+    schedule:
+      interval: "weekly"
+- package-ecosystem: "npm" # See documentation for possible values
+    directory: "/tools/app" # Location of package manifests
     schedule:
       interval: "weekly"
