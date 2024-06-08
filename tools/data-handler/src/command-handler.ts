@@ -1,5 +1,5 @@
 import { basename, dirname, join, resolve } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 import { Calculate } from './calculate.js';
 import { Create } from './create.js';
@@ -800,9 +800,11 @@ export class Commands {
         // since current working directory changes, we need to resolve the project path
         const projectPath = resolve(path);
 
-
-
-        execSync(`cd ${appPath} && npm start --project_path="${projectPath}"`);
+        const args = [
+            `start`,
+            `--project_path="${projectPath}"`
+        ]
+        execFileSync(`npm`, args, {shell: true, cwd: `${appPath}`});
 
         return { statusCode: 200 };
     }
