@@ -282,10 +282,9 @@ export class Create extends EventEmitter {
      * - 'statusCode' 200 when workflow was created successfully.
      * - 'statusCode' 500 when unknown error occurred.
      */
-    public async createLink(path: string, projectName: string): Promise<requestStatus> {
-        console.log(`Create link called with path: ${path}, ${projectName}`);
-        return { statusCode: 200 };
-    }
+    // public async createLink(path: string, projectName: string): Promise<requestStatus> {
+    //     return { statusCode: 200 };
+    // }
 
     /**
      * Creates a new project.
@@ -389,7 +388,7 @@ export class Create extends EventEmitter {
      * @returns request status
      * - 'statusCode' 200 when workflow was created successfully
      * - 'statusCode' 400 when workflow JSON cannot be validated
-     * - 'statusCode' 500 when unspecified error occurred
+     * - 'statusCode' 500 when unspecified error occurred (e.g. file exists)
      */
     public async createWorkflow(projectPath: string, workflow: workflowMetadata): Promise<requestStatus> {
         const validator = Validate.getInstance();
@@ -401,7 +400,7 @@ export class Create extends EventEmitter {
             }
             const content = JSON.parse(JSON.stringify(workflow));
             const destinationFile = join(projectPath, '.cards', 'local', 'workflows', `${content.name}.json`);
-            await writeFile(destinationFile, formatJson(content));
+            await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
             return { statusCode: 200 };
 
         } catch (error) {

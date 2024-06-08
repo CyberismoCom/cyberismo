@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command, Option } from "commander";
-import { CardsOptions, Commands, requestStatus } from '@cyberismocom/data-handler'
+import { CardsOptions, Cmd, Commands, requestStatus } from '@cyberismocom/data-handler'
 
 // Handle the response object from data-handler
 function handleResponse(response: requestStatus) {
@@ -74,9 +74,8 @@ program
     .argument('[cardkey]', 'Parent card\'s cardkey')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .option('-r, --repeat <quantity>', 'Add multiple cards to a template')
-    .action(async (template: string, cardtype: string, cardkey?: string, options?: CardsOptions) => {
-        const result = await commandHandler.addCard(
-            template, cardtype, cardkey, options ? options.projectPath : '', options ? options.repeat : undefined);
+    .action(async (template: string, cardtype: string, cardkey: string, options: CardsOptions) => {
+        const result = await commandHandler.command(Cmd.add, [template, cardtype, cardkey], options);
         handleResponse(result);
     });
 
@@ -89,9 +88,9 @@ program
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .option('-g, --ground-only', 'Only for "run"; ...')
     .option('-s, --solve-only', 'Only for "run"; ...')
-    .action(async (subcommand: string, cardkey?: string, options?: CardsOptions) => {
+    .action(async (subcommand: string, cardkey: string, options: CardsOptions) => {
         if (subcommand !== '') {
-            const result = await commandHandler.calculate(subcommand, options, cardkey);
+            const result = await commandHandler.command(Cmd.calc, [subcommand, cardkey], options);
             handleResponse(result);
         }
     });
@@ -107,7 +106,7 @@ create
     .argument('<attachment>', 'Full path to an attachment')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (cardkey: string, attachment: string, options: CardsOptions) => {
-        const result = await commandHandler.createAttachment(cardkey, attachment, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardkey, attachment], options);
         handleResponse(result);
     });
 
@@ -119,7 +118,7 @@ create
     .argument('[cardkey]', 'Parent card\'s cardkey. If defined, new card will be created as a child card of that card.')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (template: string, cardkey: string, options: CardsOptions) => {
-        const result = await commandHandler.createCard(template, cardkey, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['card', template, cardkey], options);
         handleResponse(result);
     });
 
@@ -131,7 +130,7 @@ create
     .argument('<workflow>', 'Workflow for the card type. \nYou can list the workflows in a project with "show workflows" command.')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (name, workflow, options: CardsOptions) => {
-        const result = await commandHandler.createCardtype(name, workflow, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['cardtype', name, workflow], options);
         handleResponse(result);
     });
 
@@ -143,7 +142,7 @@ create
     .argument('<datatype>', 'Type of field')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (name, datatype, options: CardsOptions) => {
-        const result = await commandHandler.createFieldType(name, datatype, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['fieldtype', name, datatype], options);
         handleResponse(result);
     });
 
@@ -155,7 +154,7 @@ create
     .argument('<path>', 'Path where project is created. \nNote that folder is automatically created.')
     .description('Create a project')
     .action(async (name, prefix, path) => {
-        const result = await commandHandler.createProject(path, prefix, name);
+        const result = await commandHandler.command(Cmd.create, ['project', name, prefix], {projectPath: path});
         handleResponse(result);
     });
 
@@ -167,7 +166,7 @@ create
     .argument('[content]', 'If empty, template is created with default values. \nTemplate content must conform to schema template-schema.json')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (name: string, content: string, options: CardsOptions) => {
-        const result = await commandHandler.createTemplate(name, content, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['template', name, content], options);
         handleResponse(result);
     });
 
@@ -179,7 +178,7 @@ create
     .argument('[content]', 'If empty, workflow is created with default values. \nWorkflow content must conform to schema workflow-schema.json')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (name: string, content: string, options: CardsOptions) => {
-        const result = await commandHandler.createWorkflow(name, content, options.projectPath);
+        const result = await commandHandler.command(Cmd.create, ['workflow', name, content], options);
         handleResponse(result);
     });
 
@@ -190,7 +189,7 @@ program
     .argument('<cardkey>', 'Cardkey of card')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (cardkey: string, options: CardsOptions) => {
-        const result = await commandHandler.edit(cardkey, options)
+        const result = await commandHandler.command(Cmd.edit, [cardkey], options);
         handleResponse(result);
     });
 
@@ -203,7 +202,7 @@ program
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .addOption(new Option('-f, --format <format>', 'Export format').choices(['adoc', 'csv', 'html', 'pdf', 'site']))
     .action(async (cardkey: string, options: CardsOptions) => {
-        const result = await commandHandler.export(options.output, options.projectPath, cardkey, options.format);
+        const result = await commandHandler.command(Cmd.export, [cardkey], options);
         handleResponse(result);
     });
 
@@ -215,7 +214,7 @@ program
     .argument('<name>', 'Name for the import in this project')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (source: string, name: string, options: CardsOptions) => {
-        const result = await commandHandler.import(source, name, options.projectPath);
+        const result = await commandHandler.command(Cmd.import, [source, name], options);
         handleResponse(result);
     });
 
@@ -229,7 +228,7 @@ program
     .argument('[destination]', 'Destination Cardkey where "source" is moved to. If moving to root, use "root"')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (source: string, destination: string, options: CardsOptions) => {
-        const result = await commandHandler.move(source, destination, options.projectPath);
+        const result = await commandHandler.command(Cmd.move, [source, destination], options);
         handleResponse(result);
     });
 
@@ -243,7 +242,7 @@ program
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (type: string, targetName: string, detail: string, options: CardsOptions) => {
         if (type !== '') {
-            const result = await commandHandler.remove(type, targetName, detail, options.projectPath);
+            const result = await commandHandler.command(Cmd.remove, [type, targetName, detail], options);
             handleResponse(result);
         }
     });
@@ -255,7 +254,7 @@ program
     .argument('<to>', 'New project prefix')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (to: string, options: CardsOptions) => {
-        const result = await commandHandler.rename(to, options.projectPath);
+        const result = await commandHandler.command(Cmd.rename, [to], options);
         handleResponse(result);
     });
 
@@ -270,7 +269,7 @@ program
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (type: string, typeDetail, options: CardsOptions) => {
         if (type !== '') {
-            const result = await commandHandler.show(type, typeDetail, options)
+            const result = await commandHandler.command(Cmd.show, [type, typeDetail], options);
             handleResponse(result);
         }
     });
@@ -283,7 +282,7 @@ program
     .argument('<transition>', 'Workflow state transition that is done.\nYou can list the workflows in a project with "show workflows" command.\nYou can see the available transitions with "show workflow <name>" command.')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (cardkey: string, transition: string, options: CardsOptions) => {
-        const result = await commandHandler.transition(cardkey, transition, options.projectPath);
+        const result = await commandHandler.command(Cmd.transition, [cardkey, transition], options);
         handleResponse(result);
     });
 
@@ -293,7 +292,7 @@ program
     .description('Validate project structure')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (options: CardsOptions) => {
-        const result = await commandHandler.validate(options.projectPath);
+        const result = await commandHandler.command(Cmd.validate, [], options);
         handleResponse(result);
     });
 
@@ -303,7 +302,7 @@ program
     .description('Starts the cards app, accessible with a web browser at http://localhost:3000')
     .option('-p, --project-path [path]', `${pathGuideline}`)
     .action(async (options: CardsOptions) => {
-        const result = await commandHandler.startApp(options.projectPath);
+        const result = await commandHandler.command(Cmd.start, [], options);
         handleResponse(result);
     });
 
