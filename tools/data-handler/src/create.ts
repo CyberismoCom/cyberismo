@@ -465,12 +465,8 @@ export class Create extends EventEmitter {
             : join(baseDir, '../../schema');
 
         const schemaContent = readJsonFileSync(join(baseFolder, 'field-type-schema.json'));
-        // ugly way to split the pattern into array of strings
         return schemaContent.properties.dataType.pattern
-            .split('$|^')
-            .join(',')
-            .replace('^', '')
-            .replace('$', '')
-            .split(',');
+            .replace(/\$|\^/g, '')
+            .split('|');
     }
 }
