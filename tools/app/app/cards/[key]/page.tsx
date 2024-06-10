@@ -4,13 +4,11 @@ import ContentToolbar from '@/app/components/ContentToolbar'
 import ErrorBar from '@/app/components/ErrorBar'
 import ExpandingBox from '@/app/components/ExpandingBox'
 import { useCard, useCardType, useFieldTypes, useProject } from '@/app/lib/api'
-import {
-  generateExpandingBoxValues,
-  getEditableFields,
-} from '@/app/lib/components'
+import { generateExpandingBoxValues } from '@/app/lib/components'
 import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/material'
+import { useRouter } from 'next/navigation'
 import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 
@@ -23,6 +21,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const { fieldTypes } = useFieldTypes()
   const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
+
+  const router = useRouter()
 
   const handleStateTransition = async (transition: WorkflowTransition) => {
     try {
@@ -59,19 +59,22 @@ export default function Page({ params }: { params: { key: string } }) {
         onUpdate={() => {}}
         onStateTransition={handleStateTransition}
       />
-      <Box flexGrow={1} minHeight={0}>
+      <Stack flexGrow={1} minHeight={0}>
         <Box width="65%" maxWidth="46rem">
           <ExpandingBox
             values={fields}
             color="bgsoft.main"
             editMode={false}
             control={control}
+            onClick={() => {
+              router.push(`/cards/${params.key}/edit?expand=true`)
+            }}
           />
         </Box>
-        <Box padding={3}>
+        <Box padding={3} flexGrow={1} minHeight={0}>
           <ContentArea card={card} error={error?.message} preview={false} />
         </Box>
-      </Box>
+      </Stack>
       <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )

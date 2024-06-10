@@ -11,7 +11,7 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { Stack, TextField } from '@mui/material'
 import ContentToolbar from '@/app/components/ContentToolbar'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
 import {
@@ -37,6 +37,8 @@ export default function Page({ params }: { params: { key: string } }) {
   const { card, updateCard } = useCard(params.key)
   const { fieldTypes } = useFieldTypes()
   const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
+
+  const searchParams = useSearchParams()
 
   // Edited card content and metadata
   const [value, setValue] = useState<number>(0)
@@ -90,6 +92,7 @@ export default function Page({ params }: { params: { key: string } }) {
   }
 
   const getPreview = useCallback(() => {
+    if (!card) return null
     return {
       ...card!,
       content: getValues('__content__'),
@@ -116,6 +119,7 @@ export default function Page({ params }: { params: { key: string } }) {
             color="bgsoft.main"
             editMode={true}
             control={control}
+            initialExpanded={searchParams.get('expand') === 'true'}
           />
         </Box>
         <Stack
@@ -139,7 +143,6 @@ export default function Page({ params }: { params: { key: string } }) {
               scrollbarWidth: 'thin',
             }}
             height="100%"
-            minHeight={0}
           >
             <Controller
               name="__title__"
@@ -176,11 +179,9 @@ export default function Page({ params }: { params: { key: string } }) {
           </Box>
         </TabPanel>
         <TabPanel value={value} index={1}>
-          {card && (
-            <Box height="100%">
-              <ContentArea card={getPreview()} error={null} preview={true} />
-            </Box>
-          )}
+          <Box height="100%">
+            <ContentArea card={getPreview()} error={null} preview={true} />
+          </Box>
         </TabPanel>
       </Stack>
       <ErrorBar error={reason} onClose={handleClose} />
@@ -203,7 +204,8 @@ function TabPanel(props: TabPanelProps) {
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
       {...other}
-      height="100%"
+      minHeight={0}
+      flexGrow={1}
     >
       {value === index && (
         <Box paddingTop={3} height="100%">
