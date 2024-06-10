@@ -28,6 +28,22 @@ export interface CardsOptions {
     repeat?: number,
 }
 
+export enum Cmd {
+    add = "add",
+    calc = "calc",
+    create = "create",
+    edit = "edit",
+    export = "export",
+    import = "import",
+    move = "move",
+    remove = "remove",
+    rename = "rename",
+    show = "show",
+    start = "start",
+    transition = "transition",
+    validate = "validate"
+}
+
 /**
  * Class that handles all commands.
  */
@@ -45,6 +61,8 @@ export class Commands {
     private transitionCmd: Transition;
     private validateCmd: Validate;
 
+    private projectPath: string;
+
     constructor() {
         this.calcCmd = new Calculate();
         this.createCmd = new Create(this.calcCmd);
@@ -57,6 +75,7 @@ export class Commands {
         this.showCmd = new Show();
         this.transitionCmd = new Transition(this.calcCmd);
         this.validateCmd = Validate.getInstance();
+        this.projectPath = '';
     }
 
     public static allowedTypes = [
@@ -167,6 +186,106 @@ export class Commands {
         return contentValidated && lengthValidated;
     }
 
+    public async command(command: Cmd, args: string[], options: CardsOptions): Promise<requestStatus> {
+        // Set project path and validate it.
+        const creatingNewProject = command === Cmd.create && args[0] === 'project';
+        if (!creatingNewProject) {
+            this.projectPath = await this.setProjectPath(options.projectPath);
+            this.projectPath = resolveTilde(this.projectPath);
+        }
+        if (!this.validateFolder(this.projectPath)) {
+            return {
+                statusCode: 400,
+                message: `Input validation error: folder name is invalid '${options.projectPath}'`
+            };
+        }
+        if (!pathExists(this.projectPath)) {
+            return {
+                statusCode: 400,
+                message: `Input validation error: cannot find project '${options.projectPath}'`
+            };
+        }
+
+        if (command === Cmd.add) {
+            const [ template, cardtype, cardkey ] = args;
+            return this.addCard(template, cardtype, cardkey, this.projectPath, options.repeat)
+        }
+        if (command === Cmd.calc) {
+            const [ command, cardKey ] = args;
+            return this.calculate(command, options, cardKey); // todo: params are in wrong order
+        }
+        if (command === Cmd.create) {
+            const target = args.splice(0, 1)[0];
+            if (target === 'attachment') {
+                const [ cardkey, attachment ] = args;
+                return this.createAttachment(cardkey, attachment, this.projectPath);
+            }
+            if (target === 'card') {
+                const [ template, parent ] = args;
+                return this.createCard(template, parent, this.projectPath);
+            }
+            if (target === 'cardtype') {
+                const [ name, workflow ] = args;
+                return this.createCardtype(name, workflow, this.projectPath);
+            }
+            if (target === 'project') {
+                const [ prefix, name ] = args;
+                this.projectPath = options.projectPath || ''; // todo: validation
+                return this.createProject(this.projectPath, prefix, name); // todo: order of parameters
+            }
+            if (target === 'template') {
+                const [ name, content ] = args;
+                return this.createTemplate(name, content, this.projectPath);
+            }
+            if (target === 'fieldtype') {
+                const [ name, datatype ] = args;
+                return this.createFieldType(name, datatype,this.projectPath);
+            }
+            if (target === 'workflow') {
+                const [ name, content ] = args;
+                return this.createWorkflow(name, content, this.projectPath);
+            }
+        }
+        if (command === Cmd.edit) {
+            const [ cardkey ] = args;
+            return this.edit(cardkey, options);
+        }
+        if (command === Cmd.export) {
+            const [ cardkey ] = args;
+            return this.export(options.output, this.projectPath, cardkey, options.format);
+        }
+        if (command === Cmd.import) {
+            const [ source, name ] = args;
+            return this.import(source, name, this.projectPath);
+        }
+        if (command === Cmd.move) {
+            const [source, destination] = args;
+            return this.moveCmd.moveCard(this.projectPath, source, destination); //todo: order of parameters
+        }
+        if (command === Cmd.remove) {
+            const [type, target, detail] = args;
+            return this.remove(type, target, detail, this.projectPath);
+        }
+        if (command === Cmd.rename) {
+            const [ to ] = args;
+            return this.rename(to, this.projectPath);
+        }
+        if (command === Cmd.show) {
+            const [type, detail] = args;
+            options.projectPath = this.projectPath;
+            return this.show(type, detail, options);
+        }
+        if (command === Cmd.transition) {
+            const [ cardkey, state ] = args;
+            return this.transition(cardkey, state, this.projectPath);
+        }
+        if (command === Cmd.validate) {
+            return this.validate(this.projectPath);
+        }
+
+        return { statusCode: 500, message: 'Unknown command'}
+    }
+
     /**
      *  Adds a new card to a template.
      * @param {string} templateName Name of a template.
@@ -177,20 +296,7 @@ export class Commands {
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    public async addCard(templateName: string, cardTypeName: string, cardKey?: string, path?: string, repeat?: number): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async addCard(templateName: string, cardTypeName: string, cardKey: string, path: string, repeat?: number): Promise<requestStatus> {
         const templateFolder = join(path, templateName);
         if (!templateName || !this.validateFolder(templateFolder)) {
             return {
@@ -219,27 +325,14 @@ export class Commands {
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    public async calculate(command: string, options?: CardsOptions, cardKey?: string): Promise<requestStatus> {
-        const path = await this.setProjectPath(options?.projectPath);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async calculate(command: string, options: CardsOptions, cardKey?: string): Promise<requestStatus> {
         if (command === 'generate') {
-            return this.calcCmd.generate(path, cardKey);
+            return this.calcCmd.generate(options?.projectPath || '', cardKey);
         } else if (command === 'run') {
             if (!cardKey) {
                 return { statusCode: 400, message: `"${command}" requires cardkey` };
             }
-            return this.calcCmd.run(path, cardKey);
+            return this.calcCmd.run(options?.projectPath || '', cardKey);
         }
         return { statusCode: 400, message: `Invalid command for calculation ${command}` };
     }
@@ -254,20 +347,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating attachment
      */
-    public async createAttachment(cardKey: string, attachment: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async createAttachment(cardKey: string, attachment: string, path: string): Promise<requestStatus> {
         if (!pathExists(attachment)) {
             return {
                 statusCode: 400,
@@ -287,21 +367,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating card
      */
-    public async createCard(templateName: string, parentCardKey?: string, path?: string): Promise<requestStatus> {
-        // console.log(`t: ${template}, p: ${parentCardKey}, path: ${path}`);
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async createCard(templateName: string, parentCardKey: string, path: string): Promise<requestStatus> {
         if (parentCardKey === undefined) {
             parentCardKey = '';
         }
@@ -318,20 +384,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating cardtype
      */
-    public async createCardtype(cardTypeName: string, workflowName: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async createCardtype(cardTypeName: string, workflowName: string, path: string): Promise<requestStatus> {
         if (!this.validateName(cardTypeName)) {
             return {
                 statusCode: 400,
@@ -357,20 +410,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating fieldtype
      */
-    public async createFieldType(fieldTypeName: string, dataType: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async createFieldType(fieldTypeName: string, dataType: string, path: string): Promise<requestStatus> {
         if (!this.validateName(fieldTypeName)) {
             return {
                 statusCode: 400,
@@ -390,8 +430,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating project
      */
-    public async createProject(path: string, prefix: string, projectName: string): Promise<requestStatus> {
-        // console.log(`path: ${path} prefix: ${prefix}, name: ${projectName}`)
+    private async createProject(path: string, prefix: string, projectName: string): Promise<requestStatus> {
         path = resolveTilde(path)
         if (pathExists(path)) {
             return { statusCode: 400, message: `Project already exists '${path}'` };
@@ -430,20 +469,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating template
      */
-    public async createTemplate(templateName: string, templateContent?: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async createTemplate(templateName: string, templateContent: string, path: string): Promise<requestStatus> {
         if (!this.validateName(templateName) || !this.validateFolder(join(path, templateName))) {
             return {
                 statusCode: 400,
@@ -465,14 +491,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem creating workflow
      */
-    public async createWorkflow(workflowName: string, workflowContent?: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return { statusCode: 400, message: `Input validation error: folder name is invalid '${path}'` };
-        }
-        if (!pathExists(path)) {
-            return { statusCode: 400, message: `Input validation error: cannot find project '${path}'` };
-        }
+    private async createWorkflow(workflowName: string, workflowContent: string, path: string): Promise<requestStatus> {
         if (!this.validateName(workflowName)) {
             return { statusCode: 400, message: `Input validation error: invalid workflow name '${workflowName}'` };
         }
@@ -489,7 +508,7 @@ export class Commands {
      * @param options Optional parameters. If options.path is omitted, project path is assumed to be current path (or it one of its parents).
      * @returns
      */
-    public async edit(cardKey: string, options?: CardsOptions): Promise<requestStatus> {
+    private async edit(cardKey: string, options?: CardsOptions): Promise<requestStatus> {
         let path = options?.projectPath;
         path = await this.setProjectPath(path);
 
@@ -514,24 +533,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem exporting
      */
-    public async export(destination: string = 'output', source?: string, parentCardKey?: string, mode?: string): Promise<requestStatus> {
-        source = await this.setProjectPath(source);
-        if (!mode) {
-            mode = 'html';
-        }
-        if (!this.validateFolder(source)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${source}'`
-            };
-        }
-        if (!pathExists(source)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${source}'`
-            };
-
-        }
+    private async export(destination: string = 'output', source: string, parentCardKey?: string, mode?: string): Promise<requestStatus> {
         if (parentCardKey && !await this.cardExists(source, parentCardKey)) {
             return {
                 statusCode: 400,
@@ -566,16 +568,9 @@ export class Commands {
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    public async import(source: string, name: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return { statusCode: 400, message: `Input validation error: folder name is invalid '${path}'` };
-        }
+    private async import(source: string, name: string, path: string): Promise<requestStatus> {
         if (!this.validateFolder(source)) {
             return { statusCode: 400, message: `Input validation error: folder name is invalid '${source}'` };
-        }
-        if (!pathExists(path)) {
-            return { statusCode: 400, message: `Input validation error: cannot find project '${path}'` };
         }
         if (!pathExists(source)) {
             return { statusCode: 400, message: `Input validation error: cannot find project '${source}'` };
@@ -587,58 +582,23 @@ export class Commands {
     }
 
     /**
-     * Moves a source card to be children of destination card. Or moves source card to be directly underneath cardroot.
-     * @param {string} source cardKey of card that is moved
-     * @param {string} destination cardKey of card where 'source' is moved to; or 'root' if moving 'source' to cardroot.
-     * @param {string} path Optional. Path to the project. If omitted, project is set from current path.
-     * @returns {requestStatus}
-     *       statusCode 200 when operation succeeded
-     *  <br> statusCode 400 when input validation fails.
-     *  <br> statusCode 500 when files were not moved or deleted.
-     */
-    public async move(source: string, destination: string, path?: string): Promise<requestStatus> {
-        // console.log(`Move request - source: ${source} destination: ${destination}`);
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return { statusCode: 400, message: `Input validation error: folder name is invalid '${path}'` };
-        }
-        if (!pathExists(path)) {
-            return { statusCode: 400, message: `Input validation error: cannot find project '${path}'` };
-        }
-        return this.moveCmd.moveCard(path, source, destination);
-    }
-
-    /**
      * Removes a card (single card, or parent card and children), or an attachment.
      * @param {string} type Type of resource to remove (attachment, card, template)
      * @param {string} targetName What will be removed. Either card-id or templateName
-     * @param {string} detail Optional. Additional detail of removal, such as attachment name
-     * @param {string} path Optional. Path to the project. If omitted, project is set from current path.
+     * @param {string} detail Additional detail of removal, such as attachment name
+     * @param {string} path Path to the project. If omitted, project is set from current path.
      * @returns {requestStatus}
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when target was not removed.
      */
-    public async remove(type: string, targetName: string, detail?: string, path?: string): Promise<requestStatus> {
-        //console.log(`Remove - type: ${type} path: ${path} targetName: ${targetName} detail: ${detail} templateName: ${templateName}`);
+    private async remove(type: string, targetName: string, detail: string, path: string): Promise<requestStatus> {
         if (!Commands.removableTypes.includes(type)) {
             return {
                 statusCode: 400,
                 message: `Input validation error: incorrect type '${type}'`
             };
         }
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+
         if (type === 'attachment' && detail === '') {
             return {
                 statusCode: 400,
@@ -655,20 +615,7 @@ export class Commands {
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    public async rename(to: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
-        if (!this.validateFolder(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${path}'`
-            };
-        }
-        if (!pathExists(path)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${path}'`
-            };
-        }
+    private async rename(to: string, path: string): Promise<requestStatus> {
         if (!to) {
             return {
                 statusCode: 400,
@@ -689,11 +636,8 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem showing resources
      */
-    public async show(type: string, typeDetail?: string, options?: CardsOptions): Promise<requestStatus> {
-        let path = options?.projectPath;
-
-        path = await this.setProjectPath(path);
-
+    private async show(type: string, typeDetail: string, options: CardsOptions): Promise<requestStatus> {
+        const path = options.projectPath || this.projectPath;
         if (!this.allAllowedTypes().includes(type)) {
             return { statusCode: 400, message: `Input validation error: illegal type '${type}'` };
         }
@@ -755,8 +699,7 @@ export class Commands {
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    public async transition(cardKey: string, stateName: string, path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
+    private async transition(cardKey: string, stateName: string, path: string): Promise<requestStatus> {
         return this.transitionCmd.cardTransition(path, cardKey, { name: stateName });
     }
 
@@ -768,8 +711,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem validating schema
      */
-    public async validate(path?: string): Promise<requestStatus> {
-        path = await this.setProjectPath(path);
+    private async validate(path: string): Promise<requestStatus> {
         return this.validateCmd.validate(path);
     }
 
@@ -781,7 +723,7 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      *  <br> statusCode 500 when there was a internal problem validating schema
      */
-    public async startApp(path?: string): Promise<requestStatus> {
+    private async startApp(path?: string): Promise<requestStatus> {
         path = await this.setProjectPath(path);
         if (!this.validateFolder(path)) {
             return { statusCode: 400, message: `Input validation error: folder name is invalid '${path}'` };

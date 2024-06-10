@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 
 
 // ismo
-import { CardsOptions, Commands } from '../src/command-handler.js';
+import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, resolveTilde } from '../src/utils/file-utils.js'
 import { Create } from '../src/create.js';
 import { attachmentPayload, requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -25,6 +25,11 @@ let commandHandler: Commands;
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-command-handler-tests');
 const testDirForExport = join(baseDir, 'tmp-command-export-tests');
+
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+const minimalPath = join(testDir, 'valid/minimal');
+const options: CardsOptions = { projectPath: decisionRecordsPath };
+const optionsMini: CardsOptions = { projectPath: minimalPath };
 
 before(async () => {
     commandHandler = new Commands();
@@ -49,7 +54,7 @@ describe('validate command', () => {
     it('missing path', async () => {
         let result: requestStatus = { statusCode: 500 };
         try {
-            result = await commandHandler.validate('');
+            result = await commandHandler.command(Cmd.validate, [], { });
             assert(false, 'this should not be reached as the above throws');
         }
         catch (error) {
@@ -58,16 +63,15 @@ describe('validate command', () => {
         expect(result.statusCode).to.equal(500);
     });
     it('valid schema', async () => {
-        const result = await commandHandler.validate(join(testDir, 'valid/decision-records'));
+        const result = await commandHandler.command(
+            Cmd.validate, [], { projectPath: join(testDir, 'valid/decision-records') });
         expect(result.statusCode).to.equal(200);
     });
 });
 
 describe('show command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const options: CardsOptions = { projectPath: decisionRecordsPath };
     it('show attachments - success()', async () => {
-        const result = await commandHandler.show('attachments', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['attachments'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('show attachment file', async () => {
@@ -93,7 +97,7 @@ describe('show command', () => {
         expect(result.statusCode).to.equal(400);
     });
     it('show cards - success()', async () => {
-        const result = await commandHandler.show('cards', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['cards'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -104,7 +108,7 @@ describe('show command', () => {
         }
     });
     it('show particular card - success()', async () => {
-        const result = await commandHandler.show('card', 'decision_5', options);
+        const result = await commandHandler.command(Cmd.show, ['card', 'decision_5'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -112,7 +116,7 @@ describe('show command', () => {
     });
     it('show particular card additional details - success()', async () => {
         options.details = true;
-        const result = await commandHandler.show('card', 'decision_5', options);
+        const result = await commandHandler.command(Cmd.show, ['card', 'decision_5'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -121,7 +125,7 @@ describe('show command', () => {
         }
     });
     it('show cardtypes - success()', async () => {
-        const result = await commandHandler.show('cardtypes', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['cardtypes'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -131,14 +135,14 @@ describe('show command', () => {
         }
     });
     it('show particular cardtype - success()', async () => {
-        const result = await commandHandler.show('cardtype', 'decision-cardtype', options);
+        const result = await commandHandler.command(Cmd.show, ['cardtypes', 'decision-cardtype'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
         }
     });
     it('show modules (none) - success()', async () => {
-        const result = await commandHandler.show('modules', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['modules'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -147,14 +151,14 @@ describe('show command', () => {
         }
     });
     it('show project - success()', async () => {
-        const result = await commandHandler.show('project', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['project'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
         }
     });
     it('show templates - success()', async () => {
-        const result = await commandHandler.show('templates', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['templates'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -165,14 +169,14 @@ describe('show command', () => {
         }
     });
     it('show particular template - success()', async () => {
-        const result = await commandHandler.show('template', 'decision', options);
+        const result = await commandHandler.command(Cmd.show, ['template', 'decision'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
         }
     });
     it('show template cards - success()', async () => {
-        const result = await commandHandler.show('cards', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['cards'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -182,7 +186,7 @@ describe('show command', () => {
         }
     });
     it('show workflows - success()', async () => {
-        const result = await commandHandler.show('workflows', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['workflows'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -192,7 +196,7 @@ describe('show command', () => {
         }
     });
     it('show particular workflow - success()', async () => {
-        const result = await commandHandler.show('workflow', 'decision-workflow', options);
+        const result = await commandHandler.command(Cmd.show, ['workflow', 'decision-workflow'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -202,25 +206,20 @@ describe('show command', () => {
 });
 
 describe('show command with modules', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const minimalPath = join(testDir, 'valid/minimal');
-    const options: CardsOptions = { projectPath: decisionRecordsPath };
-    const optionsMini: CardsOptions = { projectPath: minimalPath };
-
     before(async () => {
         // import each project to each other
-        await commandHandler.import(minimalPath, 'mini', decisionRecordsPath);
-        await commandHandler.import(decisionRecordsPath, 'decision', minimalPath);
+        await commandHandler.command(Cmd.import, [minimalPath, 'mini'], options);
+        await commandHandler.command(Cmd.import, [decisionRecordsPath, 'decision'], optionsMini);
     })
-    it('show modules - success()', async () => {
-        let result = await commandHandler.show('modules', undefined, options);
+    it('show modules - success', async () => {
+        let result = await commandHandler.command(Cmd.show, ['modules'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
             const modules = Object.values(result.payload);
             expect(modules.at(0)).to.equal('mini');
         }
-        result = await commandHandler.show('modules', undefined, optionsMini);
+        result = await commandHandler.command(Cmd.show, ['modules'], optionsMini);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
             const modules = Object.values(result.payload);
@@ -228,7 +227,7 @@ describe('show command with modules', () => {
         }
     });
     it('show particular module - success()', async () => {
-        const result = await commandHandler.show('module', 'mini', options);
+        const result = await commandHandler.command(Cmd.show, ['module', 'mini'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -245,8 +244,8 @@ describe('show command with modules', () => {
     });
     it('show particular card', async () => {
         // Since projects have been imported to each other, all cards can be found from each.
-        const result = await commandHandler.show('card', 'decision_1', options);
-        const resultFromModule = await commandHandler.show('card', 'decision_1', optionsMini);
+        const result = await commandHandler.command(Cmd.show, ['card', 'decision_1'], options);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['card', 'decision_1'], optionsMini);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             expect(result.payload).to.not.equal(undefined);
@@ -257,8 +256,8 @@ describe('show command with modules', () => {
         }
     });
     it('show cards', async () => {
-        const result = await commandHandler.show('cards', undefined, options);
-        const resultFromModule = await commandHandler.show('cards', undefined, optionsMini);
+        const result = await commandHandler.command(Cmd.show, ['cards'], options);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['cards'], optionsMini);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -277,7 +276,7 @@ describe('show command with modules', () => {
         }
     });
     it('show cardtypes', async () => {
-        const result = await commandHandler.show('cardtypes', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['cardtypes'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -286,7 +285,7 @@ describe('show command with modules', () => {
             expect(payloadAsArray.at(1)).to.equal('mini/myCardtype.json');
             expect(payloadAsArray.at(2)).to.equal('simplepage-cardtype.json');
         }
-        const resultFromModule = await commandHandler.show('cardtypes', undefined, optionsMini);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['cardtypes'], optionsMini);
         expect(resultFromModule.statusCode).to.equal(200);
         if (resultFromModule.payload) {
             const payloadAsArray = Object.values(resultFromModule.payload);
@@ -297,7 +296,7 @@ describe('show command with modules', () => {
         }
     });
     it('show templates', async () => {
-        const result = await commandHandler.show('templates', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['templates'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -307,7 +306,7 @@ describe('show command with modules', () => {
             expect(payloadAsArray.at(3)).to.equal('simplepage');
             expect(payloadAsArray.at(2)).to.equal('mini/test-template');
         }
-        const resultFromModule = await commandHandler.show('templates', undefined, optionsMini);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['templates'], optionsMini);
         expect(resultFromModule.statusCode).to.equal(200);
         if (resultFromModule.payload) {
             const payloadAsArray = Object.values(resultFromModule.payload);
@@ -319,7 +318,7 @@ describe('show command with modules', () => {
         }
     });
     it('show workflows', async () => {
-        const result = await commandHandler.show('workflows', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['workflows'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -329,7 +328,7 @@ describe('show command with modules', () => {
             expect(payloadAsArray.at(2)).to.equal('mini/minimimal-workflow.json');
             expect(payloadAsArray.at(3)).to.equal('simple-workflow.json');
         }
-        const resultFromModule = await commandHandler.show('workflows', undefined, optionsMini);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['workflows'], optionsMini);
         expect(resultFromModule.statusCode).to.equal(200);
         if (resultFromModule.payload) {
             const payloadAsArray = Object.values(resultFromModule.payload);
@@ -341,7 +340,7 @@ describe('show command with modules', () => {
         }
     });
     it('show attachments', async () => {
-        const result = await commandHandler.show('attachments', undefined, options);
+        const result = await commandHandler.command(Cmd.show, ['attachments'], options);
         expect(result.statusCode).to.equal(200);
         if (result.payload) {
             const payloadAsArray = Object.values(result.payload);
@@ -350,7 +349,7 @@ describe('show command with modules', () => {
             expect(payloadAsArray.at(0).fileName).to.equal('games.jpg');
 
         }
-        const resultFromModule = await commandHandler.show('attachments', undefined, optionsMini);
+        const resultFromModule = await commandHandler.command(Cmd.show, ['attachments'], optionsMini);
         expect(resultFromModule.statusCode).to.equal(200);
         if (resultFromModule.payload) {
             const payloadAsArray = Object.values(resultFromModule.payload);
@@ -362,22 +361,21 @@ describe('show command with modules', () => {
 });
 
 describe('transition command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
     it('transition to new state - success()', async () => {
-        const result = await commandHandler.transition('decision_5', 'Approve', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['decision_5', 'Approve'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('transition to new state with multiple "fromStates" - success()', async () => {
-        const result = await commandHandler.transition('decision_6', 'Reject', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['decision_6', 'Reject'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('transition to new state with wildcard workflow transition - success()', async () => {
-        const result = await commandHandler.transition('decision_6', 'Reopen', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['decision_6', 'Reopen'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('missing project', async () => {
         try {
-            await commandHandler.transition('decision_5', 'Created', '');
+            await commandHandler.command(Cmd.transition, ['decision_5', 'Created'], {});
             assert(false, 'this should not be reached as the above throws');
         }
         catch (error) {
@@ -386,162 +384,171 @@ describe('transition command', () => {
         }
     });
     it('missing card', async () => {
-        const result = await commandHandler.transition('', 'Create', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['', 'Create'], options);
         expect(result.statusCode).to.equal(400);
     });
     it('wrong state - no such state', async () => {
-        const result = await commandHandler.transition('decision_5', 'IDontExist', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['decision_5', 'IDontExist'], options);
         expect(result.statusCode).to.equal(400);
     });
     it('wrong state - illegal transition', async () => {
         // cannot move from approved (earlier test moves state from create to approved) back to created
-        const result = await commandHandler.transition('decision_5', 'Create', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.transition, ['decision_5', 'Create'], options);
         expect(result.statusCode).to.equal(400);
     });
     it('transition to same state', async () => {
         // an error is shown if card is already in a given state
-        let result = await commandHandler.transition('decision_6', 'Reject', decisionRecordsPath);
+        let result = await commandHandler.command(Cmd.transition, ['decision_6', 'Reject'], options);
         expect(result.statusCode).to.equal(200);
-        result = await commandHandler.transition('decision_6', 'Reject', decisionRecordsPath);
+        result = await commandHandler.command(Cmd.transition, ['decision_6', 'Reject'], options);
         expect(result.statusCode).to.equal(200);
     });
 });
 
 describe('add command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
     it('add template card (success)', async () => {
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', undefined, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.add, ['decision', 'decision-cardtype'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('add template card to under a parent (success)', async () => {
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', 'decision_1', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.add, ['decision', 'decision-cardtype', 'decision_1'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('try to add template card to non-existent template', async () => {
-        const result = await commandHandler.addCard('idontexists', 'decision-cardtype', undefined, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.add, ['idontexists', 'decision-cardtype'], options);
         expect(result.statusCode).to.equal(400);
     });
     it('try to add template card to non-existent template parent card', async () => {
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', 'decision_999', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.add, ['decision', 'decision-cardtype', 'decision_999'], options);
         expect(result.statusCode).to.equal(400);
     });
     it('try to add template card with invalid path', async () => {
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', 'decision_999', 'random-path-to-nowehere');
+        const result = await commandHandler.command(Cmd.add, ['decision', 'decision-cardtype'], {projectPath: 'random-path'});
         expect(result.statusCode).to.equal(400);
     });
     it('try to add card with invalid "repeat" value', async () => {
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', undefined, decisionRecordsPath, -1);
+        options.repeat = -1;
+        const result = await commandHandler.command(Cmd.add, ['decision', 'decision-cardtype'], options);
         expect(result.statusCode).to.equal(400);
     });
 });
+// todo: no test case with valid repeat number
 
 describe('create command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const minimalPath = join(testDir, 'valid/minimal');
-
     // attachment
     it('attachment (success)', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_5';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(200);
     });
     it('attachment to template card (success)', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_2';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(200);
     });
     it('attachment to child card (success)', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_6';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(200);
     });
     it('attachment missing project', async () => {
         const projectPath = join(testDir, 'invalid/i-dont-exist');
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_5';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, projectPath);
+        const invalidOptions = {projectPath: projectPath};
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('attachment missing card', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_999';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(400);
     });
     it('attachment missing attachment', async () => {
         const attachmentPath = join(testDir, 'attachments/i-dont-exist.txt');
         const cardId = 'decision_5';
-        const result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(400);
     });
     it('attachment exists already', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
         const cardId = 'decision_6';
-        let result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
-        result = await commandHandler.createAttachment(cardId, attachmentPath, decisionRecordsPath);
+        let result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
+        result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         expect(result.statusCode).to.equal(500);
     });
 
     // card
     it('card (success)', async () => {
-        const result = await commandHandler.createCard('simplepage', undefined, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['card', 'simplepage'], options);
         expect(result.statusCode).to.equal(200);
     });
     it('card with parent (success)', async () => {
         const templateName = 'decision';
         const parentCard = 'decision_5';
-        const result = await commandHandler.createCard(templateName, parentCard, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.create, ['card', templateName, parentCard ], options);
         expect(result.statusCode).to.equal(200);
     });
     it('card incorrect template name', async () => {
         const templateName = 'i-dont-exist';
-        const result = await commandHandler.createCard(templateName, undefined, minimalPath);
+        const result = await commandHandler.command(Cmd.create, ['card', templateName ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('card missing project', async () => {
-        const projectPath = join(testDir, 'valid/no-such-project');
         const templateName = 'simplepage';
-        const result = await commandHandler.createCard(templateName, undefined, projectPath);
+        const invalidOptions = { projectPath: join(testDir, 'valid/no-such-project') };
+        const result = await commandHandler.command(Cmd.create, ['card', templateName ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('card incorrect or missing cardsconfig.json', async () => {
-        const projectPath = join(testDir, 'invalid/missing-cardsconfig.json');
+        const invalidOptions = { projectPath: join(testDir, 'invalid/missing-cardsconfig.json') };
         const templateName = 'simplepage';
-        const result = await commandHandler.createCard(templateName, undefined, projectPath);
+        const result = await commandHandler.command(Cmd.create, ['card', templateName ], invalidOptions);
         expect(result.statusCode).to.equal(500);
     });
     it('card invalid cardsconfig.json', async () => {
-        const projectPath = join(testDir, 'invalid/invalid-cardsconfig.json');
+        const invalidOptions = { projectPath: join(testDir, 'invalid/invalid-cardsconfig.json') };
         const templateName = 'simplepage';
-        const result = await commandHandler.createCard(templateName, undefined, projectPath);
+        const result = await commandHandler.command(Cmd.create, ['card', templateName ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('card parent card missing', async () => {
         const parentCard = 'i-dont-exist';
-        const result = await commandHandler.createCard('simplepage', parentCard, decisionRecordsPath);
+        const templateName = 'simplepage';
+        const result = await commandHandler.command(Cmd.create, ['card', templateName, parentCard ], options);
         expect(result.statusCode).to.equal(400);
     });
     // todo: add more child card creation tests
 
     // cardtype
     it('cardtype (success)', async () => {
-        const result = await commandHandler.createCardtype('test-cardtype', 'defaultWorkflow', minimalPath);
+        const cardtype = 'test-cardtype';
+        const workflow = 'defaultWorkflow';
+        const result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('cardtype invalid project', async () => {
-        const result = await commandHandler.createCardtype('test-cardtype', 'defaultWorkflow', join(testDir, 'valid/no-such-project'));
+        const cardtype = 'test-cardtype';
+        const workflow = 'defaultWorkflow';
+        const invalidOptions = { projectPath: join(testDir, 'valid/no-such-project')};
+        const result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('cardtype create existing cardtype', async () => {
-        let result = await commandHandler.createCardtype('test-cardtype', 'defaultWorkflow', minimalPath);
-        result = await commandHandler.createCardtype('test-cardtype', 'defaultWorkflow', minimalPath);
-        expect(result.statusCode).to.equal(500);
+        const cardtype = 'test-cardtype';
+        const workflow = 'defaultWorkflow';
+        let result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
+        result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
+        expect(result.statusCode).to.equal(500); // todo: probably makes more sense to return 400
     });
     it('cardtype create no workflow', async () => {
-        const result = await commandHandler.createCardtype('test-cardtype', 'i-do-not-exist', minimalPath);
+        const cardtype = 'test-cardtype';
+        const workflow = 'i-do-not-exist';
+        const result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
 
@@ -550,33 +557,46 @@ describe('create command', () => {
         const fieldTypes = Create.supportedFieldTypes();
         for (const fieldType of fieldTypes) {
             const name = `ft_${fieldType}`;
-            const result = await commandHandler.createFieldType(name, fieldType, minimalPath);
+            const result = await commandHandler.command(Cmd.create, ['fieldtype', name, fieldType ], optionsMini);
             expect(result.statusCode).to.equal(200);
         }
     });
     it('fieldtype invalid project', async () => {
-        const result = await commandHandler.createFieldType('name', 'integer', join(testDir, 'valid/no-such-project'));
+        const name = `name`;
+        const dataType = 'integer';
+        const invalidOptions = { projectPath: join(testDir, 'valid/no-such-project') };
+        const result = await commandHandler.command(Cmd.create, ['fieldtype', name, dataType ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('fieldtype name already exists', async () => {
-        const result1 = await commandHandler.createFieldType('name', 'integer', minimalPath);
-        const result2 = await commandHandler.createFieldType('name', 'number', minimalPath);
+        const name = `name`;
+        const dataType1 = 'integer';
+        const dataType2 = 'number';
+        const result1 = await commandHandler.command(Cmd.create, ['fieldtype', name, dataType1 ], optionsMini);
+        const result2 = await commandHandler.command(Cmd.create, ['fieldtype', name, dataType2 ], optionsMini);
         expect(result1.statusCode).to.equal(200);
         expect(result2.statusCode).to.equal(400);
     });
     it('fieldtype with invalid name', async () => {
-        const result = await commandHandler.createFieldType('name1', 'integer', minimalPath);
+        const name = `name1`;
+        const dataType = 'integer';
+        const result = await commandHandler.command(Cmd.create, ['fieldtype', name, dataType ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('fieldtype with invalid type', async () => {
-        const result = await commandHandler.createFieldType('name', 'invalidType', minimalPath);
+        const name = `name1`;
+        const dataType = 'invalidType';
+        const result = await commandHandler.command(Cmd.create, ['fieldtype', name, dataType ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
 
     // project
     it('project (success)', async () => {
         const projectDir = join(testDir, 'project-name');
-        const result = await commandHandler.createProject(projectDir, 'proj', 'test-project');
+        const prefix = 'proj';
+        const name = 'test-project';
+        const testOptions: CardsOptions = { projectPath: projectDir };
+        const result = await commandHandler.command(Cmd.create, ['project', prefix, name ], testOptions);
         try {
             await access(projectDir, fsConstants.R_OK);
         } catch (error) {
@@ -586,7 +606,11 @@ describe('create command', () => {
     });
     it('project with user home path (success)', async () => {
         const path = '~/project-name-unique';
-        const result = await commandHandler.createProject(path, 'proj', 'test-project');
+        const prefix = 'proj';
+        const name = 'test-project';
+        const testOptions: CardsOptions = { projectPath: path };
+
+        const result = await commandHandler.command(Cmd.create, ['project', prefix, name ], testOptions);
         try {
             // nodeJS does not automatically expand paths with tilde
             await access(resolveTilde(path), fsConstants.F_OK);
@@ -596,74 +620,89 @@ describe('create command', () => {
         expect(result.statusCode).to.equal(200);
     });
     it('project missing target', async () => {
-        const result = await commandHandler.createProject('', '', '');
+        const testOptions = { projectPath: '' };
+        const result = await commandHandler.command(Cmd.create, ['project', '', '' ], testOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('project invalid path', async () => {
-        const result = await commandHandler.createProject('lpt1', '', '');
+        const testOptions = { projectPath: 'lpt1' };
+        const result = await commandHandler.command(Cmd.create, ['project', '', '' ], testOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('project path already exists', async () => {
-        const result = await commandHandler.createProject('.', '', '');
+        const testOptions = { projectPath: '.' };
+        const result = await commandHandler.command(Cmd.create, ['project', '', '' ], testOptions);
         expect(result.statusCode).to.equal(400);
     });
 
     // template
     it('template (success)', async () => {
-        const result = await commandHandler.createTemplate(
-            'template-name_first', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', minimalPath);
+        const templateName = 'template-name_first';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('template with "local" (success)', async () => {
-        const result = await commandHandler.createTemplate(
-            'local/template-name_second', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', minimalPath);
+        const templateName = 'local/template-name_second';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('template with default parameters (success)', async () => {
-        const result = await commandHandler.createTemplate(
-            'validname', '', join(testDir, 'valid/minimal'));
+        const templateName = 'validname';
+        const templateContent = '';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('template with "loc"', async () => {
-        const result = await commandHandler.createTemplate(
-            'loc/template-name_second', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', minimalPath);
+        const templateName = 'loc/template-name_second';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('template with "123"', async () => {
-        const result = await commandHandler.createTemplate(
-            'local/123', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', minimalPath);
+        const templateName = 'loc/123';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('template invalid project', async () => {
-        const result = await commandHandler.createTemplate(
-            'validname', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', join(testDir, 'no-such-project'));
+        const templateName = 'validName';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const invalidOptions = {projectPath: join(testDir, 'no-such-project')};
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('template invalid template content', async () => {
-        const result = await commandHandler.createTemplate(
-            'validname', '{"wrongKey1": "Button1", "wrongKey2": 12}', minimalPath);
+        const templateName = 'validname';
+        const templateContent = '{"wrongKey1": "Button1", "wrongKey2": 12}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('template invalid template name', async () => {
-        const result = await commandHandler.createTemplate(
-            'aux', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', minimalPath);
+        const templateName = 'aux';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('template already exists', async () => {
-        const result = await commandHandler.createTemplate(
-            'decision', '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}', decisionRecordsPath);
+        const templateName = 'decision';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], options);
         expect(result.statusCode).to.equal(400);
     });
-
+    // todo: same as test on row 701?
     it('template invalid template name (reserved Windows filename)', async () => {
-        const result = await commandHandler.createTemplate(
-            'aux', '', join(testDir, 'test-template.json')); //reserved name in Windows
+        const templateName = 'aux';
+        const templateContent = '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+        const testOptions = { projectPath: join(testDir, 'test-template.json') };
+        const result = await commandHandler.command(Cmd.create, ['template', templateName, templateContent ], testOptions);
         expect(result.statusCode).to.equal(400);
     });
 
     // workflow
     it('workflow (success)', async () => {
-        const workflowName = "defaultWorkflow";
+        const workflowName = "uniqueWorkflowName";
         const content = `
         {
           "name": "${workflowName}",
@@ -695,12 +734,12 @@ describe('create command', () => {
               }
           ]
         }`;
-        const result = await commandHandler.createWorkflow(workflowName, content, minimalPath);
+        const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, content ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('workflow with default content (success)', async () => {
-        const workflowName = "defaultWorkflow";
-        const result = await commandHandler.createWorkflow(workflowName, '', minimalPath);
+        const workflowName = "anotherUniqueWorkflowName";
+        const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, '' ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('workflow invalid workflow schema', async () => {
@@ -711,7 +750,7 @@ describe('create command', () => {
           "wrongKey1": "dog",
           "wrongKey2": "cat"
         }`;
-        const result = await commandHandler.createWorkflow(workflowName, content, minimalPath);
+        const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, content ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('workflow invalid project', async () => {
@@ -747,12 +786,15 @@ describe('create command', () => {
               }
           ]
         }`;
-        const result = await commandHandler.createWorkflow(workflowName, content, join(testDir, 'valid/no-such-project'));
+
+        const invalidOptions = { projectPath: join(testDir, 'valid/no-such-project') };
+        const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, content ], invalidOptions);
         expect(result.statusCode).to.equal(400);
     });
     it('workflow with existing name', async () => {
-        const result = await commandHandler.createWorkflow('test-workflow', '', join(testDir, minimalPath));
-        expect(result.statusCode).to.equal(400);
+        const workflowName = "defaultWorkflow";
+        const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, '' ], optionsMini);
+        expect(result.statusCode).to.equal(500);
     });
     it('access default parameters for template (success)', () => {
         const defaultContent = Create.defaultTemplateContent();
@@ -768,28 +810,30 @@ describe('create command', () => {
 });
 
 describe('import command', () => {
+    const type = 'module';
+    const miniModule = 'mini';
+    const decisionModule = 'decision';
 
     beforeEach(async () => {
         // Ensure that previous imports are removed.
-        await commandHandler.remove('module', 'mini', undefined, decisionRecordsPath);
-        await commandHandler.remove('module', 'decision', undefined, minimalPath);
+
+        await commandHandler.command(Cmd.remove, [type, miniModule ], options);
+        await commandHandler.command(Cmd.remove, [type, decisionModule ], optionsMini);
     });
 
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const minimalPath = join(testDir, 'valid/minimal');
-
     it('import module (success)', async () => {
-        const result = await commandHandler.import(decisionRecordsPath, 'decision', minimalPath);
+        const result = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('try to import module - no source', async () => {
-        const result = await commandHandler.import('', 'decision', minimalPath);
+        const result = await commandHandler.command(Cmd.import, ['', decisionModule ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to import module - no destination', async () => {
         let result = { statusCode: 0 };
+        const invalidOptions = { projectPath: ''};
         try {
-            result = await commandHandler.import(decisionRecordsPath, 'decision', '');
+            result = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], invalidOptions);
             assert(false, 'this should not be reached as the above throws');
         }
         catch (error) {
@@ -798,17 +842,17 @@ describe('import command', () => {
         expect(result.statusCode).to.equal(0);
     });
     it('try to import module - no name', async () => {
-        const result = await commandHandler.import(decisionRecordsPath, '', minimalPath);
+        const result = await commandHandler.command(Cmd.import, [decisionRecordsPath, '' ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to import module - twice the same module', async () => {
-        const result1 = await commandHandler.import(decisionRecordsPath, 'decision', minimalPath);
+        const result1 = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
         expect(result1.statusCode).to.equal(200);
-        const result2 = await commandHandler.import(decisionRecordsPath, 'decision', minimalPath);
+        const result2 = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
         expect(result2.statusCode).to.equal(400);
     });
     it('try to import module - that has the same prefix', async () => {
-        const result = await commandHandler.import(minimalPath, 'mini-too', minimalPath);
+        const result = await commandHandler.command(Cmd.import, [minimalPath, 'mini-too' ], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('remove imported module', async () => {
@@ -817,162 +861,181 @@ describe('import command', () => {
 });
 
 describe('modifying imported module content is forbidden', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const minimalPath = join(testDir, 'valid/minimal');
+    const miniModule = 'mini';
+    const decisionModule = 'decision';
 
     before(async () => {
         // import each project to each other
-        await commandHandler.import(minimalPath, 'mini', decisionRecordsPath);
-        await commandHandler.import(decisionRecordsPath, 'decision', minimalPath);
+        await commandHandler.command(Cmd.import, [minimalPath, miniModule ], options);
+        await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
     })
 
     it('try to add card to module template', async () => {
-        const result = await commandHandler.addCard('minimal', 'decision-cardtype', undefined, decisionRecordsPath);
+        const templateName = 'minimal';
+        const cardType = 'decision-cardtype';
+        const cardKey = '';
+        const result = await commandHandler.command(Cmd.add, [templateName, cardType, cardKey ], options);
         expect(result.statusCode).to.equal(400);
     });
     it('try to add child card to a module card', async () => {
+        const templateName = 'decision';
+        const cardType = 'decision-cardtype';
+        const cardKey = 'decision_2';
         // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
-        const result = await commandHandler.addCard('decision', 'decision-cardtype', 'decision_2', minimalPath);
+        const result = await commandHandler.command(Cmd.add, [templateName, cardType, cardKey], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
 
     it('try to create attachment to a module card', async () => {
         const attachmentPath = join(testDir, 'attachments/the-needle.heic');
-        const result = await commandHandler.createAttachment('decision_2', attachmentPath, minimalPath);
+        const cardKey = 'decision_2';
+        const result = await commandHandler.command(Cmd.create, ['attachment', cardKey, attachmentPath], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
 
     it('try to move a module card to another template', async () => {
-        const result = await commandHandler.move('decision_2', 'root', minimalPath);
+        const cardKey = 'decision_2';
+        const result = await commandHandler.command(Cmd.move, ['attachment', cardKey, 'root'], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to remove card from a module template', async () => {
-        const result = await commandHandler.remove('card', 'decision_2', undefined, minimalPath);
+        const cardKey = 'decision_2';
+        const result = await commandHandler.command(Cmd.remove, ['card', cardKey], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to remove template from a module', async () => {
-        const result = await commandHandler.remove('template', 'decision/decision', undefined, minimalPath);
+        const template = 'decision/decision';
+        const result = await commandHandler.command(Cmd.remove, ['template', template], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to remove attachment from a module card', async () => {
-        const result = await commandHandler.remove('attachment', 'decision_1', 'the-needle.heic', minimalPath);
+        const cardKey = 'decision_1';
+        const attachment = 'the-needle.heic';
+        const result = await commandHandler.command(Cmd.remove, ['attachment', cardKey, attachment], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
 });
 
 describe('move command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
     it('move card to root (success)', async () => {
         // Create few more cards to play with.
-        const done = await commandHandler.createCard('decision', undefined, decisionRecordsPath);
+        const template = 'decision';
+        const parent = '';
+        const done = await commandHandler.command(Cmd.create, ['card', template,  parent], options);
         expect(done.statusCode).to.equal(200);
 
         const sourceId = 'decision_11';
         const destination = 'root';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(200);
     });
     it('move card to another card (success)', async () => {
         const sourceId = 'decision_11';
         const destination = 'decision_10';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(200);
     });
 
     it('move child card to another card (success)', async () => {
         const sourceId = 'decision_11';
         const destination = 'decision_12';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(200);
     });
     it('move card - project missing', async () => {
         const sourceId = 'decision_11';
         const destination = 'decision_12';
-        const result = await commandHandler.move(sourceId, destination, 'idontexist');
+        const invalidProject = { projectPath: 'idontexist' };
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], invalidProject);
         expect(result.statusCode).to.equal(400);
     });
     it('move card - source card not found', async () => {
         const sourceId = 'decision_999';
         const destination = 'decision_11';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(400);
     });
     it('move card - destination card not found', async () => {
         const sourceId = 'decision_11';
         const destination = 'decision_999';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(400);
     });
     it('move card from template to template', async () => {
         const sourceId = 'decision_2';
         const destination = 'decision_3';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(200);
     });
     it('try to move card from template to project', async () => {
         const sourceId = 'decision_3';
         const destination = 'decision_6';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(400);
     });
     it('try to move card from project to template', async () => {
         const sourceId = 'decision_6';
         const destination = 'decision_3';
-        const result = await commandHandler.move(sourceId, destination, decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.move, [sourceId,  destination], options);
         expect(result.statusCode).to.equal(400);
     });
 });
 
 describe('remove command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
     it('remove card (success)', async () => {
         const cardId = 'decision_6';
-        const result = await commandHandler.remove('card', cardId, '', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.remove, ['card', cardId], options);
         expect(result.statusCode).to.equal(200);
     });
     it('remove card - project missing', async () => {
         const cardId = 'decision_5';
-        const result = await commandHandler.remove('card', cardId, '', 'i-dont-exist');
+        const invalidProject = { projectPath: 'idontexist' };
+        const result = await commandHandler.command(Cmd.remove, ['card', cardId], invalidProject);
         expect(result.statusCode).to.equal(400);
     });
     it('remove card - card not found', async () => {
         const cardId = 'decision_999';
-        const result = await commandHandler.remove('card', cardId, '', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.remove, ['card', cardId], options);
         expect(result.statusCode).to.equal(400);
     });
     it('remove attachment (success)', async () => {
         const cardId = 'decision_5';
-        const result = await commandHandler.remove('attachment', cardId, 'the-needle.heic', decisionRecordsPath);
+        const attachment = 'the-needle.heic';
+        const result = await commandHandler.command(Cmd.remove, ['attachment', cardId, attachment], options);
         expect(result.statusCode).to.equal(200);
     });
     it('remove attachment - project missing', async () => {
         const cardId = 'decision_5';
-        const result = await commandHandler.remove('attachment', cardId, 'the-needle.heic', 'i-dont-exist');
+        const attachment = 'the-needle.heic';
+        const invalidProject = { projectPath: 'idontexist' };
+        const result = await commandHandler.command(Cmd.remove, ['attachment', cardId, attachment], invalidProject);
         expect(result.statusCode).to.equal(400);
     });
     it('remove attachment - attachment not found', async () => {
         const cardId = 'decision_5';
-        const result = await commandHandler.remove('attachment', cardId, 'i-dont-exist.jpg', decisionRecordsPath);
+        const attachment = 'i-dont-exist.jpg';
+        const result = await commandHandler.command(Cmd.remove, ['attachment', cardId, attachment], options);
         expect(result.statusCode).to.equal(500);
     });
     it('remove template (success)', async () => {
         const templateName = 'decision';
-        const result = await commandHandler.remove('template', templateName, '', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.remove, ['template', templateName], options);
         expect(result.statusCode).to.equal(200);
     });
     it('remove template - template missing', async () => {
         const templateName = 'decision'; // was deleted in the previous round
-        const result = await commandHandler.remove('template', templateName, '', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.remove, ['template', templateName], options);
         expect(result.statusCode).to.equal(400);
     });
     it('remove template - project missing', async () => {
         const templateName = 'simplepage';
-        const result = await commandHandler.remove('template', templateName, '', 'i-dont-exist');
+        const invalidProject = { projectPath: 'idontexist' };
+        const result = await commandHandler.command(Cmd.remove, ['template', templateName], invalidProject);
         expect(result.statusCode).to.equal(400);
     });
     it('try to remove unknown type', async () => {
         const cardId = 'decision_5';
-        const result = await commandHandler.remove('i-dont-exist', cardId, '', decisionRecordsPath);
+        const result = await commandHandler.command(Cmd.remove, ['i-dont-exist', cardId], options);
         expect(result.statusCode).to.equal(400);
     });
     // todo: at some point move to own test file
@@ -1013,26 +1076,30 @@ describe('remove command', () => {
 });
 
 describe('rename command', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const minimalPath = join(testDir, 'valid/minimal');
     it('rename project (success)', async () => {
-        const result = await commandHandler.rename('decrec', decisionRecordsPath);
+        const newName = 'decrec';
+        const result = await commandHandler.command(Cmd.rename, [newName], options);
         expect(result.statusCode).to.equal(200);
     });
     it('rename project - no cards at all (success)', async () => {
-        const result = await commandHandler.rename('empty', minimalPath);
+        const newName = 'empty';
+        const result = await commandHandler.command(Cmd.rename, [newName], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('try to rename project - path missing or invalid', async () => {
-        const result = await commandHandler.rename('decrec', 'i-dont-exist');
+        const invalidProject = { projectPath: 'idontexist' };
+        const newName = 'decrec';
+        const result = await commandHandler.command(Cmd.rename, [newName], invalidProject);
         expect(result.statusCode).to.equal(400);
     });
     it('try to rename project - "to" missing', async () => {
-        const result = await commandHandler.rename('', decisionRecordsPath);
+        const newName = '';
+        const result = await commandHandler.command(Cmd.rename, [newName], options);
         expect(result.statusCode).to.equal(400);
     });
     it('try to rename project - invalid "to" ', async () => {
-        const result = await commandHandler.rename('DECREC-2', decisionRecordsPath);
+        const newName = 'DECREC-2';
+        const result = await commandHandler.command(Cmd.rename, [newName], options);
         expect(result.statusCode).to.equal(400);
     });
 });
