@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 
 // ismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { copyDir, resolveTilde } from '../src/utils/file-utils.js'
+import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js'
 import { Create } from '../src/create.js';
 import { attachmentPayload, requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import { moduleSettings } from '../src/interfaces/project-interfaces.js';
@@ -592,9 +592,9 @@ describe('create command', () => {
 
     // project
     it('project (success)', async () => {
-        const projectDir = join(testDir, 'project-name');
         const prefix = 'proj';
         const name = 'test-project';
+        const projectDir = join(testDir, name);
         const testOptions: CardsOptions = { projectPath: projectDir };
         const result = await commandHandler.command(Cmd.create, ['project', prefix, name ], testOptions);
         try {
@@ -618,6 +618,14 @@ describe('create command', () => {
             assert(false, 'project folder could not be created');
         }
         expect(result.statusCode).to.equal(200);
+    });
+    it('project creation without options (success)', async () => {
+        const prefix = 'demo';
+        const name = 'demo';
+        const testOptions = { projectPath: name };
+        const result = await commandHandler.command(Cmd.create, ['project', name, prefix], testOptions);
+        expect(result.statusCode).to.equal(200);
+        await deleteDir(name);
     });
     it('project missing target', async () => {
         const testOptions = { projectPath: '' };
