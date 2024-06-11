@@ -35,20 +35,17 @@ export async function GET() {
   }
 
   const response = await show.showFieldTypes(projectPath)
-
-  if (response.statusCode === 200) {
+  if (response) {
     const fieldTypes = await Promise.all(
-      (response.payload as any).map((fieldType: string) =>
+      response.map((fieldType: string) =>
         show.showFieldType(projectPath, fieldType)
       )
     )
 
-    return NextResponse.json(
-      fieldTypes.map((fieldType: any) => fieldType.payload)
-    )
+    return NextResponse.json(fieldTypes)
   } else {
-    return new NextResponse(response.message, {
-      status: response.statusCode,
+    return new NextResponse(`No field types found from path ${projectPath}`, {
+      status: 500,
     })
   }
 }

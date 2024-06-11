@@ -7,7 +7,6 @@ import { rename, writeFile } from 'node:fs/promises';
 import { Calculate } from './calculate.js';
 import { card } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { Template } from './containers/template.js';
 
 export class Rename extends EventEmitter {
@@ -60,11 +59,8 @@ export class Rename extends EventEmitter {
      * Renames project prefix.
      * @param {string} projectPath Path to a project
      * @param {string} to Card id, or template name
-     * @returns request status
-     *       statusCode 200 when target was removed successfully
-     *  <br> statusCode 400 when input validation failed
      */
-    public async rename(projectPath: string, to: string): Promise<requestStatus> {
+    public async rename(projectPath: string, to: string) {
         Rename.project = new Project(projectPath);
         const from = Rename.project.configuration.cardkeyPrefix;
         // Ensure that only last occurrence is replaced, since path can contain "project prefixes" that are not to be touched.
@@ -73,10 +69,7 @@ export class Rename extends EventEmitter {
         const re = new RegExp(`${from}(?!.*${from})`);
 
         // First change project prefix to project settings.
-        const valid = Rename.project.configuration.setCardPrefix(to);
-        if (valid.statusCode !== 200) {
-            return valid;
-        }
+        Rename.project.configuration.setCardPrefix(to);
 
         // Then rename all project cards. Sort cards so that cards that deeper in file hierarchy are renamed first.
         const projectCards = (await Rename.project.cards(Rename.project.cardrootFolder, { metadata: true, attachments: true }))
@@ -106,6 +99,5 @@ export class Rename extends EventEmitter {
         }
 
         this.emit('renamed', Rename.project.basePath);
-        return { statusCode: 200, message: `Project prefix changed from '${from}' to '${to}'` };
     }
 }

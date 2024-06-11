@@ -8,7 +8,6 @@ import { spawnSync } from 'node:child_process';
 import { card } from './interfaces/project-interfaces.js';
 import { deleteFile, pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 
 // Parsed Clingo result.
 interface ParseResult {
@@ -229,18 +228,15 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
      * Generates a logic program.
      * @param {string} projectPath Path to a project
      * @param {string} cardKey Optional, sub-card tree defining card
-     * @returns request status
-     *       statusCode 200 when target was removed successfully
-     *  <br> statusCode 400 when input validation failed
      */
-    public async generate(projectPath: string, cardKey?: string): Promise<requestStatus> {
+    public async generate(projectPath: string, cardKey?: string) {
         Calculate.project = new Project(projectPath);
 
         let card: card | undefined;
         if (cardKey) {
             card = await Calculate.project.findSpecificCard(cardKey);
             if (!card) {
-                return { statusCode: 400, message: `Card '${cardKey}' not found` };
+                throw new Error(`Card '${cardKey}' not found`);
             }
         }
 
@@ -256,15 +252,11 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
         ];
 
         await Promise.all(promiseContainer);
-        return { statusCode: 200 };
     }
 
     /**
      * When card changes, update the card specific calculations.
      * @param {card} changedCard Card that was changed.
-     * @returns request status:
-     * - 'statusCode' 200 when template was created successfully
-     * - 'statusCode' 400 when card was not part of the project
      */
     public async handleCardChanged(changedCard: card) {
         await this.setCalculateProject(changedCard); // can throw
@@ -275,7 +267,6 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
     /**
      * When cards are removed, automatically remove card-specific calculations.
      * @param {card} deletedCard Card that is to be removed.
-     * @param {Project} project Optional, project container to use. If not specified, a new one will be created.
      */
     public async handleDeleteCard(deletedCard: card) {
         if (!deletedCard) {
@@ -309,7 +300,7 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
     */
     public async handleNewCards(cards: card[]) {
         if (!cards) {
-            return
+            return;
         }
 
         const firstCard = cards[0];
@@ -329,19 +320,18 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
 
     /**
      * Runs a logic program.
+     *
      * @param {string} projectPath Path to a project
      * @param {string} cardKey Optional, if missing the calculations are run for the whole cardtree.
      *                         If defined, calculates only subtree.
-     * @returns request status
-     *       statusCode 200 when target was removed successfully
-     *  <br> statusCode 400 when input validation failed
+     * @returns parsed program output
      */
-    public async run(projectPath: string, cardKey: string): Promise<requestStatus> {
+    public async run(projectPath: string, cardKey: string): Promise<ParseResult[] | undefined> {
         Calculate.project = new Project(projectPath);
 
         const card = await Calculate.project.findSpecificCard(cardKey);
         if (!card) {
-            return { statusCode: 400, message: `Card '${cardKey}' not found` };
+            throw new Error(`Card '${cardKey}' not found`);
         }
 
         const text =
@@ -360,7 +350,7 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
 
         if (clingo.stdout) {
             const result = await this.parseClingoResult(clingo.stdout);
-            return { statusCode: 200, payload: result };
+            return result;
         }
 
         if (clingo.stderr && clingo.status) {
@@ -393,8 +383,8 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
                     console.error('Unknown error');
                 }
             }
-            return { statusCode: 400, message: 'Clingo error' };
+            throw new Error('Clingo error');
         }
-        return { statusCode: 500, message: 'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.' };
+        throw new Error('Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.');
     }
 }

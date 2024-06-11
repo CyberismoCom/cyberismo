@@ -31,7 +31,6 @@ export async function copyDir(source: string, destination: string) {
 /**
  * Delete directory.
  * @param path path to be deleted
- * @returns true, if directory was deleted; false otherwise.
  */
 export async function deleteDir(path: string) {
     await rm(resolveTilde(path), { recursive: true, force: true });
@@ -99,4 +98,7 @@ export function resolveTilde(filePath: string): string {
     return filePath;
 }
 
+/**
+ * Path separator RE.
+ */
 export const sepRegex = /[/\\]/;

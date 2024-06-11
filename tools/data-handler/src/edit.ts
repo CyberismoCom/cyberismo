@@ -1,38 +1,36 @@
 // node
-import { join } from 'path';
-import { spawnSync } from 'child_process';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import type { metadataContent } from './interfaces/project-interfaces.js';
-import { errorFunction } from './utils/log-utils.js';
 import { homedir } from 'os';
 import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UserPreferences } from './utils/user-preferences.js';
 
 export class Edit {
-
     private static project: Project;
 
-    constructor() { }
+    constructor() {}
 
     /**
      * Opens the content and metadata files for a card in the code editor
      * @param projectPath - The path to the project containing the card
      * @param cardKey - The key of the card to open. Required.
-     * @returns A response indicating success or error
      */
-    public async editCard(projectPath: string, cardKey: string): Promise<requestStatus> {
+    public async editCard(projectPath: string, cardKey: string) {
         // Initialise the project
         Edit.project = new Project(projectPath);
 
         // Determine the card path
         const cardPath = Edit.project.pathToCard(cardKey);
         if (!cardPath) {
-            return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
+            throw new Error(`Card '${cardKey}' does not exist in the project`);
         }
 
         // Read the user preferences
-        const prefs = new UserPreferences(join(homedir(), '.cyberismo', 'cards.prefs.json')).getPreferences();
+        const prefs = new UserPreferences(
+            join(homedir(), '.cyberismo', 'cards.prefs.json')
+        ).getPreferences();
 
         // Construct paths for the card components (json and adoc)
         const cardDirPath = join(Edit.project.cardrootFolder, cardPath);
@@ -56,19 +54,13 @@ export class Edit {
         // Execute the editor synchronously and set it to inherit the parent process stdio.
         // This enables terminal editors such as vim to grab the screen I/O
         // from the command line cards process.
-        try {
-            const result = spawnSync(editorCommand, editorArgs, {
-                stdio: 'inherit'
-            });
+        const result = spawnSync(editorCommand, editorArgs, {
+            stdio: 'inherit',
+        });
 
-            if (result.status === null) {
-                return { statusCode: 400, message: `Cannot launch editor: ${result.error}` };
-            }
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+        if (result.status === null) {
+            throw new Error(`Cannot launch editor: ${result.error}`);
         }
-
-        return { statusCode: 200 };
     }
 
     /**
@@ -76,21 +68,21 @@ export class Edit {
      * @param projectPath The path to the project containing the card
      * @param cardKey The card to update.
      * @param changedContent New content for the card.
-     * @returns request status
-     *       statusCode 200 when card was created successfully
-     *  <br> statusCode 400 when card was not found
-     *  <br> statusCode 400 when no content found (this API cannot be used to swipe away content)
      */
-    public async editCardContent(projectPath: string, cardKey: string, changedContent: string): Promise<requestStatus> {
+    public async editCardContent(
+        projectPath: string,
+        cardKey: string,
+        changedContent: string
+    ) {
         Edit.project = new Project(projectPath);
 
         // Determine the card path
         const cardPath = Edit.project.pathToCard(cardKey);
         if (!cardPath) {
-            return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
+            throw new Error(`Card '${cardKey}' does not exist in the project`);
         }
 
-        return Edit.project.updateCardContent(cardKey, changedContent);
+        await Edit.project.updateCardContent(cardKey, changedContent);
     }
 
     /**
@@ -99,20 +91,23 @@ export class Edit {
      * @param cardKey The card to update
      * @param changedKey Which metadata property was changed
      * @param newValue New value for the metadata property
-     *       statusCode 200 when card was created successfully
-     *  <br> statusCode 400 when card was not found
      */
-    public async editCardMetadata(projectPath: string, cardKey: string, changedKey: string, newValue: metadataContent) {
+    public async editCardMetadata(
+        projectPath: string,
+        cardKey: string,
+        changedKey: string,
+        newValue: metadataContent
+    ) {
         Edit.project = new Project(projectPath);
 
         // Determine the card path
         const cardPath = Edit.project.pathToCard(cardKey);
         if (!cardPath) {
-            return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
+            throw new Error(`Card '${cardKey}' does not exist in the project`);
         }
         if (!changedKey) {
-            return { statusCode: 400, message: `Changed key cannot be empty` };
+            throw new Error(`Changed key cannot be empty`);
         }
-        return Edit.project.updateCardMetadata(cardKey, changedKey, newValue);
+        await Edit.project.updateCardMetadata(cardKey, changedKey, newValue);
     }
 }

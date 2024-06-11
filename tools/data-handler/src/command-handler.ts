@@ -16,6 +16,7 @@ import { Show } from './show.js';
 import { Transition } from './transition.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
+import { errorFunction } from './utils/log-utils.js';
 
 const invalidNames = new RegExp('[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$'); // eslint-disable-line no-control-regex
 
@@ -186,27 +187,34 @@ export class Commands {
         return contentValidated && lengthValidated;
     }
 
+    /**
+     * Executes one command for CLI.
+     *
+     * @param command command to execute
+     * @param args arguments for the command
+     * @param options options for the command
+     * @returns request status; 200 if success; 400 in handled error; 500 in unknown error
+     */
     public async command(command: Cmd, args: string[], options: CardsOptions): Promise<requestStatus> {
         // Set project path and validate it.
         const creatingNewProject = command === Cmd.create && args[0] === 'project';
-        // createProject() method makes its own checks; others have common sanity check:
         if (!creatingNewProject) {
             this.projectPath = await this.setProjectPath(options.projectPath);
             this.projectPath = resolveTilde(this.projectPath);
-            if (!this.validateFolder(this.projectPath)) {
-                return {
-                    statusCode: 400,
-                    message: `Input validation error: folder name is invalid '${options.projectPath}'`
-                };
-            }
-            if (!pathExists(this.projectPath)) {
-                return {
-                    statusCode: 400,
-                    message: `Input validation error: cannot find project '${options.projectPath}'`
-                };
-            }
         }
-
+        if (!this.validateFolder(this.projectPath)) {
+            return {
+                statusCode: 400,
+                message: `Input validation error: folder name is invalid '${options.projectPath}'`
+            };
+        }
+        if (!pathExists(this.projectPath)) {
+            return {
+                statusCode: 400,
+                message: `Input validation error: cannot find project '${options.projectPath}'`
+            };
+        }
+    try {
         if (command === Cmd.add) {
             const [ template, cardtype, cardkey ] = args;
             return this.addCard(template, cardtype, cardkey, this.projectPath, options.repeat)
@@ -261,7 +269,12 @@ export class Commands {
         }
         if (command === Cmd.move) {
             const [source, destination] = args;
-            return this.moveCmd.moveCard(this.projectPath, source, destination); //todo: order of parameters
+            try {
+                await this.moveCmd.moveCard(this.projectPath, source, destination); //todo: order of parameters
+                return { statusCode: 200 };
+            } catch (error) {
+                return { statusCode: 400, message: errorFunction(error) };
+            }
         }
         if (command === Cmd.remove) {
             const [type, target, detail] = args;
@@ -276,6 +289,9 @@ export class Commands {
             options.projectPath = this.projectPath;
             return this.show(type, detail, options);
         }
+        if (command === Cmd.start) {
+            return this.startApp(this.projectPath);
+        }
         if (command === Cmd.transition) {
             const [ cardkey, state ] = args;
             return this.transition(cardkey, state, this.projectPath);
@@ -283,6 +299,9 @@ export class Commands {
         if (command === Cmd.validate) {
             return this.validate(this.projectPath);
         }
+    } catch(e) {
+        return { statusCode: 400, message: errorFunction(e) };
+    }
 
         return { statusCode: 500, message: 'Unknown command'}
     }
@@ -311,7 +330,17 @@ export class Commands {
                 message: `Input validation error: cardtype cannot be empty`
             };
         }
-        return this.createCmd.addCards(path, cardTypeName, templateName, cardKey, repeat);
+        try {
+            return {
+                statusCode: 200,
+                message: (await this.createCmd.addCards(path, cardTypeName, templateName, cardKey, repeat))
+            };
+        } catch(e) {
+            return {
+                statusCode: 400,
+                message: errorFunction(e)
+            };
+        }
     }
 
     /**
@@ -328,12 +357,16 @@ export class Commands {
      */
     private async calculate(command: string, options: CardsOptions, cardKey?: string): Promise<requestStatus> {
         if (command === 'generate') {
-            return this.calcCmd.generate(options?.projectPath || '', cardKey);
+            this.calcCmd.generate(options?.projectPath || '', cardKey);
+            return { statusCode: 200 };
         } else if (command === 'run') {
             if (!cardKey) {
                 return { statusCode: 400, message: `"${command}" requires cardkey` };
             }
-            return this.calcCmd.run(options?.projectPath || '', cardKey);
+            return {
+                statusCode: 200,
+                payload: await this.calcCmd.run(options?.projectPath || '', cardKey)
+            };
         }
         return { statusCode: 400, message: `Invalid command for calculation ${command}` };
     }
@@ -355,7 +388,12 @@ export class Commands {
                 message: `Input validation error: cannot find attachment '${attachment}'`
             };
         }
-        return this.createCmd.createAttachment(cardKey, path, attachment);
+        try {
+            await this.createCmd.createAttachment(cardKey, path, attachment);
+        } catch (e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
+        return { statusCode: 200 }
     }
 
     /**
@@ -366,13 +404,17 @@ export class Commands {
      * @returns {requestStatus}
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
-     *  <br> statusCode 500 when there was a internal problem creating card
      */
     private async createCard(templateName: string, parentCardKey: string, path: string): Promise<requestStatus> {
         if (parentCardKey === undefined) {
             parentCardKey = '';
         }
-        return this.createCmd.createCard(path, templateName, parentCardKey);
+        try {
+            await this.createCmd.createCard(path, templateName, parentCardKey);
+            return { statusCode: 200 };
+        } catch (e) {
+            return {statusCode: 400, message: errorFunction(e)};
+        }
     }
 
     /**
@@ -398,7 +440,10 @@ export class Commands {
                 message: `Input validation error: invalid workflow name '${workflowName}'`
             };
         }
-        return this.createCmd.createCardtype(path, cardTypeName, workflowName);
+        try {
+            await this.createCmd.createCardtype(path, cardTypeName, workflowName);
+            return { statusCode: 200 };
+        } catch (e) { return { statusCode: 400, message: errorFunction(e) } }
     }
 
     /**
@@ -418,7 +463,12 @@ export class Commands {
                 message: `Input validation error: invalid fieldtype name '${fieldTypeName}'`
             };
         }
-        return this.createCmd.createFieldType(path, fieldTypeName, dataType);
+        try {
+            await this.createCmd.createFieldType(path, fieldTypeName, dataType);
+            return { statusCode: 200 };
+        } catch(e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
     }
 
     /**
@@ -457,7 +507,12 @@ export class Commands {
                 message: `Input validation error: invalid prefix '${prefix}'`
             };
         }
-        return this.createCmd.createProject(path, prefix, projectName);
+        try {
+            await this.createCmd.createProject(path, prefix, projectName);
+            return { statusCode: 200 };
+        } catch(e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
     }
 
     /**
@@ -479,7 +534,12 @@ export class Commands {
         }
         const content = (templateContent) ? JSON.parse(templateContent) : Create.defaultTemplateContent();
         // Note that templateContent is validated in createTemplate()
-        return this.createCmd.createTemplate(path, templateName, content);
+        try {
+            await this.createCmd.createTemplate(path, templateName, content);
+            return { statusCode: 200 };
+        } catch(e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
     }
 
     /**
@@ -499,7 +559,12 @@ export class Commands {
         const content = (workflowContent) ? JSON.parse(workflowContent) : Create.defaultWorkflowContent(workflowName);
         content.name = workflowName;
         // Note that workflowContent is validated in the createWorkflow function.
-        return this.createCmd.createWorkflow(path, content);
+        try {
+            await this.createCmd.createWorkflow(path, content);
+            return { statusCode: 200 };
+        } catch(e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
     }
 
     /**
@@ -520,7 +585,8 @@ export class Commands {
             };
         }
 
-        return this.editCmd.editCard(path, cardKey);
+        await this.editCmd.editCard(path, cardKey);
+        return { statusCode: 200 };
     }
 
     /**
@@ -548,16 +614,18 @@ export class Commands {
             };
         }
         if (mode === 'adoc') {
-            return this.exportCmd.exportToADoc(source, destination, parentCardKey);
+            await this.exportCmd.exportToADoc(source, destination, parentCardKey);
         } else if (mode === 'html') {
-            return this.exportCmd.exportToHTML(source, destination, parentCardKey);
+            await this.exportCmd.exportToHTML(source, destination, parentCardKey);
         } else if (mode === 'site') {
-            return this.exportCmd.exportToSite(source, destination, parentCardKey);
+            await this.exportCmd.exportToSite(source, destination, parentCardKey);
+        } else {
+            return {
+                statusCode: 400,
+                message: `Unknown mode '${mode}'`
+            };
         }
-        return {
-            statusCode: 400,
-            message: `Unknown mode '${mode}'`
-        };
+        return { statusCode: 200 };
     }
 
     /**
@@ -579,7 +647,12 @@ export class Commands {
         if (!this.validateName(name)) {
             return { statusCode: 400, message: `Input validation error: module name is invalid '${name}'` };
         }
-        return this.importCmd.importProject(source, path, name);
+        try {
+            await this.importCmd.importProject(source, path, name);
+            return { statusCode: 200 };
+        } catch(e) {
+            return { statusCode: 400, message: errorFunction(e) };
+        }
     }
 
     /**
@@ -606,7 +679,12 @@ export class Commands {
                 message: `Input validation error: must define 'detail' when removing attachment from a card '${path}'`
             }
         }
-        return this.removeCmd.remove(path, type, targetName, detail);
+        try {
+            await this.removeCmd.remove(path, type, targetName, detail);
+            return { statusCode: 200 };
+        } catch(error) {
+            return { statusCode: 400, message: errorFunction(error) };
+        }
     }
 
     /**
@@ -618,13 +696,14 @@ export class Commands {
      */
     private async rename(to: string, path: string): Promise<requestStatus> {
         if (!to) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: empty 'to' is not allowed'`
-            };
-
+            throw new Error(`Input validation error: empty 'to' is not allowed`);
         }
-        return this.renameCmd.rename(path, to);
+        try {
+            await this.renameCmd.rename(path, to);
+            return { statusCode: 200 };
+        } catch (error) {
+            return { statusCode: 400, message: errorFunction(error) };
+        }
     }
 
     /**
@@ -635,9 +714,9 @@ export class Commands {
      * @returns {requestStatus}
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
-     *  <br> statusCode 500 when there was a internal problem showing resources
      */
-    private async show(type: string, typeDetail: string, options: CardsOptions): Promise<requestStatus> {
+    private async show(type: string, typeDetail: string, options: CardsOptions)
+    : Promise<requestStatus> {
         const path = options.projectPath || this.projectPath;
         if (!this.allAllowedTypes().includes(type)) {
             return { statusCode: 400, message: `Input validation error: illegal type '${type}'` };
@@ -647,47 +726,84 @@ export class Commands {
         }
         const detail = typeDetail || '';
 
+        let functionToCall: Function = async () => {}; // eslint-disable-line @typescript-eslint/ban-types
+        const parameters = [];
+
         switch (type) {
             case 'attachments':
-                return this.showCmd.showAttachments(path);
-            case 'card': {
-                const details = { contentType: 'adoc', content: options?.details, metadata: true, children: options?.details, parent: options?.details, attachments: true };
-                return this.showCmd.showCardDetails(path, details, typeDetail);
+                parameters.push(path);
+                functionToCall = this.showCmd.showAttachments;
+            break;
+             case 'card': {
+                const cardDetails = { contentType: 'adoc', content: options?.details, metadata: true, children: options?.details, parent: options?.details, attachments: true };
+                parameters.push(path, cardDetails, detail);
+                functionToCall = this.showCmd.showCardDetails;
             }
+            break;
             case 'cards':
-                return this.showCmd.showCards(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showCards;
+                break;
             case 'cardtype':
-                return this.showCmd.showCardTypeDetails(path, detail);
+                parameters.push(path, detail);
+                functionToCall = this.showCmd.showCardTypeDetails;
+                break;
             case 'cardtypes':
-                return this.showCmd.showCardTypes(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showCardTypes;
+                break;
             case 'fieldtype':
-                return this.showCmd.showFieldType(path, detail);
+                parameters.push(path, detail);
+                functionToCall = this.showCmd.showFieldType;
+                break;
             case 'fieldtypes':
-                return this.showCmd.showFieldTypes(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showFieldTypes;
+                break;
             case 'module':
-                return this.showCmd.showModule(path, detail);
+                parameters.push(path, detail);
+                functionToCall = this.showCmd.showModule;
+                break;
             case 'modules':
-                return this.showCmd.showModules(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showModules;
+                break;
             case 'project':
-                return this.showCmd.showProject(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showProject;
+                break;
             case 'template':
-                return this.showCmd.showTemplate(path, detail);
+                parameters.push(path, detail);
+                functionToCall = this.showCmd.showTemplate;
+                break;
             case 'templates':
-                return this.showCmd.showTemplates(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showTemplates;
+                break;
             case 'workflow':
-                return this.showCmd.showWorkflow(path, detail);
+                parameters.push(path, detail);
+                functionToCall = this.showCmd.showWorkflow;
+                break;
             case 'workflows':
-                return this.showCmd.showWorkflows(path);
+                parameters.push(path);
+                functionToCall = this.showCmd.showWorkflows;
+                break;
             case 'attachment':// fallthrough - not implemented yet
             case 'link':    // fallthrough - not implemented yet
             case 'links':    // fallthrough - not implemented yet
-            case 'projects': // fallthrough - not possible
+            case 'projects': // fallthrough - not possible */
             default:
                 return {
                     statusCode: 400,
                     message: `Unknown or not yet handled type ${type}`,
                     payload: []
                 };
+        }
+        try {
+            const result = await functionToCall(...parameters);
+            return { statusCode: 200, payload: result };
+        } catch(error) {
+            return { statusCode: 400, message: errorFunction(error) };
         }
     }
 
@@ -701,7 +817,12 @@ export class Commands {
      *  <br> statusCode 400 when input validation failed
      */
     private async transition(cardKey: string, stateName: string, path: string): Promise<requestStatus> {
-        return this.transitionCmd.cardTransition(path, cardKey, { name: stateName });
+        try {
+            await this.transitionCmd.cardTransition(path, cardKey, { name: stateName });
+            return { statusCode: 200 };
+        } catch (error) {
+            return { statusCode: 400, message: errorFunction(error) };
+        }
     }
 
     /**
@@ -710,10 +831,17 @@ export class Commands {
      * @returns {requestStatus}
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
-     *  <br> statusCode 500 when there was a internal problem validating schema
      */
     private async validate(path: string): Promise<requestStatus> {
-        return this.validateCmd.validate(path);
+        try {
+            const result = await this.validateCmd.validate(path);
+            return {
+                statusCode: 200,
+                message: (result.length ? result : 'Project structure validated')
+            };
+        } catch (error) {
+            return { statusCode: 400, message: errorFunction(error) };
+        }
     }
 
     /**

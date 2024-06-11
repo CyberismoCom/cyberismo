@@ -3,16 +3,14 @@ import { open, writeFile } from 'node:fs/promises';
 
 // ismo
 import { formatJson } from './utils/json.js';
-import { readJsonFileSync } from './utils/json.js';
 import { projectSettings } from './interfaces/project-interfaces.js';
+import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './validate.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 
 /**
  * Represents Project's cardsconfig.json file.
  */
 export class ProjectSettings implements projectSettings {
-
     private static instance: ProjectSettings;
 
     name: string;
@@ -32,33 +30,46 @@ export class ProjectSettings implements projectSettings {
 
     // Persists configuration file to disk.
     private async persistConfiguration() {
-        if (this.cardkeyPrefix === '' ||
-            this.nextAvailableCardNumber < 1) {
+        if (this.cardkeyPrefix === '' || this.nextAvailableCardNumber < 1) {
             throw new Error('wrong configuration');
         }
-        await open(this.settingPath, 'w')
-            .then(async file => {
-                try {
-                    await writeFile(file, formatJson(this.toJSON()));
-                    file.close();
-                } catch (error) {
-                    if (error instanceof Error) {
-                        console.error(error.message);
-                    }
+        await open(this.settingPath, 'w').then(async file => {
+            try {
+                await writeFile(file, formatJson(this.toJSON()));
+                file.close();
+            } catch (error) {
+                if (error instanceof Error) {
+                    console.error(error.message);
                 }
-            });
+            }
+        });
     }
 
     // Sets configuration values from file.
     private readSettings() {
+        let settings;
         try {
-            const settings = readJsonFileSync(this.settingPath);
+            settings = readJsonFileSync(this.settingPath);
+        } catch (error) {
+            throw new Error(
+                `Invalid path '${this.settingPath}' to configuration file`
+            );
+        }
+
+        const valid =
+            'cardkeyPrefix' in settings &&
+            'nextAvailableCardNumber' in settings &&
+            'name' in settings;
+
+        if (valid) {
             this.cardkeyPrefix = settings.cardkeyPrefix;
             this.nextAvailableCardNumber = settings.nextAvailableCardNumber;
             this.name = settings.name;
             this.currentTemporalKeyValue = this.nextAvailableCardNumber;
-        } catch (error) {
-            throw new Error(`Invalid path '${this.settingPath}' to configuration file`);
+        } else {
+            throw new Error(
+                `Invalid path '${this.settingPath}' to configuration file`
+            );
         }
     }
 
@@ -67,8 +78,8 @@ export class ProjectSettings implements projectSettings {
         return {
             cardkeyPrefix: this.cardkeyPrefix,
             name: this.name,
-            nextAvailableCardNumber: this.nextAvailableCardNumber
-        }
+            nextAvailableCardNumber: this.nextAvailableCardNumber,
+        };
     }
 
     /**
@@ -85,7 +96,10 @@ export class ProjectSettings implements projectSettings {
      */
     public static getInstance(path: string): ProjectSettings {
         // If there is no instance, or if path is not the same as current instance's path; create a new one.
-        if (!ProjectSettings.instance || path !== ProjectSettings.instance.settingPath) {
+        if (
+            !ProjectSettings.instance ||
+            path !== ProjectSettings.instance.settingPath
+        ) {
             ProjectSettings.instance = new ProjectSettings(path);
         }
         return ProjectSettings.instance;
@@ -93,7 +107,7 @@ export class ProjectSettings implements projectSettings {
 
     /**
      * Returns next available card key (e.g. test_11).
-     * @returns
+     * @returns next available card-key
      */
     public newCardKey(): string {
         return `${this.cardkeyPrefix}_${this.nextAvailableCardNumber++}`;
@@ -111,16 +125,13 @@ export class ProjectSettings implements projectSettings {
      * Changes project prefix.
      * @param newPrefix New prefix to use in the project
      */
-    public setCardPrefix(newPrefix: string): requestStatus {
+    public setCardPrefix(newPrefix: string) {
         const isValid = Validate.validatePrefix(newPrefix);
         if (isValid) {
             this.cardkeyPrefix = newPrefix;
             this.commit();
-            return { statusCode: 200 };
+            return;
         }
-        return {
-            statusCode: 400,
-            message: `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`
-        };
+        throw new Error(`Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`);
     }
 }

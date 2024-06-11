@@ -7,7 +7,6 @@ import { card, cardNameRegEx, cardtype } from './interfaces/project-interfaces.j
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { readADocFileSync, readJsonFileSync } from './utils/json.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
@@ -159,11 +158,8 @@ export class Export {
      * @param source Cardroot path.
      * @param destination Path to where the resulting file(s) will be created.
      * @param cardkey If not exporting the whole card tree, card key of parent card.
-     * @returns request status:
-     * - 'statusCode' 200 when workflow was created successfully.
-     * - 'statusCode' 500 when unknown error occurred.
      */
-    public async exportToADoc(source: string, destination: string, cardkey?: string): Promise<requestStatus> {
+    public async exportToADoc(source: string, destination: string, cardkey?: string) {
         Export.project = new Project(source);
         const sourcePath: string = Export.project.cardrootFolder;
         const cards: card[] = [];
@@ -198,8 +194,6 @@ export class Export {
         }
 
         await this.toAdocFile(resultDocumentPath, cards);
-
-        return { statusCode: 200 };
     }
 
     /**
@@ -207,21 +201,13 @@ export class Export {
      * @param source Cardroot path.
      * @param destination Path to where the resulting file(s) will be created.
      * @param cardkey Optional; If not exporting the whole card tree, card key of parent card.
-     * @returns request status:
-     * - 'statusCode' 200 when workflow was created successfully.
-     * - 'statusCode' 500 when unknown error occurred.
      */
-    public async exportToHTML(source: string, destination: string, cardkey?: string): Promise<requestStatus> {
-        return this.exportToADoc(source, destination, cardkey)
-            .then(async result => {
-                if (result.statusCode === 200) {
+    public async exportToHTML(source: string, destination: string, cardkey?: string) {
+        await this.exportToADoc(source, destination, cardkey)
+            .then(async () => {
                     const asciiDocProcessor = Processor();
                     const adocFile = join(destination, Project.cardContentFile);
                     asciiDocProcessor.convertFile(adocFile, { safe: 'safe', base_dir: '/', standalone: true });
-                    return { statusCode: 200 };
-                } else {
-                    return { statusCode: 500, message: 'Could not export to HTML' }
-                }
             });
     }
 }
