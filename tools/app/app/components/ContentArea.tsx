@@ -5,17 +5,25 @@ import Processor from '@asciidoctor/core'
 import { parse } from 'node-html-parser'
 import { Box, Stack, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import ExpandingBox, { ExpandingBoxProps } from './ExpandingBox'
+import { useForm } from 'react-hook-form'
 
 type ContentAreaProps = {
   card: CardDetails | null
   error: string | null
   preview: boolean
+  values: ExpandingBoxProps['values']
+  control: ReturnType<typeof useForm>['control']
+  onMetadataClick?: () => void
 }
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
   card,
   error,
   preview,
+  values,
+  control,
+  onMetadataClick,
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null)
 
@@ -65,7 +73,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     <Stack direction="row" height="100%">
       <Box
         width="100%"
-        paddingRight={3}
+        padding={3}
         flexGrow={1}
         minWidth={0}
         sx={{
@@ -74,13 +82,24 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         }}
         onScroll={handleScroll}
       >
-        <Typography variant="h1">
-          {card.metadata?.summary ?? card.key}
-        </Typography>
-        <div
-          className="doc"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        <Stack spacing={3}>
+          <Typography variant="h1">
+            {card.metadata?.summary ?? card.key}
+          </Typography>
+          <ExpandingBox
+            values={values}
+            color="bgsoft.main"
+            control={control}
+            editMode={false}
+            onClick={onMetadataClick}
+          />
+          <Box padding={4}>
+            <div
+              className="doc"
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+            />
+          </Box>
+        </Stack>
       </Box>
       {renderTableOfContents(htmlContent, visibleHeaderId)}
     </Stack>

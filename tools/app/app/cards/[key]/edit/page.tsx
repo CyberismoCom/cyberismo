@@ -3,13 +3,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   CardDetails,
   CardMode,
+  MetadataValue,
   WorkflowTransition,
 } from '@/app/lib/definitions'
 import Box from '@mui/material/Box'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
-import { Stack, TextField } from '@mui/material'
+import { CircularProgress, Stack, TextField } from '@mui/material'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
@@ -20,7 +21,7 @@ import {
   useFieldTypes,
   useProject,
 } from '@/app/lib/api/index'
-import { useError } from '@/app/lib/utils'
+import { useDynamicForm, useError } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
 import {
@@ -28,6 +29,7 @@ import {
   getEditableFields,
 } from '@/app/lib/components'
 import { Controller, useForm } from 'react-hook-form'
+import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -36,7 +38,9 @@ export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
   const { card, updateCard } = useCard(params.key)
   const { fieldTypes } = useFieldTypes()
-  const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
+  const cardType = useMemo(() => {
+    return project?.cardTypes.find((ct) => ct.name === card?.metadata?.cardtype)
+  }, [project, card])
 
   const searchParams = useSearchParams()
 
@@ -46,22 +50,24 @@ export default function Page({ params }: { params: { key: string } }) {
   const { reason, setError, handleClose } = useError()
   const router = useRouter()
 
-  const { reset, handleSubmit, getValues, control } = useForm()
-
-  const fields = useMemo(() => {
-    if (!card || !cardType) return []
+  const { fields, values } = useMemo(() => {
+    if (!card || !cardType || !fieldTypes) return { fields: [], values: {} }
     let { values, fields } = generateExpandingBoxValues(
       card,
       fieldTypes,
       [],
+      (cardType.optionallyVisibleFields ?? []).concat(
+        cardType.alwaysVisibleFields ?? []
+      ),
       getEditableFields(card, cardType)
     )
     values['__title__'] = card.metadata?.summary ?? ''
     values['__content__'] = card.content ?? ''
 
-    reset(values)
-    return fields
-  }, [card, fieldTypes, cardType, reset])
+    return { fields, values }
+  }, [card, fieldTypes, cardType])
+
+  const { handleSubmit, getValues, control, isReady } = useDynamicForm(values)
 
   const handleStateTransition = async (transition: WorkflowTransition) => {
     try {
@@ -71,13 +77,19 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __content__, __title__, ...metadata } = data
+      const update: Record<string, MetadataValue> = {}
+      for (const { key } of fields) {
+        if (key === 'key' || key === 'type') continue
+        update[key] = metadata[key]
+      }
+
       await updateCard({
-        content: __content__,
+        content: __content__ as string,
         metadata: {
-          ...metadata,
+          ...update,
           summary: __title__,
         },
       })
@@ -103,6 +115,8 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }, [card, getValues])
 
+  if (!isReady) return <CircularProgress />
+
   return (
     <Stack height="100%">
       <ContentToolbar
@@ -112,16 +126,7 @@ export default function Page({ params }: { params: { key: string } }) {
         onUpdate={() => handleSubmit(handleSave)()}
         onStateTransition={handleStateTransition}
       />
-      <Stack paddingX={3} flexGrow={1} minHeight={0}>
-        <Box width="70%">
-          <ExpandingBox
-            values={fields}
-            color="bgsoft.main"
-            editMode={true}
-            control={control}
-            initialExpanded={searchParams.get('expand') === 'true'}
-          />
-        </Box>
+      <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
         <Stack
           borderColor="divider"
           borderBottom={1}
@@ -137,12 +142,13 @@ export default function Page({ params }: { params: { key: string } }) {
 
         <TabPanel value={value} index={0}>
           <Box
-            width="70%"
+            height="100%"
             sx={{
               overflowY: 'scroll',
               scrollbarWidth: 'thin',
             }}
-            height="100%"
+            width="70%"
+            paddingRight={3}
           >
             <Controller
               name="__title__"
@@ -162,7 +168,15 @@ export default function Page({ params }: { params: { key: string } }) {
                 />
               )}
             />
-
+            <Box paddingY={3}>
+              <ExpandingBox
+                values={fields}
+                color="bgsoft.main"
+                editMode={true}
+                control={control}
+                initialExpanded={searchParams.get('expand') === 'true'}
+              />
+            </Box>
             <Controller
               name="__content__"
               control={control}
@@ -180,7 +194,13 @@ export default function Page({ params }: { params: { key: string } }) {
         </TabPanel>
         <TabPanel value={value} index={1}>
           <Box height="100%">
-            <ContentArea card={getPreview()} error={null} preview={true} />
+            <ContentArea
+              card={getPreview()}
+              error={null}
+              preview={true}
+              values={fields}
+              control={control}
+            />
           </Box>
         </TabPanel>
       </Stack>

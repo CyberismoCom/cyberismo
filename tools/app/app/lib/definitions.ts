@@ -1,10 +1,13 @@
-import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces'
+import {
+  cardtype,
+  workflowCategory,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces'
 
 export interface Project {
   name: string
   cards: Card[]
   workflows: Workflow[]
-  cardTypes: CardType[]
+  cardTypes: cardtype[]
 }
 
 // Single card with metadata and children, but no content.
@@ -66,13 +69,6 @@ export interface customField {
   name: string
   displayName: string
   isEditable: boolean
-}
-
-export interface CardType {
-  name: string
-  workflow: string
-  alwaysVisibleFields: string[]
-  customFields: customField[]
 }
 
 export type FieldTypes = Array<FieldTypeDefinition>

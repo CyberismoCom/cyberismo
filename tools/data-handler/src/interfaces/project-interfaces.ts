@@ -61,6 +61,8 @@ export interface cardtype {
     name: string,
     workflow: string,
     customFields?: customField[]
+    alwaysVisibleFields?: string[]
+    optionallyVisibleFields?: string[]
 }
 
 // Card's index.json file content.
