@@ -3,13 +3,13 @@ import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import ErrorBar from '@/app/components/ErrorBar'
 import ExpandingBox from '@/app/components/ExpandingBox'
-import { useCard, useCardType, useFieldTypes, useProject } from '@/app/lib/api'
+import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
 import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/material'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,10 @@ export default function Page({ params }: { params: { key: string } }) {
   const { reason, setError, handleClose } = useError()
 
   const { fieldTypes } = useFieldTypes()
-  const { cardType } = useCardType(card?.metadata?.cardtype ?? null)
+
+  const cardType = useMemo(() => {
+    return project?.cardTypes.find((ct) => ct.name === card?.metadata?.cardtype)
+  }, [project, card])
 
   const router = useRouter()
 
@@ -32,10 +35,10 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const { control, reset } = useForm()
+  const { reset, control } = useForm()
 
-  const fields = useMemo(() => {
-    if (!card || !cardType) return []
+  const { fields, values } = useMemo(() => {
+    if (!card || !cardType) return { fields: [], values: {} }
     let { values, fields } = generateExpandingBoxValues(
       card,
       fieldTypes,
@@ -43,12 +46,16 @@ export default function Page({ params }: { params: { key: string } }) {
         'key',
         'type',
       ],
+      cardType.optionallyVisibleFields ?? [],
       []
     )
 
+    return { fields, values }
+  }, [card, fieldTypes, cardType])
+
+  useEffect(() => {
     reset(values)
-    return fields
-  }, [card, fieldTypes, cardType, reset])
+  }, [reset, values])
 
   return (
     <Stack height="100%">
@@ -59,22 +66,18 @@ export default function Page({ params }: { params: { key: string } }) {
         onUpdate={() => {}}
         onStateTransition={handleStateTransition}
       />
-      <Stack flexGrow={1} minHeight={0}>
-        <Box width="65%" maxWidth="46rem">
-          <ExpandingBox
-            values={fields}
-            color="bgsoft.main"
-            editMode={false}
-            control={control}
-            onClick={() => {
-              router.push(`/cards/${params.key}/edit?expand=true`)
-            }}
-          />
-        </Box>
-        <Box padding={3} flexGrow={1} minHeight={0}>
-          <ContentArea card={card} error={error?.message} preview={false} />
-        </Box>
-      </Stack>
+      <Box flexGrow={1} minHeight={0}>
+        <ContentArea
+          card={card}
+          error={error?.message}
+          preview={false}
+          values={fields}
+          control={control}
+          onMetadataClick={() => {
+            router.push(`/cards/${params.key}/edit?expand=true`)
+          }}
+        />
+      </Box>
       <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )

@@ -26,9 +26,6 @@ export default function FieldEditor({
           value={value}
           type="number"
           color="primary"
-          sx={{
-            paddingTop: 1,
-          }}
         />
       )
 
@@ -44,13 +41,7 @@ export default function FieldEditor({
     case 'enum':
       return (
         <FormControl size="small">
-          <Select
-            value={value}
-            onChange={onChange}
-            sx={{
-              paddingTop: 1,
-            }}
-          >
+          <Select value={value} onChange={onChange}>
             {enumValues?.map((enumDef) => (
               <MenuItem key={enumDef.enumValue} value={enumDef.enumValue}>
                 {enumDef.enumDisplayValue}
@@ -72,6 +63,9 @@ export default function FieldEditor({
           onChange={onChange}
           value={value}
           color="primary"
+          sx={{
+            width: 400,
+          }}
         />
       )
   }

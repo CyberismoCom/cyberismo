@@ -3,9 +3,10 @@ import { Transition } from '@cyberismocom/data-handler/transition'
 import { Calculate } from '@cyberismocom/data-handler/calculate'
 import { Edit } from '@cyberismocom/data-handler/edit'
 import { NextRequest, NextResponse } from 'next/server'
-import { fetchCardDetails, metadataContent } from '@cyberismocom/data-handler/interfaces/project-interfaces'
-
-
+import {
+  fetchCardDetails,
+  metadataContent,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,12 +129,11 @@ export async function PUT(request: NextRequest) {
 
   if (res.metadata) {
     const editCommand = new Edit()
-    
+
     for (const [metadataKey, metadataValue] of Object.entries(res.metadata)) {
-      
       const value = metadataValue as metadataContent
-      if(value === null) continue
-      
+      if (value === null) continue
+
       const editResponse = await editCommand.editCardMetadata(
         projectPath,
         key,
@@ -156,16 +156,18 @@ export async function PUT(request: NextRequest) {
   if (errors.length > 0 && successes == 0) {
     // All updates failed
     return new NextResponse(errors.join('\n'), { status: 400 })
-  } 
-  
+  }
+
   const details = await getCardDetails(projectPath, key, contentType)
 
-  if(errors.length > 0) {
+  if (errors.length > 0) {
     // Some of the updates failed
-    if(details.status == 200) {
-      return new NextResponse(details.body, { status: 207, statusText: errors.join('\n')})
-    }
-    else {
+    if (details.status == 200) {
+      return new NextResponse(details.body, {
+        status: 207,
+        statusText: errors.join('\n'),
+      })
+    } else {
       return details
     }
   }
@@ -173,8 +175,11 @@ export async function PUT(request: NextRequest) {
   return details
 }
 
-
-async function getCardDetails(projectPath: string, key: string, contentType: string): Promise<NextResponse> {
+async function getCardDetails(
+  projectPath: string,
+  key: string,
+  contentType: string
+): Promise<NextResponse> {
   if (contentType !== 'adoc' && contentType !== 'html') {
     return new NextResponse('contentType must be adoc or html', { status: 400 })
   }

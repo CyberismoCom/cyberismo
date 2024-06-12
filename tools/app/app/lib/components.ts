@@ -1,5 +1,6 @@
 import { ExpandingBoxProps } from '../components/ExpandingBox'
-import { CardDetails, CardMetadata, CardType, FieldTypes } from './definitions'
+import { CardDetails, CardMetadata, FieldTypes } from './definitions'
+import { cardtype } from '@cyberismocom/data-handler/interfaces/project-interfaces'
 /**
  * Generates the values for the ExpandingBox component
  * @param card Card to generate values for
@@ -10,6 +11,7 @@ export function generateExpandingBoxValues(
   card: CardDetails | null,
   fieldTypes: FieldTypes | null,
   visibleFields: string[],
+  optionallyVisibleFields: string[],
   editableFields: string[]
 ): {
   fields: ExpandingBoxProps['values']
@@ -43,6 +45,12 @@ export function generateExpandingBoxValues(
     if (!fieldType) {
       continue
     }
+    if (
+      !optionallyVisibleFields.includes(key) &&
+      !visibleFields.includes(key)
+    ) {
+      continue
+    }
     fields.push({
       key,
       label: fieldType.displayName || key,
@@ -64,14 +72,14 @@ export function generateExpandingBoxValues(
 
 export function getEditableFields(
   card: CardDetails,
-  cardType: CardType
+  cardType: cardtype
 ): string[] {
   if (!card.metadata) {
     return []
   }
   return Object.keys(card.metadata).filter(
     (key) =>
-      cardType.customFields.find((field) => field.name === key)?.isEditable ||
+      cardType.customFields?.find((field) => field.name === key)?.isEditable ||
       false
   )
 }

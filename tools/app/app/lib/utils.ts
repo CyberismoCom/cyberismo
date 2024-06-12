@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Card,
   CardDetails,
@@ -10,6 +10,7 @@ import {
   Workflow,
 } from './definitions'
 import { ApiCallError } from './swr'
+import { useForm } from 'react-hook-form'
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -144,6 +145,22 @@ export function useError() {
   }
   return { error, setError, handleClose, reason }
 }
+
+/**
+ * Custom hook for handling forms with dynamic initial values
+ */
+export function useDynamicForm(values: Object) {
+  const { reset, ...rest } = useForm()
+  const [isReady, setIsReady] = useState(false)
+  useEffect(() => {
+    if (Object.keys(values).length > 0) {
+      reset(values)
+      setIsReady(true)
+    }
+  }, [reset, values])
+  return { isReady, ...rest }
+}
+
 /**
  * Converts metadata value to string
  * @param metadata: metadata value to convert to string
@@ -152,6 +169,7 @@ export function useError() {
 export function metadataValueToString(
   metadata: MetadataValue,
   dataType: DataType,
+  t: (value: string) => string,
   enumValues?: Array<EnumDefinition>
 ): string {
   if (metadata instanceof Date) {
@@ -165,6 +183,8 @@ export function metadataValueToString(
       metadata?.toString() ??
       ''
     )
+  } else if (dataType === 'boolean') {
+    return metadata ? t('yes') : t('no')
   } else {
     return metadata ? metadata.toString() : ''
   }
