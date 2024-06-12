@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest) {
     }
   }
 
-  if (res.content) {
+  if (res.content != null) {
     const editCommand = new Edit()
     const editResponse = await editCommand.editCardContent(
       projectPath,

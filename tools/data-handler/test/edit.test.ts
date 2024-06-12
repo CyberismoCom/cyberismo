@@ -44,7 +44,7 @@ describe('edit card', () => {
         }
     });
 
-    it('try to edit card content - no content', async () => {
+    it('edit card content - no content', async () => {
         const decisionRecordsPath = join(testDir, 'valid/decision-records');
         const project = new Project(decisionRecordsPath);
         const EditCmd = new Edit();
@@ -52,7 +52,7 @@ describe('edit card', () => {
         const firstCard = cards.at(0);
         if (firstCard) {
             const result = await EditCmd.editCardContent(project.basePath, firstCard.key, '');
-            expect(result.statusCode).to.equal(400);
+            expect(result.statusCode).to.equal(200);
         }
     });
 

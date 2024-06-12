@@ -244,7 +244,7 @@ export class CardContainer {
 
     // Persists card content.
     protected async saveCard(card: card): Promise<requestStatus> {
-        if (card.content) {
+        if (card.content != null) {
             const contentFile = join(card.path, CardContainer.cardContentFile);
             await writeFile(contentFile, card.content);
             return { statusCode: 200 };
