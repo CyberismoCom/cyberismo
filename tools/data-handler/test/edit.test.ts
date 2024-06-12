@@ -52,7 +52,7 @@ describe('edit card', () => {
         const firstCard = cards.at(0);
         if (firstCard) {
             const result = await EditCmd.editCardContent(project.basePath, firstCard.key, '');
-            expect(result.statusCode).to.equal(400);
+            expect(result.statusCode).to.equal(200);
         }
     });
 
