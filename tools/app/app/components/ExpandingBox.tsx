@@ -146,6 +146,10 @@ function ExpandingBox({
     []
   )
 
+  if (values.length === 0) {
+    return null
+  }
+
   return (
     <Box
       bgcolor={color}
