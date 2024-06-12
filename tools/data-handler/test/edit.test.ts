@@ -44,7 +44,7 @@ describe('edit card', () => {
         }
     });
 
-    it('try to edit card content - no content', async () => {
+    it('edit card content - no content', async () => {
         const decisionRecordsPath = join(testDir, 'valid/decision-records');
         const project = new Project(decisionRecordsPath);
         const EditCmd = new Edit();
