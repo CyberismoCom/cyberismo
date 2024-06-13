@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography'
 import Image from 'next/image'
 import Button from '@mui/material/Button'
 import { useTranslation } from 'react-i18next'
+import { Box } from '@mui/material'
 
 export default function AppToolbar() {
   const { t } = useTranslation()
@@ -17,16 +18,8 @@ export default function AppToolbar() {
           width="102"
           height="19"
         />
-        <Typography
-          fontSize={18}
-          color="#F3EDE3"
-          component="div"
-          sx={{ flexGrow: 1, marginLeft: 1 }}
-        >
-          {t('appName')}
-        </Typography>
-        <Button color="inherit">{t('toolbar.newCard')}</Button>
-        <Button color="inherit">{t('toolbar.importModules')}</Button>
+        <Box sx={{ flexGrow: 1 }} />
+        {false && <Button color="inherit">{t('toolbar.newCard')}</Button>}
       </Toolbar>
     </AppBar>
   )
