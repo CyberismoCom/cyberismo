@@ -196,23 +196,24 @@ export class Commands {
      * @returns request status; 200 if success; 400 in handled error; 500 in unknown error
      */
     public async command(command: Cmd, args: string[], options: CardsOptions): Promise<requestStatus> {
+        this.projectPath = '';
         // Set project path and validate it.
         const creatingNewProject = command === Cmd.create && args[0] === 'project';
         if (!creatingNewProject) {
             this.projectPath = await this.setProjectPath(options.projectPath);
             this.projectPath = resolveTilde(this.projectPath);
-        }
-        if (!this.validateFolder(this.projectPath)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${options.projectPath}'`
-            };
-        }
-        if (!pathExists(this.projectPath)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${options.projectPath}'`
-            };
+            if (!this.validateFolder(this.projectPath)) {
+                return {
+                    statusCode: 400,
+                    message: `Input validation error: folder name is invalid '${options.projectPath}'`
+                };
+            }
+            if (!pathExists(this.projectPath)) {
+                return {
+                    statusCode: 400,
+                    message: `Input validation error: cannot find project '${options.projectPath}'`
+                };
+            }
         }
     try {
         if (command === Cmd.add) {
