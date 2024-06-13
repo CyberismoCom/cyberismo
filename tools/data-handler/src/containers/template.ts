@@ -6,10 +6,8 @@ import { readdirSync } from 'node:fs';
 // ismo
 import { attachmentDetails, card, cardNameRegEx, fetchCardDetails, resource, template, templateMetadata } from '../interfaces/project-interfaces.js';
 import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
-import { errorFunction } from '../utils/log-utils.js';
 import { formatJson } from '../utils/json.js';
 import { Project } from './project.js';
-import { requestStatus } from '../interfaces/request-status-interfaces.js';
 
 // Base class
 import { CardContainer } from './card-container.js';
@@ -48,7 +46,7 @@ export class Template extends CardContainer {
     //           Then rename the folder based on mapped names.
     //           Make 'card' item changed to write them to json file.
     //           Finally copy from temp to real place.
-    private async doCreateCards(cards: card[], parentCard?: card): Promise<requestStatus> {
+    private async doCreateCards(cards: card[], parentCard?: card): Promise<string[]> {
         const templateIDMap: mappingValue[] = [];
         const tempDestination = join(this.project.cardrootFolder, 'temp');
 
@@ -89,18 +87,15 @@ export class Template extends CardContainer {
                 // @todo: could just fetch initial state based on card
                 const cardtype = await this.project.cardType(card.metadata?.cardtype);
                 if (!cardtype) {
-                    return {
-                        statusCode: 400,
-                        message: `Cardtype '${card.metadata?.cardtype}' of card ${card.key} cannot be found`
-                    };
+                    throw new Error(`Cardtype '${card.metadata?.cardtype}' of card ${card.key} cannot be found`);
                 }
                 const workflow = await this.project.workflow(cardtype.workflow);
                 if (!workflow) {
-                    return { statusCode: 400, message: `Workflow '${cardtype.workflow}' cannot be found` };
+                    throw new Error(`Workflow '${cardtype.workflow}' cannot be found`);
                 }
                 const initialWorkflowState = await this.project.workflowInitialState(workflow.name);
                 if (!initialWorkflowState) {
-                    return { statusCode: 400, message: `Workflow '${workflow.name}' initial state cannot be found` };
+                    throw new Error(`Workflow '${workflow.name}' initial state cannot be found`);
                 }
                 if (card.metadata) {
                     card.metadata.workflowState = initialWorkflowState;
@@ -145,18 +140,16 @@ export class Template extends CardContainer {
             await rm(tempDestination, { recursive: true, force: true });
             await this.project.configuration.commit();
 
-            const createdCards = templateIDMap.map(item => item.to);
-
-            // When new cards are added, add calculations for the cards.
-            //await this.project.updateCalculations('create', cards);
-
-            return { statusCode: 200, message: `Created cards ${JSON.stringify(createdCards)}`, payload: cards };
         } catch (error) {
-            this.project.configuration.rollback();
-            // If card creation causes an exception, remove 'temp' and reset the cardkey id value.
-            await rm(tempDestination, { recursive: true, force: true });
-            return { statusCode: 500, message: errorFunction(error) };
+            if (error instanceof Error) {
+                this.project.configuration.rollback();
+                // If card creation causes an exception, remove 'temp' and reset the cardkey id value.
+                await rm(tempDestination, { recursive: true, force: true });
+                throw new Error(error.message);
+            }
         }
+        const createdCards = templateIDMap.map(item => item.to);
+        return createdCards;
     }
 
     // Set path to template location.
@@ -193,30 +186,22 @@ export class Template extends CardContainer {
      * Adds a new card to template.
      * @param {string} cardtype cardtype
      * @param {string} parentCard parent card; optional - if missing will create a top-level card
-     * @returns {requestStatus} request status
-     *      'statusCode' 200 when card was added to template successfully
-     * <br> 'statusCode' 400 when template does not exist
-     * <br> 'statusCode' 400 when cardtype does not exist
-     * <br> 'statusCode' 400 when card does not exist in the template
-     * <br> 'statusCode' 500 when unknown error occurs
+     * @returns next available card key ID
      */
-    public async addCard(cardtype: string, parentCard?: card): Promise<requestStatus> {
+    public async addCard(cardtype: string, parentCard?: card): Promise<string> {
         const destinationCardPath = parentCard ? join(await this.cardFolder(parentCard.key), 'c') : this.templateCardsPath;
         const defaultContent = { 'summary': 'Untitled', 'cardtype': cardtype, 'workflowState': '' };
         let newCardKey = '';
 
         try {
             if (!pathExists(this.templateFolder())) {
-                return { statusCode: 400, message: `template '${this.containerName}' does not exist` };
+                throw new Error(`Template '${this.containerName}' does not exist`);
             }
             if (await this.project.cardType(cardtype) === undefined) {
-                return { statusCode: 400, message: `cardtype '${cardtype}' does not exist` };
+                throw new Error(`Cardtype '${cardtype}' does not exist`);
             }
             if (parentCard && !this.hasCard(parentCard.key)) {
-                return {
-                    statusCode: 400,
-                    message: `card '${parentCard.key}' does not exist in template '${this.containerName}'`
-                };
+                throw new Error(`Card '${parentCard.key}' does not exist in template '${this.containerName}'`);
             }
 
             newCardKey = this.project.configuration.newCardKey();
@@ -229,12 +214,14 @@ export class Template extends CardContainer {
             await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
             await this.project.configuration.commit();
         } catch (error) {
-            // todo: does this ever really throw?
-            this.project.configuration.rollback();
-            // todo: use temp folder and destroy everything from there.
-            return { statusCode: 500, message: errorFunction(error) };
+            if (error instanceof Error) {
+                // todo: does this ever really throw?
+                this.project.configuration.rollback();
+                // todo: use temp folder and destroy everything from there.
+                throw new Error(error.message);
+            }
         }
-        return { statusCode: 200, message: newCardKey };
+        return newCardKey;
     }
 
     /**
@@ -295,12 +282,10 @@ export class Template extends CardContainer {
 
     /**
      * Creates a new template to a project.
-     * @returns request status
-     * - 'statusCode' 200 when template was created successfully
-     * - 'statusCode' 500 otherwise
      * todo: it would make more sense if Project would have this function
+     * @returns operation details
      */
-    public async create(templateContent: templateMetadata): Promise<requestStatus> {
+    public async create(templateContent: templateMetadata): Promise<string> {
         const isCreated = this.isCreated();
         if (!isCreated) {
             try {
@@ -320,30 +305,24 @@ export class Template extends CardContainer {
                     const templateName = basename(created);
                     messageText = `Created template '${templateName}' to folder ${this.templatePath}`;
                 }
-                return { statusCode: 200, message: messageText };
+                return messageText;
             }
             catch (e) {
-                return { statusCode: 400, message: errorFunction(`Could not instantiate template ${this.containerName}`) };
+                throw new Error(`Could not instantiate template ${this.containerName}`);
             }
-        } else {
-            return { statusCode: 400, message: errorFunction(`Template ${this.containerName} already created`) };
         }
+        return '';
     }
 
     /**
      * Creates cards from a template. If parent card is specified, then cards are created to underneath a parent.
      * @param parentCard parent card
-     * @returns request status:
-     * - 'statusCode' 200 when workflow was created successfully.
-     * - 'statusCode' 500 when unknown error occurred.
+     * @returns array of created card keys
      */
-    public async createCards(parentCard?: card): Promise<requestStatus> {
+    public async createCards(parentCard?: card): Promise<string[]> {
         const cards = await this.cards('', { content: true, contentType: 'adoc', metadata: true, attachments: true });
         if (cards.length === 0) {
-            return {
-                statusCode: 400,
-                message: `No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`
-            };
+            throw new Error(`No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`);
         }
         return this.doCreateCards(cards, parentCard);
     }

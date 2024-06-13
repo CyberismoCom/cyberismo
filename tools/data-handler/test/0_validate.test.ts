@@ -11,6 +11,7 @@ import { describe, it } from 'mocha';
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/validate.js';
 import { Project } from '../src/containers/project.js';
+import { errorFunction } from '../src/utils/log-utils.js';
 
 describe('validate cmd tests', () => {
 
@@ -20,163 +21,163 @@ describe('validate cmd tests', () => {
 
     it('validate() - decision-records (success)', async () => {
         const path = join(testDir, 'valid/decision-records');
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.equal(0);
     });
     it('validate() - minimal (success)', async () => {
         const path = join(testDir, 'valid/minimal');
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.equal(0);
     });
     it('try to validate() - invalid-cardsconfig.json', async () => {
         const path = join(testDir, 'invalid/invalid-cardsconfig.json');
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-.cards-subfolders', async () => {
         const path = join(testDir, 'invalid/missing-.cards-subfolders');
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-cardsconfig.json', async () => {
         const path = 'test/test-data/invalid/missing-cardsconfig.json';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-cardtypes-subfolder', async () => {
         const path = 'test/test-data/invalid/missing-cardtypes-subfolder';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-templates-subfolder', async () => {
         const path = 'test/test-data/invalid/missing-templates-subfolder';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-workflows-subfolder', async () => {
         const path = 'test/test-data/invalid/missing-workflows-subfolder';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - no-.schema-in.cards', async () => {
         const path = 'test/test-data/invalid/no-.schema-in.cards';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - no-.schema-in.cards-cardtypes', async () => {
         const path = 'test/test-data/invalid/no-.schema-in.cards-cardtypes';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - no-.schema-in.cards-templates', async () => {
         const path = 'test/test-data/invalid/no-.schema-in.cards-templates';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - no-.schema-in.cards-workflows', async () => {
         const path = 'test/test-data/invalid/no-.schema-in.cards-workflows';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - no-.schema-in-cardroot', async () => {
         const path = 'test/test-data/invalid/o-.schema-in-cardroot';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - invalid-empty', async () => {
         const path = 'test/test-data/invalid/invalid-empty';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-cardroot', async () => {
         const path = 'test/test-data/invalid/missing-cardroot';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - missing-.cards', async () => {
         const path = 'test/test-data/invalid/missing-.cards';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validate() - path does not exist', async () => {
         const path = 'i-do-not-exist';
-        const status = await validateCmd.validate(path);
-        expect(status.statusCode).to.equal(500);
+        const valid = await validateCmd.validate(path);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('validateJson() - cardsconfig', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/cardsconfig.json';
         const schemaId = 'cardsconfig-schema';
         const jsonSchema = await readJsonFile(path);
-        const status = await validateCmd.validateJson(jsonSchema, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateJson(jsonSchema, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateJson() - cardtype', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/cardtypes/decision-cardtype.json';
         const schemaId = '/cardtype-schema';
         const jsonSchema = await readJsonFile(path);
-        const status = await validateCmd.validateJson(jsonSchema, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateJson(jsonSchema, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateJson() - template', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/templates/decision/template.json';
         const schemaId = 'template-schema';
         const jsonSchema = await readJsonFile(path);
-        const status = await validateCmd.validateJson(jsonSchema, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateJson(jsonSchema, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateJson() - workflow', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
         const schemaId = 'workflow-schema';
         const jsonSchema = await readJsonFile(path);
-        const status = await validateCmd.validateJson(jsonSchema, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateJson(jsonSchema, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('try to validateJson() - invalid JSON', async () => {
         const schemaId = 'workflow-schema';
-        const status = await validateCmd.validateJson({}, schemaId);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validateJson({}, schemaId);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('try to validateJson() - invalid schemaId', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
         const schemaId = 'i-do-not-exists';
         const jsonSchema = await readJsonFile(path);
-        const status = await validateCmd.validateJson(jsonSchema, schemaId);
-        expect(status.statusCode).to.equal(400);
+        const valid = await validateCmd.validateJson(jsonSchema, schemaId);
+        expect(valid.length).to.be.greaterThan(0);
     });
     it('validateSchema() - cardsconfig', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/cardsconfig.json';
         const schemaId = 'cardsconfig-schema';
-        const status = await validateCmd.validateSchema(path, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateSchema(path, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateSchema() - cardtype', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/cardtypes/decision-cardtype.json';
         const schemaId = '/cardtype-schema';
-        const status = await validateCmd.validateSchema(path, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateSchema(path, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateSchema() - template', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/templates/decision/template.json';
         const schemaId = 'template-schema';
-        const status = await validateCmd.validateSchema(path, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateSchema(path, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('validateSchema() - workflow', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
         const schemaId = 'workflow-schema';
-        const status = await validateCmd.validateSchema(path, schemaId);
-        expect(status.statusCode).to.equal(200);
+        const valid = await validateCmd.validateSchema(path, schemaId);
+        expect(valid.length).to.equal(0);
     });
     it('try to validateSchema() - invalid JSON', async () => {
         const schemaId = 'workflow-schema';
-        const status = await validateCmd.validateSchema('', schemaId);
-        expect(status.statusCode).to.equal(400);
+        await validateCmd.validateSchema('', schemaId)
+            .catch(error => expect(errorFunction(error)).to.equal('Path is not valid '));
     });
     it('try to validateSchema() - invalid schemaId', async () => {
         const path = 'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
         const schemaId = 'i-do-not-exists';
-        const status = await validateCmd.validateSchema(path, schemaId);
-        expect(status.statusCode).to.equal(400);
+        await validateCmd.validateSchema(path, schemaId)
+            .catch(error => expect(errorFunction(error)).to.equal("Unknown schema 'i-do-not-exists'"));
     });
 
     it('validateWorkflowState (success)', async () => {
@@ -184,7 +185,7 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_5', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            expect(valid.statusCode).to.equal(200);
+            expect(valid.length).to.equal(0);
         }
     });
     it('try to validateWorkflowState - invalid state', async () => {
@@ -192,7 +193,7 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_6', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            expect(valid.statusCode).to.equal(400);
+            expect(valid.length).to.be.greaterThan(0);
         }
     });
     it('try to validateWorkflowState - cardtype not found', async () => {
@@ -200,7 +201,7 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_5', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            expect(valid.statusCode).to.equal(500);
+            expect(valid.length).to.be.greaterThan(0);
         }
     });
     it('try to validateWorkflowState - workflow not found from project', async () => {
@@ -208,15 +209,17 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_7', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            expect(valid.statusCode).to.equal(400);
+            expect(valid.length).to.be.greaterThan(0);
         }
     });
     it('try to validateWorkflowState - workflow not found from card', async () => {
+        console.log('here1')
         const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
         const card = await project.findSpecificCard('decision_8', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            expect(valid.statusCode).to.equal(500);
+            console.log(valid)
+            expect(valid.length).to.be.greaterThan(0);
         }
     });
 
@@ -226,7 +229,7 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_6', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateCustomFields(project, card);
-            expect(valid.statusCode).to.equal(200);
+            expect(valid.length).to.equal(0);
         }
     });
     it('try to validate card custom fields - cardtype not found', async () => {
@@ -234,15 +237,16 @@ describe('validate cmd tests', () => {
         const card = await project.findSpecificCard('decision_5', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateCustomFields(project, card);
-            expect(valid.statusCode).to.equal(500);
+            expect(valid.length).to.be.greaterThan(0);
         }
     });
     it('try to validate card custom fields - no metadata for the card', async () => {
         const project = new Project('test/test-data/valid/decision-records/');
         const card = await project.findSpecificCard('decision_5', {metadata: false});
         if (card) {
-            const valid = await validateCmd.validateCustomFields(project, card);
-            expect(valid.statusCode).to.equal(500);
+            await validateCmd.validateCustomFields(project, card)
+            .catch(error =>
+                expect(errorFunction(error)).to.equal("Card 'decision_5' has no metadata. Card object needs to be instantiated with '{metadata: true}'"));
         }
     });
     // @todo add more tests that test various values types can have (correct and incorrect)

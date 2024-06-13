@@ -6,22 +6,18 @@ import { readdir, writeFile } from 'node:fs/promises';
 import { copyDir } from './utils/file-utils.js';
 import { formatJson, readJsonFile } from './utils/json.js';
 import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 
 export class Import {
 
     constructor() { }
 
     /**
-     * Import project to another project. This basically copies templates, workflows and cardtypes to a new project.
-     * @param source Path to project that will be imported
-     * @param destination Path to project that will receive the imported project
+     * Import module to another project. This basically copies templates, workflows and cardtypes to a new project.
+     * @param source Path to module that will be imported
+     * @param destination Path to project that will receive the imported module
      * @param moduleName Name for the imported projected in 'destination'.
-     * @returns requestStatus:
-     * - 'statusCode' 200 when module was imported successfully.
-     * - 'statusCode' 400 when input validation fails.
      */
-    async importProject(source: string, destination: string, moduleName: string): Promise<requestStatus> {
+    async importProject(source: string, destination: string, moduleName: string) {
         const destinationProject = new Project(destination);
         const sourceProject = new Project(source);
         const destinationPath = join(destinationProject.modulesFolder, moduleName);
@@ -29,20 +25,14 @@ export class Import {
 
         // Do not allow modules with same names.
         if ((await destinationProject.moduleNames()).includes(moduleName)) {
-            return {
-                statusCode: 400,
-                message: `Project already has a module with name '${moduleName}'. Import with another name.`
-            };
+            throw new Error(`Project already has a module with name '${moduleName}'. Import with another name.`);
         }
 
         // Do not allow modules with same prefixes.
         const sourcePrefix = sourceProject.configuration.cardkeyPrefix;
         const currentlyUsedPrefixes = await destinationProject.projectPrefixes();
         if (currentlyUsedPrefixes.includes(sourcePrefix)) {
-            return {
-                statusCode: 400,
-                message: `Imported project includes a prefix '${sourcePrefix}' that is already used in the project. Cannot import from '${source}'.\nRename module prefix before importing using 'cards rename'.`
-            };
+            throw new Error(`Imported project includes a prefix '${sourcePrefix}' that is already used in the project. Cannot import from '${source}'.\nRename module prefix before importing using 'cards rename'.`);
         }
 
         // Copy files.
@@ -84,7 +74,5 @@ export class Import {
             content.name = `${moduleName}/${content.name}`;
             writeFile(join(file.path, file.name), formatJson(content));
         }
-
-        return { statusCode: 200 };
     }
 }

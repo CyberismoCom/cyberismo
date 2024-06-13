@@ -13,7 +13,6 @@ import { Validate } from '../validate.js';
 
 // base class
 import { CardContainer } from './card-container.js';
-import { requestStatus } from '../interfaces/request-status-interfaces.js';
 
 /**
  * Represents project folder.
@@ -188,16 +187,14 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Returns path to main level calculations folder
-     * @returns path to calc folder
+     * Getter. Returns path to main level calculations folder
      */
     public get calculationFolder(): string {
         return join(this.basePath, '.calc');
     }
 
     /**
-     * Returns path to project local calculations folder
-     * @returns path to calc folder
+     * Getter. Returns path to project local calculations folder
      */
     public get calculationProjectFolder(): string {
         return join(this.basePath, '.cards', 'local', 'calculations');
@@ -270,8 +267,7 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Returns path to card-root.
-     * @returns path to card-root.
+     * Getter. Returns path to card-root.
      */
     public get cardrootFolder(): string {
         return join(this.basePath, 'cardroot');
@@ -345,8 +341,7 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Returns path to 'cardtypes' folder.
-     * @returns path to 'cardtypes' folder.
+     * Getter. Returns path to 'cardtypes' folder.
      */
     public get cardtypesFolder(): string {
         return join(this.basePath, '.cards', 'local', 'cardtypes');
@@ -617,8 +612,7 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Path to modules folder.
-     * @returns path to modules folder.
+     * Getter. Path to modules folder.
      */
     public get modulesFolder(): string {
         return join(this.basePath, '.cards', 'modules');
@@ -675,8 +669,8 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Returns path to '.cards/local' folder.
-     * */
+     * Getter. Returns path to '.cards/local' folder.
+     */
     public get resourcesFolder(): string {
         return join(this.basePath, '.cards', 'local');
     }
@@ -765,13 +759,18 @@ export class Project extends CardContainer {
         return join(this.basePath, '.cards', 'local', 'templates');
     }
 
-    public async updateCardContent(cardKey: string, content: string): Promise<requestStatus> {
+    /**
+     * Update card content.
+     * @param {string} cardKey card's ID that is updated.
+     * @param {string} content changed content
+     */
+    public async updateCardContent(cardKey: string, content: string) {
         const card = await this.findCard(this.basePath, cardKey);
         if (!card) {
-            return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
+            throw new Error(`Card '${cardKey}' does not exist in the project`);
         }
         card.content = content;
-        return await this.saveCard(card);
+        await this.saveCard(card);
     }
 
     /**
@@ -779,43 +778,37 @@ export class Project extends CardContainer {
      * @param {string} cardKey card that is updated.
      * @param {string} changedKey changed metadata key
      * @param {metadataContent} newValue changed value for the key
-     * @returns request status 200 when success, 400 otherwise
      */
-    public async updateCardMetadata(cardKey: string, changedKey: string, newValue: metadataContent): Promise<requestStatus> {
+    public async updateCardMetadata(cardKey: string, changedKey: string, newValue: metadataContent) {
         const card = await this.findCard(this.basePath, cardKey, { metadata: true });
         type MetadataTypes = Record<string, metadataContent>;
         if (!card) {
-            return { statusCode: 400, message: `Card '${cardKey}' does not exist in the project` };
+            throw new Error(`Card '${cardKey}' does not exist in the project`);
         }
 
         const validCard = await this.validateCard(card);
-        if (validCard.statusCode !== 200) {
-            return validCard;
+        if (validCard.length !== 0) {
+            throw new Error(`Card '${cardKey}' is not valid!`);
         }
 
         if (card.metadata) {
             const cardAsRecord: MetadataTypes = card.metadata;
             cardAsRecord[changedKey] = newValue;
-            return await this.saveCardMetadata(card);
+            await this.saveCardMetadata(card);
         }
-        return { statusCode: 200 };
     }
 
     /**
      * Validates that card's data is valid.
      * @param {card} card Card to validate.
-     * @returns request status 200 when success, 400 when validation does not succeed.
      */
-    public async validateCard(card: card): Promise<requestStatus> {
+    public async validateCard(card: card): Promise<string> {
         const validCustomData = await this.validator.validateCustomFields(this, card);
         const validWorkFlow = await this.validator.validateWorkflowState(this, card);
-        if (validCustomData.statusCode === 200 && validWorkFlow.statusCode === 200) {
-            return { statusCode: 200 };
+        if (validCustomData.length === 0 && validWorkFlow.length === 0) {
+            return '';
         }
-        return {
-            statusCode: 400,
-            message: `${validCustomData.message} +${validWorkFlow.message}`
-        };
+        return `${validCustomData} + ${validWorkFlow}`;
     }
 
     /**
@@ -824,6 +817,9 @@ export class Project extends CardContainer {
      * @returns workflow configuration, or undefined if workflow cannot be found.
      */
     public async workflow(workflowName: string): Promise<workflowMetadata | undefined> {
+        if (!workflowName) {
+            return undefined;
+        }
         if (!workflowName.endsWith('.json')) {
             workflowName += '.json';
         }

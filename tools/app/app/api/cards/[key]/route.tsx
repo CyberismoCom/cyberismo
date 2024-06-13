@@ -101,29 +101,31 @@ export async function PUT(request: NextRequest) {
   if (res.state) {
     const calculateCommand = new Calculate()
     const transitionCommand = new Transition(calculateCommand)
-    const cardTransitionResponse = await transitionCommand.cardTransition(
-      projectPath,
-      key,
-      res.state
-    )
-    if (cardTransitionResponse.statusCode !== 200) {
-      errors.push(cardTransitionResponse.message)
-    } else {
+    try {
+      await transitionCommand.cardTransition(
+        projectPath,
+        key,
+        res.state
+      )
       successes++
+    } catch (error) {
+      if (error instanceof Error)
+        errors.push(error.message)
     }
   }
 
   if (res.content != null) {
     const editCommand = new Edit()
-    const editResponse = await editCommand.editCardContent(
-      projectPath,
-      key,
-      res.content
-    )
-    if (editResponse.statusCode !== 200) {
-      errors.push(editResponse.message)
-    } else {
+    try {
+      await editCommand.editCardContent(
+        projectPath,
+        key,
+        res.content
+      )
       successes++
+    } catch (error) {
+      if (error instanceof Error)
+        errors.push(error.message)
     }
   }
 
@@ -134,19 +136,20 @@ export async function PUT(request: NextRequest) {
       const value = metadataValue as metadataContent
       if (value === null) continue
 
-      const editResponse = await editCommand.editCardMetadata(
-        projectPath,
-        key,
-        metadataKey,
-        value
-      )
-      if (editResponse.statusCode !== 200) {
-        errors.push(editResponse.message)
-      } else {
+      try {
+        await editCommand.editCardMetadata(
+          projectPath,
+          key,
+          metadataKey,
+          value
+        )
         successes++
-      }
+    } catch (error) {
+      if (error instanceof Error)
+        errors.push(error.message)
     }
   }
+}
 
   // TODO add other update options here
 
@@ -194,16 +197,22 @@ async function getCardDetails(
   }
 
   const showCommand = new Show()
-  const cardDetailsResponse = await showCommand.showCardDetails(
-    projectPath,
-    fetchCardDetails,
-    key
-  )
-  if (cardDetailsResponse.statusCode == 200) {
-    return NextResponse.json(cardDetailsResponse.payload)
-  } else {
-    return new NextResponse(cardDetailsResponse.message, {
-      status: cardDetailsResponse.statusCode,
+  try {
+    const cardDetailsResponse = await showCommand.showCardDetails(
+      projectPath,
+      fetchCardDetails,
+      key
+    )
+    if (cardDetailsResponse) {
+      return NextResponse.json(cardDetailsResponse)
+    } else {
+      return new NextResponse(`Card not found from path ${projectPath}`, {
+        status: 400,
+      })
+    }
+  } catch(error) {
+    return new NextResponse(`Card not found from path ${projectPath}`, {
+      status: 400,
     })
   }
 }

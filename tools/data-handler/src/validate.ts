@@ -11,7 +11,6 @@ import { Validator as DirectoryValidator } from 'directory-schema-validator';
 // data-handler
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { card, fieldtype } from './interfaces/project-interfaces.js';
@@ -71,8 +70,8 @@ export class Validate {
     }
 
     // Handles reading and validating 'contentSchema' in a directory.
-    private async readAndValidateContentFiles(path: string): Promise<requestStatus> {
-        const response: requestStatus = { statusCode: 200 };
+    private async readAndValidateContentFiles(path: string): Promise<boolean> {
+        let message = "";
         try {
             const files = await readdir(path, { withFileTypes: true, recursive: true });
             // Filter out directories and non-JSON files. Include special '.schema' files.
@@ -97,22 +96,18 @@ export class Validate {
                     );
                     for (const error of result.errors) {
                         const msg = `\nValidation error from '${fullFileNameWithPath}': '${error.path[0]}' ${error.message}.\n`;
-                        if (response.message === undefined) {
-                            response.message = msg;
-                        } else {
-                            response.message += msg;
-                        }
-                        response.statusCode = 400;
+                        message += msg;
                     }
                 }
             }
         } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+            throw new Error(errorFunction(error));
         }
-        if (!response.message) {
-            response.message = 'Project structure validated';
+        if (!message) {
+            console.log('Project structure validated');
+            return true;
         }
-        return response;
+        return false;
     }
 
     private parseValidatorMessage(errorObject: object[]): string {
@@ -219,26 +214,22 @@ export class Validate {
      * Validates that a given directory path (and its children) conform to a JSON schema.
      * @note Validates also content in the directory tree, if .schema file is found.
      * @param projectPath path to validate.
-     * @returns request status
-     *       statusCode 200 when JSON conforms to the schema
-     *  <br> statusCode 400 when schema validation failed
-     *  <br> statusCode 500 when an unknown error occurred
+     * @returns string containing all validation errors
      */
-    public async validate(projectPath: string): Promise<requestStatus> {
-        let response: requestStatus = { statusCode: 200 };
+    public async validate(projectPath: string): Promise<string> {
+        let validationErrors = "";
         try {
             // First, validate that the directory content conforms to the schema.
             const valid = this.directoryValidator.validate(this.parentSchema, projectPath);
             if (!valid && this.directoryValidator.errors) {
                 const errorMsg = this.parseValidatorMessage(this.directoryValidator.errors);
                 if (errorMsg) {
-                    response.message = errorMsg;
+                    validationErrors = errorMsg;
                 }
-                response.statusCode = 400;
-                return response;
+                return validationErrors;
             } else {
                 // Then, validate that each 'contentSchema' children as well.
-                response = await this.readAndValidateContentFiles(projectPath);
+                await this.readAndValidateContentFiles(projectPath);
 
                 // Finally, validate that each card is correct
                 const project = new Project(projectPath);
@@ -248,121 +239,93 @@ export class Validate {
                     if (card.metadata) {
                         // validate card's workflow
                         const validWorkflow = await this.validateWorkflowState(project, card);
-                        if (validWorkflow.statusCode != 200) {
-                            errorMsg.push(validWorkflow.message || '');
+                        if (validWorkflow.length != 0) {
+                            errorMsg.push(validWorkflow);
                         }
-
-                        // @todo: validate customfields
 
                         const validCustomFields = await this.validateCustomFields(project, card);
-                        if (validCustomFields.statusCode != 200) {
-                            errorMsg.push(validCustomFields.message || '');
+                        if (validCustomFields.length != 0) {
+                            errorMsg.push(validCustomFields);
                         }
-
                     }
                 }
                 if (errorMsg.length) {
-                    return { statusCode: 400, message: errorMsg.join("\n") };
+                    validationErrors += errorMsg.join("\n");
                 }
             }
         } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+            validationErrors += errorFunction(error);
         }
-        return response;
+        return validationErrors;
     }
 
     /**
      * Validates that 'object' conforms to JSON schema 'schemaId'.
      * @param content Object to validate.
      * @param schemaId Schema ID to identify a JSON schema.
-     * @returns request status
-     *       statusCode 200 when validation succeeded
-     *  <br> statusCode 400 when schema validation failed
+     * @returns string containing all validation errors
      */
-    public async validateJson(content: object, schemaId: string): Promise<requestStatus> {
-        const response: requestStatus = { statusCode: 200 };
+    public async validateJson(content: object, schemaId: string): Promise<string> {
+        let validationErrors = "";
         if (this.validator.schemas[schemaId] === undefined) {
-            response.statusCode = 400;
-            response.message += `Unknown schema ${schemaId}`;
+            validationErrors += `Unknown schema ${schemaId}`;
         } else {
             const result = this.validator.validate(content, this.validator.schemas[schemaId]);
             for (const error of result.errors) {
                 const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-                response.statusCode = 400;
-                if (response.message === undefined) {
-                    response.message = msg;
-                } else {
-                    response.message += msg;
-                }
+                validationErrors += msg;
             }
         }
-        return response;
+        return validationErrors;
     }
 
     /**
      * Validate schema that matches schemaId from path.
      * @param {string} projectPath path to schema
      * @param {string} schemaId schema's id
-     * @returns request status
-     *       statusCode 200 when validation succeeded
-     *  <br> statusCode 400 when schema validation failed, or schema is not known.
-     *  <br> statusCode 500 when unknown error occurred.
+     * @returns string containing all validation errors
      */
-    public async validateSchema(projectPath: string, schemaId: string): Promise<requestStatus> {
-        const response: requestStatus = { statusCode: 200 };
+    public async validateSchema(projectPath: string, schemaId: string): Promise<string> {
+        let validationErrors = "";
         const activeJsonSchema = this.validator.schemas[schemaId];
         if (activeJsonSchema === undefined) {
-            response.statusCode = 400;
-            response.message += `Unknown schema ${schemaId}`;
+            throw new Error(`Unknown schema '${schemaId}'`);
         } else {
             if (!pathExists(projectPath)) {
-                response.statusCode = 400;
-                response.message += `Path is not valid ${projectPath}`;
+                throw new Error(`Path is not valid ${projectPath}`);
             } else {
                 const result = this.validator.validate(await readJsonFile(projectPath), activeJsonSchema);
                 for (const error of result.errors) {
                     const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-                    response.statusCode = 400;
-                    response.message += msg;
+                    validationErrors += msg;
                 }
             }
         }
-        return response;
+        return validationErrors;
     }
 
     /**
      * Validates that card's custom fields are according to schema and have correct data in them.
      * @param project currently used Project
      * @param card specific card
-     * @returns requestStatus 200 when validation succeeded
-     *  <br> statusCode 400 when schema validation failed
-     *  <br> statusCode 500 when schema has logical errors (e.g. missing cardtype)
+     * @returns string containing all validation errors
      */
-    public async validateCustomFields(project: Project, card: card): Promise<requestStatus> {
-        let errorMsg = "";
+    public async validateCustomFields(project: Project, card: card): Promise<string> {
+        let validationErrors = "";
 
         if (!card.metadata) {
-            return {
-                statusCode: 500,
-                message: errorFunction(
-                    `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`)
-            };
+            throw new Error(`Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`);
         }
 
         const cardType = await project.cardType(card.metadata?.cardtype);
         if (!cardType) {
-            return {
-                statusCode: 500,
-                message: errorFunction(`Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`)
-            };
+            validationErrors += `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`;
         }
 
-        if (cardType.customFields) {
+        if (cardType && cardType.customFields) {
             for (const field of cardType.customFields) {
                 if (!card.metadata[field.name] === undefined) {
-                    return {
-                        statusCode: 400,
-                        message: errorFunction(`Card '${card.key}' is missing custom field 'name' from ${field}`)};
+                    validationErrors += `Card '${card.key}' is missing custom field 'name' from ${field}`;
                 }
                 const fieldType = await project.fieldType(field.name);
                 if (fieldType && !this.validType(card.metadata[field.name], fieldType)) {
@@ -371,73 +334,54 @@ export class Validate {
                     if (typeOfValue === 'string') {
                         fieldValue = card.metadata[field.name] ? `"${card.metadata[field.name]}"` : '""';
                     }
-                    errorMsg += `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`;
+                    validationErrors += `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`;
                     if (fieldType.dataType === 'enum') {
                         const listOfEnumValues = fieldType.enumValues?.map(item => item.enumValue);
-                        errorMsg += `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`;
+                        validationErrors += `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`;
                     }
                 }
             }
         }
 
-        if (errorMsg.length > 0) {
-            return { statusCode: 400, message: errorFunction(errorMsg) };
-        }
-        return { statusCode: 200 };
+        return validationErrors;
     }
 
     /**
      * Checks if card's current workflow state matches workflow that card's cardtype is using.
      * @param {Project} project Project object.
      * @param {card} card Card object to validate
-     * @returns requestStatus 200 when validation succeeded
-     *  <br> statusCode 400 when schema validation failed
-     *  <br> statusCode 500 when schema has logical errors (e.g. missing cardtype)
+     * @returns string containing all validation errors
      */
-    public async validateWorkflowState(project: Project, card: card): Promise<requestStatus> {
+    public async validateWorkflowState(project: Project, card: card): Promise<string> {
+        let validationErrors = "";
 
         if (!card.metadata) {
-            return {
-                statusCode: 500,
-                message: errorFunction(
-                    `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`)
-            };
+            validationErrors += `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`;
         }
 
         const cardType = await project.cardType(card.metadata?.cardtype);
         if (!cardType) {
-            return {
-                statusCode: 500,
-                message: errorFunction(`Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`)
-            };
+            validationErrors += `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`;
         }
 
-        if (!cardType.workflow) {
-            return {
-                statusCode: 500,
-                message: errorFunction(`Cardtype '${cardType?.name}' does not have 'workflow'`)
-            };
-        }
-
-        const workflow = await project.workflow(cardType?.workflow);
-        if (workflow) {
-            const states = workflow.states;
-            const cardState = card.metadata?.workflowState;
-            const found = states.find(item => item.name === cardState);
-            if (!found) {
-                return {
-                    statusCode: 400,
-                    message: errorFunction(`Card '${card.key}' has invalid state '${cardState}'`)
-                };
+        if (cardType) {
+            if (!cardType.workflow) {
+                validationErrors += `Cardtype '${cardType?.name}' does not have 'workflow'`;
             }
-        } else {
-            return {
-                statusCode: 400,
-                message: errorFunction(
-                    `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`)
-                };
+
+            const workflow = await project.workflow(cardType?.workflow);
+            if (workflow) {
+                const states = workflow.states;
+                const cardState = card.metadata?.workflowState;
+                const found = states.find(item => item.name === cardState);
+                if (!found) {
+                    validationErrors += `Card '${card.key}' has invalid state '${cardState}'`;
+                }
+            } else {
+                validationErrors += `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`;
+            }
         }
-        return { statusCode: 200 };
+        return validationErrors;
     }
 
     /**

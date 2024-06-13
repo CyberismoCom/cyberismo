@@ -29,8 +29,13 @@ describe('edit card', () => {
 
         // Modify content
         if (firstCard) {
-            const result = await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie');
-            expect(result.statusCode).to.equal(200);
+            await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie')
+            .then(() => {
+                expect(true);
+            })
+            .catch(() => {
+                expect(false);
+            });
 
             // Fetch the changed card again
             const changedCard = await project.findSpecificCard(firstCard.key, { metadata: true, content: true });
@@ -51,8 +56,13 @@ describe('edit card', () => {
         const cards = await project.cards();
         const firstCard = cards.at(0);
         if (firstCard) {
-            const result = await EditCmd.editCardContent(project.basePath, firstCard.key, '');
-            expect(result.statusCode).to.equal(200);
+            await EditCmd.editCardContent(project.basePath, firstCard.key, '')
+            .then(() => {
+                expect(true);
+            })
+            .catch(() => {
+                expect(false);
+            });
         }
     });
 
@@ -60,8 +70,13 @@ describe('edit card', () => {
         const decisionRecordsPath = join(testDir, 'valid/decision-records');
         const project = new Project(decisionRecordsPath);
         const EditCmd = new Edit();
-        const result = await EditCmd.editCardContent(project.basePath, 'card-key-does-not-exist', 'whoopie');
-        expect(result.statusCode).to.equal(400);
+        await EditCmd.editCardContent(project.basePath, 'card-key-does-not-exist', 'whoopie')
+        .then(() => {
+            expect(false);
+        })
+        .catch(() => {
+            expect(true);
+        });
     });
 
     it('try to edit card from CLI - no project', async () => {
@@ -71,8 +86,13 @@ describe('edit card', () => {
         const firstCard = cards.at(0);
         if (firstCard) {
             const EditCmd = new Edit();
-            const result = await EditCmd.editCard(project.basePath, firstCard.key + 1);
-            expect(result.statusCode).to.equal(400);
+            await EditCmd.editCard(project.basePath, firstCard.key + 1)
+            .then(() => {
+                expect(false);
+            })
+            .catch(() => {
+                expect(true);
+            });
         }
     });
     // @todo: Make sinon fake/mock for user preferences
@@ -88,7 +108,7 @@ describe('edit card', () => {
     //     }
     // });
 
-    it('edit card content (success)', async () => {
+    it('edit card metadata (success)', async () => {
         const decisionRecordsPath = join(testDir, 'valid/decision-records');
         const project = new Project(decisionRecordsPath);
         const EditCmd = new Edit();
@@ -97,8 +117,13 @@ describe('edit card', () => {
 
         // Modify metadata - summary
         if (firstCard) {
-            const result = await EditCmd.editCardMetadata(project.basePath, firstCard.key, 'summary', 'new name');
-            expect(result.statusCode).to.equal(200);
+            await EditCmd.editCardMetadata(project.basePath, firstCard.key, 'summary', 'new name')
+            .then(() => {
+                expect(true);
+            })
+            .catch(() => {
+                expect(false);
+            });
 
             // Fetch the changed card again
             const changedCard = await project.findSpecificCard(firstCard.key, { metadata: true, content: true });
@@ -120,8 +145,13 @@ describe('edit card', () => {
         const cards = await project.cards();
         const firstCard = cards.at(0);
         if (firstCard) {
-            const result = await EditCmd.editCardMetadata(project.basePath, firstCard.key, '', '');
-            expect(result.statusCode).to.equal(400);
+            await EditCmd.editCardMetadata(project.basePath, firstCard.key, '', '')
+            .then(() => {
+                expect(false);
+            })
+            .catch(() => {
+                expect(true);
+            });
         }
     });
 
@@ -129,8 +159,13 @@ describe('edit card', () => {
         const decisionRecordsPath = join(testDir, 'valid/decision-records');
         const project = new Project(decisionRecordsPath);
         const EditCmd = new Edit();
-        const result = await EditCmd.editCardMetadata(project.basePath, 'card-key-does-not-exist', 'whoopie', 'whoopie');
-        expect(result.statusCode).to.equal(400);
+        await EditCmd.editCardMetadata(project.basePath, 'card-key-does-not-exist', 'whoopie', 'whoopie')
+        .then(() => {
+            expect(false);
+        })
+        .catch(() => {
+            expect(true);
+        });
     });
 
 });

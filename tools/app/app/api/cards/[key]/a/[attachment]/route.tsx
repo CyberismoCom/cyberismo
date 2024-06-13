@@ -44,20 +44,26 @@ export async function GET(request: NextRequest) {
   }
 
   const showCommand = new Show()
-  const attachmentResponse = await showCommand.showAttachment(
-    projectPath,
-    cardKey,
-    filename
-  )
+  try {
+    const attachmentResponse = await showCommand.showAttachment(
+      projectPath,
+      cardKey,
+      filename
+    )
 
-  if (attachmentResponse.statusCode != 200) {
-    return new NextResponse(attachmentResponse.message, { status: 404 })
+    if (!attachmentResponse) {
+      return new NextResponse(
+        `No attachment found from card ${cardKey} and filename ${filename}`,
+        { status: 404 })
+    }
+
+    const payload: attachmentPayload =
+      attachmentResponse as attachmentPayload
+
+    return new NextResponse(payload.fileBuffer, {
+      headers: { 'content-type': payload.mimeType },
+    })
+  } catch (error) {
+      return new NextResponse(`No attachemnt found from card ${cardKey} and filename ${filename}`, { status: 404 })
   }
-
-  const payload: attachmentPayload =
-    attachmentResponse.payload as attachmentPayload
-
-  return new NextResponse(payload.fileBuffer, {
-    headers: { 'content-type': payload.mimeType },
-  })
 }

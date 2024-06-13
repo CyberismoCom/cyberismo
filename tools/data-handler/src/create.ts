@@ -7,10 +7,9 @@ import { EventEmitter } from 'node:events';
 import { Calculate } from './calculate.js';
 import { cardtype, fieldtype, projectFile, templateMetadata, workflowCategory, workflowMetadata } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
-import { formatJson, readJsonFileSync } from './utils/json.js';
+import { formatJson, readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
@@ -80,24 +79,25 @@ export class Create extends EventEmitter {
      * @param {string} templateName Template name to add cards into.
      * @param {string} card Optional, if defined adds a new child-card under the card.
      * @param {number} count How many cards to add. By default one.
-     * @returns requestStatus
+     * @returns string with information about the operation
      */
-    public async addCards(projectPath: string, cardTypeName: string, templateName: string, card?: string, count: number = 1): Promise<requestStatus> {
+    public async addCards(projectPath: string, cardTypeName: string, templateName: string, card?: string, count: number = 1)
+    : Promise<string> {
         // Use slice to get a copy of a string.
         const origTemplateName = templateName.slice(0);
         templateName = Template.normalizedTemplateName(templateName);
         if (templateName === '') {
-            return { statusCode: 400, message: `Template '${origTemplateName}' is invalid template name` };
+            throw Error(`Template '${origTemplateName}' is invalid template name`);
         }
         const templateObject = new Template(projectPath, { name: templateName });
 
         const specificCard = card ? await templateObject.findSpecificCard(card) : undefined;
         if (card && !specificCard) {
-            return { statusCode: 400, message: `Card '${card}' was not found from template '${origTemplateName}'` };
+            throw Error(`Card '${card}' was not found from template '${origTemplateName}'`);
         }
 
         if (templateObject.templateFolder().includes(`${sep}modules${sep}`)) {
-            return { statusCode: 400, message: `Cannot add cards to imported module templates` };
+            throw Error(`Cannot add cards to imported module templates`);
         }
 
         // Collect all add-card promises and settle them in parallel.
@@ -109,30 +109,23 @@ export class Create extends EventEmitter {
         const promisesResult = await Promise.allSettled(promiseContainer).then(results => {
             for (const result of results) {
                 if (result.status !== "fulfilled") {
-                    return { statusCode: 500, message: result };
+                    throw new Error(`Promise not filled`);
                 }
-                if (result.value.statusCode != 200) {
-                    return { statusCode: result.value.statusCode, message: result.value.message };
-                }
-                if (result.value.message) {
-                    cardsContainer.push(result.value.message);
-                }
+                cardsContainer.push(result.value);
             }
         });
 
         if (cardsContainer.length === 0) {
-            return { statusCode: 400, message: `Invalid value for 'repeat:' "${count}"` };
+            throw new Error ( `Invalid value for 'repeat:' "${count}"`);
         }
 
-        if (promisesResult === undefined || promisesResult?.statusCode === 200) {
+        if (promisesResult === undefined) {
             const messageTxt = (count > 1)
                 ? `${count} cards were added to the template '${templateName} : ${JSON.stringify(cardsContainer)}'`
                 : `card '${cardsContainer[0]}' was added to the template '${templateName}'`;
-            return { statusCode: 200, message: messageTxt };
+            return messageTxt;
         } else {
-            const errorTxt = String(promisesResult.message);
-            const errorCode = Number(promisesResult.statusCode);
-            return { statusCode: errorCode, message: errorTxt };
+            throw new Error('Unknown error');
         }
     }
 
@@ -141,21 +134,17 @@ export class Create extends EventEmitter {
      * @param {string} cardKey card ID
      * @param {string} projectPath path to a project
      * @param {string} attachment path to an attachment
-     * @returns request status
-     *      'statusCode' 200 when attachment was created successfully
-     * <br> 'statusCode' 400 when input validation failed
-     * <br> 'statusCode' 500 when unspecified error occurred
      */
-    public async createAttachment(cardKey: string, projectPath: string, attachment: string): Promise<requestStatus> {
+    public async createAttachment(cardKey: string, projectPath: string, attachment: string) {
         const project = new Project(projectPath);
         const attachmentFolder = await project.cardAttachmentFolder(cardKey);
         if (!attachmentFolder) {
-            return { statusCode: 400, message: `Attachment folder for '${cardKey}' not found` };
+            throw new Error(`Attachment folder for '${cardKey}' not found`);
         }
 
         // Imported templates cannot be modified.
         if (attachmentFolder.includes(`${sep}modules${sep}`)) {
-            return { statusCode: 400, message: `Cannot modify imported module` };
+            throw new Error(`Cannot modify imported module`);
         }
 
         try {
@@ -165,10 +154,8 @@ export class Create extends EventEmitter {
                 })
         }
         catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+            throw new Error(errorFunction(error));
         }
-
-        return { statusCode: 200 };
     }
 
     /**
@@ -176,44 +163,43 @@ export class Create extends EventEmitter {
      * @param {string} projectPath project path
      * @param {string} templateName name of a template to use
      * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the cardroot.
-     * @returns request status
-     *       statusCode 200 when card was created successfully
-     *  <br> statusCode 400 when parent card was not found
-     *  <br> statusCode 400 when template is not found from project
-     *  <br> statusCode 500 when project path is not correct
-     *  <br> statusCode 500 when template name is invalid
      */
-    public async createCard(projectPath: string, templateName: string, parentCardKey: string): Promise<requestStatus> {
+    public async createCard(projectPath: string, templateName: string, parentCardKey: string) {
         // todo: should validator validate the whole schema before creating a new card to it?
         //       this might keep the integrity and consistency of the project more easily valid.
 
         if (!Project.isCreated(projectPath)) {
-            return { statusCode: 500, message: `Not a project: '${projectPath}'` };
+            throw new Error(`Not a project: '${projectPath}'`);
         }
 
         let projectObject: Project;
         try {
             projectObject = new Project(projectPath);
         } catch (error) {
-            return { statusCode: 500, message: `invalid path '${projectPath}'` }
+            throw new Error(`invalid path '${projectPath}'`);
         }
 
         const templateObject = await projectObject.createTemplateObjectByName(templateName);
         if (!templateObject || !templateObject.isCreated()) {
-            return { statusCode: 400, message: `Template '${templateName}' not found from project` };
+            throw new Error(`Template '${templateName}' not found from project`);
+        }
+
+        const validator = Validate.getInstance();
+        const content = await readJsonFile(templateObject.templateConfigurationFilePath());
+        const validJson = await validator.validateJson(content, 'template-schema');
+        if (validJson.length !== 0) {
+            throw new Error(`Invalid template JSON: ${validJson}`);
         }
 
         const specificCard = parentCardKey ? await projectObject.findSpecificCard(parentCardKey) : undefined;
         if (parentCardKey && !specificCard) {
-            return { statusCode: 400, message: `Card '${parentCardKey}' not found from project` };
+            throw new Error(`Card '${parentCardKey}' not found from project`);
         }
 
-        const done = await templateObject.createCards(specificCard);
-        if (done.statusCode == 200) {
-            this.emit('created', done.payload);
-            delete done.payload;
+        const createdCards = await templateObject.createCards(specificCard);
+        if (createdCards.length > 0) {
+            this.emit('created', createdCards);
         }
-        return done;
     }
 
     /**
@@ -221,27 +207,15 @@ export class Create extends EventEmitter {
      * @param {string} projectPath project path.
      * @param {string} name name for the cardtype.
      * @param {string} workflow workflow name to use in the cardtype.
-     * @returns request status
-     * - 'statusCode' 200 when cardtype was created successfully
-     * - 'statusCode' 400 when workflow does not exist in the project
-     * - 'statusCode' 500 when unspecified error occurred
      */
-    public async createCardtype(projectPath: string, name: string, workflow: string): Promise<requestStatus> {
+    public async createCardtype(projectPath: string, name: string, workflow: string) {
         if (!await this.workflowExists(projectPath, workflow)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: workflow '${workflow}' does not exist in the project.`
-            };
+            throw new Error(`Input validation error: workflow '${workflow}' does not exist in the project.`);
         }
 
         const content: cardtype = { name, workflow };
         const destinationFolder = join(projectPath, '.cards', 'local', 'cardtypes', `${content.name}.json`);
-        try {
-            await writeFile(destinationFolder, formatJson(content), { encoding: 'utf-8', flag: 'wx' });
-            return { statusCode: 200 };
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
-        }
+        await writeFile(destinationFolder, formatJson(content), { encoding: 'utf-8', flag: 'wx' });
     }
 
     /**
@@ -249,101 +223,69 @@ export class Create extends EventEmitter {
      * @param {string} projectPath project path
      * @param {string} fieldTypeName name for the fieldtype
      * @param {string} dataType data type for the fieldtype
-     * @returns request status:
-     * - 'statusCode' 200 when fieldtype was created successfully.
-     * - 'statusCode' 400 when fieldtype already exists in the project
-     * - 'statusCode' 400 when fieldtype has incorrect data type
-     * - 'statusCode' 500 when unknown error occurred.
      */
-    public async createFieldType(projectPath: string, fieldTypeName: string, dataType: string): Promise<requestStatus> {
+    public async createFieldType(projectPath: string, fieldTypeName: string, dataType: string) {
         const content: fieldtype = { name: fieldTypeName, dataType: dataType };
 
         if (await this.fieldTypeExists(projectPath, fieldTypeName)) {
-            return { statusCode: 400, message: `Field type with name '${fieldTypeName}' already exists in the project` };
+            throw new Error(`Field type with name '${fieldTypeName}' already exists in the project`);
         }
         if (!Create.supportedFieldTypes().includes(dataType)) {
-            return { statusCode: 400, message: `Field type '${dataType}' not supported. Supported types ${Create.supportedFieldTypes()}` };
+            throw new Error(`Field type '${dataType}' not supported. Supported types ${Create.supportedFieldTypes()}`);
         }
 
         const destinationFolder = join(projectPath, '.cards', 'local', 'fieldtypes', `${content.name}.json`);
-        try {
-            await writeFile(destinationFolder, formatJson(content), { encoding: 'utf-8', flag: 'wx' });
-            return { statusCode: 200 };
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
-        }
+        await writeFile(destinationFolder, formatJson(content), { encoding: 'utf-8', flag: 'wx' });
     }
-
-    /**
-     * Creates a link. todo: not implemented yet.
-     * @param {string} path
-     * @param {string} projectName
-     * @returns request status:
-     * - 'statusCode' 200 when workflow was created successfully.
-     * - 'statusCode' 500 when unknown error occurred.
-     */
-    // public async createLink(path: string, projectName: string): Promise<requestStatus> {
-    //     return { statusCode: 200 };
-    // }
 
     /**
      * Creates a new project.
      * @param {string} projectPath where to create the project.
      * @param {string} projectPrefix prefix for the project.
      * @param {string} projectName name for the project.
-     * @returns request status
-     *       statusCode 200 when project was created successfully
-     *  <br> statusCode 400 when project already exists
-     *  <br> statusCode 500 when unspecified error occurred
      */
-    public async createProject(projectPath: string, projectPrefix: string, projectName: string): Promise<requestStatus> {
+    public async createProject(projectPath: string, projectPrefix: string, projectName: string) {
         projectPath = resolve(projectPath);
         const projectFolders: string[] = ['.cards/local', 'cardroot'];
         const projectSubFolders: string[][] = [['calculations', 'cardtypes', 'fieldtypes', 'templates', 'workflows'], []];
         const parentFolderToCreate = join(projectPath);
 
         if (Project.isCreated(projectPath)) {
-            return { statusCode: 400, message: 'Project already exists' };
+            throw new Error('Project already exists');
         }
 
-        try {
-            await mkdir(parentFolderToCreate, { recursive: true })
-                .then(async () => {
-                    return await Promise.all(
-                        projectFolders.map(folder => mkdir(`${parentFolderToCreate}/${folder}`, { recursive: true })));
-                })
-                .then(async () => {
-                    projectSubFolders.forEach((subFolders, index) => {
-                        subFolders.forEach(subFolder => {
-                            const parent = join(parentFolderToCreate, projectFolders[index]);
-                            return mkdir(`${parent}/${subFolder}`);
-                        });
+        await mkdir(parentFolderToCreate, { recursive: true })
+            .then(async () => {
+                return await Promise.all(
+                    projectFolders.map(folder => mkdir(`${parentFolderToCreate}/${folder}`, { recursive: true })));
+            })
+            .then(async () => {
+                projectSubFolders.forEach((subFolders, index) => {
+                    subFolders.forEach(subFolder => {
+                        const parent = join(parentFolderToCreate, projectFolders[index]);
+                        return mkdir(`${parent}/${subFolder}`);
                     });
                 });
-
-            this.schemaFilesContent.forEach(async entry => {
-                if (entry.content.cardkeyPrefix?.includes('$PROJECT-PREFIX')) {
-                    entry.content.cardkeyPrefix = projectPrefix.toLowerCase();
-                }
-                if (entry.content.name?.includes('$PROJECT-NAME')) {
-                    entry.content.name = projectName;
-                }
-                await writeFile(join(parentFolderToCreate, entry.path, entry.name), formatJson(entry.content));
             });
 
-            await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
-
-            try {
-                const project = new Project(projectPath);
-                await writeFile(join(project.calculationProjectFolder, '.gitkeep'), this.gitKeepContent);
-                await writeFile(join(project.fieldtypesFolder, '.gitkeep'), this.gitKeepContent);
-            } catch (e) {
-                console.error('Failed to create project');
+        this.schemaFilesContent.forEach(async entry => {
+            if (entry.content.cardkeyPrefix?.includes('$PROJECT-PREFIX')) {
+                entry.content.cardkeyPrefix = projectPrefix.toLowerCase();
             }
+            if (entry.content.name?.includes('$PROJECT-NAME')) {
+                entry.content.name = projectName;
+            }
+            await writeFile(join(parentFolderToCreate, entry.path, entry.name), formatJson(entry.content));
+        });
 
-            return { statusCode: 200 };
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+        await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
+
+        try {
+            const project = new Project(projectPath);
+            await writeFile(join(project.calculationProjectFolder, '.gitkeep'), this.gitKeepContent);
+            await writeFile(join(project.fieldtypesFolder, '.gitkeep'), this.gitKeepContent);
+        } catch (e) {
+            console.error('Failed to create project');
         }
     }
 
@@ -352,60 +294,46 @@ export class Create extends EventEmitter {
      * @param {string} projectPath Project path
      * @param {string} templateName Name of the template
      * @param {templateMetadata} templateContent JSON content for the template file.
-     * @returns request status:
-     * - 'statusCode' 200 when template was created successfully
-     * - 'statusCode' 400 when template with that name already exists
-     * - 'statusCode' 400 when template name is not valid
-     * - 'statusCode' 400 when template content is invalid
-     * - 'statusCode' 500 otherwise (unspecified error)
      */
-    public async createTemplate(projectPath: string, templateName: string, templateContent: templateMetadata): Promise<requestStatus> {
+    public async createTemplate(
+        projectPath: string, templateName: string, templateContent: templateMetadata) {
         // Use slice to get a copy of a string.
         const origTemplateName = templateName.slice(0);
         templateName = Template.normalizedTemplateName(templateName);
         if (templateName === '') {
-            return { statusCode: 400, message: `Template '${origTemplateName}' is invalid template name` };
+            throw new Error(`Template '${origTemplateName}' is invalid template name`);
         }
 
         const validator = Validate.getInstance();
         const validJson = await validator.validateJson(templateContent, 'template-schema');
-        if (validJson.statusCode !== 200) {
-            return { statusCode: validJson.statusCode, message: `Invalid template JSON: ${validJson.message}` };
+        if (validJson.length !== 0) {
+            throw new Error(`Invalid template JSON: ${validJson}`);
         }
 
-        try {
-            const template = new Template(projectPath, { name: templateName });
-            return template.create(templateContent);
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+        const project = new Project(projectPath);
+        if (await project.templateExists(templateName)) {
+            throw new Error(`Template '${templateName}' already exists in the project`)
         }
+
+        const template = new Template(projectPath, { name: templateName });
+        await template.create(templateContent);
     }
 
     /**
      * Creates a workflow.
      * @param {string} projectPath project path
      * @param {workflowMetadata} workflow workflow JSON
-     * @returns request status
-     * - 'statusCode' 200 when workflow was created successfully
-     * - 'statusCode' 400 when workflow JSON cannot be validated
-     * - 'statusCode' 500 when unspecified error occurred (e.g. file exists)
      */
-    public async createWorkflow(projectPath: string, workflow: workflowMetadata): Promise<requestStatus> {
+    public async createWorkflow(projectPath: string, workflow: workflowMetadata) {
         const validator = Validate.getInstance();
         const schemaId = 'workflow-schema';
-        try {
-            const validJson = await validator.validateJson(workflow, schemaId);
-            if (validJson.statusCode !== 200) {
-                return { statusCode: validJson.statusCode, message: `Invalid workflow JSON: ${validJson.message}` };
-            }
-            const content = JSON.parse(JSON.stringify(workflow));
-            const destinationFile = join(projectPath, '.cards', 'local', 'workflows', `${content.name}.json`);
-            await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
-            return { statusCode: 200 };
-
-        } catch (error) {
-            return { statusCode: 500, message: errorFunction(error) };
+        const validJson = await validator.validateJson(workflow, schemaId);
+        if (validJson.length !== 0) {
+            throw new Error(`Invalid workflow JSON: ${validJson}`);
         }
+        const content = JSON.parse(JSON.stringify(workflow));
+        const destinationFile = join(projectPath, '.cards', 'local', 'workflows', `${content.name}.json`);
+        await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
     }
 
     /**

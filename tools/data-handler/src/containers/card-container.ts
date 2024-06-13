@@ -8,7 +8,6 @@ import { getFilesSync, pathExists } from '../utils/file-utils.js';
 
 // interfaces
 import { attachmentDetails, card, cardNameRegEx, fetchCardDetails } from '../interfaces/project-interfaces.js';
-import { requestStatus } from '../interfaces/request-status-interfaces.js';
 
 // asciidoctor
 import asciidoctor from '@asciidoctor/core';
@@ -243,26 +242,26 @@ export class CardContainer {
     }
 
     // Persists card content.
-    protected async saveCard(card: card): Promise<requestStatus> {
+    protected async saveCard(card: card) {
         if (card.content != null) {
             const contentFile = join(card.path, CardContainer.cardContentFile);
             await writeFile(contentFile, card.content);
-            return { statusCode: 200 };
+            return;
         }
         if (card.metadata) {
             const metadataFile = join(card.path, CardContainer.cardMetadataFile);
             await writeFile(metadataFile, formatJson(card.metadata));
-            return { statusCode: 200 };
+            return;
         }
-        return { statusCode: 400, message: `No content for card ${card.key}` };
+        throw new Error(`No content for card ${card.key}`);
     }
     // Persists card metadata.
-    protected async saveCardMetadata(card: card): Promise<requestStatus> {
+    protected async saveCardMetadata(card: card) {
         if (card.metadata) {
             const metadataFile = join(card.path, CardContainer.cardMetadataFile);
             await writeFile(metadataFile, formatJson(card.metadata));
-            return { statusCode: 200 };
+            return;
         }
-        return { statusCode: 400, message: `No metadata for card ${card.key}` };
+        throw new Error(`No metadata for card ${card.key}`);
     }
 }

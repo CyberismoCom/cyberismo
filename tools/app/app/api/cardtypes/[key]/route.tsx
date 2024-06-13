@@ -32,11 +32,11 @@ export async function GET(request: NextRequest) {
   const show = new Show()
   const detailsResponse = await show.showCardTypeDetails(projectPath, key)
 
-  if (detailsResponse.statusCode === 200) {
-    return NextResponse.json(detailsResponse.payload)
+  if (detailsResponse) {
+    return NextResponse.json(detailsResponse)
   } else {
-    return new NextResponse(detailsResponse.message, {
-      status: detailsResponse.statusCode,
+    return new NextResponse(`No card type details found for card key ${key}`, {
+      status: 500,
     })
   }
 }

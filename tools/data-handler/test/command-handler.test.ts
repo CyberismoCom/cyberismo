@@ -8,16 +8,17 @@ import { constants as fsConstants, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 
-// ismo
+// cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js'
 import { Create } from '../src/create.js';
-import { attachmentPayload, requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import { moduleSettings } from '../src/interfaces/project-interfaces.js';
 import { Remove } from '../src/remove.js';
 import { Show } from '../src/show.js';
 import { Calculate } from '../src/calculate.js';
 import { fileURLToPath } from 'node:url';
+import { errorFunction } from '../src/utils/log-utils.js';
 
 let commandHandler: Commands;
 
@@ -78,23 +79,25 @@ describe('show command', () => {
         // No commandHandler command for getting attachment files, so using Show directly
         const showCommand = new Show();
         const result = await showCommand.showAttachment(decisionRecordsPath, 'decision_1', 'the-needle.heic');
-        expect(result.statusCode).to.equal(200);
-        expect(result.payload).to.not.equal(null);
-        const payload = result.payload as attachmentPayload;
-        expect(payload.fileBuffer).to.not.equal(null);
-        expect(payload.mimeType).to.equal('image/heic');
+        expect(result).to.not.equal(null);
+        expect(result.fileBuffer).to.not.equal(null);
+        expect(result.mimeType).to.equal('image/heic');
     });
     it('show attachment file, card not found', async () => {
         // No commandHandler command for getting attachment files, so using Show directly
         const showCommand = new Show();
-        const result = await showCommand.showAttachment(decisionRecordsPath, 'invalid_key', 'does-not-exist.png');
-        expect(result.statusCode).to.equal(400);
+        await showCommand
+            .showAttachment(decisionRecordsPath, 'invalid_key', 'does-not-exist.png')
+            .catch(error =>
+                expect(errorFunction(error)).to.equal(`Card 'invalid_key' does not exist in the project`));
     });
     it('show attachment file, file not found', async () => {
         // No commandHandler command for getting attachment files, so using Show directly
         const showCommand = new Show();
-        const result = await showCommand.showAttachment(decisionRecordsPath, 'decision_1', 'does-not-exist.png');
-        expect(result.statusCode).to.equal(400);
+        await showCommand
+            .showAttachment(decisionRecordsPath, 'decision_1', 'does-not-exist.png')
+            .catch(error =>
+                expect(errorFunction(error)).to.equal(`Attachment 'does-not-exist.png' not found for card decision_1`));
     });
     it('show cards - success()', async () => {
         const result = await commandHandler.command(Cmd.show, ['cards'], options);
@@ -479,7 +482,7 @@ describe('create command', () => {
         const cardId = 'decision_6';
         let result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
         result = await commandHandler.command(Cmd.create, ['attachment', cardId, attachmentPath], options);
-        expect(result.statusCode).to.equal(500);
+        expect(result.statusCode).to.equal(400);
     });
 
     // card
@@ -508,7 +511,7 @@ describe('create command', () => {
         const invalidOptions = { projectPath: join(testDir, 'invalid/missing-cardsconfig.json') };
         const templateName = 'simplepage';
         const result = await commandHandler.command(Cmd.create, ['card', templateName ], invalidOptions);
-        expect(result.statusCode).to.equal(500);
+        expect(result.statusCode).to.equal(400);
     });
     it('card invalid cardsconfig.json', async () => {
         const invalidOptions = { projectPath: join(testDir, 'invalid/invalid-cardsconfig.json') };
@@ -543,7 +546,7 @@ describe('create command', () => {
         const workflow = 'defaultWorkflow';
         let result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
         result = await commandHandler.command(Cmd.create, ['cardtype', cardtype, workflow ], optionsMini);
-        expect(result.statusCode).to.equal(500); // todo: probably makes more sense to return 400
+        expect(result.statusCode).to.equal(400);
     });
     it('cardtype create no workflow', async () => {
         const cardtype = 'test-cardtype';
@@ -802,7 +805,7 @@ describe('create command', () => {
     it('workflow with existing name', async () => {
         const workflowName = "defaultWorkflow";
         const result = await commandHandler.command(Cmd.create, ['workflow', workflowName, '' ], optionsMini);
-        expect(result.statusCode).to.equal(500);
+        expect(result.statusCode).to.equal(400);
     });
     it('access default parameters for template (success)', () => {
         const defaultContent = Create.defaultTemplateContent();
@@ -1023,7 +1026,7 @@ describe('remove command', () => {
         const cardId = 'decision_5';
         const attachment = 'i-dont-exist.jpg';
         const result = await commandHandler.command(Cmd.remove, ['attachment', cardId, attachment], options);
-        expect(result.statusCode).to.equal(500);
+        expect(result.statusCode).to.equal(400);
     });
     it('remove template (success)', async () => {
         const templateName = 'decision';
@@ -1051,35 +1054,40 @@ describe('remove command', () => {
         const cardId = 'decision_5';
         const calculateCmd = new Calculate();
         const removeCmd = new Remove(calculateCmd);
-        const result = await removeCmd.remove(decisionRecordsPath, 'card', cardId);
-        expect(result.statusCode).to.equal(200);
+        await removeCmd.remove(decisionRecordsPath, 'card', cardId)
+        .then(() => { expect(true)})
+        .catch(() => { expect(false)})
     });
     it('remove() - try to remove unknown type', async () => {
         const cardId = 'decision_5';
         const calculateCmd = new Calculate();
         const removeCmd = new Remove(calculateCmd);
-        const result = await removeCmd.remove(decisionRecordsPath, 'i-dont-exist', cardId);
-        expect(result.statusCode).to.equal(400);
+        await removeCmd.remove(decisionRecordsPath, 'i-dont-exist', cardId)
+        .then(() => { expect(false)})
+        .catch(() => { expect(true)})
     });
     it('remove() - try to remove non-existing attachment', async () => {
         const cardId = 'decision_5';
         const calculateCmd = new Calculate();
         const removeCmd = new Remove(calculateCmd);
-        const result = await removeCmd.remove(decisionRecordsPath, 'attachment', cardId, '');
-        expect(result.statusCode).to.equal(400);
+        await removeCmd.remove(decisionRecordsPath, 'attachment', cardId, '')
+        .then(() => { expect(false)})
+        .catch(() => { expect(true)})
     });
     it('remove() - try to remove attachment from non-existing card', async () => {
         const cardId = 'decision_999';
         const calculateCmd = new Calculate();
         const removeCmd = new Remove(calculateCmd);
-        const result = await removeCmd.remove(decisionRecordsPath, 'attachment', cardId, 'the-needle.heic');
-        expect(result.statusCode).to.equal(400);
+        await removeCmd.remove(decisionRecordsPath, 'attachment', cardId, 'the-needle.heic')
+        .then(() => { expect(false)})
+        .catch(() => { expect(true)})
     });
     it('remove() - try to remove non-existing module', async () => {
         const calculateCmd = new Calculate();
         const removeCmd = new Remove(calculateCmd);
-        const result = await removeCmd.remove(decisionRecordsPath, 'module', 'i-dont-exist');
-        expect(result.statusCode).to.equal(400);
+        await removeCmd.remove(decisionRecordsPath, 'module', 'i-dont-exist')
+        .then(() => { expect(false)})
+        .catch(() => { expect(true)})
     });
 });
 
@@ -1102,8 +1110,8 @@ describe('rename command', () => {
     });
     it('try to rename project - "to" missing', async () => {
         const newName = '';
-        const result = await commandHandler.command(Cmd.rename, [newName], options);
-        expect(result.statusCode).to.equal(400);
+        await commandHandler.command(Cmd.rename, [newName], options)
+            .catch(error => expect(errorFunction(error)).to.equal("Input validation error: empty 'to' is not allowed"));
     });
     it('try to rename project - invalid "to" ', async () => {
         const newName = 'DECREC-2';
