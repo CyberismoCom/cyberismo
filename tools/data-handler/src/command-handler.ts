@@ -411,8 +411,8 @@ export class Commands {
             parentCardKey = '';
         }
         try {
-            await this.createCmd.createCard(path, templateName, parentCardKey);
-            return { statusCode: 200 };
+            const createdCards = await this.createCmd.createCard(path, templateName, parentCardKey);
+            return { statusCode: 200, message: `Created cards ${JSON.stringify(createdCards)}` };
         } catch (e) {
             return {statusCode: 400, message: errorFunction(e)};
         }
