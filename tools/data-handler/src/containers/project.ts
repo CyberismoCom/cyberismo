@@ -138,7 +138,7 @@ export class Project extends CardContainer {
     private resourcesSync(type: string, requirement: string): resource[] {
         let resourceFolder: string;
         if (type === 'calculation') {
-            resourceFolder = this.localCalculationFolder;
+            resourceFolder = this.calculationProjectFolder;
         } else if (type === 'cardtype') {
             resourceFolder = this.cardtypesFolder;
         } else if (type === 'fieldtype') {
@@ -543,14 +543,6 @@ export class Project extends CardContainer {
             }
         }
         return cardListContainer;
-    }
-
-    /**
-     * Path to project's local calculation folder.
-     * @returns project's local calculation folder.
-     */
-    public get localCalculationFolder(): string {
-        return join(this.basePath, '.cards', 'local', 'calculations');
     }
 
     /**
