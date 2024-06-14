@@ -239,7 +239,7 @@ export class Commands {
                 return this.createCardtype(name, workflow, this.projectPath);
             }
             if (target === 'project') {
-                const [ prefix, name ] = args;
+                const [ name, prefix ] = args;
                 this.projectPath = options.projectPath || ''; // todo: validation
                 return this.createProject(this.projectPath, prefix, name); // todo: order of parameters
             }

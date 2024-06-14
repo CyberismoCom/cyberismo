@@ -599,7 +599,7 @@ describe('create command', () => {
         const name = 'test-project';
         const projectDir = join(testDir, name);
         const testOptions: CardsOptions = { projectPath: projectDir };
-        const result = await commandHandler.command(Cmd.create, ['project', prefix, name ], testOptions);
+        const result = await commandHandler.command(Cmd.create, ['project', name, prefix ], testOptions);
         try {
             await access(projectDir, fsConstants.R_OK);
         } catch (error) {
@@ -613,7 +613,7 @@ describe('create command', () => {
         const name = 'test-project';
         const testOptions: CardsOptions = { projectPath: path };
 
-        const result = await commandHandler.command(Cmd.create, ['project', prefix, name ], testOptions);
+        const result = await commandHandler.command(Cmd.create, ['project', name, prefix ], testOptions);
         try {
             // nodeJS does not automatically expand paths with tilde
             await access(resolveTilde(path), fsConstants.F_OK);
