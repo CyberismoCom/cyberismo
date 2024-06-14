@@ -886,6 +886,8 @@ describe('modifying imported module content is forbidden', () => {
         const cardType = 'decision-cardtype';
         const cardKey = '';
         const result = await commandHandler.command(Cmd.add, [templateName, cardType, cardKey ], options);
+        // todo: the reason why this fails is due to a bug where templates with names without module
+        //       name are the same (one local, one imported)
         expect(result.statusCode).to.equal(400);
     });
     it('try to add child card to a module card', async () => {
@@ -894,6 +896,8 @@ describe('modifying imported module content is forbidden', () => {
         const cardKey = 'decision_2';
         // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
         const result = await commandHandler.command(Cmd.add, [templateName, cardType, cardKey], optionsMini);
+        // todo: the reason why this fails is due to a bug where templates with names without module
+        //       name are the same (one local, one imported)
         expect(result.statusCode).to.equal(400);
     });
 

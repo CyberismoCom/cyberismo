@@ -152,6 +152,22 @@ export class Template extends CardContainer {
         return createdCards;
     }
 
+    // fetches path to module.
+    private moduleTemplatePath(templateName: string): string {
+        if (!pathExists(this.project.modulesFolder)) {
+            return '';
+        }
+        const files = readdirSync(this.project.modulesFolder, { withFileTypes: true });
+        const modules = files.filter(item => item.isDirectory());
+        for (const module of modules) {
+            const exists = pathExists(join(module?.path, module?.name, 'templates', templateName));
+            if (exists) {
+                return join(module?.path, module?.name, 'templates', templateName);
+            }
+        }
+        return '';
+    }
+
     // Set path to template location.
     private setTemplatePath(templateName: string): string {
         const normalizedTemplateName = Template.normalizedTemplateName(templateName);
@@ -159,27 +175,20 @@ export class Template extends CardContainer {
             throw new Error(`Invalid template name: '${templateName}'`);
         }
 
+        // Template can either be local ...
         const localTemplate = join(this.project.templatesFolder, normalizedTemplateName);
-        let templatePath = '';
-        if (pathExists(resolve(localTemplate))) {
-            templatePath = localTemplate;
-        } else {
-            if (!pathExists(this.project.modulesFolder)) {
-                return localTemplate;
-            }
-            const files = readdirSync(this.project.modulesFolder, { withFileTypes: true });
-            const directories = files.filter(item => item.isDirectory());
-            for (const directory of directories) {
-                const dirPath = join(directory.path, directory.name);
-                if (pathExists(resolve(templatePath))) {
-                    templatePath = join(dirPath, 'templates', templateName);
-                    break;
-                }
-            }
+        const createdLocalTemplate = pathExists(resolve(localTemplate));
+        if (createdLocalTemplate) {
+            return resolve(localTemplate);
         }
 
-        // If 'templatePath' is undefined, probably means that this function was called when creating a new local template.
-        return templatePath ? templatePath : localTemplate;
+        // ... or from module ...
+        const createdModuleTemplatePath = this.moduleTemplatePath(templateName);
+        if (createdModuleTemplatePath !== '') {
+            return resolve(createdModuleTemplatePath);
+        }
+        // ... or not created yet; in case assume it will be 'local' (you cannot create templates to modules)
+        return resolve(localTemplate);
     }
 
     /**
