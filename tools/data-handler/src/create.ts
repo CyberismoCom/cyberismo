@@ -163,8 +163,9 @@ export class Create extends EventEmitter {
      * @param {string} projectPath project path
      * @param {string} templateName name of a template to use
      * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the cardroot.
+     * @returns array of card keys that were created.
      */
-    public async createCard(projectPath: string, templateName: string, parentCardKey: string) {
+    public async createCard(projectPath: string, templateName: string, parentCardKey: string): Promise<string[]> {
         // todo: should validator validate the whole schema before creating a new card to it?
         //       this might keep the integrity and consistency of the project more easily valid.
 
@@ -200,6 +201,7 @@ export class Create extends EventEmitter {
         if (createdCards.length > 0) {
             this.emit('created', createdCards);
         }
+        return createdCards.map(item => item.key);
     }
 
     /**

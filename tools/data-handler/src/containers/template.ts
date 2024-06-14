@@ -46,7 +46,7 @@ export class Template extends CardContainer {
     //           Then rename the folder based on mapped names.
     //           Make 'card' item changed to write them to json file.
     //           Finally copy from temp to real place.
-    private async doCreateCards(cards: card[], parentCard?: card): Promise<string[]> {
+    private async doCreateCards(cards: card[], parentCard?: card): Promise<card[]> {
         const templateIDMap: mappingValue[] = [];
         const tempDestination = join(this.project.cardrootFolder, 'temp');
 
@@ -148,8 +148,7 @@ export class Template extends CardContainer {
                 throw new Error(error.message);
             }
         }
-        const createdCards = templateIDMap.map(item => item.to);
-        return createdCards;
+        return cards;
     }
 
     // fetches path to module.
@@ -328,7 +327,7 @@ export class Template extends CardContainer {
      * @param parentCard parent card
      * @returns array of created card keys
      */
-    public async createCards(parentCard?: card): Promise<string[]> {
+    public async createCards(parentCard?: card): Promise<card[]> {
         const cards = await this.cards('', { content: true, contentType: 'adoc', metadata: true, attachments: true });
         if (cards.length === 0) {
             throw new Error(`No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`);
