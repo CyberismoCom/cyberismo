@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Checkbox,
   Modal,
@@ -33,6 +33,12 @@ function DeleteDialog({
 }: DeleteDialogProps) {
   const { t } = useTranslation()
   const [checked, setChecked] = React.useState(false)
+
+  // Reset checkbox state when dialog is closed/opened
+  useEffect(() => {
+    setChecked(false)
+  }, [open])
+
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog>
