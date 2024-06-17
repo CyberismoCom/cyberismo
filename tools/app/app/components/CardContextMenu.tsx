@@ -2,8 +2,8 @@ import * as React from 'react'
 import MoreIcon from '@mui/icons-material/MoreHoriz'
 
 
-import { useState } from 'react'
-import { CardDetails, CardMetadata } from '../lib/definitions'
+import { useState, useMemo, useCallback } from 'react'
+import { CardDetails, CardMetadata, Project, Card } from '../lib/definitions'
 import {
   Button,
   Modal,
@@ -19,20 +19,46 @@ import {
   Typography,
   Dropdown,
 } from '@mui/joy'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import DeleteDialog from './DeleteDialog'
-import { set } from 'react-hook-form'
+import { countChildren, findCard, useIsMounted } from '../lib/utils'
 
 interface CardContextMenuProps {
   card: CardDetails | null
+  project: Project | null
+  onDelete?: (key: string, done: () => void) => void
 }
 
-const CardContextMenu: React.FC<CardContextMenuProps> = ({ card }) => {
+const CardContextMenu: React.FC<CardContextMenuProps> = ({
+  card,
+  project,
+  onDelete,
+}) => {
   const [isMetadataDialogOpen, setIsMetadataDialogOpen] = useState(false)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
+  const isMounted = useIsMounted()
+
   const { t } = useTranslation()
+
+  const listCard = useMemo(() => {
+    return project && card ? findCard(project.cards, card?.key) : undefined
+  }, [project, card])
+
+  const childAmount = useMemo(() => {
+    return listCard ? countChildren(listCard) : 0
+  }, [listCard])
+
+  const handleDelete = useCallback(async () => {
+    if (onDelete && card) {
+      onDelete(card.key, () => {
+        if (isMounted) {
+          setIsDeleteDialogOpen(false)
+        }
+      })
+    }
+  }, [onDelete, card])
 
   return (
     <>
@@ -77,9 +103,24 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ card }) => {
         title={t('deleteCard')}
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onDelete={() => {}}
-        warning={t('deleteCardWarning')}
-        content="fdssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+        onDelete={handleDelete}
+        warning={
+          childAmount > 1
+            ? t('deleteCardWarning', { cardAmount: childAmount })
+            : undefined
+        }
+        content={
+          <Trans
+            i18nKey="deleteCardContent"
+            values={{
+              card: card?.key,
+            }}
+            count={childAmount}
+            components={{
+              bold: <Typography fontWeight="bold" />,
+            }}
+          />
+        }
       />
     </>
   )

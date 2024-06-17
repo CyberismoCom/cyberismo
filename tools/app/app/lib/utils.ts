@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import {
   Card,
   CardDetails,
@@ -146,6 +146,16 @@ export function useError() {
   return { error, setError, handleClose, reason }
 }
 
+export function useIsMounted() {
+  const isMounted = useRef(true)
+  useEffect(() => {
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+  return useMemo(() => isMounted.current, [isMounted])
+}
+
 /**
  * Custom hook for handling forms with dynamic initial values
  */
@@ -188,4 +198,26 @@ export function metadataValueToString(
   } else {
     return metadata ? metadata.toString() : ''
   }
+}
+
+export function findCard(cards: Card[], key: string): Card | null {
+  for (const card of cards) {
+    if (card.key === key) {
+      return card
+    }
+    if (card.children) {
+      const found = findCard(card.children, key)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+
+export function countChildren(card: Card): number {
+  if (!card.children) {
+    return 1
+  }
+  return card.children.reduce((acc, child) => acc + countChildren(child), 1)
 }

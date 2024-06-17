@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Checkbox,
   Modal,
@@ -12,11 +12,12 @@ import {
   Alert,
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
+import { Warning } from '@mui/icons-material'
 
 interface DeleteDialogProps {
   open: boolean
   title: string
-  content?: string
+  content?: string | React.ReactNode
   warning?: string
   onClose: () => void
   onDelete: () => void
@@ -31,6 +32,7 @@ function DeleteDialog({
   onDelete,
 }: DeleteDialogProps) {
   const { t } = useTranslation()
+  const [checked, setChecked] = React.useState(false)
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog>
@@ -39,15 +41,29 @@ function DeleteDialog({
         <DialogContent>
           <Typography level="body-md">{content}</Typography>
           {warning && (
-            <Alert variant="soft" color="danger">
-              <Checkbox />
-              {warning}
+            <Alert variant="soft" color="danger" endDecorator={<Warning />}>
+              <Checkbox
+                label={
+                  <Typography color="danger" variant="soft" fontWeight="normal">
+                    {warning}
+                  </Typography>
+                }
+                variant="outlined"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+              />
             </Alert>
           )}
           <DialogActions>
-            <Button onClick={onClose}>{t('cancel')}</Button>
-            <Button onClick={onDelete} color="danger">
+            <Button
+              onClick={onDelete}
+              color="danger"
+              disabled={warning != null && !checked}
+            >
               {t('delete')}
+            </Button>
+            <Button onClick={onClose} variant="plain" color="neutral">
+              {t('cancel')}
             </Button>
           </DialogActions>
         </DialogContent>

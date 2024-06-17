@@ -8,6 +8,7 @@ import { CardDetails, Project } from '../definitions'
 export const useCard = (key: string, options?: SWRConfiguration) => ({
   ...useSWRHook(apiPaths.card(key), 'card', options),
   updateCard: async (update: CardUpdate) => updateCard(key, update),
+  deleteCard: async () => deleteCard(key),
 })
 
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
@@ -36,3 +37,24 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
     false
   )
 }
+
+export async function deleteCard(key: string) {
+  const swrKey = apiPaths.card(key)
+  await callApi(swrKey, 'DELETE')
+
+  mutate(swrKey, undefined, false)
+
+  mutate(
+    apiPaths.project(),
+    (project: Project | undefined) => {
+      if (!project) return project
+
+      return {
+        ...project,
+        cards: project.cards.filter((card) => card.key !== key),
+      }
+    },
+    false
+  )
+}
+

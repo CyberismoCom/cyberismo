@@ -22,6 +22,7 @@ interface ContentToolbarProps {
   mode: CardMode
   onUpdate: () => void
   onStateTransition: (transition: WorkflowTransition) => void
+  onDelete?: (key: string, done: () => void) => void
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
@@ -30,6 +31,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   mode,
   onUpdate,
   onStateTransition,
+  onDelete,
 }) => {
   const router = useRouter()
   const { t } = useTranslation()
@@ -46,7 +48,11 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         <ProjectBreadcrumbs selectedCard={selectedCard} project={project} />
       </Box>
 
-      <CardContextMenu card={selectedCard} />
+      <CardContextMenu
+        card={selectedCard}
+        project={project}
+        onDelete={onDelete}
+      />
 
       {mode === CardMode.EDIT && (
         <Button
