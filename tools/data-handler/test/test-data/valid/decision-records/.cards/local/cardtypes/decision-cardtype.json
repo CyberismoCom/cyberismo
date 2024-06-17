@@ -1,36 +1,36 @@
 {
-    "name": "decision-cardtype",
-    "workflow": "decision-workflow",
+    "name": "decision/cardtypes/decision-cardtype",
+    "workflow": "decision/workflows/decision-workflow",
     "customFields": [
         {
-            "name": "obsoletedBy",
+            "name": "decision/fieldtypes/obsoletedBy",
             "isEditable": true
         },
         {
-            "name": "admins"
+            "name": "decision/fieldtypes/admins"
         },
         {
-            "name": "commit-description"
+            "name": "decision/fieldtypes/commit-description"
         },
         {
-            "name": "responsible"
+            "name": "decision/fieldtypes/responsible"
         },
         {
-            "name": "number-of-commits"
+            "name": "decision/fieldtypes/number-of-commits"
         },
         {
-            "name": "percentage-ready"
+            "name": "decision/fieldtypes/percentage-ready"
         },
         {
-            "name": "last-changed-date"
+            "name": "decision/fieldtypes/last-changed-date"
         },
         {
-            "name": "last-changed-timestamp"
+            "name": "decision/fieldtypes/last-changed-timestamp"
         },
         {
-            "name": "finished"
+            "name": "decision/fieldtypes/finished"
         }
     ],
-    "alwaysVisibleFields": [ "obsoletedBy", "admins", "commit-description" ],
+    "alwaysVisibleFields": [ "decision/fieldtypes/obsoletedBy", "decision/fieldtypes/admins", "decision/fieldtypes/commit-description" ],
     "optionallyVisibleFields": []
 }

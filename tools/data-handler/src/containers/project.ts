@@ -90,10 +90,14 @@ export class Project extends CardContainer {
         const files = await readdir(resourcePath, { withFileTypes: true });
         const filteredFiles = filteredDirectories
           ? files.filter((item) => item.isDirectory())
-          : files.filter((item) => item.name !== Project.schemaContentFile);
+          : files.filter(
+              (item) =>
+                item.name !== Project.schemaContentFile &&
+                item.name !== '.gitkeep',
+            );
 
         filteredFiles.forEach((item) => {
-          item.name = `${resource.name}/${item.name}`;
+          item.name = `${resource.name}/${requestedType}/${item.name}`;
           collectedResources.push({ name: item.name, path: item.path });
         });
       }
@@ -219,7 +223,10 @@ export class Project extends CardContainer {
               : false;
         })
         .map((entry) => {
-          return { name: entry.name, path: entry.path };
+          return {
+            name: `${this.projectPrefix}/${type}s/${entry.name}`,
+            path: entry.path,
+          };
         }),
     );
 
@@ -464,8 +471,8 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns an array of all the cardtypes in the project.
-   * @returns array of all cardtypes in the project.
+   * Returns an array of all the fieldtypes in the project.
+   * @returns array of all fieldtypes in the project.
    */
   public async fieldtypes(): Promise<resource[]> {
     const moduleFieldtypes =

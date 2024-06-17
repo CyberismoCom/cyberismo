@@ -126,7 +126,6 @@ export class Validate {
       throw new Error(errorFunction(error));
     }
     if (!message) {
-      console.log('Project structure validated');
       return true;
     }
     return false;
@@ -280,7 +279,7 @@ export class Validate {
               project,
               card,
             );
-            if (validWorkflow.length != 0) {
+            if (validWorkflow.length !== 0) {
               errorMsg.push(validWorkflow);
             }
 
@@ -288,7 +287,7 @@ export class Validate {
               project,
               card,
             );
-            if (validCustomFields.length != 0) {
+            if (validCustomFields.length !== 0) {
               errorMsg.push(validCustomFields);
             }
           }

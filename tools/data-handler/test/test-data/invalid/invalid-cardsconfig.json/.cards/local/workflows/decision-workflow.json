@@ -1,5 +1,5 @@
 {
-    "name": "decisionWorkflow",
+    "name": "decision/templates/decisionWorkflow",
     "states": [
         { "name": "Draft" },
         { "name":"Approved" },

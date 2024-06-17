@@ -123,7 +123,7 @@ describe('show', () => {
       );
   });
   it('showCardTypeDetails (success)', async () => {
-    const cardType = 'decision-cardtype';
+    const cardType = 'decision/cardtypes/decision-cardtype';
     const results = await showCmd.showCardTypeDetails(
       decisionRecordsPath,
       cardType,
@@ -163,19 +163,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showFieldType (success)', async () => {
-    const fieldTypeName = 'obsoletedBy';
-    const results = await showCmd.showFieldType(
-      decisionRecordsPath,
-      fieldTypeName,
-    );
-    expect(results).to.not.equal(undefined);
-  });
-  it('showFieldTypes (success)', async () => {
-    const results = await showCmd.showFieldTypes(decisionRecordsPath);
-    expect(results).to.not.equal(undefined);
-  });
-  it('showFieldType (success)', async () => {
-    const fieldTypeName = 'obsoletedBy';
+    const fieldTypeName = 'decision/fieldtypes/obsoletedBy';
     const results = await showCmd.showFieldType(
       decisionRecordsPath,
       fieldTypeName,
@@ -188,7 +176,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showLinkType (success)', async () => {
-    const fieldTypeName = 'test';
+    const fieldTypeName = 'decision/linktypes/test';
     const results = await showCmd.showLinkType(
       decisionRecordsPath,
       fieldTypeName,
@@ -227,7 +215,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showTemplate (success)', async () => {
-    const templateName = 'decision';
+    const templateName = 'decision/templates/decision';
     const results = await showCmd.showTemplate(
       decisionRecordsPath,
       templateName,
@@ -263,7 +251,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showWorkflow (success)', async () => {
-    const workflowName = 'decision-workflow';
+    const workflowName = 'decision/workflows/decision-workflow';
     const results = await showCmd.showWorkflow(
       decisionRecordsPath,
       workflowName,

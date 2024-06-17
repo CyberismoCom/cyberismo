@@ -1,12 +1,12 @@
 {
-    "name": "decision-cardtype-wrong-wf",
+    "name": "decision/cardtypes/decision-cardtype-wrong-wf",
     "workflow": "i-dont-exist",
     "customFields": [
         {
-            "name": "obsoletedBy",
+            "name": "decision/fieldtypes/obsoletedBy",
             "isEditable": true
         }
     ],
-    "alwaysVisibleFields": [ "obsoletedBy" ],
+    "alwaysVisibleFields": [ "decision/fieldtypes/obsoletedBy" ],
     "optionallyVisibleFields": []
 }

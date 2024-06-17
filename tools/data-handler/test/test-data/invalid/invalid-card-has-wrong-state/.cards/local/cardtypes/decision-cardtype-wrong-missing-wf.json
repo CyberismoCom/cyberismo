@@ -1,11 +1,11 @@
 {
-    "name": "decision-cardtype-wrong-missing-wf",
+    "name": "decision/cardtypes/decision-cardtype-wrong-missing-wf",
     "customFields": [
         {
-            "name": "obsoletedBy",
+            "name": "decision/fieldtypes/obsoletedBy",
             "isEditable": true
         }
     ],
-    "alwaysVisibleFields": [ "obsoletedBy" ],
+    "alwaysVisibleFields": [ "decision/fieldtypes/obsoletedBy" ],
     "optionallyVisibleFields": []
 }

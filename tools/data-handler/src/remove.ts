@@ -12,7 +12,7 @@
 
 // node
 import { EventEmitter } from 'node:events';
-import { join, sep } from 'node:path';
+import { basename, join, sep } from 'node:path';
 
 // ismo
 import { Calculate } from './calculate.js';
@@ -148,7 +148,8 @@ export class Remove extends EventEmitter {
       );
     }
 
-    const templatePath = join(template.path, template.name);
+    // Remove module|project from Template path
+    const templatePath = join(template.path, basename(template.name));
 
     // Imported templates cannot be modified.
     if (templatePath.includes(`${sep}modules${sep}`)) {

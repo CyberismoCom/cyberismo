@@ -1,5 +1,5 @@
 {
-    "name": "simpleWorkflow",
+    "name": "mini/simpleWorkflow",
     "states": [ { "name": "Created", "category": "initial" } ],
     "transitions": [
         {

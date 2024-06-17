@@ -1,5 +1,5 @@
 {
-    "cardtype": "simplepage-cardtype",
+    "cardtype": "decision/cardtypes/simplepage-cardtype",
     "title": "Decision Records",
     "workflowState": "Created",
     "rank": "0|a",
