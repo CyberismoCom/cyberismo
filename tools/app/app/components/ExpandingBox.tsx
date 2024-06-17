@@ -1,12 +1,7 @@
-import React, { use, useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Box,
-  Button,
-  Collapse,
-  Stack,
-  Typography,
-  useTheme,
-} from '@mui/material'
+import React, { useCallback, useMemo, useState } from 'react'
+import { Box, Button, Stack, Link } from '@mui/joy'
+import { Collapse } from '@mui/material'
+
 import { useTranslation } from 'react-i18next'
 import EditableField from './EditableField'
 import { Control, Controller, FieldValues } from 'react-hook-form'
@@ -112,7 +107,7 @@ function ExpandingBox({
   values,
   control,
   editMode = false,
-  color = 'background.default',
+  color = 'soft',
   onClick,
   initialExpanded = false,
 }: ExpandingBoxProps) {
@@ -152,7 +147,7 @@ function ExpandingBox({
 
   return (
     <Box
-      bgcolor={color}
+      bgcolor="neutral.softBg"
       borderRadius={4}
       paddingY={1}
       paddingRight={2}
@@ -163,7 +158,7 @@ function ExpandingBox({
         justifyContent="space-between"
         alignItems="stretch"
       >
-        <Box paddingY={2} flexGrow={1}>
+        <Stack paddingY={values.length > 0 ? 2 : 0} flexGrow={1} spacing={1}>
           {values.map(
             ({
               key,
@@ -191,7 +186,7 @@ function ExpandingBox({
               />
             )
           )}
-        </Box>
+        </Stack>
         {!allVisible && (
           <Box
             display="flex"
@@ -200,21 +195,23 @@ function ExpandingBox({
             flexShrink={0}
             marginBottom="2px"
           >
-            <Button
-              variant="text"
+            <Link
+              variant="soft"
+              color="primary"
+              underline="none"
               onClick={(e) => {
                 e.preventDefault()
                 setExpanded(!expanded)
               }}
+              bgcolor="inherit"
               sx={{
-                paddingY: 0,
-                textTransform: 'none',
-                fontWeight: 600,
+                '&:hover': {
+                  bgcolor: 'inherit',
+                },
               }}
-              color={'bgColor' as any}
             >
               {expanded ? t('showLess') : t('showMore')}
-            </Button>
+            </Link>
           </Box>
         )}
       </Stack>

@@ -39,6 +39,7 @@
     "typescript-eslint": "^7.10.0"
   },
   "dependencies": {
+    "@mui/joy": "^5.0.0-beta.36",
     "directory-schema-validator": "^1.0.17",
     "email-validator": "^2.0.4",
     "isomorphic-git": "^1.25.2",

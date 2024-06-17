@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import { CardDetails, Project } from '../lib/definitions'
-import { Breadcrumbs, Link } from '@mui/material'
+import { Breadcrumbs, Link } from '@mui/joy'
 import HomeIcon from '@mui/icons-material/Home'
 import { findPathTo } from '../lib/utils'
 
@@ -21,7 +21,7 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
   if (pathComponents == null) return <div></div>
 
   return (
-    <Breadcrumbs maxItems={4} style={{ alignItems: 'center' }}>
+    <Breadcrumbs>
       {pathComponents.map((node, index) => (
         <Link
           key={node.key}

@@ -1,26 +1,23 @@
 import * as React from 'react'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import Typography from '@mui/material/Typography'
 import Image from 'next/image'
-import Button from '@mui/material/Button'
 import { useTranslation } from 'react-i18next'
-import { Box } from '@mui/material'
+
+import { Stack, Button, Box } from '@mui/joy'
 
 export default function AppToolbar() {
   const { t } = useTranslation()
   return (
-    <AppBar position="sticky" style={{ background: '#000000' }}>
-      <Toolbar>
+    <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
+      <Box marginLeft={2} height="19px">
         <Image
           src="/static/images/cyberismo.png"
           alt="Cyberismo"
           width="102"
           height="19"
         />
-        <Box sx={{ flexGrow: 1 }} />
-        {false && <Button color="inherit">{t('toolbar.newCard')}</Button>}
-      </Toolbar>
-    </AppBar>
+      </Box>
+      <Box sx={{ flexGrow: 1 }} />
+      {false && <Button>{t('toolbar.newCard')}</Button>}
+    </Stack>
   )
 }

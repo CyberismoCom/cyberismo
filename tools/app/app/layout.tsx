@@ -1,12 +1,11 @@
 import React from 'react'
 import './globals.css'
-import { Roboto } from 'next/font/google'
+import { Inter } from 'next/font/google'
 
-const roboto = Roboto({
-  weight: ['400', '700'],
-  style: ['normal', 'italic'],
-  subsets: ['latin'],
+const inter = Inter({
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
+  subsets: ['latin'],
 })
 
 export default function RootLayout({
@@ -15,8 +14,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={roboto.className}>
-      <head><meta name="viewport" content="initial-scale=1, width=device-width" /></head>
+    <html lang="en" className={inter.className}>
+      <head>
+        <meta name="viewport" content="initial-scale=1, width=device-width" />
+      </head>
       <body>{children}</body>
     </html>
   )

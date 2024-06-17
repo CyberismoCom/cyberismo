@@ -1,26 +1,28 @@
 'use client'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import {
-  CardDetails,
   CardMode,
   MetadataValue,
   WorkflowTransition,
 } from '@/app/lib/definitions'
-import Box from '@mui/material/Box'
-import Tab from '@mui/material/Tab'
-import Tabs from '@mui/material/Tabs'
-import Typography from '@mui/material/Typography'
-import { CircularProgress, Stack, TextField } from '@mui/material'
+
+import {
+  Box,
+  Tab,
+  Tabs,
+  Input,
+  TabPanel,
+  TabList,
+  CircularProgress,
+  Stack,
+  Textarea,
+} from '@mui/joy'
+
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
-import {
-  useCard,
-  useCardType,
-  useFieldTypes,
-  useProject,
-} from '@/app/lib/api/index'
+import { useCard, useFieldTypes, useProject } from '@/app/lib/api/index'
 import { useDynamicForm, useError } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
@@ -28,8 +30,7 @@ import {
   generateExpandingBoxValues,
   getEditableFields,
 } from '@/app/lib/components'
-import { Controller, useForm } from 'react-hook-form'
-import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces'
+import { Controller } from 'react-hook-form'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -43,9 +44,6 @@ export default function Page({ params }: { params: { key: string } }) {
   }, [project, card])
 
   const searchParams = useSearchParams()
-
-  // Edited card content and metadata
-  const [value, setValue] = useState<number>(0)
 
   const { reason, setError, handleClose } = useError()
   const router = useRouter()
@@ -99,10 +97,6 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue)
-  }
-
   const getPreview = useCallback(() => {
     if (!card) return null
     return {
@@ -127,113 +121,83 @@ export default function Page({ params }: { params: { key: string } }) {
         onStateTransition={handleStateTransition}
       />
       <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
-        <Stack
-          borderColor="divider"
-          borderBottom={1}
-          direction="row"
-          width="70%"
+        <Tabs
+          defaultValue={0}
+          sx={{
+            height: '100%',
+          }}
         >
-          <Box flexGrow={1} />
-          <Tabs value={value} onChange={handleChange}>
-            <Tab label={t('edit')} />
-            <Tab label={t('preview')} />
-          </Tabs>
-        </Stack>
-
-        <TabPanel value={value} index={0}>
-          <Box
-            height="100%"
+          <TabList
             sx={{
-              overflowY: 'scroll',
-              scrollbarWidth: 'thin',
+              justifyContent: 'right',
+              width: '70%',
             }}
-            width="70%"
-            paddingRight={3}
           >
-            <Controller
-              name="__title__"
-              control={control}
-              render={({ field: { value, onChange } }: any) => (
-                <TextField
-                  inputProps={{
-                    style: { fontSize: '1.2em', fontWeight: 'bold' },
-                  }}
-                  sx={{
-                    marginBottom: '10px',
-                  }}
-                  fullWidth
-                  multiline={true}
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
-            />
-            <Box paddingY={3}>
-              <ExpandingBox
-                values={fields}
-                color="bgsoft.main"
-                editMode={true}
+            <Tab>{t('edit')}</Tab>
+            <Tab>{t('preview')}</Tab>
+          </TabList>
+          <TabPanel
+            value={0}
+            sx={{
+              height: '100%',
+            }}
+          >
+            <Box
+              height="100%"
+              sx={{
+                overflowY: 'scroll',
+                scrollbarWidth: 'thin',
+              }}
+              width="70%"
+              paddingRight={3}
+            >
+              <Controller
+                name="__title__"
                 control={control}
-                initialExpanded={searchParams.get('expand') === 'true'}
+                render={({ field: { value, onChange } }: any) => (
+                  <Textarea
+                    sx={{
+                      marginBottom: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '1.2rem',
+                    }}
+                    value={value}
+                    onChange={onChange}
+                  />
+                )}
+              />
+              <Box paddingY={3}>
+                <ExpandingBox
+                  values={fields}
+                  color="bgsoft.main"
+                  editMode={true}
+                  control={control}
+                  initialExpanded={searchParams.get('expand') === 'true'}
+                />
+              </Box>
+              <Controller
+                name="__content__"
+                control={control}
+                render={({ field: { value, onChange } }: any) => (
+                  <Textarea value={value} onChange={onChange} minRows={10} />
+                )}
               />
             </Box>
-            <Controller
-              name="__content__"
-              control={control}
-              render={({ field: { value, onChange } }: any) => (
-                <TextField
-                  minRows={10}
-                  multiline={true}
-                  fullWidth
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
-            />
-          </Box>
-        </TabPanel>
-        <TabPanel value={value} index={1}>
-          <Box height="100%">
-            <ContentArea
-              card={getPreview()}
-              error={null}
-              preview={true}
-              values={fields}
-              control={control}
-            />
-          </Box>
-        </TabPanel>
+          </TabPanel>
+          <TabPanel value={1}>
+            <Box height="100%">
+              <ContentArea
+                card={getPreview()}
+                error={null}
+                preview={true}
+                values={fields}
+                control={control}
+              />
+            </Box>
+          </TabPanel>
+        </Tabs>
       </Stack>
       <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
-  )
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode
-  index: any
-  value: any
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-
-  return (
-    <Box
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      {...other}
-      minHeight={0}
-      flexGrow={1}
-    >
-      {value === index && (
-        <Box paddingTop={3} height="100%">
-          <Typography component="span" height="100%">
-            {children}
-          </Typography>
-        </Box>
-      )}
-    </Box>
   )
 }
