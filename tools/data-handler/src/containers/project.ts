@@ -563,6 +563,7 @@ export class Project extends CardContainer {
                 // resources:
                 calculations: [...(await this.collectResourcesFromModules('calculations')).map(item => item.name)],
                 cardtypes: [...(await this.collectResourcesFromModules('cardtypes')).map(item => item.name)],
+                fieldtypes: [...(await this.collectResourcesFromModules('fieldtypes')).map(item => item.name)],
                 templates: [...(await this.collectResourcesFromModules('templates')).map(item => item.name)],
                 workflows: [...(await this.collectResourcesFromModules('workflows')).map(item => item.name)],
             }
