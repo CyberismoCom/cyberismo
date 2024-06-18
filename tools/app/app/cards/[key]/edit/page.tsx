@@ -19,13 +19,14 @@ import {
 
 import CodeMirror from '@uiw/react-codemirror'
 import { StreamLanguage } from '@codemirror/language'
+import { EditorView } from '@codemirror/view'
 import { asciidoc } from 'codemirror-asciidoc'
 
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
 import ErrorBar from '@/app/components/ErrorBar'
-import { useCard, useFieldTypes, useProject } from '@/app/lib/api/index'
+import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { useDynamicForm, useError } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
@@ -195,7 +196,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <CodeMirror
                     value={value}
                     onChange={onChange}
-                    extensions={[StreamLanguage.define(asciidoc)]}
+                    extensions={[StreamLanguage.define(asciidoc), EditorView.lineWrapping]}
                     style={{
                       border: '1px solid',
                       borderColor: 'rgba(0,0,0,0.23)',
