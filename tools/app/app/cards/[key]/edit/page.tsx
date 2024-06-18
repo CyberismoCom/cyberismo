@@ -1,5 +1,5 @@
 'use client'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import {
   CardMode,
   MetadataValue,
@@ -10,13 +10,16 @@ import {
   Box,
   Tab,
   Tabs,
-  Input,
   TabPanel,
   TabList,
   CircularProgress,
   Stack,
   Textarea,
 } from '@mui/joy'
+
+import CodeMirror from '@uiw/react-codemirror'
+import { StreamLanguage } from '@codemirror/language'
+import { asciidoc } from 'codemirror-asciidoc'
 
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -189,7 +192,16 @@ export default function Page({ params }: { params: { key: string } }) {
                 name="__content__"
                 control={control}
                 render={({ field: { value, onChange } }: any) => (
-                  <Textarea value={value} onChange={onChange} minRows={10} />
+                  <CodeMirror
+                    value={value}
+                    onChange={onChange}
+                    extensions={[StreamLanguage.define(asciidoc)]}
+                    style={{
+                      border: '1px solid',
+                      borderColor: 'rgba(0,0,0,0.23)',
+                      borderRadius: 4
+                    }}
+                    />
                 )}
               />
             </Box>
