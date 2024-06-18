@@ -196,23 +196,24 @@ export class Commands {
      * @returns request status; 200 if success; 400 in handled error; 500 in unknown error
      */
     public async command(command: Cmd, args: string[], options: CardsOptions): Promise<requestStatus> {
+        this.projectPath = '';
         // Set project path and validate it.
         const creatingNewProject = command === Cmd.create && args[0] === 'project';
         if (!creatingNewProject) {
             this.projectPath = await this.setProjectPath(options.projectPath);
             this.projectPath = resolveTilde(this.projectPath);
-        }
-        if (!this.validateFolder(this.projectPath)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: folder name is invalid '${options.projectPath}'`
-            };
-        }
-        if (!pathExists(this.projectPath)) {
-            return {
-                statusCode: 400,
-                message: `Input validation error: cannot find project '${options.projectPath}'`
-            };
+            if (!this.validateFolder(this.projectPath)) {
+                return {
+                    statusCode: 400,
+                    message: `Input validation error: folder name is invalid '${options.projectPath}'`
+                };
+            }
+            if (!pathExists(this.projectPath)) {
+                return {
+                    statusCode: 400,
+                    message: `Input validation error: cannot find project '${options.projectPath}'`
+                };
+            }
         }
     try {
         if (command === Cmd.add) {
@@ -238,7 +239,7 @@ export class Commands {
                 return this.createCardtype(name, workflow, this.projectPath);
             }
             if (target === 'project') {
-                const [ prefix, name ] = args;
+                const [ name, prefix ] = args;
                 this.projectPath = options.projectPath || ''; // todo: validation
                 return this.createProject(this.projectPath, prefix, name); // todo: order of parameters
             }
@@ -410,8 +411,8 @@ export class Commands {
             parentCardKey = '';
         }
         try {
-            await this.createCmd.createCard(path, templateName, parentCardKey);
-            return { statusCode: 200 };
+            const createdCards = await this.createCmd.createCard(path, templateName, parentCardKey);
+            return { statusCode: 200, message: `Created cards ${JSON.stringify(createdCards)}` };
         } catch (e) {
             return {statusCode: 400, message: errorFunction(e)};
         }

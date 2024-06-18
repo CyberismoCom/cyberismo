@@ -213,12 +213,10 @@ describe('validate cmd tests', () => {
         }
     });
     it('try to validateWorkflowState - workflow not found from card', async () => {
-        console.log('here1')
         const project = new Project('test/test-data/invalid/invalid-card-has-wrong-state/');
         const card = await project.findSpecificCard('decision_8', {metadata: true});
         if (card) {
             const valid = await validateCmd.validateWorkflowState(project, card);
-            console.log(valid)
             expect(valid.length).to.be.greaterThan(0);
         }
     });

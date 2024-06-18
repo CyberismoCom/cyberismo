@@ -138,7 +138,7 @@ export class Project extends CardContainer {
     private resourcesSync(type: string, requirement: string): resource[] {
         let resourceFolder: string;
         if (type === 'calculation') {
-            resourceFolder = this.localCalculationFolder;
+            resourceFolder = this.calculationProjectFolder;
         } else if (type === 'cardtype') {
             resourceFolder = this.cardtypesFolder;
         } else if (type === 'fieldtype') {
@@ -546,14 +546,6 @@ export class Project extends CardContainer {
     }
 
     /**
-     * Path to project's local calculation folder.
-     * @returns project's local calculation folder.
-     */
-    public get localCalculationFolder(): string {
-        return join(this.basePath, '.cards', 'local', 'calculations');
-    }
-
-    /**
      * Returns details of a certain module.
      * @param {string} moduleName Name of the module.
      * @returns module details, or undefined if workflow cannot be found.
@@ -571,6 +563,7 @@ export class Project extends CardContainer {
                 // resources:
                 calculations: [...(await this.collectResourcesFromModules('calculations')).map(item => item.name)],
                 cardtypes: [...(await this.collectResourcesFromModules('cardtypes')).map(item => item.name)],
+                fieldtypes: [...(await this.collectResourcesFromModules('fieldtypes')).map(item => item.name)],
                 templates: [...(await this.collectResourcesFromModules('templates')).map(item => item.name)],
                 workflows: [...(await this.collectResourcesFromModules('workflows')).map(item => item.name)],
             }

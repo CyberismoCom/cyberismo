@@ -19,11 +19,12 @@ export interface projectSettings {
     nextAvailableCardNumber: number
 }
 
-//
+// Module content
 export interface moduleSettings extends projectSettings {
     path: string
     cardtypes: string[]
     calculations: string[]
+    fieldtypes: string[]
     templates: string[]
     workflows: string[]
 }

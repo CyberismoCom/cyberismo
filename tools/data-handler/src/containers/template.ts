@@ -46,7 +46,7 @@ export class Template extends CardContainer {
     //           Then rename the folder based on mapped names.
     //           Make 'card' item changed to write them to json file.
     //           Finally copy from temp to real place.
-    private async doCreateCards(cards: card[], parentCard?: card): Promise<string[]> {
+    private async doCreateCards(cards: card[], parentCard?: card): Promise<card[]> {
         const templateIDMap: mappingValue[] = [];
         const tempDestination = join(this.project.cardrootFolder, 'temp');
 
@@ -148,8 +148,23 @@ export class Template extends CardContainer {
                 throw new Error(error.message);
             }
         }
-        const createdCards = templateIDMap.map(item => item.to);
-        return createdCards;
+        return cards;
+    }
+
+    // fetches path to module.
+    private moduleTemplatePath(templateName: string): string {
+        if (!pathExists(this.project.modulesFolder)) {
+            return '';
+        }
+        const files = readdirSync(this.project.modulesFolder, { withFileTypes: true });
+        const modules = files.filter(item => item.isDirectory());
+        for (const module of modules) {
+            const exists = pathExists(join(module?.path, module?.name, 'templates', templateName));
+            if (exists) {
+                return join(module?.path, module?.name, 'templates', templateName);
+            }
+        }
+        return '';
     }
 
     // Set path to template location.
@@ -159,27 +174,20 @@ export class Template extends CardContainer {
             throw new Error(`Invalid template name: '${templateName}'`);
         }
 
+        // Template can either be local ...
         const localTemplate = join(this.project.templatesFolder, normalizedTemplateName);
-        let templatePath = '';
-        if (pathExists(resolve(localTemplate))) {
-            templatePath = localTemplate;
-        } else {
-            if (!pathExists(this.project.modulesFolder)) {
-                return localTemplate;
-            }
-            const files = readdirSync(this.project.modulesFolder, { withFileTypes: true });
-            const directories = files.filter(item => item.isDirectory());
-            for (const directory of directories) {
-                const dirPath = join(directory.path, directory.name);
-                if (pathExists(resolve(templatePath))) {
-                    templatePath = join(dirPath, 'templates', templateName);
-                    break;
-                }
-            }
+        const createdLocalTemplate = pathExists(resolve(localTemplate));
+        if (createdLocalTemplate) {
+            return resolve(localTemplate);
         }
 
-        // If 'templatePath' is undefined, probably means that this function was called when creating a new local template.
-        return templatePath ? templatePath : localTemplate;
+        // ... or from module ...
+        const createdModuleTemplatePath = this.moduleTemplatePath(templateName);
+        if (createdModuleTemplatePath !== '') {
+            return resolve(createdModuleTemplatePath);
+        }
+        // ... or not created yet; in case assume it will be 'local' (you cannot create templates to modules)
+        return resolve(localTemplate);
     }
 
     /**
@@ -319,7 +327,7 @@ export class Template extends CardContainer {
      * @param parentCard parent card
      * @returns array of created card keys
      */
-    public async createCards(parentCard?: card): Promise<string[]> {
+    public async createCards(parentCard?: card): Promise<card[]> {
         const cards = await this.cards('', { content: true, contentType: 'adoc', metadata: true, attachments: true });
         if (cards.length === 0) {
             throw new Error(`No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`);
