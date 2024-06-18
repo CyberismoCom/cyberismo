@@ -1,4 +1,4 @@
-import { Select, TextField, MenuItem, FormControl } from '@mui/material'
+import { Select, TextField, Option, Input } from '@mui/joy'
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions'
 import { useTranslation } from 'react-i18next'
 
@@ -20,35 +20,31 @@ export default function FieldEditor({
     case 'integer':
     case 'number':
       return (
-        <TextField
-          size="small"
+        <Input
           onChange={onChange}
-          value={value}
+          value={value as number}
           type="number"
           color="primary"
+          size="sm"
         />
       )
 
     case 'boolean':
       return (
-        <FormControl size="small">
-          <Select value={value} onChange={onChange} displayEmpty>
-            <MenuItem value="true">{t('true')}</MenuItem>
-            <MenuItem value="false">{t('false')}</MenuItem>
-          </Select>
-        </FormControl>
+        <Select value={value as string} onChange={onChange} color="primary">
+          <Option value="true">{t('true')}</Option>
+          <Option value="false">{t('false')}</Option>
+        </Select>
       )
     case 'enum':
       return (
-        <FormControl size="small">
-          <Select value={value} onChange={onChange}>
-            {enumValues?.map((enumDef) => (
-              <MenuItem key={enumDef.enumValue} value={enumDef.enumValue}>
-                {enumDef.enumDisplayValue}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Select value={value as string} onChange={onChange} color="primary">
+          {enumValues?.map((enumDef) => (
+            <Option key={enumDef.enumValue} value={enumDef.enumValue}>
+              {enumDef.enumDisplayValue}
+            </Option>
+          ))}
+        </Select>
       )
     case 'shorttext':
     case 'longtext':
@@ -58,11 +54,11 @@ export default function FieldEditor({
     case 'list':
     default:
       return (
-        <TextField
-          size="small"
+        <Input
           onChange={onChange}
-          value={value}
+          value={value as string}
           color="primary"
+          size="sm"
           sx={{
             width: 400,
           }}

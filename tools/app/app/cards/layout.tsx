@@ -2,21 +2,28 @@
 import { TreeMenu } from '../components/TreeMenu'
 import { usePathname } from 'next/navigation'
 import AppToolbar from '../components/AppToolbar'
+import { CssBaseline } from '@mui/material'
+
 import {
+  Stack,
   Box,
   CircularProgress,
-  Container,
-  CssBaseline,
-  Stack,
   Typography,
   styled,
-} from '@mui/material'
+  Container,
+} from '@mui/joy'
 import { useProject } from '../lib/api'
 import { SWRConfig } from 'swr'
 import { getSwrConfig } from '../lib/swr'
 import { ThemeProvider } from '@emotion/react'
 import theme from '../theme'
 import '../lib/i18n'
+import {
+  experimental_extendTheme as materialExtendTheme,
+  Experimental_CssVarsProvider as MaterialCssVarsProvider,
+  THEME_ID as MATERIAL_THEME_ID,
+} from '@mui/material/styles'
+import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
 
 function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
@@ -28,17 +35,17 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   if (isLoading)
     return (
       <Box padding={2}>
-        <CircularProgress size={60} color="primary" />
+        <CircularProgress size="md" color="primary" />
       </Box>
     )
 
   if (error || !project) {
     return (
       <Container>
-        <Typography variant="h6" color="error">
+        <Typography level="body-md" color="danger">
           Could not open project:
         </Typography>
-        <Typography variant="body1" color="error">
+        <Typography level="body-md" color="danger">
           {error.message}
         </Typography>
       </Container>
@@ -57,24 +64,30 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 }
 
 const Main = styled('main')(({ theme }) => ({
-  height: 'calc(100vh - 64px)', // 64px is the height of the toolbar
+  height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
   flexGrow: 1,
 }))
+
+const materialTheme = materialExtendTheme()
 
 export default function CardsLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <SWRConfig value={getSwrConfig()}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Stack>
-          <AppToolbar />
-          <Main>
-            <MainLayout>{children}</MainLayout>
-          </Main>
-        </Stack>
-      </ThemeProvider>
-    </SWRConfig>
+    <MaterialCssVarsProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
+      <JoyCssVarsProvider>
+        <CssBaseline enableColorScheme />
+        <SWRConfig value={getSwrConfig()}>
+          <ThemeProvider theme={theme}>
+            <Stack>
+              <AppToolbar />
+              <Main>
+                <MainLayout>{children}</MainLayout>
+              </Main>
+            </Stack>
+          </ThemeProvider>
+        </SWRConfig>
+      </JoyCssVarsProvider>
+    </MaterialCssVarsProvider>
   )
 }

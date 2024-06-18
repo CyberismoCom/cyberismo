@@ -26,6 +26,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw await createApiCallError(response)
   }
+  if (response.status === 204) return null as unknown as T // no content, return null
   return response.json()
 }
 
@@ -33,7 +34,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function callApi<T>(
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
-  body: any | undefined
+  body?: any
 ): Promise<T> {
   const options: RequestInit = {
     method,

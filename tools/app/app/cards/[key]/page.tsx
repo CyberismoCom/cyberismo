@@ -2,12 +2,11 @@
 import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import ErrorBar from '@/app/components/ErrorBar'
-import ExpandingBox from '@/app/components/ExpandingBox'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
-import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
+import { Card, CardMode, WorkflowTransition } from '@/app/lib/definitions'
 import { useError } from '@/app/lib/utils'
-import { Box, Stack } from '@mui/material'
+import { Box, Stack } from '@mui/joy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
@@ -16,7 +15,7 @@ export const dynamic = 'force-dynamic'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
-  const { card, error, updateCard } = useCard(params.key)
+  const { card, error, updateCard, deleteCard } = useCard(params.key)
   const { reason, setError, handleClose } = useError()
 
   const { fieldTypes } = useFieldTypes()
@@ -65,6 +64,16 @@ export default function Page({ params }: { params: { key: string } }) {
         mode={CardMode.VIEW}
         onUpdate={() => {}}
         onStateTransition={handleStateTransition}
+        onDelete={async (_, done) => {
+          try {
+            await deleteCard()
+            router.push('/cards')
+          } catch (error) {
+            if (error instanceof Error) setError(error.message)
+          } finally {
+            done()
+          }
+        }}
       />
       <Box flexGrow={1} minHeight={0}>
         <ContentArea

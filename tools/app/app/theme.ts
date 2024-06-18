@@ -17,10 +17,10 @@ const theme = createTheme({
       fontSize: '2rem',
       fontWeight: 'bold',
     },
-    h3: {
-      fontSize: '1.2rem',
-      fontWeight: 'bold',
-    },
+    //   h3: {
+    //  fontSize: '1.2rem',
+    //  fontWeight: 'bold',
+    //    },
   },
   palette: {
     bgsoft: {

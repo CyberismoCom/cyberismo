@@ -23,5 +23,9 @@
   "showMore": "Show More",
   "showLess": "Show Less",
   "true": "True",
-  "false": "False"
+  "false": "False",
+  "deleteCardWarning": "I acknowledge I want to delete {{cardAmount}} cards",
+  "delete": "Delete",
+  "deleteCardContent_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
+  "deleteCardContent_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
 }

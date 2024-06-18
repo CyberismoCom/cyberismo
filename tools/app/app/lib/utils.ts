@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import {
   Card,
   CardDetails,
@@ -146,6 +146,16 @@ export function useError() {
   return { error, setError, handleClose, reason }
 }
 
+export function useIsMounted() {
+  const isMounted = useRef(true)
+  useEffect(() => {
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+  return useMemo(() => isMounted.current, [isMounted])
+}
+
 /**
  * Custom hook for handling forms with dynamic initial values
  */
@@ -189,3 +199,53 @@ export function metadataValueToString(
     return metadata ? metadata.toString() : ''
   }
 }
+/**
+ * Finds a card in a tree of cards
+ */
+export function findCard(cards: Card[], key: string): Card | null {
+  for (const card of cards) {
+    if (card.key === key) {
+      return card
+    }
+    if (card.children) {
+      const found = findCard(card.children, key)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+/**
+ * Counts the number of children of a card, including the card itself and children of children
+ */
+export function countChildren(card: Card): number {
+  if (!card.children) {
+    return 1
+  }
+  return card.children.reduce((acc, child) => acc + countChildren(child), 1)
+}
+
+/**
+ * Deletes a card from a tree of cards
+ * Note: This function mutates the input array
+ */
+export function deleteCard(cards: Card[], key: string): Card[] {
+  for(const card of cards){
+    if(card.key === key){
+      return cards.filter(c => c.key !== key)
+    }
+    if(card.children){
+      card.children = deleteCard(card.children, key)
+    }
+  }
+  return cards
+}
+
+/**
+ * Deep copy an object
+ */	
+export function deepCopy<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj))
+}
+

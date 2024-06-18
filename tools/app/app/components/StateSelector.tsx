@@ -1,13 +1,9 @@
 import React, { useState } from 'react'
-import Button from '@mui/material/Button'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import ListItemText from '@mui/material/ListItemText'
-import { green, grey, red, yellow } from '@mui/material/colors'
+import colors from '@mui/joy/colors'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import { Workflow, WorkflowState, WorkflowTransition } from '../lib/definitions'
-import { Work } from '@mui/icons-material'
 import { workflowCategory } from '../../../data-handler/src/interfaces/project-interfaces'
+import { Menu, MenuItem, ListItemContent, Button } from '@mui/joy'
 
 interface StateSelectorProps {
   currentState: WorkflowState | null
@@ -54,18 +50,16 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     <div>
       <Button
         disabled={availableTransitions.length == 0}
-        variant="contained"
-        startIcon={
+        variant="soft"
+        onClick={handleClick}
+        color="neutral"
+        size="sm"
+        startDecorator={
           <FiberManualRecordIcon
             style={{ color: getStateColor(currentState) }}
           />
         }
-        onClick={handleClick}
         sx={{
-          textTransform: 'none',
-          color: 'black',
-          backgroundColor: 'grey.100',
-          whiteSpace: 'nowrap',
           pl: 2,
           pr: 2,
           marginLeft: 1,
@@ -85,7 +79,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
             key={transition.name}
             onClick={() => handleMenuItemClick(transition)}
           >
-            <ListItemText primary={transition.name} />
+            <ListItemContent>{transition.name}</ListItemContent>
           </MenuItem>
         ))}
       </Menu>
@@ -96,11 +90,11 @@ const StateSelector: React.FC<StateSelectorProps> = ({
 function getStateColor(state: WorkflowState) {
   switch (state.category) {
     case workflowCategory.initial:
-      return grey[600]
+      return colors.grey[600]
     case workflowCategory.active:
-      return yellow[600]
+      return colors.yellow[600]
     case workflowCategory.closed:
-      return green[600]
+      return colors.green[600]
     default:
       return 'black'
   }

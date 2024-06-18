@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Box, Button, Toolbar, Snackbar, Alert } from '@mui/material'
+import React from 'react'
+import { Box, Button } from '@mui/joy'
 import EditIcon from '@mui/icons-material/Edit'
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs'
 import {
@@ -12,7 +12,7 @@ import {
 } from '../lib/definitions'
 import StatusSelector from './StateSelector'
 import CardContextMenu from './CardContextMenu'
-import { findWorkflowForCard, useError } from '../lib/utils'
+import { findWorkflowForCard } from '../lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 
@@ -22,6 +22,7 @@ interface ContentToolbarProps {
   mode: CardMode
   onUpdate: () => void
   onStateTransition: (transition: WorkflowTransition) => void
+  onDelete?: (key: string, done: () => void) => void
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
@@ -30,6 +31,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   mode,
   onUpdate,
   onStateTransition,
+  onDelete,
 }) => {
   const router = useRouter()
   const { t } = useTranslation()
@@ -41,18 +43,24 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
     ) ?? null
 
   return (
-    <Toolbar disableGutters sx={{ display: 'flex', alignItems: 'top' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs selectedCard={selectedCard} project={project} />
       </Box>
 
-      <CardContextMenu card={selectedCard} />
+      <CardContextMenu
+        card={selectedCard}
+        project={project}
+        onDelete={onDelete}
+      />
 
       {mode === CardMode.EDIT && (
         <Button
-          variant="text"
+          variant="plain"
           aria-label="cancel"
-          style={{ marginLeft: 16, minWidth: 80, color: 'grey' }}
+          size="sm"
+          color="neutral"
+          style={{ marginLeft: 16, minWidth: 80 }}
           onClick={() => router.back()}
         >
           {t('cancel')}
@@ -67,9 +75,10 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
 
       {mode === CardMode.VIEW && (
         <Button
-          variant="contained"
+          variant="solid"
           aria-label="edit"
-          startIcon={<EditIcon />}
+          size="sm"
+          startDecorator={<EditIcon />}
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={() => router.push(`/cards/${selectedCard!.key}/edit`)}
         >
@@ -79,7 +88,8 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
 
       {mode === CardMode.EDIT && (
         <Button
-          variant="contained"
+          variant="solid"
+          size="sm"
           aria-label="update"
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={onUpdate}
@@ -87,7 +97,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           {t('update')}
         </Button>
       )}
-    </Toolbar>
+    </Box>
   )
 }
 

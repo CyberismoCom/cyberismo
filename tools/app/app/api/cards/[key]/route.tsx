@@ -2,6 +2,7 @@ import { Show } from '@cyberismocom/data-handler/show'
 import { Transition } from '@cyberismocom/data-handler/transition'
 import { Calculate } from '@cyberismocom/data-handler/calculate'
 import { Edit } from '@cyberismocom/data-handler/edit'
+import { Remove } from '@cyberismocom/data-handler/remove'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   fetchCardDetails,
@@ -102,30 +103,20 @@ export async function PUT(request: NextRequest) {
     const calculateCommand = new Calculate()
     const transitionCommand = new Transition(calculateCommand)
     try {
-      await transitionCommand.cardTransition(
-        projectPath,
-        key,
-        res.state
-      )
+      await transitionCommand.cardTransition(projectPath, key, res.state)
       successes++
     } catch (error) {
-      if (error instanceof Error)
-        errors.push(error.message)
+      if (error instanceof Error) errors.push(error.message)
     }
   }
 
   if (res.content != null) {
     const editCommand = new Edit()
     try {
-      await editCommand.editCardContent(
-        projectPath,
-        key,
-        res.content
-      )
+      await editCommand.editCardContent(projectPath, key, res.content)
       successes++
     } catch (error) {
-      if (error instanceof Error)
-        errors.push(error.message)
+      if (error instanceof Error) errors.push(error.message)
     }
   }
 
@@ -137,19 +128,13 @@ export async function PUT(request: NextRequest) {
       if (value === null) continue
 
       try {
-        await editCommand.editCardMetadata(
-          projectPath,
-          key,
-          metadataKey,
-          value
-        )
+        await editCommand.editCardMetadata(projectPath, key, metadataKey, value)
         successes++
-    } catch (error) {
-      if (error instanceof Error)
-        errors.push(error.message)
+      } catch (error) {
+        if (error instanceof Error) errors.push(error.message)
+      }
     }
   }
-}
 
   // TODO add other update options here
 
@@ -210,9 +195,33 @@ async function getCardDetails(
         status: 400,
       })
     }
-  } catch(error) {
+  } catch (error) {
     return new NextResponse(`Card not found from path ${projectPath}`, {
       status: 400,
     })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const projectPath = process.env.npm_config_project_path
+  if (!projectPath) {
+    return new NextResponse('project_path not set', { status: 500 })
+  }
+
+  const key = request.nextUrl.pathname.split('/')?.pop()
+
+  if (key == null) {
+    return new NextResponse('No search key', { status: 400 })
+  }
+
+  const removeCommand = new Remove(new Calculate())
+
+  try {
+    await removeCommand.remove(projectPath, 'card', key)
+    return new NextResponse(null, { status: 204 })
+  } catch (error) {
+    if (error instanceof Error) {
+      return new NextResponse(error.message, { status: 400 })
+    }
   }
 }

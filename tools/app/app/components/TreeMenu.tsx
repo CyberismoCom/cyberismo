@@ -5,10 +5,9 @@ import { TreeView } from '@mui/x-tree-view/TreeView'
 import { TreeItem } from '@mui/x-tree-view/TreeItem'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import Link from 'next/link'
 import { findPathTo } from '../lib/utils'
 import { useRouter } from 'next/navigation'
-import { Box, Stack, Typography } from '@mui/material'
+import { Stack, Typography } from '@mui/joy'
 
 type TreeMenuProps = {
   project: Project
@@ -44,7 +43,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
 
   return (
     <Stack padding={2} bgcolor="#f0f0f0" height="100%" width="100%">
-      <Typography variant="h3">{project.name}</Typography>
+      <Typography level="h4">{project.name}</Typography>
       <TreeView
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}

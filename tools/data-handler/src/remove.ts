@@ -15,9 +15,6 @@ export class Remove extends EventEmitter {
     constructor(calculateCmd: Calculate) {
         super();
         this.calculateCmd = calculateCmd;
-        this.addListener(
-            'removed',
-            this.calculateCmd.handleDeleteCard.bind(this.calculateCmd));
     }
 
     // Removes attachment from template or project card
@@ -45,22 +42,26 @@ export class Remove extends EventEmitter {
 
     // Removes card from project or template
     private async removeCard(cardKey: string) {
-        const cardFolder = await Remove.project.cardFolder(cardKey);
-        if (!cardFolder) {
-            throw new Error(`Card '${cardKey}' not found`);
-        }
+      const cardFolder = await Remove.project.cardFolder(cardKey);
+      if (!cardFolder) {
+        throw new Error(`Card '${cardKey}' not found`);
+      }
 
-        // Imported templates cannot be modified.
-        if (cardFolder.includes(`${sep}modules${sep}`)) {
-            throw new Error(`Cannot modify imported module`);
-        }
+      // Imported templates cannot be modified.
+      if (cardFolder.includes(`${sep}modules${sep}`)) {
+        throw new Error(`Cannot modify imported module`);
+      }
 
-        // Calculations need to be updated before card is removed.
-        const card = await Remove.project.findSpecificCard(cardKey);
-        if (card) {
-            this.emit('removed', card);
-        }
-        await deleteDir(cardFolder);
+      // Calculations need to be updated before card is removed.
+      const card = await Remove.project.findSpecificCard(cardKey);
+      if (card) {
+        await this.calculateCmd.handleDeleteCard(card);
+      }
+      await deleteDir(cardFolder);
+
+      if (card) {
+        this.emit("removed", card);
+      }
     }
 
     // Removes modules from project

@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { CardAttachment, CardDetails, Project } from '../lib/definitions'
 import Processor from '@asciidoctor/core'
 import { parse } from 'node-html-parser'
-import { Box, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox, { ExpandingBoxProps } from './ExpandingBox'
 import { useForm } from 'react-hook-form'
@@ -83,7 +83,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         onScroll={handleScroll}
       >
         <Stack spacing={3}>
-          <Typography variant="h1">
+          <Typography level="h1">
             {card.metadata?.summary ?? card.key}
           </Typography>
           <ExpandingBox
