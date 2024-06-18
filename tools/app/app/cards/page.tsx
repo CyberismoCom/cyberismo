@@ -8,5 +8,11 @@ export const dynamic = 'force-dynamic'
 export default function CardsPage() {
   const { t } = useTranslation()
   const { project } = useProject()
-  return <Typography variant="h6">{project && project.cards.length > 0 ? t('selectCard') : t('emptyProject')}</Typography>
+  return (
+    <Typography level="title-md">
+      {project && project.cards.length > 0
+        ? t('selectCard')
+        : t('emptyProject')}
+    </Typography>
+  )
 }
