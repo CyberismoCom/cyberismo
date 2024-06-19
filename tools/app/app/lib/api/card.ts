@@ -6,10 +6,13 @@ import { CardUpdate } from './types'
 import { CardDetails, Project } from '../definitions'
 import { deleteCard as deleteCardHelper, deepCopy } from '../utils'
 
-export const useCard = (key: string, options?: SWRConfiguration) => ({
-  ...useSWRHook(apiPaths.card(key), 'card', options),
-  updateCard: async (update: CardUpdate) => updateCard(key, update),
-  deleteCard: async () => deleteCard(key),
+export const useCard = (key: string | null, options?: SWRConfiguration) => ({
+  ...useSWRHook(key ? apiPaths.card(key) : null, 'card', options),
+  updateCard: async (update: CardUpdate) =>
+    (key && updateCard(key, update)) || null,
+  deleteCard: async () => (key && deleteCard(key)) || null,
+  createCard: async (template: string) =>
+    (key && createCard(key, template)) || null,
 })
 
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
@@ -59,3 +62,16 @@ export async function deleteCard(key: string) {
   )
 }
 
+export async function createCard(
+  parentKey: string,
+  template: string
+): Promise<string[]> {
+  const result = await callApi<string[]>(apiPaths.card(parentKey), 'POST', {
+    template,
+  })
+
+  // revalidate whole project
+  mutate(apiPaths.project())
+
+  return result
+}

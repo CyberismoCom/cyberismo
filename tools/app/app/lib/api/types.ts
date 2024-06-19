@@ -8,6 +8,7 @@ export type Resources = {
   card: CardDetails
   fieldTypes: FieldTypes
   cardType: cardtype
+  templates: string[]
 }
 
 export type ResourceName = keyof Resources

@@ -1,6 +1,6 @@
 'use client'
+import { useState } from 'react'
 import { TreeMenu } from '../components/TreeMenu'
-import { usePathname } from 'next/navigation'
 import AppToolbar from '../components/AppToolbar'
 import { CssBaseline } from '@mui/material'
 
@@ -24,12 +24,15 @@ import {
   THEME_ID as MATERIAL_THEME_ID,
 } from '@mui/material/styles'
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
+import NewCardDialog from '../components/NewCardDialog'
+import { useTemplates, useCard } from '../lib/api'
+import ErrorBar from '../components/ErrorBar'
+import { useCardKey, useError } from '../lib/utils'
+import { useRouter } from 'next/navigation'
 
-function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
-  const urlParts = usePathname().slice(1).split('/')
-  const urlCardKey = urlParts[0] == 'cards' ? urlParts[1] ?? null : null
-
+  const urlCardKey = useCardKey()
   const { project, error, isLoading } = useProject()
 
   if (isLoading)
@@ -68,6 +71,44 @@ const Main = styled('main')(({ theme }) => ({
   flexGrow: 1,
 }))
 
+function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const { templates } = useTemplates()
+
+  const urlCardKey = useCardKey()
+
+  const { createCard } = useCard(urlCardKey)
+  const { handleClose, reason, setError } = useError()
+  const router = useRouter()
+
+  return (
+    <Stack>
+      <AppToolbar onNewCard={() => setIsCreateDialogOpen(true)} />
+      <Main>
+        <AppLayout>{children}</AppLayout>
+      </Main>
+      <NewCardDialog
+        open={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        templates={templates ?? []}
+        onCreate={async (template) => {
+          try {
+            const cards = await createCard(template)
+            if (cards && cards.length > 0) {
+              router.push(`/cards/${cards[0]}`)
+            }
+          } catch (error) {
+            if (error instanceof Error) setError(error.message)
+          } finally {
+            setIsCreateDialogOpen(false)
+          }
+        }}
+      />
+      <ErrorBar error={reason} onClose={handleClose} />
+    </Stack>
+  )
+}
+
 const materialTheme = materialExtendTheme()
 
 export default function CardsLayout({
@@ -79,12 +120,7 @@ export default function CardsLayout({
         <CssBaseline enableColorScheme />
         <SWRConfig value={getSwrConfig()}>
           <ThemeProvider theme={theme}>
-            <Stack>
-              <AppToolbar />
-              <Main>
-                <MainLayout>{children}</MainLayout>
-              </Main>
-            </Stack>
+            <MainLayout>{children}</MainLayout>
           </ThemeProvider>
         </SWRConfig>
       </JoyCssVarsProvider>
