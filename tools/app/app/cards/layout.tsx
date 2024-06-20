@@ -56,7 +56,7 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <Box width="274px" flexShrink={0}>
         <TreeMenu project={project} selectedCardKey={urlCardKey} />
       </Box>
-      <Box padding={2} flexGrow={1}>
+      <Box padding={2} flexGrow={1} overflow="hidden">
         {children}
       </Box>
     </Stack>
