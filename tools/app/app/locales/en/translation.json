@@ -1,7 +1,7 @@
 {
   "appName": "Cards",
   "toolbar": {
-    "newCard": "New Card",
+    "newCard": "CREATE NEW CARD",
     "importModules": "Import Modules"
   },
   "cardType": "Card Type",
@@ -30,7 +30,7 @@
   "deleteCardContent_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone.",
   "create": "Create",
   "newCardDialogTitle": "New card from template",
-  "createCard": "Create Card",
   "no": "No",
-  "yes": "Yes"
+  "yes": "Yes",
+  "createUnder": "Create under \"{{parent}}\""
 }

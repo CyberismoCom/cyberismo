@@ -29,6 +29,7 @@ import { useTemplates, useCard } from '../lib/api'
 import ErrorBar from '../components/ErrorBar'
 import { useCardKey, useError } from '../lib/utils'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
@@ -77,9 +78,10 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
 
   const urlCardKey = useCardKey()
 
-  const { createCard } = useCard(urlCardKey)
+  const { createCard, card } = useCard(urlCardKey)
   const { handleClose, reason, setError } = useError()
   const router = useRouter()
+  const { t } = useTranslation()
 
   return (
     <Stack>
@@ -103,6 +105,7 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             setIsCreateDialogOpen(false)
           }
         }}
+        actionText={t('createUnder', { parent: card?.metadata?.summary })}
       />
       <ErrorBar error={reason} onClose={handleClose} />
     </Stack>

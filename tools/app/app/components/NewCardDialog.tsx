@@ -11,6 +11,7 @@ import {
   Card,
   Stack,
   Radio,
+  ModalClose,
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
 import { Grid } from '@mui/material'
@@ -42,6 +43,7 @@ function NewCardDialog({
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog>
+        <ModalClose />
         <DialogTitle>{t('newCardDialogTitle')}</DialogTitle>
         <DialogContent
           sx={{
@@ -64,14 +66,20 @@ function NewCardDialog({
                   sx={{
                     height: '150px',
                     width: '150px',
-                    padding: 0,
                     boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
                     cursor: 'pointer',
+                    padding: 0,
+                    overflow: 'hidden',
                   }}
                   onClick={() => setChosenTemplate(template)}
                 >
-                  <Stack direction="row" height="50%">
-                    <Typography level="title-sm" padding={1} fontWeight="bold">
+                  <Stack direction="row" height="50%" flexGrow={0}>
+                    <Typography
+                      level="title-lg"
+                      paddingTop={2}
+                      paddingLeft={2}
+                      fontWeight="bold"
+                    >
                       {template}
                     </Typography>
                     <Box padding={1}>
@@ -86,9 +94,18 @@ function NewCardDialog({
                     width="100%"
                     overflow="clip"
                     bgcolor="neutral.softBg"
-                    borderRadius="inherit"
+                    flexShrink={0}
+                    sx={{
+                      borderBottomLeftRadius: 'inherit',
+                      borderBottomRightRadius: 'inherit',
+                    }}
                   >
-                    <Typography level="body-xs" padding={1} fontWeight="bold">
+                    <Typography
+                      level="body-xs"
+                      fontWeight="bold"
+                      paddingLeft={2}
+                      paddingTop={2}
+                    >
                       Description placeholder
                     </Typography>
                   </Box>
@@ -97,7 +114,6 @@ function NewCardDialog({
             ))}
           </Grid>
           <DialogActions>
-            <Typography>{actionText}</Typography>
             <Button
               disabled={chosenTemplate === null}
               onClick={() => {
@@ -112,6 +128,8 @@ function NewCardDialog({
             <Button onClick={onClose} variant="plain" color="neutral">
               {t('cancel')}
             </Button>
+            <Box flexGrow={1} />
+            <Typography>{actionText}</Typography>
           </DialogActions>
         </DialogContent>
       </ModalDialog>
