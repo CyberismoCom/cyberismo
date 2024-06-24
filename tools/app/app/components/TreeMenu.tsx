@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Card, Project } from '../lib/definitions'
 import { TreeView } from '@mui/x-tree-view/TreeView'
 import { TreeItem } from '@mui/x-tree-view/TreeItem'
@@ -31,10 +31,16 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   project,
   selectedCardKey,
 }) => {
+  const [expanded, setExpanded] = React.useState<string[]>([])
+
   // Expand the tree until selected node is visible OR expand the first level of the tree if no selection
-  let expanded = selectedCardKey
-    ? findPathTo(selectedCardKey, project.cards)?.map((card) => card.key) ?? []
-    : project.cards.map((card) => card.key)
+  useEffect(() => {
+    const defaultExpanded = selectedCardKey
+      ? findPathTo(selectedCardKey, project.cards)?.map((card) => card.key) ??
+        []
+      : project.cards.map((card) => card.key)
+    setExpanded(defaultExpanded)
+  }, [project, selectedCardKey])
 
   const router = useRouter()
   const handleClick = (cardKey: string) => {
@@ -47,8 +53,11 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       <TreeView
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
-        defaultExpanded={expanded}
+        expanded={expanded}
         selected={selectedCardKey}
+        onNodeToggle={(_, nodes) => {
+          setExpanded(nodes)
+        }}
         sx={{
           '& .MuiTreeItem-root': {
             mt: '6px', // Adds margin at the bottom of each TreeItem

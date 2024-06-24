@@ -11,6 +11,7 @@ import {
 } from './definitions'
 import { ApiCallError } from './swr'
 import { useForm } from 'react-hook-form'
+import { usePathname } from 'next/navigation'
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -146,6 +147,12 @@ export function useError() {
   return { error, setError, handleClose, reason }
 }
 
+export function useCardKey() {
+  const pathName = usePathname()
+  const urlParts = pathName.slice(1).split('/')
+  return urlParts[0] == 'cards' ? urlParts[1] ?? null : null
+}
+
 export function useIsMounted() {
   const isMounted = useRef(true)
   useEffect(() => {
@@ -231,11 +238,11 @@ export function countChildren(card: Card): number {
  * Note: This function mutates the input array
  */
 export function deleteCard(cards: Card[], key: string): Card[] {
-  for(const card of cards){
-    if(card.key === key){
-      return cards.filter(c => c.key !== key)
+  for (const card of cards) {
+    if (card.key === key) {
+      return cards.filter((c) => c.key !== key)
     }
-    if(card.children){
+    if (card.children) {
       card.children = deleteCard(card.children, key)
     }
   }
@@ -244,8 +251,7 @@ export function deleteCard(cards: Card[], key: string): Card[] {
 
 /**
  * Deep copy an object
- */	
+ */
 export function deepCopy<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))
 }
-

@@ -2,9 +2,13 @@ import * as React from 'react'
 import Image from 'next/image'
 import { useTranslation } from 'react-i18next'
 
-import { Stack, Button, Box } from '@mui/joy'
+import { Stack, Button, Box, Typography } from '@mui/joy'
 
-export default function AppToolbar() {
+interface AppToolbarProps {
+  onNewCard: () => void
+}
+
+export default function AppToolbar({ onNewCard }: AppToolbarProps) {
   const { t } = useTranslation()
   return (
     <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
@@ -17,7 +21,25 @@ export default function AppToolbar() {
         />
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      {false && <Button>{t('toolbar.newCard')}</Button>}
+      <Button
+        variant="plain"
+        sx={{
+          bgcolor: 'black',
+          '&:hover': {
+            bgcolor: 'black',
+          },
+        }}
+        onClick={onNewCard}
+      >
+        <Typography
+          level="title-sm"
+          sx={{
+            color: 'white',
+          }}
+        >
+          {t('toolbar.newCard')}
+        </Typography>
+      </Button>
     </Stack>
   )
 }

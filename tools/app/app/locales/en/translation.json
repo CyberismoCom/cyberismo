@@ -1,7 +1,7 @@
 {
   "appName": "Cards",
   "toolbar": {
-    "newCard": "New Card",
+    "newCard": "CREATE NEW CARD",
     "importModules": "Import Modules"
   },
   "cardType": "Card Type",
@@ -27,5 +27,10 @@
   "deleteCardWarning": "I acknowledge I want to delete {{cardAmount}} cards",
   "delete": "Delete",
   "deleteCardContent_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
-  "deleteCardContent_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
+  "deleteCardContent_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone.",
+  "create": "Create",
+  "newCardDialogTitle": "New card from template",
+  "no": "No",
+  "yes": "Yes",
+  "createUnder": "Create under \"{{parent}}\""
 }

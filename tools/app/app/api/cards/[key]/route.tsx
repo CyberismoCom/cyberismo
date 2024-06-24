@@ -1,8 +1,10 @@
-import { Show } from '@cyberismocom/data-handler/show'
-import { Transition } from '@cyberismocom/data-handler/transition'
 import { Calculate } from '@cyberismocom/data-handler/calculate'
+import { Create } from '@cyberismocom/data-handler/create'
 import { Edit } from '@cyberismocom/data-handler/edit'
 import { Remove } from '@cyberismocom/data-handler/remove'
+import { Show } from '@cyberismocom/data-handler/show'
+import { Transition } from '@cyberismocom/data-handler/transition'
+
 import { NextRequest, NextResponse } from 'next/server'
 import {
   fetchCardDetails,
@@ -61,6 +63,22 @@ export const dynamic = 'force-dynamic'
  *         description: Partial success. some updates failed, some succeeded. Returns card object with successful updates.
  *       400:
  *         description: Error. Card not found, all updates failed etc. Error message in response body.
+ *       500:
+ *         description: project_path not set.
+ *   delete:
+ *      summary: Delete a card
+ *      description: The key parameter is the unique identifier ("cardKey") of the card.
+ *      parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         description: Card key (string)
+ *
+ *     responses:
+ *       204:
+ *         description: Card deleted successfully.
+ *       400:
+ *         description: Error. Card not found. Error message in response body.
  *       500:
  *         description: project_path not set.
  */
@@ -219,6 +237,39 @@ export async function DELETE(request: NextRequest) {
   try {
     await removeCommand.remove(projectPath, 'card', key)
     return new NextResponse(null, { status: 204 })
+  } catch (error) {
+    if (error instanceof Error) {
+      return new NextResponse(error.message, { status: 400 })
+    }
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const projectPath = process.env.npm_config_project_path
+  if (!projectPath) {
+    return new NextResponse('project_path not set', { status: 500 })
+  }
+
+  const key = request.nextUrl.pathname.split('/')?.pop()
+
+  if (key == null) {
+    return new NextResponse('No search key', { status: 400 })
+  }
+
+  const res = await request.json()
+
+  if (res.template == null) {
+    return new NextResponse('template is required', {
+      status: 400,
+    })
+  }
+
+  const createCommand = new Create(new Calculate())
+
+  try {
+    return NextResponse.json(
+      await createCommand.createCard(projectPath, res.template, key)
+    )
   } catch (error) {
     if (error instanceof Error) {
       return new NextResponse(error.message, { status: 400 })

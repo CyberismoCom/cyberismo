@@ -7,7 +7,7 @@ export function useSWRHook<T extends ResourceName>(
   name: T,
   options?: SWRConfiguration
 ) {
-  const { data, ...rest } = useSWR<Resources[T]>(swrKey)
+  const { data, ...rest } = useSWR<Resources[T]>(swrKey, options)
   return {
     ...rest,
     [name]: data || null,

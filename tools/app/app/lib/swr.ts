@@ -67,4 +67,5 @@ export const apiPaths = {
   card: (key: string) => `/api/cards/${key}`,
   fieldTypes: () => '/api/fieldtypes',
   cardType: (key: string) => `/api/cardtypes/${key}`,
+  templates: () => '/api/templates',
 }
