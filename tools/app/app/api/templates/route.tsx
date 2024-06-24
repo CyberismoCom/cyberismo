@@ -38,7 +38,7 @@ export async function GET() {
   if (response) {
     return NextResponse.json(response)
   } else {
-    return new NextResponse(`No field types found from path ${projectPath}`, {
+    return new NextResponse(`No templates found from path ${projectPath}`, {
       status: 500,
     })
   }
