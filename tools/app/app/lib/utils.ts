@@ -118,35 +118,6 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
   })
 }
 
-/**
- * General helper for handling errors
- */
-export function useError() {
-  const [error, setError] = useState<Error | string | null>(null)
-
-  // use memo to store human readable error messages
-  const reason = useMemo(() => {
-    if (error instanceof ApiCallError) {
-      return error.reason
-    } else if (error instanceof Error) {
-      return error.message
-    } else {
-      return error
-    }
-  }, [error])
-
-  const handleClose = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === 'clickaway') {
-      return
-    }
-    setError(null)
-  }
-  return { error, setError, handleClose, reason }
-}
-
 export function useCardKey() {
   const pathName = usePathname()
   const urlParts = pathName.slice(1).split('/')
@@ -223,6 +194,73 @@ export function findCard(cards: Card[], key: string): Card | null {
   }
   return null
 }
+
+/**
+ * Finds the parent of a card in a tree of cards
+ * @param cards: array of Cards with possible children Card arrays
+ * @param key: key of the card to find the parent of
+ * @returns parent card if found, otherwise null
+ */
+export function findParentCard(cards: Card[], key: string): Card | null {
+  for (const card of cards) {
+    if (card.children) {
+      if (card.children.some((child) => child.key === key)) {
+        return card
+      }
+      const found = findParentCard(card.children, key)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Edits a card in a tree of cards
+ * @param card
+ * @returns
+ */
+export function editCard(cards: Card[], card: Card): Card[] {
+  for (let i = 0; i < cards.length; i++) {
+    if (cards[i].key === card.key) {
+      cards[i] = card
+      return cards
+    }
+    if (cards[i].children) {
+      cards[i].children = editCard(cards[i].children || [], card)
+    }
+  }
+  return cards
+}
+
+/**
+ * Moves a card in a tree of cards
+ */
+export function moveCard(
+  cards: Card[],
+  cardKey: string,
+  newParentKey: string
+): Card[] {
+  const card = findCard(cards, cardKey)
+  if (!card) {
+    return cards
+  }
+  const parent = findParentCard(cards, cardKey)
+  if (!parent) {
+    return cards
+  }
+  const newParent = findCard(cards, newParentKey)
+  if (!newParent) {
+    return cards
+  }
+  parent.children =
+    parent.children?.filter((child) => child.key !== cardKey) || []
+  newParent.children = newParent.children || []
+  newParent.children.push(card)
+  return cards
+}
+
 /**
  * Counts the number of children of a card, including the card itself and children of children
  */

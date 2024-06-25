@@ -1,7 +1,6 @@
 import * as React from 'react'
 import MoreIcon from '@mui/icons-material/MoreHoriz'
 
-
 import { useState, useMemo, useCallback } from 'react'
 import { CardDetails, CardMetadata, Project, Card } from '../lib/definitions'
 import {
@@ -22,15 +21,17 @@ import {
 import { Trans, useTranslation } from 'react-i18next'
 import DeleteDialog from './DeleteDialog'
 import { countChildren, findCard, useIsMounted } from '../lib/utils'
+import MoveCardDialog from './MoveCardDialog'
+import { useCard } from '../lib/api'
 
 interface CardContextMenuProps {
-  card: CardDetails | null
+  cardKey: string
   project: Project | null
   onDelete?: (key: string, done: () => void) => void
 }
 
 const CardContextMenu: React.FC<CardContextMenuProps> = ({
-  card,
+  cardKey,
   project,
   onDelete,
 }) => {
@@ -38,9 +39,13 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false)
+
   const isMounted = useIsMounted()
 
   const { t } = useTranslation()
+
+  const { card } = useCard(cardKey)
 
   const listCard = useMemo(() => {
     return project && card ? findCard(project.cards, card?.key) : undefined
@@ -58,7 +63,7 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({
         }
       })
     }
-  }, [onDelete, card])
+  }, [onDelete, card, isMounted])
 
   return (
     <>
@@ -73,6 +78,9 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({
           <Divider />
           <MenuItem onClick={() => setIsDeleteDialogOpen(true)}>
             <Typography color="danger">{t('deleteCard')}</Typography>
+          </MenuItem>
+          <MenuItem onClick={() => setIsMoveDialogOpen(true)}>
+            <Typography>{t('move')}</Typography>
           </MenuItem>
         </Menu>
       </Dropdown>
@@ -99,6 +107,11 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({
           </DialogActions>
         </ModalDialog>
       </Modal>
+      <MoveCardDialog
+        open={isMoveDialogOpen}
+        onClose={() => setIsMoveDialogOpen(false)}
+        cardKey={cardKey}
+      />
       <DeleteDialog
         title={t('deleteCard')}
         open={isDeleteDialogOpen}

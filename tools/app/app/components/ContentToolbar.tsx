@@ -15,9 +15,10 @@ import CardContextMenu from './CardContextMenu'
 import { findWorkflowForCard } from '../lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { useCard } from '../lib/api'
 
 interface ContentToolbarProps {
-  selectedCard: CardDetails | null
+  cardKey: string
   project: Project | null
   mode: CardMode
   onUpdate: () => void
@@ -26,7 +27,7 @@ interface ContentToolbarProps {
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
-  selectedCard,
+  cardKey,
   project,
   mode,
   onUpdate,
@@ -36,20 +37,22 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   const router = useRouter()
   const { t } = useTranslation()
 
-  const workflow = findWorkflowForCard(selectedCard, project)
+  const { card } = useCard(cardKey)
+
+  const workflow = findWorkflowForCard(card, project)
   const currentState =
     workflow?.states.find(
-      (state) => state.name == selectedCard?.metadata?.workflowState
+      (state) => state.name == card?.metadata?.workflowState
     ) ?? null
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
-        <ProjectBreadcrumbs selectedCard={selectedCard} project={project} />
+        <ProjectBreadcrumbs selectedCard={card} project={project} />
       </Box>
 
       <CardContextMenu
-        card={selectedCard}
+        cardKey={cardKey}
         project={project}
         onDelete={onDelete}
       />
@@ -80,7 +83,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           startDecorator={<EditIcon />}
           style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.push(`/cards/${selectedCard!.key}/edit`)}
+          onClick={() => router.push(`/cards/${card!.key}/edit`)}
         >
           {t('edit')}
         </Button>

@@ -25,9 +25,8 @@ import { asciidoc } from 'codemirror-asciidoc'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
-import ErrorBar from '@/app/components/ErrorBar'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
-import { useDynamicForm, useError } from '@/app/lib/utils'
+import { useDynamicForm } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
 import {
@@ -35,6 +34,8 @@ import {
   getEditableFields,
 } from '@/app/lib/components'
 import { Controller } from 'react-hook-form'
+import { useAppDispatch } from '@/app/lib/hooks'
+import { errorEvent, successEvent } from '@/app/lib/actions'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -49,7 +50,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const searchParams = useSearchParams()
 
-  const { reason, setError, handleClose } = useError()
+  const dispatch = useAppDispatch()
+
   const router = useRouter()
 
   const { fields, values } = useMemo(() => {
@@ -75,7 +77,12 @@ export default function Page({ params }: { params: { key: string } }) {
     try {
       await updateCard({ state: { name: transition.name } })
     } catch (error) {
-      if (error instanceof Error) setError(error)
+      dispatch(
+        errorEvent({
+          name: 'stateTransition',
+          message: error instanceof Error ? error.message : '',
+        })
+      )
     }
   }
 
@@ -95,9 +102,20 @@ export default function Page({ params }: { params: { key: string } }) {
           summary: __title__,
         },
       })
+      dispatch(
+        successEvent({
+          name: 'saveCard',
+          message: t('saveCard.success'),
+        })
+      )
       router.push(`/cards/${card!.key}`)
     } catch (error) {
-      if (error instanceof Error) setError(error)
+      dispatch(
+        errorEvent({
+          name: 'saveCard',
+          message: error instanceof Error ? error.message : '',
+        })
+      )
     }
   }
 
@@ -118,7 +136,7 @@ export default function Page({ params }: { params: { key: string } }) {
   return (
     <Stack height="100%">
       <ContentToolbar
-        selectedCard={card}
+        cardKey={params.key}
         project={project}
         mode={CardMode.EDIT}
         onUpdate={() => handleSubmit(handleSave)()}
@@ -127,8 +145,19 @@ export default function Page({ params }: { params: { key: string } }) {
           try {
             await deleteCard()
             router.push('/cards')
+            dispatch(
+              successEvent({
+                name: 'deleteCard',
+                message: t('deleteCard.success'),
+              })
+            )
           } catch (error) {
-            if (error instanceof Error) setError(error.message)
+            dispatch(
+              errorEvent({
+                name: 'deleteCard',
+                message: error instanceof Error ? error.message : '',
+              })
+            )
           } finally {
             done()
           }
@@ -196,13 +225,16 @@ export default function Page({ params }: { params: { key: string } }) {
                   <CodeMirror
                     value={value}
                     onChange={onChange}
-                    extensions={[StreamLanguage.define(asciidoc), EditorView.lineWrapping]}
+                    extensions={[
+                      StreamLanguage.define(asciidoc),
+                      EditorView.lineWrapping,
+                    ]}
                     style={{
                       border: '1px solid',
                       borderColor: 'rgba(0,0,0,0.23)',
-                      borderRadius: 4
+                      borderRadius: 4,
                     }}
-                    />
+                  />
                 )}
               />
             </Box>
@@ -220,7 +252,6 @@ export default function Page({ params }: { params: { key: string } }) {
           </TabPanel>
         </Tabs>
       </Stack>
-      <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )
 }

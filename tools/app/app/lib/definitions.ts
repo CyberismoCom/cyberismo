@@ -19,6 +19,13 @@ export interface Card {
   children?: Card[]
 }
 
+//
+export interface CardView {
+  key: string
+  children: string[]
+  timestamp: string
+}
+
 // Single card with content and metadata, but no info of children.
 // Used for displaying card details view.
 export interface CardDetails {
@@ -101,4 +108,14 @@ export interface FieldTypeDefinition {
   fieldDescription?: string
   dataType: DataType
   enumValues?: Array<EnumDefinition>
+}
+
+export interface SuccessEvent {
+  name: string
+  message: string
+}
+
+export interface ErrorEvent {
+  name: string
+  message: string
 }

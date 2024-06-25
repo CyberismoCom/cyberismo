@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TreeMenu } from '../components/TreeMenu'
 import AppToolbar from '../components/AppToolbar'
-import { CssBaseline } from '@mui/material'
+import { CssBaseline, Snackbar } from '@mui/material'
 
 import {
   Stack,
@@ -11,11 +11,12 @@ import {
   Typography,
   styled,
   Container,
+  Alert,
+  IconButton,
 } from '@mui/joy'
 import { useProject } from '../lib/api'
 import { SWRConfig } from 'swr'
 import { getSwrConfig } from '../lib/swr'
-import { ThemeProvider } from '@emotion/react'
 import theme from '../theme'
 import '../lib/i18n'
 import {
@@ -26,15 +27,28 @@ import {
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
 import NewCardDialog from '../components/NewCardDialog'
 import { useTemplates, useCard } from '../lib/api'
-import ErrorBar from '../components/ErrorBar'
-import { useCardKey, useError } from '../lib/utils'
+import { useCardKey } from '../lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import StoreProvider from '../providers/StoreProvider'
+import { useAppDispatch, useAppSelector } from '../lib/hooks'
+import { CloseRounded } from '@mui/icons-material'
+import {
+  closeNotification,
+  removeNotification,
+} from '../lib/reducers/notifications'
+import { errorEvent, successEvent } from '../lib/actions'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const urlCardKey = useCardKey()
   const { project, error, isLoading } = useProject()
+
+  const notifications = useAppSelector(
+    (state) => state.notifications.notifications
+  )
+
+  const dispatch = useAppDispatch()
 
   if (isLoading)
     return (
@@ -63,6 +77,46 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <Box padding={2} flexGrow={1} overflow="hidden">
         {children}
       </Box>
+      {notifications.map((notification, index) => (
+        <Snackbar
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          TransitionProps={{
+            onExited: () => dispatch(removeNotification(notification.id)),
+          }}
+          key={notification.id}
+          open={!notification.closed}
+          sx={{
+            marginBottom: index * 8,
+            transition: 'margin 0.5s',
+          }}
+          autoHideDuration={4000}
+          onClose={(e) => {
+            if (e === null) {
+              // this means auto hide
+              dispatch(closeNotification(notification.id))
+            }
+          }}
+        >
+          <Alert
+            color={notification.type === 'error' ? 'danger' : 'success'}
+            sx={{ width: '100%' }}
+            endDecorator={
+              <IconButton
+                variant="plain"
+                size="sm"
+                color="neutral"
+                onClick={() => {
+                  dispatch(closeNotification(notification.id))
+                }}
+              >
+                <CloseRounded />
+              </IconButton>
+            }
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+      ))}
     </Stack>
   )
 }
@@ -79,7 +133,7 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const urlCardKey = useCardKey()
 
   const { createCard, card } = useCard(urlCardKey)
-  const { handleClose, reason, setError } = useError()
+  const dispatch = useAppDispatch()
   const router = useRouter()
   const { t } = useTranslation()
 
@@ -99,15 +153,25 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
             if (cards && cards.length > 0) {
               router.push(`/cards/${cards[0]}`)
             }
+            dispatch(
+              successEvent({
+                name: 'createCard',
+                message: t('createCard.success'),
+              })
+            )
           } catch (error) {
-            if (error instanceof Error) setError(error.message)
+            dispatch(
+              errorEvent({
+                name: 'createCard',
+                message: error instanceof Error ? error.message : '',
+              })
+            )
           } finally {
             setIsCreateDialogOpen(false)
           }
         }}
         actionText={t('createUnder', { parent: card?.metadata?.summary })}
       />
-      <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )
 }
@@ -119,13 +183,17 @@ export default function CardsLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <MaterialCssVarsProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
-      <JoyCssVarsProvider>
-        <CssBaseline enableColorScheme />
-        <SWRConfig value={getSwrConfig()}>
-          <ThemeProvider theme={theme}>
-            <MainLayout>{children}</MainLayout>
-          </ThemeProvider>
-        </SWRConfig>
+      <JoyCssVarsProvider theme={theme}>
+        <CssBaseline />
+        <StoreProvider>
+          <SWRConfig value={getSwrConfig()}>
+            <Stack>
+              <Main>
+                <MainLayout>{children}</MainLayout>
+              </Main>
+            </Stack>
+          </SWRConfig>
+        </StoreProvider>
       </JoyCssVarsProvider>
     </MaterialCssVarsProvider>
   )

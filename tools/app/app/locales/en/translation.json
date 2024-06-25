@@ -4,6 +4,12 @@
     "newCard": "CREATE NEW CARD",
     "importModules": "Import Modules"
   },
+  "moveDialog": {
+    "title": "Move",
+    "search": "Search or paste a link",
+    "success": "Card moved successfully",
+    "error": "Error moving card"
+  },
   "cardType": "Card Type",
   "value": "Value",
   "name": "Name",
@@ -32,5 +38,9 @@
   "newCardDialogTitle": "New card from template",
   "no": "No",
   "yes": "Yes",
-  "createUnder": "Create under \"{{parent}}\""
+  "createUnder": "Create under \"{{parent}}\"",
+  "viewedAgo": "Viewed {{time}} ago",
+  "recents": "Recents",
+  "all": "All",
+  "move": "Move"
 }

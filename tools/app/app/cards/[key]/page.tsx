@@ -1,22 +1,31 @@
 'use client'
 import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
-import ErrorBar from '@/app/components/ErrorBar'
+import { cardViewed, errorEvent, successEvent } from '@/app/lib/actions'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
-import { Card, CardMode, WorkflowTransition } from '@/app/lib/definitions'
-import { useError } from '@/app/lib/utils'
+import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
+import { useAppDispatch } from '@/app/lib/hooks'
+import { findCard } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/joy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 
 export const dynamic = 'force-dynamic'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
   const { card, error, updateCard, deleteCard } = useCard(params.key)
-  const { reason, setError, handleClose } = useError()
+
+  const listCard = useMemo(() => {
+    return project && card ? findCard(project.cards, card?.key) : undefined
+  }, [project, card])
+
+  const { t } = useTranslation()
+
+  const dispatch = useAppDispatch()
 
   const { fieldTypes } = useFieldTypes()
 
@@ -30,7 +39,12 @@ export default function Page({ params }: { params: { key: string } }) {
     try {
       await updateCard({ state: { name: transition.name } })
     } catch (error) {
-      if (error instanceof Error) setError(error.message)
+      dispatch(
+        errorEvent({
+          name: 'stateTransition',
+          message: error instanceof Error ? error.message : '',
+        })
+      )
     }
   }
 
@@ -56,10 +70,22 @@ export default function Page({ params }: { params: { key: string } }) {
     reset(values)
   }, [reset, values])
 
+  useEffect(() => {
+    if (listCard) {
+      dispatch(
+        cardViewed({
+          key: listCard.key,
+          children: listCard?.children?.map((c) => c.key) ?? [],
+          timestamp: new Date().toISOString(),
+        })
+      )
+    }
+  }, [listCard, dispatch])
+
   return (
     <Stack height="100%">
       <ContentToolbar
-        selectedCard={card}
+        cardKey={params.key}
         project={project}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
@@ -68,8 +94,19 @@ export default function Page({ params }: { params: { key: string } }) {
           try {
             await deleteCard()
             router.push('/cards')
+            dispatch(
+              successEvent({
+                name: 'deleteCard',
+                message: t('deleteCard.success'),
+              })
+            )
           } catch (error) {
-            if (error instanceof Error) setError(error.message)
+            dispatch(
+              errorEvent({
+                name: 'deleteCard',
+                message: error instanceof Error ? error.message : '',
+              })
+            )
           } finally {
             done()
           }
@@ -87,7 +124,6 @@ export default function Page({ params }: { params: { key: string } }) {
           }}
         />
       </Box>
-      <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )
 }
