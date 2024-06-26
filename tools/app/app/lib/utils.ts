@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import {
   Card,
   CardDetails,
@@ -118,20 +118,40 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
   })
 }
 
-export function useCardKey() {
-  const pathName = usePathname()
-  const urlParts = pathName.slice(1).split('/')
-  return urlParts[0] == 'cards' ? urlParts[1] ?? null : null
-}
+/**
+ * Hook that allows easy use of multiple modals at once
+ */
+export function useModals<T extends Record<string, boolean>>(modals: T) {
+  const [openModals, setOpenModals] = useState<Record<keyof T, boolean>>(modals)
+  const modalsRef = useRef(modals)
 
-export function useIsMounted() {
-  const isMounted = useRef(true)
   useEffect(() => {
-    return () => {
-      isMounted.current = false
-    }
-  }, [])
-  return useMemo(() => isMounted.current, [isMounted])
+    // Check for equality
+    if (
+      Object.keys(modals).every((key) => modals[key] === modalsRef.current[key])
+    )
+      return
+
+    // Update the modalsRef
+    modalsRef.current = modals
+    setOpenModals(modals)
+  }, [modals, setOpenModals])
+
+  const openModal = useCallback(
+    (modal: keyof T) => () => {
+      setOpenModals((prev) => ({ ...prev, [modal]: true }))
+    },
+    [setOpenModals]
+  )
+
+  const closeModal = useCallback(
+    (modal: keyof T) => () => {
+      setOpenModals((prev) => ({ ...prev, [modal]: false }))
+    },
+    [setOpenModals]
+  )
+
+  return { openModal, closeModal, modalOpen: openModals }
 }
 
 /**
@@ -235,6 +255,25 @@ export function editCard(cards: Card[], card: Card): Card[] {
 }
 
 /**
+ * Edits a card in a tree of cards
+ * This function converts CardDetails to Card before editing
+ * @param card
+ * @returns
+ */
+export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
+  const listCard = findCard(cards, card.key)
+  if (!listCard) {
+    return cards
+  }
+  return editCard(cards, {
+    key: card.key,
+    path: card.path,
+    metadata: card.metadata,
+    children: listCard.children,
+  })
+}
+
+/**
  * Moves a card in a tree of cards
  */
 export function moveCard(
@@ -269,6 +308,27 @@ export function countChildren(card: Card): number {
     return 1
   }
   return card.children.reduce((acc, child) => acc + countChildren(child), 1)
+}
+
+/**
+ * Return true if card is children of the other card
+ * Could be much more efficient
+ * @param card parent card to check if the other card is a child of
+ * @param key key of the card to check if it is a child of the parent card
+ * @returns
+ */
+export function isChildOf(card: Card, key: string): boolean {
+  if (card.key === key) {
+    return true
+  }
+  if (card.children) {
+    for (const child of card.children) {
+      if (isChildOf(child, key)) {
+        return true
+      }
+    }
+  }
+  return false
 }
 
 /**

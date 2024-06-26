@@ -5,7 +5,7 @@ import { cardViewed, errorEvent, successEvent } from '@/app/lib/actions'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
 import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
-import { useAppDispatch } from '@/app/lib/hooks'
+import { useAppDispatch, useListCard } from '@/app/lib/hooks'
 import { findCard } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/joy'
 import { useRouter } from 'next/navigation'
@@ -17,13 +17,9 @@ export const dynamic = 'force-dynamic'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
-  const { card, error, updateCard, deleteCard } = useCard(params.key)
+  const { card, error, updateCard } = useCard(params.key)
 
-  const listCard = useMemo(() => {
-    return project && card ? findCard(project.cards, card?.key) : undefined
-  }, [project, card])
-
-  const { t } = useTranslation()
+  const listCard = useListCard(params.key)
 
   const dispatch = useAppDispatch()
 
@@ -86,31 +82,8 @@ export default function Page({ params }: { params: { key: string } }) {
     <Stack height="100%">
       <ContentToolbar
         cardKey={params.key}
-        project={project}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
-        onStateTransition={handleStateTransition}
-        onDelete={async (_, done) => {
-          try {
-            await deleteCard()
-            router.push('/cards')
-            dispatch(
-              successEvent({
-                name: 'deleteCard',
-                message: t('deleteCard.success'),
-              })
-            )
-          } catch (error) {
-            dispatch(
-              errorEvent({
-                name: 'deleteCard',
-                message: error instanceof Error ? error.message : '',
-              })
-            )
-          } finally {
-            done()
-          }
-        }}
       />
       <Box flexGrow={1} minHeight={0}>
         <ContentArea

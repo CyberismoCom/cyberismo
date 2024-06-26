@@ -42,7 +42,7 @@ export default function Page({ params }: { params: { key: string } }) {
 
   // Original card and project
   const { project } = useProject()
-  const { card, updateCard, deleteCard } = useCard(params.key)
+  const { card, updateCard } = useCard(params.key)
   const { fieldTypes } = useFieldTypes()
   const cardType = useMemo(() => {
     return project?.cardTypes.find((ct) => ct.name === card?.metadata?.cardtype)
@@ -137,31 +137,8 @@ export default function Page({ params }: { params: { key: string } }) {
     <Stack height="100%">
       <ContentToolbar
         cardKey={params.key}
-        project={project}
         mode={CardMode.EDIT}
         onUpdate={() => handleSubmit(handleSave)()}
-        onStateTransition={handleStateTransition}
-        onDelete={async (_, done) => {
-          try {
-            await deleteCard()
-            router.push('/cards')
-            dispatch(
-              successEvent({
-                name: 'deleteCard',
-                message: t('deleteCard.success'),
-              })
-            )
-          } catch (error) {
-            dispatch(
-              errorEvent({
-                name: 'deleteCard',
-                message: error instanceof Error ? error.message : '',
-              })
-            )
-          } finally {
-            done()
-          }
-        }}
       />
       <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
         <Tabs

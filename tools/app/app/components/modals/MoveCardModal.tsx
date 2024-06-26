@@ -18,21 +18,28 @@ import {
   Box,
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
-import { useCard, useProject } from '../lib/api'
-import { useAppDispatch, useAppSelector } from '../lib/hooks'
-import { findCard, findParentCard, useIsMounted } from '../lib/utils'
+import { useCard, useProject } from '../../lib/api'
+import {
+  useAppDispatch,
+  useAppSelector,
+  useErrorWrapper,
+  useIsMounted,
+  useListCard,
+  useParentCard,
+} from '../../lib/hooks'
+import { findCard, findParentCard, isChildOf } from '../../lib/utils'
 import { Stack } from '@mui/system'
-import { Card, CardView } from '../lib/definitions'
+import { Card, CardView } from '../../lib/definitions'
 import moment from 'moment'
-import { successEvent, errorEvent } from '../lib/actions'
+import { successEvent, errorEvent } from '../../lib/actions'
 
-export interface MoveDialogProps {
+export interface MoveCardModalProps {
   open: boolean
   onClose: () => void
   cardKey: string
 }
 
-function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
+export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const { t } = useTranslation()
 
   const [search, setSearch] = useState('')
@@ -40,40 +47,23 @@ function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
   const { project } = useProject()
   const { updateCard } = useCard(cardKey)
   const recents = useAppSelector((state) => state.recentlyViewed.pages)
+
   const isMounted = useIsMounted()
 
-  const dispatch = useAppDispatch()
+  const parent = useParentCard(cardKey)
 
-  const parent = useMemo(
-    () => findParentCard(project?.cards || [], cardKey),
-    [project, cardKey]
-  )
+  const card = useListCard(cardKey)
+
+  const updateCardWrapper = useErrorWrapper('updateCard', updateCard)
 
   const moveCard = useCallback(async () => {
     if (selected) {
-      try {
-        await updateCard({ parent: selected })
-        for (let i = 0; i < 5; i++) {
-          dispatch(
-            successEvent({
-              name: 'moveCard',
-              message: t('moveDialog.success'),
-            })
-          )
-        }
-      } catch (err) {
-        dispatch(
-          errorEvent({
-            name: 'moveCard',
-            message: t('moveDialog.error'),
-          })
-        )
-      }
+      await updateCardWrapper(t('moveCardModal.success'), { parent: selected })
       if (isMounted) {
         onClose()
       }
     }
-  }, [selected, updateCard, onClose, isMounted, dispatch, t])
+  }, [selected, updateCardWrapper, t, onClose, isMounted])
 
   const recentCards = useMemo(
     () =>
@@ -88,16 +78,22 @@ function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
             : null
         })
         .filter(
-          (card) =>
-            card !== null && card.key !== cardKey && card.key !== parent?.key
+          // shouldn't include the current card or its parent or any child cards
+          (c) =>
+            card != null &&
+            c != null &&
+            parent != null &&
+            c.key !== cardKey &&
+            c.key !== parent.key &&
+            !isChildOf(card, c.key)
         ),
-    [recents, project, cardKey, parent]
+    [recents, project, cardKey, parent, card]
   ) as (Card & CardView)[]
 
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog>
-        <DialogTitle>{t('moveDialog.title')}</DialogTitle>
+        <DialogTitle>{t('moveCardModal.title')}</DialogTitle>
         <Divider />
         <DialogContent
           sx={{
@@ -131,7 +127,7 @@ function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
             >
               <Box paddingY={2}>
                 <Input
-                  placeholder={t('moveDialog.search')}
+                  placeholder={t('moveCardModal.search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   color="primary"
@@ -195,7 +191,7 @@ function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
             <TabPanel value={1}>
               <Box paddingY={2}>
                 <Input
-                  placeholder={t('moveDialog.search')}
+                  placeholder={t('moveCardModal.search')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   color="primary"
@@ -219,4 +215,4 @@ function MoveCardDialog({ open, onClose, cardKey }: MoveDialogProps) {
   )
 }
 
-export default MoveCardDialog
+export default MoveCardModal

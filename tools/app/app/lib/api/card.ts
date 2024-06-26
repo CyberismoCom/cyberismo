@@ -7,8 +7,8 @@ import { CardDetails, Project } from '../definitions'
 import {
   deleteCard as deleteCardHelper,
   deepCopy,
-  editCard,
   moveCard,
+  editCardDetails,
 } from '../utils'
 import { useAppDispatch } from '../hooks'
 import { cardDeleted } from '../actions'
@@ -26,6 +26,14 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
     },
     createCard: async (template: string) =>
       (key && createCard(key, template)) || null,
+    updateWorkFlowState: async (state: string) =>
+      (key &&
+        updateCard(key, {
+          state: {
+            name: state,
+          },
+        })) ||
+      null,
   }
 }
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
@@ -40,7 +48,7 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
     apiPaths.project(),
     (project: Project | undefined) => {
       if (!project) return project
-      let cards = editCard(deepCopy(project.cards), result)
+      let cards = editCardDetails(deepCopy(project.cards), result)
 
       if (cardUpdate.parent) {
         cards = moveCard(cards, key, cardUpdate.parent)

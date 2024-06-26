@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { TreeMenu } from '../components/TreeMenu'
 import AppToolbar from '../components/AppToolbar'
 import { CssBaseline, Snackbar } from '@mui/material'
@@ -25,19 +25,14 @@ import {
   THEME_ID as MATERIAL_THEME_ID,
 } from '@mui/material/styles'
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
-import NewCardDialog from '../components/NewCardDialog'
-import { useTemplates, useCard } from '../lib/api'
-import { useCardKey } from '../lib/utils'
-import { useRouter } from 'next/navigation'
-import { useTranslation } from 'react-i18next'
+import { NewCardModal } from '../components/modals'
 import StoreProvider from '../providers/StoreProvider'
-import { useAppDispatch, useAppSelector } from '../lib/hooks'
+import { useAppDispatch, useAppSelector, useCardKey } from '../lib/hooks'
 import { CloseRounded } from '@mui/icons-material'
 import {
   closeNotification,
   removeNotification,
 } from '../lib/reducers/notifications'
-import { errorEvent, successEvent } from '../lib/actions'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
@@ -128,14 +123,7 @@ const Main = styled('main')(({ theme }) => ({
 
 function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const { templates } = useTemplates()
-
   const urlCardKey = useCardKey()
-
-  const { createCard, card } = useCard(urlCardKey)
-  const dispatch = useAppDispatch()
-  const router = useRouter()
-  const { t } = useTranslation()
 
   return (
     <Stack>
@@ -143,34 +131,10 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <Main>
         <AppLayout>{children}</AppLayout>
       </Main>
-      <NewCardDialog
+      <NewCardModal
         open={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        templates={templates ?? []}
-        onCreate={async (template) => {
-          try {
-            const cards = await createCard(template)
-            if (cards && cards.length > 0) {
-              router.push(`/cards/${cards[0]}`)
-            }
-            dispatch(
-              successEvent({
-                name: 'createCard',
-                message: t('createCard.success'),
-              })
-            )
-          } catch (error) {
-            dispatch(
-              errorEvent({
-                name: 'createCard',
-                message: error instanceof Error ? error.message : '',
-              })
-            )
-          } finally {
-            setIsCreateDialogOpen(false)
-          }
-        }}
-        actionText={t('createUnder', { parent: card?.metadata?.summary })}
+        cardKey={urlCardKey}
       />
     </Stack>
   )
