@@ -35,8 +35,6 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
 
   const { t } = useTranslation()
 
-  const { card } = useCard(cardKey)
-
   return (
     <>
       <Dropdown>

@@ -1,17 +1,18 @@
 'use client'
 import React, { useEffect } from 'react'
-import { Card, Project } from '../lib/definitions'
+import { Card } from '../lib/definitions'
 import { TreeView } from '@mui/x-tree-view/TreeView'
 import { TreeItem } from '@mui/x-tree-view/TreeItem'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { findPathTo } from '../lib/utils'
-import { useRouter } from 'next/navigation'
 import { Stack, Typography } from '@mui/joy'
 
 type TreeMenuProps = {
-  project: Project
+  title: string
+  cards: Card[]
   selectedCardKey: string | null
+  onCardSelect?: (cardKey: string) => void
 }
 
 const renderTree = (nodes: Card, handleClick: (cardKey: string) => void) => (
@@ -28,28 +29,24 @@ const renderTree = (nodes: Card, handleClick: (cardKey: string) => void) => (
 )
 
 export const TreeMenu: React.FC<TreeMenuProps> = ({
-  project,
+  cards,
   selectedCardKey,
+  title,
+  onCardSelect,
 }) => {
   const [expanded, setExpanded] = React.useState<string[]>([])
 
   // Expand the tree until selected node is visible OR expand the first level of the tree if no selection
   useEffect(() => {
     const defaultExpanded = selectedCardKey
-      ? findPathTo(selectedCardKey, project.cards)?.map((card) => card.key) ??
-        []
-      : project.cards.map((card) => card.key)
+      ? findPathTo(selectedCardKey, cards)?.map((card) => card.key) ?? []
+      : cards.map((card) => card.key)
     setExpanded(defaultExpanded)
-  }, [project, selectedCardKey])
-
-  const router = useRouter()
-  const handleClick = (cardKey: string) => {
-    router.push(`/cards/${cardKey}`)
-  }
+  }, [selectedCardKey, cards])
 
   return (
     <Stack padding={2} bgcolor="#f0f0f0" height="100%" width="100%">
-      <Typography level="h4">{project.name}</Typography>
+      <Typography level="h4">{title}</Typography>
       <TreeView
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
@@ -74,7 +71,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           flexGrow: 1,
         }}
       >
-        {project.cards.map((treeItem) => renderTree(treeItem, handleClick))}
+        {cards.map((treeItem) =>
+          renderTree(treeItem, onCardSelect || (() => {}))
+        )}
       </TreeView>
     </Stack>
   )

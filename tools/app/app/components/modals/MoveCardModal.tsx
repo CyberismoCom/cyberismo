@@ -16,22 +16,26 @@ import {
   TabPanel,
   Input,
   Box,
+  CircularProgress,
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
 import { useCard, useProject } from '../../lib/api'
 import {
-  useAppDispatch,
   useAppSelector,
   useErrorWrapper,
   useIsMounted,
-  useListCard,
-  useParentCard,
+  useMoveableCards,
 } from '../../lib/hooks'
-import { findCard, findParentCard, isChildOf } from '../../lib/utils'
+import {
+  deepCopy,
+  filterCards,
+  findCard,
+  findParentCard,
+} from '../../lib/utils'
 import { Stack } from '@mui/system'
-import { Card, CardView } from '../../lib/definitions'
+import { Card } from '../../lib/definitions'
 import moment from 'moment'
-import { successEvent, errorEvent } from '../../lib/actions'
+import { TreeMenu } from '../TreeMenu'
 
 export interface MoveCardModalProps {
   open: boolean
@@ -39,20 +43,23 @@ export interface MoveCardModalProps {
   cardKey: string
 }
 
+enum TabEnum {
+  RECENTS,
+  ALL,
+}
+
 export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const { t } = useTranslation()
 
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
-  const { project } = useProject()
+  const { project, isLoading } = useProject()
   const { updateCard } = useCard(cardKey)
   const recents = useAppSelector((state) => state.recentlyViewed.pages)
 
   const isMounted = useIsMounted()
 
-  const parent = useParentCard(cardKey)
-
-  const card = useListCard(cardKey)
+  const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS)
 
   const updateCardWrapper = useErrorWrapper('updateCard', updateCard)
 
@@ -65,77 +72,87 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     }
   }, [selected, updateCardWrapper, t, onClose, isMounted])
 
+  const moveableCards = useMoveableCards(cardKey)
+
+  const moveableTree = useMemo(() => {
+    return filterCards(deepCopy(project?.cards) || [], (card) => {
+      return moveableCards.some((moveableCard) => moveableCard.key === card.key)
+    })
+  }, [project, moveableCards])
+
   const recentCards = useMemo(
     () =>
       recents
-        .map((page: CardView) => {
-          const card = findCard(project?.cards || [], page.key)
-          return card
-            ? {
-                ...card,
-                ...page,
-              }
-            : null
-        })
-        .filter(
-          // shouldn't include the current card or its parent or any child cards
-          (c) =>
-            card != null &&
-            c != null &&
-            parent != null &&
-            c.key !== cardKey &&
-            c.key !== parent.key &&
-            !isChildOf(card, c.key)
-        ),
-    [recents, project, cardKey, parent, card]
-  ) as (Card & CardView)[]
+        .filter((page) => moveableCards.some((card) => card.key === page.key))
+        .map((page) => ({
+          ...(findCard(moveableCards, page.key) as Card),
+          timestamp: page.timestamp,
+        })),
+    [recents, moveableCards]
+  )
 
+  useEffect(() => {
+    setSelected(null)
+  }, [open, currentTab])
+
+  const searchableCards = useMemo(() => {
+    if (currentTab === TabEnum.RECENTS) {
+      return recentCards
+    } else {
+      return moveableCards
+    }
+  }, [currentTab, recentCards, moveableCards])
+
+  if (isLoading || !project) {
+    return (
+      <Box padding={2}>
+        <CircularProgress size="md" color="primary" />
+      </Box>
+    )
+  }
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalDialog>
+      <ModalDialog
+        minWidth={620}
+        sx={{
+          height: '100%',
+        }}
+      >
         <DialogTitle>{t('moveCardModal.title')}</DialogTitle>
         <Divider />
-        <DialogContent
-          sx={{
-            width: 620,
-          }}
-        >
-          <Tabs
-            defaultValue={0}
+        <DialogContent>
+          <Input
+            placeholder={t('moveCardModal.search')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            color="primary"
+            variant="outlined"
             sx={{
-              flex: '1 1 auto',
-              overflowY: 'scroll',
-              flexDirection: 'column',
-              display: 'flex',
+              marginY: 2,
+              marginX: '1px',
+              flex: '0 0 auto',
             }}
-          >
-            <TabList
+          />
+          {search !== '' ? (
+            <Box
+              flex="1 1 auto"
+              flexDirection="column"
+              minHeight={0}
               sx={{
-                flex: '0 0 auto',
+                overflowY: 'scroll',
               }}
             >
-              <Tab>{t('recents')}</Tab>
-              <Tab>{t('all')}</Tab>
-            </TabList>
-            <TabPanel
-              value={0}
-              sx={{
-                flex: '1 1 auto',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <Box paddingY={2}>
-                <Input
-                  placeholder={t('moveCardModal.search')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  color="primary"
-                  variant="outlined"
-                />
-              </Box>
-              <Box>
-                {recentCards.map((page) => {
+              {searchableCards
+                .filter(
+                  (
+                    page // if search gets any more complex, use a better solution
+                  ) =>
+                    page.key.startsWith(search.toLowerCase()) ||
+                    page.metadata?.summary
+                      ?.toLowerCase()
+                      .startsWith(search.toLowerCase())
+                )
+                .map((page) => {
                   return (
                     <Box
                       paddingY={2}
@@ -165,12 +182,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                           <Typography level="body-sm">
                             {findParentCard(project?.cards || [], page.key)
                               ?.metadata?.summary ?? '-'}
-                            {' • '}
-                            {t('viewedAgo', {
-                              time: moment
-                                .duration(moment().diff(moment(page.timestamp)))
-                                .humanize(),
-                            })}
                           </Typography>
                         </Stack>
                         <Typography
@@ -186,22 +197,118 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                     </Box>
                   )
                 })}
-              </Box>
-            </TabPanel>
-            <TabPanel value={1}>
-              <Box paddingY={2}>
-                <Input
-                  placeholder={t('moveCardModal.search')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  color="primary"
-                  variant="outlined"
+            </Box>
+          ) : (
+            <Tabs
+              value={currentTab}
+              onChange={(e, newValue) => setCurrentTab(newValue as TabEnum)}
+              sx={{
+                flex: '1 1 auto',
+                flexDirection: 'column',
+                display: 'flex',
+                minHeight: 0,
+              }}
+            >
+              <TabList
+                sx={{
+                  flex: '0 0 auto',
+                }}
+              >
+                <Tab>{t('recents')}</Tab>
+                <Tab>{t('all')}</Tab>
+              </TabList>
+              <TabPanel
+                value={TabEnum.RECENTS}
+                sx={{
+                  flex: '1 1 auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflowY:
+                    currentTab === TabEnum.RECENTS ? 'scroll' : 'hidden',
+                }}
+              >
+                <>
+                  {recentCards.map((page) => {
+                    return (
+                      <Box
+                        paddingY={2}
+                        paddingX={3}
+                        key={page.key}
+                        bgcolor={
+                          selected === page.key
+                            ? 'primary.plainActiveBg'
+                            : 'inherit'
+                        }
+                        onClick={() => {
+                          if (selected === page.key) {
+                            setSelected(null)
+                          } else {
+                            setSelected(page.key)
+                          }
+                        }}
+                        sx={{
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Stack direction="row" justifyContent="space-between">
+                          <Stack>
+                            <Typography level="title-sm">
+                              {page.metadata?.summary}
+                            </Typography>
+                            <Typography level="body-sm">
+                              {findParentCard(project?.cards || [], page.key)
+                                ?.metadata?.summary ?? '-'}
+                              {' • '}
+                              {t('viewedAgo', {
+                                time: moment
+                                  .duration(
+                                    moment().diff(moment(page.timestamp))
+                                  )
+                                  .humanize(),
+                              })}
+                            </Typography>
+                          </Stack>
+                          <Typography
+                            level="body-xs"
+                            fontWeight={600}
+                            sx={{
+                              color: 'text.primary',
+                            }}
+                          >
+                            {page.key}
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    )
+                  })}
+                </>
+              </TabPanel>
+              <TabPanel
+                value={TabEnum.ALL}
+                sx={{
+                  flex: '1 1 auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflowY: currentTab === TabEnum.ALL ? 'scroll' : 'hidden',
+                }}
+              >
+                <TreeMenu
+                  cards={moveableTree}
+                  selectedCardKey={selected}
+                  onCardSelect={(cardKey) => {
+                    setSelected(cardKey)
+                  }}
+                  title={project.name}
                 />
-              </Box>
-            </TabPanel>
-          </Tabs>
+              </TabPanel>
+            </Tabs>
+          )}
 
-          <DialogActions>
+          <DialogActions
+            sx={{
+              flex: '0 0 auto',
+            }}
+          >
             <Button onClick={moveCard} disabled={selected === null}>
               {t('move')}
             </Button>

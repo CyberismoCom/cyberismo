@@ -12,6 +12,7 @@ import {
 import { ApiCallError } from './swr'
 import { useForm } from 'react-hook-form'
 import { usePathname } from 'next/navigation'
+import { get } from 'http'
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -286,15 +287,17 @@ export function moveCard(
     return cards
   }
   const parent = findParentCard(cards, cardKey)
-  if (!parent) {
-    return cards
-  }
+
   const newParent = findCard(cards, newParentKey)
   if (!newParent) {
     return cards
   }
-  parent.children =
-    parent.children?.filter((child) => child.key !== cardKey) || []
+  if (parent) {
+    parent.children =
+      parent.children?.filter((child) => child.key !== cardKey) || []
+  } else {
+    cards = cards.filter((c) => c.key !== cardKey)
+  }
   newParent.children = newParent.children || []
   newParent.children.push(card)
   return cards
@@ -352,4 +355,44 @@ export function deleteCard(cards: Card[], key: string): Card[] {
  */
 export function deepCopy<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))
+}
+
+/**
+ * Returns all cards, to which it is possible to move the card
+ * @param cards: array of cards, which the card might be moved to
+ * @param card: card to move
+ */
+export function getMoveableCards(cards: Card[], card: Card): Card[] {
+  const parent = findParentCard(cards, card.key)
+
+  return cards.filter((c) => {
+    if (c.key === card.key || parent?.key === c.key) {
+      return false
+    }
+    if (isChildOf(card, c.key)) {
+      return false
+    }
+    return true
+  })
+}
+
+/**
+ * Returns filtered tree of cards
+ * @param cards: array of cards to filter
+ * @param filter: filter function
+ */
+export function filterCards(
+  cards: Card[],
+  filter: (card: Card) => boolean
+): Card[] {
+  return cards.filter((card) => {
+    if (filter(card)) {
+      return true
+    }
+    if (card.children) {
+      card.children = filterCards(card.children, filter)
+      return card.children.length > 0
+    }
+    return false
+  })
 }

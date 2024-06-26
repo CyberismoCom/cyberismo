@@ -1,6 +1,11 @@
 import { useMemo } from 'react'
 import { useProject } from '../api'
-import { countChildren, findCard } from '../utils'
+import {
+  countChildren,
+  findCard,
+  flattenTree,
+  getMoveableCards,
+} from '../utils'
 
 /**
  * Helper for getting a list of cards from a project
@@ -29,4 +34,30 @@ export function useChildAmount(key: string) {
   }, [listCard])
 
   return childAmount
+}
+
+export function useFlatCards() {
+  const { project } = useProject()
+
+  const flatCards = useMemo(() => {
+    return project ? flattenTree(project.cards) : []
+  }, [project])
+
+  return flatCards
+}
+
+/**
+ * Helper for getting a list of cards that the given card can be moved to
+ * @param key  The key of the card to move
+ * @returns A list of cards that the given card can be moved to
+ */
+export function useMoveableCards(key: string) {
+  const flatCards = useFlatCards()
+  const listCard = useListCard(key)
+
+  const moveableCards = useMemo(() => {
+    return listCard ? getMoveableCards(flatCards, listCard) : []
+  }, [flatCards, listCard])
+
+  return moveableCards
 }

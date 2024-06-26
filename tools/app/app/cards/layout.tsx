@@ -33,6 +33,7 @@ import {
   closeNotification,
   removeNotification,
 } from '../lib/reducers/notifications'
+import { useRouter } from 'next/navigation'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
@@ -44,6 +45,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   )
 
   const dispatch = useAppDispatch()
+  const router = useRouter()
 
   if (isLoading)
     return (
@@ -67,7 +69,12 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <Stack direction="row" height="100%">
       <Box width="274px" flexShrink={0}>
-        <TreeMenu project={project} selectedCardKey={urlCardKey} />
+        <TreeMenu
+          title={project.name}
+          cards={project.cards}
+          selectedCardKey={urlCardKey}
+          onCardSelect={(key) => router.push(`/cards/${key}`)}
+        />
       </Box>
       <Box padding={2} flexGrow={1} overflow="hidden">
         {children}
