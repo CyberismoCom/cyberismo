@@ -1,23 +1,21 @@
 'use client'
 import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
-import { cardViewed, errorEvent, successEvent } from '@/app/lib/actions'
+import { cardViewed } from '@/app/lib/actions'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
-import { CardMode, WorkflowTransition } from '@/app/lib/definitions'
+import { CardMode } from '@/app/lib/definitions'
 import { useAppDispatch, useListCard } from '@/app/lib/hooks'
-import { findCard } from '@/app/lib/utils'
 import { Box, Stack } from '@mui/joy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
-import { useTranslation } from 'react-i18next'
 
 export const dynamic = 'force-dynamic'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
-  const { card, error, updateCard } = useCard(params.key)
+  const { card, error } = useCard(params.key)
 
   const listCard = useListCard(params.key)
 
@@ -30,19 +28,6 @@ export default function Page({ params }: { params: { key: string } }) {
   }, [project, card])
 
   const router = useRouter()
-
-  const handleStateTransition = async (transition: WorkflowTransition) => {
-    try {
-      await updateCard({ state: { name: transition.name } })
-    } catch (error) {
-      dispatch(
-        errorEvent({
-          name: 'stateTransition',
-          message: error instanceof Error ? error.message : '',
-        })
-      )
-    }
-  }
 
   const { reset, control } = useForm()
 

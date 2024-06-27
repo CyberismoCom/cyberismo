@@ -16,8 +16,9 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Grid } from '@mui/material'
 import { useCard, useTemplates } from '@/app/lib/api'
-import { useErrorWrapper, useIsMounted } from '@/app/lib/hooks'
+import { useAppDispatch, useIsMounted } from '@/app/lib/hooks'
 import { useRouter } from 'next/navigation'
+import { addNotification } from '@/app/lib/slices/notifications'
 
 interface NewCardModalProps {
   open: boolean
@@ -96,7 +97,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
 
   const { createCard, card } = useCard(cardKey)
 
-  const createCardWrapper = useErrorWrapper('createCard', createCard)
+  const dispatch = useAppDispatch()
 
   const isMounted = useIsMounted()
 
@@ -138,15 +139,28 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               disabled={chosenTemplate === null}
               onClick={async () => {
                 if (chosenTemplate) {
-                  const cards = await createCardWrapper(
-                    t('createCard.success'),
-                    chosenTemplate
-                  )
-                  if (cards && cards.length > 0) {
-                    router.push(`/cards/${cards[0]}`)
-                  }
-                  if (isMounted) {
-                    onClose()
+                  try {
+                    const cards = await createCard(chosenTemplate)
+                    dispatch(
+                      addNotification({
+                        message: t('createCard.success'),
+                        type: 'success',
+                      })
+                    )
+
+                    if (cards && cards.length > 0) {
+                      router.push(`/cards/${cards[0]}`)
+                    }
+                    if (isMounted()) {
+                      onClose()
+                    }
+                  } catch (error) {
+                    dispatch(
+                      addNotification({
+                        message: error instanceof Error ? error.message : '',
+                        type: 'error',
+                      })
+                    )
                   }
                 }
               }}

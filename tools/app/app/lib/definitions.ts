@@ -109,13 +109,3 @@ export interface FieldTypeDefinition {
   dataType: DataType
   enumValues?: Array<EnumDefinition>
 }
-
-export interface SuccessEvent {
-  name: string
-  message: string
-}
-
-export interface ErrorEvent {
-  name: string
-  message: string
-}

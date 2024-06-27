@@ -32,7 +32,7 @@ import { CloseRounded } from '@mui/icons-material'
 import {
   closeNotification,
   removeNotification,
-} from '../lib/reducers/notifications'
+} from '../lib/slices/notifications'
 import { useRouter } from 'next/navigation'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {

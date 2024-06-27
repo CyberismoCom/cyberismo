@@ -20,12 +20,7 @@ import {
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
 import { useCard, useProject } from '../../lib/api'
-import {
-  useAppSelector,
-  useErrorWrapper,
-  useIsMounted,
-  useMoveableCards,
-} from '../../lib/hooks'
+import { useAppSelector, useIsMounted, useMoveableCards } from '../../lib/hooks'
 import {
   deepCopy,
   filterCards,
@@ -36,6 +31,8 @@ import { Stack } from '@mui/system'
 import { Card } from '../../lib/definitions'
 import moment from 'moment'
 import { TreeMenu } from '../TreeMenu'
+import { useDispatch } from 'react-redux'
+import { addNotification } from '@/app/lib/slices/notifications'
 
 export interface MoveCardModalProps {
   open: boolean
@@ -57,20 +54,36 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const { updateCard } = useCard(cardKey)
   const recents = useAppSelector((state) => state.recentlyViewed.pages)
 
+  const dispatch = useDispatch()
   const isMounted = useIsMounted()
 
   const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS)
 
-  const updateCardWrapper = useErrorWrapper('updateCard', updateCard)
-
   const moveCard = useCallback(async () => {
     if (selected) {
-      await updateCardWrapper(t('moveCardModal.success'), { parent: selected })
-      if (isMounted) {
-        onClose()
+      try {
+        await updateCard({
+          parent: selected,
+        })
+        dispatch(
+          addNotification({
+            message: t('moveCardModal.success'),
+            type: 'success',
+          })
+        )
+        if (isMounted()) {
+          onClose()
+        }
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message: error instanceof Error ? error.message : '',
+            type: 'error',
+          })
+        )
       }
     }
-  }, [selected, updateCardWrapper, t, onClose, isMounted])
+  }, [selected, updateCard, t, onClose, isMounted, dispatch])
 
   const moveableCards = useMoveableCards(cardKey)
 

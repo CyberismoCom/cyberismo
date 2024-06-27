@@ -35,7 +35,7 @@ import {
 } from '@/app/lib/components'
 import { Controller } from 'react-hook-form'
 import { useAppDispatch } from '@/app/lib/hooks'
-import { errorEvent, successEvent } from '@/app/lib/actions'
+import { addNotification } from '@/app/lib/slices/notifications'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
@@ -73,19 +73,6 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const { handleSubmit, getValues, control, isReady } = useDynamicForm(values)
 
-  const handleStateTransition = async (transition: WorkflowTransition) => {
-    try {
-      await updateCard({ state: { name: transition.name } })
-    } catch (error) {
-      dispatch(
-        errorEvent({
-          name: 'stateTransition',
-          message: error instanceof Error ? error.message : '',
-        })
-      )
-    }
-  }
-
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __content__, __title__, ...metadata } = data
@@ -103,17 +90,17 @@ export default function Page({ params }: { params: { key: string } }) {
         },
       })
       dispatch(
-        successEvent({
-          name: 'saveCard',
+        addNotification({
           message: t('saveCard.success'),
+          type: 'success',
         })
       )
       router.push(`/cards/${card!.key}`)
     } catch (error) {
       dispatch(
-        errorEvent({
-          name: 'saveCard',
+        addNotification({
           message: error instanceof Error ? error.message : '',
+          type: 'error',
         })
       )
     }

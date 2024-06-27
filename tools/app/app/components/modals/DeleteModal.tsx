@@ -15,12 +15,13 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Warning } from '@mui/icons-material'
 import { useCard } from '../../lib/api'
 import {
-  useErrorWrapper,
+  useAppDispatch,
   useChildAmount,
   useIsMounted,
   useParentCard,
 } from '@/app/lib/hooks'
 import { useRouter } from 'next/navigation'
+import { addNotification } from '@/app/lib/slices/notifications'
 
 export interface DeleteModalProps {
   open: boolean
@@ -34,6 +35,8 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
 
   const { deleteCard } = useCard(cardKey)
   const childAmount = useChildAmount(cardKey)
+
+  const dispatch = useAppDispatch()
 
   const parent = useParentCard(cardKey)
 
@@ -65,19 +68,32 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
     [cardKey, childAmount]
   )
 
-  const deleteCardWrapper = useErrorWrapper('deleteCard', deleteCard)
-
   const handleDelete = useCallback(async () => {
-    await deleteCardWrapper(t('deleteCardModal.success', { card: cardKey }))
-    if (isMounted) {
-      onClose()
-      if (parent) {
-        router.push(`/cards/${parent.key}`)
-      } else {
-        router.push('/cards')
+    try {
+      await deleteCard()
+      dispatch(
+        addNotification({
+          message: t('deleteCardModal.success', { card: cardKey }),
+          type: 'success',
+        })
+      )
+      if (isMounted()) {
+        onClose()
+        if (parent) {
+          router.push(`/cards/${parent.key}`)
+        } else {
+          router.push('/cards')
+        }
       }
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : '',
+          type: 'error',
+        })
+      )
     }
-  }, [deleteCardWrapper, onClose, cardKey, isMounted, t, parent, router])
+  }, [onClose, cardKey, isMounted, t, parent, router, deleteCard, dispatch])
 
   // Reset checkbox state when dialog is closed/opened
   useEffect(() => {

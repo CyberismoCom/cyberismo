@@ -1,5 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
-import { successEvent, errorEvent } from '../actions'
+import { PayloadAction, createSlice } from '@reduxjs/toolkit'
 
 export interface Notification {
   id: number
@@ -8,7 +7,7 @@ export interface Notification {
   closed: boolean
 }
 
-export type NotificationMessage = Omit<Notification, 'id'>
+export type NotificationMessage = Omit<Notification, 'id' | 'closed'>
 
 export interface NotificationsState {
   notifications: Notification[]
@@ -24,12 +23,12 @@ export const notificationsSlice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    removeNotification(state, action) {
+    removeNotification(state, action: PayloadAction<number>) {
       state.notifications = state.notifications.filter(
         (notification) => notification.id !== action.payload
       )
     },
-    closeNotification(state, action) {
+    closeNotification(state, action: PayloadAction<number>) {
       const notification = state.notifications.find(
         (notification) => notification.id === action.payload
       )
@@ -37,27 +36,18 @@ export const notificationsSlice = createSlice({
         notification.closed = true
       }
     },
-  },
-  extraReducers: (builder) => {
-    builder.addCase(successEvent, (state, action) => {
+    addNotification(state, action: PayloadAction<NotificationMessage>) {
       state.notifications.push({
         message: action.payload.message,
-        type: 'success',
+        type: action.payload.type,
         id: ++state.prevId,
         closed: false,
       })
-    })
-    builder.addCase(errorEvent, (state, action) => {
-      state.notifications.push({
-        message: action.payload.message,
-        type: 'error',
-        id: ++state.prevId,
-        closed: false,
-      })
-    })
+    },
   },
 })
-export const { closeNotification, removeNotification } =
+export const { closeNotification, removeNotification, addNotification } =
   notificationsSlice.actions
 
+addNotification({})
 export default notificationsSlice.reducer

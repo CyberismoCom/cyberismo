@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { useCard, useProject } from '../lib/api'
 import { useAppDispatch } from '../lib/hooks'
-import { errorEvent } from '../lib/actions'
+import { addNotification } from '../lib/slices/notifications'
 
 interface ContentToolbarProps {
   cardKey: string
@@ -44,14 +44,14 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         await updateWorkFlowState(transition.name)
       } catch (error) {
         dispatch(
-          errorEvent({
-            name: 'stateTransition',
-            message: error instanceof Error ? error.message : '',
+          addNotification({
+            message: t('error.transition'),
+            type: 'error',
           })
         )
       }
     },
-    [updateWorkFlowState, dispatch]
+    [updateWorkFlowState, dispatch, addNotification]
   )
 
   return (
