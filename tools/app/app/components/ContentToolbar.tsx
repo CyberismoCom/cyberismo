@@ -51,7 +51,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         )
       }
     },
-    [updateWorkFlowState, dispatch, addNotification]
+    [updateWorkFlowState, dispatch, t]
   )
 
   return (
