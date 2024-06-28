@@ -1,58 +1,66 @@
 'use client'
-
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Box, Button } from '@mui/joy'
 import EditIcon from '@mui/icons-material/Edit'
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs'
-import {
-  CardDetails,
-  CardMode,
-  Project,
-  WorkflowTransition,
-} from '../lib/definitions'
+import { CardMode, WorkflowTransition } from '../lib/definitions'
 import StatusSelector from './StateSelector'
 import CardContextMenu from './CardContextMenu'
 import { findWorkflowForCard } from '../lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
+import { useCard, useProject } from '../lib/api'
+import { useAppDispatch } from '../lib/hooks'
+import { addNotification } from '../lib/slices/notifications'
 
 interface ContentToolbarProps {
-  selectedCard: CardDetails | null
-  project: Project | null
+  cardKey: string
   mode: CardMode
-  onUpdate: () => void
-  onStateTransition: (transition: WorkflowTransition) => void
-  onDelete?: (key: string, done: () => void) => void
+  onUpdate?: () => void
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
-  selectedCard,
-  project,
+  cardKey,
   mode,
   onUpdate,
-  onStateTransition,
-  onDelete,
 }) => {
   const router = useRouter()
   const { t } = useTranslation()
 
-  const workflow = findWorkflowForCard(selectedCard, project)
+  const { project } = useProject()
+  const { card, updateWorkFlowState } = useCard(cardKey)
+
+  const dispatch = useAppDispatch()
+
+  const workflow = findWorkflowForCard(card, project)
   const currentState =
     workflow?.states.find(
-      (state) => state.name == selectedCard?.metadata?.workflowState
+      (state) => state.name == card?.metadata?.workflowState
     ) ?? null
+
+  const onStateTransition = useCallback(
+    async (transition: WorkflowTransition) => {
+      try {
+        await updateWorkFlowState(transition.name)
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message: t('error.transition'),
+            type: 'error',
+          })
+        )
+      }
+    },
+    [updateWorkFlowState, dispatch, t]
+  )
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
-        <ProjectBreadcrumbs selectedCard={selectedCard} project={project} />
+        <ProjectBreadcrumbs selectedCard={card} project={project} />
       </Box>
 
-      <CardContextMenu
-        card={selectedCard}
-        project={project}
-        onDelete={onDelete}
-      />
+      <CardContextMenu cardKey={cardKey} />
 
       {mode === CardMode.EDIT && (
         <Button
@@ -80,7 +88,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           startDecorator={<EditIcon />}
           style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.push(`/cards/${selectedCard!.key}/edit`)}
+          onClick={() => router.push(`/cards/${card!.key}/edit`)}
         >
           {t('edit')}
         </Button>
