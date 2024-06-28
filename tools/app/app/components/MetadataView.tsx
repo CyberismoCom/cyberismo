@@ -113,7 +113,7 @@ function MetadataView({
       }}
       onClick={onClick}
     >
-      <Stack flexGrow={1} spacing={1}>
+      <Stack flexGrow={1} spacing={1} paddingY={2}>
         {allFields.map(({ name, dataType, enumValues, displayName }) => (
           <Collapse
             in={cardType?.alwaysVisibleFields?.includes(name) || expanded}
@@ -140,7 +140,7 @@ function MetadataView({
         ))}
       </Stack>
       {!(allFieldKeys.length === cardType?.alwaysVisibleFields?.length) && (
-        <Box alignContent="flex-end" flexShrink={0}>
+        <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
           <Link
             variant="soft"
             color="primary"
