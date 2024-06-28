@@ -7,3 +7,6 @@ dist/
 node_modules/
 target/
 compiled/
+examples/
+**/test-data/
+.github/

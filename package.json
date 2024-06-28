@@ -32,7 +32,8 @@
     "test": "npm run test --workspaces",
     "test-app": "cd tools/app && npm run test && cd ../..",
     "test-data-handler": "cd tools/data-handler && npm run test && cd ../..",
-    "watch": "npm-watch"
+    "watch": "npm-watch",
+    "format": "prettier --write ."
   },
   "watch": {
     "build": {
