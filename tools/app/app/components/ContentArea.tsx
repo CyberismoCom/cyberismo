@@ -5,24 +5,17 @@ import Processor from '@asciidoctor/core'
 import { parse } from 'node-html-parser'
 import { Box, Stack, Typography } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
-import ExpandingBox, { ExpandingBoxProps } from './ExpandingBox'
-import { useForm } from 'react-hook-form'
+import MetadataView from './MetadataView'
 
 type ContentAreaProps = {
   card: CardDetails | null
   error: string | null
-  preview: boolean
-  values: ExpandingBoxProps['values']
-  control: ReturnType<typeof useForm>['control']
   onMetadataClick?: () => void
 }
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
   card,
   error,
-  preview,
-  values,
-  control,
   onMetadataClick,
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null)
@@ -86,11 +79,10 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           <Typography level="h1">
             {card.metadata?.summary ?? card.key}
           </Typography>
-          <ExpandingBox
-            values={values}
-            color="bgsoft.main"
-            control={control}
+          <MetadataView
             editMode={false}
+            initialExpanded={false}
+            metadata={card?.metadata}
             onClick={onMetadataClick}
           />
           <Box padding={4}>

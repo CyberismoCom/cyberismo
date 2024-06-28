@@ -9,7 +9,7 @@ type EditableFieldProps = {
   value: MetadataValue
   dataType: DataType
   label: string
-  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void
+  onChange?: (value: string | null) => void
   edit: boolean
   enumValues?: Array<EnumDefinition>
 }
