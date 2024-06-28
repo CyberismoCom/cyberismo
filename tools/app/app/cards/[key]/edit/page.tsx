@@ -196,18 +196,26 @@ export default function Page({ params }: { params: { key: string } }) {
                   <CodeMirror
                     value={value}
                     onChange={onChange}
-                    extensions={[StreamLanguage.define(asciidoc), EditorView.lineWrapping]}
+                    extensions={[
+                      StreamLanguage.define(asciidoc),
+                      EditorView.lineWrapping,
+                    ]}
                     style={{
                       border: '1px solid',
                       borderColor: 'rgba(0,0,0,0.23)',
-                      borderRadius: 4
+                      borderRadius: 4,
                     }}
-                    />
+                  />
                 )}
               />
             </Box>
           </TabPanel>
-          <TabPanel value={1}>
+          <TabPanel
+            value={1}
+            sx={{
+              height: '100%',
+            }}
+          >
             <Box height="100%">
               <ContentArea
                 card={getPreview()}
