@@ -55,7 +55,7 @@ export class Project extends CardContainer {
                 const files = await readdir(resourcePath, { withFileTypes: true });
                 const filteredFiles = filteredDirectories
                     ? files.filter(item => item.isDirectory())
-                    : files.filter(item => item.name !== Project.schemaContentFile);
+                    : files.filter(item => item.name !== Project.schemaContentFile && item.name !== '.gitkeep');
 
                 filteredFiles.forEach(item => {
                     item.name = `${resource.name}/${item.name}`;

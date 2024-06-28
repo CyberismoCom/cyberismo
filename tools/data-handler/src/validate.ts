@@ -104,7 +104,6 @@ export class Validate {
             throw new Error(errorFunction(error));
         }
         if (!message) {
-            console.log('Project structure validated');
             return true;
         }
         return false;

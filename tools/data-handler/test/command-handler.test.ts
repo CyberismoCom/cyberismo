@@ -833,18 +833,18 @@ describe('import command', () => {
     });
 
     it('import module (success)', async () => {
-        const result = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
+        const result = await commandHandler.command(Cmd.import, [decisionRecordsPath], optionsMini);
         expect(result.statusCode).to.equal(200);
     });
     it('try to import module - no source', async () => {
-        const result = await commandHandler.command(Cmd.import, ['', decisionModule ], optionsMini);
+        const result = await commandHandler.command(Cmd.import, [''], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('try to import module - no destination', async () => {
         let result = { statusCode: 0 };
         const invalidOptions = { projectPath: ''};
         try {
-            result = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], invalidOptions);
+            result = await commandHandler.command(Cmd.import, [decisionRecordsPath], invalidOptions);
             assert(false, 'this should not be reached as the above throws');
         }
         catch (error) {
@@ -852,18 +852,14 @@ describe('import command', () => {
         }
         expect(result.statusCode).to.equal(0);
     });
-    it('try to import module - no name', async () => {
-        const result = await commandHandler.command(Cmd.import, [decisionRecordsPath, '' ], optionsMini);
-        expect(result.statusCode).to.equal(400);
-    });
     it('try to import module - twice the same module', async () => {
-        const result1 = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
+        const result1 = await commandHandler.command(Cmd.import, [decisionRecordsPath], optionsMini);
         expect(result1.statusCode).to.equal(200);
-        const result2 = await commandHandler.command(Cmd.import, [decisionRecordsPath, decisionModule ], optionsMini);
+        const result2 = await commandHandler.command(Cmd.import, [decisionRecordsPath], optionsMini);
         expect(result2.statusCode).to.equal(400);
     });
     it('try to import module - that has the same prefix', async () => {
-        const result = await commandHandler.command(Cmd.import, [minimalPath, 'mini-too' ], optionsMini);
+        const result = await commandHandler.command(Cmd.import, [minimalPath], optionsMini);
         expect(result.statusCode).to.equal(400);
     });
     it('remove imported module', async () => {

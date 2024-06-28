@@ -265,8 +265,8 @@ export class Commands {
             return this.export(options.output, this.projectPath, cardkey, options.format);
         }
         if (command === Cmd.import) {
-            const [ source, name ] = args;
-            return this.import(source, name, this.projectPath);
+            const [ source ] = args;
+            return this.import(source, this.projectPath);
         }
         if (command === Cmd.move) {
             const [source, destination] = args;
@@ -632,24 +632,20 @@ export class Commands {
     /**
      * Imports another project to the 'path' project as a module.
      * @param {string} source Path to project to import
-     * @param {string} name Module name for the imported project (what will the project be called as a module)
      * @param {string} path Optional. Destination project path. If omitted, destination project is set from current path.
      * @returns {requestStatus}
      *       statusCode 200 when operation succeeded
      *  <br> statusCode 400 when input validation failed
      */
-    private async import(source: string, name: string, path: string): Promise<requestStatus> {
+    private async import(source: string, path: string): Promise<requestStatus> {
         if (!this.validateFolder(source)) {
             return { statusCode: 400, message: `Input validation error: folder name is invalid '${source}'` };
         }
         if (!pathExists(source)) {
             return { statusCode: 400, message: `Input validation error: cannot find project '${source}'` };
         }
-        if (!this.validateName(name)) {
-            return { statusCode: 400, message: `Input validation error: module name is invalid '${name}'` };
-        }
         try {
-            await this.importCmd.importProject(source, path, name);
+            await this.importCmd.importProject(source, path);
             return { statusCode: 200 };
         } catch(e) {
             return { statusCode: 400, message: errorFunction(e) };

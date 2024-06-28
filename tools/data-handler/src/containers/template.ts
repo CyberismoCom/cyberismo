@@ -87,7 +87,7 @@ export class Template extends CardContainer {
                 // @todo: could just fetch initial state based on card
                 const cardtype = await this.project.cardType(card.metadata?.cardtype);
                 if (!cardtype) {
-                    throw new Error(`Cardtype '${card.metadata?.cardtype}' of card ${card.key} cannot be found`);
+                    throw new Error(`Cardtype '${card.metadata?.cardtype}' of card '${card.key}' cannot be found`);
                 }
                 const workflow = await this.project.workflow(cardtype.workflow);
                 if (!workflow) {
