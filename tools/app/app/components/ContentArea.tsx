@@ -119,24 +119,13 @@ function renderTableOfContents(
   // Parse the HTML content
   const root = parse(htmlContent)
   // Find all header tags
-  const headerTags = ['h1', 'h2', 'h3']
-  const foundHeaders: Header[] = []
-
-  headerTags.forEach((tag) => {
-    const headers = root.querySelectorAll(tag)
-    headers.forEach((header) => {
-      const level = parseInt(tag.substring(1), 10) // Get the numeric part of the tag name to represent the level
-      foundHeaders.push({
-        id:
-          header.getAttribute('id') ||
-          header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist
-        text: header.text,
-        level,
-      })
-    })
-  })
-
-  const headers = foundHeaders.sort((a, b) => a.level - b.level)
+  const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
+    id:
+      header.getAttribute('id') ||
+      header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist
+    text: header.text,
+    level: parseInt(header.tagName[1]),
+  }))
 
   // Hack for first render: mark first header as visible, after this updates via handleScroll
   const highlightedHeader = visibleHeaderId ?? headers[0]?.id
