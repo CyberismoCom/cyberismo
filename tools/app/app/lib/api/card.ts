@@ -4,17 +4,38 @@ import { callApi, apiPaths } from '../swr'
 import { SWRConfiguration, mutate } from 'swr'
 import { CardUpdate } from './types'
 import { CardDetails, Project } from '../definitions'
-import { deleteCard as deleteCardHelper, deepCopy } from '../utils'
+import {
+  deleteCard as deleteCardHelper,
+  deepCopy,
+  moveCard,
+  editCardDetails,
+} from '../utils'
+import { useAppDispatch } from '../hooks'
+import { cardDeleted } from '../actions'
 
-export const useCard = (key: string | null, options?: SWRConfiguration) => ({
-  ...useSWRHook(key ? apiPaths.card(key) : null, 'card', options),
-  updateCard: async (update: CardUpdate) =>
-    (key && updateCard(key, update)) || null,
-  deleteCard: async () => (key && deleteCard(key)) || null,
-  createCard: async (template: string) =>
-    (key && createCard(key, template)) || null,
-})
-
+export const useCard = (key: string | null, options?: SWRConfiguration) => {
+  const dispatch = useAppDispatch()
+  return {
+    ...useSWRHook(key ? apiPaths.card(key) : null, 'card', options),
+    updateCard: async (update: CardUpdate) =>
+      (key && updateCard(key, update)) || null,
+    deleteCard: async () => {
+      if (!key) return
+      await deleteCard(key)
+      dispatch(cardDeleted(key))
+    },
+    createCard: async (template: string) =>
+      (key && createCard(key, template)) || null,
+    updateWorkFlowState: async (state: string) =>
+      (key &&
+        updateCard(key, {
+          state: {
+            name: state,
+          },
+        })) ||
+      null,
+  }
+}
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
   const swrKey = apiPaths.card(key)
   const result = await callApi<CardDetails>(swrKey, 'PUT', cardUpdate)
@@ -27,15 +48,14 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
     apiPaths.project(),
     (project: Project | undefined) => {
       if (!project) return project
+      let cards = editCardDetails(deepCopy(project.cards), result)
 
+      if (cardUpdate.parent) {
+        cards = moveCard(cards, key, cardUpdate.parent)
+      }
       return {
         ...project,
-        cards: project.cards.map((card) => {
-          if (card.key === key) {
-            return result
-          }
-          return card
-        }),
+        cards,
       }
     },
     false

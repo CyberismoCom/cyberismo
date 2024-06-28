@@ -21,6 +21,7 @@ export type FullCardUpdate = {
   content: string
   metadata: Record<string, any>
   state: { name: string }
+  parent: string
 }
 
 export type CardUpdate = Partial<FullCardUpdate>
