@@ -3,7 +3,15 @@ import colors from '@mui/joy/colors'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import { Workflow, WorkflowState, WorkflowTransition } from '../lib/definitions'
 import { workflowCategory } from '../../../data-handler/src/interfaces/project-interfaces'
-import { Menu, MenuItem, ListItemContent, Dropdown, MenuButton } from '@mui/joy'
+import {
+  Menu,
+  MenuItem,
+  ListItemContent,
+  Dropdown,
+  MenuButton,
+  Typography,
+} from '@mui/joy'
+import { useTranslation } from 'react-i18next'
 
 interface StateSelectorProps {
   currentState: WorkflowState | null
@@ -20,13 +28,15 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     onTransition(transition)
   }
 
+  const { t } = useTranslation()
+
   const availableTransitions = useMemo(() => {
     if (
       !currentState ||
       !workflow ||
       !workflow.states.find((state) => state.name == currentState.name)
     ) {
-      return []
+      return null
     }
 
     return workflow?.transitions.filter(
@@ -50,7 +60,11 @@ const StateSelector: React.FC<StateSelectorProps> = ({
           />
         }
       >
-        <strong>Status: {currentState.name}</strong>
+        <Typography fontWeight={600}>
+          {t('stateSelector.status', {
+            state: currentState.name,
+          })}
+        </Typography>
       </MenuButton>
       <Menu>
         {availableTransitions.map((transition) => (
