@@ -32,5 +32,8 @@
   "newCardDialogTitle": "New card from template",
   "no": "No",
   "yes": "Yes",
-  "createUnder": "Create under \"{{parent}}\""
+  "createUnder": "Create under \"{{parent}}\"",
+  "stateSelector": {
+    "status": "Status: {{state}}"
+  }
 }
