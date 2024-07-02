@@ -41,9 +41,8 @@ const StateSelector: React.FC<StateSelectorProps> = ({
 
   const availableTransitions = workflow?.transitions.filter(
     (transition) =>
-      (transition.fromState.includes(currentState.name) ||
-        transition.fromState.includes('*')) &&
-      transition.toState !== currentState.name
+      transition.fromState.includes(currentState.name) ||
+      transition.fromState.includes('*')
   )
 
   return (
