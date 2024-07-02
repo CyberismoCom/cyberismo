@@ -4,13 +4,39 @@
     "newCard": "CREATE NEW CARD",
     "importModules": "Import Modules"
   },
+  "moveCardModal": {
+    "title": "Move",
+    "search": "Search or paste a link",
+    "success": "Card moved successfully"
+  },
+  "deleteCardModal": {
+    "title": "Delete Card",
+    "success": "Card deleted successfully",
+    "warning": "I acknowledge I want to delete {{cardAmount}} cards",
+    "delete": "Delete",
+    "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
+    "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
+  },
+  "createCardModal": {
+    "success": "Card created successfully"
+  },
+  "newCardDialog": {
+    "title": "New card from template"
+  },
+  "saveCard": {
+    "success": "Card saved successfully"
+  },
+  "createCard": {
+    "success": "Card created successfully"
+  },
+  "deleteCard": "Delete Card",
+  "delete": "Delete",
   "cardType": "Card Type",
   "value": "Value",
   "name": "Name",
   "summary": "Summary",
   "workflowState": "Workflow State",
   "metadata": "Metadata",
-  "deleteCard": "Delete Card",
   "close": "Close",
   "cardNotFound": "Could not find card",
   "loading": "Loading...",
@@ -24,13 +50,12 @@
   "showLess": "Show Less",
   "true": "True",
   "false": "False",
-  "deleteCardWarning": "I acknowledge I want to delete {{cardAmount}} cards",
-  "delete": "Delete",
-  "deleteCardContent_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
-  "deleteCardContent_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone.",
   "create": "Create",
-  "newCardDialogTitle": "New card from template",
   "no": "No",
   "yes": "Yes",
-  "createUnder": "Create under \"{{parent}}\""
+  "createUnder": "Create under \"{{parent}}\"",
+  "viewedAgo": "Viewed {{time}} ago",
+  "recents": "Recents",
+  "all": "All",
+  "move": "Move"
 }

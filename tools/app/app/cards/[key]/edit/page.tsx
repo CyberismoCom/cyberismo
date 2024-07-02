@@ -25,9 +25,8 @@ import { asciidoc } from 'codemirror-asciidoc'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
-import ErrorBar from '@/app/components/ErrorBar'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
-import { useDynamicForm, useError } from '@/app/lib/utils'
+import { useDynamicForm } from '@/app/lib/utils'
 import { useTranslation } from 'react-i18next'
 import ExpandingBox from '@/app/components/ExpandingBox'
 import {
@@ -35,13 +34,15 @@ import {
   getEditableFields,
 } from '@/app/lib/components'
 import { Controller } from 'react-hook-form'
+import { useAppDispatch } from '@/app/lib/hooks'
+import { addNotification } from '@/app/lib/slices/notifications'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
 
   // Original card and project
   const { project } = useProject()
-  const { card, updateCard, deleteCard } = useCard(params.key)
+  const { card, updateCard } = useCard(params.key)
   const { fieldTypes } = useFieldTypes()
   const cardType = useMemo(() => {
     return project?.cardTypes.find((ct) => ct.name === card?.metadata?.cardtype)
@@ -49,7 +50,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const searchParams = useSearchParams()
 
-  const { reason, setError, handleClose } = useError()
+  const dispatch = useAppDispatch()
+
   const router = useRouter()
 
   const { fields, values } = useMemo(() => {
@@ -71,14 +73,6 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const { handleSubmit, getValues, control, isReady } = useDynamicForm(values)
 
-  const handleStateTransition = async (transition: WorkflowTransition) => {
-    try {
-      await updateCard({ state: { name: transition.name } })
-    } catch (error) {
-      if (error instanceof Error) setError(error)
-    }
-  }
-
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __content__, __title__, ...metadata } = data
@@ -95,9 +89,20 @@ export default function Page({ params }: { params: { key: string } }) {
           summary: __title__,
         },
       })
+      dispatch(
+        addNotification({
+          message: t('saveCard.success'),
+          type: 'success',
+        })
+      )
       router.push(`/cards/${card!.key}`)
     } catch (error) {
-      if (error instanceof Error) setError(error)
+      dispatch(
+        addNotification({
+          message: error instanceof Error ? error.message : '',
+          type: 'error',
+        })
+      )
     }
   }
 
@@ -118,21 +123,9 @@ export default function Page({ params }: { params: { key: string } }) {
   return (
     <Stack height="100%">
       <ContentToolbar
-        selectedCard={card}
-        project={project}
+        cardKey={params.key}
         mode={CardMode.EDIT}
         onUpdate={() => handleSubmit(handleSave)()}
-        onStateTransition={handleStateTransition}
-        onDelete={async (_, done) => {
-          try {
-            await deleteCard()
-            router.push('/cards')
-          } catch (error) {
-            if (error instanceof Error) setError(error.message)
-          } finally {
-            done()
-          }
-        }}
       />
       <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
         <Tabs
@@ -228,7 +221,6 @@ export default function Page({ params }: { params: { key: string } }) {
           </TabPanel>
         </Tabs>
       </Stack>
-      <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )
 }

@@ -1,36 +1,17 @@
-import { createTheme } from '@mui/material'
+import { extendTheme } from '@mui/joy/styles'
+import { Inter } from 'next/font/google'
 
-declare module '@mui/material/styles' {
-  interface Palette {
-    bgsoft: Palette['primary']
-    bgColor: Palette['primary']
-  }
-  interface PaletteOptions {
-    bgsoft: PaletteOptions['primary']
-    bgColor: PaletteOptions['primary']
-  }
-}
+const inter = Inter({
+  subsets: ['latin'],
+  adjustFontFallback: false, // prevent NextJS from adding its own fallback font
+  fallback: ['var(--joy-fontFamily-fallback)'], // use Joy UI's fallback font
+  display: 'swap',
+})
 
-const theme = createTheme({
-  typography: {
-    h1: {
-      fontSize: '2rem',
-      fontWeight: 'bold',
-    },
-    //   h3: {
-    //  fontSize: '1.2rem',
-    //  fontWeight: 'bold',
-    //    },
-  },
-  palette: {
-    bgsoft: {
-      main: '#f0f4f8',
-      dark: '#171A1C',
-    },
-    bgColor: {
-      main: '#12467B',
-      dark: '#C7DFF7',
-    },
+const theme = extendTheme({
+  fontFamily: {
+    body: inter.style.fontFamily,
+    display: inter.style.fontFamily,
   },
 })
 

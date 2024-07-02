@@ -1,11 +1,11 @@
 'use client'
 import { ContentArea } from '@/app/components/ContentArea'
 import ContentToolbar from '@/app/components/ContentToolbar'
-import ErrorBar from '@/app/components/ErrorBar'
+import { cardViewed } from '@/app/lib/actions'
 import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
 import { generateExpandingBoxValues } from '@/app/lib/components'
-import { Card, CardMode, WorkflowTransition } from '@/app/lib/definitions'
-import { useError } from '@/app/lib/utils'
+import { CardMode } from '@/app/lib/definitions'
+import { useAppDispatch, useListCard } from '@/app/lib/hooks'
 import { Box, Stack } from '@mui/joy'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo } from 'react'
@@ -15,8 +15,11 @@ export const dynamic = 'force-dynamic'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { project } = useProject()
-  const { card, error, updateCard, deleteCard } = useCard(params.key)
-  const { reason, setError, handleClose } = useError()
+  const { card, error } = useCard(params.key)
+
+  const listCard = useListCard(params.key)
+
+  const dispatch = useAppDispatch()
 
   const { fieldTypes } = useFieldTypes()
 
@@ -25,14 +28,6 @@ export default function Page({ params }: { params: { key: string } }) {
   }, [project, card])
 
   const router = useRouter()
-
-  const handleStateTransition = async (transition: WorkflowTransition) => {
-    try {
-      await updateCard({ state: { name: transition.name } })
-    } catch (error) {
-      if (error instanceof Error) setError(error.message)
-    }
-  }
 
   const { reset, control } = useForm()
 
@@ -56,24 +51,24 @@ export default function Page({ params }: { params: { key: string } }) {
     reset(values)
   }, [reset, values])
 
+  useEffect(() => {
+    if (listCard) {
+      dispatch(
+        cardViewed({
+          key: listCard.key,
+          children: listCard?.children?.map((c) => c.key) ?? [],
+          timestamp: new Date().toISOString(),
+        })
+      )
+    }
+  }, [listCard, dispatch])
+
   return (
     <Stack height="100%">
       <ContentToolbar
-        selectedCard={card}
-        project={project}
+        cardKey={params.key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
-        onStateTransition={handleStateTransition}
-        onDelete={async (_, done) => {
-          try {
-            await deleteCard()
-            router.push('/cards')
-          } catch (error) {
-            if (error instanceof Error) setError(error.message)
-          } finally {
-            done()
-          }
-        }}
       />
       <Box flexGrow={1} minHeight={0}>
         <ContentArea
@@ -87,7 +82,6 @@ export default function Page({ params }: { params: { key: string } }) {
           }}
         />
       </Box>
-      <ErrorBar error={reason} onClose={handleClose} />
     </Stack>
   )
 }

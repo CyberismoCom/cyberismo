@@ -16,7 +16,13 @@ jest.mock('next/navigation', () => ({
 
 describe('TreeMenu', () => {
   it('renders with test data', () => {
-    render(<TreeMenu project={testProject} selectedCardKey={null} />)
+    render(
+      <TreeMenu
+        cards={testProject.cards}
+        title={testProject.name}
+        selectedCardKey={null}
+      />
+    )
 
     const heading = screen.getByText('SDL Decision')
     expect(heading).toBeInTheDocument()
@@ -25,7 +31,13 @@ describe('TreeMenu', () => {
 
 describe('TreeMenu', () => {
   it('parameter card key is visible and selected in UI', () => {
-    render(<TreeMenu project={testProject} selectedCardKey={'USDL-46'} />)
+    render(
+      <TreeMenu
+        cards={testProject.cards}
+        title={testProject.name}
+        selectedCardKey={'USDL-46'}
+      />
+    )
     const node = screen.getByText('Demand phase').parentNode
     expect(node).toBeVisible()
     expect(node).toHaveClass('Mui-selected')

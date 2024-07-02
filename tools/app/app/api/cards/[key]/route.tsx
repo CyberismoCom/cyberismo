@@ -1,6 +1,7 @@
 import { Calculate } from '@cyberismocom/data-handler/calculate'
 import { Create } from '@cyberismocom/data-handler/create'
 import { Edit } from '@cyberismocom/data-handler/edit'
+import { Move } from '@cyberismocom/data-handler/move'
 import { Remove } from '@cyberismocom/data-handler/remove'
 import { Show } from '@cyberismocom/data-handler/show'
 import { Transition } from '@cyberismocom/data-handler/transition'
@@ -151,6 +152,16 @@ export async function PUT(request: NextRequest) {
       } catch (error) {
         if (error instanceof Error) errors.push(error.message)
       }
+    }
+  }
+
+  if (res.parent) {
+    const moveCommand = new Move()
+    try {
+      await moveCommand.moveCard(projectPath, key, res.parent)
+      successes++
+    } catch (error) {
+      if (error instanceof Error) errors.push(error.message)
     }
   }
 

@@ -19,6 +19,13 @@ export interface Card {
   children?: Card[]
 }
 
+//
+export interface CardView {
+  key: string
+  children: string[]
+  timestamp: string
+}
+
 // Single card with content and metadata, but no info of children.
 // Used for displaying card details view.
 export interface CardDetails {
