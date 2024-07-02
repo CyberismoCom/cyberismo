@@ -25,7 +25,7 @@ const EditableField = ({
   const { t } = useTranslation()
   return (
     <Stack direction="row" spacing={0} alignItems="center">
-      <Typography level="body-sm" width="40%" maxWidth={150} flexShrink={0}>
+      <Typography level="title-sm" width="40%" maxWidth={150} flexShrink={0}>
         {label}
       </Typography>
       {edit ? (
