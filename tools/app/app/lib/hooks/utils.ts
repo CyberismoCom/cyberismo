@@ -1,13 +1,6 @@
-import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { findParentCard } from '../utils'
 import { useProject } from '../api'
-
-export function useCardKey() {
-  const pathName = usePathname()
-  const urlParts = pathName.slice(1).split('/')
-  return urlParts[0] == 'cards' ? urlParts[1] ?? null : null
-}
 
 export function useParentCard(key: string | null) {
   const { project } = useProject()

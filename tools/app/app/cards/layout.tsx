@@ -27,17 +27,17 @@ import {
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
 import { NewCardModal } from '../components/modals'
 import StoreProvider from '../providers/StoreProvider'
-import { useAppDispatch, useAppSelector, useCardKey } from '../lib/hooks'
+import { useAppDispatch, useAppSelector } from '../lib/hooks'
 import { CloseRounded } from '@mui/icons-material'
 import {
   closeNotification,
   removeNotification,
 } from '../lib/slices/notifications'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
-  const urlCardKey = useCardKey()
+  const params = useParams<{ key?: string }>()
   const { project, error, isLoading } = useProject()
 
   const notifications = useAppSelector(
@@ -72,7 +72,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         <TreeMenu
           title={project.name}
           cards={project.cards}
-          selectedCardKey={urlCardKey}
+          selectedCardKey={params.key ?? null}
           onCardSelect={(key) => router.push(`/cards/${key}`)}
         />
       </Box>
@@ -130,7 +130,9 @@ const Main = styled('main')(({ theme }) => ({
 
 function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const urlCardKey = useCardKey()
+  const params = useParams<{
+    key?: string
+  }>()
 
   return (
     <Stack>
@@ -141,7 +143,7 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <NewCardModal
         open={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        cardKey={urlCardKey}
+        cardKey={params.key ?? null}
       />
     </Stack>
   )
