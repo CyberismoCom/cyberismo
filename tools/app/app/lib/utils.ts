@@ -125,6 +125,7 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
 /**
  * Hook that allows easy use of multiple modals at once
  * @param modals: object with keys as modal names and values as boolean whether the modal is open
+ * @returns object with functions to open and close modals and an object with the current state of the modals
  */
 export function useModals<T extends Record<string, boolean>>(modals: T) {
   const [openModals, setOpenModals] = useState<Record<keyof T, boolean>>(modals)
@@ -267,8 +268,9 @@ export function editCard(cards: Card[], card: Card): Card[] {
 /**
  * Edits a card in a tree of cards based on card details
  * Note: This function mutates the input array
- * @param card
- * @returns
+ * @param cards array of cards to edit, usually project.cards
+ * @param card updated version of the card
+ * @returns updated array of cards
  */
 export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
   const listCard = findCard(cards, card.key)
@@ -289,6 +291,7 @@ export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
  * @param cards: array of cards
  * @param cardKey: key of the card to move
  * @param newParentKey: key of the new parent card
+ * @returns updated array of cards
  */
 export function moveCard(
   cards: Card[],
@@ -319,6 +322,7 @@ export function moveCard(
 /**
  * Counts the number of children of a card, including the card itself and children of children
  * @param card: card to count the children of
+ * @returns number of children of the card including the card itself
  */
 export function countChildren(card: Card): number {
   if (!card.children) {
