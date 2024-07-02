@@ -16,7 +16,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Grid } from '@mui/material'
 import { useCard, useTemplates } from '@/app/lib/api'
-import { useAppDispatch, useIsMounted } from '@/app/lib/hooks'
+import { useAppDispatch } from '@/app/lib/hooks'
 import { useRouter } from 'next/navigation'
 import { addNotification } from '@/app/lib/slices/notifications'
 
@@ -99,8 +99,6 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
 
   const dispatch = useAppDispatch()
 
-  const isMounted = useIsMounted()
-
   useEffect(() => {
     setChosenTemplate(null)
   }, [open])
@@ -151,9 +149,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                     if (cards && cards.length > 0) {
                       router.push(`/cards/${cards[0]}`)
                     }
-                    if (isMounted()) {
-                      onClose()
-                    }
+                    onClose()
                   } catch (error) {
                     dispatch(
                       addNotification({

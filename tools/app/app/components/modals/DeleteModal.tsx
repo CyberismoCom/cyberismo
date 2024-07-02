@@ -14,12 +14,7 @@ import {
 import { Trans, useTranslation } from 'react-i18next'
 import { Warning } from '@mui/icons-material'
 import { useCard } from '../../lib/api'
-import {
-  useAppDispatch,
-  useChildAmount,
-  useIsMounted,
-  useParentCard,
-} from '@/app/lib/hooks'
+import { useAppDispatch, useChildAmount, useParentCard } from '@/app/lib/hooks'
 import { useRouter } from 'next/navigation'
 import { addNotification } from '@/app/lib/slices/notifications'
 
@@ -41,8 +36,6 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
   const parent = useParentCard(cardKey)
 
   const router = useRouter()
-
-  const isMounted = useIsMounted()
 
   const warning = useMemo(
     () =>
@@ -77,13 +70,11 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
           type: 'success',
         })
       )
-      if (isMounted()) {
-        onClose()
-        if (parent) {
-          router.push(`/cards/${parent.key}`)
-        } else {
-          router.push('/cards')
-        }
+      onClose()
+      if (parent) {
+        router.push(`/cards/${parent.key}`)
+      } else {
+        router.push('/cards')
       }
     } catch (error) {
       dispatch(
@@ -93,7 +84,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
         })
       )
     }
-  }, [onClose, cardKey, isMounted, t, parent, router, deleteCard, dispatch])
+  }, [onClose, cardKey, t, parent, router, deleteCard, dispatch])
 
   // Reset checkbox state when dialog is closed/opened
   useEffect(() => {

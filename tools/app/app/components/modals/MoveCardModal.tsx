@@ -20,7 +20,7 @@ import {
 } from '@mui/joy'
 import { useTranslation } from 'react-i18next'
 import { useCard, useProject } from '../../lib/api'
-import { useAppSelector, useIsMounted, useMoveableCards } from '../../lib/hooks'
+import { useAppSelector, useMoveableCards } from '../../lib/hooks'
 import {
   deepCopy,
   filterCards,
@@ -55,7 +55,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const recents = useAppSelector((state) => state.recentlyViewed.pages)
 
   const dispatch = useDispatch()
-  const isMounted = useIsMounted()
 
   const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS)
 
@@ -71,9 +70,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
             type: 'success',
           })
         )
-        if (isMounted()) {
-          onClose()
-        }
+        onClose()
       } catch (error) {
         dispatch(
           addNotification({
@@ -83,7 +80,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
         )
       }
     }
-  }, [selected, updateCard, t, onClose, isMounted, dispatch])
+  }, [selected, updateCard, t, onClose, dispatch])
 
   const moveableCards = useMoveableCards(cardKey)
 
