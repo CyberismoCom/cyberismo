@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import {
   Card,
   CardDetails,
@@ -9,10 +9,7 @@ import {
   Project,
   Workflow,
 } from './definitions'
-import { ApiCallError } from './swr'
 import { useForm } from 'react-hook-form'
-import { usePathname } from 'next/navigation'
-import { get } from 'http'
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -95,7 +92,14 @@ export function findWorkflowForCard(
     project.workflows.find((workflow) => workflow.name === workflowName) ?? null
   )
 }
-
+/**
+ * Replaces the metadata of a card in a tree of cards
+ * Note: This function mutates the input array
+ * @param key The key of the card being edited
+ * @param metadata The new metadata to replace the old metadata with
+ * @param cards The tree of cards to search for the card to edit
+ * @returns The updated tree of cards
+ */
 export function replaceCardMetadata(
   key: string,
   metadata: CardMetadata | undefined,
@@ -106,7 +110,6 @@ export function replaceCardMetadata(
   updateCard(updatedCards, key, metadata)
   return updatedCards
 }
-
 function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
   cards.forEach((card) => {
     if (card.key === key) {
@@ -121,6 +124,7 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
 
 /**
  * Hook that allows easy use of multiple modals at once
+ * @param modals: object with keys as modal names and values as boolean whether the modal is open
  */
 export function useModals<T extends Record<string, boolean>>(modals: T) {
   const [openModals, setOpenModals] = useState<Record<keyof T, boolean>>(modals)
@@ -173,7 +177,7 @@ export function useDynamicForm(values: Object) {
 /**
  * Converts metadata value to string
  * @param metadata: metadata value to convert to string
- * @returns
+ * @returns string representation of the metadata value
  */
 export function metadataValueToString(
   metadata: MetadataValue,
@@ -200,6 +204,9 @@ export function metadataValueToString(
 }
 /**
  * Finds a card in a tree of cards
+ * @param cards: array of Cards with possible children Card arrays
+ * @param key: key of the card to find
+ * @returns card if found, otherwise null
  */
 export function findCard(cards: Card[], key: string): Card | null {
   for (const card of cards) {
@@ -239,8 +246,10 @@ export function findParentCard(cards: Card[], key: string): Card | null {
 
 /**
  * Edits a card in a tree of cards
- * @param card
- * @returns
+ * Note: This function mutates the input array
+ * @param cards array of cards
+ * @param card updated version of the card
+ * @returns updated array of cards
  */
 export function editCard(cards: Card[], card: Card): Card[] {
   for (let i = 0; i < cards.length; i++) {
@@ -256,8 +265,8 @@ export function editCard(cards: Card[], card: Card): Card[] {
 }
 
 /**
- * Edits a card in a tree of cards
- * This function converts CardDetails to Card before editing
+ * Edits a card in a tree of cards based on card details
+ * Note: This function mutates the input array
  * @param card
  * @returns
  */
@@ -276,6 +285,10 @@ export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
 
 /**
  * Moves a card in a tree of cards
+ * Note: This function mutates the input array
+ * @param cards: array of cards
+ * @param cardKey: key of the card to move
+ * @param newParentKey: key of the new parent card
  */
 export function moveCard(
   cards: Card[],
@@ -305,6 +318,7 @@ export function moveCard(
 
 /**
  * Counts the number of children of a card, including the card itself and children of children
+ * @param card: card to count the children of
  */
 export function countChildren(card: Card): number {
   if (!card.children) {
@@ -315,15 +329,11 @@ export function countChildren(card: Card): number {
 
 /**
  * Return true if card is children of the other card
- * Could be much more efficient
  * @param card parent card to check if the other card is a child of
  * @param key key of the card to check if it is a child of the parent card
- * @returns
+ * @returns true if the card is a child of the parent card, otherwise false
  */
 export function isChildOf(card: Card, key: string): boolean {
-  if (card.key === key) {
-    return true
-  }
   if (card.children) {
     for (const child of card.children) {
       if (isChildOf(child, key)) {
@@ -337,6 +347,9 @@ export function isChildOf(card: Card, key: string): boolean {
 /**
  * Deletes a card from a tree of cards
  * Note: This function mutates the input array
+ * @param cards: array of cards
+ * @param key: key of the card to delete
+ * @returns updated array of cards
  */
 export function deleteCard(cards: Card[], key: string): Card[] {
   for (const card of cards) {
@@ -352,6 +365,8 @@ export function deleteCard(cards: Card[], key: string): Card[] {
 
 /**
  * Deep copy an object
+ * @param obj: object to copy
+ * @returns deep copy of the object
  */
 export function deepCopy<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj))
@@ -361,6 +376,7 @@ export function deepCopy<T>(obj: T): T {
  * Returns all cards, to which it is possible to move the card
  * @param cards: array of cards, which the card might be moved to
  * @param card: card to move
+ * @returns array of cards, to which it is possible to move the card
  */
 export function getMoveableCards(cards: Card[], card: Card): Card[] {
   const parent = findParentCard(cards, card.key)
@@ -379,7 +395,8 @@ export function getMoveableCards(cards: Card[], card: Card): Card[] {
 /**
  * Returns filtered tree of cards
  * @param cards: array of cards to filter
- * @param filter: filter function
+ * @param filter: filter function that returns true if the card should be included
+ * @returns filtered array of cards
  */
 export function filterCards(
   cards: Card[],
