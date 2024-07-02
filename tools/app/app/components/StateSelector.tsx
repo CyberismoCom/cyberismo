@@ -24,10 +24,6 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   workflow,
   onTransition,
 }) => {
-  const handleMenuItemClick = (transition: WorkflowTransition) => {
-    onTransition(transition)
-  }
-
   const { t } = useTranslation()
 
   const availableTransitions = useMemo(() => {
@@ -70,7 +66,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         {availableTransitions.map((transition) => (
           <MenuItem
             key={transition.name}
-            onClick={() => handleMenuItemClick(transition)}
+            onClick={() => onTransition(transition)}
           >
             <ListItemContent>{transition.name}</ListItemContent>
           </MenuItem>
