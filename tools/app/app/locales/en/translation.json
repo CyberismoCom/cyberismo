@@ -57,5 +57,8 @@
   "viewedAgo": "Viewed {{time}} ago",
   "recents": "Recents",
   "all": "All",
-  "move": "Move"
+  "move": "Move",
+  "stateSelector": {
+    "status": "Status: {{state}}"
+  }
 }

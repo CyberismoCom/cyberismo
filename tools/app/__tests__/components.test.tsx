@@ -4,6 +4,7 @@ import { TreeMenu } from '../app/components/TreeMenu'
 import { Project } from '@/app/lib/definitions'
 import StateSelector from '@/app/components/StateSelector'
 import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces'
+import { useTranslation } from 'react-i18next'
 
 // Mock useRouter:
 jest.mock('next/navigation', () => ({
@@ -12,6 +13,10 @@ jest.mock('next/navigation', () => ({
       prefetch: () => null,
     }
   },
+}))
+
+jest.mock('react-i18next', () => ({
+  useTranslation: jest.fn(),
 }))
 
 describe('TreeMenu', () => {
@@ -46,6 +51,11 @@ describe('TreeMenu', () => {
 
 describe('StateSelector', () => {
   it('renders with test data', () => {
+    const useTranslationSpy = useTranslation as jest.Mock
+    const tSpy = jest.fn((str, { state }) => `${str} ${state}`)
+    useTranslationSpy.mockReturnValue({
+      t: tSpy,
+    })
     render(
       <StateSelector
         currentState={testProject.workflows[0].states[1]}
@@ -53,7 +63,7 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />
     )
-    const node = screen.getByText('Status: Approved')
+    const node = screen.getByText('stateSelector.status Approved')
     expect(node).toBeVisible()
 
     render(
@@ -63,12 +73,10 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />
     )
-    const node2 = screen.getByText('Status: Not OK')
+    const node2 = screen.getByText('stateSelector.status Not OK')
     expect(node2).toBeVisible()
   })
-})
 
-describe('StateSelector', () => {
   it('fails gracefully if currentState and workflow do not match', () => {
     const { container } = render(
       <StateSelector
