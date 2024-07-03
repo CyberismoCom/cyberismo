@@ -129,7 +129,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                 <TemplateCard
                   isChosen={chosenTemplate === template.name}
                   onClick={() => setChosenTemplate(template.name)}
-                  name={template.name}
+                  name={template.metadata.displayName ?? template.name}
                   description={template.metadata.description ?? ''}
                 />
               </Grid>
