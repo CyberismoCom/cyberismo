@@ -4,7 +4,7 @@ import mime from 'mime-types';
 
 // cyberismo
 import { attachmentPayload } from './interfaces/request-status-interfaces.js';
-import { attachmentDetails, card, cardListContainer, cardtype, fetchCardDetails, fieldtype, moduleSettings, project, resource, template, workflowMetadata } from './interfaces/project-interfaces.js';
+import { attachmentDetails, card, cardListContainer, cardtype, fetchCardDetails, fieldtype, moduleSettings, project, template, workflowMetadata } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 
 export class Show {

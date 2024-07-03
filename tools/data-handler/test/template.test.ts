@@ -12,7 +12,6 @@ import { card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js'
 import { Template } from '../src/containers/template.js'
-import exp from 'node:constants';
 
 // Create test artifacts in a temp directory.
 const baseDir = dirname(fileURLToPath(import.meta.url));
