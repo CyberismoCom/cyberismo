@@ -11,12 +11,16 @@ import {
   Table,
 } from '@mui/joy'
 import { useCard } from '@/app/lib/api'
-import { CardMetadata } from '@/app/lib/definitions'
+import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces'
+import moment from 'moment'
 
-const renderMetadata = (
-  t: (key: string) => string,
-  metadata?: CardMetadata
-) => {
+function Metadata({
+  cardtype,
+  summary,
+  workflowState,
+  lastTransitioned,
+}: cardMetadata) {
+  const {t} = useTranslation()
   return (
     <Table size="sm">
       <thead>
@@ -28,15 +32,19 @@ const renderMetadata = (
       <tbody>
         <tr>
           <td>{t('cardType')}</td>
-          <td>{metadata?.cardtype}</td>
+          <td>{cardtype}</td>
         </tr>
         <tr>
           <td>{t('summary')}</td>
-          <td>{metadata?.summary}</td>
+          <td>{summary}</td>
         </tr>
         <tr>
           <td>{t('workflowState')}</td>
-          <td>{metadata?.workflowState}</td>
+          <td>{workflowState}</td>
+        </tr>
+        <tr>
+          <td>{t('lastTransitioned')}</td>
+          <td>{lastTransitioned && moment(lastTransitioned).fromNow()}</td>
         </tr>
       </tbody>
     </Table>
@@ -60,7 +68,11 @@ export function MetadataModal({ open, onClose, cardKey }: MetadataModalProps) {
           {card?.key} {t('metadata').toLowerCase()}
         </DialogTitle>
         <DialogContent>
-          <Typography>{renderMetadata(t, card?.metadata)}</Typography>
+          {card?.metadata ? (
+            <Metadata {...card.metadata} />
+          ) : (
+            <Typography level="body-xs">{t('metadataNotFound')}</Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} autoFocus>

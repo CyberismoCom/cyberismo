@@ -55,6 +55,8 @@
   "yes": "Yes",
   "createUnder": "Create under \"{{parent}}\"",
   "viewedAgo": "Viewed {{time}} ago",
+  "lastTransitioned": "Last Transitioned",
+  "metadataNotFound": "Metadata not found",
   "recents": "Recents",
   "all": "All",
   "move": "Move",
