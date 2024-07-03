@@ -27,11 +27,13 @@ interface NewCardModalProps {
 }
 
 export function TemplateCard({
-  template,
+  name,
+  description,
   onClick,
   isChosen,
 }: {
-  template: string
+  name: string
+  description: string
   isChosen: boolean
   onClick: () => void
 }) {
@@ -55,7 +57,7 @@ export function TemplateCard({
           paddingLeft={2}
           fontWeight="bold"
         >
-          {template}
+          {name}
         </Typography>
         <Box padding={1}>
           <Radio checked={isChosen} variant="soft" />
@@ -78,7 +80,7 @@ export function TemplateCard({
           paddingLeft={2}
           paddingTop={2}
         >
-          Description placeholder
+          {description}
         </Typography>
       </Box>
     </Card>
@@ -123,11 +125,12 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             }}
           >
             {(templates || []).map((template) => (
-              <Grid key={template} item>
+              <Grid key={template.name} item>
                 <TemplateCard
-                  template={template}
-                  isChosen={chosenTemplate === template}
-                  onClick={() => setChosenTemplate(template)}
+                  isChosen={chosenTemplate === template.name}
+                  onClick={() => setChosenTemplate(template.name)}
+                  name={template.name}
+                  description={template.metadata.description ?? ''}
                 />
               </Grid>
             ))}

@@ -4,7 +4,7 @@ import mime from 'mime-types';
 
 // cyberismo
 import { attachmentPayload } from './interfaces/request-status-interfaces.js';
-import { attachmentDetails, card, cardListContainer, cardtype, fetchCardDetails, fieldtype, moduleSettings, project, resource, workflowMetadata } from './interfaces/project-interfaces.js';
+import { attachmentDetails, card, cardListContainer, cardtype, fetchCardDetails, fieldtype, moduleSettings, project, resource, template, workflowMetadata } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 
 export class Show {
@@ -281,9 +281,14 @@ export class Show {
      * @todo: add unit tests
      * @returns all templates in a project.
      */
-    public async showTemplatesWithDetails(projectPath: string): Promise<(resource)[]> {
+    public async showTemplatesWithDetails(projectPath: string): Promise<template[]> {
         Show.project = new Project(projectPath);
-        return await Show.project.templates();
+        const promiseContainer = [];
+        for (const template of await Show.project.templates()) {
+            promiseContainer.push(Show.project.createTemplateObjectByName(template.name).then(t => t?.show()));
+        }
+        const result = await Promise.all(promiseContainer);
+        return result.filter(item => item) as template[];
     }
 
     /**

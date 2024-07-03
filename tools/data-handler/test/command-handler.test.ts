@@ -811,6 +811,9 @@ describe('create command', () => {
         const defaultContent = Create.defaultTemplateContent();
         expect(defaultContent.buttonLabel).to.equal('Button');
         expect(defaultContent.namePrompt).to.equal('Prompt');
+        expect(defaultContent.displayName).to.equal(undefined);
+        expect(defaultContent.category).to.equal(undefined);
+        expect(defaultContent.description).to.equal(undefined);
     });
     it('access default parameters for workflow (success)', () => {
         const defaultContent = Create.defaultWorkflowContent('test');

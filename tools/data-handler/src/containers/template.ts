@@ -6,7 +6,7 @@ import { readdirSync } from 'node:fs';
 // ismo
 import { attachmentDetails, card, cardNameRegEx, fetchCardDetails, resource, template, templateMetadata } from '../interfaces/project-interfaces.js';
 import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
-import { formatJson } from '../utils/json.js';
+import { formatJson, readJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 
 // Base class
@@ -399,6 +399,7 @@ export class Template extends CardContainer {
             path: this.templateFolder(),
             project: this.project.projectName,
             numberOfCards: (await super.cards(this.templateCardsPath)).length,
+            metadata: await readJsonFile(this.templateConfigurationFilePath()),
         }
     }
 
