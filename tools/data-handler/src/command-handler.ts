@@ -19,8 +19,8 @@ import { fileURLToPath } from 'node:url';
 import { errorFunction } from './utils/log-utils.js';
 
 const invalidNames = new RegExp(
-  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$',
-); // eslint-disable-line no-control-regex
+  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
+);
 
 // Generic options interface
 export interface CardsOptions {
