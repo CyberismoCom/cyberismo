@@ -1,45 +1,45 @@
 {
-    "title": "FieldType",
-    "$id": "field-type-schema",
-    "description": "Field type defines the workflow and optional additional fields for the cards.",
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-        "name": {
-            "type": "string",
-            "description": "The technical name by which the field is referred to in JSON files."
-        },
-        "displayName": {
-            "type": "string",
-            "description": "A name by which the field is referred to in the user interface."
-        },
-        "fieldDescription": {
-            "type": "string",
-            "description": ""
-        },
-        "dataType": {
-            "type": "string",
-            "description": "",
-            "pattern": "^shorttext$|^longtext$|^number$|^integer$|^boolean$|^enum$|^list$|^date$|^datetime$|^person$"
-        },
-        "enumValues": {
-            "description": "An array of available enum values. Used for the enum fieldType only.",
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "enumValue": {
-                        "type": "string"
-                    },
-                    "enumDisplayValue": {
-                        "type": "string"
-                    },
-                    "enumDescription": {
-                        "type": "string"
-                    }
-                }
-            }
-        }
+  "title": "FieldType",
+  "$id": "field-type-schema",
+  "description": "Field type defines the workflow and optional additional fields for the cards.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The technical name by which the field is referred to in JSON files."
     },
-    "required": [ "name", "dataType" ]
+    "displayName": {
+      "type": "string",
+      "description": "A name by which the field is referred to in the user interface."
+    },
+    "fieldDescription": {
+      "type": "string",
+      "description": ""
+    },
+    "dataType": {
+      "type": "string",
+      "description": "",
+      "pattern": "^shorttext$|^longtext$|^number$|^integer$|^boolean$|^enum$|^list$|^date$|^datetime$|^person$"
+    },
+    "enumValues": {
+      "description": "An array of available enum values. Used for the enum fieldType only.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "enumValue": {
+            "type": "string"
+          },
+          "enumDisplayValue": {
+            "type": "string"
+          },
+          "enumDescription": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": ["name", "dataType"]
 }

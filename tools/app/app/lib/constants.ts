@@ -1,1 +1,1 @@
-export const MAX_RECENTS_STORED = 20
+export const MAX_RECENTS_STORED = 20;

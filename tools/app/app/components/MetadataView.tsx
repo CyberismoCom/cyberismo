@@ -1,27 +1,27 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useCardType, useFieldTypes } from '../lib/api'
-import { useTranslation } from 'react-i18next'
-import { Box, Link, Stack } from '@mui/joy'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCardType, useFieldTypes } from '../lib/api';
+import { useTranslation } from 'react-i18next';
+import { Box, Link, Stack } from '@mui/joy';
 import {
   Controller,
   FormProvider,
   useForm,
   useFormContext,
-} from 'react-hook-form'
+} from 'react-hook-form';
 import {
   CardMetadata,
   DataType,
   FieldTypeDefinition,
   MetadataValue,
-} from '../lib/definitions'
-import { Collapse } from '@mui/material'
-import EditableField from './EditableField'
+} from '../lib/definitions';
+import { Collapse } from '@mui/material';
+import EditableField from './EditableField';
 
 export interface MetadataViewProps {
-  initialExpanded?: boolean
-  editMode?: boolean
-  metadata?: CardMetadata
-  onClick?: () => void
+  initialExpanded?: boolean;
+  editMode?: boolean;
+  metadata?: CardMetadata;
+  onClick?: () => void;
 }
 
 function MetadataView({
@@ -30,68 +30,68 @@ function MetadataView({
   metadata,
   onClick,
 }: MetadataViewProps) {
-  const { t } = useTranslation()
-  const [expanded, setExpanded] = useState(initialExpanded)
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(initialExpanded);
 
-  const { cardType } = useCardType(metadata?.cardtype ?? null)
+  const { cardType } = useCardType(metadata?.cardtype ?? null);
 
-  const { fieldTypes } = useFieldTypes()
+  const { fieldTypes } = useFieldTypes();
 
-  const context = useFormContext() // must be inside a <FormProvider>
+  const context = useFormContext(); // must be inside a <FormProvider>
 
   // TODO: replace with yup schemas
   const handleChange = useCallback(
     (
       value: string | null,
       onChange: (arg0: MetadataValue) => void,
-      dataType: DataType | undefined
+      dataType: DataType | undefined,
     ) => {
       switch (dataType) {
         case 'number':
         case 'integer':
-          onChange(value ? parseFloat(value) : null)
-          break
+          onChange(value ? parseFloat(value) : null);
+          break;
         case 'boolean':
-          onChange(value === 'true' ? true : value === 'false' ? false : null)
-          break
+          onChange(value === 'true' ? true : value === 'false' ? false : null);
+          break;
         case 'list':
-          onChange(value ? value.split(',').map((v) => v.trim()) : [])
-          break
+          onChange(value ? value.split(',').map((v) => v.trim()) : []);
+          break;
         default:
-          onChange(value)
+          onChange(value);
       }
     },
-    []
-  )
+    [],
+  );
 
   const editableFields = useMemo(() => {
     if (!cardType) {
-      return []
+      return [];
     }
     return (
       cardType.customFields?.filter((f) => f.isEditable).map((f) => f.name) ??
       []
-    )
-  }, [cardType])
+    );
+  }, [cardType]);
 
   const allFieldKeys = useMemo(() => {
     if (!cardType) {
-      return []
+      return [];
     }
     return (cardType.alwaysVisibleFields ?? []).concat(
-      cardType.optionallyVisibleFields ?? []
-    )
-  }, [cardType])
+      cardType.optionallyVisibleFields ?? [],
+    );
+  }, [cardType]);
 
   const allFields = useMemo(() => {
-    if (!fieldTypes) return []
+    if (!fieldTypes) return [];
     return allFieldKeys
       .map((field) => fieldTypes?.find((f) => f.name === field))
-      .filter((f) => f != null) as FieldTypeDefinition[]
-  }, [allFieldKeys, fieldTypes])
+      .filter((f) => f != null) as FieldTypeDefinition[];
+  }, [allFieldKeys, fieldTypes]);
 
   if (allFieldKeys.length === 0) {
-    return null
+    return null;
   }
 
   return (
@@ -130,7 +130,7 @@ function MetadataView({
                     enumValues={enumValues}
                     label={displayName || name}
                   />
-                )
+                );
               }}
             />
           </Collapse>
@@ -143,8 +143,8 @@ function MetadataView({
             color="primary"
             underline="none"
             onClick={(e) => {
-              e.stopPropagation()
-              setExpanded(!expanded)
+              e.stopPropagation();
+              setExpanded(!expanded);
             }}
             bgcolor="inherit"
             sx={{
@@ -158,11 +158,11 @@ function MetadataView({
         </Box>
       )}
     </Box>
-  )
+  );
 }
 // Allows to use useFormContext outside of a FormProvider
 export default function Wrapper(props: MetadataViewProps) {
-  const context = useForm()
+  const context = useForm();
 
   return props.editMode ? (
     <MetadataView {...props} />
@@ -170,5 +170,5 @@ export default function Wrapper(props: MetadataViewProps) {
     <FormProvider {...context}>
       <MetadataView {...props} />
     </FormProvider>
-  )
+  );
 }

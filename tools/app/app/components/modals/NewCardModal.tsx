@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
 import {
   Box,
   Modal,
@@ -12,18 +12,18 @@ import {
   Stack,
   Radio,
   ModalClose,
-} from '@mui/joy'
-import { useTranslation } from 'react-i18next'
-import { Grid } from '@mui/material'
-import { useCard, useTemplates } from '@/app/lib/api'
-import { useAppDispatch } from '@/app/lib/hooks'
-import { useRouter } from 'next/navigation'
-import { addNotification } from '@/app/lib/slices/notifications'
+} from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import { Grid } from '@mui/material';
+import { useCard, useTemplates } from '@/app/lib/api';
+import { useAppDispatch } from '@/app/lib/hooks';
+import { useRouter } from 'next/navigation';
+import { addNotification } from '@/app/lib/slices/notifications';
 
 interface NewCardModalProps {
-  open: boolean
-  onClose: () => void
-  cardKey: string | null
+  open: boolean;
+  onClose: () => void;
+  cardKey: string | null;
 }
 
 export function TemplateCard({
@@ -32,10 +32,10 @@ export function TemplateCard({
   onClick,
   isChosen,
 }: {
-  name: string
-  description: string
-  isChosen: boolean
-  onClick: () => void
+  name: string;
+  description: string;
+  isChosen: boolean;
+  onClick: () => void;
 }) {
   return (
     <Card
@@ -84,26 +84,26 @@ export function TemplateCard({
         </Typography>
       </Box>
     </Card>
-  )
+  );
 }
 
 export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   const [chosenTemplate, setChosenTemplate] = React.useState<string | null>(
-    null
-  )
+    null,
+  );
 
-  const router = useRouter()
+  const router = useRouter();
 
-  const { templates } = useTemplates()
+  const { templates } = useTemplates();
 
-  const { createCard, card } = useCard(cardKey)
+  const { createCard, card } = useCard(cardKey);
 
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    setChosenTemplate(null)
-  }, [open])
+    setChosenTemplate(null);
+  }, [open]);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -141,25 +141,25 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               onClick={async () => {
                 if (chosenTemplate) {
                   try {
-                    const cards = await createCard(chosenTemplate)
+                    const cards = await createCard(chosenTemplate);
                     dispatch(
                       addNotification({
                         message: t('createCard.success'),
                         type: 'success',
-                      })
-                    )
+                      }),
+                    );
 
                     if (cards && cards.length > 0) {
-                      router.push(`/cards/${cards[0]}`)
+                      router.push(`/cards/${cards[0]}`);
                     }
-                    onClose()
+                    onClose();
                   } catch (error) {
                     dispatch(
                       addNotification({
                         message: error instanceof Error ? error.message : '',
                         type: 'error',
-                      })
-                    )
+                      }),
+                    );
                   }
                 }
               }}
@@ -178,7 +178,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
         </DialogContent>
       </ModalDialog>
     </Modal>
-  )
+  );
 }
 
-export default NewCardModal
+export default NewCardModal;

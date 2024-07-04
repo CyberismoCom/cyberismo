@@ -1,6 +1,7 @@
-import { useSWRHook } from "./common";
-import { apiPaths } from "../swr";
+import { useSWRHook } from './common';
+import { apiPaths } from '../swr';
 
-import { SWRConfiguration } from "swr";
+import { SWRConfiguration } from 'swr';
 
-export const useProject = (options?: SWRConfiguration) => useSWRHook<'project'>(apiPaths.project(), 'project', options);
+export const useProject = (options?: SWRConfiguration) =>
+  useSWRHook<'project'>(apiPaths.project(), 'project', options);

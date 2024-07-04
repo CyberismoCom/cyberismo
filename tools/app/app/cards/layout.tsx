@@ -1,8 +1,8 @@
-'use client'
-import { useState } from 'react'
-import { TreeMenu } from '../components/TreeMenu'
-import AppToolbar from '../components/AppToolbar'
-import { CssBaseline, Snackbar } from '@mui/material'
+'use client';
+import { useState } from 'react';
+import { TreeMenu } from '../components/TreeMenu';
+import AppToolbar from '../components/AppToolbar';
+import { CssBaseline, Snackbar } from '@mui/material';
 
 import {
   Stack,
@@ -13,46 +13,46 @@ import {
   Container,
   Alert,
   IconButton,
-} from '@mui/joy'
-import { useProject } from '../lib/api'
-import { SWRConfig } from 'swr'
-import { getSwrConfig } from '../lib/swr'
-import theme from '../theme'
-import '../lib/i18n'
+} from '@mui/joy';
+import { useProject } from '../lib/api';
+import { SWRConfig } from 'swr';
+import { getSwrConfig } from '../lib/swr';
+import theme from '../theme';
+import '../lib/i18n';
 import {
   experimental_extendTheme as materialExtendTheme,
   Experimental_CssVarsProvider as MaterialCssVarsProvider,
   THEME_ID as MATERIAL_THEME_ID,
-} from '@mui/material/styles'
-import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles'
-import { NewCardModal } from '../components/modals'
-import StoreProvider from '../providers/StoreProvider'
-import { useAppDispatch, useAppSelector } from '../lib/hooks'
-import { CloseRounded } from '@mui/icons-material'
+} from '@mui/material/styles';
+import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
+import { NewCardModal } from '../components/modals';
+import StoreProvider from '../providers/StoreProvider';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { CloseRounded } from '@mui/icons-material';
 import {
   closeNotification,
   removeNotification,
-} from '../lib/slices/notifications'
-import { useParams, useRouter } from 'next/navigation'
+} from '../lib/slices/notifications';
+import { useParams, useRouter } from 'next/navigation';
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
-  const params = useParams<{ key?: string }>()
-  const { project, error, isLoading } = useProject()
+  const params = useParams<{ key?: string }>();
+  const { project, error, isLoading } = useProject();
 
   const notifications = useAppSelector(
-    (state) => state.notifications.notifications
-  )
+    (state) => state.notifications.notifications,
+  );
 
-  const dispatch = useAppDispatch()
-  const router = useRouter()
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
   if (isLoading)
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
       </Box>
-    )
+    );
 
   if (error || !project) {
     return (
@@ -64,7 +64,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           {error.message}
         </Typography>
       </Container>
-    )
+    );
   }
   return (
     <Stack direction="row" height="100%">
@@ -95,7 +95,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
           onClose={(e) => {
             if (e === null) {
               // this means auto hide
-              dispatch(closeNotification(notification.id))
+              dispatch(closeNotification(notification.id));
             }
           }}
         >
@@ -108,7 +108,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
                 size="sm"
                 color="neutral"
                 onClick={() => {
-                  dispatch(closeNotification(notification.id))
+                  dispatch(closeNotification(notification.id));
                 }}
               >
                 <CloseRounded />
@@ -120,19 +120,19 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         </Snackbar>
       ))}
     </Stack>
-  )
+  );
 }
 
 const Main = styled('main')(({ theme }) => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
   flexGrow: 1,
-}))
+}));
 
 function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const params = useParams<{
-    key?: string
-  }>()
+    key?: string;
+  }>();
 
   return (
     <Stack>
@@ -146,10 +146,10 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
         cardKey={params.key ?? null}
       />
     </Stack>
-  )
+  );
 }
 
-const materialTheme = materialExtendTheme()
+const materialTheme = materialExtendTheme();
 
 export default function CardsLayout({
   children,
@@ -169,5 +169,5 @@ export default function CardsLayout({
         </StoreProvider>
       </JoyCssVarsProvider>
     </MaterialCssVarsProvider>
-  )
+  );
 }

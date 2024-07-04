@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Checkbox,
   Modal,
@@ -17,27 +17,27 @@ import {
   Input,
   Box,
   CircularProgress,
-} from '@mui/joy'
-import { useTranslation } from 'react-i18next'
-import { useCard, useProject } from '../../lib/api'
-import { useAppSelector, useMoveableCards } from '../../lib/hooks'
+} from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import { useCard, useProject } from '../../lib/api';
+import { useAppSelector, useMoveableCards } from '../../lib/hooks';
 import {
   deepCopy,
   filterCards,
   findCard,
   findParentCard,
-} from '../../lib/utils'
-import { Stack } from '@mui/system'
-import { Card } from '../../lib/definitions'
-import moment from 'moment'
-import { TreeMenu } from '../TreeMenu'
-import { useDispatch } from 'react-redux'
-import { addNotification } from '@/app/lib/slices/notifications'
+} from '../../lib/utils';
+import { Stack } from '@mui/system';
+import { Card } from '../../lib/definitions';
+import moment from 'moment';
+import { TreeMenu } from '../TreeMenu';
+import { useDispatch } from 'react-redux';
+import { addNotification } from '@/app/lib/slices/notifications';
 
 export interface MoveCardModalProps {
-  open: boolean
-  onClose: () => void
-  cardKey: string
+  open: boolean;
+  onClose: () => void;
+  cardKey: string;
 }
 
 enum TabEnum {
@@ -46,49 +46,51 @@ enum TabEnum {
 }
 
 export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
-  const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<string | null>(null)
-  const { project, isLoading } = useProject()
-  const { updateCard } = useCard(cardKey)
-  const recents = useAppSelector((state) => state.recentlyViewed.pages)
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const { project, isLoading } = useProject();
+  const { updateCard } = useCard(cardKey);
+  const recents = useAppSelector((state) => state.recentlyViewed.pages);
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
-  const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS)
+  const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS);
 
   const moveCard = useCallback(async () => {
     if (selected) {
       try {
         await updateCard({
           parent: selected,
-        })
+        });
         dispatch(
           addNotification({
             message: t('moveCardModal.success'),
             type: 'success',
-          })
-        )
-        onClose()
+          }),
+        );
+        onClose();
       } catch (error) {
         dispatch(
           addNotification({
             message: error instanceof Error ? error.message : '',
             type: 'error',
-          })
-        )
+          }),
+        );
       }
     }
-  }, [selected, updateCard, t, onClose, dispatch])
+  }, [selected, updateCard, t, onClose, dispatch]);
 
-  const moveableCards = useMoveableCards(cardKey)
+  const moveableCards = useMoveableCards(cardKey);
 
   const moveableTree = useMemo(() => {
     return filterCards(deepCopy(project?.cards) || [], (card) => {
-      return moveableCards.some((moveableCard) => moveableCard.key === card.key)
-    })
-  }, [project, moveableCards])
+      return moveableCards.some(
+        (moveableCard) => moveableCard.key === card.key,
+      );
+    });
+  }, [project, moveableCards]);
 
   const recentCards = useMemo(
     () =>
@@ -98,27 +100,27 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
           ...(findCard(moveableCards, page.key) as Card),
           timestamp: page.timestamp,
         })),
-    [recents, moveableCards]
-  )
+    [recents, moveableCards],
+  );
 
   useEffect(() => {
-    setSelected(null)
-  }, [open, currentTab])
+    setSelected(null);
+  }, [open, currentTab]);
 
   const searchableCards = useMemo(() => {
     if (currentTab === TabEnum.RECENTS) {
-      return recentCards
+      return recentCards;
     } else {
-      return moveableCards
+      return moveableCards;
     }
-  }, [currentTab, recentCards, moveableCards])
+  }, [currentTab, recentCards, moveableCards]);
 
   if (isLoading || !project) {
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
       </Box>
-    )
+    );
   }
   return (
     <Modal open={open} onClose={onClose}>
@@ -155,12 +157,12 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
               {searchableCards
                 .filter(
                   (
-                    page // if search gets any more complex, use a better solution
+                    page, // if search gets any more complex, use a better solution
                   ) =>
                     page.key.startsWith(search.toLowerCase()) ||
                     page.metadata?.summary
                       ?.toLowerCase()
-                      .startsWith(search.toLowerCase())
+                      .startsWith(search.toLowerCase()),
                 )
                 .map((page) => {
                   return (
@@ -175,9 +177,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                       }
                       onClick={() => {
                         if (selected === page.key) {
-                          setSelected(null)
+                          setSelected(null);
                         } else {
-                          setSelected(page.key)
+                          setSelected(page.key);
                         }
                       }}
                       sx={{
@@ -205,7 +207,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         </Typography>
                       </Stack>
                     </Box>
-                  )
+                  );
                 })}
             </Box>
           ) : (
@@ -251,9 +253,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         }
                         onClick={() => {
                           if (selected === page.key) {
-                            setSelected(null)
+                            setSelected(null);
                           } else {
-                            setSelected(page.key)
+                            setSelected(page.key);
                           }
                         }}
                         sx={{
@@ -272,7 +274,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                               {t('viewedAgo', {
                                 time: moment
                                   .duration(
-                                    moment().diff(moment(page.timestamp))
+                                    moment().diff(moment(page.timestamp)),
                                   )
                                   .humanize(),
                               })}
@@ -289,7 +291,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                           </Typography>
                         </Stack>
                       </Box>
-                    )
+                    );
                   })}
                 </>
               </TabPanel>
@@ -306,7 +308,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                   cards={moveableTree}
                   selectedCardKey={selected}
                   onCardSelect={(cardKey) => {
-                    setSelected(cardKey)
+                    setSelected(cardKey);
                   }}
                   title={project.name}
                 />
@@ -329,7 +331,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
         </DialogContent>
       </ModalDialog>
     </Modal>
-  )
+  );
 }
 
-export default MoveCardModal
+export default MoveCardModal;

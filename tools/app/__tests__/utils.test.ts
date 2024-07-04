@@ -1,45 +1,45 @@
-import { Card, Project } from '@/app/lib/definitions'
-import { findPathTo, findWorkflowForCard, flattenTree } from '@/app/lib/utils'
+import { Card, Project } from '@/app/lib/definitions';
+import { findPathTo, findWorkflowForCard, flattenTree } from '@/app/lib/utils';
 
 test('flattenTree works with test data', async () => {
-  const result = flattenTree(testProject.cards)
+  const result = flattenTree(testProject.cards);
 
-  expect(result.length).toBe(11)
-  expect(result[0].key).toBe('USDL-43')
-  expect(result[1].key).toBe('USDL-44')
-  expect(result[2].key).toBe('USDL-45')
-  expect(result[3].key).toBe('USDL-46')
-  expect(result[4].key).toBe('USDL-47')
-  expect(result[5].key).toBe('USDL-53')
-  expect(result[6].key).toBe('USDL-48')
-  expect(result[7].key).toBe('USDL-49')
-  expect(result[8].key).toBe('USDL-50')
-  expect(result[9].key).toBe('USDL-51')
-  expect(result[10].key).toBe('USDL-52')
-})
+  expect(result.length).toBe(11);
+  expect(result[0].key).toBe('USDL-43');
+  expect(result[1].key).toBe('USDL-44');
+  expect(result[2].key).toBe('USDL-45');
+  expect(result[3].key).toBe('USDL-46');
+  expect(result[4].key).toBe('USDL-47');
+  expect(result[5].key).toBe('USDL-53');
+  expect(result[6].key).toBe('USDL-48');
+  expect(result[7].key).toBe('USDL-49');
+  expect(result[8].key).toBe('USDL-50');
+  expect(result[9].key).toBe('USDL-51');
+  expect(result[10].key).toBe('USDL-52');
+});
 
 test('findPathTo works with test data', async () => {
-  const result = findPathTo('USDL-53', testProject.cards)
+  const result = findPathTo('USDL-53', testProject.cards);
 
-  expect(result).not.toBeNull()
-  expect(result!.length).toBe(4)
-  expect(result![0].key).toBe('USDL-43')
-  expect(result![1].key).toBe('USDL-44')
-  expect(result![2].key).toBe('USDL-47')
-  expect(result![3].key).toBe('USDL-53')
-})
+  expect(result).not.toBeNull();
+  expect(result!.length).toBe(4);
+  expect(result![0].key).toBe('USDL-43');
+  expect(result![1].key).toBe('USDL-44');
+  expect(result![2].key).toBe('USDL-47');
+  expect(result![3].key).toBe('USDL-53');
+});
 
 test('findPathTo returns null when card not found', async () => {
-  const result = findPathTo('NOT_FOUND', testProject.cards)
+  const result = findPathTo('NOT_FOUND', testProject.cards);
 
-  expect(result).toBeNull()
-})
+  expect(result).toBeNull();
+});
 
 test('findWorkflowForCard returns correct workflow', async () => {
-  const card = testProject.cards[0].children![0]
-  const result = findWorkflowForCard(card, testProject)
-  expect(result?.name).toBe('simple-workflow')
-})
+  const card = testProject.cards[0].children![0];
+  const result = findWorkflowForCard(card, testProject);
+  expect(result?.name).toBe('simple-workflow');
+});
 
 const testProject: Project = {
   name: 'Test project',
@@ -265,4 +265,4 @@ const testProject: Project = {
       workflow: 'simple-workflow',
     },
   ],
-}
+};

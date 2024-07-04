@@ -1,66 +1,66 @@
-'use client'
-import React, { useState } from 'react'
-import { CardAttachment, CardDetails, Project } from '../lib/definitions'
-import Processor from '@asciidoctor/core'
-import { parse } from 'node-html-parser'
-import { Box, Stack, Typography } from '@mui/joy'
-import { useTranslation } from 'react-i18next'
-import MetadataView from './MetadataView'
+'use client';
+import React, { useState } from 'react';
+import { CardAttachment, CardDetails, Project } from '../lib/definitions';
+import Processor from '@asciidoctor/core';
+import { parse } from 'node-html-parser';
+import { Box, Stack, Typography } from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import MetadataView from './MetadataView';
 
 type ContentAreaProps = {
-  card: CardDetails | null
-  error: string | null
-  onMetadataClick?: () => void
-}
+  card: CardDetails | null;
+  error: string | null;
+  onMetadataClick?: () => void;
+};
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
   card,
   error,
   onMetadataClick,
 }) => {
-  const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null)
+  const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   if (error)
     return (
       <Box>
         {t('cardNotFound')} ({error})
       </Box>
-    )
-  if (!card) return <Box>{t('loading')}</Box>
+    );
+  if (!card) return <Box>{t('loading')}</Box>;
 
-  const asciidocContent = card.content ?? ''
+  const asciidocContent = card.content ?? '';
   let htmlContent = Processor()
     .convert(asciidocContent, {
       safe: 'safe',
     })
-    .toString()
+    .toString();
 
   if (card.attachments) {
-    htmlContent = updateAttachmentLinks(htmlContent, card.attachments)
+    htmlContent = updateAttachmentLinks(htmlContent, card.attachments);
   }
 
   // On scroll, check which document headers are visible and update the table of contents scrolling state
   const handleScroll = () => {
-    const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3')
-    const visibleHeaderIds: string[] = []
+    const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
+    const visibleHeaderIds: string[] = [];
     headers.forEach((header) => {
-      const rect = header.getBoundingClientRect()
+      const rect = header.getBoundingClientRect();
       if (
         rect.top >= 0 &&
         rect.bottom <= window.innerHeight &&
         header.id &&
         header.id !== ''
       ) {
-        visibleHeaderIds.push(header.id)
+        visibleHeaderIds.push(header.id);
       }
-    })
+    });
     // Retain the scroll state if no headers are visible (we are in middle of a longer section)
     if (visibleHeaderIds.length > 0) {
-      setVisibleHeaderId(visibleHeaderIds[0])
+      setVisibleHeaderId(visibleHeaderIds[0]);
     }
-  }
+  };
 
   return (
     <Stack direction="row" height="100%">
@@ -95,21 +95,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       </Box>
       {renderTableOfContents(htmlContent, visibleHeaderId)}
     </Stack>
-  )
-}
+  );
+};
 
 type Header = {
-  id: string
-  text: string
-  level: number
-}
+  id: string;
+  text: string;
+  level: number;
+};
 
 function renderTableOfContents(
   htmlContent: string,
-  visibleHeaderId: string | null = null
+  visibleHeaderId: string | null = null,
 ) {
   // Parse the HTML content
-  const root = parse(htmlContent)
+  const root = parse(htmlContent);
   // Find all header tags
   const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
     id:
@@ -117,10 +117,10 @@ function renderTableOfContents(
       header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist
     text: header.text,
     level: parseInt(header.tagName[1]),
-  }))
+  }));
 
   // Hack for first render: mark first header as visible, after this updates via handleScroll
-  const highlightedHeader = visibleHeaderId ?? headers[0]?.id
+  const highlightedHeader = visibleHeaderId ?? headers[0]?.id;
 
   return (
     <aside className="contentSidebar toc sidebar">
@@ -146,20 +146,20 @@ function renderTableOfContents(
         </ul>
       </div>
     </aside>
-  )
+  );
 }
 
 function updateAttachmentLinks(
   htmlContent: string,
-  attachments: CardAttachment[]
+  attachments: CardAttachment[],
 ): string {
   attachments.forEach((attachment) => {
     htmlContent = htmlContent
       .replaceAll(`a/${attachment.fileName}`, attachment.fileName) // Remove imagesdir from links
       .replaceAll(
         attachment.fileName,
-        `/api/cards/${attachment.card}/a/${attachment.fileName}`
-      ) // Add API path to attachment links
-  })
-  return htmlContent
+        `/api/cards/${attachment.card}/a/${attachment.fileName}`,
+      ); // Add API path to attachment links
+  });
+  return htmlContent;
 }

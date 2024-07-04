@@ -1,22 +1,22 @@
-'use client'
-import React, { useCallback } from 'react'
-import { Box, Button } from '@mui/joy'
-import EditIcon from '@mui/icons-material/Edit'
-import { ProjectBreadcrumbs } from './ProjectBreadcrumbs'
-import { CardMode, WorkflowTransition } from '../lib/definitions'
-import StatusSelector from './StateSelector'
-import CardContextMenu from './CardContextMenu'
-import { findWorkflowForCard } from '../lib/utils'
-import { useRouter } from 'next/navigation'
-import { useTranslation } from 'react-i18next'
-import { useCard, useProject } from '../lib/api'
-import { useAppDispatch } from '../lib/hooks'
-import { addNotification } from '../lib/slices/notifications'
+'use client';
+import React, { useCallback } from 'react';
+import { Box, Button } from '@mui/joy';
+import EditIcon from '@mui/icons-material/Edit';
+import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
+import { CardMode, WorkflowTransition } from '../lib/definitions';
+import StatusSelector from './StateSelector';
+import CardContextMenu from './CardContextMenu';
+import { findWorkflowForCard } from '../lib/utils';
+import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
+import { useCard, useProject } from '../lib/api';
+import { useAppDispatch } from '../lib/hooks';
+import { addNotification } from '../lib/slices/notifications';
 
 interface ContentToolbarProps {
-  cardKey: string
-  mode: CardMode
-  onUpdate?: () => void
+  cardKey: string;
+  mode: CardMode;
+  onUpdate?: () => void;
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
@@ -24,35 +24,35 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   mode,
   onUpdate,
 }) => {
-  const router = useRouter()
-  const { t } = useTranslation()
+  const router = useRouter();
+  const { t } = useTranslation();
 
-  const { project } = useProject()
-  const { card, updateWorkFlowState } = useCard(cardKey)
+  const { project } = useProject();
+  const { card, updateWorkFlowState } = useCard(cardKey);
 
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
 
-  const workflow = findWorkflowForCard(card, project)
+  const workflow = findWorkflowForCard(card, project);
   const currentState =
     workflow?.states.find(
-      (state) => state.name == card?.metadata?.workflowState
-    ) ?? null
+      (state) => state.name == card?.metadata?.workflowState,
+    ) ?? null;
 
   const onStateTransition = useCallback(
     async (transition: WorkflowTransition) => {
       try {
-        await updateWorkFlowState(transition.name)
+        await updateWorkFlowState(transition.name);
       } catch (error) {
         dispatch(
           addNotification({
             message: t('error.transition'),
             type: 'error',
-          })
-        )
+          }),
+        );
       }
     },
-    [updateWorkFlowState, dispatch, t]
-  )
+    [updateWorkFlowState, dispatch, t],
+  );
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -106,7 +106,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         </Button>
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default ContentToolbar
+export default ContentToolbar;

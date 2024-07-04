@@ -10,22 +10,22 @@ import { homedir } from 'node:os';
  * @param destination path where to copy to
  */
 export async function copyDir(source: string, destination: string) {
-    const entries = await readdir(source, { withFileTypes: true });
-    for (const entry of entries) {
-        const sourcePath = join(source, entry.name);
-        const destinationPath = join(destination, entry.name);
-        if (entry.isDirectory()) {
-            if (!pathExists(destinationPath)) {
-                await mkdir(destinationPath, { recursive: true });
-            }
-            await copyDir(sourcePath, destinationPath);
-        } else {
-            if (!pathExists(destination)) {
-                await mkdir(destination, { recursive: true });
-            }
-            await copyFile(sourcePath, destinationPath);
-        }
+  const entries = await readdir(source, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = join(source, entry.name);
+    const destinationPath = join(destination, entry.name);
+    if (entry.isDirectory()) {
+      if (!pathExists(destinationPath)) {
+        await mkdir(destinationPath, { recursive: true });
+      }
+      await copyDir(sourcePath, destinationPath);
+    } else {
+      if (!pathExists(destination)) {
+        await mkdir(destination, { recursive: true });
+      }
+      await copyFile(sourcePath, destinationPath);
     }
+  }
 }
 
 /**
@@ -33,7 +33,7 @@ export async function copyDir(source: string, destination: string) {
  * @param path path to be deleted
  */
 export async function deleteDir(path: string) {
-    await rm(resolveTilde(path), { recursive: true, force: true });
+  await rm(resolveTilde(path), { recursive: true, force: true });
 }
 
 /**
@@ -42,14 +42,16 @@ export async function deleteDir(path: string) {
  * @returns true, if file was deleted; false otherwise.
  */
 export async function deleteFile(path: string): Promise<boolean> {
-    if (!path) { return false; }
-    try {
-        await unlink(path);
-    } catch (error) {
-        console.error(`Cannot delete file '${path}'`);
-        return false;
-    }
-    return true;
+  if (!path) {
+    return false;
+  }
+  try {
+    await unlink(path);
+  } catch (error) {
+    console.error(`Cannot delete file '${path}'`);
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -58,18 +60,18 @@ export async function deleteFile(path: string): Promise<boolean> {
  * @returns array of filenames that are in the folder or in one of its subfolders.
  */
 export function getFilesSync(path: string): string[] {
-    const files = [];
-    for (const file of readdirSync(path)) {
-        const fullPath = join(path, file);
-        if (lstatSync(fullPath).isDirectory()) {
-            getFilesSync(fullPath).forEach(
-                fileName => files.push(join(file, fileName))
-            );
-        } else {
-            files.push(file);
-        }
+  const files = [];
+  for (const file of readdirSync(path)) {
+    const fullPath = join(path, file);
+    if (lstatSync(fullPath).isDirectory()) {
+      getFilesSync(fullPath).forEach((fileName) =>
+        files.push(join(file, fileName)),
+      );
+    } else {
+      files.push(file);
     }
-    return files;
+  }
+  return files;
 }
 
 /**
@@ -78,8 +80,8 @@ export function getFilesSync(path: string): string[] {
  * @returns true if file exists, otherwise false
  */
 export function pathExists(path: string): boolean {
-    path = resolveTilde(path);
-    return existsSync(path);
+  path = resolveTilde(path);
+  return existsSync(path);
 }
 
 /**
@@ -88,14 +90,14 @@ export function pathExists(path: string): boolean {
  * @returns Path with tilde resolved.
  */
 export function resolveTilde(filePath: string): string {
-    if (!filePath || typeof (filePath) !== 'string') {
-        return '';
-    }
-    // '~/folder/path' or '~' not '~alias/folder/path'
-    if (filePath.startsWith('~/') || filePath === '~') {
-        return filePath.replace('~', homedir());
-    }
-    return filePath;
+  if (!filePath || typeof filePath !== 'string') {
+    return '';
+  }
+  // '~/folder/path' or '~' not '~alias/folder/path'
+  if (filePath.startsWith('~/') || filePath === '~') {
+    return filePath.replace('~', homedir());
+  }
+  return filePath;
 }
 
 /**

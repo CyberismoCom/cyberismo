@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { attachmentPayload } from '@cyberismocom/data-handler/interfaces/request-status-interfaces'
-import { Show } from '@cyberismocom/data-handler/show'
+import { NextRequest, NextResponse } from 'next/server';
+import { attachmentPayload } from '@cyberismocom/data-handler/interfaces/request-status-interfaces';
+import { Show } from '@cyberismocom/data-handler/show';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 /**
  * @swagger
@@ -29,41 +29,44 @@ export const dynamic = 'force-dynamic'
  *         description: project_path not set.
  */
 export async function GET(request: NextRequest) {
-  const projectPath = process.env.npm_config_project_path
+  const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return new NextResponse('project_path not set', { status: 500 })
+    return new NextResponse('project_path not set', { status: 500 });
   }
 
-  const urlComponents = request.nextUrl.pathname.split('/')
-  const filename = urlComponents?.pop()
-  urlComponents?.pop()
-  const cardKey = urlComponents?.pop()
+  const urlComponents = request.nextUrl.pathname.split('/');
+  const filename = urlComponents?.pop();
+  urlComponents?.pop();
+  const cardKey = urlComponents?.pop();
 
   if (filename == null || cardKey == null) {
-    return new NextResponse('Missing cardKey or filename', { status: 400 })
+    return new NextResponse('Missing cardKey or filename', { status: 400 });
   }
 
-  const showCommand = new Show()
+  const showCommand = new Show();
   try {
     const attachmentResponse = await showCommand.showAttachment(
       projectPath,
       cardKey,
-      filename
-    )
+      filename,
+    );
 
     if (!attachmentResponse) {
       return new NextResponse(
         `No attachment found from card ${cardKey} and filename ${filename}`,
-        { status: 404 })
+        { status: 404 },
+      );
     }
 
-    const payload: attachmentPayload =
-      attachmentResponse as attachmentPayload
+    const payload: attachmentPayload = attachmentResponse as attachmentPayload;
 
     return new NextResponse(payload.fileBuffer, {
       headers: { 'content-type': payload.mimeType },
-    })
+    });
   } catch (error) {
-      return new NextResponse(`No attachemnt found from card ${cardKey} and filename ${filename}`, { status: 404 })
+    return new NextResponse(
+      `No attachemnt found from card ${cardKey} and filename ${filename}`,
+      { status: 404 },
+    );
   }
 }

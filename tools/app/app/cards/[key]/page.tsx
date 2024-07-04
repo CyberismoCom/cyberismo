@@ -1,24 +1,24 @@
-'use client'
-import { ContentArea } from '@/app/components/ContentArea'
-import ContentToolbar from '@/app/components/ContentToolbar'
-import { cardViewed } from '@/app/lib/actions'
-import { useCard } from '@/app/lib/api'
-import { CardMode } from '@/app/lib/definitions'
-import { useAppDispatch, useListCard } from '@/app/lib/hooks'
-import { Box, Stack } from '@mui/joy'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+'use client';
+import { ContentArea } from '@/app/components/ContentArea';
+import ContentToolbar from '@/app/components/ContentToolbar';
+import { cardViewed } from '@/app/lib/actions';
+import { useCard } from '@/app/lib/api';
+import { CardMode } from '@/app/lib/definitions';
+import { useAppDispatch, useListCard } from '@/app/lib/hooks';
+import { Box, Stack } from '@mui/joy';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export default function Page({ params }: { params: { key: string } }) {
-  const { card, error } = useCard(params.key)
+  const { card, error } = useCard(params.key);
 
-  const listCard = useListCard(params.key)
+  const listCard = useListCard(params.key);
 
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
 
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     if (listCard) {
@@ -27,10 +27,10 @@ export default function Page({ params }: { params: { key: string } }) {
           key: listCard.key,
           children: listCard?.children?.map((c) => c.key) ?? [],
           timestamp: new Date().toISOString(),
-        })
-      )
+        }),
+      );
     }
-  }, [listCard, dispatch])
+  }, [listCard, dispatch]);
 
   return (
     <Stack height="100%">
@@ -49,5 +49,5 @@ export default function Page({ params }: { params: { key: string } }) {
         />
       </Box>
     </Stack>
-  )
+  );
 }

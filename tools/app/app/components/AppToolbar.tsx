@@ -1,15 +1,15 @@
-import * as React from 'react'
-import Image from 'next/image'
-import { useTranslation } from 'react-i18next'
+import * as React from 'react';
+import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 
-import { Stack, Button, Box, Typography } from '@mui/joy'
+import { Stack, Button, Box, Typography } from '@mui/joy';
 
 interface AppToolbarProps {
-  onNewCard: () => void
+  onNewCard: () => void;
 }
 
 export default function AppToolbar({ onNewCard }: AppToolbarProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
       <Box marginLeft={2} height="19px">
@@ -41,5 +41,5 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
         </Typography>
       </Button>
     </Stack>
-  )
+  );
 }

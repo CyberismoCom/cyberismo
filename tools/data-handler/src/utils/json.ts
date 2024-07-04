@@ -8,15 +8,17 @@ import { readFile } from 'node:fs/promises';
  * @throws if file is not found, or file is not a JSON file.
  */
 export function readJsonFileSync(file: string) {
-    try {
-        const raw = readFileSync(file, { flag: 'rs', encoding: 'utf-8' });
-        const returnValue = JSON.parse(raw);
-        return returnValue;
-    } catch (error) {
-        if (error instanceof Error) {
-            throw new Error(`Error while handling JSON file '${file}' : ${error.message}`);
-        }
+  try {
+    const raw = readFileSync(file, { flag: 'rs', encoding: 'utf-8' });
+    const returnValue = JSON.parse(raw);
+    return returnValue;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Error while handling JSON file '${file}' : ${error.message}`,
+      );
     }
+  }
 }
 
 /**
@@ -26,14 +28,16 @@ export function readJsonFileSync(file: string) {
  * @throws if file is not found, or file is not a JSON file.
  */
 export async function readJsonFile(file: string) {
-    try {
-        const raw = await readFile(file, { encoding: 'utf-8' });
-        return JSON.parse(raw);
-    } catch (error) {
-        if (error instanceof Error) {
-            throw new Error(`Error while handling JSON file '${file}' : ${error.message}`);
-        }
+  try {
+    const raw = await readFile(file, { encoding: 'utf-8' });
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Error while handling JSON file '${file}' : ${error.message}`,
+      );
     }
+  }
 }
 
 /**
@@ -43,12 +47,12 @@ export async function readJsonFile(file: string) {
  * @throws if file is not found.
  */
 export function readADocFileSync(file: string) {
-    try {
-        const raw = readFileSync(file, { encoding: 'utf-8' });
-        return raw;
-    } catch {
-        throw new Error(`Adoc file '${file}' not found`);
-    }
+  try {
+    const raw = readFileSync(file, { encoding: 'utf-8' });
+    return raw;
+  } catch {
+    throw new Error(`Adoc file '${file}' not found`);
+  }
 }
 
 /**
@@ -61,5 +65,5 @@ export function readADocFileSync(file: string) {
  * @returns Formatted JSON string
  */
 export function formatJson(json: object) {
-    return JSON.stringify(json, null, 4);
+  return JSON.stringify(json, null, 4);
 }

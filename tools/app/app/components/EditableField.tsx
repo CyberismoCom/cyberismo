@@ -1,18 +1,18 @@
-import { Stack, Typography } from '@mui/joy'
-import React from 'react'
-import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions'
-import FieldEditor from './FieldEditor'
-import { metadataValueToString } from '../lib/utils'
-import { useTranslation } from 'react-i18next'
+import { Stack, Typography } from '@mui/joy';
+import React from 'react';
+import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
+import FieldEditor from './FieldEditor';
+import { metadataValueToString } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type EditableFieldProps = {
-  value: MetadataValue
-  dataType: DataType
-  label: string
-  onChange?: (value: string | null) => void
-  edit: boolean
-  enumValues?: Array<EnumDefinition>
-}
+  value: MetadataValue;
+  dataType: DataType;
+  label: string;
+  onChange?: (value: string | null) => void;
+  edit: boolean;
+  enumValues?: Array<EnumDefinition>;
+};
 
 const EditableField = ({
   value,
@@ -22,7 +22,7 @@ const EditableField = ({
   dataType,
   enumValues,
 }: EditableFieldProps) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
   return (
     <Stack direction="row" spacing={0} alignItems="center">
       <Typography level="title-sm" width="40%" maxWidth={150} flexShrink={0}>
@@ -41,7 +41,7 @@ const EditableField = ({
         </Typography>
       )}
     </Stack>
-  )
-}
+  );
+};
 
-export default EditableField
+export default EditableField;
