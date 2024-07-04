@@ -34,7 +34,7 @@ export async function GET() {
     })
   }
 
-  const response = await show.showTemplates(projectPath)
+  const response = await show.showTemplatesWithDetails(projectPath)
   if (response) {
     return NextResponse.json(response)
   } else {

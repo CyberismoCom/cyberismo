@@ -308,6 +308,11 @@ describe('template', () => {
         expect(templateDetails.path).includes('.cards');
         expect(templateDetails.path).includes('decision');
         expect(templateDetails.project).to.equal(project.projectName);
+        expect(templateDetails.metadata.buttonLabel).to.equal('Create a New Decision');
+        expect(templateDetails.metadata.namePrompt).to.equal('The title of the new decision:');
+        expect(templateDetails.metadata.description).to.equal('description');
+        expect(templateDetails.metadata.category).to.equal('category');
+        expect(templateDetails.metadata.displayName).to.equal('Decision');
     });
     it('normalize template name', async () => {
         const empty = Template.normalizedTemplateName('');

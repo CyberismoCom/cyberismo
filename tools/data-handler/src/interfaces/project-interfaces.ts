@@ -110,12 +110,16 @@ export interface template {
     path: string
     project: string
     numberOfCards: number
+    metadata: templateMetadata
 }
 
 // Template configuration content details.
 export interface templateMetadata {
     buttonLabel: string
     namePrompt: string
+    displayName?: string
+    description?: string
+    category?: string
 }
 
 // Workflow's json file content.

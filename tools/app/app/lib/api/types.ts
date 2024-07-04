@@ -1,5 +1,5 @@
 import { Project, CardDetails, FieldTypes } from '../definitions'
-import { cardtype } from '@cyberismocom/data-handler/interfaces/project-interfaces'
+import { cardtype, template } from '@cyberismocom/data-handler/interfaces/project-interfaces'
 
 import { SWRResponse } from 'swr'
 
@@ -8,7 +8,7 @@ export type Resources = {
   card: CardDetails
   fieldTypes: FieldTypes
   cardType: cardtype
-  templates: string[]
+  templates: template[]
 }
 
 export type ResourceName = keyof Resources
