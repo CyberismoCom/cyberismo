@@ -9,9 +9,7 @@
     "lint": "next lint",
     "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "prettier-check": "prettier --check .",
-    "prettier-fix": "prettier --write ."
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
@@ -52,7 +50,6 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "next-swagger-doc": "^0.4.0",
-    "prettier": "3.2.5",
     "swagger-ui-react": "^5.11.2",
     "typescript": "^5"
   }
