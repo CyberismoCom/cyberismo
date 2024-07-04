@@ -1,42 +1,42 @@
-'use client'
-import React, { useCallback, useEffect, useMemo } from 'react'
-import { CardMode, MetadataValue } from '@/app/lib/definitions'
+'use client';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { CardMode, MetadataValue } from '@/app/lib/definitions';
 
-import { Box, Tab, Tabs, TabPanel, TabList, Stack, Textarea } from '@mui/joy'
+import { Box, Tab, Tabs, TabPanel, TabList, Stack, Textarea } from '@mui/joy';
 
-import CodeMirror from '@uiw/react-codemirror'
-import { StreamLanguage } from '@codemirror/language'
-import { EditorView } from '@codemirror/view'
-import { asciidoc } from 'codemirror-asciidoc'
+import CodeMirror from '@uiw/react-codemirror';
+import { StreamLanguage } from '@codemirror/language';
+import { EditorView } from '@codemirror/view';
+import { asciidoc } from 'codemirror-asciidoc';
 
-import ContentToolbar from '@/app/components/ContentToolbar'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ContentArea } from '@/app/components/ContentArea'
-import { useCard } from '@/app/lib/api'
-import { useTranslation } from 'react-i18next'
-import { Controller, FormProvider, useForm } from 'react-hook-form'
-import { useAppDispatch } from '@/app/lib/hooks'
-import { addNotification } from '@/app/lib/slices/notifications'
-import MetadataView from '@/app/components/MetadataView'
+import ContentToolbar from '@/app/components/ContentToolbar';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ContentArea } from '@/app/components/ContentArea';
+import { useCard } from '@/app/lib/api';
+import { useTranslation } from 'react-i18next';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { useAppDispatch } from '@/app/lib/hooks';
+import { addNotification } from '@/app/lib/slices/notifications';
+import MetadataView from '@/app/components/MetadataView';
 
 export default function Page({ params }: { params: { key: string } }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
-  const { card, updateCard } = useCard(params.key)
+  const { card, updateCard } = useCard(params.key);
 
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
 
-  const router = useRouter()
+  const router = useRouter();
 
-  const formMethods = useForm()
-  const { handleSubmit, control, watch } = formMethods
+  const formMethods = useForm();
+  const { handleSubmit, control, watch } = formMethods;
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
-      const { __content__, __title__, ...metadata } = data
-      const update: Record<string, MetadataValue> = metadata
+      const { __content__, __title__, ...metadata } = data;
+      const update: Record<string, MetadataValue> = metadata;
 
       await updateCard({
         content: __content__ as string,
@@ -44,28 +44,28 @@ export default function Page({ params }: { params: { key: string } }) {
           ...update,
           summary: __title__,
         },
-      })
+      });
       dispatch(
         addNotification({
           message: t('saveCard.success'),
           type: 'success',
-        })
-      )
-      router.push(`/cards/${card!.key}`)
+        }),
+      );
+      router.push(`/cards/${card!.key}`);
     } catch (error) {
       dispatch(
         addNotification({
           message: error instanceof Error ? error.message : '',
           type: 'error',
-        })
-      )
+        }),
+      );
     }
-  }
+  };
 
-  const preview = watch()
+  const preview = watch();
 
   const previewCard = useMemo(() => {
-    const { __content__, __title__, ...metadata } = preview
+    const { __content__, __title__, ...metadata } = preview;
     return {
       ...card!,
       metadata: {
@@ -74,8 +74,8 @@ export default function Page({ params }: { params: { key: string } }) {
         ...metadata,
       },
       content: __content__,
-    }
-  }, [preview, card])
+    };
+  }, [preview, card]);
 
   return (
     <Stack height="100%">
@@ -170,5 +170,5 @@ export default function Page({ params }: { params: { key: string } }) {
         </Stack>
       </FormProvider>
     </Stack>
-  )
+  );
 }

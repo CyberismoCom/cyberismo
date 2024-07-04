@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Card,
   CardDetails,
@@ -8,8 +8,8 @@ import {
   MetadataValue,
   Project,
   Workflow,
-} from './definitions'
-import { useForm } from 'react-hook-form'
+} from './definitions';
+import { useForm } from 'react-hook-form';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -17,14 +17,14 @@ import { useForm } from 'react-hook-form'
  * @returns array of all cards
  */
 export function flattenTree(tree: Card[]): Card[] {
-  const result: Card[] = []
+  const result: Card[] = [];
   tree.forEach((node) => {
-    result.push(node)
+    result.push(node);
     if (node.children != null) {
-      result.push(...flattenTree(node.children))
+      result.push(...flattenTree(node.children));
     }
-  })
-  return result
+  });
+  return result;
 }
 
 /**
@@ -35,13 +35,13 @@ export function flattenTree(tree: Card[]): Card[] {
  */
 export function findPathTo(cardKey: string, tree: Card[]): Card[] | null {
   for (const card of tree) {
-    const path = findPath(cardKey, card)
+    const path = findPath(cardKey, card);
     if (path) {
-      return path
+      return path;
     }
   }
 
-  return null
+  return null;
 }
 
 /**
@@ -52,19 +52,19 @@ export function findPathTo(cardKey: string, tree: Card[]): Card[] | null {
  */
 function findPath(cardKey: string, card: Card): Card[] | null {
   if (card.key === cardKey) {
-    return [card]
+    return [card];
   }
 
   if (card.children) {
     for (const child of card.children) {
-      const leaf = findPath(cardKey, child)
+      const leaf = findPath(cardKey, child);
       if (leaf) {
-        return [card, ...leaf]
+        return [card, ...leaf];
       }
     }
   }
 
-  return null
+  return null;
 }
 
 /**
@@ -75,22 +75,22 @@ function findPath(cardKey: string, card: Card): Card[] | null {
  */
 export function findWorkflowForCard(
   card: CardDetails | Card | null,
-  project: Project | null
+  project: Project | null,
 ): Workflow | null {
-  if (!card || !project) return null
+  if (!card || !project) return null;
 
   let workflowName = project.cardTypes.find(
-    (cardType) => cardType.name === card.metadata?.cardtype
-  )?.workflow
-  if (workflowName == undefined) return null
+    (cardType) => cardType.name === card.metadata?.cardtype,
+  )?.workflow;
+  if (workflowName == undefined) return null;
 
   if (workflowName.endsWith('.json')) {
-    workflowName = workflowName.slice(0, -5)
+    workflowName = workflowName.slice(0, -5);
   }
 
   return (
     project.workflows.find((workflow) => workflow.name === workflowName) ?? null
-  )
+  );
 }
 /**
  * Replaces the metadata of a card in a tree of cards
@@ -103,23 +103,23 @@ export function findWorkflowForCard(
 export function replaceCardMetadata(
   key: string,
   metadata: CardMetadata | undefined,
-  cards: Card[]
+  cards: Card[],
 ): Card[] {
-  if (!metadata) return cards
-  let updatedCards = cards
-  updateCard(updatedCards, key, metadata)
-  return updatedCards
+  if (!metadata) return cards;
+  let updatedCards = cards;
+  updateCard(updatedCards, key, metadata);
+  return updatedCards;
 }
 function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
   cards.forEach((card) => {
     if (card.key === key) {
-      card.metadata = metadata
+      card.metadata = metadata;
     } else {
       if (card.children) {
-        updateCard(card.children, key, metadata)
+        updateCard(card.children, key, metadata);
       }
     }
-  })
+  });
 }
 
 /**
@@ -128,51 +128,52 @@ function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
  * @returns object with functions to open and close modals and an object with the current state of the modals
  */
 export function useModals<T extends Record<string, boolean>>(modals: T) {
-  const [openModals, setOpenModals] = useState<Record<keyof T, boolean>>(modals)
-  const modalsRef = useRef(modals)
+  const [openModals, setOpenModals] =
+    useState<Record<keyof T, boolean>>(modals);
+  const modalsRef = useRef(modals);
 
   useEffect(() => {
     // Check for equality
     if (
       Object.keys(modals).every((key) => modals[key] === modalsRef.current[key])
     )
-      return
+      return;
 
     // Update the modalsRef
-    modalsRef.current = modals
-    setOpenModals(modals)
-  }, [modals, setOpenModals])
+    modalsRef.current = modals;
+    setOpenModals(modals);
+  }, [modals, setOpenModals]);
 
   const openModal = useCallback(
     (modal: keyof T) => () => {
-      setOpenModals((prev) => ({ ...prev, [modal]: true }))
+      setOpenModals((prev) => ({ ...prev, [modal]: true }));
     },
-    [setOpenModals]
-  )
+    [setOpenModals],
+  );
 
   const closeModal = useCallback(
     (modal: keyof T) => () => {
-      setOpenModals((prev) => ({ ...prev, [modal]: false }))
+      setOpenModals((prev) => ({ ...prev, [modal]: false }));
     },
-    [setOpenModals]
-  )
+    [setOpenModals],
+  );
 
-  return { openModal, closeModal, modalOpen: openModals }
+  return { openModal, closeModal, modalOpen: openModals };
 }
 
 /**
  * Custom hook for handling forms with dynamic initial values
  */
 export function useDynamicForm(values: Object) {
-  const { reset, ...rest } = useForm()
-  const [isReady, setIsReady] = useState(false)
+  const { reset, ...rest } = useForm();
+  const [isReady, setIsReady] = useState(false);
   useEffect(() => {
     if (Object.keys(values).length > 0) {
-      reset(values)
-      setIsReady(true)
+      reset(values);
+      setIsReady(true);
     }
-  }, [reset, values])
-  return { isReady, ...rest }
+  }, [reset, values]);
+  return { isReady, ...rest };
 }
 
 /**
@@ -184,23 +185,23 @@ export function metadataValueToString(
   metadata: MetadataValue,
   dataType: DataType,
   t: (value: string) => string,
-  enumValues?: Array<EnumDefinition>
+  enumValues?: Array<EnumDefinition>,
 ): string {
   if (metadata instanceof Date) {
-    return metadata.toISOString()
+    return metadata.toISOString();
   } else if (metadata instanceof Array) {
-    return metadata.join(', ')
+    return metadata.join(', ');
   } else if (dataType === 'enum') {
     return (
       enumValues?.find((enumValue) => enumValue.enumValue === metadata)
         ?.enumDisplayValue ??
       metadata?.toString() ??
       ''
-    )
+    );
   } else if (dataType === 'boolean') {
-    return metadata ? t('yes') : t('no')
+    return metadata ? t('yes') : t('no');
   } else {
-    return metadata ? metadata.toString() : ''
+    return metadata ? metadata.toString() : '';
   }
 }
 /**
@@ -212,16 +213,16 @@ export function metadataValueToString(
 export function findCard(cards: Card[], key: string): Card | null {
   for (const card of cards) {
     if (card.key === key) {
-      return card
+      return card;
     }
     if (card.children) {
-      const found = findCard(card.children, key)
+      const found = findCard(card.children, key);
       if (found) {
-        return found
+        return found;
       }
     }
   }
-  return null
+  return null;
 }
 
 /**
@@ -234,15 +235,15 @@ export function findParentCard(cards: Card[], key: string): Card | null {
   for (const card of cards) {
     if (card.children) {
       if (card.children.some((child) => child.key === key)) {
-        return card
+        return card;
       }
-      const found = findParentCard(card.children, key)
+      const found = findParentCard(card.children, key);
       if (found) {
-        return found
+        return found;
       }
     }
   }
-  return null
+  return null;
 }
 
 /**
@@ -255,14 +256,14 @@ export function findParentCard(cards: Card[], key: string): Card | null {
 export function editCard(cards: Card[], card: Card): Card[] {
   for (let i = 0; i < cards.length; i++) {
     if (cards[i].key === card.key) {
-      cards[i] = card
-      return cards
+      cards[i] = card;
+      return cards;
     }
     if (cards[i].children) {
-      cards[i].children = editCard(cards[i].children || [], card)
+      cards[i].children = editCard(cards[i].children || [], card);
     }
   }
-  return cards
+  return cards;
 }
 
 /**
@@ -273,16 +274,16 @@ export function editCard(cards: Card[], card: Card): Card[] {
  * @returns updated array of cards
  */
 export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
-  const listCard = findCard(cards, card.key)
+  const listCard = findCard(cards, card.key);
   if (!listCard) {
-    return cards
+    return cards;
   }
   return editCard(cards, {
     key: card.key,
     path: card.path,
     metadata: card.metadata,
     children: listCard.children,
-  })
+  });
 }
 
 /**
@@ -296,27 +297,27 @@ export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
 export function moveCard(
   cards: Card[],
   cardKey: string,
-  newParentKey: string
+  newParentKey: string,
 ): Card[] {
-  const card = findCard(cards, cardKey)
+  const card = findCard(cards, cardKey);
   if (!card) {
-    return cards
+    return cards;
   }
-  const parent = findParentCard(cards, cardKey)
+  const parent = findParentCard(cards, cardKey);
 
-  const newParent = findCard(cards, newParentKey)
+  const newParent = findCard(cards, newParentKey);
   if (!newParent) {
-    return cards
+    return cards;
   }
   if (parent) {
     parent.children =
-      parent.children?.filter((child) => child.key !== cardKey) || []
+      parent.children?.filter((child) => child.key !== cardKey) || [];
   } else {
-    cards = cards.filter((c) => c.key !== cardKey)
+    cards = cards.filter((c) => c.key !== cardKey);
   }
-  newParent.children = newParent.children || []
-  newParent.children.push(card)
-  return cards
+  newParent.children = newParent.children || [];
+  newParent.children.push(card);
+  return cards;
 }
 
 /**
@@ -326,9 +327,9 @@ export function moveCard(
  */
 export function countChildren(card: Card): number {
   if (!card.children) {
-    return 1
+    return 1;
   }
-  return card.children.reduce((acc, child) => acc + countChildren(child), 1)
+  return card.children.reduce((acc, child) => acc + countChildren(child), 1);
 }
 
 /**
@@ -341,11 +342,11 @@ export function isChildOf(card: Card, key: string): boolean {
   if (card.children) {
     for (const child of card.children) {
       if (isChildOf(child, key)) {
-        return true
+        return true;
       }
     }
   }
-  return false
+  return false;
 }
 
 /**
@@ -358,13 +359,13 @@ export function isChildOf(card: Card, key: string): boolean {
 export function deleteCard(cards: Card[], key: string): Card[] {
   for (const card of cards) {
     if (card.key === key) {
-      return cards.filter((c) => c.key !== key)
+      return cards.filter((c) => c.key !== key);
     }
     if (card.children) {
-      card.children = deleteCard(card.children, key)
+      card.children = deleteCard(card.children, key);
     }
   }
-  return cards
+  return cards;
 }
 
 /**
@@ -373,7 +374,7 @@ export function deleteCard(cards: Card[], key: string): Card[] {
  * @returns deep copy of the object
  */
 export function deepCopy<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj))
+  return JSON.parse(JSON.stringify(obj));
 }
 
 /**
@@ -383,17 +384,17 @@ export function deepCopy<T>(obj: T): T {
  * @returns array of cards, to which it is possible to move the card
  */
 export function getMoveableCards(cards: Card[], card: Card): Card[] {
-  const parent = findParentCard(cards, card.key)
+  const parent = findParentCard(cards, card.key);
 
   return cards.filter((c) => {
     if (c.key === card.key || parent?.key === c.key) {
-      return false
+      return false;
     }
     if (isChildOf(card, c.key)) {
-      return false
+      return false;
     }
-    return true
-  })
+    return true;
+  });
 }
 
 /**
@@ -404,16 +405,16 @@ export function getMoveableCards(cards: Card[], card: Card): Card[] {
  */
 export function filterCards(
   cards: Card[],
-  filter: (card: Card) => boolean
+  filter: (card: Card) => boolean,
 ): Card[] {
   return cards.filter((card) => {
     if (filter(card)) {
-      return true
+      return true;
     }
     if (card.children) {
-      card.children = filterCards(card.children, filter)
-      return card.children.length > 0
+      card.children = filterCards(card.children, filter);
+      return card.children.length > 0;
     }
-    return false
-  })
+    return false;
+  });
 }

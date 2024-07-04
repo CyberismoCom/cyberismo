@@ -1,8 +1,12 @@
-import React, { useMemo } from 'react'
-import colors from '@mui/joy/colors'
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import { Workflow, WorkflowState, WorkflowTransition } from '../lib/definitions'
-import { workflowCategory } from '../../../data-handler/src/interfaces/project-interfaces'
+import React, { useMemo } from 'react';
+import colors from '@mui/joy/colors';
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import {
+  Workflow,
+  WorkflowState,
+  WorkflowTransition,
+} from '../lib/definitions';
+import { workflowCategory } from '../../../data-handler/src/interfaces/project-interfaces';
 import {
   Menu,
   MenuItem,
@@ -10,13 +14,13 @@ import {
   Dropdown,
   MenuButton,
   Typography,
-} from '@mui/joy'
-import { useTranslation } from 'react-i18next'
+} from '@mui/joy';
+import { useTranslation } from 'react-i18next';
 
 interface StateSelectorProps {
-  currentState: WorkflowState | null
-  workflow: Workflow | null
-  onTransition: (transition: WorkflowTransition) => void
+  currentState: WorkflowState | null;
+  workflow: Workflow | null;
+  onTransition: (transition: WorkflowTransition) => void;
 }
 
 const StateSelector: React.FC<StateSelectorProps> = ({
@@ -24,7 +28,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
   workflow,
   onTransition,
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   const availableTransitions = useMemo(() => {
     if (
@@ -32,17 +36,17 @@ const StateSelector: React.FC<StateSelectorProps> = ({
       !workflow ||
       !workflow.states.find((state) => state.name == currentState.name)
     ) {
-      return null
+      return null;
     }
 
     return workflow?.transitions.filter(
       (transition) =>
         transition.fromState.includes(currentState.name) ||
-        transition.fromState.includes('*')
-    )
-  }, [currentState, workflow])
+        transition.fromState.includes('*'),
+    );
+  }, [currentState, workflow]);
 
-  if (!availableTransitions || !currentState) return null
+  if (!availableTransitions || !currentState) return null;
 
   return (
     <Dropdown>
@@ -73,20 +77,20 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         ))}
       </Menu>
     </Dropdown>
-  )
-}
+  );
+};
 
 function getStateColor(state: WorkflowState) {
   switch (state.category) {
     case workflowCategory.initial:
-      return colors.grey[600]
+      return colors.grey[600];
     case workflowCategory.active:
-      return colors.yellow[600]
+      return colors.yellow[600];
     case workflowCategory.closed:
-      return colors.green[600]
+      return colors.green[600];
     default:
-      return 'black'
+      return 'black';
   }
 }
 
-export default StateSelector
+export default StateSelector;

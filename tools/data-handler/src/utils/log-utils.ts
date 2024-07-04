@@ -4,14 +4,14 @@
  * @returns Error message.
  */
 export function errorFunction(error: unknown): string {
-    if (error instanceof Error) {
-        const err: Error = error;
-        return errorMessage(`${err.message}`);
-    } else if (typeof error === "string") {
-        return errorMessage(`${error}`);
-    } else {
-        return `${logError.name} called without an error object. Actual object is ${error}`;
-    }
+  if (error instanceof Error) {
+    const err: Error = error;
+    return errorMessage(`${err.message}`);
+  } else if (typeof error === 'string') {
+    return errorMessage(`${error}`);
+  } else {
+    return `${logError.name} called without an error object. Actual object is ${error}`;
+  }
 }
 
 /**
@@ -21,12 +21,16 @@ export function errorFunction(error: unknown): string {
  * @param replaceWith string that 'toReplace' is replaced with.
  * @returns Modified error message.
  */
-export function errorMessage(message: string, toReplace?: string, replaceWith?: string): string {
-    let errorMessage = message;
-    if (toReplace && replaceWith) {
-        errorMessage = message.replace(toReplace, replaceWith);
-    }
-    return `${errorMessage}`;
+export function errorMessage(
+  message: string,
+  toReplace?: string,
+  replaceWith?: string,
+): string {
+  let errorMessage = message;
+  if (toReplace && replaceWith) {
+    errorMessage = message.replace(toReplace, replaceWith);
+  }
+  return `${errorMessage}`;
 }
 
 /**
@@ -34,12 +38,14 @@ export function errorMessage(message: string, toReplace?: string, replaceWith?: 
  * @param error potentially an Error object. When exceptions are raised, they are typically Error objects.
  */
 export function logError(error: unknown) {
-    if (error instanceof Error) {
-        const err: Error = error;
-        logErrorMessage(`${err.message}`);
-    } else {
-        console.error(`${logError.name} called without an error object. Actual object is ${error}`);
-    }
+  if (error instanceof Error) {
+    const err: Error = error;
+    logErrorMessage(`${err.message}`);
+  } else {
+    console.error(
+      `${logError.name} called without an error object. Actual object is ${error}`,
+    );
+  }
 }
 
 /**
@@ -49,10 +55,14 @@ export function logError(error: unknown) {
  * @param toReplace String to look for.
  * @param replaceWith Replace 'toReplace' with this. Only replaces first instance of 'toReplace'.
  */
-export function logErrorMessage(message: string, toReplace?: string, replaceWith?: string) {
-    let errorMessage = message;
-    if (toReplace && replaceWith) {
-        errorMessage = message.replace(toReplace, replaceWith);
-    }
-    console.error(`${errorMessage}`);
+export function logErrorMessage(
+  message: string,
+  toReplace?: string,
+  replaceWith?: string,
+) {
+  let errorMessage = message;
+  if (toReplace && replaceWith) {
+    errorMessage = message.replace(toReplace, replaceWith);
+  }
+  console.error(`${errorMessage}`);
 }

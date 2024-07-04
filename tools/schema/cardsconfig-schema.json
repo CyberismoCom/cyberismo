@@ -1,30 +1,27 @@
 {
-    "title": "CardsConfig",
-    "$id": "cardsconfig-schema",
-    "description": "General configuration settings for the card tree.",
-    "type": "object",
-    "properties": {
-        "cardkeyPrefix": {
-            "type": "string",
-            "description": "The prefix or the fist component of the card key. For example, ABC",
-            "pattern": "^[a-z]+$",
-            "minLength": 3,
-            "maxLength": 10
-        },
-        "name": {
-            "description": "Name of the project",
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[A-Za-z ._-]+$"
-        },
-        "nextAvailableCardNumber": {
-            "description": "The next available card key number, or the second component of the card key.",
-            "type": "integer",
-            "min": 1
-        }
+  "title": "CardsConfig",
+  "$id": "cardsconfig-schema",
+  "description": "General configuration settings for the card tree.",
+  "type": "object",
+  "properties": {
+    "cardkeyPrefix": {
+      "type": "string",
+      "description": "The prefix or the fist component of the card key. For example, ABC",
+      "pattern": "^[a-z]+$",
+      "minLength": 3,
+      "maxLength": 10
     },
-    "required": [
-        "cardkeyPrefix",
-        "nextAvailableCardNumber"
-    ]
+    "name": {
+      "description": "Name of the project",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z ._-]+$"
+    },
+    "nextAvailableCardNumber": {
+      "description": "The next available card key number, or the second component of the card key.",
+      "type": "integer",
+      "min": 1
+    }
+  },
+  "required": ["cardkeyPrefix", "nextAvailableCardNumber"]
 }

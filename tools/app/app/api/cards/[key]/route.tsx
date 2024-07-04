@@ -1,18 +1,18 @@
-import { Calculate } from '@cyberismocom/data-handler/calculate'
-import { Create } from '@cyberismocom/data-handler/create'
-import { Edit } from '@cyberismocom/data-handler/edit'
-import { Move } from '@cyberismocom/data-handler/move'
-import { Remove } from '@cyberismocom/data-handler/remove'
-import { Show } from '@cyberismocom/data-handler/show'
-import { Transition } from '@cyberismocom/data-handler/transition'
+import { Calculate } from '@cyberismocom/data-handler/calculate';
+import { Create } from '@cyberismocom/data-handler/create';
+import { Edit } from '@cyberismocom/data-handler/edit';
+import { Move } from '@cyberismocom/data-handler/move';
+import { Remove } from '@cyberismocom/data-handler/remove';
+import { Show } from '@cyberismocom/data-handler/show';
+import { Transition } from '@cyberismocom/data-handler/transition';
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 import {
   fetchCardDetails,
   metadataContent,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces'
+} from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 /**
  * @swagger
@@ -84,98 +84,103 @@ export const dynamic = 'force-dynamic'
  *         description: project_path not set.
  */
 export async function GET(request: NextRequest) {
-  const projectPath = process.env.npm_config_project_path
+  const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return new NextResponse('project_path not set', { status: 500 })
+    return new NextResponse('project_path not set', { status: 500 });
   }
 
   // Last URL segment is the search parameter
-  const key = request.nextUrl.pathname.split('/')?.pop()
+  const key = request.nextUrl.pathname.split('/')?.pop();
   if (key == null) {
-    return new NextResponse('No search key', { status: 400 })
+    return new NextResponse('No search key', { status: 400 });
   }
 
   // contentType defaults to adoc if not set
-  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc'
+  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
 
-  return await getCardDetails(projectPath, key, contentType)
+  return await getCardDetails(projectPath, key, contentType);
 }
 
 export async function PUT(request: NextRequest) {
-  const projectPath = process.env.npm_config_project_path
+  const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return new NextResponse('project_path not set', { status: 500 })
+    return new NextResponse('project_path not set', { status: 500 });
   }
 
   // Last URL segment is the search parameter
-  const key = request.nextUrl.pathname.split('/')?.pop()
+  const key = request.nextUrl.pathname.split('/')?.pop();
   if (key == null) {
-    return new NextResponse('No search key', { status: 400 })
+    return new NextResponse('No search key', { status: 400 });
   }
 
-  const res = await request.json()
+  const res = await request.json();
 
-  let successes = 0
-  const errors = []
+  let successes = 0;
+  const errors = [];
 
   if (res.state) {
-    const calculateCommand = new Calculate()
-    const transitionCommand = new Transition(calculateCommand)
+    const calculateCommand = new Calculate();
+    const transitionCommand = new Transition(calculateCommand);
     try {
-      await transitionCommand.cardTransition(projectPath, key, res.state)
-      successes++
+      await transitionCommand.cardTransition(projectPath, key, res.state);
+      successes++;
     } catch (error) {
-      if (error instanceof Error) errors.push(error.message)
+      if (error instanceof Error) errors.push(error.message);
     }
   }
 
   if (res.content != null) {
-    const editCommand = new Edit()
+    const editCommand = new Edit();
     try {
-      await editCommand.editCardContent(projectPath, key, res.content)
-      successes++
+      await editCommand.editCardContent(projectPath, key, res.content);
+      successes++;
     } catch (error) {
-      if (error instanceof Error) errors.push(error.message)
+      if (error instanceof Error) errors.push(error.message);
     }
   }
 
   if (res.metadata) {
-    const editCommand = new Edit()
+    const editCommand = new Edit();
 
     for (const [metadataKey, metadataValue] of Object.entries(res.metadata)) {
-      const value = metadataValue as metadataContent
-      if (value === null) continue
+      const value = metadataValue as metadataContent;
+      if (value === null) continue;
 
       try {
-        await editCommand.editCardMetadata(projectPath, key, metadataKey, value)
-        successes++
+        await editCommand.editCardMetadata(
+          projectPath,
+          key,
+          metadataKey,
+          value,
+        );
+        successes++;
       } catch (error) {
-        if (error instanceof Error) errors.push(error.message)
+        if (error instanceof Error) errors.push(error.message);
       }
     }
   }
 
   if (res.parent) {
-    const moveCommand = new Move()
+    const moveCommand = new Move();
     try {
-      await moveCommand.moveCard(projectPath, key, res.parent)
-      successes++
+      await moveCommand.moveCard(projectPath, key, res.parent);
+      successes++;
     } catch (error) {
-      if (error instanceof Error) errors.push(error.message)
+      if (error instanceof Error) errors.push(error.message);
     }
   }
 
   // TODO add other update options here
 
   // contentType defaults to adoc if not set
-  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc'
+  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
 
   if (errors.length > 0 && successes == 0) {
     // All updates failed
-    return new NextResponse(errors.join('\n'), { status: 400 })
+    return new NextResponse(errors.join('\n'), { status: 400 });
   }
 
-  const details = await getCardDetails(projectPath, key, contentType)
+  const details = await getCardDetails(projectPath, key, contentType);
 
   if (errors.length > 0) {
     // Some of the updates failed
@@ -183,22 +188,24 @@ export async function PUT(request: NextRequest) {
       return new NextResponse(details.body, {
         status: 207,
         statusText: errors.join('\n'),
-      })
+      });
     } else {
-      return details
+      return details;
     }
   }
 
-  return details
+  return details;
 }
 
 async function getCardDetails(
   projectPath: string,
   key: string,
-  contentType: string
+  contentType: string,
 ): Promise<NextResponse> {
   if (contentType !== 'adoc' && contentType !== 'html') {
-    return new NextResponse('contentType must be adoc or html', { status: 400 })
+    return new NextResponse('contentType must be adoc or html', {
+      status: 400,
+    });
   }
 
   const fetchCardDetails: fetchCardDetails = {
@@ -208,82 +215,82 @@ async function getCardDetails(
     contentType: contentType,
     metadata: true,
     parent: false,
-  }
+  };
 
-  const showCommand = new Show()
+  const showCommand = new Show();
   try {
     const cardDetailsResponse = await showCommand.showCardDetails(
       projectPath,
       fetchCardDetails,
-      key
-    )
+      key,
+    );
     if (cardDetailsResponse) {
-      return NextResponse.json(cardDetailsResponse)
+      return NextResponse.json(cardDetailsResponse);
     } else {
       return new NextResponse(`Card not found from path ${projectPath}`, {
         status: 400,
-      })
+      });
     }
   } catch (error) {
     return new NextResponse(`Card not found from path ${projectPath}`, {
       status: 400,
-    })
+    });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const projectPath = process.env.npm_config_project_path
+  const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return new NextResponse('project_path not set', { status: 500 })
+    return new NextResponse('project_path not set', { status: 500 });
   }
 
-  const key = request.nextUrl.pathname.split('/')?.pop()
+  const key = request.nextUrl.pathname.split('/')?.pop();
 
   if (key == null) {
-    return new NextResponse('No search key', { status: 400 })
+    return new NextResponse('No search key', { status: 400 });
   }
 
-  const removeCommand = new Remove(new Calculate())
+  const removeCommand = new Remove(new Calculate());
 
   try {
-    await removeCommand.remove(projectPath, 'card', key)
-    return new NextResponse(null, { status: 204 })
+    await removeCommand.remove(projectPath, 'card', key);
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (error instanceof Error) {
-      return new NextResponse(error.message, { status: 400 })
+      return new NextResponse(error.message, { status: 400 });
     }
   }
 }
 
 export async function POST(request: NextRequest) {
-  const projectPath = process.env.npm_config_project_path
+  const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return new NextResponse('project_path not set', { status: 500 })
+    return new NextResponse('project_path not set', { status: 500 });
   }
 
-  const key = request.nextUrl.pathname.split('/')?.pop()
+  const key = request.nextUrl.pathname.split('/')?.pop();
 
   if (key == null) {
-    return new NextResponse('No search key', { status: 400 })
+    return new NextResponse('No search key', { status: 400 });
   }
 
-  const res = await request.json()
+  const res = await request.json();
 
   if (res.template == null) {
     return new NextResponse('template is required', {
       status: 400,
-    })
+    });
   }
 
-  const createCommand = new Create(new Calculate())
+  const createCommand = new Create(new Calculate());
 
   try {
     return NextResponse.json(
-      await createCommand.createCard(projectPath, res.template, key)
-    )
+      await createCommand.createCard(projectPath, res.template, key),
+    );
   } catch (error) {
     if (error instanceof Error) {
-      return new NextResponse(error.message, { status: 400 })
+      return new NextResponse(error.message, { status: 400 });
     }
   }
 }

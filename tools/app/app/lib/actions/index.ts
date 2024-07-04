@@ -1,6 +1,6 @@
-import { createAction } from '@reduxjs/toolkit'
-import { CardView } from '../definitions'
+import { createAction } from '@reduxjs/toolkit';
+import { CardView } from '../definitions';
 
-export const cardViewed = createAction<CardView>('event/cardViewed')
+export const cardViewed = createAction<CardView>('event/cardViewed');
 
-export const cardDeleted = createAction<string>('event/cardDeleted')
+export const cardDeleted = createAction<string>('event/cardDeleted');

@@ -1,65 +1,65 @@
-import { SWRConfiguration } from 'swr'
+import { SWRConfiguration } from 'swr';
 
 export class ApiCallError extends Error {
-  public reason: string
+  public reason: string;
   constructor(
     public response: Response,
-    reason?: string
+    reason?: string,
   ) {
-    super(`Api call failed: ${response.status} ${response.statusText}`)
-    this.reason = reason || 'unknown'
+    super(`Api call failed: ${response.status} ${response.statusText}`);
+    this.reason = reason || 'unknown';
   }
 }
 
 export async function createApiCallError(
-  response: Response
+  response: Response,
 ): Promise<ApiCallError> {
   return new ApiCallError(
     response,
     response.headers.get('content-type') === 'text/plain'
       ? await response.text()
-      : `Api call failed: ${response.status} ${response.statusText}`
-  )
+      : `Api call failed: ${response.status} ${response.statusText}`,
+  );
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    throw await createApiCallError(response)
+    throw await createApiCallError(response);
   }
-  if (response.status === 204) return null as unknown as T // no content, return null
-  return response.json()
+  if (response.status === 204) return null as unknown as T; // no content, return null
+  return response.json();
 }
 
 // used to call api with fetch
 export async function callApi<T>(
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
-  body?: any
+  body?: any,
 ): Promise<T> {
   const options: RequestInit = {
     method,
-  }
+  };
 
   if (body) {
-    options.body = JSON.stringify(body)
+    options.body = JSON.stringify(body);
     options.headers = {
       'Content-Type': 'application/json',
-    }
+    };
   }
 
-  return handleResponse(await fetch(url, options))
+  return handleResponse(await fetch(url, options));
 }
 
 // default fetcher for swr
 const fetcher = async function (...args: Parameters<typeof fetch>) {
-  return handleResponse(await fetch(...args))
-}
+  return handleResponse(await fetch(...args));
+};
 
 // used to configure swr on a global level
 export function getSwrConfig(): SWRConfiguration {
   return {
     fetcher,
-  }
+  };
 }
 
 export const apiPaths = {
@@ -68,4 +68,4 @@ export const apiPaths = {
   fieldTypes: () => '/api/fieldtypes',
   cardType: (key: string) => `/api/cardtypes/${key}`,
   templates: () => '/api/templates',
-}
+};

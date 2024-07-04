@@ -17,11 +17,8 @@
     "target": "es2022",
     "lib": ["es2020"],
     "types": ["node"]
-
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "ts-node": {
     "esm": true
   }

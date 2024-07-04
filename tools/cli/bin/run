@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-import program from '@cyberismocom/cli'
+import program from '@cyberismocom/cli';
 
-program.parse(process.argv)
+program.parse(process.argv);

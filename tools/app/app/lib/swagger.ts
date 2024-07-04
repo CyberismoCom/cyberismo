@@ -1,4 +1,4 @@
-import { createSwaggerSpec } from 'next-swagger-doc'
+import { createSwaggerSpec } from 'next-swagger-doc';
 
 export const getApiDocs = async () => {
   const spec = createSwaggerSpec({
@@ -11,6 +11,6 @@ export const getApiDocs = async () => {
       },
       security: [],
     },
-  })
-  return spec
-}
+  });
+  return spec;
+};

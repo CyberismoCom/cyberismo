@@ -1,483 +1,479 @@
 {
-    "title": "Card directory tree schema",
-    "$id": "cardtree-directory-schema",
-    "description": "This schema represents the directory structure of a card tree, using the format of https://github.com/jpoehnelt/directory-schema-validator",
-    "type": "object",
-    "properties": {
-        "directories": {
-            "type": "object",
-            "properties": {
-                ".cards": {
-                    "description": "Configuration for the card tree",
-                    "type": "object",
-                    "properties": {
-                        "directories": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "properties": {
-                                "modules": {
-                                    "$ref": "#/$defs/card-module-schema"
-                                },
-                                "local": {
-                                    "type": "object",
-                                    "properties": {
-                                        "files": {
-                                            "type": "object",
-                                            "properties": {
-                                                "cardsconfig.json": {}
-                                            },
-                                            "required": [
-                                                ".schema",
-                                                "cardsconfig.json"
-                                            ]
-                                        },
-                                        "directories": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "properties": {
-                                                "calculations": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "files": {
-                                                            "type": "object",
-                                                            "$comment": "Each file must be a logic program file",
-                                                            "additionalProperties": false,
-                                                            "patternProperties": {
-                                                                "^.+\\.lp$": {
-                                                                    "type": "object"
-                                                                }
-                                                            },
-                                                            "properties": {
-                                                                ".gitkeep": {}
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "cardtypes": {
-                                                    "type": "object",
-                                                    "allOf":[
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                                                    "contentSchema": "cardtype-schema.json"
-                                                                }
-                                                            }
-                                                        },
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        ".schema": {
-                                                                            "type": "object"
-                                                                        }
-                                                                    },
-                                                                    "required": [".schema"]
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                },
-                                                "fieldtypes": {
-                                                    "type": "object",
-                                                    "allOf": [
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                                                    "contentSchema": "card-type-schema.json"
-                                                                }
-                                                            }
-                                                        },
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        ".schema": {
-                                                                            "type": "object"
-                                                                        }
-                                                                    },
-                                                                    "required": [".schema"]
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                },
-                                                "templates": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "directories": {
-                                                            "type": "object",
-                                                            "additionalProperties": false,
-                                                            "patternProperties": {
-                                                                ".+": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        "directories": {
-                                                                            "type": "object",
-                                                                            "additionalProperties": false,
-                                                                            "properties": {
-                                                                                "c": {
-                                                                                    "description": "Each subdirectory is a card.",
-                                                                                    "type": "object",
-                                                                                    "properties": {
-                                                                                        "directories": {
-                                                                                            "type": "object",
-                                                                                            "additionalProperties": false,
-                                                                                            "patternProperties": {
-                                                                                                "^[a-z]+_[0-9]+$": {
-                                                                                                    "type": "object",
-                                                                                                    "$ref": "#/$defs/card-directory-schema#"
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        },
-                                                                        "files": {
-                                                                            "type": "object",
-                                                                            "additionalProperties": false,
-                                                                            "properties": {
-                                                                                ".schema": {
-                                                                                    "type": "object"
-                                                                                },
-                                                                                "template.json": {
-                                                                                    "type": "object",
-                                                                                    "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                                                                    "contentSchema": "template-schema.json"
-                                                                                }
-                                                                            }, "required": [".schema", "template.json"]
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        },
-                                                        "files": {
-                                                            "type": "object",
-                                                            "additionalProperties": false
-                                                        }
-                                                    }
-                                                },
-                                                "workflows": {
-                                                    "type": "object",
-                                                    "allOf": [
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                                                    "contentSchema": "workflow-schema.json"
-                                                                }
-                                                            }
-                                                        },
-                                                        {
-                                                            "properties": {
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "properties": {
-                                                                        ".schema": {
-                                                                            "type": "object"
-                                                                        }
-                                                                    },
-                                                                    "required": [".schema"]
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            },
-                                            "required": [
-                                                "cardtypes",
-                                                "fieldtypes",
-                                                "templates",
-                                                "workflows"
-                                            ]
-                                        }
-                                    }
-                                }
-                            },
-                            "required": [
-                                "local"
-                            ]
-                        }
-                    }
+  "title": "Card directory tree schema",
+  "$id": "cardtree-directory-schema",
+  "description": "This schema represents the directory structure of a card tree, using the format of https://github.com/jpoehnelt/directory-schema-validator",
+  "type": "object",
+  "properties": {
+    "directories": {
+      "type": "object",
+      "properties": {
+        ".cards": {
+          "description": "Configuration for the card tree",
+          "type": "object",
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "modules": {
+                  "$ref": "#/$defs/card-module-schema"
                 },
-                "cardroot": {
-                    "description": "The contents of the cardtree. Each subdirectory contains a top level card. The name of the directory is the cardkey, for example ABC-123.",
-                    "type": "object",
-                    "properties": {
-                        "directories": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "patternProperties": {
-                                "^[a-z]+_[0-9]+$": {
-                                    "type": "object",
-                                    "$ref": "#/$defs/card-directory-schema#"
+                "local": {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "properties": {
+                        "cardsconfig.json": {}
+                      },
+                      "required": [".schema", "cardsconfig.json"]
+                    },
+                    "directories": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "calculations": {
+                          "type": "object",
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "$comment": "Each file must be a logic program file",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                "^.+\\.lp$": {
+                                  "type": "object"
                                 }
+                              },
+                              "properties": {
+                                ".gitkeep": {}
+                              }
                             }
-                        }
-                    }
-                },
-                ".calc": {
-                    "description": "Temporary files for calculations.",
-                    "type": "object",
-                    "properties": {
-                        "directories": {
-                            "type": "object",
-                            "properties": {
-                                "cards": {
-                                    "description": "Directory that contains separate logic program files for each card",
-                                    "type": "object",
-                                    "properties": {
-                                        "files": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "patternProperties": {
-                                                "^.+\\.lp$": {
-                                                    "type": "object"
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            "additionalProperties": false
+                          }
                         },
-                        "files": {
-                            "type": "object",
-                            "properties": {
-                                "base.lp": {
-                                    "description": "A logic program that contains basic common definitions that are the same in all cards projects",
-                                    "type": "object"
-                                },
-                                "cardtree.lp": {
-                                    "description": "A logic program that only includes all the card-specific logic programs in the cards directory",
-                                    "type": "object"
-                                },
-                                "modules.lp": {
-                                    "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
-                                    "type": "object"
-                                },
-                                "main.lp": {
-                                    "description": "The main logic program",
-                                    "type": "object"
+                        "cardtypes": {
+                          "type": "object",
+                          "allOf": [
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                  "contentSchema": "cardtype-schema.json"
                                 }
+                              }
                             },
-                            "additionalProperties": false
-                        }
-                    }
-                }
-            },
-            "required": [
-                ".cards",
-                "cardroot"
-            ]
-        }
-    },
-    "$defs": {
-        "card-module-schema": {
-            "description": "The schema for modules. Each module is in a named directory containing 'cardtypes', 'templates' and 'workflows'. ",
-            "type": "object",
-            "properties": {
-                "directories": {
-                    "type": "object",
-                    "patternProperties": {
-                        "^[A-Za-z ._-]+$": {
-                            "type": "object",
-                            "properties" : {
-                                "directories": {
-                                    "type": "object",
-                                    "properties": {
-                                        "cardtypes": {
-                                            "type": "object",
-                                            "allOf": [
-                                                {
-                                                    "properties": {
-                                                        "files": {
-                                                            "type": "object",
-                                                            "patternProperties": {
-                                                                "^[A-Za-z-_]+.json$": {
-                                                                    "type": "object"
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                {
-                                                    "properties": {
-                                                        "files": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                ".schema": {
-                                                                    "type": "object"
-                                                                }
-                                                            },
-                                                            "required": [".schema"]
-                                                        }
-                                                    }
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    ".schema": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": [".schema"]
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "fieldtypes": {
+                          "type": "object",
+                          "allOf": [
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                  "contentSchema": "card-type-schema.json"
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    ".schema": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": [".schema"]
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "templates": {
+                          "type": "object",
+                          "properties": {
+                            "directories": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                ".+": {
+                                  "type": "object",
+                                  "properties": {
+                                    "directories": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "c": {
+                                          "description": "Each subdirectory is a card.",
+                                          "type": "object",
+                                          "properties": {
+                                            "directories": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "patternProperties": {
+                                                "^[a-z]+_[0-9]+$": {
+                                                  "type": "object",
+                                                  "$ref": "#/$defs/card-directory-schema#"
                                                 }
-                                            ]
-                                        },
-                                        "fieldtypes": {
-                                            "type": "object",
-                                            "properties": {
-                                                "files": {
-                                                    "type": "object",
-                                                    "contentSchema": "field-type-schema.json"
-                                                }
+                                              }
                                             }
-                                        },
-                                        "templates": {
-                                            "type": "object",
-                                            "properties": {
-                                                "additionalProperties": false,
-                                                "directories": {
-                                                    "type": "object",
-                                                    "additionalProperties": false,
-                                                    "patternProperties": {
-                                                        ".+": {
-                                                            "type": "object",
-                                                            "properties": {
-                                                                "directories": {
-                                                                    "type": "object",
-                                                                    "additionalProperties": false,
-                                                                    "properties": {
-                                                                        "c": {
-                                                                            "description": "Each subdirectory is a card.",
-                                                                            "type": "object",
-                                                                            "properties": {
-                                                                                "directories": {
-                                                                                    "type": "object",
-                                                                                    "additionalProperties": false,
-                                                                                    "patternProperties": {
-                                                                                        "^[a-z]+_[0-9]+$": {
-                                                                                            "$ref": "#/$defs/card-directory-schema#"
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    },
-                                                                    "required": ["c"]
-                                                                },
-                                                                "files": {
-                                                                    "type": "object",
-                                                                    "additionalProperties": false,
-                                                                    "properties": {
-                                                                        ".schema": {
-                                                                            "type": "object"
-                                                                        },
-                                                                        "template.json": {
-                                                                            "type": "object",
-                                                                            "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                                                            "contentSchema": "template-schema.json"
-                                                                        }
-                                                                    }, "required": [".schema", "template.json"]
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                "files": {
-                                                    "type": "object",
-                                                    "additionalProperties": false
-                                                }
-                                            }
-                                        },
-                                        "workflows": {
-                                            "type": "object",
-                                            "properties": {
-                                                "files": {
-                                                    "type": "object",
-                                                    "contentSchema": "workflow-schema.json"
-                                                }
-                                            }
+                                          }
                                         }
+                                      }
                                     },
-                                    "required": [ "cardtypes", "fieldtypes", "templates", "workflows" ]
+                                    "files": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        ".schema": {
+                                          "type": "object"
+                                        },
+                                        "template.json": {
+                                          "type": "object",
+                                          "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                          "contentSchema": "template-schema.json"
+                                        }
+                                      },
+                                      "required": [".schema", "template.json"]
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "files": {
+                              "type": "object",
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "workflows": {
+                          "type": "object",
+                          "allOf": [
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                  "contentSchema": "workflow-schema.json"
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    ".schema": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": [".schema"]
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "cardtypes",
+                        "fieldtypes",
+                        "templates",
+                        "workflows"
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": ["local"]
+            }
+          }
+        },
+        "cardroot": {
+          "description": "The contents of the cardtree. Each subdirectory contains a top level card. The name of the directory is the cardkey, for example ABC-123.",
+          "type": "object",
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^[a-z]+_[0-9]+$": {
+                  "type": "object",
+                  "$ref": "#/$defs/card-directory-schema#"
+                }
+              }
+            }
+          }
+        },
+        ".calc": {
+          "description": "Temporary files for calculations.",
+          "type": "object",
+          "properties": {
+            "directories": {
+              "type": "object",
+              "properties": {
+                "cards": {
+                  "description": "Directory that contains separate logic program files for each card",
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^.+\\.lp$": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "files": {
+              "type": "object",
+              "properties": {
+                "base.lp": {
+                  "description": "A logic program that contains basic common definitions that are the same in all cards projects",
+                  "type": "object"
+                },
+                "cardtree.lp": {
+                  "description": "A logic program that only includes all the card-specific logic programs in the cards directory",
+                  "type": "object"
+                },
+                "modules.lp": {
+                  "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
+                  "type": "object"
+                },
+                "main.lp": {
+                  "description": "The main logic program",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": [".cards", "cardroot"]
+    }
+  },
+  "$defs": {
+    "card-module-schema": {
+      "description": "The schema for modules. Each module is in a named directory containing 'cardtypes', 'templates' and 'workflows'. ",
+      "type": "object",
+      "properties": {
+        "directories": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Za-z ._-]+$": {
+              "type": "object",
+              "properties": {
+                "directories": {
+                  "type": "object",
+                  "properties": {
+                    "cardtypes": {
+                      "type": "object",
+                      "allOf": [
+                        {
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "patternProperties": {
+                                "^[A-Za-z-_]+.json$": {
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "properties": {
+                                ".schema": {
+                                  "type": "object"
+                                }
+                              },
+                              "required": [".schema"]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "fieldtypes": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "object",
+                          "contentSchema": "field-type-schema.json"
+                        }
+                      }
+                    },
+                    "templates": {
+                      "type": "object",
+                      "properties": {
+                        "additionalProperties": false,
+                        "directories": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "patternProperties": {
+                            ".+": {
+                              "type": "object",
+                              "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "c": {
+                                      "description": "Each subdirectory is a card.",
+                                      "type": "object",
+                                      "properties": {
+                                        "directories": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "patternProperties": {
+                                            "^[a-z]+_[0-9]+$": {
+                                              "$ref": "#/$defs/card-directory-schema#"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "required": ["c"]
                                 },
                                 "files": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                        ".schema": {
-                                            "type": "object"
-                                        },
-                                        "cardsconfig.json": {
-                                            "type": "object"
-                                        }
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    ".schema": {
+                                      "type": "object"
                                     },
-                                    "required": ["cardsconfig.json",".schema"]
+                                    "template.json": {
+                                      "type": "object",
+                                      "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                      "contentSchema": "template-schema.json"
+                                    }
+                                  },
+                                  "required": [".schema", "template.json"]
                                 }
+                              }
                             }
+                          }
+                        },
+                        "files": {
+                          "type": "object",
+                          "additionalProperties": false
                         }
+                      }
+                    },
+                    "workflows": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "object",
+                          "contentSchema": "workflow-schema.json"
+                        }
+                      }
                     }
-                }
-            }
-        },
-        "card-directory-schema": {
-            "description": "The directory schema of a card, using the format of https://github.com/jpoehnelt/directory-schema-validator",
-            "type": "object",
-            "properties": {
-                "type": {
-                    "type": "string",
-                    "pattern": "^directory$"
-                },
-                "name": {
-                    "description": "The name of the card directory is the card key, for example abc_123",
-                    "type": "string",
-                    "minLength": 5,
-                    "maxLength": 20,
-                    "pattern": "^[a-z]+_[0-9]+$"
+                  },
+                  "required": [
+                    "cardtypes",
+                    "fieldtypes",
+                    "templates",
+                    "workflows"
+                  ]
                 },
                 "files": {
-                    "type": "object",
-                    "properties": {
-                        "index.json": {
-                            "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its cardtype",
-                            "type": "object",
-                            "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                            "contentSchema": "card-base-schema.json"
-                        },
-                        "index.adoc": {
-                            "description": "The description field of the card as an Asciidoc file",
-                            "type": "object"
-                        },
-                        "index.lp": {
-                            "description": "Calculations specific to the card",
-                            "type": "object"
-                        }
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    ".schema": {
+                      "type": "object"
                     },
-                    "required": [
-                        "index.json",
-                        "index.adoc"
-                    ]
-                },
-                "directories": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "a": {
-                            "description": "A directory for file attachments of the card",
-                            "type": "object"
-                        },
-                        "c": {
-                            "description": "A directory for child cards",
-                            "type": "object",
-                            "properties": {
-                                "directories": {
-                                    "$ref": "#/$defs/card-directory-schema#"
-                                }
-                            }
-                        }
+                    "cardsconfig.json": {
+                      "type": "object"
                     }
+                  },
+                  "required": ["cardsconfig.json", ".schema"]
                 }
+              }
             }
+          }
         }
+      }
+    },
+    "card-directory-schema": {
+      "description": "The directory schema of a card, using the format of https://github.com/jpoehnelt/directory-schema-validator",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^directory$"
+        },
+        "name": {
+          "description": "The name of the card directory is the card key, for example abc_123",
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 20,
+          "pattern": "^[a-z]+_[0-9]+$"
+        },
+        "files": {
+          "type": "object",
+          "properties": {
+            "index.json": {
+              "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its cardtype",
+              "type": "object",
+              "$comment": "Each file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "card-base-schema.json"
+            },
+            "index.adoc": {
+              "description": "The description field of the card as an Asciidoc file",
+              "type": "object"
+            },
+            "index.lp": {
+              "description": "Calculations specific to the card",
+              "type": "object"
+            }
+          },
+          "required": ["index.json", "index.adoc"]
+        },
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "a": {
+              "description": "A directory for file attachments of the card",
+              "type": "object"
+            },
+            "c": {
+              "description": "A directory for child cards",
+              "type": "object",
+              "properties": {
+                "directories": {
+                  "$ref": "#/$defs/card-directory-schema#"
+                }
+              }
+            }
+          }
+        }
+      }
     }
+  }
 }

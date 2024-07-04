@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
-import { useProject } from '../api'
+import { useMemo } from 'react';
+import { useProject } from '../api';
 import {
   countChildren,
   findCard,
   flattenTree,
   getMoveableCards,
-} from '../utils'
+} from '../utils';
 
 /**
  * Helper for getting a list of cards from a project
@@ -13,13 +13,13 @@ import {
  *
  */
 export function useListCard(key: string) {
-  const { project } = useProject()
+  const { project } = useProject();
 
   const listCard = useMemo(() => {
-    return project ? findCard(project.cards, key) : null
-  }, [project, key])
+    return project ? findCard(project.cards, key) : null;
+  }, [project, key]);
 
-  return listCard
+  return listCard;
 }
 /**
  * Helper for getting the amount of children of a card
@@ -27,23 +27,23 @@ export function useListCard(key: string) {
  * @returns
  */
 export function useChildAmount(key: string) {
-  const listCard = useListCard(key)
+  const listCard = useListCard(key);
 
   const childAmount = useMemo(() => {
-    return listCard ? countChildren(listCard) : 0
-  }, [listCard])
+    return listCard ? countChildren(listCard) : 0;
+  }, [listCard]);
 
-  return childAmount
+  return childAmount;
 }
 
 export function useFlatCards() {
-  const { project } = useProject()
+  const { project } = useProject();
 
   const flatCards = useMemo(() => {
-    return project ? flattenTree(project.cards) : []
-  }, [project])
+    return project ? flattenTree(project.cards) : [];
+  }, [project]);
 
-  return flatCards
+  return flatCards;
 }
 
 /**
@@ -52,12 +52,12 @@ export function useFlatCards() {
  * @returns A list of cards that the given card can be moved to
  */
 export function useMoveableCards(key: string) {
-  const flatCards = useFlatCards()
-  const listCard = useListCard(key)
+  const flatCards = useFlatCards();
+  const listCard = useListCard(key);
 
   const moveableCards = useMemo(() => {
-    return listCard ? getMoveableCards(flatCards, listCard) : []
-  }, [flatCards, listCard])
+    return listCard ? getMoveableCards(flatCards, listCard) : [];
+  }, [flatCards, listCard]);
 
-  return moveableCards
+  return moveableCards;
 }

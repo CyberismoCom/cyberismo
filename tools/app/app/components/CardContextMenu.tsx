@@ -1,7 +1,7 @@
-import * as React from 'react'
-import MoreIcon from '@mui/icons-material/MoreHoriz'
+import * as React from 'react';
+import MoreIcon from '@mui/icons-material/MoreHoriz';
 
-import { CardMetadata } from '../lib/definitions'
+import { CardMetadata } from '../lib/definitions';
 import {
   Button,
   Modal,
@@ -16,14 +16,14 @@ import {
   Divider,
   Typography,
   Dropdown,
-} from '@mui/joy'
-import { useTranslation } from 'react-i18next'
-import { useModals } from '../lib/utils'
-import { useCard } from '../lib/api'
-import { MoveCardModal, DeleteModal, MetadataModal } from './modals'
+} from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import { useModals } from '../lib/utils';
+import { useCard } from '../lib/api';
+import { MoveCardModal, DeleteModal, MetadataModal } from './modals';
 
 interface CardContextMenuProps {
-  cardKey: string
+  cardKey: string;
 }
 
 const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
@@ -31,9 +31,9 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
     delete: false,
     move: false,
     metadata: false,
-  })
+  });
 
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <>
@@ -69,7 +69,7 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
         cardKey={cardKey}
       />
     </>
-  )
-}
+  );
+};
 
-export default CardContextMenu
+export default CardContextMenu;

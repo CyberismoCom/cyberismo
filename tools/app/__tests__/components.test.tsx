@@ -1,23 +1,23 @@
-import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
-import { TreeMenu } from '../app/components/TreeMenu'
-import { Project } from '@/app/lib/definitions'
-import StateSelector from '@/app/components/StateSelector'
-import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces'
-import { useTranslation } from 'react-i18next'
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { TreeMenu } from '../app/components/TreeMenu';
+import { Project } from '@/app/lib/definitions';
+import StateSelector from '@/app/components/StateSelector';
+import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
+import { useTranslation } from 'react-i18next';
 
 // Mock useRouter:
 jest.mock('next/navigation', () => ({
   useRouter() {
     return {
       prefetch: () => null,
-    }
+    };
   },
-}))
+}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: jest.fn(),
-}))
+}));
 
 describe('TreeMenu', () => {
   it('renders with test data', () => {
@@ -26,13 +26,13 @@ describe('TreeMenu', () => {
         cards={testProject.cards}
         title={testProject.name}
         selectedCardKey={null}
-      />
-    )
+      />,
+    );
 
-    const heading = screen.getByText('SDL Decision')
-    expect(heading).toBeInTheDocument()
-  })
-})
+    const heading = screen.getByText('SDL Decision');
+    expect(heading).toBeInTheDocument();
+  });
+});
 
 describe('TreeMenu', () => {
   it('parameter card key is visible and selected in UI', () => {
@@ -41,41 +41,41 @@ describe('TreeMenu', () => {
         cards={testProject.cards}
         title={testProject.name}
         selectedCardKey={'USDL-46'}
-      />
-    )
-    const node = screen.getByText('Demand phase').parentNode
-    expect(node).toBeVisible()
-    expect(node).toHaveClass('Mui-selected')
-  })
-})
+      />,
+    );
+    const node = screen.getByText('Demand phase').parentNode;
+    expect(node).toBeVisible();
+    expect(node).toHaveClass('Mui-selected');
+  });
+});
 
 describe('StateSelector', () => {
   it('renders with test data', () => {
-    const useTranslationSpy = useTranslation as jest.Mock
-    const tSpy = jest.fn((str, { state }) => `${str} ${state}`)
+    const useTranslationSpy = useTranslation as jest.Mock;
+    const tSpy = jest.fn((str, { state }) => `${str} ${state}`);
     useTranslationSpy.mockReturnValue({
       t: tSpy,
-    })
+    });
     render(
       <StateSelector
         currentState={testProject.workflows[0].states[1]}
         workflow={testProject.workflows[0]}
         onTransition={() => null}
-      />
-    )
-    const node = screen.getByText('stateSelector.status Approved')
-    expect(node).toBeVisible()
+      />,
+    );
+    const node = screen.getByText('stateSelector.status Approved');
+    expect(node).toBeVisible();
 
     render(
       <StateSelector
         currentState={testProject.workflows[1].states[3]}
         workflow={testProject.workflows[1]}
         onTransition={() => null}
-      />
-    )
-    const node2 = screen.getByText('stateSelector.status Not OK')
-    expect(node2).toBeVisible()
-  })
+      />,
+    );
+    const node2 = screen.getByText('stateSelector.status Not OK');
+    expect(node2).toBeVisible();
+  });
 
   it('fails gracefully if currentState and workflow do not match', () => {
     const { container } = render(
@@ -83,11 +83,11 @@ describe('StateSelector', () => {
         currentState={testProject.workflows[1].states[1]}
         workflow={testProject.workflows[0]}
         onTransition={() => null}
-      />
-    )
-    expect(container).toBeEmptyDOMElement()
-  })
-})
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+});
 
 const testProject: Project = {
   name: 'Test project',
@@ -321,4 +321,4 @@ const testProject: Project = {
       workflow: 'simple-workflow',
     },
   ],
-}
+};

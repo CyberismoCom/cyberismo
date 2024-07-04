@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next';
 
 import {
   Modal,
@@ -9,10 +9,10 @@ import {
   Button,
   Typography,
   Table,
-} from '@mui/joy'
-import { useCard } from '@/app/lib/api'
-import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces'
-import moment from 'moment'
+} from '@mui/joy';
+import { useCard } from '@/app/lib/api';
+import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import moment from 'moment';
 
 function Metadata({
   cardtype,
@@ -20,7 +20,7 @@ function Metadata({
   workflowState,
   lastTransitioned,
 }: cardMetadata) {
-  const {t} = useTranslation()
+  const { t } = useTranslation();
   return (
     <Table size="sm">
       <thead>
@@ -48,18 +48,18 @@ function Metadata({
         </tr>
       </tbody>
     </Table>
-  )
+  );
 }
 
 export interface MetadataModalProps {
-  open: boolean
-  onClose: () => void
-  cardKey: string
+  open: boolean;
+  onClose: () => void;
+  cardKey: string;
 }
 
 export function MetadataModal({ open, onClose, cardKey }: MetadataModalProps) {
-  const { t } = useTranslation()
-  const { card } = useCard(cardKey)
+  const { t } = useTranslation();
+  const { card } = useCard(cardKey);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -81,7 +81,7 @@ export function MetadataModal({ open, onClose, cardKey }: MetadataModalProps) {
         </DialogActions>
       </ModalDialog>
     </Modal>
-  )
+  );
 }
 
-export default MetadataModal
+export default MetadataModal;

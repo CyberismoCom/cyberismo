@@ -1,71 +1,71 @@
 {
-    "title": "Card",
-    "$id": "card-base-schema",
-    "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
-    "type": "object",
-    "additionalProperties": true,
-    "properties": {
-        "cardtype": {
-            "type": "string",
-            "minLength": 1,
-            "description": "The name of the card type",
-            "pattern": "^[A-Za-z]*\/?[A-Za-z-_]+$"
-        },
-        "summary": {
-            "type": "string",
-            "minLength": 1,
-            "description": "A short title of the card"
-        },
-        "workflowState": {
-            "type": "string",
-            "description": "the name of the card's current state in the workflow"
-        },
-        "lastTransitioned": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The date and time of the last transition of the card"
-        },
-        "labels": {
-            "type": "array",
-            "description": "Labels or tags that can be used for organising cards",
-            "items": {
-                "type": "string",
-                "minLength": 1
-            }
-        },
-        "links": {
-            "type": "array",
-            "description": "links to or from this card to other cards",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "direction": {
-                        "enum": ["to", "from"]
-                    },
-                    "cardkey": {
-                         "type": "string",
-                         "minLength": 3,
-                         "maxLength": 20,
-                         "pattern": "^[a-z]+_[0-9]+$"
-                    },
-                    "linktype": {
-                        "description": "The linktype is named according to the from-to direction. In user interfaces, the naming according to the linktype is shown in the 'from' card.",
-                        "$comment": "The same linktype names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
-                        "enum": ["blocks", "causes", "created from template", "duplicates", "mitigates", "relates to", "tests"]
-                    }
-                },
-                "required": [
-                    "direction",
-                    "cardkey",
-                    "linktype"
-                ],
-                "additionalProperties": false
-            }
-        }
+  "title": "Card",
+  "$id": "card-base-schema",
+  "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "cardtype": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name of the card type",
+      "pattern": "^[A-Za-z]*/?[A-Za-z-_]+$"
     },
-    "required": [
-        "summary",
-        "cardtype",
-        "workflowState"
-    ]
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short title of the card"
+    },
+    "workflowState": {
+      "type": "string",
+      "description": "the name of the card's current state in the workflow"
+    },
+    "lastTransitioned": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time of the last transition of the card"
+    },
+    "labels": {
+      "type": "array",
+      "description": "Labels or tags that can be used for organising cards",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "links": {
+      "type": "array",
+      "description": "links to or from this card to other cards",
+      "items": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "enum": ["to", "from"]
+          },
+          "cardkey": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-z]+_[0-9]+$"
+          },
+          "linktype": {
+            "description": "The linktype is named according to the from-to direction. In user interfaces, the naming according to the linktype is shown in the 'from' card.",
+            "$comment": "The same linktype names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
+            "enum": [
+              "blocks",
+              "causes",
+              "created from template",
+              "duplicates",
+              "mitigates",
+              "relates to",
+              "tests"
+            ]
+          }
+        },
+        "required": ["direction", "cardkey", "linktype"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["summary", "cardtype", "workflowState"]
 }

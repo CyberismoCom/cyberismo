@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   Checkbox,
   Modal,
@@ -10,40 +10,40 @@ import {
   DialogActions,
   Button,
   Alert,
-} from '@mui/joy'
-import { Trans, useTranslation } from 'react-i18next'
-import { Warning } from '@mui/icons-material'
-import { useCard } from '../../lib/api'
-import { useAppDispatch, useChildAmount, useParentCard } from '@/app/lib/hooks'
-import { useRouter } from 'next/navigation'
-import { addNotification } from '@/app/lib/slices/notifications'
+} from '@mui/joy';
+import { Trans, useTranslation } from 'react-i18next';
+import { Warning } from '@mui/icons-material';
+import { useCard } from '../../lib/api';
+import { useAppDispatch, useChildAmount, useParentCard } from '@/app/lib/hooks';
+import { useRouter } from 'next/navigation';
+import { addNotification } from '@/app/lib/slices/notifications';
 
 export interface DeleteModalProps {
-  open: boolean
-  onClose: () => void
-  cardKey: string
+  open: boolean;
+  onClose: () => void;
+  cardKey: string;
 }
 
 export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
-  const { t } = useTranslation()
-  const [checked, setChecked] = React.useState(false)
+  const { t } = useTranslation();
+  const [checked, setChecked] = React.useState(false);
 
-  const { deleteCard } = useCard(cardKey)
-  const childAmount = useChildAmount(cardKey)
+  const { deleteCard } = useCard(cardKey);
+  const childAmount = useChildAmount(cardKey);
 
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
 
-  const parent = useParentCard(cardKey)
+  const parent = useParentCard(cardKey);
 
-  const router = useRouter()
+  const router = useRouter();
 
   const warning = useMemo(
     () =>
       childAmount > 1
         ? t('deleteCardModal.warning', { cardAmount: childAmount })
         : undefined,
-    [childAmount, t]
-  )
+    [childAmount, t],
+  );
 
   const content = useMemo(
     () => (
@@ -58,38 +58,38 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
         }}
       />
     ),
-    [cardKey, childAmount]
-  )
+    [cardKey, childAmount],
+  );
 
   const handleDelete = useCallback(async () => {
     try {
-      await deleteCard()
+      await deleteCard();
       dispatch(
         addNotification({
           message: t('deleteCardModal.success', { card: cardKey }),
           type: 'success',
-        })
-      )
-      onClose()
+        }),
+      );
+      onClose();
       if (parent) {
-        router.push(`/cards/${parent.key}`)
+        router.push(`/cards/${parent.key}`);
       } else {
-        router.push('/cards')
+        router.push('/cards');
       }
     } catch (error) {
       dispatch(
         addNotification({
           message: error instanceof Error ? error.message : '',
           type: 'error',
-        })
-      )
+        }),
+      );
     }
-  }, [onClose, cardKey, t, parent, router, deleteCard, dispatch])
+  }, [onClose, cardKey, t, parent, router, deleteCard, dispatch]);
 
   // Reset checkbox state when dialog is closed/opened
   useEffect(() => {
-    setChecked(false)
-  }, [open])
+    setChecked(false);
+  }, [open]);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -127,7 +127,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
         </DialogContent>
       </ModalDialog>
     </Modal>
-  )
+  );
 }
 
-export default DeleteModal
+export default DeleteModal;
