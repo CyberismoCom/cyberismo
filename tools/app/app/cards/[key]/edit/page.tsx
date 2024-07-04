@@ -77,10 +77,6 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }, [preview, card])
 
-  useEffect(() => {
-    console.log('previewCard', previewCard)
-  }, [previewCard])
-
   return (
     <Stack height="100%">
       <FormProvider {...formMethods}>
