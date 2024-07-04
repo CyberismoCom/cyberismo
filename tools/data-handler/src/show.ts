@@ -283,12 +283,9 @@ export class Show {
      */
     public async showTemplatesWithDetails(projectPath: string): Promise<template[]> {
         Show.project = new Project(projectPath);
-        const promiseContainer = [];
-        for (const template of await Show.project.templates()) {
-            promiseContainer.push(Show.project.createTemplateObjectByName(template.name).then(t => t?.show()));
-        }
+        const promiseContainer = (await Show.project.templates()).map(template => Show.project.createTemplateObjectByName(template.name).then(t => t?.show()));
         const result = await Promise.all(promiseContainer);
-        return result.filter(item => item) as template[];
+        return result.filter(Boolean) as template[];
     }
 
     /**
