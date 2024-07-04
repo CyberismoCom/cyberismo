@@ -71,7 +71,8 @@ export interface cardMetadata {
     summary: string
     cardtype: string
     workflowState: string
-    [otherOptions: string]: metadataContent
+    lastTransitioned?: string
+    [key: string]: metadataContent
 }
 
 // FieldType content.
@@ -185,4 +186,4 @@ export interface fetchCardDetails {
     parent?: boolean
 }
 
-export type metadataContent = number | boolean | string | string[] | null
+export type metadataContent = number | boolean | string | string[] | null | undefined

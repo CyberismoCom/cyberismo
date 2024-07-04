@@ -20,6 +20,11 @@
             "type": "string",
             "description": "the name of the card's current state in the workflow"
         },
+        "lastTransitioned": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date and time of the last transition of the card"
+        },
         "labels": {
             "type": "array",
             "description": "Labels or tags that can be used for organising cards",

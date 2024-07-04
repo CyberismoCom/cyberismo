@@ -8,15 +8,18 @@ import { Calculate } from './calculate.js';
 import { card, workflowState } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { formatJson } from './utils/json.js';
+import { Edit } from './edit.js';
 
 export class Transition extends EventEmitter {
 
     static project: Project;
     private calculateCmd: Calculate;
+    private editCmd: Edit;
 
     constructor(calculateCmd: Calculate) {
         super();
         this.calculateCmd = calculateCmd;
+        this.editCmd = new Edit();
         this.addListener(
             'transitioned',
             this.calculateCmd.handleCardChanged.bind(this.calculateCmd));
@@ -80,6 +83,7 @@ export class Transition extends EventEmitter {
 
         // Write new state and re-calculate.
         await this.setCardState(details, found.toState);
+        await this.editCmd.editCardMetadata(Transition.project.basePath, details.key, 'lastTransitioned', new Date().toISOString());
         this.emit('transitioned', details);
     }
 }

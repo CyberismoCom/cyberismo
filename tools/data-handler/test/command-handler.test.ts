@@ -365,8 +365,15 @@ describe('show command with modules', () => {
 
 describe('transition command', () => {
     it('transition to new state - success()', async () => {
+        const show = new Show()
+        const card = await show.showCardDetails(decisionRecordsPath, { metadata: true }, "decision_5");
+        expect(card.metadata?.lastTransitioned).to.equal(undefined);
+
         const result = await commandHandler.command(Cmd.transition, ['decision_5', 'Approve'], options);
+
         expect(result.statusCode).to.equal(200);
+        const card2 = await show.showCardDetails(decisionRecordsPath, { metadata: true }, "decision_5");
+        expect(card2.metadata?.lastTransitioned).to.not.equal(undefined);
     });
     it('transition to new state with multiple "fromStates" - success()', async () => {
         const result = await commandHandler.command(Cmd.transition, ['decision_6', 'Reject'], options);
