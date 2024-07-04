@@ -1,21 +1,8 @@
 'use client'
-import React, { useCallback, useMemo } from 'react'
-import {
-  CardMode,
-  MetadataValue,
-  WorkflowTransition,
-} from '@/app/lib/definitions'
+import React, { useCallback, useEffect, useMemo } from 'react'
+import { CardMode, MetadataValue } from '@/app/lib/definitions'
 
-import {
-  Box,
-  Tab,
-  Tabs,
-  TabPanel,
-  TabList,
-  CircularProgress,
-  Stack,
-  Textarea,
-} from '@mui/joy'
+import { Box, Tab, Tabs, TabPanel, TabList, Stack, Textarea } from '@mui/joy'
 
 import CodeMirror from '@uiw/react-codemirror'
 import { StreamLanguage } from '@codemirror/language'
@@ -25,28 +12,17 @@ import { asciidoc } from 'codemirror-asciidoc'
 import ContentToolbar from '@/app/components/ContentToolbar'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ContentArea } from '@/app/components/ContentArea'
-import { useCard, useFieldTypes, useProject } from '@/app/lib/api'
-import { useDynamicForm } from '@/app/lib/utils'
+import { useCard } from '@/app/lib/api'
 import { useTranslation } from 'react-i18next'
-import ExpandingBox from '@/app/components/ExpandingBox'
-import {
-  generateExpandingBoxValues,
-  getEditableFields,
-} from '@/app/lib/components'
-import { Controller } from 'react-hook-form'
+import { Controller, FormProvider, useForm } from 'react-hook-form'
 import { useAppDispatch } from '@/app/lib/hooks'
 import { addNotification } from '@/app/lib/slices/notifications'
+import MetadataView from '@/app/components/MetadataView'
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation()
 
-  // Original card and project
-  const { project } = useProject()
   const { card, updateCard } = useCard(params.key)
-  const { fieldTypes } = useFieldTypes()
-  const cardType = useMemo(() => {
-    return project?.cardTypes.find((ct) => ct.name === card?.metadata?.cardtype)
-  }, [project, card])
 
   const searchParams = useSearchParams()
 
@@ -54,33 +30,13 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const router = useRouter()
 
-  const { fields, values } = useMemo(() => {
-    if (!card || !cardType || !fieldTypes) return { fields: [], values: {} }
-    let { values, fields } = generateExpandingBoxValues(
-      card,
-      fieldTypes,
-      [],
-      (cardType.optionallyVisibleFields ?? []).concat(
-        cardType.alwaysVisibleFields ?? []
-      ),
-      getEditableFields(card, cardType)
-    )
-    values['__title__'] = card.metadata?.summary ?? ''
-    values['__content__'] = card.content ?? ''
-
-    return { fields, values }
-  }, [card, fieldTypes, cardType])
-
-  const { handleSubmit, getValues, control, isReady } = useDynamicForm(values)
+  const formMethods = useForm()
+  const { handleSubmit, control, watch } = formMethods
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __content__, __title__, ...metadata } = data
-      const update: Record<string, MetadataValue> = {}
-      for (const { key } of fields) {
-        if (key === 'key' || key === 'type') continue
-        update[key] = metadata[key]
-      }
+      const update: Record<string, MetadataValue> = metadata
 
       await updateCard({
         content: __content__ as string,
@@ -106,121 +62,113 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }
 
-  const getPreview = useCallback(() => {
-    if (!card) return null
+  const preview = watch()
+
+  const previewCard = useMemo(() => {
+    const { __content__, __title__, ...metadata } = preview
     return {
       ...card!,
-      content: getValues('__content__'),
       metadata: {
         ...card!.metadata!,
-        summary: getValues('__title__'),
+        summary: __title__,
+        ...metadata,
       },
+      content: __content__,
     }
-  }, [card, getValues])
-
-  if (!isReady) return <CircularProgress />
+  }, [preview, card])
 
   return (
     <Stack height="100%">
-      <ContentToolbar
-        cardKey={params.key}
-        mode={CardMode.EDIT}
-        onUpdate={() => handleSubmit(handleSave)()}
-      />
-      <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
-        <Tabs
-          defaultValue={0}
-          sx={{
-            height: '100%',
-          }}
-        >
-          <TabList
-            sx={{
-              justifyContent: 'right',
-              width: '70%',
-            }}
-          >
-            <Tab>{t('edit')}</Tab>
-            <Tab>{t('preview')}</Tab>
-          </TabList>
-          <TabPanel
-            value={0}
+      <FormProvider {...formMethods}>
+        <ContentToolbar
+          cardKey={params.key}
+          mode={CardMode.EDIT}
+          onUpdate={() => handleSubmit(handleSave)()}
+        />
+        <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
+          <Tabs
+            defaultValue={0}
             sx={{
               height: '100%',
             }}
           >
-            <Box
-              height="100%"
+            <TabList
               sx={{
-                overflowY: 'scroll',
-                scrollbarWidth: 'thin',
+                justifyContent: 'right',
+                width: '70%',
               }}
-              width="70%"
-              paddingRight={3}
             >
-              <Controller
-                name="__title__"
-                control={control}
-                render={({ field: { value, onChange } }: any) => (
-                  <Textarea
-                    sx={{
-                      marginBottom: '10px',
-                      fontWeight: 'bold',
-                      fontSize: '1.2rem',
-                    }}
-                    value={value}
-                    onChange={onChange}
-                  />
-                )}
-              />
-              <Box paddingY={3}>
-                <ExpandingBox
-                  values={fields}
-                  color="bgsoft.main"
-                  editMode={true}
+              <Tab>{t('edit')}</Tab>
+              <Tab>{t('preview')}</Tab>
+            </TabList>
+            <TabPanel
+              value={0}
+              sx={{
+                height: '100%',
+              }}
+            >
+              <Box
+                height="100%"
+                sx={{
+                  overflowY: 'scroll',
+                  scrollbarWidth: 'thin',
+                }}
+                width="70%"
+                paddingRight={3}
+              >
+                <Controller
+                  name="__title__"
                   control={control}
-                  initialExpanded={searchParams.get('expand') === 'true'}
+                  defaultValue={card?.metadata?.summary || ''}
+                  render={({ field: { value, onChange } }: any) => (
+                    <Textarea
+                      sx={{
+                        marginBottom: '10px',
+                        fontWeight: 'bold',
+                        fontSize: '1.2rem',
+                      }}
+                      value={value}
+                      onChange={onChange}
+                    />
+                  )}
+                />
+                <Box paddingY={3}>
+                  <MetadataView
+                    initialExpanded={searchParams.get('expand') === 'true'}
+                    editMode={true}
+                    metadata={card?.metadata}
+                  />
+                </Box>
+                <Controller
+                  name="__content__"
+                  control={control}
+                  defaultValue={card?.content || ''}
+                  render={({ field: { value, onChange } }: any) => (
+                    <CodeMirror
+                      value={value}
+                      onChange={onChange}
+                      extensions={[
+                        StreamLanguage.define(asciidoc),
+                        EditorView.lineWrapping,
+                      ]}
+                      style={{
+                        border: '1px solid',
+                        borderColor: 'rgba(0,0,0,0.23)',
+                        borderRadius: 4,
+                      }}
+                    />
+                  )}
                 />
               </Box>
-              <Controller
-                name="__content__"
-                control={control}
-                render={({ field: { value, onChange } }: any) => (
-                  <CodeMirror
-                    value={value}
-                    onChange={onChange}
-                    extensions={[
-                      StreamLanguage.define(asciidoc),
-                      EditorView.lineWrapping,
-                    ]}
-                    style={{
-                      border: '1px solid',
-                      borderColor: 'rgba(0,0,0,0.23)',
-                      borderRadius: 4,
-                    }}
-                  />
-                )}
-              />
-            </Box>
-          </TabPanel>
-          <TabPanel
-            value={1}
-            sx={{
-              height: '100%',
-            }}
-          >
-            <Box height="100%">
-              <ContentArea
-                card={getPreview()}
-                error={null}
-                preview={true}
-                values={fields}
-                control={control}
-              />
-            </Box>
-          </TabPanel>
-        </Tabs>
-      </Stack>
+            </TabPanel>
+            <TabPanel value={1}>
+              <Box height="100%">
+                <ContentArea card={previewCard} error={null} />
+              </Box>
+            </TabPanel>
+          </Tabs>
+        </Stack>
+      </FormProvider>
     </Stack>
   )
 }

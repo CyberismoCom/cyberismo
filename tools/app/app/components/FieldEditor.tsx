@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 export interface FieldEditorProps {
   value: MetadataValue
   dataType?: DataType
-  onChange?: (event: any) => void
+  onChange?: (value: string | null) => void
   enumValues?: Array<EnumDefinition>
 }
 
@@ -21,8 +21,8 @@ export default function FieldEditor({
     case 'number':
       return (
         <Input
-          onChange={onChange}
-          value={value as number}
+          onChange={(e) => onChange?.(e.target.value)}
+          value={(value as number | null) ?? ''}
           type="number"
           color="primary"
           size="sm"
@@ -31,14 +31,22 @@ export default function FieldEditor({
 
     case 'boolean':
       return (
-        <Select value={value as string} onChange={onChange} color="primary">
+        <Select
+          value={value?.toString() ?? ''}
+          onChange={(e, value) => onChange?.(value)}
+          color="primary"
+        >
           <Option value="true">{t('true')}</Option>
           <Option value="false">{t('false')}</Option>
         </Select>
       )
     case 'enum':
       return (
-        <Select value={value as string} onChange={onChange} color="primary">
+        <Select
+          value={(value as string | null) ?? ''}
+          onChange={(e, value) => onChange?.(value)}
+          color="primary"
+        >
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}
@@ -46,22 +54,29 @@ export default function FieldEditor({
           ))}
         </Select>
       )
+    case 'list':
+      return (
+        <Input
+          onChange={(e) => onChange?.(e.target.value)}
+          value={Array.isArray(value) ? value.join(',') : ''}
+          color="primary"
+          size="sm"
+          fullWidth
+        />
+      )
     case 'shorttext':
     case 'longtext':
     case 'person':
     case 'date':
     case 'datetime':
-    case 'list':
     default:
       return (
         <Input
-          onChange={onChange}
-          value={value as string}
+          onChange={(e) => onChange?.(e.target.value)}
+          value={(value as string | null) ?? ''}
           color="primary"
           size="sm"
-          sx={{
-            width: 400,
-          }}
+          fullWidth
         />
       )
   }
