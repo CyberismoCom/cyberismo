@@ -38,9 +38,6 @@ function MetadataView({
   const { fieldTypes } = useFieldTypes()
 
   const context = useFormContext() // must be inside a <FormProvider>
-  useEffect(() => {
-    setExpanded(initialExpanded ?? false)
-  }, [initialExpanded])
 
   // TODO: replace with yup schemas
   const handleChange = useCallback(
