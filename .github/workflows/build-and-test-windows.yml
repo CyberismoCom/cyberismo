@@ -34,6 +34,5 @@ jobs:
         registry-url: 'https://npm.pkg.github.com'
         scope: '@cyberismocom'
     - run: npm ci
-    - run: npm run prettier-check
     - run: npm run build
     - run: npm test
