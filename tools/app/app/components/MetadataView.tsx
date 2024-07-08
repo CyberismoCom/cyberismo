@@ -57,6 +57,14 @@ function MetadataView({
         case 'list':
           onChange(value ? value.split(',').map((v) => v.trim()) : []);
           break;
+        case 'shorttext':
+        case 'longtext':
+        case 'date':
+        case 'datetime':
+        case 'person':
+        case 'enum':
+          onChange(value === '' ? null : value);
+          break;
         default:
           onChange(value);
       }

@@ -144,7 +144,6 @@ export async function PUT(request: NextRequest) {
 
     for (const [metadataKey, metadataValue] of Object.entries(res.metadata)) {
       const value = metadataValue as metadataContent;
-      if (value === null) continue;
 
       try {
         await editCommand.editCardMetadata(
