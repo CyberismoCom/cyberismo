@@ -36,6 +36,7 @@ export default function FieldEditor({
           onChange={(e, value) => onChange?.(value)}
           color="primary"
         >
+          <Option value="">{t('none')}</Option>
           <Option value="true">{t('true')}</Option>
           <Option value="false">{t('false')}</Option>
         </Select>
@@ -47,6 +48,7 @@ export default function FieldEditor({
           onChange={(e, value) => onChange?.(value)}
           color="primary"
         >
+          <Option value="">{t('none')}</Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}
