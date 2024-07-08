@@ -25,11 +25,21 @@ let commandHandler: Commands;
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-command-handler-tests');
 const testDirForExport = join(baseDir, 'tmp-command-export-tests');
+const reusableTestDir = join(baseDir, 'tmp-command-handler-reusable-tests'); // for tests, which clean up after themselves
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
+const optionsReuse = {
+  projectPath: join(reusableTestDir, 'valid/decision-records'),
+};
+
+async function resetReusableTestDir() {
+  rmSync(reusableTestDir, { recursive: true, force: true });
+  mkdirSync(reusableTestDir, { recursive: true });
+  await copyDir('test/test-data/', reusableTestDir);
+}
 
 before(async () => {
   commandHandler = new Commands();
@@ -40,8 +50,10 @@ before(async () => {
 
   mkdirSync(testDir, { recursive: true });
   mkdirSync(testDirForExport, { recursive: true });
+  mkdirSync(reusableTestDir, { recursive: true });
   await copyDir('test/test-data/', testDir);
   await copyDir('test/test-data/', testDirForExport);
+  await copyDir('test/test-data/', reusableTestDir);
 });
 
 after(() => {
@@ -51,6 +63,7 @@ after(() => {
   });
   rmSync(testDir, { recursive: true, force: true });
   rmSync(testDirForExport, { recursive: true, force: true });
+  rmSync(reusableTestDir, { recursive: true, force: true });
 });
 
 describe('validate command', () => {
@@ -259,10 +272,14 @@ describe('show command', () => {
 describe('show command with modules', () => {
   before(async () => {
     // import each project to each other
-    await commandHandler.command(Cmd.import, [minimalPath, 'mini'], options);
     await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, 'decision'],
+      ['module', minimalPath, 'mini'],
+      options,
+    );
+    await commandHandler.command(
+      Cmd.import,
+      ['module', decisionRecordsPath, 'decision'],
       optionsMini,
     );
   });
@@ -1208,7 +1225,89 @@ describe('create command', () => {
   });
 });
 
-describe('import command', () => {
+describe('import csv command', () => {
+  beforeEach(async () => {
+    await resetReusableTestDir();
+  });
+
+  it('import csv file (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.import,
+      ['csv', join(testDir, 'valid-real.csv')],
+      optionsReuse,
+    );
+    expect(result.statusCode).to.equal(200);
+
+    const [key1, key2] = result.payload as string[];
+
+    const show = new Show();
+    const card1 = await show.showCardDetails(
+      optionsReuse.projectPath,
+      { metadata: true, content: true },
+      key1,
+    );
+    const card2 = await show.showCardDetails(
+      optionsReuse.projectPath,
+      { metadata: true, content: true },
+      key2,
+    );
+
+    expect(card1.metadata?.summary).to.equal('Title1');
+    expect(card1.content).to.equal('content1');
+    expect(card1.metadata?.labels).to.deep.equal(['label1', 'label2']);
+    expect(card1.metadata?.responsible).to.equal('responsible@email.com');
+    expect(card1.metadata?.doesnotexist).to.be.undefined;
+
+    expect(card2.metadata?.summary).to.equal('Title2');
+    expect(card2.content).to.equal('content2');
+    expect(card2.metadata?.labels).to.be.undefined;
+    expect(card2.metadata?.responsible).to.equal('');
+    expect(card2.metadata?.doesnotexist).to.be.undefined;
+  });
+  it('import csv file with parent (success)', async () => {
+    const parent = 'decision_6';
+    const result = await commandHandler.command(
+      Cmd.import,
+      ['csv', join(testDir, 'valid-real.csv'), parent],
+      optionsReuse,
+    );
+    expect(result.statusCode).to.equal(200);
+
+    const createdKeys = result.payload as string[];
+
+    const show = new Show();
+
+    const parentCard = await show.showCardDetails(
+      optionsReuse.projectPath,
+      { metadata: true, content: true, children: true },
+      parent,
+    );
+
+    expect(createdKeys.length).to.equal(2);
+    expect(parentCard.children?.map((c) => c.key)).to.contain(createdKeys[0]);
+    expect(parentCard.children?.map((c) => c.key)).to.contain(createdKeys[1]);
+  });
+  it('try to import csv file without all required columns', async () => {
+    const result = await commandHandler.command(
+      Cmd.import,
+      ['csv', join(testDir, 'invalid-missing-columns-real.csv')],
+      optionsReuse,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('requires property "template"');
+  });
+  it('try to import csv file with invalid path', async () => {
+    const result = await commandHandler.command(
+      Cmd.import,
+      ['csv', 'i-dont-exist.csv'],
+      optionsReuse,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.contain('ENOENT');
+  });
+});
+
+describe('import module command', () => {
   const type = 'module';
   const miniModule = 'mini';
   const decisionModule = 'decision';
@@ -1227,7 +1326,7 @@ describe('import command', () => {
   it('import module (success)', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath, decisionModule],
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
@@ -1235,7 +1334,7 @@ describe('import command', () => {
   it('try to import module - no source', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['', decisionModule],
+      ['module', '', decisionModule],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -1246,7 +1345,7 @@ describe('import command', () => {
     try {
       result = await commandHandler.command(
         Cmd.import,
-        [decisionRecordsPath, decisionModule],
+        ['module', decisionRecordsPath, decisionModule],
         invalidOptions,
       );
       assert(false, 'this should not be reached as the above throws');
@@ -1258,7 +1357,7 @@ describe('import command', () => {
   it('try to import module - no name', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, ''],
+      ['module', decisionRecordsPath, ''],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -1266,13 +1365,13 @@ describe('import command', () => {
   it('try to import module - twice the same module', async () => {
     const result1 = await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath, decisionModule],
       optionsMini,
     );
     expect(result1.statusCode).to.equal(200);
     const result2 = await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath, decisionModule],
       optionsMini,
     );
     expect(result2.statusCode).to.equal(400);
@@ -1280,7 +1379,7 @@ describe('import command', () => {
   it('try to import module - that has the same prefix', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      [minimalPath, 'mini-too'],
+      ['module', minimalPath, 'mini-too'],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -1298,12 +1397,12 @@ describe('modifying imported module content is forbidden', () => {
     // import each project to each other
     await commandHandler.command(
       Cmd.import,
-      [minimalPath, miniModule],
+      ['module', minimalPath, miniModule],
       options,
     );
     await commandHandler.command(
       Cmd.import,
-      [decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath, decisionModule],
       optionsMini,
     );
   });

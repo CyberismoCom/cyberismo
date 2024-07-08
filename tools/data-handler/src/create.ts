@@ -233,7 +233,7 @@ export class Create extends EventEmitter {
   public async createCard(
     projectPath: string,
     templateName: string,
-    parentCardKey: string,
+    parentCardKey?: string,
   ): Promise<string[]> {
     // todo: should validator validate the whole schema before creating a new card to it?
     //       this might keep the integrity and consistency of the project more easily valid.
