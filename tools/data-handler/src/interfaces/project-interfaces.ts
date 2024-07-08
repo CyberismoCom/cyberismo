@@ -193,3 +193,15 @@ export type metadataContent =
   | string[]
   | null
   | undefined;
+
+export type csvRowRaw = {
+  [key: string]: string;
+};
+
+export interface importCsvRow {
+  summary: string;
+  template: string;
+  description?: string;
+  labels?: string[];
+  [key: string]: string | string[] | undefined; // Custom fields
+}
