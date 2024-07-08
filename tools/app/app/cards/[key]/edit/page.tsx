@@ -161,7 +161,12 @@ export default function Page({ params }: { params: { key: string } }) {
                 />
               </Box>
             </TabPanel>
-            <TabPanel value={1}>
+            <TabPanel
+              value={1}
+              sx={{
+                height: '100%',
+              }}
+            >
               <Box height="100%">
                 <ContentArea card={previewCard} error={null} />
               </Box>
