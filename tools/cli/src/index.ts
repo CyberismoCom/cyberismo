@@ -294,11 +294,9 @@ program
     handleResponse(result);
   });
 
-const importCmd = program.command('import');
-
-// Import module
-importCmd
-  .command('module')
+// Import command
+program
+  .command('import')
   .description('Imports another project to this project.')
   .argument('<source>', 'Path to import from')
   .argument('<name>', 'Name for the import in this project')
@@ -306,26 +304,7 @@ importCmd
   .action(async (source: string, name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', source, name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-// import csv
-importCmd
-  .command('csv')
-  .description('Imports cards from a csv file')
-  .argument('<csvFile>', 'File to import from')
-  .argument(
-    '[cardKey]',
-    'Card key of the parent. If defined, cards are created as a child',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (csvFile: string, cardKey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.import,
-      ['csv', csvFile, cardKey],
+      [source, name],
       options,
     );
     handleResponse(result);
