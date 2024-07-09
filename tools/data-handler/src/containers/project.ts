@@ -852,6 +852,7 @@ export class Project extends CardContainer {
     }
     card.content = content;
     await this.saveCard(card);
+    await this.onCardUpdate(cardKey);
   }
 
   /**
@@ -865,10 +866,37 @@ export class Project extends CardContainer {
     changedKey: string,
     newValue: metadataContent,
   ) {
+    if (await this.updateMetatadataKey(cardKey, changedKey, newValue)) {
+      await this.onCardUpdate(cardKey);
+    }
+  }
+
+  /**
+   *
+   */
+  private async onCardUpdate(cardKey: string) {
+    return this.updateMetatadataKey(
+      cardKey,
+      'lastUpdated',
+      new Date().toISOString(),
+    );
+  }
+
+  /**
+   * Updates metadata key.
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
+   * @returns true if metadata key was updated, false otherwise.
+   */
+  private async updateMetatadataKey(
+    cardKey: string,
+    changedKey: string,
+    newValue: metadataContent,
+  ) {
     const card = await this.findCard(this.basePath, cardKey, {
       metadata: true,
     });
-    type MetadataTypes = Record<string, metadataContent>;
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -879,10 +907,12 @@ export class Project extends CardContainer {
     }
 
     if (card.metadata) {
-      const cardAsRecord: MetadataTypes = card.metadata;
+      const cardAsRecord: Record<string, metadataContent> = card.metadata;
       cardAsRecord[changedKey] = newValue;
       await this.saveCardMetadata(card);
+      return true;
     }
+    return false;
   }
 
   /**
