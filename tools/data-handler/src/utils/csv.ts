@@ -11,7 +11,9 @@ export async function readCsvFile(file: string): Promise<csvRowRaw[]> {
   const content = await readFile(file, {
     encoding: 'utf-8',
   });
-  const records = parse(content);
+  const records = parse(content, {
+    bom: true,
+  });
 
   if (!Array.isArray(records) || records.length < 2) {
     throw new Error('CSV file must have headers');
