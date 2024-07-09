@@ -72,6 +72,7 @@ export interface cardMetadata {
   cardtype: string;
   workflowState: string;
   lastTransitioned?: string;
+  lastUpdated?: string;
   [key: string]: metadataContent;
 }
 

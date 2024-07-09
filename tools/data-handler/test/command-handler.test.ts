@@ -492,6 +492,7 @@ describe('transition command', () => {
       'decision_5',
     );
     expect(card.metadata?.lastTransitioned).to.equal(undefined);
+    expect(card.metadata?.lastUpdated).to.equal(undefined);
 
     const result = await commandHandler.command(
       Cmd.transition,
@@ -506,6 +507,7 @@ describe('transition command', () => {
       'decision_5',
     );
     expect(card2.metadata?.lastTransitioned).to.not.equal(undefined);
+    expect(card2.metadata?.lastUpdated).to.not.equal(undefined);
   });
   it('transition to new state with multiple "fromStates" - success()', async () => {
     const result = await commandHandler.command(
