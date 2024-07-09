@@ -872,7 +872,8 @@ export class Project extends CardContainer {
   }
 
   /**
-   *
+   * This function should be called after card is updated.
+   * Updates lastUpdated metadata key.
    */
   private async onCardUpdate(cardKey: string) {
     return this.updateMetatadataKey(
