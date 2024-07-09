@@ -25,6 +25,11 @@
       "format": "date-time",
       "description": "The date and time of the last transition of the card"
     },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time of the last update of the card"
+    },
     "labels": {
       "type": "array",
       "description": "Labels or tags that can be used for organising cards",
