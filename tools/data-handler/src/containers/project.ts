@@ -904,7 +904,7 @@ export class Project extends CardContainer {
 
     const validCard = await this.validateCard(card);
     if (validCard.length !== 0) {
-      throw new Error(`Card '${cardKey}' is not valid!`);
+      throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
     }
 
     if (card.metadata) {
