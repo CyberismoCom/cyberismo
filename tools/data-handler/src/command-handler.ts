@@ -305,7 +305,11 @@ export class Commands {
         if (target === 'card') {
           const [card, before] = args;
           try {
-            await this.moveCmd.rankCard(this.projectPath, card, before);
+            if (before === 'first') {
+              await this.moveCmd.rankFirst(this.projectPath, card);
+            } else {
+              await this.moveCmd.rankCard(this.projectPath, card, before);
+            }
             return { statusCode: 200 };
           } catch (e) {
             return { statusCode: 400, message: errorFunction(e) };

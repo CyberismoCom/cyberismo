@@ -58,6 +58,21 @@ export function getRankAfter(rank: Rank): Rank {
   }
   return PREFIX + newRank;
 }
+/**
+ * Returns the previous available rank before the given rank
+ * if the rank is already the first rank, it throws an error
+ * @param rank rank to get the previous rank before
+ * @returns the previous available rank before the given rank
+ */
+export function getRankBefore(rank: Rank): Rank {
+  rank = rank.replace(PREFIX, '');
+  let num = debase(rank);
+  num--;
+  if (num < 0) {
+    throw new Error('Rank cannot be negative');
+  }
+  return PREFIX + enbase(num);
+}
 
 /**
  * Get the rank between two ranks

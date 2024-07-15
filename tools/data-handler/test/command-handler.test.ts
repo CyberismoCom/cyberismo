@@ -1859,6 +1859,24 @@ describe('rank command', () => {
       );
       expect(details.metadata?.rank).to.equal('0|bn');
     });
+    // Note: this tests depends on the previous test
+    it('rank card first(success)', async () => {
+      const key = 'decision_5';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', key, 'first'],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(200);
+
+      const details = await new Show().showCardDetails(
+        optionsReuse.projectPath,
+        { metadata: true, content: true },
+        key,
+      );
+
+      expect(details.metadata?.rank).to.equal('0|a');
+    });
     it('try rank card - project missing', async () => {
       const rankBefore = 'decision_6';
       const invalidProject = { projectPath: 'idontexist' };

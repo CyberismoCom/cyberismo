@@ -139,7 +139,7 @@ export class Move {
       parent: true,
     });
 
-    if (!beforeCard) {
+    if (!beforeCard || !beforeCard.parent) {
       throw new Error(`Card ${beforeCardKey} not found from project`);
     }
 
@@ -147,40 +147,14 @@ export class Move {
       throw new Error(`Cards must be in the same parent`);
     }
 
-    const isRoot = beforeCard.parent === 'root' && card.parent === 'root';
-
-    let children;
-    if (isRoot) {
-      const res = await Move.project.showProjectCards();
-      children = res;
-    } else {
-      if (!beforeCard.parent) {
-        throw new Error(
-          `Before card ${beforeCardKey} does not have a parent in project`,
-        );
-      }
-      const parentCard = await Move.project.findSpecificCard(
-        beforeCard.parent,
-        {
-          children: true,
-          metadata: true,
-        },
-      );
-
-      if (!parentCard) {
-        throw new Error(
-          `Parent card ${beforeCard.parent} not found from project`,
-        );
-      }
-      // rank is a lexographic comparison of string
-      children = parentCard.children;
-    }
+    const children = sortItems(
+      await this.getChildren(beforeCard.parent),
+      (item) => item.metadata?.rank || EMPTY_RANK,
+    );
 
     if (!children) {
       throw new Error(`Children not found from card ${beforeCard.parent}`);
     }
-
-    children = sortItems(children, (item) => item.metadata?.rank || EMPTY_RANK);
 
     const beforeCardIndex = children.findIndex(
       (child) => child.key === beforeCard.key,
@@ -188,7 +162,7 @@ export class Move {
 
     if (beforeCardIndex === -1) {
       throw new Error(
-        `Card ${beforeCardKey} is not a child of ${isRoot ? 'root' : beforeCard.parent}`,
+        `Card ${beforeCardKey} is not a child of ${beforeCard.parent}`,
       );
     }
 
@@ -214,6 +188,56 @@ export class Move {
           children[beforeCardIndex + 1].metadata?.rank as string,
         ),
       );
+    }
+  }
+
+  public async rankFirst(path: string, cardKey: string) {
+    Move.project = new Project(path);
+
+    const card = await Move.project.findSpecificCard(cardKey, {
+      metadata: true,
+      parent: true,
+    });
+    if (!card || !card.parent) {
+      throw new Error(`Card ${cardKey} not found from project`);
+    }
+
+    const children = sortItems(
+      await this.getChildren(card.parent),
+      (item) => item.metadata?.rank || EMPTY_RANK,
+    );
+
+    if (!children || children.length === 0) {
+      throw new Error(`Children not found from card ${card.parent}`);
+    }
+
+    if (children[0].key === cardKey) {
+      return;
+    }
+
+    const firstRank = children[0].metadata?.rank;
+
+    if (!firstRank) {
+      throw new Error(`First rank not found`);
+    }
+
+    // Set the rank to be the first one
+    if (firstRank === FIRST_RANK) {
+      // if the first card is already at the first rank, we need to move the card to the next one
+      const secondRank = children[1].metadata?.rank;
+      if (!secondRank) {
+        throw new Error(`Second rank not found`);
+      }
+      const rankBetween = getRankBetween(firstRank, secondRank);
+      await Move.project.updateCardMetadata(
+        children[0].key,
+        'rank',
+        rankBetween,
+      );
+      await Move.project.updateCardMetadata(cardKey, 'rank', firstRank);
+    } else {
+      // if the card is not at the first rank, we just use the first rank
+      await Move.project.updateCardMetadata(cardKey, 'rank', FIRST_RANK);
     }
   }
 
@@ -301,6 +325,27 @@ export class Move {
       if (card.children && card.children.length > 0) {
         await this.rebalanceProjectRecursively(card.children);
       }
+    }
+  }
+
+  /**
+   * Returns children of a parent card or root cards
+   * @param parentCardKey parent card key or 'root' or template name
+   * @returns
+   */
+  private async getChildren(parentCardKey: string) {
+    if (parentCardKey === 'root') {
+      const res = await Move.project.showProjectCards();
+      return res;
+    } else {
+      const parentCard = await Move.project.findSpecificCard(parentCardKey, {
+        children: true,
+        metadata: true,
+      });
+      if (!parentCard) {
+        throw new Error(`Card ${parentCardKey} not found from project`);
+      }
+      return parentCard.children || [];
     }
   }
 }

@@ -3,6 +3,7 @@ import {
   getRankBetween,
   getRankAfter,
   rebalanceRanks,
+  getRankBefore,
 } from '../../src/utils/lexorank.js';
 import { expect } from 'chai';
 
@@ -36,6 +37,13 @@ const getRankeAfterTests = [
   ['0|ba', '0|bb'],
 ];
 
+const getRankBeforeTests = [
+  ['0|b', '0|a'],
+  ['0|c', '0|b'],
+  ['0|zn', '0|zm'],
+  ['0|bb', '0|ba'],
+];
+
 describe('lexorank', () => {
   getRankBetweenTests.forEach(([a, b, expected]) => {
     it(`getRankBetween(${a}, ${b})`, () => {
@@ -66,6 +74,17 @@ describe('lexorank', () => {
       expect(getRankAfter(rank)).to.equal(expected);
     });
   });
+
+  getRankBeforeTests.forEach(([rank, expected]) => {
+    it(`getRankBefore(${rank})`, () => {
+      expect(getRankBefore(rank)).to.equal(expected);
+    });
+  });
+
+  it('getRankBefore(a) throws error', () => {
+    expect(() => getRankBefore('0|a')).to.throw('Rank cannot be negative');
+  });
+
   it(`rebalanceRanks(1 level)`, () => {
     const ranks = 3;
     const expected = ['0|a', '0|m', '0|z'];
