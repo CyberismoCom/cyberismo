@@ -57,6 +57,7 @@ export enum Cmd {
   start = 'start',
   transition = 'transition',
   validate = 'validate',
+  rank = 'rank',
 }
 
 /**
@@ -297,6 +298,31 @@ export class Commands {
           return { statusCode: 200 };
         } catch (error) {
           return { statusCode: 400, message: errorFunction(error) };
+        }
+      }
+      if (command === Cmd.rank) {
+        const target = args.splice(0, 1)[0];
+        if (target === 'card') {
+          const [card, before] = args;
+          try {
+            await this.moveCmd.rankCard(this.projectPath, card, before);
+            return { statusCode: 200 };
+          } catch (e) {
+            return { statusCode: 400, message: errorFunction(e) };
+          }
+        }
+        if (target === 'rebalance') {
+          const [cardKey] = args;
+          try {
+            if (cardKey) {
+              this.moveCmd.rebalanceChildren(this.projectPath, cardKey);
+            } else {
+              await this.moveCmd.rebalanceProject(this.projectPath);
+            }
+            return { statusCode: 200 };
+          } catch (e) {
+            return { statusCode: 400, message: errorFunction(e) };
+          }
         }
       }
       if (command === Cmd.remove) {

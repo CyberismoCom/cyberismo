@@ -19,6 +19,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { findPathTo } from '../lib/utils';
 import { Stack, Typography } from '@mui/joy';
+import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
 
 type TreeMenuProps = {
   title: string;
@@ -26,6 +27,11 @@ type TreeMenuProps = {
   selectedCardKey: string | null;
   onCardSelect?: (cardKey: string) => void;
 };
+
+// since we aren't using buckets, 1 means that missing ranks will be last
+function rankGetter(card: Card) {
+  return card.metadata?.rank || '1|z';
+}
 
 const renderTree = (nodes: Card, handleClick: (cardKey: string) => void) => (
   <TreeItem
@@ -35,7 +41,9 @@ const renderTree = (nodes: Card, handleClick: (cardKey: string) => void) => (
     label={nodes.metadata?.summary ?? nodes.key}
   >
     {Array.isArray(nodes.children)
-      ? nodes.children.map((node) => renderTree(node, handleClick))
+      ? sortItems(nodes.children, rankGetter).map((node) =>
+          renderTree(node, handleClick),
+        )
       : null}
   </TreeItem>
 );
@@ -83,7 +91,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           flexGrow: 1,
         }}
       >
-        {cards.map((treeItem) =>
+        {sortItems(cards, rankGetter).map((treeItem) =>
           renderTree(treeItem, onCardSelect || (() => {})),
         )}
       </TreeView>

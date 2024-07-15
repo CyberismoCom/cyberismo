@@ -491,8 +491,6 @@ describe('transition command', () => {
       { metadata: true },
       'decision_5',
     );
-    expect(card.metadata?.lastTransitioned).to.equal(undefined);
-    expect(card.metadata?.lastUpdated).to.equal(undefined);
 
     const result = await commandHandler.command(
       Cmd.transition,
@@ -506,8 +504,12 @@ describe('transition command', () => {
       { metadata: true },
       'decision_5',
     );
-    expect(card2.metadata?.lastTransitioned).to.not.equal(undefined);
-    expect(card2.metadata?.lastUpdated).to.not.equal(undefined);
+    expect(card2.metadata?.lastTransitioned).to.not.equal(
+      card.metadata?.lastTransitioned,
+    );
+    expect(card2.metadata?.lastUpdated).to.not.equal(
+      card.metadata?.lastUpdated,
+    );
   });
   it('transition to new state with multiple "fromStates" - success()', async () => {
     const result = await commandHandler.command(
@@ -1228,7 +1230,7 @@ describe('create command', () => {
 });
 
 describe('import csv command', () => {
-  beforeEach(async () => {
+  afterEach(async () => {
     await resetReusableTestDir();
   });
 
@@ -1795,5 +1797,132 @@ describe('rename command', () => {
     const newName = 'DECREC-2';
     const result = await commandHandler.command(Cmd.rename, [newName], options);
     expect(result.statusCode).to.equal(400);
+  });
+});
+
+describe('rank command', () => {
+  const rootCardKey = 'decision_7';
+  const childCardKey = 'decision_8';
+  beforeEach(async () => {
+    // Create a few cards to play with.
+    const template = 'decision';
+    await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      optionsReuse,
+    );
+
+    await commandHandler.command(
+      Cmd.create,
+      ['card', template, 'decision_5'],
+      optionsReuse,
+    );
+  });
+  after(async () => {
+    await resetReusableTestDir();
+  });
+  describe('rank rank', () => {
+    it('rank card (success)', async () => {
+      const rankBefore = 'decision_6';
+      // rank the new card
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, childCardKey],
+        optionsReuse,
+      );
+
+      expect(result.statusCode).to.equal(200);
+
+      const details = await new Show().showCardDetails(
+        optionsReuse.projectPath,
+        { metadata: true, content: true },
+        rankBefore,
+      );
+      expect(details.metadata?.rank).to.equal('0|c');
+    });
+    it('rank card in root (success)', async () => {
+      const rankBefore = 'decision_5';
+
+      // rank the new card
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, rootCardKey],
+        optionsReuse,
+      );
+
+      expect(result.statusCode).to.equal(200);
+
+      const details = await new Show().showCardDetails(
+        optionsReuse.projectPath,
+        { metadata: true, content: true },
+        rankBefore,
+      );
+      expect(details.metadata?.rank).to.equal('0|bn');
+    });
+    it('try rank card - project missing', async () => {
+      const rankBefore = 'decision_6';
+      const invalidProject = { projectPath: 'idontexist' };
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, childCardKey],
+        invalidProject,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try rank card - card not found', async () => {
+      const rankBefore = 'decision_999';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, childCardKey],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+
+    it('try rank card - before itself', async () => {
+      const rankBefore = 'decision_6';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, rankBefore],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try rank card - before card at different level', async () => {
+      const rankBefore = 'decision_6';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, 'decision_5'],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+  });
+  // note: these tests could be more detailed
+  describe('rebalance', () => {
+    it('rebalance (success)', async () => {
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['rebalance'],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('rebalance root(success)', async () => {
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['rebalance', ''],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('rebalance card(success)', async () => {
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['rebalance', 'decision_5'],
+        optionsReuse,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
   });
 });
