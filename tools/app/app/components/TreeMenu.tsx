@@ -108,7 +108,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
           indent={30}
-          width={width}
+          width={(width || 0) - 1}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
               onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
