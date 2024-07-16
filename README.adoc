@@ -127,3 +127,7 @@ Done
 == License and contributions
 
 See separate files LICENSE and CONTRIBUTING.
+
+== Cyberismo Open Source Trademark Policy
+
+See separate file TRADEMARK.adoc.
