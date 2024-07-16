@@ -133,7 +133,9 @@ export class Commands {
     if (!path) {
       path = await Project.findProjectRoot(process.cwd());
       if (path === '') {
-        throw new Error('Unknown path');
+        throw new Error(
+          "If project path is not given, the command must be run inside a project's folder.",
+        );
         /*
                 // when sinon is used for testing, use this instead. Otherwise, cannot have unit tests that cause process exit.
                 console.error('No path defined - exiting');
