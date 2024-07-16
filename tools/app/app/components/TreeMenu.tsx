@@ -53,8 +53,7 @@ const renderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => (
         }}
       />
     )}
-    <Typography level="body-md" noWrap>
-      {' '}
+    <Typography level="title-sm" noWrap alignSelf="center">
       {node.data.metadata?.summary ?? node.data.key}
     </Typography>
   </Box>
@@ -89,12 +88,16 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
     });
   };
   return (
-    <Stack padding={2} bgcolor="#f0f0f0" height="100%" width="100%">
+    <Stack
+      paddingTop={2}
+      paddingLeft={2}
+      bgcolor="#f0f0f0"
+      height="100%"
+      width="100%"
+    >
       <Typography level="h4">{title}</Typography>
       <Box
         sx={{
-          overflowY: 'scroll',
-          scrollbarWidth: 'thin',
           flexGrow: 1,
         }}
         ref={ref}
@@ -107,8 +110,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           }
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
-          indent={30}
+          indent={24}
           width={(width || 0) - 1}
+          height={height}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
               onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
