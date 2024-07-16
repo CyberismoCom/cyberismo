@@ -128,6 +128,8 @@ Done
 
 See separate files LICENSE and CONTRIBUTING.
 
+Notice that while Cyberismo Ltd enforces the license of this software, the license does not affect the content produced by Cyberismo tool users. Users can be confident that the resulting documents and resources produced with Cyberismo tools and software are not affected by the licenses that Cyberismo Ltd uses to distribute the software.
+
 == Cyberismo Open Source Trademark Policy
 
 See separate file TRADEMARK.adoc.
