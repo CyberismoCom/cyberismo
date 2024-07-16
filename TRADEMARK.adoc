@@ -1,0 +1,44 @@
+= Cyberismo Open Source Trademark Policy
+
+Trademarks exist to help users identify the source or origin of products. When a company makes a good product, users begin to associate those qualities with the name and trademarks of that company. A company's reputation can be a key factor in a user's decision to use a certain product. The public has a right to know when it is receiving a genuine Cyberismo product. Thus, Cyberismo has the following trademark policy that licensees must comply with. By trademark, Cyberismo refers to all of its current and future trademarks, logos, name of the company, etc., all together in this policy (“Trademark”).
+
+While this trademark policy may seem strict, Cyberismo welcomes its partners to use the trademarks with licenses. Please contact us if you have a project that would benefit from using the Trademark.
+
+Genuine Cyberismo software, which is sourced by Cyberismo and thus properly bears the Cyberismo Trademark, is the software in the exact form that it is distributed by Cyberismo, without modification of any kind. Once any change has been made to the software, even if that change may be permissible under the license, the software should no longer bear the Trademark. This also means that you may not use the Trademark in any way to designate a modified version, except that you may truthfully state that the software you are providing contains portions that are derived from the Cyberismo software, and then only by using the company name of Cyberismo (Cyberismo).
+
+Please check that your use of the Trademark meets the following criteria:
+
+== Modified Open Source Code.
+
+If your developers have modified the open-source code provided by Cyberismo, you no longer have the right to use Cyberismo's Trademark.
+
+== Extensions or Plug-ins
+
+You may not use the Trademark to name or refer to extensions or plug-ins.
+
+== Certain web uses
+
+You must not use any Trademark in a web page title, title tag, metatag, domain name, or other manner with the intent or the likely effect of influencing search engine rankings or results listings.
+
+== Combination marks and Company names
+
+You must not use any Trademark in a manner that may lead the public to mix your product with a Cyberismo product (e.g., “PROcyberismo” or “Cyberismo by [name of your company]”). You must not use any Trademark as part of your company name, trademark, or logo.
+
+== Misuse
+
+You must not use the Trademark in a manner that is unethical, offensive, disparaging, illegal, or in bad taste.
+
+== Criteria
+
+Please check that your use of the Cyberismo's Open Source Code meets the following criteria:
+
+* Do not remove the Trademarks or logos from any unmodified open-source code.
+* Do not remove copyright or other proprietary notices from header files of any open source code.
+* AGPL does not grant any trademark rights and is not a trademark license.
+* In addition, any contributors to Cyberismo software should approve the Cyberismo open-source contribution license agreement (CLA), and their employers should approve the Cyberismo open-source organization contribution license agreement (OCLA).
+
+== Updates and Questions
+
+Cyberismo reserves the right to update these guidelines. Please make sure that the use of the Trademark is in accordance with the latest version of this Policy.
+
+Cyberismo will be happy to answer any questions you may have about this policy. Please contact us at info@cyberismo.com.
