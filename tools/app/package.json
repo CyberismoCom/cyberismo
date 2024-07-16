@@ -28,12 +28,14 @@
     "next": "14.1.1",
     "node-html-parser": "^6.1.13",
     "react": "^18",
+    "react-arborist": "^3.4.0",
     "react-dom": "^18",
     "react-hook-form": "^7.51.5",
     "react-i18next": "^14.1.2",
     "react-redux": "^9.1.2",
     "redux-persist": "^6.0.0",
-    "swr": "^2.2.5"
+    "swr": "^2.2.5",
+    "use-resize-observer": "^9.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",

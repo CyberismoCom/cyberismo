@@ -85,6 +85,11 @@ export class Move {
         ? join(Move.project.cardrootFolder, sourceCard.key)
         : join(destinationCard.path, 'c', sourceCard.key);
 
+    // if the card is already in the destination, do nothing
+    if (sourceCard.path === destinationPath) {
+      return;
+    }
+
     // rerank the card in the new location
     // it will be the last one in the new location
     let children;
@@ -105,7 +110,7 @@ export class Move {
       throw new Error(`Children not found from card ${destination}`);
     }
 
-    children = sortItems(children, (item) => item?.metadata?.rank || 'z');
+    children = sortItems(children, (item) => item?.metadata?.rank || '1|z');
     const lastChild = children[children.length - 1];
 
     const rank =
@@ -139,7 +144,7 @@ export class Move {
       parent: true,
     });
 
-    if (!beforeCard || !beforeCard.parent) {
+    if (!beforeCard) {
       throw new Error(`Card ${beforeCardKey} not found from project`);
     }
 
@@ -148,7 +153,7 @@ export class Move {
     }
 
     const children = sortItems(
-      await this.getChildren(beforeCard.parent),
+      await this.getChildren(beforeCard.parent || 'root'),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -191,6 +196,40 @@ export class Move {
     }
   }
 
+  public async rankByIndex(path: string, cardKey: string, index: number) {
+    if (index < 0) {
+      throw new Error(`Index must be greater than 0`);
+    }
+    if (index === 0) {
+      await this.rankFirst(path, cardKey);
+      return;
+    }
+
+    Move.project = new Project(path);
+    const card = await Move.project.findSpecificCard(cardKey, {
+      metadata: true,
+      parent: true,
+    });
+
+    if (!card || !card.parent) {
+      throw new Error(`Card ${cardKey} not found from project`);
+    }
+
+    const children = sortItems(
+      await this.getChildren(card.parent),
+      (item) => item.metadata?.rank || EMPTY_RANK,
+    );
+
+    if (!children || children.length === 0) {
+      throw new Error(`Children not found from card ${card.parent}`);
+    }
+
+    if (children.length < index) {
+      throw new Error(`Index ${index} is out of bounds`);
+    }
+    await this.rankCard(path, cardKey, children[index - 1].key);
+  }
+
   public async rankFirst(path: string, cardKey: string) {
     Move.project = new Project(path);
 
@@ -198,12 +237,12 @@ export class Move {
       metadata: true,
       parent: true,
     });
-    if (!card || !card.parent) {
+    if (!card) {
       throw new Error(`Card ${cardKey} not found from project`);
     }
 
     const children = sortItems(
-      await this.getChildren(card.parent),
+      await this.getChildren(card.parent || 'root'),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
