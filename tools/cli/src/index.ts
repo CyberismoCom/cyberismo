@@ -11,7 +11,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Command, Option } from 'commander';
+import { Argument, Command } from 'commander';
 import {
   CardsOptions,
   Cmd,
@@ -288,11 +288,8 @@ program
 program
   .command('export')
   .description('Export a project or a card')
-  .argument('[cardkey]', 'Path to card')
-  .option('-o, --output [path]', 'Output path')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .addOption(
-    new Option('-f, --format <format>', 'Export format').choices([
+  .addArgument(
+    new Argument('<format>', 'Export format').choices([
       'adoc',
       'csv',
       'html',
@@ -300,10 +297,24 @@ program
       'site',
     ]),
   )
-  .action(async (cardkey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.export, [cardkey], options);
-    handleResponse(result);
-  });
+  .argument('<output>', 'Output path')
+  .argument('[cardkey]', 'Path to card')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (
+      format: string,
+      output: string,
+      cardkey: string,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.export,
+        [format, output, cardkey],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
 
 const importCmd = program.command('import');
 
