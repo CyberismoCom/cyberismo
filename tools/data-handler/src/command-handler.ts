@@ -276,13 +276,8 @@ export class Commands {
         return this.edit(cardkey, options);
       }
       if (command === Cmd.export) {
-        const [cardkey] = args;
-        return this.export(
-          options.output,
-          this.projectPath,
-          cardkey,
-          options.format,
-        );
+        const [format, output, cardkey] = args;
+        return this.export(output, this.projectPath, cardkey, format);
       }
       if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];

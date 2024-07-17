@@ -51,16 +51,20 @@ describe('export command', () => {
     });
   });
   it('export to HTML (success)', async () => {
-    optionsMini.format = 'html';
-    optionsMini.output = join(testDirForExport, 'output');
-    const result = await commandHandler.command(Cmd.export, [], optionsMini);
+    const result = await commandHandler.command(
+      Cmd.export,
+      ['html', join(testDirForExport, 'output')],
+      optionsMini,
+    );
     expect(result.statusCode).to.equal(200);
   });
   it('export partial tree to HTML (success)', async () => {
     const card = 'decision_5';
-    options.format = 'html';
-    options.output = join(testDirForExport, 'output');
-    const result = await commandHandler.command(Cmd.export, [card], options);
+    const result = await commandHandler.command(
+      Cmd.export,
+      ['html', join(testDirForExport, 'output'), card],
+      options,
+    );
     expect(result.message).to.be.equal(undefined);
     expect(result.statusCode).to.equal(200);
   });
