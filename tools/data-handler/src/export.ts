@@ -42,6 +42,7 @@ export class Export {
 
   // Finds card based on name.
   private findCard(path: string, cards: card[] | undefined) {
+    console.log('path', path, basename(path));
     return cards?.find((card) => card.key === basename(path));
   }
 
