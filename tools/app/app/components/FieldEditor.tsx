@@ -1,3 +1,15 @@
+/**
+    Cyberismo
+    Copyright © Cyberismo Ltd and contributors 2024
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { Select, TextField, Option, Input } from '@mui/joy';
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +48,7 @@ export default function FieldEditor({
           onChange={(e, value) => onChange?.(value)}
           color="primary"
         >
+          <Option value="">{t('none')}</Option>
           <Option value="true">{t('true')}</Option>
           <Option value="false">{t('false')}</Option>
         </Select>
@@ -47,6 +60,7 @@ export default function FieldEditor({
           onChange={(e, value) => onChange?.(value)}
           color="primary"
         >
+          <Option value="">{t('none')}</Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}

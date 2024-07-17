@@ -1,3 +1,15 @@
+/**
+    Cyberismo
+    Copyright © Cyberismo Ltd and contributors 2024
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { basename, dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -91,13 +103,7 @@ export class Commands {
     'workflow',
   ];
 
-  public static removableTypes = this.allowedTypes.filter(
-    (item) =>
-      item === 'attachment' ||
-      item === 'card' ||
-      item === 'module' ||
-      item === 'template',
-  );
+  public static removableTypes = ['attachment', 'card', 'module', 'template'];
 
   // Lists all allowed resource types.
   public allAllowedTypes(): string[] {
@@ -127,7 +133,9 @@ export class Commands {
     if (!path) {
       path = await Project.findProjectRoot(process.cwd());
       if (path === '') {
-        throw new Error('Unknown path');
+        throw new Error(
+          "If project path is not given, the command must be run inside a project's folder.",
+        );
         /*
                 // when sinon is used for testing, use this instead. Otherwise, cannot have unit tests that cause process exit.
                 console.error('No path defined - exiting');
@@ -277,8 +285,15 @@ export class Commands {
         );
       }
       if (command === Cmd.import) {
-        const [source, name] = args;
-        return this.import(source, name, this.projectPath);
+        const target = args.splice(0, 1)[0];
+        if (target === 'module') {
+          const [source, name] = args;
+          return this.import(source, name, this.projectPath);
+        }
+        if (target === 'csv') {
+          const [csvFile, cardKey] = args;
+          return this.importCsv(this.projectPath, csvFile, cardKey);
+        }
       }
       if (command === Cmd.move) {
         const [source, destination] = args;
@@ -761,6 +776,31 @@ export class Commands {
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
+   * Imports cards from a CSV file to a project.
+   * @param path path of the project
+   * @param filePath path to the CSV file
+   * @param parentCardKey parent card key, if any. If undefined, cards will be imported to root level.
+   * @returns array of imported card keys wrapped in a requestStatus object or 400 if error
+   */
+  private async importCsv(
+    path: string,
+    filePath: string,
+    parentCardKey: string,
+  ): Promise<requestStatus> {
+    try {
+      return {
+        statusCode: 200,
+        payload: await this.importCmd.importCsv(path, filePath, parentCardKey),
+      };
+    } catch (e) {
+      return {
+        statusCode: 400,
+        message: errorFunction(e),
+      };
     }
   }
 

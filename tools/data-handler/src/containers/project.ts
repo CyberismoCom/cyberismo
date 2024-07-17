@@ -1,3 +1,15 @@
+/**
+    Cyberismo
+    Copyright © Cyberismo Ltd and contributors 2024
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 // node
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { Dirent, readdirSync } from 'node:fs';
@@ -852,6 +864,7 @@ export class Project extends CardContainer {
     }
     card.content = content;
     await this.saveCard(card);
+    await this.onCardUpdate(cardKey);
   }
 
   /**
@@ -865,24 +878,54 @@ export class Project extends CardContainer {
     changedKey: string,
     newValue: metadataContent,
   ) {
+    if (await this.updateMetatadataKey(cardKey, changedKey, newValue)) {
+      await this.onCardUpdate(cardKey);
+    }
+  }
+
+  /**
+   * This function should be called after card is updated.
+   * Updates lastUpdated metadata key.
+   */
+  private async onCardUpdate(cardKey: string) {
+    return this.updateMetatadataKey(
+      cardKey,
+      'lastUpdated',
+      new Date().toISOString(),
+    );
+  }
+
+  /**
+   * Updates metadata key.
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
+   * @returns true if metadata key was updated, false otherwise.
+   */
+  private async updateMetatadataKey(
+    cardKey: string,
+    changedKey: string,
+    newValue: metadataContent,
+  ) {
     const card = await this.findCard(this.basePath, cardKey, {
       metadata: true,
     });
-    type MetadataTypes = Record<string, metadataContent>;
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
     const validCard = await this.validateCard(card);
     if (validCard.length !== 0) {
-      throw new Error(`Card '${cardKey}' is not valid!`);
+      throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
     }
 
     if (card.metadata) {
-      const cardAsRecord: MetadataTypes = card.metadata;
+      const cardAsRecord: Record<string, metadataContent> = card.metadata;
       cardAsRecord[changedKey] = newValue;
       await this.saveCardMetadata(card);
+      return true;
     }
+    return false;
   }
 
   /**

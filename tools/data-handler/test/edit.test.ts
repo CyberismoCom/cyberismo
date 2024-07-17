@@ -27,15 +27,11 @@ describe('edit card', () => {
     const cards = await project.cards();
     const firstCard = cards.at(0);
 
+    expect(firstCard?.metadata?.lastUpdated).to.be.undefined;
+
     // Modify content
     if (firstCard) {
-      await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie')
-        .then(() => {
-          expect(true);
-        })
-        .catch(() => {
-          expect(false);
-        });
+      await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie');
 
       // Fetch the changed card again
       const changedCard = await project.findSpecificCard(firstCard.key, {
@@ -44,6 +40,7 @@ describe('edit card', () => {
       });
       if (changedCard) {
         expect(changedCard.content).to.equal('whoopie');
+        expect(changedCard.metadata?.lastUpdated).to.not.be.undefined;
       } else {
         expect(false);
       }

@@ -2,4 +2,7 @@
 
 import program from '@cyberismocom/cli';
 
-program.parse(process.argv);
+program.parseAsync(process.argv).catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

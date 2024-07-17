@@ -62,5 +62,6 @@
   "move": "Move",
   "stateSelector": {
     "status": "Status: {{state}}"
-  }
+  },
+  "none": "None"
 }

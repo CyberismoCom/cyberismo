@@ -7,10 +7,9 @@ on:
   push:
     branches:
       - main
-      - feature/*
-      - bugfix/*
+      - temp-main
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "temp-main" ]
 
 jobs:
   build:

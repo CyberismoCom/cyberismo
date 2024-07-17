@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+/**
+    Cyberismo
+    Copyright © Cyberismo Ltd and contributors 2024
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 import { Command, Option } from 'commander';
 import {
@@ -294,9 +305,11 @@ program
     handleResponse(result);
   });
 
-// Import command
-program
-  .command('import')
+const importCmd = program.command('import');
+
+// Import module
+importCmd
+  .command('module')
   .description('Imports another project to this project.')
   .argument('<source>', 'Path to import from')
   .argument('<name>', 'Name for the import in this project')
@@ -304,7 +317,26 @@ program
   .action(async (source: string, name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
-      [source, name],
+      ['module', source, name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+// import csv
+importCmd
+  .command('csv')
+  .description('Imports cards from a csv file')
+  .argument('<csvFile>', 'File to import from')
+  .argument(
+    '[cardKey]',
+    'Card key of the parent. If defined, cards are created as a child',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (csvFile: string, cardKey: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.import,
+      ['csv', csvFile, cardKey],
       options,
     );
     handleResponse(result);
