@@ -1506,6 +1506,7 @@ describe('move command', () => {
       [sourceId, destination],
       options,
     );
+    console.log(result);
     expect(result.statusCode).to.equal(200);
   });
   it('move card to another card (success)', async () => {
