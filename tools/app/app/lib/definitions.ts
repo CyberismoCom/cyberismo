@@ -121,3 +121,10 @@ export interface FieldTypeDefinition {
   dataType: DataType;
   enumValues?: Array<EnumDefinition>;
 }
+
+export interface Attachment {
+  type: 'image' | 'file';
+  fileName: string;
+  data: Blob;
+  image?: string;
+}

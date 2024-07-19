@@ -63,7 +63,7 @@ export async function callApi<T>(
 }
 
 // default fetcher for swr
-const fetcher = async function (...args: Parameters<typeof fetch>) {
+export const fetcher = async function (...args: Parameters<typeof fetch>) {
   return handleResponse(await fetch(...args));
 };
 
@@ -80,4 +80,6 @@ export const apiPaths = {
   fieldTypes: () => '/api/fieldtypes',
   cardType: (key: string) => `/api/cardtypes/${key}`,
   templates: () => '/api/templates',
+  attachment: (cardKey: string, attachment: string) =>
+    `/api/cards/${cardKey}/a/${attachment}`,
 };

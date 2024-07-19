@@ -63,5 +63,6 @@
   "stateSelector": {
     "status": "Status: {{state}}"
   },
-  "none": "None"
+  "none": "None",
+  "attachments": "Attachments"
 }
