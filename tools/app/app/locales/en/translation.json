@@ -17,6 +17,13 @@
     "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
     "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
   },
+  "addAttachmentModal": {
+    "title": "Add Attachment",
+    "dragNdrop": "Drag and drop your files here",
+    "browseFiles": "Browse files",
+    "error": "Error uploading file: {{error}}",
+    "success": "Attachment(s) added successfully"
+  },
   "createCardModal": {
     "success": "Card created successfully"
   },
@@ -53,6 +60,7 @@
   "create": "Create",
   "no": "No",
   "yes": "Yes",
+  "or": "or",
   "createUnder": "Create under \"{{parent}}\"",
   "viewedAgo": "Viewed {{time}} ago",
   "lastTransitioned": "Last Transitioned",
@@ -64,5 +72,7 @@
     "status": "Status: {{state}}"
   },
   "none": "None",
-  "attachments": "Attachments"
+  "attachments": "Attachments",
+  "addAttachment": "Add Attachment",
+  "add": "Add"
 }

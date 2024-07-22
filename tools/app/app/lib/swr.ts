@@ -28,7 +28,7 @@ export async function createApiCallError(
 ): Promise<ApiCallError> {
   return new ApiCallError(
     response,
-    response.headers.get('content-type') === 'text/plain'
+    response.headers.get('content-type')?.includes('text/plain')
       ? await response.text()
       : `Api call failed: ${response.status} ${response.statusText}`,
   );
@@ -43,7 +43,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 // used to call api with fetch
-export async function callApi<T>(
+export async function callApi<T = {}>(
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
   body?: any,
@@ -53,10 +53,15 @@ export async function callApi<T>(
   };
 
   if (body) {
-    options.body = JSON.stringify(body);
-    options.headers = {
-      'Content-Type': 'application/json',
-    };
+    // if body is file, don't stringify it
+    if (body instanceof FormData) {
+      options.body = body;
+    } else {
+      options.body = JSON.stringify(body);
+      options.headers = {
+        'Content-Type': 'application/json',
+      };
+    }
   }
 
   return handleResponse(await fetch(url, options));
@@ -82,4 +87,5 @@ export const apiPaths = {
   templates: () => '/api/templates',
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,
+  attachments: (cardKey: string) => `/api/cards/${cardKey}/a`,
 };

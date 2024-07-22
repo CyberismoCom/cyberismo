@@ -10,9 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { apiPaths } from '../swr';
+import { apiPaths, callApi } from '../swr';
 
-import useSWR, { SWRConfiguration } from 'swr';
+import useSWR, { mutate, SWRConfiguration } from 'swr';
 import { useCard } from './card';
 import { Attachment } from '../definitions';
 
@@ -44,8 +44,16 @@ export const useAttachments = (
   return {
     ...swrData,
     attachments: swrData.data?.filter((a) => a != null) || [],
+    addAttachments: (files: File[]) => key && addAttachments(key, files),
   };
 };
+
+async function addAttachments(key: string, files: File[]) {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('file', file));
+  await callApi(apiPaths.attachments(key), 'POST', formData);
+  mutate(apiPaths.card(key));
+}
 
 function handleAttachment(fileName: string, data: Blob) {
   if (data.type.startsWith('image')) {

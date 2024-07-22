@@ -204,12 +204,14 @@ export class Create extends EventEmitter {
    * Adds an attachment to a card.
    * @param {string} cardKey card ID
    * @param {string} projectPath path to a project
-   * @param {string} attachment path to an attachment
+   * @param {string} attachment path to an attachment file or attachment name if buffer is defined
+   * @param {Buffer} buffer (Optional) attachment buffer
    */
   public async createAttachment(
     cardKey: string,
     projectPath: string,
     attachment: string,
+    buffer?: Buffer,
   ) {
     const project = new Project(projectPath);
     const attachmentFolder = await project.cardAttachmentFolder(cardKey);
@@ -224,10 +226,17 @@ export class Create extends EventEmitter {
 
     try {
       await mkdir(attachmentFolder, { recursive: true }).then(async () => {
-        return await copyFile(
-          attachment,
+        if (!buffer) {
+          return await copyFile(
+            attachment,
+            join(attachmentFolder, basename(attachment)),
+            fsConstants.COPYFILE_EXCL,
+          );
+        }
+        return await writeFile(
           join(attachmentFolder, basename(attachment)),
-          fsConstants.COPYFILE_EXCL,
+          buffer,
+          { flag: 'wx' },
         );
       });
     } catch (error) {
