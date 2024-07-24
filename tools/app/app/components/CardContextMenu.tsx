@@ -32,7 +32,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useModals } from '../lib/utils';
 import { useCard } from '../lib/api';
-import { MoveCardModal, DeleteModal, MetadataModal } from './modals';
+import {
+  MoveCardModal,
+  DeleteModal,
+  MetadataModal,
+  AddAttachmentModal,
+} from './modals';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -43,6 +48,7 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
     delete: false,
     move: false,
     metadata: false,
+    addAttachment: false,
   });
 
   const { t } = useTranslation();
@@ -62,6 +68,9 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
           <MenuItem onClick={openModal('move')}>
             <Typography>{t('move')}</Typography>
           </MenuItem>
+          <MenuItem onClick={openModal('addAttachment')}>
+            <Typography>{t('addAttachment')}</Typography>
+          </MenuItem>
         </Menu>
       </Dropdown>
 
@@ -78,6 +87,11 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
       <MetadataModal
         open={modalOpen.metadata}
         onClose={closeModal('metadata')}
+        cardKey={cardKey}
+      />
+      <AddAttachmentModal
+        open={modalOpen.addAttachment}
+        onClose={closeModal('addAttachment')}
         cardKey={cardKey}
       />
     </>

@@ -11,12 +11,27 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CardMode, MetadataValue } from '@/app/lib/definitions';
 
-import { Box, Tab, Tabs, TabPanel, TabList, Stack, Textarea } from '@mui/joy';
+import {
+  Box,
+  Tab,
+  Tabs,
+  TabPanel,
+  TabList,
+  Stack,
+  Textarea,
+  Typography,
+  Card,
+  CardContent,
+  CardOverflow,
+  AspectRatio,
+  Grid,
+  IconButton,
+} from '@mui/joy';
 
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
@@ -30,6 +45,91 @@ import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
+import Image from 'next/image';
+import { Delete, InsertDriveFile } from '@mui/icons-material';
+import { addAttachment } from '@/app/lib/codemirror';
+import { apiPaths } from '@/app/lib/swr';
+import { useAttachments } from '@/app/lib/api/attachments';
+
+const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
+
+function AttachmentPreviewCard({
+  name,
+  children,
+  cardKey,
+}: {
+  name: string;
+  children?: React.ReactNode;
+  cardKey: string;
+}) {
+  const { removeAttachment } = useAttachments(cardKey);
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
+  return (
+    <Card
+      sx={{
+        width: '100%',
+        gap: 0,
+        cursor: 'pointer',
+      }}
+    >
+      <CardOverflow>
+        <IconButton
+          color="danger"
+          variant="solid"
+          sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            zIndex: 1,
+          }}
+          loading={isUpdating}
+          onClick={async (e) => {
+            e.stopPropagation();
+            setIsUpdating(true);
+            await removeAttachment(name);
+            setIsUpdating(false);
+          }}
+        >
+          <Delete />
+        </IconButton>
+        <AspectRatio
+          ratio="1"
+          maxHeight={100}
+          variant="plain"
+          objectFit="contain"
+        >
+          {children}
+        </AspectRatio>
+      </CardOverflow>
+      <CardOverflow
+        variant="soft"
+        sx={{
+          bgcolor: 'neutral.softBg',
+        }}
+      >
+        <CardContent>
+          <Typography level="body-xs" noWrap>
+            {name}
+          </Typography>
+        </CardContent>
+      </CardOverflow>
+    </Card>
+  );
+}
+/**
+ * 
+ * @param param0 
+          <Button
+            disabled={isUpdating}
+            onClick={async () => {
+              await removeAttachment(name);
+            }}
+          >
+            Hi
+          </Button>
+ * @returns 
+ */
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
@@ -41,6 +141,8 @@ export default function Page({ params }: { params: { key: string } }) {
   const dispatch = useAppDispatch();
 
   const router = useRouter();
+
+  const editor = useRef<ReactCodeMirrorRef>(null);
 
   const formMethods = useForm();
   const { handleSubmit, control, watch } = formMethods;
@@ -119,59 +221,123 @@ export default function Page({ params }: { params: { key: string } }) {
                 height: '100%',
               }}
             >
-              <Box
-                height="100%"
-                sx={{
-                  overflowY: 'scroll',
-                  scrollbarWidth: 'thin',
-                }}
-                width="70%"
-                paddingRight={3}
-              >
-                <Controller
-                  name="__title__"
-                  control={control}
-                  defaultValue={card?.metadata?.summary || ''}
-                  render={({ field: { value, onChange } }: any) => (
-                    <Textarea
-                      sx={{
-                        marginBottom: '10px',
-                        fontWeight: 'bold',
-                        fontSize: '1.2rem',
-                      }}
-                      value={value}
-                      onChange={onChange}
+              <Stack direction="row" height="100%">
+                <Box
+                  height="100%"
+                  sx={{
+                    overflowY: 'scroll',
+                    scrollbarWidth: 'thin',
+                  }}
+                  width="70%"
+                  paddingRight={3}
+                >
+                  <Controller
+                    name="__title__"
+                    control={control}
+                    defaultValue={card?.metadata?.summary || ''}
+                    render={({ field: { value, onChange } }: any) => (
+                      <Textarea
+                        sx={{
+                          marginBottom: '10px',
+                          fontWeight: 'bold',
+                          fontSize: '1.2rem',
+                        }}
+                        value={value}
+                        onChange={onChange}
+                      />
+                    )}
+                  />
+                  <Box paddingY={3}>
+                    <MetadataView
+                      initialExpanded={searchParams.get('expand') === 'true'}
+                      editMode={true}
+                      metadata={card?.metadata}
                     />
-                  )}
-                />
-                <Box paddingY={3}>
-                  <MetadataView
-                    initialExpanded={searchParams.get('expand') === 'true'}
-                    editMode={true}
-                    metadata={card?.metadata}
+                  </Box>
+                  <Controller
+                    name="__content__"
+                    control={control}
+                    defaultValue={card?.content || ''}
+                    render={({ field: { value, onChange } }: any) => (
+                      <CodeMirror
+                        value={value}
+                        onChange={onChange}
+                        ref={editor}
+                        extensions={extensions}
+                        style={{
+                          border: '1px solid',
+                          borderColor: 'rgba(0,0,0,0.23)',
+                          borderRadius: 4,
+                        }}
+                      />
+                    )}
                   />
                 </Box>
-                <Controller
-                  name="__content__"
-                  control={control}
-                  defaultValue={card?.content || ''}
-                  render={({ field: { value, onChange } }: any) => (
-                    <CodeMirror
-                      value={value}
-                      onChange={onChange}
-                      extensions={[
-                        StreamLanguage.define(asciidoc),
-                        EditorView.lineWrapping,
-                      ]}
-                      style={{
-                        border: '1px solid',
-                        borderColor: 'rgba(0,0,0,0.23)',
-                        borderRadius: 4,
-                      }}
-                    />
-                  )}
-                />
-              </Box>
+                <Box
+                  flexGrow={1}
+                  display="flex"
+                  flexDirection="column"
+                  padding={2}
+                  sx={{
+                    scrollbarWidth: 'thin',
+                    overflowY: 'scroll',
+                  }}
+                  alignItems="flex-start"
+                  width="30%"
+                >
+                  <Stack direction="row" padding={4} paddingTop={0}>
+                    <Typography
+                      level="body-xs"
+                      color="warning"
+                      variant="soft"
+                      borderRadius={40}
+                      paddingX={1}
+                    >
+                      2
+                    </Typography>
+                    <Typography level="body-xs" marginLeft={2}>
+                      {t('attachments')}
+                    </Typography>
+                  </Stack>
+                  <Grid container gap={2} paddingLeft={3}>
+                    {card?.attachments?.map((attachment) => (
+                      <Grid
+                        key={attachment.fileName}
+                        display="flex"
+                        justifyContent="center"
+                        width={146}
+                        onClick={() => {
+                          if (editor.current && editor.current.view && card) {
+                            addAttachment(
+                              editor.current.view,
+                              attachment,
+                              card.key,
+                            );
+                          }
+                        }}
+                      >
+                        <AttachmentPreviewCard
+                          name={attachment.fileName}
+                          cardKey={params.key}
+                        >
+                          {attachment.mimeType.startsWith('image') ? (
+                            <Image
+                              src={apiPaths.attachment(
+                                card.key,
+                                attachment.fileName,
+                              )}
+                              alt=""
+                              fill
+                            />
+                          ) : (
+                            <InsertDriveFile />
+                          )}
+                        </AttachmentPreviewCard>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Stack>
             </TabPanel>
             <TabPanel
               value={1}
