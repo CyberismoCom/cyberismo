@@ -117,19 +117,6 @@ function AttachmentPreviewCard({
     </Card>
   );
 }
-/**
- * 
- * @param param0 
-          <Button
-            disabled={isUpdating}
-            onClick={async () => {
-              await removeAttachment(name);
-            }}
-          >
-            Hi
-          </Button>
- * @returns 
- */
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
