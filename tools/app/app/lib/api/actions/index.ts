@@ -9,24 +9,4 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
-import useSWR, { SWRConfiguration } from 'swr';
-
-import { Resources, ResourceName, SwrResult } from './types';
-import { useUpdating } from '../hooks';
-
-export function useSWRHook<T extends ResourceName>(
-  swrKey: string | null,
-  name: T,
-  options?: SWRConfiguration,
-) {
-  const { data, ...rest } = useSWR<Resources[T]>(swrKey, options);
-  const { isUpdating, call } = useUpdating(swrKey);
-
-  return {
-    ...rest,
-    [name]: data || null,
-    isUpdating,
-    callUpdate: call,
-  } as SwrResult<T>;
-}
+export * from './attachments';

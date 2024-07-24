@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
   }
 
   const urlComponents = request.nextUrl.pathname.split('/');
-  const filename = urlComponents?.pop();
+  const filename = decodeURI(urlComponents?.pop() || ''); // filename should unescaped
   urlComponents?.pop();
   const cardKey = urlComponents?.pop();
 
@@ -73,7 +73,10 @@ export async function GET(request: NextRequest) {
     const payload: attachmentPayload = attachmentResponse as attachmentPayload;
 
     return new NextResponse(payload.fileBuffer, {
-      headers: { 'content-type': payload.mimeType },
+      headers: {
+        'Content-Type': payload.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
     });
   } catch (error) {
     return new NextResponse(

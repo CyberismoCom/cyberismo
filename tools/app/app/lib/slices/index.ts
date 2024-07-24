@@ -13,10 +13,12 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import recentlyViewed from './recentlyViewed';
 import notifications from './notifications';
+import swr from './swr';
 
 const rootReducer = combineReducers({
   recentlyViewed,
   notifications,
+  swr,
 });
 
 export default rootReducer;

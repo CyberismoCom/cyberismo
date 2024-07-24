@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Box, Button } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
@@ -40,7 +40,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   const { t } = useTranslation();
 
   const { project } = useProject();
-  const { card, updateWorkFlowState } = useCard(cardKey);
+  const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
 
   const dispatch = useAppDispatch();
 
@@ -113,6 +113,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           aria-label="update"
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={onUpdate}
+          disabled={isUpdating}
         >
           {t('update')}
         </Button>

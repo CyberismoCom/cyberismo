@@ -430,3 +430,20 @@ export function filterCards(
     return false;
   });
 }
+
+/**
+ * Calls a function with setIsUpdating set to true before and false after the function call
+ * @param setIsUpdating: function to call with true before and false after the function call
+ * @param func: function to call
+ */
+export async function withUpdating<T>(
+  setIsUpdating: (updating: boolean) => void,
+  func: () => Promise<T>,
+): Promise<T> {
+  try {
+    setIsUpdating(true);
+    return await func();
+  } finally {
+    setIsUpdating(false);
+  }
+}

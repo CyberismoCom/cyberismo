@@ -46,12 +46,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   let htmlContent = Processor()
     .convert(asciidocContent, {
       safe: 'safe',
+      attributes: {
+        imagesdir: `/api/cards/${card.key}/a`,
+      },
     })
     .toString();
-
-  if (card.attachments) {
-    htmlContent = updateAttachmentLinks(htmlContent, card.attachments);
-  }
 
   // On scroll, check which document headers are visible and update the table of contents scrolling state
   const handleScroll = () => {
@@ -159,19 +158,4 @@ function renderTableOfContents(
       </div>
     </aside>
   );
-}
-
-function updateAttachmentLinks(
-  htmlContent: string,
-  attachments: CardAttachment[],
-): string {
-  attachments.forEach((attachment) => {
-    htmlContent = htmlContent
-      .replaceAll(`a/${attachment.fileName}`, attachment.fileName) // Remove imagesdir from links
-      .replaceAll(
-        attachment.fileName,
-        `/api/cards/${attachment.card}/a/${attachment.fileName}`,
-      ); // Add API path to attachment links
-  });
-  return htmlContent;
 }
