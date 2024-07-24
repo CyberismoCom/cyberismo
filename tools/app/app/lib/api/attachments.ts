@@ -10,55 +10,36 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { apiPaths, callApi } from '../swr';
-
-import useSWR, { mutate, SWRConfiguration } from 'swr';
+import { SWRConfiguration } from 'swr';
 import { useCard } from './card';
-import { Attachment } from '../definitions';
+import { useUpdating } from '../hooks';
+import { addAttachments, removeAttachment } from './actions';
+import { mutate } from 'swr';
+import { apiPaths } from '../swr';
 
 export const useAttachments = (
   key: string | null,
   options?: SWRConfiguration,
 ) => {
   const { card } = useCard(key, options);
-
-  options = {
-    ...options,
-    fetcher: (args: string[]) => {
-      return Promise.all(
-        args.map((url) => {
-          return fetch(url)
-            .then((res) => res.blob())
-            .then((data) => handleAttachment(url.split('/').pop() || '', data));
-        }),
-      );
-    },
-  };
-
-  const swrData = useSWR<Attachment[]>(
-    key != null && card
-      ? card?.attachments?.map((a) => apiPaths.attachment(key, a.fileName))
-      : null,
-    options,
-  );
+  // NOTE: not an swrkey, but this pretends to be one
+  const swrKey = key != null && card ? `${key}/a` : null;
+  const { isUpdating, call } = useUpdating(swrKey);
   return {
-    ...swrData,
-    attachments: swrData.data?.filter((a) => a != null) || [],
-    addAttachments: (files: File[]) => key && addAttachments(key, files),
+    addAttachments: (files: File[]) =>
+      key &&
+      call(() => {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('file', file));
+        return addAttachments(key, formData).then(() =>
+          mutate(apiPaths.card(key)),
+        );
+      }),
+    removeAttachment: (fileName: string) =>
+      key &&
+      call(() =>
+        removeAttachment(key, fileName).then(() => mutate(apiPaths.card(key))),
+      ),
+    isUpdating,
   };
 };
-
-async function addAttachments(key: string, files: File[]) {
-  const formData = new FormData();
-  files.forEach((file) => formData.append('file', file));
-  await callApi(apiPaths.attachments(key), 'POST', formData);
-  mutate(apiPaths.card(key));
-}
-
-function handleAttachment(fileName: string, data: Blob) {
-  if (data.type.startsWith('image')) {
-    const image = URL.createObjectURL(data);
-    return { type: 'image', fileName, data, image };
-  }
-  return { type: 'file', fileName, data };
-}

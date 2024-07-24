@@ -46,7 +46,7 @@ export function AddAttachmentModal({
 
   const [files, setFiles] = React.useState<File[]>([]);
 
-  const { addAttachments } = useAttachments(cardKey);
+  const { addAttachments, isUpdating } = useAttachments(cardKey);
 
   const dispatch = useAppDispatch();
 
@@ -103,14 +103,31 @@ export function AddAttachmentModal({
               </Stack>
             )}
           </DnDFile>
-          {files.map((file) => (
-            <Box key={file.name} paddingY={2} paddingX={3}>
-              <Typography level="title-sm">{file.name}</Typography>
-            </Box>
-          ))}
+          <Typography level="body-sm">
+            {t('addAttachmentModal.acceptedFormats')}
+          </Typography>
+          <Box
+            sx={{
+              // make the box scrollable
+              overflowY: 'scroll',
+              scrollbarWidth: 'thin',
+            }}
+          >
+            {files.map((file) => (
+              <Box
+                key={file.name}
+                paddingY={2}
+                marginY={1}
+                paddingX={3}
+                bgcolor="white"
+              >
+                <Typography level="title-sm">{file.name}</Typography>
+              </Box>
+            ))}
+          </Box>
           <DialogActions>
             <Button
-              disabled={files.length === 0}
+              disabled={files.length === 0 || isUpdating}
               color="primary"
               onClick={async () => {
                 try {
@@ -121,6 +138,7 @@ export function AddAttachmentModal({
                       type: 'success',
                     }),
                   );
+                  onClose();
                   router.push(`/cards/${cardKey}/edit`);
                 } catch (error) {
                   dispatch(

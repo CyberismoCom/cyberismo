@@ -9,46 +9,19 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+'use server';
 
-import { NextResponse } from 'next/server';
 import { Create } from '@cyberismocom/data-handler/create';
 import { Calculate } from '@cyberismocom/data-handler/calculate';
 import { Remove } from '@cyberismocom/data-handler/remove';
 
-export const dynamic = 'force-dynamic';
-
-/**
- * @swagger
- * /api/cards/{key}/a:
- *   post:
- *     summary: Used to upload an attachment to a card.
- *     responses:
- *       204:
- *         description: Attachments uploaded successfully.
- *       400:
- *         description: Failed to upload attachment.
- *       500:
- *         description: project_path not set or other internal error
- */
-export async function POST(
-  request: Request,
-  {
-    params,
-  }: {
-    params: {
-      key: string;
-    };
-  },
-) {
+export async function addAttachments(key: string, formData: FormData) {
   const projectPath = process.env.npm_config_project_path;
-  if (!projectPath) {
-    return new NextResponse('project_path environment variable not set.', {
-      status: 500,
-    });
-  }
 
-  const formData = await request.formData();
-  // get all the files from the form data
+  const calc = new Calculate();
+  const createCommand = new Create(calc);
+  const removeCommand = new Remove(calc);
+
   const files = await Promise.all(
     formData
       .getAll('file')
@@ -66,17 +39,13 @@ export async function POST(
       })),
   );
 
-  const calc = new Calculate();
-  const createCommand = new Create(calc);
-  const removeCommand = new Remove(calc);
-
   const succeeded = [];
   let error: Error | null = null;
   for (const file of files) {
     try {
       await createCommand.createAttachment(
-        params.key,
-        projectPath,
+        key,
+        projectPath || '',
         file.name,
         file.buffer,
       );
@@ -91,15 +60,20 @@ export async function POST(
   if (error) {
     for (const file of succeeded) {
       try {
-        await removeCommand.remove(projectPath, 'attachment', params.key, file);
-      } catch (error) {
-        return new NextResponse('Failed to delete attachment.', {
-          status: 500,
-        });
+        await removeCommand.remove(projectPath || '', 'attachment', key, file);
+      } catch (err) {
+        console.error('Failed to remove attachment:', err);
       }
     }
-    return new NextResponse(error.message, { status: 400 });
+    throw error;
   }
+}
 
-  return new NextResponse(null, { status: 204 });
+export async function removeAttachment(key: string, filename: string) {
+  const projectPath = process.env.npm_config_project_path;
+
+  const calc = new Calculate();
+  const removeCommand = new Remove(calc);
+
+  await removeCommand.remove(projectPath || '', 'attachment', key, filename);
 }

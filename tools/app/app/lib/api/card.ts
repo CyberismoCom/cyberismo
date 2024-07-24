@@ -27,24 +27,30 @@ import { cardDeleted } from '../actions';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
+  const { callUpdate, ...rest } = useSWRHook(
+    key ? apiPaths.card(key) : null,
+    'card',
+    options,
+  );
+
   return {
-    ...useSWRHook(key ? apiPaths.card(key) : null, 'card', options),
+    ...rest,
     updateCard: async (update: CardUpdate) =>
-      (key && updateCard(key, update)) || null,
+      (key && (await callUpdate(() => updateCard(key, update)))) || null,
     deleteCard: async () => {
       if (!key) return;
-      await deleteCard(key);
+      await callUpdate(() => deleteCard(key));
       dispatch(cardDeleted(key));
     },
     createCard: async (template: string) =>
-      (key && createCard(key, template)) || null,
+      (key && (await callUpdate(() => createCard(key, template)))) || null,
     updateWorkFlowState: async (state: string) =>
       (key &&
-        updateCard(key, {
-          state: {
-            name: state,
-          },
-        })) ||
+        (await callUpdate(() =>
+          updateCard(key, {
+            state: { name: state },
+          }),
+        ))) ||
       null,
   };
 };

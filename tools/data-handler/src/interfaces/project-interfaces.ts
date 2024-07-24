@@ -183,6 +183,7 @@ export interface attachmentDetails {
   card: string;
   path: string;
   fileName: string;
+  mimeType: string | null;
 }
 
 // Name for a card (consists of prefix and running number; e.g. 'test_1')

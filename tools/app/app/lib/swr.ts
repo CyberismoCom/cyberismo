@@ -87,5 +87,4 @@ export const apiPaths = {
   templates: () => '/api/templates',
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,
-  attachments: (cardKey: string) => `/api/cards/${cardKey}/a`,
 };

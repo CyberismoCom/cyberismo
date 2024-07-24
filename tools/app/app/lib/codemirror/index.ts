@@ -11,8 +11,8 @@
 */
 
 import { EditorView } from '@uiw/react-codemirror';
-import { Attachment, CardAttachment } from '../definitions';
 import { apiPaths } from '../swr';
+import { attachmentDetails } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 /**
  * Counts the number of empty lines in the codemirror editor in the given direction
@@ -121,12 +121,12 @@ export function isLastChar(view: EditorView, position: number) {
  */
 export function addAttachment(
   editor: EditorView,
-  attachment: Attachment,
+  { fileName, mimeType }: attachmentDetails,
   cardKey: string,
 ) {
   const target = editor.state.selection.main.to;
 
-  if (attachment.type === 'image') {
+  if (mimeType?.startsWith('image')) {
     const newLinesBefore = countEmptyLines(editor, 'up', target, true, 2);
 
     const hasNewLineAfter = countEmptyLines(editor, 'down', target, true, 1);
@@ -134,7 +134,7 @@ export function addAttachment(
     editor.dispatch({
       changes: {
         from: target,
-        insert: `${'\n'.repeat(2 - newLinesBefore)}image::${attachment.fileName}[]${hasNewLineAfter ? '' : '\n'}`,
+        insert: `${'\n'.repeat(2 - newLinesBefore)}image::${fileName}[]${hasNewLineAfter ? '' : '\n'}`,
       },
     });
   } else {
@@ -142,7 +142,7 @@ export function addAttachment(
     editor.dispatch({
       changes: {
         from: target,
-        insert: `${isFirstChar(editor, target) || hasCharAt(editor, ' ', target - 1) ? '' : ' '}link:${encodeURI(apiPaths.attachment(cardKey, attachment.fileName))}[${attachment.fileName}]${isLastChar(editor, target) || hasCharAt(editor, ' ', target) ? '' : ' '}`,
+        insert: `${isFirstChar(editor, target) || hasCharAt(editor, ' ', target - 1) ? '' : '\n'}link:${encodeURI(apiPaths.attachment(cardKey, fileName))}[${fileName}]${isLastChar(editor, target) || hasCharAt(editor, ' ', target) ? '' : '\n'}`,
       },
     });
   }

@@ -28,6 +28,7 @@ import {
   CardOverflow,
   AspectRatio,
   Grid,
+  IconButton,
 } from '@mui/joy';
 
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -44,21 +45,26 @@ import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
-import { useAttachments } from '@/app/lib/api/attachments';
 import Image from 'next/image';
-import { InsertDriveFile } from '@mui/icons-material';
-import { apiPaths } from '@/app/lib/swr';
+import { Delete, InsertDriveFile } from '@mui/icons-material';
 import { addAttachment } from '@/app/lib/codemirror';
+import { apiPaths } from '@/app/lib/swr';
+import { useAttachments } from '@/app/lib/api/attachments';
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
 function AttachmentPreviewCard({
   name,
   children,
+  cardKey,
 }: {
   name: string;
   children?: React.ReactNode;
+  cardKey: string;
 }) {
+  const { removeAttachment } = useAttachments(cardKey);
+  const [isUpdating, setIsUpdating] = React.useState(false);
+
   return (
     <Card
       sx={{
@@ -68,6 +74,25 @@ function AttachmentPreviewCard({
       }}
     >
       <CardOverflow>
+        <IconButton
+          color="danger"
+          variant="solid"
+          sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            zIndex: 1,
+          }}
+          loading={isUpdating}
+          onClick={async (e) => {
+            e.stopPropagation();
+            setIsUpdating(true);
+            await removeAttachment(name);
+            setIsUpdating(false);
+          }}
+        >
+          <Delete />
+        </IconButton>
         <AspectRatio
           ratio="1"
           maxHeight={100}
@@ -92,13 +117,24 @@ function AttachmentPreviewCard({
     </Card>
   );
 }
+/**
+ * 
+ * @param param0 
+          <Button
+            disabled={isUpdating}
+            onClick={async () => {
+              await removeAttachment(name);
+            }}
+          >
+            Hi
+          </Button>
+ * @returns 
+ */
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
   const { card, updateCard } = useCard(params.key);
-
-  const { attachments } = useAttachments(params.key);
 
   const searchParams = useSearchParams();
 
@@ -264,7 +300,7 @@ export default function Page({ params }: { params: { key: string } }) {
                     </Typography>
                   </Stack>
                   <Grid container gap={2} paddingLeft={3}>
-                    {attachments.map((attachment) => (
+                    {card?.attachments?.map((attachment) => (
                       <Grid
                         key={attachment.fileName}
                         display="flex"
@@ -280,9 +316,19 @@ export default function Page({ params }: { params: { key: string } }) {
                           }
                         }}
                       >
-                        <AttachmentPreviewCard name={attachment.fileName}>
-                          {attachment.type === 'image' ? (
-                            <Image src={attachment.image || ''} alt="" fill />
+                        <AttachmentPreviewCard
+                          name={attachment.fileName}
+                          cardKey={params.key}
+                        >
+                          {attachment.mimeType.startsWith('image') ? (
+                            <Image
+                              src={apiPaths.attachment(
+                                card.key,
+                                attachment.fileName,
+                              )}
+                              alt=""
+                              fill
+                            />
                           ) : (
                             <InsertDriveFile />
                           )}

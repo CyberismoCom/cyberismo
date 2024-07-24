@@ -60,6 +60,7 @@ export interface CardAttachment {
   card: string;
   fileName: string;
   path: string;
+  mimeType: string;
 }
 
 export enum CardMode {
@@ -120,11 +121,4 @@ export interface FieldTypeDefinition {
   fieldDescription?: string;
   dataType: DataType;
   enumValues?: Array<EnumDefinition>;
-}
-
-export interface Attachment {
-  type: 'image' | 'file';
-  fileName: string;
-  data: Blob;
-  image?: string;
 }

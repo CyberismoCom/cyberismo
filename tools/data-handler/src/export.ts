@@ -33,6 +33,8 @@ import { readADocFileSync, readJsonFileSync } from './utils/json.js';
 // asciidoctor
 import Processor from '@asciidoctor/core';
 
+import mime from 'mime-types';
+
 const attachmentFolder: string = 'a';
 
 export class Export {
@@ -117,6 +119,7 @@ export class Export {
               card: found.key,
               fileName: entry.name,
               path: entry.path,
+              mimeType: mime.lookup(entry.name) || null,
             });
           } else {
             console.error(

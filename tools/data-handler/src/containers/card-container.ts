@@ -29,6 +29,8 @@ import {
 // asciidoctor
 import asciidoctor from '@asciidoctor/core';
 
+import mime from 'mime-types';
+
 /**
  * Card container base class. Used for both Project and Template.
  * Contains common card-related functionality.
@@ -201,6 +203,7 @@ export class CardContainer {
               card: cardItem,
               fileName: attachment.name,
               path: attachment.path,
+              mimeType: mime.lookup(attachment.name) || null,
             }),
           );
           if (pathExists(childrenFolder)) {
