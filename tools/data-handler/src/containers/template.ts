@@ -31,7 +31,12 @@ import { Project } from './project.js';
 
 // Base class
 import { CardContainer } from './card-container.js';
-import { EMPTY_RANK, getRankAfter, sortItems } from '../utils/lexorank.js';
+import {
+  EMPTY_RANK,
+  FIRST_RANK,
+  getRankAfter,
+  sortItems,
+} from '../utils/lexorank.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -87,15 +92,19 @@ export class Template extends CardContainer {
 
     // find parent cards
     // here we want to insert the cards after the last card, but not after a card that has no rank
+    // for clarity: These are the "root" template cards
     const parentCards = sortItems(
       cards.filter((c) => c.parent === this.containerName),
       (c) => c?.metadata?.rank || '',
     );
 
     // If parent card is not defined, then we are creating top-level cards.
-    const futureSiblings = parentCard
-      ? parentCard.children || []
-      : await this.project.showProjectCards();
+    // also filter out cards that have no rank
+    const futureSiblings = (
+      parentCard
+        ? parentCard.children || []
+        : await this.project.showProjectCards()
+    ).filter((c) => c.metadata?.rank !== undefined);
 
     let latestRank = sortItems(
       futureSiblings,
@@ -103,7 +112,7 @@ export class Template extends CardContainer {
     ).pop()?.metadata?.rank;
 
     if (!latestRank) {
-      latestRank = EMPTY_RANK;
+      latestRank = FIRST_RANK;
     }
 
     parentCards.forEach((card) => {
