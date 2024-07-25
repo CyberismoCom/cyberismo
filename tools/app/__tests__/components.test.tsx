@@ -6,6 +6,12 @@ import StateSelector from '@/app/components/StateSelector';
 import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
 import { useTranslation } from 'react-i18next';
 
+// mock resize observer
+global.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 // Mock useRouter:
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -43,9 +49,9 @@ describe('TreeMenu', () => {
         selectedCardKey={'USDL-46'}
       />,
     );
-    const node = screen.getByText('Demand phase').parentNode;
+    const node = screen.getByText('Demand phase').parentNode?.parentNode;
     expect(node).toBeVisible();
-    expect(node).toHaveClass('Mui-selected');
+    expect(node).toHaveAttribute('aria-selected', 'true');
   });
 });
 

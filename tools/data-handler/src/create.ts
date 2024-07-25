@@ -286,7 +286,10 @@ export class Create extends EventEmitter {
     }
 
     const specificCard = parentCardKey
-      ? await projectObject.findSpecificCard(parentCardKey)
+      ? await projectObject.findSpecificCard(parentCardKey, {
+          metadata: true,
+          children: true,
+        })
       : undefined;
     if (parentCardKey && !specificCard) {
       throw new Error(`Card '${parentCardKey}' not found from project`);

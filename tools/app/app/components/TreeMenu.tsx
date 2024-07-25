@@ -11,33 +11,52 @@
 */
 
 'use client';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card } from '../lib/definitions';
-import { TreeView } from '@mui/x-tree-view/TreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { findPathTo } from '../lib/utils';
-import { Stack, Typography } from '@mui/joy';
+import { findCard, findParentCard } from '../lib/utils';
+import { Box, Stack, Typography } from '@mui/joy';
+import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
+import { Tree, NodeRendererProps } from 'react-arborist';
+import useResizeObserver from 'use-resize-observer';
+import { updateCard } from '../lib/api';
 
 type TreeMenuProps = {
   title: string;
   cards: Card[];
   selectedCardKey: string | null;
   onCardSelect?: (cardKey: string) => void;
+  onMove?: (card: string, newParent: string, index: number) => void;
 };
 
-const renderTree = (nodes: Card, handleClick: (cardKey: string) => void) => (
-  <TreeItem
-    key={nodes.key}
-    nodeId={nodes.key}
-    onClick={() => handleClick(nodes.key)}
-    label={nodes.metadata?.summary ?? nodes.key}
+// since we aren't using buckets, 1 means that missing ranks will be last
+function rankGetter(card: Card) {
+  return card.metadata?.rank || '1|z';
+}
+
+const renderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => (
+  <Box
+    style={style}
+    ref={dragHandle}
+    onClick={() => {
+      node.toggle();
+    }}
+    alignContent="center"
+    display="flex"
+    bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
   >
-    {Array.isArray(nodes.children)
-      ? nodes.children.map((node) => renderTree(node, handleClick))
-      : null}
-  </TreeItem>
+    {node.data.children && node.data.children.length > 0 && (
+      <ExpandMoreIcon
+        sx={{
+          // direction is down if open, right if closed
+          transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+        }}
+      />
+    )}
+    <Typography level="title-sm" noWrap alignSelf="center">
+      {node.data.metadata?.summary ?? node.data.key}
+    </Typography>
+  </Box>
 );
 
 export const TreeMenu: React.FC<TreeMenuProps> = ({
@@ -46,47 +65,63 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   title,
   onCardSelect,
 }) => {
-  const [expanded, setExpanded] = React.useState<string[]>([]);
+  const { ref, width, height } = useResizeObserver();
 
-  // Expand the tree until selected node is visible OR expand the first level of the tree if no selection
-  useEffect(() => {
-    const defaultExpanded = selectedCardKey
-      ? findPathTo(selectedCardKey, cards)?.map((card) => card.key) ?? []
-      : cards.map((card) => card.key);
-    setExpanded(defaultExpanded);
-  }, [selectedCardKey, cards]);
+  // sort card at all levels
+  const sortCards = (cards: Card[]): Card[] => {
+    return sortItems(cards, rankGetter).map((card) => {
+      if (card.children) {
+        card.children = sortCards(card.children);
+      }
+      return card;
+    });
+  };
+  cards = sortCards(cards);
 
+  const onMove = async (cardKey: string, newParent: string, index: number) => {
+    const card = findCard(cards, cardKey);
+    if (!card) return;
+    const parent = findParentCard(cards, cardKey);
+    await updateCard(cardKey, {
+      parent: newParent === parent?.key ? undefined : newParent,
+      index,
+    });
+  };
   return (
-    <Stack padding={2} bgcolor="#f0f0f0" height="100%" width="100%">
+    <Stack
+      paddingTop={2}
+      paddingLeft={2}
+      bgcolor="#f0f0f0"
+      height="100%"
+      width="100%"
+    >
       <Typography level="h4">{title}</Typography>
-      <TreeView
-        defaultCollapseIcon={<ExpandMoreIcon />}
-        defaultExpandIcon={<ChevronRightIcon />}
-        expanded={expanded}
-        selected={selectedCardKey}
-        onNodeToggle={(_, nodes) => {
-          setExpanded(nodes);
-        }}
+      <Box
         sx={{
-          '& .MuiTreeItem-root': {
-            mt: '6px', // Adds margin at the bottom of each TreeItem
-            '& .MuiTreeItem-iconContainer': {
-              marginRight: '2px',
-            },
-          },
-          '& .MuiTreeItem-label': {
-            fontSize: '1.0em',
-            lineHeight: '1.3em',
-          },
-          overflowY: 'scroll',
-          scrollbarWidth: 'thin',
           flexGrow: 1,
         }}
+        ref={ref}
       >
-        {cards.map((treeItem) =>
-          renderTree(treeItem, onCardSelect || (() => {})),
-        )}
-      </TreeView>
+        <Tree
+          data={cards}
+          openByDefault={false}
+          onSelect={(nodes) =>
+            nodes.length > 0 && onCardSelect && onCardSelect(nodes[0].data.key)
+          }
+          idAccessor={(node) => node.key}
+          selection={selectedCardKey || undefined}
+          indent={24}
+          width={(width || 0) - 1}
+          height={height}
+          onMove={(n) => {
+            if (onMove && n.dragIds.length === 1) {
+              onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
+            }
+          }}
+        >
+          {renderTree}
+        </Tree>
+      </Box>
     </Stack>
   );
 };

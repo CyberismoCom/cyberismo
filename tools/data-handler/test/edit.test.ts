@@ -27,8 +27,6 @@ describe('edit card', () => {
     const cards = await project.cards();
     const firstCard = cards.at(0);
 
-    expect(firstCard?.metadata?.lastUpdated).to.be.undefined;
-
     // Modify content
     if (firstCard) {
       await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie');
@@ -40,7 +38,9 @@ describe('edit card', () => {
       });
       if (changedCard) {
         expect(changedCard.content).to.equal('whoopie');
-        expect(changedCard.metadata?.lastUpdated).to.not.be.undefined;
+        expect(changedCard.metadata?.lastUpdated).to.not.equal(
+          firstCard.metadata?.lastUpdated,
+        );
       } else {
         expect(false);
       }

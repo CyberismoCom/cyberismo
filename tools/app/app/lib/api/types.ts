@@ -47,6 +47,7 @@ export type FullCardUpdate = {
   metadata: Record<string, any>;
   state: { name: string };
   parent: string;
+  index: number;
 };
 
 export type CardUpdate = Partial<FullCardUpdate>;

@@ -52,6 +52,7 @@ export type CardMetadata = {
   summary: string;
   workflowState: string;
   cardtype: string;
+  rank: string;
 } & Record<string, MetadataValue>;
 
 export type MetadataValue = string | number | boolean | Date | string[] | null;
