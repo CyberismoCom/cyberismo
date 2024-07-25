@@ -62,22 +62,7 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   // revalidation not needed since api returns the updated card
   mutate(swrKey, result, false);
 
-  mutate(
-    apiPaths.project(),
-    (project: Project | undefined) => {
-      if (!project) return project;
-      let cards = editCardDetails(deepCopy(project.cards), result);
-
-      if (cardUpdate.parent) {
-        cards = moveCard(cards, key, cardUpdate.parent);
-      }
-      return {
-        ...project,
-        cards,
-      };
-    },
-    false,
-  );
+  mutate(apiPaths.project());
 }
 
 export async function deleteCard(key: string) {

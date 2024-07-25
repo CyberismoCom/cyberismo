@@ -31,6 +31,12 @@ import { Project } from './project.js';
 
 // Base class
 import { CardContainer } from './card-container.js';
+import {
+  EMPTY_RANK,
+  FIRST_RANK,
+  getRankAfter,
+  sortItems,
+} from '../utils/lexorank.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -83,6 +89,40 @@ export class Template extends CardContainer {
         to: this.project.configuration.newCardKey(),
       });
     }
+
+    // find parent cards
+    // here we want to insert the cards after the last card, but not after a card that has no rank
+    // for clarity: These are the "root" template cards
+    const parentCards = sortItems(
+      cards.filter((c) => c.parent === this.containerName),
+      (c) => c?.metadata?.rank || '',
+    );
+
+    // If parent card is not defined, then we are creating top-level cards.
+    // also filter out cards that have no rank
+    const futureSiblings = (
+      parentCard
+        ? parentCard.children || []
+        : await this.project.showProjectCards()
+    ).filter((c) => c.metadata?.rank !== undefined);
+
+    let latestRank = sortItems(
+      futureSiblings,
+      (c) => c.metadata?.rank || '',
+    ).pop()?.metadata?.rank;
+
+    if (!latestRank) {
+      latestRank = FIRST_RANK;
+    }
+
+    parentCards.forEach((card) => {
+      const newRank = getRankAfter(latestRank as string);
+      latestRank = newRank;
+
+      if (card.metadata) {
+        card.metadata.rank = newRank;
+      }
+    });
 
     try {
       // Update card keys and paths according to the new upcoming IDs.
@@ -147,8 +187,11 @@ export class Template extends CardContainer {
           );
         }
         if (card.metadata) {
+          const cardWithRank = parentCards.find((c) => c.key === card.key);
           card.metadata.workflowState = initialWorkflowState;
           card.metadata.cardtype = cardtype.name;
+          card.metadata.rank =
+            cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK;
           if (cardtype.customFields !== undefined) {
             for (const customField of cardtype.customFields) {
               const defaultValue = null;
@@ -430,6 +473,7 @@ export class Template extends CardContainer {
       contentType: 'adoc',
       metadata: true,
       attachments: true,
+      parent: true,
     });
     if (cards.length === 0) {
       throw new Error(

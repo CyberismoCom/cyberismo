@@ -914,7 +914,9 @@ export class Project extends CardContainer {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const validCard = await this.validateCard(card);
+    const validCard = Project.isTemplateCard(card)
+      ? ''
+      : await this.validateCard(card);
     if (validCard.length !== 0) {
       throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
     }

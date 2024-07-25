@@ -20,6 +20,10 @@
       "type": "string",
       "description": "the name of the card's current state in the workflow"
     },
+    "rank": {
+      "type": "string",
+      "description": "The rank of the card in relative to its siblings"
+    },
     "lastTransitioned": {
       "type": "string",
       "format": "date-time",
@@ -72,5 +76,5 @@
       }
     }
   },
-  "required": ["summary", "cardtype", "workflowState"]
+  "required": ["summary", "cardtype", "workflowState", "rank"]
 }

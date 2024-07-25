@@ -378,6 +378,47 @@ program
     },
   );
 
+const rank = program.command('rank');
+
+rank
+  .command('card')
+  .description('Set the rank of a card to be after another card')
+  .argument('<cardKey>', 'Cardkey of the card to be moved')
+  .argument(
+    '<afterCardKey>',
+    'Cardkey of the card that the card should be after',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (cardKey: string, afterCardKey: string, options: CardsOptions) => {
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', cardKey, afterCardKey],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
+
+rank
+  .command('rebalance')
+  .description(
+    'Rebalance the rank of all cards in the project. Can be also used, if ranks do not exist',
+  )
+  .argument(
+    '[parentCardKey]',
+    'if null, rebalance the whole project, otherwise rebalance only the direct children of the cardkey',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (cardKey: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.rank,
+      ['rebalance', cardKey],
+      options,
+    );
+    handleResponse(result);
+  });
+
 // Remove command
 program
   .command('remove')

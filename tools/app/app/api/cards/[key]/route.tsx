@@ -180,12 +180,20 @@ export async function PUT(request: NextRequest) {
       if (error instanceof Error) errors.push(error.message);
     }
   }
+  if (res.index != null) {
+    const moveCommand = new Move();
+    try {
+      await moveCommand.rankByIndex(projectPath, key, res.index);
+      successes++;
+    } catch (error) {
+      if (error instanceof Error) errors.push(error.message);
+    }
+  }
 
   // TODO add other update options here
 
   // contentType defaults to adoc if not set
   const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
-
   if (errors.length > 0 && successes == 0) {
     // All updates failed
     return new NextResponse(errors.join('\n'), { status: 400 });

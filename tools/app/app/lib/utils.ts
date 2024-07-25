@@ -318,17 +318,18 @@ export function moveCard(
   const parent = findParentCard(cards, cardKey);
 
   const newParent = findCard(cards, newParentKey);
-  if (!newParent) {
-    return cards;
-  }
   if (parent) {
     parent.children =
       parent.children?.filter((child) => child.key !== cardKey) || [];
   } else {
     cards = cards.filter((c) => c.key !== cardKey);
   }
-  newParent.children = newParent.children || [];
-  newParent.children.push(card);
+  if (newParent) {
+    newParent.children = newParent.children || [];
+    newParent.children.push(card);
+  } else {
+    cards.push(card);
+  }
   return cards;
 }
 
