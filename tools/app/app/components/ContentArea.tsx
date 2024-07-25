@@ -87,9 +87,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         onScroll={handleScroll}
       >
         <Stack spacing={3}>
-          <Typography level="h1">
-            {card.metadata?.summary ?? card.key}
-          </Typography>
+          <Typography level="h1">{card.metadata?.title ?? card.key}</Typography>
           <MetadataView
             editMode={false}
             initialExpanded={false}

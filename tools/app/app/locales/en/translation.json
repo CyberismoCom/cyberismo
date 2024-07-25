@@ -42,7 +42,7 @@
   "cardType": "Card Type",
   "value": "Value",
   "name": "Name",
-  "summary": "Summary",
+  "title": "Title",
   "workflowState": "Workflow State",
   "metadata": "Metadata",
   "close": "Close",

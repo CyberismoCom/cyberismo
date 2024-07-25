@@ -58,7 +58,7 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'controlledDocument',
-                summary: 'Untitled',
+                title: 'Untitled',
                 workflowState: 'Draft',
               },
             },
@@ -68,7 +68,7 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Demand phase',
+                title: 'Demand phase',
                 workflowState: 'Created',
               },
             },
@@ -82,14 +82,14 @@ const testProject: Project = {
                   children: [],
                   metadata: {
                     cardtype: 'controlledDocument',
-                    summary: 'Threat model',
+                    title: 'Threat model',
                     workflowState: 'Draft',
                   },
                 },
               ],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Design phase',
+                title: 'Design phase',
                 workflowState: 'Created',
               },
             },
@@ -99,7 +99,7 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Implementation phase',
+                title: 'Implementation phase',
                 workflowState: 'Created',
               },
             },
@@ -115,7 +115,7 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Release phase',
+                title: 'Release phase',
                 workflowState: 'Created',
               },
             },
@@ -125,7 +125,7 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Operations phase',
+                title: 'Operations phase',
                 workflowState: 'Created',
               },
             },
@@ -135,21 +135,21 @@ const testProject: Project = {
               children: [],
               metadata: {
                 cardtype: 'simplePage',
-                summary: 'Meetings',
+                title: 'Meetings',
                 workflowState: 'Created',
               },
             },
           ],
           metadata: {
             cardtype: 'simplePage',
-            summary: 'SDL Project',
+            title: 'SDL Project',
             workflowState: 'Created',
           },
         },
       ],
       metadata: {
         cardtype: 'decision',
-        summary: 'SDL Decision',
+        title: 'SDL Decision',
         workflowState: 'Draft',
       },
     },

@@ -119,12 +119,12 @@ describe('edit card', () => {
     const cards = await project.cards();
     const firstCard = cards.at(0);
 
-    // Modify metadata - summary
+    // Modify metadata - title
     if (firstCard) {
       await EditCmd.editCardMetadata(
         project.basePath,
         firstCard.key,
-        'summary',
+        'title',
         'new name',
       )
         .then(() => {
@@ -141,7 +141,7 @@ describe('edit card', () => {
       });
       if (changedCard) {
         if (changedCard.metadata) {
-          expect(changedCard.metadata.summary).to.equal('new name');
+          expect(changedCard.metadata.title).to.equal('new name');
         }
       } else {
         expect(false);

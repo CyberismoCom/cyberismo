@@ -172,7 +172,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                     page, // if search gets any more complex, use a better solution
                   ) =>
                     page.key.startsWith(search.toLowerCase()) ||
-                    page.metadata?.summary
+                    page.metadata?.title
                       ?.toLowerCase()
                       .startsWith(search.toLowerCase()),
                 )
@@ -201,11 +201,11 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                       <Stack direction="row" justifyContent="space-between">
                         <Stack>
                           <Typography level="title-sm">
-                            {page.metadata?.summary}
+                            {page.metadata?.title}
                           </Typography>
                           <Typography level="body-sm">
                             {findParentCard(project?.cards || [], page.key)
-                              ?.metadata?.summary ?? '-'}
+                              ?.metadata?.title ?? '-'}
                           </Typography>
                         </Stack>
                         <Typography
@@ -277,11 +277,11 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         <Stack direction="row" justifyContent="space-between">
                           <Stack>
                             <Typography level="title-sm">
-                              {page.metadata?.summary}
+                              {page.metadata?.title}
                             </Typography>
                             <Typography level="body-sm">
                               {findParentCard(project?.cards || [], page.key)
-                                ?.metadata?.summary ?? '-'}
+                                ?.metadata?.title ?? '-'}
                               {' • '}
                               {t('viewedAgo', {
                                 time: moment

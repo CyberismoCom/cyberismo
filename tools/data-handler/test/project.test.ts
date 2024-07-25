@@ -320,7 +320,7 @@ describe('project', () => {
     });
     expect(card).to.not.equal(undefined);
     if (card) {
-      expect(card.metadata?.summary).to.equal('Decision Records');
+      expect(card.metadata?.title).to.equal('Decision Records');
       expect(card.metadata?.cardtype).to.equal('simplepage-cardtype');
       expect(card.metadata?.workflowState).to.equal('Created');
 
@@ -341,7 +341,7 @@ describe('project', () => {
     );
     expect(additionalCardDetails).to.not.equal(undefined);
     if (additionalCardDetails) {
-      expect(additionalCardDetails.metadata?.summary).to.equal(
+      expect(additionalCardDetails.metadata?.title).to.equal(
         'Decision Records',
       );
       expect(additionalCardDetails.metadata?.cardtype).to.equal(
@@ -405,7 +405,7 @@ describe('project', () => {
         expect(projectCard.path).to.not.equal(undefined);
         expect(projectCard.children).to.not.equal(undefined);
         expect(projectCard.metadata).to.not.equal(undefined);
-        expect(projectCard.metadata?.summary).to.equal('Decision Records');
+        expect(projectCard.metadata?.title).to.equal('Decision Records');
         expect(projectCard.metadata?.workflowState).to.equal('Created');
         expect(Project.isTemplateCard(projectCard)).to.equal(false);
       }
