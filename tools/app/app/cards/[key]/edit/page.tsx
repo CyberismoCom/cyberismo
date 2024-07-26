@@ -12,7 +12,7 @@
 
 'use client';
 import React, { useMemo, useRef } from 'react';
-import { CardMode, MetadataValue } from '@/app/lib/definitions';
+import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
   Box,
@@ -41,8 +41,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
 import { useCard } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { useAppDispatch } from '@/app/lib/hooks';
+import {
+  Controller,
+  FieldValues,
+  FormProvider,
+  useForm,
+} from 'react-hook-form';
+import { useAppDispatch, useBeforeUnload } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
@@ -118,6 +123,22 @@ function AttachmentPreviewCard({
   );
 }
 
+function comparePreviewCard(
+  previewCard: FieldValues,
+  card: CardDetails,
+): boolean {
+  const { __content__, __title__, ...metadata } = previewCard;
+
+  if (__content__ !== card.content) return false;
+  if (__title__ !== card.metadata?.title) return false;
+
+  for (const key in metadata) {
+    if (metadata[key] !== card.metadata?.[key]) return false;
+  }
+
+  return true;
+}
+
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
@@ -133,6 +154,23 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const formMethods = useForm();
   const { handleSubmit, control, watch } = formMethods;
+
+  const preview = watch();
+
+  const previewCard = useMemo(() => {
+    const { __content__, __title__, ...metadata } = preview;
+    return {
+      ...card!,
+      metadata: {
+        ...card!.metadata!,
+        title: __title__,
+        ...metadata,
+      },
+      content: __content__,
+    };
+  }, [preview, card]);
+
+  useBeforeUnload(!comparePreviewCard(preview, card!));
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
@@ -162,21 +200,6 @@ export default function Page({ params }: { params: { key: string } }) {
       );
     }
   };
-
-  const preview = watch();
-
-  const previewCard = useMemo(() => {
-    const { __content__, __title__, ...metadata } = preview;
-    return {
-      ...card!,
-      metadata: {
-        ...card!.metadata!,
-        title: __title__,
-        ...metadata,
-      },
-      content: __content__,
-    };
-  }, [preview, card]);
 
   return (
     <Stack height="100%">

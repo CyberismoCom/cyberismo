@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { findParentCard } from '../utils';
 import { useProject } from '../api';
 
@@ -20,4 +20,25 @@ export function useParentCard(key: string | null) {
     () => (key && project?.cards ? findParentCard(project.cards, key) : null),
     [project, key],
   );
+}
+
+export function handleUnload(event: BeforeUnloadEvent) {
+  event.preventDefault();
+  event.returnValue = true; // for legacy browsers
+}
+/**
+ * Register a beforeunload event listener
+ * @param active - whether the listener should be active
+ */
+export function useBeforeUnload(active: boolean) {
+  useEffect(() => {
+    if (active) {
+      window.addEventListener('beforeunload', handleUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleUnload);
+      };
+    } else {
+      window.removeEventListener('beforeunload', handleUnload);
+    }
+  });
 }
