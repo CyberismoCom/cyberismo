@@ -176,8 +176,8 @@ export class Export {
           card.key,
           Project.cardContentFile,
         );
-        if (card.metadata?.summary) {
-          fileContent += `\n== ${card.metadata?.summary}\n`;
+        if (card.metadata?.title) {
+          fileContent += `\n== ${card.metadata?.title}\n`;
         }
         fileContent += `\ninclude::${fullPath}[]\n`;
       }

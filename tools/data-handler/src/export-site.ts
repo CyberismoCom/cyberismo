@@ -176,7 +176,7 @@ export class ExportSite extends Export {
       const cardPath = join(path, card.key + '.adoc');
       const cardXRef = cardPath.slice(this.pagesDir.length);
       const navFileContent =
-        '*'.repeat(depth) + ` xref:${cardXRef}[${card.metadata?.summary}]\n`;
+        '*'.repeat(depth) + ` xref:${cardXRef}[${card.metadata?.title}]\n`;
       await appendFile(this.navFile, navFileContent);
 
       let tempContent = undefined;
@@ -186,8 +186,8 @@ export class ExportSite extends Export {
         );
         tempContent = super.metaToAdoc(card, cardTypeForCard);
         tempContent += `\n== ${card.key} `;
-        tempContent += card.metadata?.summary
-          ? `${card.metadata.summary}\n`
+        tempContent += card.metadata?.title
+          ? `${card.metadata.title}\n`
           : 'Untitled\n';
       }
 

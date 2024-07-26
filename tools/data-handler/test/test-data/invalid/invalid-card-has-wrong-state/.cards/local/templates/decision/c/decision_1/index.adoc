@@ -1,4 +1,4 @@
-= Decision Summary
+= Decision Title
 
 == Context
 

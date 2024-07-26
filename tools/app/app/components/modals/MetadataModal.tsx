@@ -28,7 +28,7 @@ import moment from 'moment';
 
 function Metadata({
   cardtype,
-  summary,
+  title,
   workflowState,
   lastTransitioned,
 }: cardMetadata) {
@@ -47,8 +47,8 @@ function Metadata({
           <td>{cardtype}</td>
         </tr>
         <tr>
-          <td>{t('summary')}</td>
-          <td>{summary}</td>
+          <td>{t('title')}</td>
+          <td>{title}</td>
         </tr>
         <tr>
           <td>{t('workflowState')}</td>

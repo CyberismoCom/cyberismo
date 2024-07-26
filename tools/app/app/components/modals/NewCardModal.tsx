@@ -184,7 +184,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             </Button>
             <Box flexGrow={1} />
             <Typography>
-              {t('createUnder', { parent: card?.metadata?.summary || 'root' })}
+              {t('createUnder', { parent: card?.metadata?.title || 'root' })}
             </Typography>
           </DialogActions>
         </DialogContent>

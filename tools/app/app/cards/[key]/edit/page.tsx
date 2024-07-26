@@ -143,7 +143,7 @@ export default function Page({ params }: { params: { key: string } }) {
         content: __content__ as string,
         metadata: {
           ...update,
-          summary: __title__,
+          title: __title__,
         },
       });
       dispatch(
@@ -171,7 +171,7 @@ export default function Page({ params }: { params: { key: string } }) {
       ...card!,
       metadata: {
         ...card!.metadata!,
-        summary: __title__,
+        title: __title__,
         ...metadata,
       },
       content: __content__,
@@ -221,7 +221,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <Controller
                     name="__title__"
                     control={control}
-                    defaultValue={card?.metadata?.summary || ''}
+                    defaultValue={card?.metadata?.title || ''}
                     render={({ field: { value, onChange } }: any) => (
                       <Textarea
                         sx={{

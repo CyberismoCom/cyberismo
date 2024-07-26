@@ -49,7 +49,7 @@ export interface CardDetails {
 }
 
 export type CardMetadata = {
-  summary: string;
+  title: string;
   workflowState: string;
   cardtype: string;
   rank: string;

@@ -56,7 +56,7 @@ export class Import {
     const importedCards = [];
 
     for (const row of csv) {
-      const { summary, template, description, labels, ...customFields } = row;
+      const { title, template, description, labels, ...customFields } = row;
       const templateObject = await project.createTemplateObjectByName(template);
       if (!templateObject) {
         throw new Error(`Template '${template}' not found`);
@@ -65,7 +65,7 @@ export class Import {
       const templateCards = await templateObject.cards();
       if (templateCards.length !== 1) {
         console.warn(
-          `Template '${template}' for card '${summary}' does not have exactly one card. Skipping row.`,
+          `Template '${template}' for card '${title}' does not have exactly one card. Skipping row.`,
         );
         continue;
       }
@@ -98,14 +98,14 @@ export class Import {
         await project.updateCardMetadata(cardKey, 'labels', labels.split(' '));
       }
 
-      await project.updateCardMetadata(cardKey, 'summary', summary);
+      await project.updateCardMetadata(cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
         // make sure card contains the customField
         if (cardType.customFields?.find((field) => field.name === key)) {
           await project.updateCardMetadata(cardKey, key, value);
         }
       }
-      console.log(`Successfully imported card ${summary}`);
+      console.log(`Successfully imported card ${title}`);
       importedCards.push(cardKey);
     }
     return importedCards;
