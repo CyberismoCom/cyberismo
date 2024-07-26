@@ -315,7 +315,7 @@ export class Template extends CardContainer {
       ? join(await this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
     const defaultContent = {
-      summary: 'Untitled',
+      title: 'Untitled',
       cardtype: cardtype,
       workflowState: '',
     };

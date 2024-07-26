@@ -80,7 +80,7 @@ export interface cardtype {
 
 // Card's index.json file content.
 export interface cardMetadata {
-  summary: string;
+  title: string;
   cardtype: string;
   workflowState: string;
   rank: string;
@@ -214,7 +214,7 @@ export type csvRowRaw = {
 };
 
 export interface importCsvRow {
-  summary: string;
+  title: string;
   template: string;
   description?: string;
   labels?: string[];

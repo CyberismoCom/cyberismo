@@ -51,7 +51,7 @@ card(C) :- field(C, "cardtype", _).
 
 % the default fields are not calculated, so let's mark them as user fields.
 userfield(Cardkey, "cardtype") :- field(Cardkey, "cardtype", Cardtype).
-userfield(Cardkey, "summary") :- field(Cardkey, "cardtype", Cardtype).
+userfield(Cardkey, "title") :- field(Cardkey, "cardtype", Cardtype).
 userfield(Cardkey, "workflowState") :- field(Cardkey, "cardtype", Cardtype).
 
 % if all values of a field are cardkeys, then the field is of type "cardkeys"

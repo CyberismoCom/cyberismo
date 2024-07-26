@@ -183,7 +183,7 @@ describe('template', () => {
     });
     expect(card).to.not.equal(undefined);
     if (card) {
-      expect(card.metadata?.summary).to.equal('Untitled');
+      expect(card.metadata?.title).to.equal('Untitled');
       expect(card.metadata?.cardtype).to.equal('decision-cardtype');
       expect(card.metadata?.workflowState).to.equal('Draft');
       const templatePath = Project.templatePathFromCardPath(card);
@@ -203,7 +203,7 @@ describe('template', () => {
     );
     expect(additionalCardDetails).to.not.equal(undefined);
     if (additionalCardDetails) {
-      expect(additionalCardDetails.metadata?.summary).to.equal('Untitled');
+      expect(additionalCardDetails.metadata?.title).to.equal('Untitled');
       expect(additionalCardDetails.metadata?.cardtype).to.equal(
         'decision-cardtype',
       );

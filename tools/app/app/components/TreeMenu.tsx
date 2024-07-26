@@ -54,7 +54,7 @@ const renderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => (
       />
     )}
     <Typography level="title-sm" noWrap alignSelf="center">
-      {node.data.metadata?.summary ?? node.data.key}
+      {node.data.metadata?.title ?? node.data.key}
     </Typography>
   </Box>
 );

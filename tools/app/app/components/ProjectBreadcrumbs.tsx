@@ -41,7 +41,7 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
           style={{ textDecoration: 'none', color: 'grey', fontSize: 14 }}
         >
           {index == 0 && <HomeIcon sx={{ mr: 0.7 }} fontSize="inherit" />}
-          {node.metadata?.summary ?? node.key}
+          {node.metadata?.title ?? node.key}
         </Link>
       ))}
     </Breadcrumbs>
