@@ -45,7 +45,7 @@ const RenderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => {
         e.stopPropagation();
         node.toggle();
         if (node.data.key) {
-          router.push(`/cards/${node.data.key}`);
+          router.safePush(`/cards/${node.data.key}`);
         }
       }}
       alignContent="center"

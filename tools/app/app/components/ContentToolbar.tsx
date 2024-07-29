@@ -81,7 +81,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           color="neutral"
           style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.back()}
+          onClick={() => router.safeBack()}
         >
           {t('cancel')}
         </Button>

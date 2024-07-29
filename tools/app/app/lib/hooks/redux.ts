@@ -22,16 +22,25 @@ export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<RootState>();
 export const useAppStore = useStore.withTypes<AppStore>();
 
+// make args with boolean at the end
+type AppRouter = ReturnType<typeof useRouter> & {
+  safePush: ReturnType<typeof useRouter>['push'];
+  safeReplace: ReturnType<typeof useRouter>['replace'];
+  safeRefresh: ReturnType<typeof useRouter>['refresh'];
+  safeBack: ReturnType<typeof useRouter>['back'];
+  safeForward: ReturnType<typeof useRouter>['forward'];
+};
+
 /**
  * A hook that returns a router object with additional functionality
  * that prevents navigation when there is edited content on the page
  */
-export const useAppRouter = (): ReturnType<typeof useRouter> => {
+export const useAppRouter = (): AppRouter => {
   const router = useRouter();
   const isEdited = useAppSelector((state) => state.page.isEdited);
-    const {t} = useTranslation();
+  const { t } = useTranslation();
 
-  const dialogMsg =  t('navigationDialogMsg');
+  const dialogMsg = t('navigationDialogMsg');
 
   useEffect(() => {
     if (isEdited) {
@@ -47,12 +56,22 @@ export const useAppRouter = (): ReturnType<typeof useRouter> => {
   }, [isEdited]);
 
   return {
-    push: isEdited ? createFunctionGuard(router.push, dialogMsg) : router.push,
-    replace: isEdited ? createFunctionGuard(router.replace, dialogMsg) : router.replace,
-    refresh: isEdited ? createFunctionGuard(router.refresh, dialogMsg) : router.refresh,
-    back: isEdited ? createFunctionGuard(router.back, dialogMsg) : router.back,
-    forward: isEdited ? createFunctionGuard(router.forward, dialogMsg) : router.forward,
-    prefetch: router.prefetch,
+    ...router,
+    safePush: isEdited
+      ? createFunctionGuard(router.push, dialogMsg)
+      : router.push,
+    safeReplace: isEdited
+      ? createFunctionGuard(router.replace, dialogMsg)
+      : router.replace,
+    safeRefresh: isEdited
+      ? createFunctionGuard(router.refresh, dialogMsg)
+      : router.refresh,
+    safeBack: isEdited
+      ? createFunctionGuard(router.back, dialogMsg)
+      : router.back,
+    safeForward: isEdited
+      ? createFunctionGuard(router.forward, dialogMsg)
+      : router.forward,
   };
 };
 
