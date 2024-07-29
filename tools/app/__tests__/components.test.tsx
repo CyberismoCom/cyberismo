@@ -29,7 +29,7 @@ describe('TreeMenu', () => {
   it('renders with test data', () => {
     render(
       <TreeMenu
-        cards={testProject.cards}
+        project={testProject}
         title={testProject.name}
         selectedCardKey={null}
       />,
@@ -44,7 +44,7 @@ describe('TreeMenu', () => {
   it('parameter card key is visible and selected in UI', () => {
     render(
       <TreeMenu
-        cards={testProject.cards}
+        project={testProject}
         title={testProject.name}
         selectedCardKey={'USDL-46'}
       />,
