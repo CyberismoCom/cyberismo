@@ -16,9 +16,8 @@ import ContentToolbar from '@/app/components/ContentToolbar';
 import { cardViewed } from '@/app/lib/actions';
 import { useCard } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
-import { useAppDispatch, useListCard } from '@/app/lib/hooks';
+import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { Box, Stack } from '@mui/joy';
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export const dynamic = 'force-dynamic';
@@ -30,7 +29,7 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const dispatch = useAppDispatch();
 
-  const router = useRouter();
+  const router = useAppRouter();
 
   useEffect(() => {
     if (listCard) {

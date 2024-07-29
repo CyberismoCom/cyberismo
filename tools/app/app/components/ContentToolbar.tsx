@@ -19,7 +19,7 @@ import { CardMode, WorkflowTransition } from '../lib/definitions';
 import StatusSelector from './StateSelector';
 import CardContextMenu from './CardContextMenu';
 import { findWorkflowForCard } from '../lib/utils';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { useCard, useProject } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
@@ -36,7 +36,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   mode,
   onUpdate,
 }) => {
-  const router = useRouter();
+  const router = useAppRouter();
   const { t } = useTranslation();
 
   const { project } = useProject();
@@ -81,7 +81,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           color="neutral"
           style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.back()}
+          onClick={() => router.safeBack()}
         >
           {t('cancel')}
         </Button>

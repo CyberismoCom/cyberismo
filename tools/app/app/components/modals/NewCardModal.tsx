@@ -29,7 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { Grid } from '@mui/material';
 import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 
 interface NewCardModalProps {
@@ -105,7 +105,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     null,
   );
 
-  const router = useRouter();
+  const router = useAppRouter();
 
   const { templates } = useTemplates();
 

@@ -29,7 +29,7 @@ import { useAttachments } from '@/app/lib/api/attachments';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { ApiCallError } from '@/app/lib/swr';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '@/app/lib/hooks';
 
 interface AddAttachmentModalProps {
   open: boolean;
@@ -50,7 +50,7 @@ export function AddAttachmentModal({
 
   const dispatch = useAppDispatch();
 
-  const router = useRouter();
+  const router = useAppRouter();
 
   const addFiles = (newFiles: FileList) => {
     // find files that are not already in the list
