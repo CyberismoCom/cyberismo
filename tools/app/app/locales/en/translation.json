@@ -75,5 +75,6 @@
   "none": "None",
   "attachments": "Attachments",
   "addAttachment": "Add Attachment",
-  "add": "Add"
+  "add": "Add",
+  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?"
 }

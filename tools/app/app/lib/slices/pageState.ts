@@ -10,17 +10,26 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { combineReducers } from '@reduxjs/toolkit';
-import recentlyViewed from './recentlyViewed';
-import notifications from './notifications';
-import swr from './swr';
-import page from './pageState';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+// stores whether there is edited content on the ui
+export interface PageState {
+  isEdited: boolean;
+}
 
-const rootReducer = combineReducers({
-  recentlyViewed,
-  notifications,
-  swr,
-  page,
+export const initialState: PageState = {
+  isEdited: false,
+};
+
+export const pageSlice = createSlice({
+  name: 'page',
+  initialState,
+  reducers: {
+    isEdited: (state, action: PayloadAction<boolean>) => {
+      state.isEdited = action.payload;
+    },
+  },
 });
 
-export default rootReducer;
+export const { isEdited } = pageSlice.actions;
+
+export default pageSlice.reducer;
