@@ -46,11 +46,13 @@ import {
   removeNotification,
 } from '../lib/slices/notifications';
 import { useParams } from 'next/navigation';
+import { findParentCard } from '../lib/utils';
 
 function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const params = useParams<{ key?: string }>();
-  const { project, error, isLoading } = useProject();
+  const { project, error, isLoading, updateCard } = useProject();
+  const router = useAppRouter();
 
   const notifications = useAppSelector(
     (state) => state.notifications.notifications,
@@ -82,8 +84,20 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       <Box width="274px" flexShrink={0}>
         <TreeMenu
           title={project.name}
-          cards={project.cards}
+          project={project}
           selectedCardKey={params.key ?? null}
+          onMove={async (cardKey: string, newParent: string, index: number) => {
+            const parent = findParentCard(project.cards, cardKey);
+            await updateCard(cardKey, {
+              parent: newParent === parent?.key ? undefined : newParent,
+              index,
+            });
+          }}
+          onCardSelect={(node) => {
+            if (node.data.key) {
+              router.safePush(`/cards/${node.data.key}`);
+            }
+          }}
         />
       </Box>
       <Box padding={2} flexGrow={1} overflow="hidden">
