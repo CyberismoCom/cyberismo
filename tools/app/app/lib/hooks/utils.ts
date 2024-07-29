@@ -27,18 +27,18 @@ export function handleUnload(event: BeforeUnloadEvent) {
   event.returnValue = true; // for legacy browsers
 }
 /**
- * Register a beforeunload event listener
- * @param active - whether the listener should be active
+ * This function creates a method that looks like the orignal method, but it will show a confirmation dialog before executing the original method.
+ * @param fn - the function to wrap
+ * @param msg - the message to show in the confirmation dialog
+ * @returns the wrapped function
  */
-export function useBeforeUnload(active: boolean) {
-  useEffect(() => {
-    if (active) {
-      window.addEventListener('beforeunload', handleUnload);
-      return () => {
-        window.removeEventListener('beforeunload', handleUnload);
-      };
-    } else {
-      window.removeEventListener('beforeunload', handleUnload);
+export function createFunctionGuard<T extends unknown[], U>(
+  fn: (...args: T) => U,
+  msg: string,
+) {
+  return (...args: T) => {
+    if (window.confirm(msg)) {
+      return fn(...args);
     }
-  });
+  };
 }

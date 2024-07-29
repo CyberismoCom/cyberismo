@@ -13,10 +13,48 @@
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch, AppStore } from '../store';
 import { setIsUpdating } from '../slices/swr';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { createFunctionGuard } from './utils';
+import { useTranslation } from 'react-i18next';
 
 export const useAppDispatch = useDispatch.withTypes<AppDispatch>();
 export const useAppSelector = useSelector.withTypes<RootState>();
 export const useAppStore = useStore.withTypes<AppStore>();
+
+/**
+ * A hook that returns a router object with additional functionality
+ * that prevents navigation when there is edited content on the page
+ */
+export const useAppRouter = (): ReturnType<typeof useRouter> => {
+  const router = useRouter();
+  const isEdited = useAppSelector((state) => state.page.isEdited);
+    const {t} = useTranslation();
+
+  const dialogMsg =  t('navigationDialogMsg');
+
+  useEffect(() => {
+    if (isEdited) {
+      const handleUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = ''; // for legacy browsers
+      };
+      window.addEventListener('beforeunload', handleUnload);
+      return () => {
+        window.removeEventListener('beforeunload', handleUnload);
+      };
+    }
+  }, [isEdited]);
+
+  return {
+    push: isEdited ? createFunctionGuard(router.push, dialogMsg) : router.push,
+    replace: isEdited ? createFunctionGuard(router.replace, dialogMsg) : router.replace,
+    refresh: isEdited ? createFunctionGuard(router.refresh, dialogMsg) : router.refresh,
+    back: isEdited ? createFunctionGuard(router.back, dialogMsg) : router.back,
+    forward: isEdited ? createFunctionGuard(router.forward, dialogMsg) : router.forward,
+    prefetch: router.prefetch,
+  };
+};
 
 /**
  * A hook that calls isUpdating function automatically

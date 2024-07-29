@@ -27,7 +27,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Warning } from '@mui/icons-material';
 import { useCard } from '../../lib/api';
 import { useAppDispatch, useChildAmount, useParentCard } from '@/app/lib/hooks';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 
 export interface DeleteModalProps {
@@ -47,7 +47,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
 
   const parent = useParentCard(cardKey);
 
-  const router = useRouter();
+  const router = useAppRouter();
 
   const warning = useMemo(
     () =>

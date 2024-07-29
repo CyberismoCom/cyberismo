@@ -12,13 +12,13 @@ global.ResizeObserver = class {
   unobserve() {}
   disconnect() {}
 };
-// Mock useRouter:
-jest.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      prefetch: () => null,
-    };
-  },
+
+// mock useAppRouter
+
+jest.mock('../app/lib/hooks', () => ({
+  useAppRouter: jest.fn(() => ({
+    push: jest.fn(),
+  })),
 }));
 
 jest.mock('react-i18next', () => ({
@@ -114,6 +114,7 @@ const testProject: Project = {
                 cardtype: 'controlledDocument',
                 title: 'Untitled',
                 workflowState: 'Draft',
+                rank: '0|a',
               },
             },
             {
@@ -124,6 +125,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Demand phase',
                 workflowState: 'Created',
+                rank: '0|b',
               },
             },
             {
@@ -138,6 +140,7 @@ const testProject: Project = {
                     cardtype: 'controlledDocument',
                     title: 'Threat model',
                     workflowState: 'Draft',
+                    rank: '0|a',
                   },
                 },
               ],
@@ -145,6 +148,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Design phase',
                 workflowState: 'Created',
+                rank: '0|c',
               },
             },
             {
@@ -155,6 +159,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Implementation phase',
                 workflowState: 'Created',
+                rank: '0|d',
               },
             },
             {
@@ -171,6 +176,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Release phase',
                 workflowState: 'Created',
+                rank: '0|e',
               },
             },
             {
@@ -181,6 +187,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Operations phase',
                 workflowState: 'Created',
+                rank: '0|f',
               },
             },
             {
@@ -191,6 +198,7 @@ const testProject: Project = {
                 cardtype: 'simplePage',
                 title: 'Meetings',
                 workflowState: 'Created',
+                rank: '0|g',
               },
             },
           ],
@@ -198,6 +206,7 @@ const testProject: Project = {
             cardtype: 'simplePage',
             title: 'SDL Project',
             workflowState: 'Created',
+            rank: '0|a',
           },
         },
       ],
@@ -205,6 +214,7 @@ const testProject: Project = {
         cardtype: 'decision',
         title: 'SDL Decision',
         workflowState: 'Draft',
+        rank: '0|b',
       },
     },
   ],

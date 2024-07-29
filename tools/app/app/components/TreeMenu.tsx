@@ -20,6 +20,7 @@ import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
 import { Tree, NodeRendererProps } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { updateCard } from '../lib/api';
+import { useAppRouter } from '../lib/hooks';
 
 type TreeMenuProps = {
   title: string;
@@ -34,36 +35,42 @@ function rankGetter(card: Card) {
   return card.metadata?.rank || '1|z';
 }
 
-const renderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => (
-  <Box
-    style={style}
-    ref={dragHandle}
-    onClick={() => {
-      node.toggle();
-    }}
-    alignContent="center"
-    display="flex"
-    bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
-  >
-    {node.data.children && node.data.children.length > 0 && (
-      <ExpandMoreIcon
-        sx={{
-          // direction is down if open, right if closed
-          transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-        }}
-      />
-    )}
-    <Typography level="title-sm" noWrap alignSelf="center">
-      {node.data.metadata?.title ?? node.data.key}
-    </Typography>
-  </Box>
-);
+const RenderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => {
+  const router = useAppRouter();
+  return (
+    <Box
+      style={style}
+      ref={dragHandle}
+      onClick={(e) => {
+        e.stopPropagation();
+        node.toggle();
+        if (node.data.key) {
+          router.push(`/cards/${node.data.key}`);
+        }
+      }}
+      alignContent="center"
+      display="flex"
+      bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
+    >
+      {node.data.children && node.data.children.length > 0 && (
+        <ExpandMoreIcon
+          sx={{
+            // direction is down if open, right if closed
+            transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+          }}
+        />
+      )}
+      <Typography level="title-sm" noWrap alignSelf="center">
+        {node.data.metadata?.title ?? node.data.key}
+      </Typography>
+    </Box>
+  );
+};
 
 export const TreeMenu: React.FC<TreeMenuProps> = ({
   cards,
   selectedCardKey,
   title,
-  onCardSelect,
 }) => {
   const { ref, width, height } = useResizeObserver();
 
@@ -87,6 +94,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       index,
     });
   };
+
   return (
     <Stack
       paddingTop={2}
@@ -105,9 +113,6 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
         <Tree
           data={cards}
           openByDefault={false}
-          onSelect={(nodes) =>
-            nodes.length > 0 && onCardSelect && onCardSelect(nodes[0].data.key)
-          }
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
           indent={24}
@@ -119,7 +124,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
             }
           }}
         >
-          {renderTree}
+          {RenderTree}
         </Tree>
       </Box>
     </Stack>

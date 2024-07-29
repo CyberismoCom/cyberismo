@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -37,7 +37,7 @@ import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 
 import ContentToolbar from '@/app/components/ContentToolbar';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
 import { useCard } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +47,7 @@ import {
   FormProvider,
   useForm,
 } from 'react-hook-form';
-import { useAppDispatch, useBeforeUnload } from '@/app/lib/hooks';
+import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
@@ -55,6 +55,7 @@ import { Delete, InsertDriveFile } from '@mui/icons-material';
 import { addAttachment } from '@/app/lib/codemirror';
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
+import { isEdited } from '@/app/lib/slices/pageState';
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
@@ -123,22 +124,6 @@ function AttachmentPreviewCard({
   );
 }
 
-function comparePreviewCard(
-  previewCard: FieldValues,
-  card: CardDetails,
-): boolean {
-  const { __content__, __title__, ...metadata } = previewCard;
-
-  if (__content__ !== card.content) return false;
-  if (__title__ !== card.metadata?.title) return false;
-
-  for (const key in metadata) {
-    if (metadata[key] !== card.metadata?.[key]) return false;
-  }
-
-  return true;
-}
-
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
@@ -148,12 +133,17 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const dispatch = useAppDispatch();
 
-  const router = useRouter();
+  const router = useAppRouter();
 
   const editor = useRef<ReactCodeMirrorRef>(null);
 
   const formMethods = useForm();
-  const { handleSubmit, control, watch } = formMethods;
+  const {
+    handleSubmit,
+    control,
+    watch,
+    formState: { isDirty },
+  } = formMethods;
 
   const preview = watch();
 
@@ -170,7 +160,30 @@ export default function Page({ params }: { params: { key: string } }) {
     };
   }, [preview, card]);
 
-  useBeforeUnload(!comparePreviewCard(preview, card!));
+  useEffect(() => {
+    if (!card || Object.keys(preview).length === 0) {
+      return;
+    }
+    const { __content__, __title__, ...metadata } = preview;
+
+    if (
+      __content__ === card.content &&
+      __title__ === card.metadata?.title &&
+      Object.keys(metadata).every(
+        (key) => card?.metadata?.[key] === metadata[key],
+      )
+    ) {
+      dispatch(isEdited(false));
+      return;
+    }
+    dispatch(isEdited(true));
+  }, [preview, card, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(isEdited(false));
+    };
+  }, [dispatch]);
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
@@ -190,6 +203,7 @@ export default function Page({ params }: { params: { key: string } }) {
           type: 'success',
         }),
       );
+      dispatch(isEdited(false));
       router.push(`/cards/${card!.key}`);
     } catch (error) {
       dispatch(
