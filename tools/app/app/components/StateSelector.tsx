@@ -26,8 +26,10 @@ import {
   Dropdown,
   MenuButton,
   Typography,
+  Box,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
+import { getStateColor } from '../lib/utils';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -67,9 +69,9 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         disabled={availableTransitions.length == 0}
         variant="soft"
         startDecorator={
-          <FiberManualRecordIcon
-            style={{ color: getStateColor(currentState) }}
-          />
+          <Box color={getStateColor(currentState)}>
+            <FiberManualRecordIcon />
+          </Box>
         }
       >
         <Typography fontWeight={600}>
@@ -91,18 +93,5 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     </Dropdown>
   );
 };
-
-function getStateColor(state: WorkflowState) {
-  switch (state.category) {
-    case workflowCategory.initial:
-      return colors.grey[600];
-    case workflowCategory.active:
-      return colors.yellow[600];
-    case workflowCategory.closed:
-      return colors.green[600];
-    default:
-      return 'black';
-  }
-}
 
 export default StateSelector;

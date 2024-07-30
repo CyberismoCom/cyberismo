@@ -20,8 +20,10 @@ import {
   MetadataValue,
   Project,
   Workflow,
+  WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
+import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -446,5 +448,23 @@ export async function withUpdating<T>(
     return await func();
   } finally {
     setIsUpdating(false);
+  }
+}
+
+/**
+ * Returns the color representing the category of the workflow
+ * @param state workflow state
+ * @returns joy color representing the category of the workflow
+ */
+export function getStateColor(state: WorkflowState) {
+  switch (state.category) {
+    case workflowCategory.initial:
+      return 'neutral.300';
+    case workflowCategory.active:
+      return 'warning.300';
+    case workflowCategory.closed:
+      return 'success.400';
+    default:
+      return 'black';
   }
 }

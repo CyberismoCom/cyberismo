@@ -12,21 +12,26 @@
 
 'use client';
 import React from 'react';
-import { Card } from '../lib/definitions';
+import { Card, Project, WorkflowState } from '../lib/definitions';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { findCard, findParentCard } from '../lib/utils';
+import { findCard, findParentCard, getStateColor } from '../lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
-import { Tree, NodeRendererProps } from 'react-arborist';
+import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { updateCard } from '../lib/api';
 import { useAppRouter } from '../lib/hooks';
+import { FiberManualRecord } from '@mui/icons-material';
+
+type CardNode = Card & {
+  workflowState: WorkflowState | undefined;
+};
 
 type TreeMenuProps = {
   title: string;
-  cards: Card[];
+  project: Project;
   selectedCardKey: string | null;
-  onCardSelect?: (cardKey: string) => void;
+  onCardSelect?: (node: NodeApi<CardNode>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
 };
 
@@ -35,65 +40,89 @@ function rankGetter(card: Card) {
   return card.metadata?.rank || '1|z';
 }
 
-const RenderTree = ({ node, style, dragHandle }: NodeRendererProps<Card>) => {
-  const router = useAppRouter();
-  return (
-    <Box
-      style={style}
-      ref={dragHandle}
-      onClick={(e) => {
-        e.stopPropagation();
-        node.toggle();
-        if (node.data.key) {
-          router.safePush(`/cards/${node.data.key}`);
-        }
-      }}
-      alignContent="center"
-      display="flex"
-      bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
-    >
-      {node.data.children && node.data.children.length > 0 && (
-        <ExpandMoreIcon
-          sx={{
-            // direction is down if open, right if closed
-            transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-          }}
-        />
-      )}
-      <Typography level="title-sm" noWrap alignSelf="center">
-        {node.data.metadata?.title ?? node.data.key}
-      </Typography>
-    </Box>
-  );
-};
+const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
+  function RenderNode({
+    node,
+    style,
+    dragHandle,
+  }: NodeRendererProps<CardNode>) {
+    const router = useAppRouter();
+    return (
+      <Box
+        style={style}
+        ref={dragHandle}
+        onClick={(e) => {
+          e.stopPropagation();
+          node.toggle();
+          onCardSelect?.(node);
+        }}
+        alignContent="center"
+        display="flex"
+        bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
+      >
+        {node.data.children && node.data.children.length > 0 && (
+          <ExpandMoreIcon
+            sx={{
+              // direction is down if open, right if closed
+              transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+            }}
+          />
+        )}
+        {node.data.workflowState && (
+          <Box
+            color={getStateColor(node.data.workflowState)}
+            display="flex"
+            alignItems="center"
+            alignSelf="center"
+            width={10}
+            height={10}
+            marginRight={1}
+          >
+            <FiberManualRecord fontSize="inherit" />
+          </Box>
+        )}
+        <Typography level="title-sm" noWrap alignSelf="center">
+          {node.data.metadata?.title ?? node.data.key}
+        </Typography>
+      </Box>
+    );
+  };
 
 export const TreeMenu: React.FC<TreeMenuProps> = ({
-  cards,
+  project: { cards, workflows, cardTypes },
   selectedCardKey,
   title,
+  onMove,
+  onCardSelect,
 }) => {
   const { ref, width, height } = useResizeObserver();
 
   // sort card at all levels
-  const sortCards = (cards: Card[]): Card[] => {
+  const sortCards = (
+    cards: Card[],
+  ): (Card & {
+    workflowState: WorkflowState | undefined;
+  })[] => {
     return sortItems(cards, rankGetter).map((card) => {
       if (card.children) {
         card.children = sortCards(card.children);
       }
-      return card;
+      const cardType = cardTypes.find(
+        (type) => type.name === card.metadata?.cardtype,
+      );
+      const workflow = workflows.find(
+        (workflow) => workflow.name === cardType?.workflow,
+      );
+      const workflowState = workflow?.states.find(
+        (state) => state.name === card.metadata?.workflowState,
+      );
+      return {
+        ...card,
+        workflowState,
+      };
     });
   };
-  cards = sortCards(cards);
-
-  const onMove = async (cardKey: string, newParent: string, index: number) => {
-    const card = findCard(cards, cardKey);
-    if (!card) return;
-    const parent = findParentCard(cards, cardKey);
-    await updateCard(cardKey, {
-      parent: newParent === parent?.key ? undefined : newParent,
-      index,
-    });
-  };
+  const sortedCards = sortCards(cards);
 
   return (
     <Stack
@@ -111,7 +140,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
         ref={ref}
       >
         <Tree
-          data={cards}
+          data={sortedCards}
           openByDefault={false}
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
@@ -124,7 +153,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
             }
           }}
         >
-          {RenderTree}
+          {RenderTree(onCardSelect)}
         </Tree>
       </Box>
     </Stack>
