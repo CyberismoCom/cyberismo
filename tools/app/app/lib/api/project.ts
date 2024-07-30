@@ -14,6 +14,18 @@ import { useSWRHook } from './common';
 import { apiPaths } from '../swr';
 
 import { SWRConfiguration } from 'swr';
+import { CardUpdate } from './types';
+import { updateCard } from './card';
 
-export const useProject = (options?: SWRConfiguration) =>
-  useSWRHook<'project'>(apiPaths.project(), 'project', options);
+export const useProject = (options?: SWRConfiguration) => {
+  const { callUpdate, ...rest } = useSWRHook<'project'>(
+    apiPaths.project(),
+    'project',
+    options,
+  );
+  return {
+    ...rest,
+    updateCard: async (key: string, update: CardUpdate) =>
+      await callUpdate(() => updateCard(key, update)),
+  };
+};
