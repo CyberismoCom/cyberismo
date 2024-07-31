@@ -142,7 +142,7 @@ export function addAttachment(
     editor.dispatch({
       changes: {
         from: target,
-        insert: `${isFirstChar(editor, target) || hasCharAt(editor, ' ', target - 1) ? '' : '\n'}link:${encodeURI(apiPaths.attachment(cardKey, fileName))}[${fileName}]${isLastChar(editor, target) || hasCharAt(editor, ' ', target) ? '' : '\n'}`,
+        insert: `${isFirstChar(editor, target) || hasCharAt(editor, ' ', target - 1) ? '' : '\n'}link:${encodeURI(apiPaths.attachment(cardKey, fileName))}["${fileName}",window=_blank]${isLastChar(editor, target) || hasCharAt(editor, ' ', target) ? '' : '\n'}`,
       },
     });
   }
