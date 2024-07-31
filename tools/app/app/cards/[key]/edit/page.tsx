@@ -29,6 +29,7 @@ import {
   AspectRatio,
   Grid,
   IconButton,
+  Link,
 } from '@mui/joy';
 
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -46,12 +47,13 @@ import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
-import { Delete, InsertDriveFile } from '@mui/icons-material';
+import { Delete, Download, Edit, InsertDriveFile } from '@mui/icons-material';
 import { addAttachment } from '@/app/lib/codemirror';
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
 import { isEdited } from '@/app/lib/slices/pageState';
 import LoadingGate from '@/app/components/LoadingGate';
+import { openAttachment } from '@/app/lib/api/actions';
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
@@ -67,34 +69,76 @@ function AttachmentPreviewCard({
   const { removeAttachment } = useAttachments(cardKey);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const dispatch = useAppDispatch();
+
   return (
     <Card
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       sx={{
         width: '100%',
         gap: 0,
         cursor: 'pointer',
+        overflow: 'hidden',
       }}
     >
       <CardOverflow>
-        <IconButton
-          color="danger"
-          variant="solid"
+        <Box
+          position="absolute"
+          top={isHovered ? 0 : -36}
+          right={0}
+          zIndex={1}
           sx={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            zIndex: 1,
-          }}
-          loading={isUpdating}
-          onClick={async (e) => {
-            e.stopPropagation();
-            setIsUpdating(true);
-            await removeAttachment(name);
-            setIsUpdating(false);
+            transition: 'top 0.3s',
           }}
         >
-          <Delete />
-        </IconButton>
+          <IconButton
+            color="danger"
+            variant="solid"
+            loading={isUpdating}
+            onClick={async (e) => {
+              e.stopPropagation();
+              setIsUpdating(true);
+              await removeAttachment(name);
+              setIsUpdating(false);
+            }}
+          >
+            <Delete />
+          </IconButton>
+          <IconButton
+            variant="solid"
+            color="primary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Link
+              endDecorator={<Download />}
+              href={apiPaths.attachment(cardKey, name)}
+              download
+              variant="solid"
+            />
+          </IconButton>
+          <IconButton
+            variant="solid"
+            color="primary"
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                await openAttachment(cardKey, name);
+              } catch (error) {
+                dispatch(
+                  addNotification({
+                    message: error instanceof Error ? error.message : '',
+                    type: 'error',
+                  }),
+                );
+              }
+            }}
+          >
+            <Edit />
+          </IconButton>
+        </Box>
         <AspectRatio
           ratio="1"
           maxHeight={100}
