@@ -76,5 +76,8 @@
   "attachments": "Attachments",
   "addAttachment": "Add Attachment",
   "add": "Add",
-  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?"
+  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
+  "insertToContent": "Insert to content",
+  "openInEditor": "Open in editor",
+  "saveCopy": "Save copy"
 }
