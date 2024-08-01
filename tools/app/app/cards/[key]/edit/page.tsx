@@ -30,6 +30,7 @@ import {
   Grid,
   IconButton,
   Link,
+  Tooltip,
 } from '@mui/joy';
 
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -81,6 +82,8 @@ function AttachmentPreviewCard({
 
   const dispatch = useAppDispatch();
 
+  const { t } = useTranslation();
+
   return (
     <Card
       onMouseEnter={() => setIsHovered(true)}
@@ -101,52 +104,60 @@ function AttachmentPreviewCard({
             transition: 'top 0.3s',
           }}
         >
-          <IconButton
-            color="danger"
-            variant="solid"
-            loading={isUpdating}
-            onClick={async (e) => {
-              setIsUpdating(true);
-              await removeAttachment(name);
-              setIsUpdating(false);
-            }}
-          >
-            <Delete />
-          </IconButton>
-          <IconButton variant="solid" color="primary">
-            <Link
-              endDecorator={<Download />}
-              href={apiPaths.attachment(cardKey, name)}
-              download
+          <Tooltip title={t('delete')}>
+            <IconButton
+              color="danger"
               variant="solid"
-            />
-          </IconButton>
-          <IconButton
-            variant="solid"
-            color="primary"
-            onClick={async (e) => {
-              e.stopPropagation();
-              try {
-                await openAttachment(cardKey, name);
-              } catch (error) {
-                dispatch(
-                  addNotification({
-                    message: error instanceof Error ? error.message : '',
-                    type: 'error',
-                  }),
-                );
-              }
-            }}
-          >
-            <Edit />
-          </IconButton>
-          <IconButton
-            variant="solid"
-            color="primary"
-            onClick={(e) => onInsert && onInsert()}
-          >
-            <AddLink />
-          </IconButton>
+              loading={isUpdating}
+              onClick={async (e) => {
+                setIsUpdating(true);
+                await removeAttachment(name);
+                setIsUpdating(false);
+              }}
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('saveCopy')}>
+            <IconButton variant="solid" color="primary">
+              <Link
+                endDecorator={<Download />}
+                href={apiPaths.attachment(cardKey, name)}
+                download
+                variant="solid"
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('openInEditor')}>
+            <IconButton
+              variant="solid"
+              color="primary"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  await openAttachment(cardKey, name);
+                } catch (error) {
+                  dispatch(
+                    addNotification({
+                      message: error instanceof Error ? error.message : '',
+                      type: 'error',
+                    }),
+                  );
+                }
+              }}
+            >
+              <Edit />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('insertToContent')}>
+            <IconButton
+              variant="solid"
+              color="primary"
+              onClick={(e) => onInsert && onInsert()}
+            >
+              <AddLink />
+            </IconButton>
+          </Tooltip>
         </Box>
         <AspectRatio
           ratio="1"
