@@ -47,7 +47,13 @@ import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
-import { Delete, Download, Edit, InsertDriveFile } from '@mui/icons-material';
+import {
+  AddLink,
+  Delete,
+  Download,
+  Edit,
+  InsertDriveFile,
+} from '@mui/icons-material';
 import { addAttachment } from '@/app/lib/codemirror';
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
@@ -60,10 +66,12 @@ function AttachmentPreviewCard({
   name,
   children,
   cardKey,
+  onInsert,
 }: {
   name: string;
   children?: React.ReactNode;
   cardKey: string;
+  onInsert?: () => void;
 }) {
   const { removeAttachment } = useAttachments(cardKey);
   const [isUpdating, setIsUpdating] = React.useState(false);
@@ -79,7 +87,6 @@ function AttachmentPreviewCard({
       sx={{
         width: '100%',
         gap: 0,
-        cursor: 'pointer',
         overflow: 'hidden',
       }}
     >
@@ -98,7 +105,6 @@ function AttachmentPreviewCard({
             variant="solid"
             loading={isUpdating}
             onClick={async (e) => {
-              e.stopPropagation();
               setIsUpdating(true);
               await removeAttachment(name);
               setIsUpdating(false);
@@ -106,11 +112,7 @@ function AttachmentPreviewCard({
           >
             <Delete />
           </IconButton>
-          <IconButton
-            variant="solid"
-            color="primary"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <IconButton variant="solid" color="primary">
             <Link
               endDecorator={<Download />}
               href={apiPaths.attachment(cardKey, name)}
@@ -136,6 +138,13 @@ function AttachmentPreviewCard({
             }}
           >
             <Edit />
+          </IconButton>
+          <IconButton
+            variant="solid"
+            color="primary"
+            onClick={(e) => onInsert && onInsert()}
+          >
+            <AddLink />
           </IconButton>
         </Box>
         <AspectRatio
@@ -369,19 +378,19 @@ export default function Page({ params }: { params: { key: string } }) {
                         display="flex"
                         justifyContent="center"
                         width={146}
-                        onClick={() => {
-                          if (editor.current && editor.current.view && card) {
-                            addAttachment(
-                              editor.current.view,
-                              attachment,
-                              card.key,
-                            );
-                          }
-                        }}
                       >
                         <AttachmentPreviewCard
                           name={attachment.fileName}
                           cardKey={params.key}
+                          onInsert={() => {
+                            if (editor.current && editor.current.view && card) {
+                              addAttachment(
+                                editor.current.view,
+                                attachment,
+                                card.key,
+                              );
+                            }
+                          }}
                         >
                           {attachment.mimeType?.startsWith('image') ? (
                             <Image
