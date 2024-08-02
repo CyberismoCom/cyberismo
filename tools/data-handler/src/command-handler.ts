@@ -98,13 +98,20 @@ export class Commands {
     'card',
     'cardtype',
     'fieldtype',
+    'linktype',
     'module',
     'project',
     'template',
     'workflow',
   ];
 
-  public static removableTypes = ['attachment', 'card', 'module', 'template'];
+  public static removableTypes = [
+    'attachment',
+    'card',
+    'linktype',
+    'module',
+    'template',
+  ];
 
   // Lists all allowed resource types.
   public allAllowedTypes(): string[] {
@@ -266,6 +273,10 @@ export class Commands {
         if (target === 'fieldtype') {
           const [name, datatype] = args;
           return this.createFieldType(name, datatype, this.projectPath);
+        }
+        if (target === 'linktype') {
+          const [name] = args;
+          return this.createLinkType(name, this.projectPath);
         }
         if (target === 'workflow') {
           const [name, content] = args;
@@ -562,6 +573,28 @@ export class Commands {
     }
     try {
       await this.createCmd.createFieldType(path, fieldTypeName, dataType);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
+   * Creates a new linktype.
+   * @param {string} name Name of the linktype.
+   */
+  private async createLinkType(
+    name: string,
+    path: string,
+  ): Promise<requestStatus> {
+    if (!this.validateName(name)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: invalid linktype name '${name}'`,
+      };
+    }
+    try {
+      await this.createCmd.createLinkType(path, name);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -959,6 +992,14 @@ export class Commands {
       case 'fieldtypes':
         parameters.push(path);
         functionToCall = this.showCmd.showFieldTypes;
+        break;
+      case 'linktype':
+        parameters.push(path, detail);
+        functionToCall = this.showCmd.showLinkType;
+        break;
+      case 'linktypes':
+        parameters.push(path);
+        functionToCall = this.showCmd.showLinkTypes;
         break;
       case 'module':
         parameters.push(path, detail);

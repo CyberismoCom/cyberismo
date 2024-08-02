@@ -84,6 +84,11 @@ export class Create extends EventEmitter {
       name: Project.schemaContentFile,
     },
     {
+      path: '.cards/local/linktypes',
+      content: { id: 'link-type-schema', version: 1 },
+      name: Project.schemaContentFile,
+    },
+    {
       path: '.cards/local/workflows',
       content: { id: 'workflow-schema', version: 1 },
       name: Project.schemaContentFile,
@@ -114,6 +119,18 @@ export class Create extends EventEmitter {
         item.name === fieldTypeName + '.json' || item.name === fieldTypeName,
     );
     return fieldType ? true : false;
+  }
+
+  private async linkTypeExists(
+    path: string,
+    linkTypeName: string,
+  ): Promise<boolean> {
+    const project = new Project(path);
+    const linkType = (await project.linkTypes()).find(
+      (item) =>
+        item.name === linkTypeName + '.json' || item.name === linkTypeName,
+    );
+    return linkType ? true : false;
   }
 
   // Checks if workflow is created to a project.
@@ -371,6 +388,44 @@ export class Create extends EventEmitter {
   }
 
   /**
+   * Creates a new linktype.
+   * @param {string} projectPath project path
+   * @param {string} linkTypeName name for the linktype
+   * @param {string} linkTypeContent JSON content for the linktype
+   */
+  public async createLinkType(projectPath: string, linkTypeName: string) {
+    // check if linktype already exists
+    if (await this.linkTypeExists(projectPath, linkTypeName)) {
+      throw new Error(
+        `Link type with name '${linkTypeName}' already exists in the project`,
+      );
+    }
+
+    const linkTypeContent = Create.getLinkTypeContent(linkTypeName);
+    // check if linktype JSON is valid
+    const validator = Validate.getInstance();
+    const validJson = await validator.validateJson(
+      linkTypeContent,
+      'link-type-schema',
+    );
+    if (validJson.length !== 0) {
+      throw new Error(`Invalid linktype JSON: ${validJson}`);
+    }
+
+    const destinationFolder = join(
+      projectPath,
+      '.cards',
+      'local',
+      'linktypes',
+      `${linkTypeName}.json`,
+    );
+    await writeFile(destinationFolder, JSON.stringify(linkTypeContent), {
+      encoding: 'utf-8',
+      flag: 'wx',
+    });
+  }
+
+  /**
    * Creates a new project.
    * @param {string} projectPath where to create the project.
    * @param {string} projectPrefix prefix for the project.
@@ -544,6 +599,22 @@ export class Create extends EventEmitter {
           toState: 'Deprecated',
         },
       ],
+    };
+  }
+
+  /**
+   * Default content for linktype JSON values.
+   * @param {string} linkTypeName linktype name
+   * @returns Default content for linktype JSON values.
+   */
+  public static getLinkTypeContent(linkTypeName: string) {
+    return {
+      name: linkTypeName,
+      outboundDisplayName: linkTypeName,
+      inboundDisplayName: linkTypeName,
+      sourceCardTypes: [],
+      destinationCardTypes: [],
+      enableLinkDescription: false,
     };
   }
 

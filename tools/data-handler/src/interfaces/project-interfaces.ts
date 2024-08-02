@@ -37,6 +37,7 @@ export interface moduleSettings extends projectSettings {
   cardtypes: string[];
   calculations: string[];
   fieldtypes: string[];
+  linktypes: string[];
   templates: string[];
   workflows: string[];
 }
@@ -96,6 +97,15 @@ export interface fieldtype {
   fieldDescription?: string;
   dataType: string;
   enumValues?: enumValue[];
+}
+
+export interface linktype {
+  name: string;
+  outboundDisplayName: string;
+  inboundDisplayName: string;
+  sourceCardTypes: string[];
+  destinationCardTypes: string[];
+  enableLinkDescription: boolean;
 }
 
 // Project metadata details.

@@ -213,6 +213,21 @@ create
     handleResponse(result);
   });
 
+// Create linktype
+create
+  .command('linktype')
+  .description('Create a link type')
+  .argument('<name>', `Name for link type. ${nameGuideline}`)
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
 // Create project
 create
   .command('project')
@@ -470,7 +485,7 @@ program
   .description('Shows resource types in a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardtype, cardtypes, project, template, templates, workflow, workflows',
+    'resource types: attachments, card, cards, cardtype, cardtypes, linktypes, project, template, templates, workflow, workflows',
     parseSupportedTypes,
   )
   .argument(

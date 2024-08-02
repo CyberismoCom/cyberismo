@@ -76,6 +76,18 @@ export class Remove extends EventEmitter {
     }
   }
 
+  /**
+   * Removes linktype from project.
+   * @param linktypeName Linktype name
+   */
+  private async removeLinktype(linkTypeName: string) {
+    const path = await Remove.project.linkTypePath(linkTypeName);
+    if (!path) {
+      throw new Error(`Linktype '${linkTypeName}' not found`);
+    }
+    await deleteFile(path);
+  }
+
   // Removes modules from project
   private async removeModule(moduleName: string) {
     const module = await Remove.project.modulePath(moduleName);
@@ -123,6 +135,8 @@ export class Remove extends EventEmitter {
         return this.removeAttachment(targetName, attachmentName);
       case 'card':
         return this.removeCard(targetName);
+      case 'linktype':
+        return this.removeLinktype(targetName);
       case 'module':
         return this.removeModule(targetName);
       case 'template':
