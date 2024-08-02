@@ -25,6 +25,7 @@ import { Calculate } from './calculate.js';
 import {
   cardtype,
   fieldtype,
+  link,
   projectFile,
   templateMetadata,
   workflowCategory,
@@ -423,6 +424,59 @@ export class Create extends EventEmitter {
       encoding: 'utf-8',
       flag: 'wx',
     });
+  }
+
+  /**
+   * Creates a link between two cards.
+   * @param projectPath The path to the project containing the card
+   * @param cardKey The card to update
+   * @param destinationCardKey The card to link to
+   * @param linkType The type of link to add
+   * @param linkDescription Optional description of the link
+   */
+  public async createLink(
+    projectPath: string,
+    cardKey: string,
+    destinationCardKey: string,
+    linkType: string,
+    linkDescription?: string,
+  ) {
+    const project = new Project(projectPath);
+
+    // Determine the card path
+
+    const card = await project.findSpecificCard(cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+
+    const destinationCardPath = await project.pathToCard(destinationCardKey);
+    if (!destinationCardPath) {
+      throw new Error(
+        `Card '${destinationCardKey}' does not exist in the project`,
+      );
+    }
+
+    // if contains the same link, do not add it again
+    const existingLink = card.metadata?.links?.find(
+      (l) => l.linkType === linkType && l.cardKey === destinationCardKey,
+    );
+    if (existingLink) {
+      throw new Error(
+        `Link from card '${cardKey}' to card '${destinationCardKey}' already exists`,
+      );
+    }
+
+    const links: link[] = card.metadata?.links || [];
+    links.push({
+      linkType,
+      cardKey: destinationCardKey,
+      linkDescription,
+    });
+
+    await project.updateCardMetadata(cardKey, 'links', links);
   }
 
   /**

@@ -87,7 +87,15 @@ export interface cardMetadata {
   rank: string;
   lastTransitioned?: string;
   lastUpdated?: string;
+  links?: link[];
   [key: string]: metadataContent;
+}
+
+// Link content.
+export interface link {
+  linkType: string;
+  cardKey: string;
+  linkDescription?: string;
 }
 
 // FieldType content.
@@ -216,6 +224,7 @@ export type metadataContent =
   | boolean
   | string
   | string[]
+  | link[]
   | null
   | undefined;
 

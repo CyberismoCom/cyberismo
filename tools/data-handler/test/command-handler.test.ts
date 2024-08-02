@@ -903,6 +903,32 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+  // link
+  it('create link (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('try create link - link already exists', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+  it('try create link - card does not exist', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'card-does-not-exist', 'card-does-not-exist', 'test'],
+      options,
+    );
+
+    expect(result.statusCode).to.equal(400);
+  });
 
   // linktype
   it('linktype (success)', async () => {

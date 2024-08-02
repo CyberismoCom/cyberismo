@@ -274,6 +274,16 @@ export class Commands {
           const [name, datatype] = args;
           return this.createFieldType(name, datatype, this.projectPath);
         }
+        if (target === 'link') {
+          const [cardKey, linkType, destinationCardKey, linkDescription] = args;
+          return this.createLink(
+            cardKey,
+            destinationCardKey,
+            linkType,
+            linkDescription,
+            this.projectPath,
+          );
+        }
         if (target === 'linktype') {
           const [name] = args;
           return this.createLinkType(name, this.projectPath);
@@ -573,6 +583,35 @@ export class Commands {
     }
     try {
       await this.createCmd.createFieldType(path, fieldTypeName, dataType);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
+   * Creates a new link
+   * @param cardKey Card key of the card where the link is created
+   * @param destinationCardKey Card key of the destination card
+   * @param linkType Name of the linktype
+   * @param linkDescription Description of the link
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   */
+  private async createLink(
+    cardKey: string,
+    destinationCardKey: string,
+    linkType: string,
+    linkDescription: string,
+    path: string,
+  ): Promise<requestStatus> {
+    try {
+      await this.createCmd.createLink(
+        path,
+        cardKey,
+        linkType,
+        destinationCardKey,
+        linkDescription,
+      );
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };

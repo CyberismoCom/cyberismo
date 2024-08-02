@@ -48,9 +48,6 @@
       "items": {
         "type": "object",
         "properties": {
-          "direction": {
-            "enum": ["to", "from"]
-          },
           "cardkey": {
             "type": "string",
             "minLength": 3,
@@ -69,6 +66,10 @@
               "relates to",
               "tests"
             ]
+          },
+          "linkDescription": {
+            "type": "string",
+            "description": "A description of the link"
           }
         },
         "required": ["direction", "cardkey", "linktype"],

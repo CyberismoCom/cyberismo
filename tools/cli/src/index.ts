@@ -213,6 +213,31 @@ create
     handleResponse(result);
   });
 
+create
+  .command('link')
+  .description('Create a link')
+  .argument('<source>', 'Source cardkey of the link')
+  .argument('<destination>', 'Destination cardkey of the link')
+  .argument('<linktype>', 'Link type')
+  .argument('[description]', 'Description of the link')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (
+      source: string,
+      destination: string,
+      linktype: string,
+      description: string,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['link', source, destination, linktype, description],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
+
 // Create linktype
 create
   .command('linktype')
