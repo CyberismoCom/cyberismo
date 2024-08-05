@@ -98,13 +98,21 @@ export class Commands {
     'card',
     'cardtype',
     'fieldtype',
+    'linktype',
     'module',
     'project',
     'template',
     'workflow',
   ];
 
-  public static removableTypes = ['attachment', 'card', 'module', 'template'];
+  public static removableTypes = [
+    'attachment',
+    'card',
+    'link',
+    'linktype',
+    'module',
+    'template',
+  ];
 
   // Lists all allowed resource types.
   public allAllowedTypes(): string[] {
@@ -267,6 +275,20 @@ export class Commands {
           const [name, datatype] = args;
           return this.createFieldType(name, datatype, this.projectPath);
         }
+        if (target === 'link') {
+          const [cardKey, linkType, destinationCardKey, linkDescription] = args;
+          return this.createLink(
+            cardKey,
+            destinationCardKey,
+            linkType,
+            linkDescription,
+            this.projectPath,
+          );
+        }
+        if (target === 'linktype') {
+          const [name] = args;
+          return this.createLinkType(name, this.projectPath);
+        }
         if (target === 'workflow') {
           const [name, content] = args;
           return this.createWorkflow(name, content, this.projectPath);
@@ -330,8 +352,8 @@ export class Commands {
         }
       }
       if (command === Cmd.remove) {
-        const [type, target, detail] = args;
-        return this.remove(type, target, detail, this.projectPath);
+        const [type, target, ...rest] = args;
+        return this.remove(type, target, rest, this.projectPath);
       }
       if (command === Cmd.rename) {
         const [to] = args;
@@ -562,6 +584,57 @@ export class Commands {
     }
     try {
       await this.createCmd.createFieldType(path, fieldTypeName, dataType);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
+   * Creates a new link
+   * @param cardKey Card key of the card where the link is created
+   * @param destinationCardKey Card key of the destination card
+   * @param linkType Name of the linktype
+   * @param linkDescription Description of the link
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   */
+  private async createLink(
+    cardKey: string,
+    destinationCardKey: string,
+    linkType: string,
+    linkDescription: string,
+    path: string,
+  ): Promise<requestStatus> {
+    try {
+      await this.createCmd.createLink(
+        path,
+        cardKey,
+        linkType,
+        destinationCardKey,
+        linkDescription,
+      );
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
+   * Creates a new linktype.
+   * @param {string} name Name of the linktype.
+   */
+  private async createLinkType(
+    name: string,
+    path: string,
+  ): Promise<requestStatus> {
+    if (!this.validateName(name)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: invalid linktype name '${name}'`,
+      };
+    }
+    try {
+      await this.createCmd.createLinkType(path, name);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -842,7 +915,7 @@ export class Commands {
   private async remove(
     type: string,
     targetName: string,
-    detail: string,
+    args: string[],
     path: string,
   ): Promise<requestStatus> {
     if (!Commands.removableTypes.includes(type)) {
@@ -852,14 +925,26 @@ export class Commands {
       };
     }
 
-    if (type === 'attachment' && detail === '') {
+    if (type === 'attachment' && args.length !== 1 && !args[0]) {
       return {
         statusCode: 400,
-        message: `Input validation error: must define 'detail' when removing attachment from a card '${path}'`,
+        message: `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
+      };
+    }
+
+    if (
+      type === 'link' &&
+      [2, 3].includes(args.length) &&
+      !args[0] &&
+      !args[1]
+    ) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: must pass arguments 'cardKey' and 'linkType' if requesting to remove link`,
       };
     }
     try {
-      await this.removeCmd.remove(path, type, targetName, detail);
+      await this.removeCmd.remove(path, type, targetName, ...args);
       return { statusCode: 200 };
     } catch (error) {
       return { statusCode: 400, message: errorFunction(error) };
@@ -959,6 +1044,14 @@ export class Commands {
       case 'fieldtypes':
         parameters.push(path);
         functionToCall = this.showCmd.showFieldTypes;
+        break;
+      case 'linktype':
+        parameters.push(path, detail);
+        functionToCall = this.showCmd.showLinkType;
+        break;
+      case 'linktypes':
+        parameters.push(path);
+        functionToCall = this.showCmd.showLinkTypes;
         break;
       case 'module':
         parameters.push(path, detail);

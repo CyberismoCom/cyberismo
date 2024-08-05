@@ -18,7 +18,6 @@ import { Show } from '../src/show.js';
 import { Calculate } from '../src/calculate.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from '../src/utils/log-utils.js';
-
 let commandHandler: Commands;
 
 // Create test artifacts in a temp folder.
@@ -904,6 +903,91 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+  // link
+  it('create link (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('create link with different description(success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test2'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('try create link - link already exists', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
+  it('try create link - card does not exist', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'card-does-not-exist', 'card-does-not-exist', 'test'],
+      options,
+    );
+
+    expect(result.statusCode).to.equal(400);
+  });
+
+  // linktype
+  it('linktype (success)', async () => {
+    const name = 'lt_name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('linktype invalid project', async () => {
+    const name = 'lt_name';
+    const invalidOptions = {
+      projectPath: join(testDir, 'valid/no-such-project'),
+    };
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      invalidOptions,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
+  it('linktype name already exists', async () => {
+    const name = 'lt_name_exists';
+    const result1 = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      optionsMini,
+    );
+    const result2 = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      optionsMini,
+    );
+    expect(result1.statusCode).to.equal(200);
+    expect(result2.statusCode).to.equal(400);
+  });
+
+  it('linktype with invalid name', async () => {
+    const name = 'lt_name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
 
   // project
   it('project (success)', async () => {
@@ -1623,6 +1707,43 @@ describe('remove command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+  it('remove linktype (success)', async () => {
+    const linktype = 'lt_name';
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['linktype', linktype],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('remove linktype - linktype missing', async () => {
+    const linktype = 'lt_name';
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['linktype', linktype],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
+  it('remove link (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('try remove link - link not found', async () => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['link', 'decision_5', 'decision_6', 'does-not-exist'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
   it('remove attachment (success)', async () => {
     const cardId = 'decision_5';
     const attachment = 'the-needle.heic';

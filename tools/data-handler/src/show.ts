@@ -23,6 +23,7 @@ import {
   cardtype,
   fetchCardDetails,
   fieldtype,
+  linktype,
   moduleSettings,
   project,
   template,
@@ -206,6 +207,34 @@ export class Show {
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
+  }
+
+  /**
+   * Shows all available link types.
+   * @param {string} projectPath path to a project
+   * @returns all available link types
+   */
+  public async showLinkTypes(projectPath: string): Promise<string[]> {
+    Show.project = new Project(projectPath);
+    const linktypes = (await Show.project.linkTypes())
+      .map((item) => item.name.split('.').slice(0, -1).join('.'))
+      .sort();
+    return linktypes;
+  }
+
+  /**
+   * Shows details of a link type.
+   * @param {string} projectPath path to a project
+   * @param {string} linkTypeName name of a link type
+   * @returns details of a link type.
+   */
+  public async showLinkType(
+    projectPath: string,
+    linkTypeName: string,
+  ): Promise<linktype | undefined> {
+    Show.project = new Project(projectPath);
+    const linkTypeDetails = await Show.project.linkType(linkTypeName);
+    return linkTypeDetails;
   }
 
   /**

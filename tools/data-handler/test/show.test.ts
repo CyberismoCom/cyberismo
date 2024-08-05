@@ -182,6 +182,28 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
+
+  it('showLinkTypes (success)', async () => {
+    const results = await showCmd.showLinkTypes(decisionRecordsPath);
+    expect(results).to.not.equal(undefined);
+  });
+  it('showLinkType (success)', async () => {
+    const fieldTypeName = 'test';
+    const results = await showCmd.showLinkType(
+      decisionRecordsPath,
+      fieldTypeName,
+    );
+    expect(results).to.not.equal(undefined);
+  });
+  it('try showLinkType', async () => {
+    const linkTypeName = 'test2';
+
+    const results = await showCmd.showLinkType(
+      decisionRecordsPath,
+      linkTypeName,
+    );
+    expect(results).to.equal(undefined);
+  });
   it('showModule - no module name defined', async () => {
     const moduleName = '';
     await showCmd

@@ -77,6 +77,33 @@
                             }
                           ]
                         },
+                        "linktypes": {
+                          "type": "object",
+                          "allOf": [
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                  "contentSchema": "linktype-schema.json"
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    ".schema": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": [".schema"]
+                                }
+                              }
+                            }
+                          ]
+                        },
                         "fieldtypes": {
                           "type": "object",
                           "allOf": [
@@ -287,6 +314,36 @@
                   "type": "object",
                   "properties": {
                     "cardtypes": {
+                      "type": "object",
+                      "allOf": [
+                        {
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "patternProperties": {
+                                "^[A-Za-z-_]+.json$": {
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "properties": {
+                                ".schema": {
+                                  "type": "object"
+                                }
+                              },
+                              "required": [".schema"]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "linktypes": {
                       "type": "object",
                       "allOf": [
                         {

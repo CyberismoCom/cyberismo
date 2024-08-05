@@ -37,6 +37,7 @@ export interface moduleSettings extends projectSettings {
   cardtypes: string[];
   calculations: string[];
   fieldtypes: string[];
+  linktypes: string[];
   templates: string[];
   workflows: string[];
 }
@@ -86,7 +87,15 @@ export interface cardMetadata {
   rank: string;
   lastTransitioned?: string;
   lastUpdated?: string;
+  links?: link[];
   [key: string]: metadataContent;
+}
+
+// Link content.
+export interface link {
+  linkType: string;
+  cardKey: string;
+  linkDescription?: string;
 }
 
 // FieldType content.
@@ -96,6 +105,15 @@ export interface fieldtype {
   fieldDescription?: string;
   dataType: string;
   enumValues?: enumValue[];
+}
+
+export interface linktype {
+  name: string;
+  outboundDisplayName: string;
+  inboundDisplayName: string;
+  sourceCardTypes: string[];
+  destinationCardTypes: string[];
+  enableLinkDescription: boolean;
 }
 
 // Project metadata details.
@@ -206,6 +224,7 @@ export type metadataContent =
   | boolean
   | string
   | string[]
+  | link[]
   | null
   | undefined;
 

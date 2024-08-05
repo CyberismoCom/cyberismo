@@ -48,11 +48,6 @@ function parseSupportedTypes(value: string): string {
   return parseTypes(commandHandler.allAllowedTypes(), value);
 }
 
-// Parse allowed types for remove command.
-function parseRemovableTypes(value: string): string {
-  return parseTypes(Commands.removableTypes, value);
-}
-
 // Parse allowed subcommands for calc command.
 function parseCalcSubCommands(value: string): string {
   if (value === 'run' || value === 'generate') {
@@ -208,6 +203,46 @@ create
     const result = await commandHandler.command(
       Cmd.create,
       ['fieldtype', name, datatype],
+      options,
+    );
+    handleResponse(result);
+  });
+
+create
+  .command('link')
+  .description('Create a link')
+  .argument('<source>', 'Source cardkey of the link')
+  .argument('<destination>', 'Destination cardkey of the link')
+  .argument('<linktype>', 'Link type')
+  .argument('[description]', 'Description of the link')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (
+      source: string,
+      destination: string,
+      linktype: string,
+      description: string,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['link', source, destination, linktype, description],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create linktype
+create
+  .command('linktype')
+  .description('Create a link type')
+  .argument('<name>', `Name for link type. ${nameGuideline}`)
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linktype', name],
       options,
     );
     handleResponse(result);
@@ -420,37 +455,94 @@ rank
   });
 
 // Remove command
-program
-  .command('remove')
-  .description('Removes a card, a template or an attachment')
-  .argument(
-    '<type>',
-    `Possible types: ${Commands.removableTypes.join(', ')}`,
-    parseRemovableTypes,
-  )
-  .argument(
-    '<targetName>',
-    'Resource that should be removed; template name or cardkey. If removing an attachment, define cardkey of owning card.',
-  )
-  .argument('[detail]', 'attachment name to remove')
+const remove = program.command('remove');
+
+remove
+  .command('attachment')
+  .argument('<cardKey>', 'cardKey of the owning card') // add unlimited number of details
+  .argument('<filename>', 'attachment filename')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (cardKey: string, filename: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['attachment', cardKey, filename],
+      options,
+    );
+    handleResponse(result);
+  });
+remove
+  .command('card')
+  .argument('<cardkey>', 'Cardkey of card to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (cardkey: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['card', cardkey],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('link')
+  .argument('<source>', 'Source cardkey of the link')
+  .argument('<destination>', 'Destination cardkey of the link')
+  .argument('<linktype>', 'Link type')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
-      type: string,
-      targetName: string,
-      detail: string,
+      source: string,
+      destination: string,
+      linktype: string,
       options: CardsOptions,
     ) => {
-      if (type !== '') {
-        const result = await commandHandler.command(
-          Cmd.remove,
-          [type, targetName, detail],
-          options,
-        );
-        handleResponse(result);
-      }
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['link', source, destination, linktype],
+        options,
+      );
+      handleResponse(result);
     },
   );
+
+remove
+  .command('linktype')
+  .argument('<name>', 'Name of the linktype to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['linktype', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('module')
+  .argument('<name>', 'Name of the module to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['module', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('template')
+  .argument('<name>', 'Name of the template to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['template', name],
+      options,
+    );
+    handleResponse(result);
+  });
 
 // Rename command
 program
@@ -470,7 +562,7 @@ program
   .description('Shows resource types in a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardtype, cardtypes, project, template, templates, workflow, workflows',
+    'resource types: attachments, card, cards, cardtype, cardtypes, linktypes, project, template, templates, workflow, workflows',
     parseSupportedTypes,
   )
   .argument(
