@@ -108,6 +108,7 @@ export class Commands {
   public static removableTypes = [
     'attachment',
     'card',
+    'link',
     'linktype',
     'module',
     'template',
@@ -351,8 +352,9 @@ export class Commands {
         }
       }
       if (command === Cmd.remove) {
-        const [type, target, detail] = args;
-        return this.remove(type, target, detail, this.projectPath);
+        const [type, target, ...rest] = args;
+        console.log('remove', type, target, rest);
+        return this.remove(type, target, rest, this.projectPath);
       }
       if (command === Cmd.rename) {
         const [to] = args;
@@ -914,7 +916,7 @@ export class Commands {
   private async remove(
     type: string,
     targetName: string,
-    detail: string,
+    args: string[],
     path: string,
   ): Promise<requestStatus> {
     if (!Commands.removableTypes.includes(type)) {
@@ -924,14 +926,21 @@ export class Commands {
       };
     }
 
-    if (type === 'attachment' && detail === '') {
+    if (type === 'attachment' && args.length !== 1 && !args[0]) {
       return {
         statusCode: 400,
-        message: `Input validation error: must define 'detail' when removing attachment from a card '${path}'`,
+        message: `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
+      };
+    }
+
+    if (type === 'link' && args.length !== 2 && !args[0] && !args[1]) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: must pass arguments 'cardKey' and 'linkType' if requesting to remove link`,
       };
     }
     try {
-      await this.removeCmd.remove(path, type, targetName, detail);
+      await this.removeCmd.remove(path, type, targetName, ...args);
       return { statusCode: 200 };
     } catch (error) {
       return { statusCode: 400, message: errorFunction(error) };

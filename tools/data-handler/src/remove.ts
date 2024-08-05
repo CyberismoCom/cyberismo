@@ -77,6 +77,40 @@ export class Remove extends EventEmitter {
   }
 
   /**
+   * Removes link from project.
+   * @param sourceCardKey Source card id
+   * @param destinationCardKey Destination card id
+   * @param linkType Linktype name
+   */
+  private async removeLink(
+    sourceCardKey: string,
+    destinationCardKey: string,
+    linkType: string,
+  ) {
+    const sourceCard = await Remove.project.findSpecificCard(sourceCardKey, {
+      metadata: true,
+    });
+    if (!sourceCard) {
+      throw new Error(`Card '${sourceCardKey}' not found`);
+    }
+
+    const link = sourceCard.metadata?.links?.find(
+      (l) => l.cardKey === destinationCardKey && l.linkType === linkType,
+    );
+    if (!link) {
+      throw new Error(
+        `Link from '${sourceCardKey}' to '${destinationCardKey}' with linktype '${linkType}' not found`,
+      );
+    }
+
+    const newLinks = sourceCard.metadata?.links?.filter(
+      (l) => l.cardKey !== destinationCardKey || l.linkType !== linkType,
+    );
+
+    await Remove.project.updateCardMetadata(sourceCardKey, 'links', newLinks);
+  }
+
+  /**
    * Removes linktype from project.
    * @param linktypeName Linktype name
    */
@@ -120,21 +154,22 @@ export class Remove extends EventEmitter {
    * Removes either attachment, card or template from project.
    * @param {string} projectPath Path to a project
    * @param {string} targetName Card id, or template name
-   * @param {string} attachmentName attachment name; optional
-   * @param {string} templateName template name; optional
+   * @param {string} args Additional arguments, such as attachment filename
    */
   public async remove(
     projectPath: string,
     type: string,
     targetName: string,
-    attachmentName?: string,
+    ...rest: string[]
   ) {
     Remove.project = new Project(projectPath);
     switch (type) {
       case 'attachment':
-        return this.removeAttachment(targetName, attachmentName);
+        return this.removeAttachment(targetName, rest[0]);
       case 'card':
         return this.removeCard(targetName);
+      case 'link':
+        return this.removeLink(targetName, rest[0], rest[1]);
       case 'linktype':
         return this.removeLinktype(targetName);
       case 'module':
