@@ -353,7 +353,6 @@ export class Commands {
       }
       if (command === Cmd.remove) {
         const [type, target, ...rest] = args;
-        console.log('remove', type, target, rest);
         return this.remove(type, target, rest, this.projectPath);
       }
       if (command === Cmd.rename) {
@@ -933,7 +932,12 @@ export class Commands {
       };
     }
 
-    if (type === 'link' && args.length !== 2 && !args[0] && !args[1]) {
+    if (
+      type === 'link' &&
+      [2, 3].includes(args.length) &&
+      !args[0] &&
+      !args[1]
+    ) {
       return {
         statusCode: 400,
         message: `Input validation error: must pass arguments 'cardKey' and 'linkType' if requesting to remove link`,

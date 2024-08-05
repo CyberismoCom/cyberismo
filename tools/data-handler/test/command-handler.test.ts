@@ -912,6 +912,14 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('create link with different description(success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test2'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
   it('try create link - link already exists', async () => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -920,6 +928,7 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -1713,6 +1722,24 @@ describe('remove command', () => {
       Cmd.remove,
       ['linktype', linktype],
       optionsMini,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
+  it('remove link (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['link', 'decision_5', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('try remove link - link not found', async () => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['link', 'decision_5', 'decision_6', 'does-not-exist'],
+      options,
     );
     expect(result.statusCode).to.equal(400);
   });

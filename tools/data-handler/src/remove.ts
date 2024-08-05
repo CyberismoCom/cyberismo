@@ -81,11 +81,13 @@ export class Remove extends EventEmitter {
    * @param sourceCardKey Source card id
    * @param destinationCardKey Destination card id
    * @param linkType Linktype name
+   * @param linkDescription Link description
    */
   private async removeLink(
     sourceCardKey: string,
     destinationCardKey: string,
     linkType: string,
+    linkDescription?: string,
   ) {
     const sourceCard = await Remove.project.findSpecificCard(sourceCardKey, {
       metadata: true,
@@ -95,7 +97,10 @@ export class Remove extends EventEmitter {
     }
 
     const link = sourceCard.metadata?.links?.find(
-      (l) => l.cardKey === destinationCardKey && l.linkType === linkType,
+      (l) =>
+        l.cardKey === destinationCardKey &&
+        l.linkType === linkType &&
+        l.linkDescription === linkDescription,
     );
     if (!link) {
       throw new Error(
