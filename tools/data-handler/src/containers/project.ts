@@ -24,6 +24,7 @@ import {
   cardtype,
   fetchCardDetails,
   fieldtype,
+  linktype,
   metadataContent,
   moduleSettings,
   project,
@@ -50,6 +51,7 @@ export class Project extends CardContainer {
   private localCalculations: resource[] = [];
   private localCardtypes: resource[] = [];
   private localFieldtypes: resource[] = [];
+  private localLinktypes: resource[] = [];
   private localTemplates: resource[] = [];
   private localWorkflows: resource[] = [];
 
@@ -64,6 +66,7 @@ export class Project extends CardContainer {
     this.localCalculations = this.resourcesSync('calculation', 'file');
     this.localCardtypes = this.resourcesSync('cardtype', 'file');
     this.localFieldtypes = this.resourcesSync('fieldtype', 'file');
+    this.localLinktypes = this.resourcesSync('linktype', 'file');
     this.localTemplates = this.resourcesSync('template', 'folder');
     this.localWorkflows = this.resourcesSync('workflow', 'file');
   }
@@ -182,6 +185,8 @@ export class Project extends CardContainer {
       resourceFolder = this.cardtypesFolder;
     } else if (type === 'fieldtype') {
       resourceFolder = this.fieldtypesFolder;
+    } else if (type === 'linktype') {
+      resourceFolder = this.linktypesFolder;
     } else if (type === 'template') {
       resourceFolder = this.templatesFolder;
     } else if (type === 'workflow') {
@@ -477,6 +482,57 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns specific linktype path
+   * @param {string} linkTypeName Name of the linkType
+   * @returns linktype path.
+   */
+  public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
+    if (!linkTypeName) {
+      return undefined;
+    }
+    if (!linkTypeName.endsWith('.json')) {
+      linkTypeName += '.json';
+    }
+    const found = (await this.linkTypes()).find(
+      (item) => item.name === linkTypeName && item.path,
+    );
+
+    if (!found || !found.path) {
+      return undefined;
+    }
+    return join(found.path, basename(found.name));
+  }
+
+  /**
+   * Returns specific linktype metadata.
+   * @param {string} linkTypeName Name of the linkType
+   * @returns linktype metadata.
+   */
+  public async linkType(linkTypeName: string): Promise<linktype | undefined> {
+    const path = await this.linkTypePath(linkTypeName);
+    if (!path) {
+      return undefined;
+    }
+    return readJsonFile(path);
+  }
+  /**
+   * Returns an array of all the linktypes in the project.
+   * @returns array of all linktypes in the project.
+   */
+  public async linkTypes(): Promise<resource[]> {
+    const moduleLinktypes = await this.collectResourcesFromModules('linktypes');
+    return [...this.localLinktypes, ...moduleLinktypes];
+  }
+
+  /**
+   * Returns path to 'linktypes' folder.
+   * @returns path to 'linktypes' folder.
+   */
+  public get linktypesFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'linktypes');
+  }
+
+  /**
    * Finds root of a project
    * @param {string} path Path where to start looking for the project root.
    * @returns path to a project root, or empty string.
@@ -646,6 +702,11 @@ export class Project extends CardContainer {
         ],
         fieldtypes: [
           ...(await this.collectResourcesFromModules('fieldtypes')).map(
+            (item) => item.name,
+          ),
+        ],
+        linktypes: [
+          ...(await this.collectResourcesFromModules('linktypes')).map(
             (item) => item.name,
           ),
         ],
