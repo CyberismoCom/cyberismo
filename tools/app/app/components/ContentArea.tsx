@@ -12,23 +12,160 @@
 
 'use client';
 import React, { useState } from 'react';
-import { CardAttachment, CardDetails, Project } from '../lib/definitions';
+import {
+  CardAttachment,
+  CardDetails,
+  ParsedLink,
+  Project,
+} from '../lib/definitions';
 import Processor from '@asciidoctor/core';
 import { parse } from 'node-html-parser';
-import { Box, Stack, Typography } from '@mui/joy';
+import {
+  Box,
+  Divider,
+  Stack,
+  Typography,
+  Link,
+  IconButton,
+  Select,
+  Input,
+  Button,
+  Option,
+  Autocomplete,
+  Chip,
+} from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
+import { findCard, getLinksForCard } from '../lib/utils';
+import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { default as NextLink } from 'next/link';
+import { Add, Edit, Search } from '@mui/icons-material';
+import { Controller, useForm } from 'react-hook-form';
 
 type ContentAreaProps = {
+  project: Project | null;
   card: CardDetails | null;
   error: string | null;
+  linkTypes: linktype[] | null;
   onMetadataClick?: () => void;
+  linkFormVisible?: boolean;
+  onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
 };
 
+interface LinkFormSubmitData {
+  linkType: string;
+  cardKey: string;
+  linkDescription: string;
+}
+
+interface LinkFormProps {
+  linkTypes: linktype[];
+  cards: Project['cards'];
+  onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
+}
+
+export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
+  const { control, handleSubmit, reset } = useForm<LinkFormSubmitData>({
+    defaultValues: { linkType: '', cardKey: '', linkDescription: '' },
+  });
+  const { t } = useTranslation();
+  return (
+    <form
+      onSubmit={handleSubmit(async (data) => {
+        const success = await onSubmit?.(data);
+        if (success) reset();
+      })}
+    >
+      <Stack spacing={1}>
+        <Stack direction="row" spacing={1}>
+          <Controller
+            name="linkType"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                placeholder={t('linkForm.selectLinkType')}
+                color="primary"
+                onChange={(_, value) => field.onChange(value)}
+                sx={{
+                  width: 180,
+                }}
+                required={true}
+              >
+                {linkTypes.map((linkType) => (
+                  <Option key={linkType.name} value={linkType.name}>
+                    {linkType.name}
+                  </Option>
+                ))}
+              </Select>
+            )}
+          />
+          <Controller
+            name="cardKey"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <Autocomplete
+                color="primary"
+                required={true}
+                placeholder={t('linkForm.searchCard')}
+                options={cards.map((c) => ({
+                  label: c.metadata?.title || c.key,
+                  value: c.key,
+                }))}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+                onChange={(_, value) => onChange(value?.value || '')}
+                value={
+                  value
+                    ? {
+                        label: findCard(cards, value)?.metadata?.title || value,
+                        value,
+                      }
+                    : null
+                }
+                startDecorator={<Search />}
+                sx={{
+                  flexGrow: 1,
+                }}
+              />
+            )}
+          />
+        </Stack>
+        <Controller
+          name="linkDescription"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              color="primary"
+              startDecorator={<Edit />}
+              placeholder={t('linkForm.writeDescription')}
+            />
+          )}
+        />
+        <Button
+          type="submit"
+          sx={{
+            width: '100px',
+            alignSelf: 'flex-end',
+          }}
+        >
+          {t('linkForm.button')}
+        </Button>
+      </Stack>
+    </form>
+  );
+}
+
 export const ContentArea: React.FC<ContentAreaProps> = ({
+  project,
   card,
   error,
+  linkTypes,
   onMetadataClick,
+  onLinkFormSubmit,
+  linkFormVisible,
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
@@ -40,7 +177,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         {t('cardNotFound')} ({error})
       </Box>
     );
-  if (!card) return <Box>{t('loading')}</Box>;
+  if (!card || !linkTypes) return <Box>{t('loading')}</Box>;
+
+  const links: ParsedLink[] = (card.metadata?.links || []).concat(
+    project ? getLinksForCard(project.cards, card.key) : [],
+  );
 
   const asciidocContent = card.content ?? '';
   let htmlContent = Processor()
@@ -94,6 +235,66 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             metadata={card?.metadata}
             onClick={onMetadataClick}
           />
+          <Stack direction="row" justifyContent="space-between">
+            <Typography level="title-sm">{t('linkedCards')}</Typography>
+            <IconButton onClick={onMetadataClick}>
+              <Add />
+            </IconButton>
+          </Stack>
+          {linkFormVisible && (
+            <LinkForm
+              cards={project?.cards ?? []}
+              linkTypes={linkTypes}
+              onSubmit={onLinkFormSubmit}
+            />
+          )}
+          <Stack>
+            {links.map((link, index) => {
+              const linkType = linkTypes.find(
+                (linkType) => linkType.name === link.linkType,
+              );
+              if (!linkType || !project) return null;
+
+              const otherCard = findCard(
+                project.cards,
+                link.cardKey === card.key ? link.fromCard || '' : link.cardKey,
+              );
+
+              if (!otherCard) return null;
+
+              return (
+                <Box
+                  bgcolor="neutral.softBg"
+                  borderRadius={16}
+                  marginY={0.5}
+                  paddingY={2}
+                  paddingX={3}
+                  flexDirection="row"
+                  display="flex"
+                  key={index}
+                  alignItems="center"
+                >
+                  <Typography level="body-sm" paddingRight={2}>
+                    {link.cardKey === card.key
+                      ? linkType.outboundDisplayName
+                      : linkType.inboundDisplayName}
+                  </Typography>
+                  <NextLink href={`/cards/${otherCard?.key}`}>
+                    <Link component={'div'}>{otherCard?.key}</Link>
+                  </NextLink>
+                  <Divider
+                    orientation="vertical"
+                    sx={{
+                      marginX: 1,
+                    }}
+                  />
+                  <Typography level="title-sm">
+                    {otherCard?.metadata?.title}
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Stack>
           <Box padding={4}>
             <div
               className="doc"
@@ -105,12 +306,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       {renderTableOfContents(htmlContent, visibleHeaderId)}
     </Stack>
   );
-};
-
-type Header = {
-  id: string;
-  text: string;
-  level: number;
 };
 
 function renderTableOfContents(

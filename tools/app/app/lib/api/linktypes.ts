@@ -10,12 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardUpdate } from './types';
+import { useSWRHook } from './common';
+import { apiPaths } from '../swr';
 
-export * from './fieldtypes';
-export * from './project';
-export * from './card';
-export * from './cardtype';
-export * from './templates';
-export * from './linktypes';
-export type { CardUpdate };
+import { SWRConfiguration } from 'swr';
+
+export const useLinkTypes = (options?: SWRConfiguration) =>
+  useSWRHook<'linkTypes'>(apiPaths.linkTypes(), 'linkTypes', options);

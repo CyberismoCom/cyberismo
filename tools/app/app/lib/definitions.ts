@@ -12,6 +12,7 @@
 
 import {
   cardtype,
+  link,
   workflowCategory,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
@@ -48,14 +49,26 @@ export interface CardDetails {
   attachments?: CardAttachment[];
 }
 
+export type ParsedLink = link & {
+  fromCard?: string;
+};
+
 export type CardMetadata = {
   title: string;
   workflowState: string;
   cardtype: string;
   rank: string;
+  links: link[];
 } & Record<string, MetadataValue>;
 
-export type MetadataValue = string | number | boolean | Date | string[] | null;
+export type MetadataValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | string[]
+  | link[]
+  | null;
 
 export interface CardAttachment {
   card: string;
