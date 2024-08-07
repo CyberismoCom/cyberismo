@@ -32,7 +32,7 @@ import {
   Button,
   Option,
   Autocomplete,
-  Chip,
+  ChipDelete,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
@@ -169,6 +169,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
+  const [isLinkFormVisible, setLinkFormVisible] = useState(false);
+
   const { t } = useTranslation();
 
   if (error)
@@ -235,13 +237,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             metadata={card?.metadata}
             onClick={onMetadataClick}
           />
-          <Stack direction="row" justifyContent="space-between">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Typography level="title-sm">{t('linkedCards')}</Typography>
-            <IconButton onClick={onMetadataClick}>
-              <Add />
-            </IconButton>
+            {linkFormVisible && (
+              <IconButton
+                onClick={() => setLinkFormVisible(!isLinkFormVisible)}
+              >
+                {isLinkFormVisible ? <ChipDelete /> : <Add />}
+              </IconButton>
+            )}
           </Stack>
-          {linkFormVisible && (
+          {linkFormVisible && isLinkFormVisible && (
             <LinkForm
               cards={project?.cards ?? []}
               linkTypes={linkTypes}
