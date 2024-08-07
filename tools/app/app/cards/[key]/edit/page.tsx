@@ -317,7 +317,7 @@ export default function Page({ params }: { params: { key: string } }) {
                       borderRadius={40}
                       paddingX={1}
                     >
-                      2
+                      {card?.attachments?.length || 0}
                     </Typography>
                     <Typography level="body-xs" marginLeft={2}>
                       {t('attachments')}
