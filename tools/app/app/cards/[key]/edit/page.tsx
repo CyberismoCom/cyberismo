@@ -39,14 +39,9 @@ import { asciidoc } from 'codemirror-asciidoc';
 import ContentToolbar from '@/app/components/ContentToolbar';
 import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
-import { useCard } from '@/app/lib/api';
+import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
-import {
-  Controller,
-  FieldValues,
-  FormProvider,
-  useForm,
-} from 'react-hook-form';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
@@ -127,7 +122,11 @@ function AttachmentPreviewCard({
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
+  const { project } = useProject();
+
   const { card, updateCard } = useCard(params.key);
+
+  const { linkTypes } = useLinkTypes();
 
   const searchParams = useSearchParams();
 
@@ -138,6 +137,7 @@ export default function Page({ params }: { params: { key: string } }) {
   const editor = useRef<ReactCodeMirrorRef>(null);
 
   const formMethods = useForm();
+
   const {
     handleSubmit,
     control,
@@ -370,7 +370,13 @@ export default function Page({ params }: { params: { key: string } }) {
               }}
             >
               <Box height="100%">
-                <ContentArea card={previewCard} error={null} />
+                <ContentArea
+                  card={previewCard}
+                  error={null}
+                  linkTypes={linkTypes}
+                  project={project}
+                  preview={true}
+                />
               </Box>
             </TabPanel>
           </Tabs>

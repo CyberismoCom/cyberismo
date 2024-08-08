@@ -76,5 +76,14 @@
   "attachments": "Attachments",
   "addAttachment": "Add Attachment",
   "add": "Add",
-  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?"
+  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
+  "linkedCards": "Linked Cards",
+  "linkForm": {
+    "selectLinkType": "Select Link Type",
+    "searchCard": "Search card",
+    "writeDescription": "Write a link description",
+    "button": "Add link"
+  },
+  "deleteLink": "Delete Link",
+  "deleteLinkConfirm": "Are you sure you want to delete this link?"
 }

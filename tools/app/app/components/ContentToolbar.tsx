@@ -12,7 +12,7 @@
 
 'use client';
 import React, { useCallback, useEffect } from 'react';
-import { Box, Button } from '@mui/joy';
+import { Box, Button, IconButton } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
 import { CardMode, WorkflowTransition } from '../lib/definitions';
@@ -24,17 +24,20 @@ import { useTranslation } from 'react-i18next';
 import { useCard, useProject } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
 import { addNotification } from '../lib/slices/notifications';
+import { InsertLink } from '@mui/icons-material';
 
 interface ContentToolbarProps {
   cardKey: string;
   mode: CardMode;
   onUpdate?: () => void;
+  onInsertLink?: () => void;
 }
 
 const ContentToolbar: React.FC<ContentToolbarProps> = ({
   cardKey,
   mode,
   onUpdate,
+  onInsertLink,
 }) => {
   const router = useAppRouter();
   const { t } = useTranslation();
@@ -73,6 +76,10 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
       </Box>
 
       <CardContextMenu cardKey={cardKey} />
+
+      <IconButton onClick={onInsertLink}>
+        <InsertLink />
+      </IconButton>
 
       {mode === CardMode.EDIT && (
         <Button
