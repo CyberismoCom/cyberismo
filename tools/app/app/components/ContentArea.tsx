@@ -53,7 +53,7 @@ type ContentAreaProps = {
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
   preview?: boolean;
   linksVisible?: boolean;
-  onLinkToggle: () => void;
+  onLinkToggle?: () => void;
 };
 
 interface LinkFormSubmitData {
