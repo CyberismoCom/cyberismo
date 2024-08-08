@@ -915,7 +915,7 @@ describe('create command', () => {
   it('create link with different description(success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test2'],
+      ['link', 'decision_5', 'decision_6', 'test', 'description2'],
       options,
     );
     expect(result.statusCode).to.equal(200);

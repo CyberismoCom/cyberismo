@@ -458,6 +458,11 @@ export class Create extends EventEmitter {
         `Card '${destinationCardKey}' does not exist in the project`,
       );
     }
+    // make sure the link type exists
+
+    if (!(await this.linkTypeExists(projectPath, linkType))) {
+      throw new Error(`Link type '${linkType}' does not exist in the project`);
+    }
 
     // if contains the same link, do not add it again
     const existingLink = card.metadata?.links?.find(

@@ -10,9 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './DeleteModal';
-export * from './MoveCardModal';
-export * from './NewCardModal';
-export * from './MetadataModal';
-export * from './AddAttachmentModal';
-export * from './GenericConfirmModal';
+import { useSWRHook } from './common';
+import { apiPaths } from '../swr';
+
+import { SWRConfiguration } from 'swr';
+
+export const useLinkTypes = (options?: SWRConfiguration) =>
+  useSWRHook<'linkTypes'>(apiPaths.linkTypes(), 'linkTypes', options);

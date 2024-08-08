@@ -16,14 +16,10 @@ import { callApi, apiPaths } from '../swr';
 import { SWRConfiguration, mutate } from 'swr';
 import { CardUpdate } from './types';
 import { CardDetails, Project } from '../definitions';
-import {
-  deleteCard as deleteCardHelper,
-  deepCopy,
-  moveCard,
-  editCardDetails,
-} from '../utils';
+import { deleteCard as deleteCardHelper, deepCopy } from '../utils';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
+import { createLink, removeLink } from './actions';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
@@ -49,6 +45,33 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         (await callUpdate(() =>
           updateCard(key, {
             state: { name: state },
+          }),
+        ))) ||
+      null,
+    createLink: async (
+      target: string,
+      type: string,
+      linkDescription?: string,
+    ) =>
+      (key &&
+        (await callUpdate(() =>
+          createLink(key, target, type, linkDescription).then(() => {
+            mutate(apiPaths.card(key));
+            mutate(apiPaths.project());
+          }),
+        ))) ||
+      null,
+    deleteLink: async (
+      fromCard: string,
+      toCard: string,
+      linkType: string,
+      linkDescription?: string,
+    ) =>
+      (key &&
+        (await callUpdate(() =>
+          removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
+            mutate(apiPaths.card(fromCard));
+            mutate(apiPaths.project());
           }),
         ))) ||
       null,

@@ -18,12 +18,16 @@ import {
   DataType,
   EnumDefinition,
   MetadataValue,
+  ParsedLink,
   Project,
   Workflow,
   WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import {
+  link,
+  workflowCategory,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -432,6 +436,28 @@ export function filterCards(
     }
     return false;
   });
+}
+
+/**
+ * Returns all links that are connected to a card key excluding the links that are defined in the card metadata
+ * @param cardKey: key of the card to find links for
+ * @param cards: array of cards to search for links
+ * @returns array of cards that are linked to the card and the card it is linked from
+ */
+export function getLinksForCard(cards: Card[], cardKey: string): ParsedLink[] {
+  const links: ParsedLink[] = [];
+  for (const card of cards) {
+    for (const link of card.metadata?.links || []) {
+      if (link.cardKey === cardKey) {
+        links.push({
+          ...link,
+          fromCard: card.key,
+        });
+      }
+    }
+    links.push(...getLinksForCard(card.children || [], cardKey));
+  }
+  return links;
 }
 
 /**

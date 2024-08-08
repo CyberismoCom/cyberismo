@@ -13,6 +13,7 @@
 import { Project, CardDetails, FieldTypes } from '../definitions';
 import {
   cardtype,
+  linktype,
   template,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
@@ -24,6 +25,7 @@ export type Resources = {
   fieldTypes: FieldTypes;
   cardType: cardtype;
   templates: template[];
+  linkTypes: linktype[];
 };
 
 export type ResourceName = keyof Resources;

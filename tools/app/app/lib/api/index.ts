@@ -17,4 +17,5 @@ export * from './project';
 export * from './card';
 export * from './cardtype';
 export * from './templates';
+export * from './linktypes';
 export type { CardUpdate };
