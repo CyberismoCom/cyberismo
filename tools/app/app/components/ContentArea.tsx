@@ -52,6 +52,8 @@ type ContentAreaProps = {
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
   preview?: boolean;
+  linksVisible?: boolean;
+  onLinkToggle: () => void;
 };
 
 interface LinkFormSubmitData {
@@ -169,6 +171,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   onLinkFormSubmit,
   onDeleteLink,
   preview,
+  linksVisible,
+  onLinkToggle,
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
@@ -250,16 +254,16 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             justifyContent="space-between"
             alignItems="center"
           >
-            <Typography level="title-sm">{t('linkedCards')}</Typography>
-            {!preview && (
-              <IconButton
-                onClick={() => setLinkFormVisible(!isLinkFormVisible)}
-              >
-                {isLinkFormVisible ? <ChipDelete /> : <Add />}
+            {(links.length > 0 || linksVisible) && (
+              <Typography level="title-sm">{t('linkedCards')}</Typography>
+            )}
+            {!preview && (links.length > 0 || linksVisible) && (
+              <IconButton onClick={onLinkToggle}>
+                {linksVisible ? <ChipDelete /> : <Add />}
               </IconButton>
             )}
           </Stack>
-          {!preview && isLinkFormVisible && (
+          {!preview && linksVisible && (
             <LinkForm
               cards={project?.cards ?? []}
               linkTypes={linkTypes}

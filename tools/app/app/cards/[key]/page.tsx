@@ -19,7 +19,7 @@ import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { Box, Stack } from '@mui/joy';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,8 @@ export default function Page({ params }: { params: { key: string } }) {
   const dispatch = useAppDispatch();
 
   const router = useAppRouter();
+
+  const [linksVisible, setLinksVisible] = useState(false);
 
   useEffect(() => {
     if (listCard) {
@@ -54,6 +56,7 @@ export default function Page({ params }: { params: { key: string } }) {
         cardKey={params.key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
+        onInsertLink={() => setLinksVisible(true)}
       />
       <Box flexGrow={1} minHeight={0}>
         <ContentArea
@@ -82,6 +85,8 @@ export default function Page({ params }: { params: { key: string } }) {
               return false;
             }
           }}
+          linksVisible={linksVisible}
+          onLinkToggle={() => setLinksVisible(!linksVisible)}
           onDeleteLink={async (data) => {
             try {
               await deleteLink(
