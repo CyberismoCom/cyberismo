@@ -168,7 +168,7 @@ export class Remove extends EventEmitter {
     projectPath: string,
     type: string,
     targetName: string,
-    ...rest: any[]
+    ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
     Remove.project = new Project(projectPath);
     switch (type) {
