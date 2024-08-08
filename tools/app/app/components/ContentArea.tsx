@@ -284,23 +284,30 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   key={index}
                   alignItems="center"
                 >
-                  <Typography level="body-sm" paddingRight={2}>
-                    {link.cardKey === card.key
-                      ? linkType.outboundDisplayName
-                      : linkType.inboundDisplayName}
-                  </Typography>
-                  <NextLink href={`/cards/${otherCard?.key}`}>
-                    <Link component={'div'}>{otherCard?.key}</Link>
-                  </NextLink>
-                  <Divider
-                    orientation="vertical"
-                    sx={{
-                      marginX: 1,
-                    }}
-                  />
-                  <Typography level="title-sm">
-                    {otherCard?.metadata?.title}
-                  </Typography>
+                  <Stack>
+                    <Stack direction="row" alignItems="center">
+                      <Typography level="body-sm" paddingRight={2}>
+                        {link.cardKey === card.key
+                          ? linkType.outboundDisplayName
+                          : linkType.inboundDisplayName}
+                      </Typography>
+                      <NextLink href={`/cards/${otherCard?.key}`}>
+                        <Link component={'div'}>{otherCard?.key}</Link>
+                      </NextLink>
+                      <Divider
+                        orientation="vertical"
+                        sx={{
+                          marginX: 1,
+                        }}
+                      />
+                      <Typography level="title-sm">
+                        {otherCard?.metadata?.title}
+                      </Typography>
+                    </Stack>
+                    <Typography level="body-sm">
+                      {link.linkDescription}
+                    </Typography>
+                  </Stack>
                 </Box>
               );
             })}
