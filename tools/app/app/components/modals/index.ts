@@ -15,3 +15,4 @@ export * from './MoveCardModal';
 export * from './NewCardModal';
 export * from './MetadataModal';
 export * from './AddAttachmentModal';
+export * from './GenericConfirmModal';

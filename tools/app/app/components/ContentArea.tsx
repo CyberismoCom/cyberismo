@@ -39,8 +39,9 @@ import MetadataView from './MetadataView';
 import { findCard, getLinksForCard } from '../lib/utils';
 import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
-import { Add, Edit, Search } from '@mui/icons-material';
+import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
+import { GenericConfirmModal } from './modals';
 
 type ContentAreaProps = {
   project: Project | null;
@@ -48,8 +49,9 @@ type ContentAreaProps = {
   error: string | null;
   linkTypes: linktype[] | null;
   onMetadataClick?: () => void;
-  linkFormVisible?: boolean;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
+  onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
+  preview?: boolean;
 };
 
 interface LinkFormSubmitData {
@@ -165,11 +167,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   linkTypes,
   onMetadataClick,
   onLinkFormSubmit,
-  linkFormVisible,
+  onDeleteLink,
+  preview,
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
   const [isLinkFormVisible, setLinkFormVisible] = useState(false);
+  const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
+  const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
 
   const { t } = useTranslation();
 
@@ -181,9 +186,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     );
   if (!card || !linkTypes) return <Box>{t('loading')}</Box>;
 
-  const links: ParsedLink[] = (card.metadata?.links || []).concat(
-    project ? getLinksForCard(project.cards, card.key) : [],
-  );
+  const links: ParsedLink[] = (card.metadata?.links || [])
+    .map((l) => ({
+      ...l,
+      fromCard: card.key,
+    }))
+    .concat(project ? getLinksForCard(project.cards, card.key) : []);
 
   const asciidocContent = card.content ?? '';
   let htmlContent = Processor()
@@ -243,7 +251,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             alignItems="center"
           >
             <Typography level="title-sm">{t('linkedCards')}</Typography>
-            {linkFormVisible && (
+            {!preview && (
               <IconButton
                 onClick={() => setLinkFormVisible(!isLinkFormVisible)}
               >
@@ -251,7 +259,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               </IconButton>
             )}
           </Stack>
-          {linkFormVisible && isLinkFormVisible && (
+          {!preview && isLinkFormVisible && (
             <LinkForm
               cards={project?.cards ?? []}
               linkTypes={linkTypes}
@@ -283,6 +291,16 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   display="flex"
                   key={index}
                   alignItems="center"
+                  justifyContent="space-between"
+                  sx={{
+                    '&:hover .deleteButton': {
+                      opacity: 1,
+                    },
+                    '& .deleteButton': {
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                    },
+                  }}
                 >
                   <Stack>
                     <Stack direction="row" alignItems="center">
@@ -308,6 +326,15 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                       {link.linkDescription}
                     </Typography>
                   </Stack>
+                  <IconButton
+                    className="deleteButton"
+                    onClick={() => {
+                      setDeleteLinkModalVisible(true);
+                      setDeleteLinkData(link);
+                    }}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
                 </Box>
               );
             })}
@@ -321,6 +348,24 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         </Stack>
       </Box>
       {renderTableOfContents(htmlContent, visibleHeaderId)}
+      {!preview && (
+        <GenericConfirmModal
+          open={isDeleteLinkModalVisible}
+          onClose={() => {
+            setDeleteLinkModalVisible(false);
+          }}
+          onConfirm={async () => {
+            console.log(deleteLinkData, onDeleteLink);
+            if (deleteLinkData) {
+              await onDeleteLink?.(deleteLinkData);
+            }
+            setDeleteLinkModalVisible(false);
+          }}
+          title={t('deleteLink')}
+          content={t('deleteLinkConfirm')}
+          confirmText={t('delete')}
+        />
+      )}
     </Stack>
   );
 };

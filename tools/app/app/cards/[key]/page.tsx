@@ -24,7 +24,7 @@ import { useEffect } from 'react';
 export const dynamic = 'force-dynamic';
 
 export default function Page({ params }: { params: { key: string } }) {
-  const { card, error, createLink } = useCard(params.key);
+  const { card, error, createLink, deleteLink } = useCard(params.key);
 
   const listCard = useListCard(params.key);
 
@@ -64,7 +64,6 @@ export default function Page({ params }: { params: { key: string } }) {
           }
           linkTypes={linkTypes}
           project={project}
-          linkFormVisible={true}
           onLinkFormSubmit={async (data) => {
             try {
               await createLink(
@@ -81,6 +80,23 @@ export default function Page({ params }: { params: { key: string } }) {
                 }),
               );
               return false;
+            }
+          }}
+          onDeleteLink={async (data) => {
+            try {
+              await deleteLink(
+                data.fromCard,
+                data.cardKey,
+                data.linkType,
+                data.linkDescription,
+              );
+            } catch (error) {
+              dispatch(
+                addNotification({
+                  message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  type: 'error',
+                }),
+              );
             }
           }}
         />

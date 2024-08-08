@@ -39,11 +39,19 @@ export async function removeLink(
   fromCard: string,
   toCard: string,
   linkType: string,
+  linkDescription?: string,
 ) {
   const projectPath = process.env.npm_config_project_path || '';
 
   const calc = new Calculate();
   const removeCommand = new Remove(calc);
 
-  await removeCommand.remove(projectPath, 'link', fromCard, toCard, linkType);
+  await removeCommand.remove(
+    projectPath,
+    'link',
+    fromCard,
+    toCard,
+    linkType,
+    linkDescription,
+  );
 }

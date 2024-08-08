@@ -109,7 +109,10 @@ export class Remove extends EventEmitter {
     }
 
     const newLinks = sourceCard.metadata?.links?.filter(
-      (l) => l.cardKey !== destinationCardKey || l.linkType !== linkType,
+      (l) =>
+        l.cardKey !== destinationCardKey ||
+        l.linkType !== linkType ||
+        l.linkDescription !== linkDescription,
     );
 
     await Remove.project.updateCardMetadata(sourceCardKey, 'links', newLinks);
@@ -165,7 +168,7 @@ export class Remove extends EventEmitter {
     projectPath: string,
     type: string,
     targetName: string,
-    ...rest: string[]
+    ...rest: any[]
   ) {
     Remove.project = new Project(projectPath);
     switch (type) {
@@ -174,7 +177,7 @@ export class Remove extends EventEmitter {
       case 'card':
         return this.removeCard(targetName);
       case 'link':
-        return this.removeLink(targetName, rest[0], rest[1]);
+        return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
       case 'linktype':
         return this.removeLinktype(targetName);
       case 'module':

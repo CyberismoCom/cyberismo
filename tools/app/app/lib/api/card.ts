@@ -19,7 +19,7 @@ import { CardDetails, Project } from '../definitions';
 import { deleteCard as deleteCardHelper, deepCopy } from '../utils';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
-import { createLink } from './actions';
+import { createLink, removeLink } from './actions';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
@@ -57,6 +57,20 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         (await callUpdate(() =>
           createLink(key, target, type, linkDescription).then(() => {
             mutate(apiPaths.card(key));
+            mutate(apiPaths.project());
+          }),
+        ))) ||
+      null,
+    deleteLink: async (
+      fromCard: string,
+      toCard: string,
+      linkType: string,
+      linkDescription?: string,
+    ) =>
+      (key &&
+        (await callUpdate(() =>
+          removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
+            mutate(apiPaths.card(fromCard));
             mutate(apiPaths.project());
           }),
         ))) ||

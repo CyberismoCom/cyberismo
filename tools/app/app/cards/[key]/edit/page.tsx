@@ -375,7 +375,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   error={null}
                   linkTypes={linkTypes}
                   project={project}
-                  linkFormVisible={false}
+                  preview={true}
                 />
               </Box>
             </TabPanel>

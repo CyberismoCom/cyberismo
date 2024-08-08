@@ -83,5 +83,7 @@
     "searchCard": "Search card",
     "writeDescription": "Write a link description",
     "button": "Add link"
-  }
+  },
+  "deleteLink": "Delete Link",
+  "deleteLinkConfirm": "Are you sure you want to delete this link?"
 }

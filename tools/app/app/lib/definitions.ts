@@ -50,7 +50,7 @@ export interface CardDetails {
 }
 
 export type ParsedLink = link & {
-  fromCard?: string;
+  fromCard: string;
 };
 
 export type CardMetadata = {
