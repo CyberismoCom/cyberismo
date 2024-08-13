@@ -11,13 +11,8 @@
 */
 
 'use client';
-import React, { useState } from 'react';
-import {
-  CardAttachment,
-  CardDetails,
-  ParsedLink,
-  Project,
-} from '../lib/definitions';
+import React, { ReactElement, useState } from 'react';
+import { CardDetails, ParsedLink, Project } from '../lib/definitions';
 import Processor from '@asciidoctor/core';
 import { parse } from 'node-html-parser';
 import {
@@ -42,12 +37,19 @@ import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
+import {
+  handleMacros,
+  Macro,
+  MacroName,
+  macros,
+} from '@cyberismocom/data-handler/utils/macros';
+import { macros as UImacros } from './macros';
+import parseReact from 'html-react-parser';
 
 type ContentAreaProps = {
   project: Project | null;
-  card: CardDetails | null;
-  error: string | null;
-  linkTypes: linktype[] | null;
+  card: CardDetails;
+  linkTypes: linktype[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
@@ -245,7 +247,6 @@ export function LinkForm({
 export const ContentArea: React.FC<ContentAreaProps> = ({
   project,
   card,
-  error,
   linkTypes,
   onMetadataClick,
   onLinkFormSubmit,
@@ -261,14 +262,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const { t } = useTranslation();
 
-  if (error)
-    return (
-      <Box>
-        {t('cardNotFound')} ({error})
-      </Box>
-    );
-  if (!card || !linkTypes || !project?.cards) return <Box>{t('loading')}</Box>;
-
   const links: ParsedLink[] = (card.metadata?.links || [])
     .map((l) => ({
       ...l,
@@ -276,7 +269,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }))
     .concat(project ? getLinksForCard(project.cards, card.key) : []);
 
-  const asciidocContent = card.content ?? '';
+  let asciidocContent = card.content ?? '';
+  try {
+    asciidocContent = handleMacros(asciidocContent, 'inject');
+  } catch (error) {
+    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
+  }
+
   let htmlContent = Processor()
     .convert(asciidocContent, {
       safe: 'safe',
@@ -285,6 +284,34 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       },
     })
     .toString();
+
+  const combinedMacros = Object.entries(macros).reduce<
+    (Macro<any> & { component: (props: any) => ReactElement })[]
+  >((acc, [key, value]) => {
+    acc.push({
+      ...value,
+      component: UImacros[key as MacroName] ?? (() => <>err</>),
+    });
+    return acc;
+  }, []);
+
+  const parsedContent = parseReact(htmlContent, {
+    replace: (node) => {
+      if (node.type === 'tag') {
+        const macro = combinedMacros.find((m) => m.tagName === node.name);
+
+        if (macro) {
+          return macro.component({
+            ...node.attribs,
+            key: card.key,
+          });
+        }
+      }
+    },
+    htmlparser2: {
+      lowerCaseAttributeNames: false,
+    },
+  });
 
   // On scroll, check which document headers are visible and update the table of contents scrolling state
   const handleScroll = () => {
@@ -428,10 +455,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             })}
           </Stack>
           <Box padding={4}>
-            <div
-              className="doc"
-              dangerouslySetInnerHTML={{ __html: htmlContent }}
-            />
+            <div className="doc">{parsedContent}</div>
           </Box>
         </Stack>
       </Box>

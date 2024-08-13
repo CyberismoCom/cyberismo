@@ -74,7 +74,7 @@ export interface CardAttachment {
   card: string;
   fileName: string;
   path: string;
-  mimeType: string;
+  mimeType: string | null;
 }
 
 export enum CardMode {

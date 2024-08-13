@@ -51,6 +51,7 @@ import { addAttachment } from '@/app/lib/codemirror';
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
 import { isEdited } from '@/app/lib/slices/pageState';
+import LoadingGate from '@/app/components/LoadingGate';
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
@@ -374,7 +375,7 @@ export default function Page({ params }: { params: { key: string } }) {
                           name={attachment.fileName}
                           cardKey={params.key}
                         >
-                          {attachment.mimeType.startsWith('image') ? (
+                          {attachment.mimeType?.startsWith('image') ? (
                             <Image
                               src={apiPaths.attachment(
                                 card.key,
@@ -400,13 +401,14 @@ export default function Page({ params }: { params: { key: string } }) {
               }}
             >
               <Box height="100%">
-                <ContentArea
-                  card={previewCard}
-                  error={null}
-                  linkTypes={linkTypes}
-                  project={project}
-                  preview={true}
-                />
+                <LoadingGate values={[linkTypes]}>
+                  <ContentArea
+                    card={previewCard}
+                    linkTypes={linkTypes!}
+                    project={project}
+                    preview={true}
+                  />
+                </LoadingGate>
               </Box>
             </TabPanel>
           </Tabs>

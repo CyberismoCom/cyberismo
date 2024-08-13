@@ -35,7 +35,8 @@
     "test-data-handler": "cd tools/data-handler && npm run test && cd ../..",
     "watch": "npm-watch",
     "prettier-check": "prettier --check .",
-    "prettier-fix": "prettier --write ."
+    "prettier-fix": "prettier --write .",
+    "script:schemas": "node scripts/generateSchemaImports && prettier --write tools/data-handler/src/utils/schemas.ts"
   },
   "watch": {
     "build": {
