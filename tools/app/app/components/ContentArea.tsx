@@ -281,6 +281,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       safe: 'safe',
       attributes: {
         imagesdir: `/api/cards/${card.key}/a`,
+        icons: 'font',
       },
     })
     .toString();

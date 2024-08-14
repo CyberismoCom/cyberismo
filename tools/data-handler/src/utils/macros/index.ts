@@ -14,6 +14,7 @@ import Handlebars from 'handlebars';
 import createCards from './createCards.js';
 import { validateJson } from '../validate.js';
 import { DHValidationError } from '../../exceptions/index.js';
+import { AdmonitionType } from '../../interfaces/adoc.js';
 
 type Mode = 'static' | 'inject';
 
@@ -105,10 +106,11 @@ export function validateMacros(content: string): string | null {
  * @returns The error message that is valid adoc
  */
 export function handleMacroError<T>(error: unknown, macro: Macro<T>): string {
+  let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
-    return `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
+    message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
   }
-  return `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  return createAdmonition('WARNING', 'Macro Error', message);
 }
 
 /**
@@ -121,4 +123,19 @@ export function createHtmlPlaceholder(
   return `++++\n<${macro.tagName} ${Object.keys(options)
     .map((key) => `${key}=${options[key]}`)
     .join(' ')}></${macro.tagName}>\n++++`;
+}
+
+/**
+ * Creates an adoc admonition
+ * @param type - The type of admonition
+ * @param label - The label of the admonition
+ * @param content - The content of the admonition
+ * @returns The adoc admonition as a string
+ */
+export function createAdmonition(
+  type: AdmonitionType,
+  label: string,
+  content: string,
+) {
+  return `[${type}]\n.${label}\n====\n${content}\n====\n\n`;
 }
