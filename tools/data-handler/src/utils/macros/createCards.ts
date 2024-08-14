@@ -34,8 +34,8 @@ const macro: Macro<CreateCardsOptions> = {
   },
   handleInject: (data: string) => {
     try {
-      if (!data) {
-        throw new Error('data is required');
+      if (!data || typeof data !== 'string') {
+        throw new Error('createCards macro requires a JSON object as data');
       }
       const options = validateMacroContent(macro, data);
 
