@@ -121,7 +121,7 @@ export function createHtmlPlaceholder(
   options: Record<string, string | undefined>,
 ) {
   return `++++\n<${macro.tagName} ${Object.keys(options)
-    .map((key) => `${key}=${options[key]}`)
+    .map((key) => `${key}="${options[key]}"`)
     .join(' ')}></${macro.tagName}>\n++++`;
 }
 
