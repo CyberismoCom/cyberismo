@@ -45,14 +45,14 @@ export default function CreateCards({
           await createCard(template);
           dispatch(
             addNotification({
-              message: t('macros.cardsCreated'),
+              message: t('createCard.success'),
               type: 'success',
             }),
           );
         } catch (e) {
           dispatch(
             addNotification({
-              message: e instanceof Error ? e.message : t('macros.error'),
+              message: e instanceof Error ? e.message : t('unknownError'),
               type: 'error',
             }),
           );
