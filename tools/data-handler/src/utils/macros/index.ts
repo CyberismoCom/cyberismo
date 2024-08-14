@@ -31,7 +31,7 @@ export interface Macro<T> {
   /**
    * The schema of the macro. This is used to validate the data passed to the macro
    */
-  schema: string;
+  schema?: string;
   /**
    * The function to handle the macro in static mode(when adoc is being generated)
    */
@@ -43,6 +43,9 @@ export interface Macro<T> {
 }
 
 export function validateMacroContent<T>(macro: Macro<T>, data: string): T {
+  if (!macro.schema) {
+    throw new Error(`Macro ${macro.name} does not have a schema`);
+  }
   return validateJson<T>(JSON.parse(data), macro.schema);
 }
 
