@@ -52,10 +52,16 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       target: string,
       type: string,
       linkDescription?: string,
+      direction: 'inbound' | 'outbound' = 'outbound',
     ) =>
       (key &&
         (await callUpdate(() =>
-          createLink(key, target, type, linkDescription).then(() => {
+          createLink(
+            direction === 'outbound' ? key : target,
+            direction === 'outbound' ? target : key,
+            type,
+            linkDescription,
+          ).then(() => {
             mutate(apiPaths.card(key));
             mutate(apiPaths.project());
           }),

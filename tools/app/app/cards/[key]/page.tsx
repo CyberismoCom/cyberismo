@@ -73,6 +73,7 @@ export default function Page({ params }: { params: { key: string } }) {
                 data.cardKey,
                 data.linkType,
                 data.linkDescription,
+                data.direction,
               );
               return true;
             } catch (error) {
