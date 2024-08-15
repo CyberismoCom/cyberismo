@@ -24,11 +24,11 @@ export interface CreateCardsOptions {
   [key: string]: string | undefined;
 }
 
-const macro: Macro<CreateCardsOptions> = {
+const macro: Macro = {
   name: 'createCards',
   tagName: 'create-cards',
   schema: 'create-cards-macro-schema',
-  handleStatic: (data: string) => {
+  handleStatic: () => {
     // Buttons aren't supported in static mode
     return '';
   },
@@ -37,7 +37,7 @@ const macro: Macro<CreateCardsOptions> = {
       if (!data || typeof data !== 'string') {
         throw new Error('createCards macro requires a JSON object as data');
       }
-      const options = validateMacroContent(macro, data);
+      const options = validateMacroContent<CreateCardsOptions>(macro, data);
 
       return createHtmlPlaceholder(macro, options);
     } catch (e) {

@@ -18,7 +18,7 @@ import { AdmonitionType } from '../../interfaces/adoc.js';
 
 type Mode = 'static' | 'inject';
 
-export interface Macro<T> {
+export interface Macro {
   /**
    * The name of the macro. This is the name that will be used in the content
    */
@@ -42,7 +42,7 @@ export interface Macro<T> {
   handleInject: (data: string) => string;
 }
 
-export function validateMacroContent<T>(macro: Macro<T>, data: string): T {
+export function validateMacroContent<T>(macro: Macro, data: string): T {
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
   }
@@ -108,7 +108,7 @@ export function validateMacros(content: string): string | null {
  * @param macro - The macro that caused the error
  * @returns The error message that is valid adoc
  */
-export function handleMacroError<T>(error: unknown, macro: Macro<T>): string {
+export function handleMacroError(error: unknown, macro: Macro): string {
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
@@ -120,7 +120,7 @@ export function handleMacroError<T>(error: unknown, macro: Macro<T>): string {
  *
  */
 export function createHtmlPlaceholder(
-  macro: Macro<any>,
+  macro: Macro,
   options: Record<string, string | undefined>,
 ) {
   return `++++\n<${macro.tagName} ${Object.keys(options)
