@@ -15,6 +15,7 @@ import createCards from './createCards.js';
 import { validateJson } from '../validate.js';
 import { DHValidationError } from '../../exceptions/index.js';
 import { AdmonitionType } from '../../interfaces/adoc.js';
+import { Validator } from 'jsonschema';
 
 type Mode = 'static' | 'inject';
 
@@ -42,11 +43,15 @@ export interface Macro {
   handleInject: (data: string) => string;
 }
 
-export function validateMacroContent<T>(macro: Macro, data: string): T {
+export function validateMacroContent<T>(
+  macro: Macro,
+  data: string,
+  validator?: Validator,
+): T {
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
   }
-  return validateJson<T>(JSON.parse(data), macro.schema);
+  return validateJson<T>(JSON.parse(data), macro.schema, validator);
 }
 
 export const macros = {
@@ -93,7 +98,6 @@ export function validateMacros(content: string): string | null {
   const template = handlebars.compile(content, {
     strict: true,
   });
-
   try {
     template({});
     return null;
@@ -123,9 +127,13 @@ export function createHtmlPlaceholder(
   macro: Macro,
   options: Record<string, string | undefined>,
 ) {
-  return `++++\n<${macro.tagName} ${Object.keys(options)
+  // Key value pairs are shown using the key as the attribute name and the value as the attribute value
+  // Values are wrapped in quotes to prevent issues with special characters
+  const optionString = Object.keys(options)
     .map((key) => `${key}="${options[key]}"`)
-    .join(' ')}></${macro.tagName}>\n++++`;
+    .join(' ');
+
+  return `++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''}></${macro.tagName}>\n++++`;
 }
 
 /**
