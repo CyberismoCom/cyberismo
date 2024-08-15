@@ -452,16 +452,53 @@ export class Create extends EventEmitter {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const destinationCardPath = await project.pathToCard(destinationCardKey);
-    if (!destinationCardPath) {
+    const destinationCard = await project.findSpecificCard(destinationCardKey, {
+      metadata: true,
+    });
+    if (!destinationCard) {
       throw new Error(
         `Card '${destinationCardKey}' does not exist in the project`,
       );
     }
     // make sure the link type exists
+    const linkTypeObject = await project.linkType(linkType);
 
-    if (!(await this.linkTypeExists(projectPath, linkType))) {
+    if (!linkTypeObject) {
       throw new Error(`Link type '${linkType}' does not exist in the project`);
+    }
+
+    // make sure that if linkDescription is not enabled, linkDescription is not provided
+    if (
+      !linkTypeObject.enableLinkDescription &&
+      linkDescription !== undefined
+    ) {
+      throw new Error(
+        `Link type '${linkType}' does not allow link description`,
+      );
+    }
+
+    // make sure source cardkey exists in the linktype sourceCardTypes
+    // if sourceCardTypes is empty, any card can be linked
+    if (
+      linkTypeObject.sourceCardTypes.length > 0 &&
+      !linkTypeObject.sourceCardTypes.includes(card.metadata?.cardtype || '')
+    ) {
+      throw new Error(
+        `Card type '${card.metadata?.cardtype}' cannot be linked with link type '${linkType}'`,
+      );
+    }
+
+    // make sure destination cardkey exists in the linktype destinationCardTypes
+    // if destinationCardTypes is empty, any card can be linked
+    if (
+      linkTypeObject.destinationCardTypes.length > 0 &&
+      !linkTypeObject.destinationCardTypes.includes(
+        destinationCard.metadata!.cardtype,
+      )
+    ) {
+      throw new Error(
+        `Card type '${destinationCard.metadata!.cardtype}' cannot be linked with link type '${linkType}'`,
+      );
     }
 
     // if contains the same link, do not add it again
