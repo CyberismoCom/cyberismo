@@ -287,7 +287,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     .toString();
 
   const combinedMacros = Object.entries(macros).reduce<
-    (Macro<any> & { component: (props: any) => ReactElement })[]
+    (Macro & { component: (props: any) => ReactElement })[]
   >((acc, [key, value]) => {
     acc.push({
       ...value,

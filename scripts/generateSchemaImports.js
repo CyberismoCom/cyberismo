@@ -66,18 +66,12 @@ let outputContent =
   license +
   schemas
     .map(({ path, name }) => {
-      return `import ${name} from '${path.replace(/\\/g, '/')}';`;
+      return `import ${name} from '${path.replace(/\\/g, '/')}' with {type: 'json'};`;
     })
     .join('\n');
 
 // also import parent schema file
-outputContent += `\nimport ${parentSchemaTs} from '${getImportPath(path.join(schemaDir, parentSchemaFile + '.json'))}';\n`;
-
-/*
-outputContent +=
-  '\n\nconst schemas = [' +
-  schemas.map(({ name }) => name).join(', ') +
-  '];\nexport default schemas;\n';*/
+outputContent += `\nimport ${parentSchemaTs} from '${getImportPath(path.join(schemaDir, parentSchemaFile + `.json' with {type: 'json'};`))}\n`;
 
 // create schemas array
 outputContent += '\n\nexport const schemas = [\n';

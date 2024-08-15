@@ -17,14 +17,24 @@ import { schemas } from './schemas.js';
  * Validates a JSON object against a schema
  * @param object The object to validate
  * @param schemaId The id of the schema to validate against
+ * @param validator An optional validator to use. If validator is not provided or does not contain any schemas, project schemas will be used
  * @returns The object casted to the type T if it is valid
  * @throws DHValidationError if the object is not valid
  * @throws SchemaNotFound if the schema with the given id is not found
  */
-export function validateJson<T>(object: unknown, schemaId: string): T {
-  const validator = new Validator();
+export function validateJson<T>(
+  object: unknown,
+  schemaId: string,
+  validator?: Validator,
+): T {
+  if (!validator) {
+    validator = new Validator();
+  }
 
-  const schema = schemas.find((s) => s.$id === schemaId);
+  const schema =
+    Object.keys(validator.schemas).length > 0
+      ? validator.schemas[schemaId]
+      : schemas.find((s) => s.$id === schemaId);
 
   if (!schema) {
     throw new SchemaNotFound(`Schema with id ${schemaId} not found`);
