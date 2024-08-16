@@ -201,7 +201,6 @@ export default function Page({ params }: { params: { key: string } }) {
   if (isLoadingCard || isLoadingProject || isLoadingLinkTypes) {
     return <Box>{t('loading')}</Box>;
   }
-  console.log(linkTypes);
   // If any of the data is missing, just show a message that the card was not found
   if (!card || !card.metadata || !previewCard || !project || !linkTypes) {
     return (
