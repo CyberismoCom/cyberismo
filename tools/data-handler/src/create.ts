@@ -501,7 +501,14 @@ export class Create extends EventEmitter {
     projectPath = resolve(projectPath);
     const projectFolders: string[] = ['.cards/local', 'cardroot'];
     const projectSubFolders: string[][] = [
-      ['calculations', 'cardtypes', 'fieldtypes', 'templates', 'workflows'],
+      [
+        'calculations',
+        'cardtypes',
+        'fieldtypes',
+        'linktypes',
+        'templates',
+        'workflows',
+      ],
       [],
     ];
     const parentFolderToCreate = join(projectPath);
