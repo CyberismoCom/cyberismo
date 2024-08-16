@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -41,7 +41,7 @@ import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
 import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { Controller, FormProvider, set, useForm } from 'react-hook-form';
 import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
@@ -122,11 +122,24 @@ function AttachmentPreviewCard({
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
-  const { project } = useProject();
+  const {
+    project,
+    isLoading: isLoadingProject,
+    error: errorProject,
+  } = useProject();
 
-  const { card, updateCard } = useCard(params.key);
+  const {
+    card,
+    updateCard,
+    isLoading: isLoadingCard,
+    error: errorCard,
+  } = useCard(params.key);
 
-  const { linkTypes } = useLinkTypes();
+  const {
+    linkTypes,
+    isLoading: isLoadingLinkTypes,
+    error: errorLinkTypes,
+  } = useLinkTypes();
 
   const searchParams = useSearchParams();
 
@@ -138,27 +151,26 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const formMethods = useForm();
 
-  const {
-    handleSubmit,
-    control,
-    watch,
-    formState: { isDirty },
-  } = formMethods;
+  const { handleSubmit, control, watch } = formMethods;
 
   const preview = watch();
 
-  const previewCard = useMemo(() => {
-    const { __content__, __title__, ...metadata } = preview;
-    return {
-      ...card!,
-      metadata: {
-        ...card!.metadata!,
-        title: __title__,
-        ...metadata,
-      },
-      content: __content__,
-    };
-  }, [preview, card]);
+  const { __content__, __title__, ...metadata } = preview;
+
+  // Here we assume that metadata contains valid metadata values
+  const previewCard = (
+    card
+      ? {
+          ...card,
+          metadata: {
+            ...card.metadata,
+            title: __title__ ?? card.metadata?.title,
+            ...metadata,
+          },
+          content: __content__ ?? card.content,
+        }
+      : null
+  ) as CardDetails | null;
 
   useEffect(() => {
     if (!card || Object.keys(preview).length === 0) {
@@ -184,6 +196,25 @@ export default function Page({ params }: { params: { key: string } }) {
       dispatch(isEdited(false));
     };
   }, [dispatch]);
+
+  // For now, simply show loading if any of the data is loading
+  if (isLoadingCard || isLoadingProject || isLoadingLinkTypes) {
+    return <Box>{t('loading')}</Box>;
+  }
+  console.log(linkTypes);
+  // If any of the data is missing, just show a message that the card was not found
+  if (!card || !card.metadata || !previewCard || !project || !linkTypes) {
+    return (
+      <Box>
+        {t('failedToLoad')}
+        {': '}
+        {[errorCard, errorProject, errorLinkTypes]
+          .map((error) => (error instanceof Error ? error.message : ''))
+          .filter(Boolean)
+          .join(', ')}
+      </Box>
+    );
+  }
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
@@ -258,7 +289,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <Controller
                     name="__title__"
                     control={control}
-                    defaultValue={card?.metadata?.title || ''}
+                    defaultValue={card.metadata.title}
                     render={({ field: { value, onChange } }: any) => (
                       <Textarea
                         sx={{
@@ -281,7 +312,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <Controller
                     name="__content__"
                     control={control}
-                    defaultValue={card?.content || ''}
+                    defaultValue={card.content}
                     render={({ field: { value, onChange } }: any) => (
                       <CodeMirror
                         value={value}

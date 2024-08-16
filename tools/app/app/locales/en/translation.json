@@ -85,5 +85,6 @@
     "button": "Add link"
   },
   "deleteLink": "Delete Link",
-  "deleteLinkConfirm": "Are you sure you want to delete this link?"
+  "deleteLinkConfirm": "Are you sure you want to delete this link?",
+  "failedToLoad": "Failed to load"
 }
