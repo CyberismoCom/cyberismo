@@ -161,7 +161,15 @@ export class Export {
         } else if (nameToShow === 'Cardtype') {
           nameToShow = 'Card type';
         }
-        content += `|${nameToShow}|${value}\n`;
+
+        // Escape pipe character in cell values
+        let escapedValue = 'N/A';
+
+        if (value) {
+          escapedValue = value.toString().replace(/\|/g, '\\|');
+        }
+
+        content += `|${nameToShow}|${escapedValue}\n`;
       }
       content += '|===\n';
       content += '--\n';
