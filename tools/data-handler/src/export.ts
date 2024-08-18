@@ -148,6 +148,7 @@ export class Export {
       content += '[grid=none]\n';
       content += '|===\n';
       content += '|Field |Value\n\n';
+      content += `|Key|${card.key}\n`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
         const displayName = cardtype?.customFields?.find(
