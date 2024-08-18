@@ -105,7 +105,7 @@ export class ExportSite extends Export {
       },
       ui: {
         bundle: {
-          url: 'https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable',
+          url: '/Users/sami/Cyberismo/source/cyberismo/resources/ui-bundle',
           snapshot: true,
         },
       },
