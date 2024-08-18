@@ -184,11 +184,11 @@ export class ExportSite extends Export {
         const cardTypeForCard = await ExportSite.project.cardType(
           card.metadata?.cardtype,
         );
-        tempContent = super.metaToAdoc(card, cardTypeForCard);
-        tempContent += `\n== ${card.key} `;
+        tempContent = "\n== ";
         tempContent += card.metadata?.title
           ? `${card.metadata.title}\n`
           : 'Untitled\n';
+        tempContent += super.metaToAdoc(card, cardTypeForCard);
       }
 
       if (card.content) {
