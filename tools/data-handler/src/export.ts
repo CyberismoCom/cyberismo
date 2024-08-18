@@ -140,9 +140,12 @@ export class Export {
   protected metaToAdoc(card: card, cardtype: cardtype | undefined): string {
     let content = '';
     if (card.metadata) {
-      content = `\n[caption=]`;
-      content += `\n.Details\n`;
+      content += `[.cyberismo-meta-wrapper]\n`;
+      content += '--\n';
+      content += `[.cyberismo-meta]\n`;
       content += '[cols="1,1"]\n';
+      content += '[frame=none]\n';
+      content += '[grid=none]\n';
       content += '|===\n';
       content += '|Field |Value\n\n';
 
@@ -161,6 +164,7 @@ export class Export {
         content += `|${nameToShow}|${value}\n`;
       }
       content += '|===\n';
+      content += '--\n';
     }
     return content;
   }
