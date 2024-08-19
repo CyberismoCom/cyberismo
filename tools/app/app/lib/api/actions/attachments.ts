@@ -92,29 +92,5 @@ export async function openAttachment(key: string, filename: string) {
   // get path of attachment
   const show = new Show();
 
-  const card = await show.showCardDetails(
-    projectPath || '',
-    {
-      attachments: true,
-    },
-    key,
-  );
-
-  const attachment = card.attachments?.find((a) => a.fileName === filename);
-
-  if (!attachment) {
-    throw new Error('Attachment not found');
-  }
-
-  const path = resolve(join(attachment.path, filename));
-
-  if (process.platform === 'win32') {
-    spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
-      shell: true,
-    });
-  } else if (process.platform === 'darwin') {
-    spawn('open', [path]);
-  } else {
-    spawn('xdg-open', [path]);
-  }
+  await show.openAttachment(projectPath || '', key, filename);
 }

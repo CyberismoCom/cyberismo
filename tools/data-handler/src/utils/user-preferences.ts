@@ -14,6 +14,20 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { formatJson } from './json.js';
 import { dirname } from 'path';
 
+export interface UserPreferencesObject {
+  editCommand: {
+    [platform: string]: {
+      command: string;
+      args: string[];
+    };
+  };
+  attachmentEditors: {
+    [platform: string]: {
+      mimeType: string;
+      command: string;
+    }[];
+  };
+}
 /**
  * The class checks if the preferences file exists when instantiated, and if not, creates it with a default JSON object.
  * The getPreferences() method simply reads and parses the file to return the preferences object.
@@ -21,7 +35,7 @@ import { dirname } from 'path';
 export class UserPreferences {
   // If preferences do not exist, they are initialised
   // with these defaults.
-  static defaults: object = {
+  static defaults = {
     editCommand: {
       darwin: {
         command: 'code',
@@ -35,6 +49,50 @@ export class UserPreferences {
         command: 'notepad.exe',
         args: ['{{cardContentPath}}', '{{cardJsonPath}}'],
       },
+    },
+    attachmentEditors: {
+      darwin: [
+        {
+          mimeType: 'image/png',
+          command: "open -a draw.io '{{attachmentPath}}'",
+        },
+        {
+          mimeType: 'image/svg+xml',
+          command: "open -a draw.io '{{attachmentPath}}'",
+        },
+        {
+          mimeType: 'application/pdf',
+          command: 'open -a Preview "{{attachmentPath}}"',
+        },
+      ],
+      linux: [
+        {
+          mimeType: 'text/plain',
+          command: 'vim {{attachmentPath}}',
+        },
+        {
+          mimeType: 'image/png',
+          command: 'draw.io {{attachmentPath}}',
+        },
+        {
+          mimeType: 'image/svg+xml',
+          command: 'draw.io {{attachmentPath}}',
+        },
+      ],
+      win32: [
+        {
+          mimeType: 'text/plain',
+          command: 'notepad.exe {{attachmentPath}}',
+        },
+        {
+          mimeType: 'image/png',
+          command: 'C:Program Files...draw.io {{attachmentPath}}',
+        },
+        {
+          mimeType: 'image/svg+xml',
+          command: 'C:Program Files...draw.io {{attachmentPath}}',
+        },
+      ],
     },
   };
 
@@ -57,7 +115,7 @@ export class UserPreferences {
     }
   }
 
-  public getPreferences() {
+  public getPreferences(): UserPreferencesObject {
     // Read and parse the preferences file
     try {
       return JSON.parse(readFileSync(this.prefsFilePath, 'utf8'));
