@@ -35,8 +35,6 @@ describe('log utils', () => {
   it('errorMessage (success)', () => {
     const errorReason = 'new error reason';
     const expectedErrorReason = 'old error reason';
-    const error = new Error(errorReason);
-    error; // avoid linter nag
     const retVal = errorMessage(errorReason, 'new', 'old');
     expect(retVal).to.equal(expectedErrorReason);
   });

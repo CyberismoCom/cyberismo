@@ -212,7 +212,7 @@ describe('template', () => {
         additionalCardDetails.children?.find(
           (item) => item.key === 'decision_14',
         ),
-      ).to.not.be.undefined;
+      ).to.not.equal(undefined);
       expect(additionalCardDetails.parent).to.equal('decision');
       expect(additionalCardDetails.content).to.not.equal(undefined);
     }
@@ -307,7 +307,7 @@ describe('template', () => {
         expect(cardAttachments.at(0)?.path).to.include('decision_1');
         expect(cardAttachments.at(0)?.path).to.include(sep + 'a');
       } else {
-        expect(false).to.be.true;
+        expect(false);
       }
     }
   });
@@ -321,8 +321,8 @@ describe('template', () => {
       project,
     );
 
-    expect(template.isCreated()).to.be.true;
-    expect(nonExistingTemplate.isCreated()).to.be.false;
+    expect(template.isCreated()).to.equal(true);
+    expect(nonExistingTemplate.isCreated()).to.equal(false);
   });
   it('find certain card from template', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -330,7 +330,7 @@ describe('template', () => {
     const template = new Template(path, { name: 'decision' }, project);
 
     const nonExistingCard = await template.findSpecificCard('idontexist');
-    expect(nonExistingCard).to.be.undefined;
+    expect(nonExistingCard).to.equal(undefined);
 
     const existingCard = await template.findSpecificCard('decision_1');
     expect(existingCard).to.not.equal(undefined);

@@ -257,7 +257,9 @@ export class Export {
       }
       console.log(`Using existing output file '${resultDocumentPath}'`);
     } catch (error) {
-      console.log(`Creating output file '${resultDocumentPath}'`);
+      if (error instanceof Error) {
+        console.log(`Creating output file '${resultDocumentPath}'`);
+      }
     }
 
     await this.toAdocFile(resultDocumentPath, cards);

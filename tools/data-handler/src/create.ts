@@ -285,7 +285,10 @@ export class Create extends EventEmitter {
     try {
       projectObject = new Project(projectPath);
     } catch (error) {
-      throw new Error(`invalid path '${projectPath}'`);
+      if (error instanceof Error) {
+        throw new Error(`invalid path '${projectPath}'`);
+      }
+      return [];
     }
 
     const templateObject =
@@ -552,8 +555,10 @@ export class Create extends EventEmitter {
         join(project.fieldtypesFolder, '.gitkeep'),
         this.gitKeepContent,
       );
-    } catch (e) {
-      console.error('Failed to create project');
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Failed to create project');
+      }
     }
   }
 
