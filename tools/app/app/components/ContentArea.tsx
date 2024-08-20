@@ -305,6 +305,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           return macro.component({
             ...node.attribs,
             key: card.key,
+            preview,
           });
         }
       }

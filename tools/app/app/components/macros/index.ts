@@ -14,7 +14,14 @@ import { MacroName } from '@cyberismocom/data-handler/utils/macros';
 import CreateCards from './CreateCards';
 
 export interface MacroContext {
-  key: string; // The key of the current card
+  /**
+   * The key inside of which the macro is rendered.
+   */
+  key: string;
+  /**
+   * True if the macro is rendered in preview mode.
+   */
+  preview: boolean;
 }
 
 export const macros: Record<MacroName, (props: any) => React.ReactElement> = {

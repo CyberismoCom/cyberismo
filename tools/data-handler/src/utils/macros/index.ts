@@ -80,9 +80,18 @@ export function registerMacros(instance: typeof Handlebars, mode: Mode) {
 export function handleMacros(content: string, mode: Mode) {
   const handlebars = Handlebars.create();
   registerMacros(handlebars, mode);
-  return handlebars.compile(content, {
-    strict: true,
-  })({});
+  try {
+    return handlebars.compile(content, {
+      strict: true,
+    })({});
+  } catch (err) {
+    return handleMacroError(err, {
+      name: '',
+      tagName: '',
+      handleStatic: () => '',
+      handleInject: () => '',
+    });
+  }
 }
 
 /**
@@ -116,6 +125,14 @@ export function handleMacroError(error: unknown, macro: Macro): string {
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
+  }
+  if (
+    typeof error === 'object' &&
+    error != null &&
+    'lineNumber' in error &&
+    typeof error.lineNumber === 'number'
+  ) {
+    message += ` at line ${error.lineNumber}`;
   }
   return createAdmonition('WARNING', 'Macro Error', message);
 }

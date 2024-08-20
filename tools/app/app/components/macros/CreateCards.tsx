@@ -29,6 +29,7 @@ export default function CreateCards({
   template,
   cardkey,
   key,
+  preview,
 }: CreateCardsProps) {
   const { t } = useTranslation();
   const { createCard, isUpdating } = useCard(cardkey || key);
@@ -41,6 +42,15 @@ export default function CreateCards({
       disabled={isUpdating}
       onClick={async () => {
         try {
+          if (preview) {
+            dispatch(
+              addNotification({
+                message: t('createCard.macro.preview'),
+                type: 'success',
+              }),
+            );
+            return;
+          }
           setLoading(true);
           await createCard(template);
           dispatch(

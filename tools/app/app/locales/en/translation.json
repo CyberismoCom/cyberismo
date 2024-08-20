@@ -35,7 +35,10 @@
     "success": "Card saved successfully"
   },
   "createCard": {
-    "success": "Card created successfully"
+    "success": "Card created successfully",
+    "macro": {
+      "preview": "Creating cards with this macro is not supported in the preview mode"
+    }
   },
   "deleteCard": "Delete Card",
   "delete": "Delete",
