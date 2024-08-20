@@ -188,7 +188,7 @@ export function LinkForm({
                 required={true}
                 placeholder={t('linkForm.searchCard')}
                 options={usableCards.map((c) => ({
-                  label: `${c.metadata?.title}(${c.key})`,
+                  label: `${c.metadata?.title} (${c.key})`,
                   value: c.key,
                 }))}
                 isOptionEqualToValue={(option, value) =>
