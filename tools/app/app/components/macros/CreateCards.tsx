@@ -14,7 +14,7 @@ import { useCard } from '@/app/lib/api';
 import { Button } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { MacroContext } from '.';
-import { useAppDispatch } from '@/app/lib/hooks';
+import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { useState } from 'react';
 
@@ -35,6 +35,7 @@ export default function CreateCards({
   const { createCard, isUpdating } = useCard(cardkey || key);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
+  const router = useAppRouter();
 
   return (
     <Button
@@ -52,13 +53,17 @@ export default function CreateCards({
             return;
           }
           setLoading(true);
-          await createCard(template);
+          const cards = await createCard(template);
           dispatch(
             addNotification({
               message: t('createCard.success'),
               type: 'success',
             }),
           );
+
+          if (cards && cards.length > 0) {
+            router.push(`/cards/${cards[0]}/edit`);
+          }
         } catch (e) {
           dispatch(
             addNotification({
