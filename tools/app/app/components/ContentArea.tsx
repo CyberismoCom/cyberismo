@@ -211,21 +211,21 @@ export function LinkForm({
             )}
           />
         </Stack>
-        <Controller
-          name="linkDescription"
-          control={control}
-          disabled={
-            !selectedLinkType || !selectedLinkType.enableLinkDescription
-          }
-          render={({ field }) => (
-            <Input
-              {...field}
-              color="primary"
-              startDecorator={<Edit />}
-              placeholder={t('linkForm.writeDescription')}
-            />
-          )}
-        />
+
+        {selectedLinkType && selectedLinkType.enableLinkDescription && (
+          <Controller
+            name="linkDescription"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                color="primary"
+                startDecorator={<Edit />}
+                placeholder={t('linkForm.writeDescription')}
+              />
+            )}
+          />
+        )}
         <Button
           type="submit"
           sx={{
