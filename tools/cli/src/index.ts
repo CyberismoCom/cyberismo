@@ -459,7 +459,7 @@ const remove = program.command('remove');
 
 remove
   .command('attachment')
-  .argument('<cardKey>', 'cardKey of the owning card') // add unlimited number of details
+  .argument('<cardKey>', 'cardKey of the owning card')
   .argument('<filename>', 'attachment filename')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, filename: string, options: CardsOptions) => {

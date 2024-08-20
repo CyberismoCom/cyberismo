@@ -621,7 +621,8 @@ export class Commands {
 
   /**
    * Creates a new linktype.
-   * @param {string} name Name of the linktype.
+   * @param name Name of the linktype.
+   * @param path Optional, path to the project. If omitted, project is set from current path.
    */
   private async createLinkType(
     name: string,
