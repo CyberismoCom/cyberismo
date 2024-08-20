@@ -385,7 +385,7 @@ export class Validate {
 
     if (cardType && cardType.customFields) {
       for (const field of cardType.customFields) {
-        if (!card.metadata[field.name] === undefined) {
+        if (card.metadata[field.name] === undefined) {
           validationErrors += `Card '${card.key}' is missing custom field 'name' from ${field}`;
         }
         const fieldType = await project.fieldType(field.name);
