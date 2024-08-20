@@ -939,7 +939,7 @@ export class Project extends CardContainer {
     changedKey: string,
     newValue: metadataContent,
   ) {
-    if (await this.updateMetatadataKey(cardKey, changedKey, newValue)) {
+    if (await this.updateMetadataKey(cardKey, changedKey, newValue)) {
       await this.onCardUpdate(cardKey);
     }
   }
@@ -949,7 +949,7 @@ export class Project extends CardContainer {
    * Updates lastUpdated metadata key.
    */
   private async onCardUpdate(cardKey: string) {
-    return this.updateMetatadataKey(
+    return this.updateMetadataKey(
       cardKey,
       'lastUpdated',
       new Date().toISOString(),
@@ -963,7 +963,7 @@ export class Project extends CardContainer {
    * @param newValue changed value for the key
    * @returns true if metadata key was updated, false otherwise.
    */
-  private async updateMetatadataKey(
+  private async updateMetadataKey(
     cardKey: string,
     changedKey: string,
     newValue: metadataContent,

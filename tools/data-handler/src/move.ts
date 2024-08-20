@@ -149,7 +149,7 @@ export class Move {
     }
 
     if (beforeCard.parent !== card.parent) {
-      throw new Error(`Cards must be in the same parent`);
+      throw new Error(`Cards must be from the same parent`);
     }
 
     const children = sortItems(
@@ -307,15 +307,17 @@ export class Move {
       });
 
       const cardGroups = templateCards.reduce(
-        (acc, card) => {
+        (result, card) => {
+          // template card root cards have a parent(the template itself) so this shouldn't happen
           if (!card.parent) {
-            return acc;
+            return result;
           }
-          if (!acc[card.parent]) {
-            acc[card.parent] = [];
+          // if the parent does not exist yet in the result, we create it
+          if (!result[card.parent]) {
+            result[card.parent] = [];
           }
-          acc[card.parent].push(card);
-          return acc;
+          result[card.parent].push(card);
+          return result;
         },
         {} as Record<string, card[]>,
       );
@@ -374,8 +376,7 @@ export class Move {
    */
   private async getChildren(parentCardKey: string) {
     if (parentCardKey === 'root') {
-      const res = await Move.project.showProjectCards();
-      return res;
+      return Move.project.showProjectCards();
     } else {
       const parentCard = await Move.project.findSpecificCard(parentCardKey, {
         children: true,
