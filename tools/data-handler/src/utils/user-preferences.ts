@@ -42,7 +42,7 @@ export class UserPreferences {
         args: ['{{cardContentPath}}', '{{cardJsonPath}}'],
       },
       linux: {
-        command: 'vim',
+        command: 'vi',
         args: ['{{cardContentPath}}', '{{cardJsonPath}}'],
       },
       win32: {
@@ -67,16 +67,12 @@ export class UserPreferences {
       ],
       linux: [
         {
-          mimeType: 'text/plain',
-          command: 'vim {{attachmentPath}}',
-        },
-        {
           mimeType: 'image/png',
-          command: 'draw.io {{attachmentPath}}',
+          command: 'drawio {{attachmentPath}}',
         },
         {
           mimeType: 'image/svg+xml',
-          command: 'draw.io {{attachmentPath}}',
+          command: 'drawio {{attachmentPath}}',
         },
       ],
       win32: [
