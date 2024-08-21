@@ -122,7 +122,10 @@ export class Show {
     const prefs = new UserPreferences(
       join(homedir(), '.cyberismo', 'cards.prefs.json'),
     ).getPreferences();
-    const attachmentEditors = prefs.attachmentEditors[process.platform];
+    const attachmentEditors =
+      prefs.attachmentEditors && process.platform in prefs.attachmentEditors
+        ? prefs.attachmentEditors[process.platform]
+        : [];
 
     const editor = attachmentEditors.find(
       (editor) => editor.mimeType === attachment.mimeType,
