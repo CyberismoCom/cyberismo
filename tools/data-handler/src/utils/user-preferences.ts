@@ -86,11 +86,13 @@ export class UserPreferences {
         },
         {
           mimeType: 'image/png',
-          command: 'C:Program Files...draw.io {{attachmentPath}}',
+          command:
+            '"C:\\Program Files\\draw.io\\draw.io.exe" "{{attachmentPath}}"',
         },
         {
           mimeType: 'image/svg+xml',
-          command: 'C:Program Files...draw.io {{attachmentPath}}',
+          command:
+            '"C:\\Program Files\\draw.io\\draw.io.exe" "{{attachmentPath}}"',
         },
       ],
     },

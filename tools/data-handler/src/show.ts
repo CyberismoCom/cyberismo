@@ -183,6 +183,7 @@ export class Show {
    */
   private async openUsingDefaultApplication(path: string) {
     if (process.platform === 'win32') {
+      // This is a workaround to get windows to open the file in foreground
       spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
         shell: true,
       });
