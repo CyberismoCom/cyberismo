@@ -84,17 +84,14 @@ export function useUpdating(key: string | null) {
 
   return {
     isUpdating: useAppSelector(
-      (state) => (key && state.swr.additionalProps[key]?.isUpdating) || false,
+      (state) => state.swr.additionalProps[key ?? 'root']?.isUpdating ?? false,
     ),
     call: async <T>(fn: () => Promise<T>) => {
-      if (!key) {
-        return;
-      }
-      dispatch(setIsUpdating({ key, isUpdating: true }));
+      dispatch(setIsUpdating({ key: key ?? 'root', isUpdating: true }));
       try {
         return await fn();
       } finally {
-        dispatch(setIsUpdating({ key, isUpdating: false }));
+        dispatch(setIsUpdating({ key: key ?? 'root', isUpdating: false }));
       }
     },
   };
