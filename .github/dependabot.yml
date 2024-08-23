@@ -3,7 +3,7 @@
 # Please see the documentation for all configuration options:
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
-version: 4
+version: 2
 updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/data-handler" # Location of package manifests
