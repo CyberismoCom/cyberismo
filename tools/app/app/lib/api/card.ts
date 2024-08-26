@@ -39,7 +39,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       dispatch(cardDeleted(key));
     },
     createCard: async (template: string) =>
-      (key && (await callUpdate(() => createCard(key, template)))) || null,
+      await callUpdate(() => createCard(key ?? 'root', template)),
     updateWorkFlowState: async (state: string) =>
       (key &&
         (await callUpdate(() =>

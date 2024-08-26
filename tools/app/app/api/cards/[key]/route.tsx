@@ -305,7 +305,11 @@ export async function POST(request: NextRequest) {
 
   try {
     return NextResponse.json(
-      await createCommand.createCard(projectPath, res.template, key),
+      await createCommand.createCard(
+        projectPath,
+        res.template,
+        key === 'root' ? undefined : key,
+      ),
     );
   } catch (error) {
     if (error instanceof Error) {
