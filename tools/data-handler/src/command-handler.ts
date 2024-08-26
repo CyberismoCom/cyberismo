@@ -1004,7 +1004,7 @@ export class Commands {
     }
     const detail = typeDetail || '';
 
-    let functionToCall: Function = async () => {}; // eslint-disable-line @typescript-eslint/ban-types
+    let functionToCall: Function = async () => {}; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
     const parameters = [];
 
     switch (type) {

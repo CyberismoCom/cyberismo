@@ -455,8 +455,11 @@ export class Template extends CardContainer {
           messageText = `Created template '${templateName}' to folder ${this.templatePath}`;
         }
         return messageText;
-      } catch (e) {
-        throw new Error(`Could not instantiate template ${this.containerName}`);
+      } catch (error) {
+        if (error instanceof Error)
+          throw new Error(
+            `Could not instantiate template ${this.containerName}`,
+          );
       }
     }
     return '';

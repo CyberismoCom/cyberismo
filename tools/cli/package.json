@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --build --declaration",
     "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
-    "lint": "eslint . --ext .ts --config .eslintrc",
+    "lint": "npx eslint .",
     "test": "npm run lint"
   },
   "keywords": [],

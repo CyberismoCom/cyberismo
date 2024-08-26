@@ -63,9 +63,11 @@ export class ProjectSettings implements projectSettings {
     try {
       settings = readJsonFileSync(this.settingPath);
     } catch (error) {
-      throw new Error(
-        `Invalid path '${this.settingPath}' to configuration file`,
-      );
+      if (error instanceof Error) {
+        throw new Error(
+          `Invalid path '${this.settingPath}' to configuration file`,
+        );
+      }
     }
 
     const valid =

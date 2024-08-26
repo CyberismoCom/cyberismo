@@ -72,7 +72,9 @@ describe('validate command', () => {
       result = await commandHandler.command(Cmd.validate, [], {});
       assert(false, 'this should not be reached as the above throws');
     } catch (error) {
-      // this block is here for linter
+      if (error instanceof Error) {
+        // this block is here for linter
+      }
     }
     expect(result.statusCode).to.equal(500);
   });
@@ -535,8 +537,10 @@ describe('transition command', () => {
       );
       assert(false, 'this should not be reached as the above throws');
     } catch (error) {
-      // missing path (if the project location cannot be deduced) throws
-      expect(true);
+      if (error instanceof Error) {
+        // missing path (if the project location cannot be deduced) throws
+        expect(true);
+      }
     }
   });
   it('missing card', async () => {
@@ -1003,7 +1007,9 @@ describe('create command', () => {
     try {
       await access(projectDir, fsConstants.R_OK);
     } catch (error) {
-      assert(false, 'project folder could not be created');
+      if (error instanceof Error) {
+        assert(false, 'project folder could not be created');
+      }
     }
     expect(result.statusCode).to.equal(200);
   });
@@ -1022,7 +1028,9 @@ describe('create command', () => {
       // nodeJS does not automatically expand paths with tilde
       await access(resolveTilde(path), fsConstants.F_OK);
     } catch (error) {
-      assert(false, 'project folder could not be created');
+      if (error instanceof Error) {
+        assert(false, 'project folder could not be created');
+      }
     }
     expect(result.statusCode).to.equal(200);
   });
@@ -1344,13 +1352,13 @@ describe('import csv command', () => {
     expect(card1.content).to.equal('content1');
     expect(card1.metadata?.labels).to.deep.equal(['label1', 'label2']);
     expect(card1.metadata?.responsible).to.equal('responsible@email.com');
-    expect(card1.metadata?.doesnotexist).to.be.undefined;
+    expect(card1.metadata?.doesnotexist).to.equal(undefined);
 
     expect(card2.metadata?.title).to.equal('Title2');
     expect(card2.content).to.equal('content2');
-    expect(card2.metadata?.labels).to.be.undefined;
+    expect(card2.metadata?.labels).to.equal(undefined);
     expect(card2.metadata?.responsible).to.equal('');
-    expect(card2.metadata?.doesnotexist).to.be.undefined;
+    expect(card2.metadata?.doesnotexist).to.equal(undefined);
   });
   it('import csv file with parent (success)', async () => {
     const parent = 'decision_6';
@@ -1438,7 +1446,9 @@ describe('import module command', () => {
       );
       assert(false, 'this should not be reached as the above throws');
     } catch (error) {
-      // this block is here for linter
+      if (error instanceof Error) {
+        // this block is here for linter
+      }
     }
     expect(result.statusCode).to.equal(0);
   });

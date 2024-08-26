@@ -16,8 +16,8 @@ import { formatJson } from '../../src/utils/json.js';
 describe('read Json files', () => {
   it('readJsonFile (success)', () => {
     const path = join(process.cwd(), 'test', 'test-data', 'test-template.json');
-    const op = readJsonFileSync(path);
-    expect(op).to.not.be.null;
+    const op = readJsonFileSync(path) as string;
+    expect(op).to.not.equal(null);
   });
   it('readJsonFile not found', async () => {
     const path = join(
