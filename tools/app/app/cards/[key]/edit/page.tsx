@@ -11,8 +11,8 @@
 */
 
 'use client';
-import React, { useEffect, useMemo, useRef } from 'react';
-import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
   Box,
@@ -41,16 +41,23 @@ import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
 import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { useAppDispatch, useAppRouter } from '@/app/lib/hooks';
+import { Controller, FormProvider, set, useForm } from 'react-hook-form';
+import { useAppDispatch, useAppRouter, useAppSelector } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
 import { Delete, InsertDriveFile } from '@mui/icons-material';
-import { addAttachment } from '@/app/lib/codemirror';
+import {
+  addAttachment,
+  findCurrentTitleFromADoc,
+  findSection,
+} from '@/app/lib/codemirror';
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
-import { isEdited } from '@/app/lib/slices/pageState';
+import { isEdited, viewChanged } from '@/app/lib/slices/pageState';
+import AsciiDoctor from '@asciidoctor/core';
+
+const asciiDoctor = AsciiDoctor();
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
@@ -134,7 +141,11 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const router = useAppRouter();
 
-  const editor = useRef<ReactCodeMirrorRef>(null);
+  const [codemirror, setCodemirror] = React.useState<ReactCodeMirrorRef | null>(
+    null,
+  );
+
+  const [tab, setTab] = React.useState(0);
 
   const formMethods = useForm();
 
@@ -185,6 +196,81 @@ export default function Page({ params }: { params: { key: string } }) {
     };
   }, [dispatch]);
 
+  const lastTitle = useAppSelector((state) => state.page.title);
+  const cardKey = useAppSelector((state) => state.page.cardKey);
+
+  // Scroll to the last title when the tab is switched
+  useEffect(() => {
+    if (
+      !lastTitle ||
+      !codemirror?.editor ||
+      !codemirror.view ||
+      !codemirror.state ||
+      cardKey !== params.key
+    )
+      return;
+
+    let lineNum: number | null = null;
+
+    const doc = asciiDoctor.load(card?.content || '');
+
+    const section = findSection(doc, lastTitle);
+    if (!section) return;
+
+    const lines = codemirror.state.doc.lines;
+
+    for (let i = 1; i < lines + 1; i++) {
+      const line = codemirror.state.doc.line(i);
+
+      const title = section.getTitle();
+
+      if (!title) continue;
+      if (line.text.includes(title)) {
+        lineNum = line.number;
+        break;
+      }
+    }
+    if (!lineNum) return;
+
+    const pos = codemirror.state.doc.line(lineNum).from;
+
+    codemirror.view.dispatch({
+      effects: EditorView.scrollIntoView(pos, {
+        y: 'start',
+      }),
+    });
+  }, [tab, card, codemirror]);
+
+  const setRef = useCallback((ref: ReactCodeMirrorRef) => {
+    setCodemirror(ref);
+  }, []);
+
+  const doc = useMemo(() => {
+    return asciiDoctor.load(preview.__content__ || '');
+  }, [preview]);
+
+  // save the last title when user scrolls
+  const handleScroll = () => {
+    if (!codemirror?.view || !codemirror.editor) return;
+
+    const title = findCurrentTitleFromADoc(
+      codemirror.view,
+      codemirror.editor,
+      doc,
+    );
+
+    if (!title) {
+      return;
+    }
+
+    dispatch(
+      viewChanged({
+        title,
+        cardKey: params.key,
+      }),
+    );
+  };
+
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __content__, __title__, ...metadata } = data;
@@ -225,7 +311,10 @@ export default function Page({ params }: { params: { key: string } }) {
         />
         <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
           <Tabs
-            defaultValue={0}
+            value={tab}
+            onChange={(e, newValue) =>
+              typeof newValue === 'number' && setTab(newValue)
+            }
             sx={{
               height: '100%',
             }}
@@ -254,6 +343,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   }}
                   width="70%"
                   paddingRight={3}
+                  onScroll={handleScroll}
                 >
                   <Controller
                     name="__title__"
@@ -286,7 +376,7 @@ export default function Page({ params }: { params: { key: string } }) {
                       <CodeMirror
                         value={value}
                         onChange={onChange}
-                        ref={editor}
+                        ref={setRef}
                         extensions={extensions}
                         style={{
                           border: '1px solid',
@@ -331,9 +421,9 @@ export default function Page({ params }: { params: { key: string } }) {
                         justifyContent="center"
                         width={146}
                         onClick={() => {
-                          if (editor.current && editor.current.view && card) {
+                          if (codemirror?.view && card) {
                             addAttachment(
-                              editor.current.view,
+                              codemirror.view,
                               attachment,
                               card.key,
                             );

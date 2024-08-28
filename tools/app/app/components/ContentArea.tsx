@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   CardAttachment,
   CardDetails,
@@ -40,8 +40,10 @@ import { findCard, getLinksForCard } from '../lib/utils';
 import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, set, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { viewChanged } from '../lib/slices/pageState';
 
 type ContentAreaProps = {
   project: Project | null;
@@ -180,7 +182,29 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
   const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
 
+  const boxRef = React.createRef<HTMLDivElement>();
+
+  const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
+
+  const dispatch = useAppDispatch();
+
   const { t } = useTranslation();
+
+  const lastTitle = useAppSelector((state) => state.page.title);
+  const cardKey = useAppSelector((state) => state.page.cardKey);
+  // scroll to last title on first render and when tab is changed
+  useEffect(() => {
+    if (lastTitle && contentRef && cardKey === card?.key) {
+      const header = document.getElementById(lastTitle);
+      if (header) {
+        header.scrollIntoView();
+      }
+    }
+  }, [contentRef]);
+
+  const setRef = useCallback((node: HTMLDivElement | null) => {
+    setContentRef(node);
+  }, []);
 
   if (error)
     return (
@@ -211,17 +235,27 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const handleScroll = () => {
     const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
     const visibleHeaderIds: string[] = [];
-    headers.forEach((header) => {
+    let lastTitle: string | null = null;
+
+    const headerArray = Array.from(headers).reverse();
+
+    const boxRect = boxRef.current?.getBoundingClientRect();
+
+    for (const header of headerArray) {
       const rect = header.getBoundingClientRect();
-      if (
-        rect.top >= 0 &&
-        rect.bottom <= window.innerHeight &&
-        header.id &&
-        header.id !== ''
-      ) {
-        visibleHeaderIds.push(header.id);
+      if (rect.top < (boxRect?.top || -4) + 1) {
+        lastTitle = header.id;
+        break;
       }
-    });
+    }
+
+    dispatch(
+      viewChanged({
+        title: lastTitle,
+        cardKey: card.key,
+      }),
+    );
+
     // Retain the scroll state if no headers are visible (we are in middle of a longer section)
     if (visibleHeaderIds.length > 0) {
       setVisibleHeaderId(visibleHeaderIds[0]);
@@ -240,6 +274,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           scrollbarWidth: 'thin',
         }}
         onScroll={handleScroll}
+        ref={boxRef}
       >
         <Stack spacing={3}>
           <Typography level="h1">{card.metadata?.title ?? card.key}</Typography>
@@ -345,6 +380,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           </Stack>
           <Box padding={4}>
             <div
+              ref={setRef}
               className="doc"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />

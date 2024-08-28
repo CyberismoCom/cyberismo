@@ -10,9 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EditorView } from '@uiw/react-codemirror';
+import { EditorView, ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
 import { attachmentDetails } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { AbstractBlock, Document, Section } from '@asciidoctor/core';
 
 /**
  * Counts the number of empty lines in the codemirror editor in the given direction
@@ -146,4 +147,84 @@ export function addAttachment(
       },
     });
   }
+}
+
+/**
+ * Tries to locate title of the section being viewed
+ * @param view Codemirror editorview instance
+ * @param editor HTML Element of codemirror
+ * @param doc A parsed asciidoc document
+ * @returns Id of the section title if found, otherwise null
+ */
+export function findCurrentTitleFromADoc(
+  view: EditorView,
+  editor: HTMLDivElement,
+  doc: Document,
+) {
+  const rect = editor.getBoundingClientRect();
+
+  const pos = view.posAtCoords({
+    x: rect.top,
+    y: rect.left,
+  });
+
+  if (!pos) return null;
+
+  const line = view.state.doc.lineAt(pos);
+  // go lines backwards until we find a title
+  let title = null;
+  for (let i = line.number; i > 0; i--) {
+    const line = view.state.doc.line(i);
+    // tries to find asciidoc title
+    const parsedTitle = line.text.match(/^=+\s*(.*)/);
+    if (!parsedTitle || parsedTitle.length < 2) continue;
+
+    // try to match the given title by name
+    // We need to trim the end, because asciidoctor also does that
+    const section = findSection(doc, parsedTitle[1].trimEnd(), 'name');
+    if (section) {
+      title = section.getId();
+      break;
+    }
+  }
+  return title;
+}
+
+/**
+ * Finds a section from a document either by title name or id
+ * @param doc asciidoc that is being searched
+ * @param sectionIdentifier either name or id of the section depending on the 'by' parameter
+ * @param by if id, will search by id, otherwise by name. id is the default
+ * @returns
+ */
+export function findSection(
+  doc: Document,
+  sectionIdentifier: string,
+  by: 'id' | 'name' = 'id',
+) {
+  const sections = doc.getSections();
+  return findSectionRecursive(sections, sectionIdentifier, by);
+}
+
+function findSectionRecursive(
+  sections: Section[],
+  sectionIdentifier: string,
+  by: 'id' | 'name',
+): Section | null {
+  for (const section of sections) {
+    if (
+      (by === 'id' ? section.getId() : section.getName()) === sectionIdentifier
+    ) {
+      return section;
+    }
+    const found = findSectionRecursive(
+      section.getSections(),
+      sectionIdentifier,
+      by,
+    );
+    if (found) {
+      return found;
+    }
+  }
+  return null;
 }
