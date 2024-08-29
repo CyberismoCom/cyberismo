@@ -90,5 +90,8 @@
   "deleteLink": "Delete Link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
   "failedToLoad": "Failed to load",
-  "unknownError": "An unknown error occurred"
+  "unknownError": "An unknown error occurred",
+  "insertToContent": "Insert to content",
+  "openInEditor": "Open in editor",
+  "saveCopy": "Save copy"
 }

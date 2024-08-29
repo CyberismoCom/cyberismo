@@ -14,6 +14,9 @@
 import { Create } from '@cyberismocom/data-handler/create';
 import { Calculate } from '@cyberismocom/data-handler/calculate';
 import { Remove } from '@cyberismocom/data-handler/remove';
+import { Show } from '@cyberismocom/data-handler/show';
+import { join, resolve } from 'path';
+import { spawn } from 'child_process';
 
 export async function addAttachments(key: string, formData: FormData) {
   const projectPath = process.env.npm_config_project_path;
@@ -76,4 +79,18 @@ export async function removeAttachment(key: string, filename: string) {
   const removeCommand = new Remove(calc);
 
   await removeCommand.remove(projectPath || '', 'attachment', key, filename);
+}
+
+/**
+ * Opens an attachment using the operating system's default application.
+ * @param key
+ * @param filename
+ * @returns
+ */
+export async function openAttachment(key: string, filename: string) {
+  const projectPath = process.env.npm_config_project_path;
+  // get path of attachment
+  const show = new Show();
+
+  await show.openAttachment(projectPath || '', key, filename);
 }
