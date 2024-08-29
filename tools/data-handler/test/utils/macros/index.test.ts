@@ -89,11 +89,11 @@ describe('macros', () => {
   describe('validateMacros', () => {
     it('validateMacros (success)', () => {
       const result = validateMacros(validAdoc);
-      expect(result).to.be.null;
+      expect(result).to.equal(null);
     });
     it('try validateMacros', () => {
       const result = validateMacros(invalidAdoc);
-      expect(result).to.not.be.null;
+      expect(result).to.not.equal(null);
     });
   });
   describe('registerMacros', () => {
