@@ -35,7 +35,10 @@
     "success": "Card saved successfully"
   },
   "createCard": {
-    "success": "Card created successfully"
+    "success": "Card created successfully",
+    "macro": {
+      "preview": "Creating cards with this macro is not supported in the preview mode"
+    }
   },
   "deleteCard": "Delete Card",
   "delete": "Delete",
@@ -86,5 +89,6 @@
   },
   "deleteLink": "Delete Link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
-  "failedToLoad": "Failed to load"
+  "failedToLoad": "Failed to load",
+  "unknownError": "An unknown error occurred"
 }

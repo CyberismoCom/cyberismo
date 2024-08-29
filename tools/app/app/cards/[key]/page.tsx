@@ -13,6 +13,7 @@
 'use client';
 import { ContentArea } from '@/app/components/ContentArea';
 import ContentToolbar from '@/app/components/ContentToolbar';
+import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
 import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
@@ -59,53 +60,53 @@ export default function Page({ params }: { params: { key: string } }) {
         onInsertLink={() => setLinksVisible(true)}
       />
       <Box flexGrow={1} minHeight={0}>
-        <ContentArea
-          card={card}
-          error={error?.message}
-          onMetadataClick={() =>
-            router.push(`/cards/${params.key}/edit?expand=true`)
-          }
-          linkTypes={linkTypes}
-          project={project}
-          onLinkFormSubmit={async (data) => {
-            try {
-              await createLink(
-                data.cardKey,
-                data.linkType,
-                data.linkDescription,
-                data.direction,
-              );
-              return true;
-            } catch (error) {
-              dispatch(
-                addNotification({
-                  message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                  type: 'error',
-                }),
-              );
-              return false;
+        <LoadingGate values={[card, linkTypes]}>
+          <ContentArea
+            card={card!}
+            onMetadataClick={() =>
+              router.push(`/cards/${params.key}/edit?expand=true`)
             }
-          }}
-          linksVisible={linksVisible}
-          onLinkToggle={() => setLinksVisible(!linksVisible)}
-          onDeleteLink={async (data) => {
-            try {
-              await deleteLink(
-                data.fromCard,
-                data.cardKey,
-                data.linkType,
-                data.linkDescription,
-              );
-            } catch (error) {
-              dispatch(
-                addNotification({
-                  message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                  type: 'error',
-                }),
-              );
-            }
-          }}
-        />
+            linkTypes={linkTypes!}
+            project={project}
+            onLinkFormSubmit={async (data) => {
+              try {
+                await createLink(
+                  data.cardKey,
+                  data.linkType,
+                  data.linkDescription,
+                );
+                return true;
+              } catch (error) {
+                dispatch(
+                  addNotification({
+                    message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    type: 'error',
+                  }),
+                );
+                return false;
+              }
+            }}
+            linksVisible={linksVisible}
+            onLinkToggle={() => setLinksVisible(!linksVisible)}
+            onDeleteLink={async (data) => {
+              try {
+                await deleteLink(
+                  data.fromCard,
+                  data.cardKey,
+                  data.linkType,
+                  data.linkDescription,
+                );
+              } catch (error) {
+                dispatch(
+                  addNotification({
+                    message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    type: 'error',
+                  }),
+                );
+              }
+            }}
+          />
+        </LoadingGate>
       </Box>
     </Stack>
   );

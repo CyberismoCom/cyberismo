@@ -38,6 +38,7 @@ import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
+import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -267,7 +268,7 @@ export class Create extends EventEmitter {
    * @param {string} projectPath project path
    * @param {string} templateName name of a template to use
    * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the cardroot.
-   * @returns array of card keys that were created.
+   * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
   public async createCard(
     projectPath: string,
@@ -319,8 +320,13 @@ export class Create extends EventEmitter {
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
       this.emit('created', createdCards);
+      // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
+      const sorted = sortItems(createdCards, (item) => {
+        return `${item.parent === templateName ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
+      });
+      return sorted.map((item) => item.key);
     }
-    return createdCards.map((item) => item.key);
+    return [];
   }
 
   /**
