@@ -36,7 +36,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
-import { findCard, getLinksForCard } from '../lib/utils';
+import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
 import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
@@ -60,23 +60,98 @@ interface LinkFormSubmitData {
   linkType: string;
   cardKey: string;
   linkDescription: string;
+  direction: 'inbound' | 'outbound';
+}
+
+interface LinkFormData {
+  linkType: number;
+  cardKey: string;
+  linkDescription: string;
 }
 
 interface LinkFormProps {
   linkTypes: linktype[];
   cards: Project['cards'];
+  cardType: string | undefined;
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
 }
 
-export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
-  const { control, handleSubmit, reset } = useForm<LinkFormSubmitData>({
-    defaultValues: { linkType: '', cardKey: '', linkDescription: '' },
+const NO_LINK_TYPE = -1;
+
+export function LinkForm({
+  cards,
+  linkTypes,
+  onSubmit,
+  cardType,
+}: LinkFormProps) {
+  const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
+    defaultValues: { linkType: NO_LINK_TYPE, cardKey: '', linkDescription: '' },
   });
   const { t } = useTranslation();
+
+  const handledLinkTypes: (linktype & {
+    direction: 'inbound' | 'outbound';
+    id: number;
+  })[] = [];
+
+  let id = 0;
+  for (const type of linkTypes) {
+    if (!cardType) continue;
+    // Check if this card is in from or to list
+    if (
+      type.sourceCardTypes.includes(cardType) ||
+      type.sourceCardTypes.length === 0
+    ) {
+      handledLinkTypes.push({
+        ...type,
+        direction: 'outbound',
+        id: id++,
+      });
+    }
+    if (
+      type.destinationCardTypes.includes(cardType) ||
+      type.destinationCardTypes.length === 0
+    ) {
+      handledLinkTypes.push({
+        ...type,
+        direction: 'inbound',
+        id: id++,
+      });
+    }
+  }
+
+  // find chosen link type
+  const linkType = watch('linkType');
+  const selectedLinkType = handledLinkTypes.find((t) => t.id === linkType);
+
+  const usableCards = flattenTree(cards).filter((card) => {
+    if (!selectedLinkType) return false;
+    if (selectedLinkType.direction === 'outbound') {
+      return (
+        selectedLinkType.destinationCardTypes.includes(
+          card.metadata?.cardtype || '',
+        ) || selectedLinkType.destinationCardTypes.length === 0
+      );
+    } else {
+      return (
+        selectedLinkType.sourceCardTypes.includes(
+          card.metadata?.cardtype || '',
+        ) || selectedLinkType.sourceCardTypes.length === 0
+      );
+    }
+  });
+
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
-        const success = await onSubmit?.(data);
+        const linkType = handledLinkTypes.find((t) => t.id === data.linkType);
+        if (!linkType) return;
+        const success = await onSubmit?.({
+          linkType: linkType.name,
+          cardKey: data.cardKey,
+          linkDescription: data.linkDescription,
+          direction: linkType.direction,
+        });
         if (success) reset();
       })}
     >
@@ -96,9 +171,11 @@ export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
                 }}
                 required={true}
               >
-                {linkTypes.map((linkType) => (
-                  <Option key={linkType.name} value={linkType.name}>
-                    {linkType.name}
+                {handledLinkTypes.map((linkType) => (
+                  <Option key={linkType.id} value={linkType.id}>
+                    {linkType.direction === 'outbound'
+                      ? linkType.outboundDisplayName
+                      : linkType.inboundDisplayName}
                   </Option>
                 ))}
               </Select>
@@ -112,8 +189,8 @@ export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
                 color="primary"
                 required={true}
                 placeholder={t('linkForm.searchCard')}
-                options={cards.map((c) => ({
-                  label: c.metadata?.title || c.key,
+                options={usableCards.map((c) => ({
+                  label: `${c.metadata?.title} (${c.key})`,
                   value: c.key,
                 }))}
                 isOptionEqualToValue={(option, value) =>
@@ -123,7 +200,7 @@ export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
                 value={
                   value
                     ? {
-                        label: findCard(cards, value)?.metadata?.title || value,
+                        label: `${findCard(cards, value)?.metadata?.title}(${value})`,
                         value,
                       }
                     : null
@@ -136,18 +213,21 @@ export function LinkForm({ cards, linkTypes, onSubmit }: LinkFormProps) {
             )}
           />
         </Stack>
-        <Controller
-          name="linkDescription"
-          control={control}
-          render={({ field }) => (
-            <Input
-              {...field}
-              color="primary"
-              startDecorator={<Edit />}
-              placeholder={t('linkForm.writeDescription')}
-            />
-          )}
-        />
+
+        {selectedLinkType && selectedLinkType.enableLinkDescription && (
+          <Controller
+            name="linkDescription"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                color="primary"
+                startDecorator={<Edit />}
+                placeholder={t('linkForm.writeDescription')}
+              />
+            )}
+          />
+        )}
         <Button
           type="submit"
           sx={{
@@ -176,7 +256,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 }) => {
   const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
 
-  const [isLinkFormVisible, setLinkFormVisible] = useState(false);
   const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
   const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
 
@@ -188,7 +267,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         {t('cardNotFound')} ({error})
       </Box>
     );
-  if (!card || !linkTypes) return <Box>{t('loading')}</Box>;
+  if (!card || !linkTypes || !project?.cards) return <Box>{t('loading')}</Box>;
 
   const links: ParsedLink[] = (card.metadata?.links || [])
     .map((l) => ({
@@ -257,17 +336,22 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             {(links.length > 0 || linksVisible) && (
               <Typography level="title-sm">{t('linkedCards')}</Typography>
             )}
-            {!preview && (links.length > 0 || linksVisible) && (
-              <IconButton onClick={onLinkToggle}>
-                {linksVisible ? <ChipDelete /> : <Add />}
-              </IconButton>
-            )}
+            {!preview &&
+              (links.length > 0 || linksVisible) &&
+              (linksVisible ? (
+                <ChipDelete onDelete={onLinkToggle} />
+              ) : (
+                <IconButton onClick={onLinkToggle}>
+                  <Add />
+                </IconButton>
+              ))}
           </Stack>
           {!preview && linksVisible && (
             <LinkForm
               cards={project?.cards ?? []}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
+              cardType={card.metadata?.cardtype}
             />
           )}
           <Stack>
@@ -310,8 +394,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     <Stack direction="row" alignItems="center">
                       <Typography level="body-sm" paddingRight={2}>
                         {link.cardKey === card.key
-                          ? linkType.outboundDisplayName
-                          : linkType.inboundDisplayName}
+                          ? linkType.inboundDisplayName
+                          : linkType.outboundDisplayName}
                       </Typography>
                       <NextLink href={`/cards/${otherCard?.key}`}>
                         <Link component={'div'}>{otherCard?.key}</Link>

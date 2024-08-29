@@ -943,6 +943,25 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
 
+  it('try create link - card type not valid', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test-types'],
+      options,
+    );
+
+    expect(result.message).to.contain('cannot be linked');
+  });
+
+  it('try create link - link description provided but not allowed', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['link', 'decision_5', 'decision_6', 'test-types', 'description2'],
+      options,
+    );
+    expect(result.message).to.contain('does not allow');
+  });
+
   // linktype
   it('linktype (success)', async () => {
     const name = 'lt_name';
