@@ -76,6 +76,8 @@ export function registerMacros(instance: typeof Handlebars, mode: Mode) {
 
 /**
  * Handle the macros in the content
+ * @param content - The content to handle the macros in
+ * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc
  */
 export function handleMacros(content: string, mode: Mode) {
   const handlebars = Handlebars.create();
@@ -138,7 +140,9 @@ export function handleMacroError(error: unknown, macro: Macro): string {
 }
 
 /**
- *
+ * Creates an injectable placeholder for a macro
+ * @param macro - The macro to create the placeholder for
+ * @param options - Options will be passed to the html element as attributes
  */
 export function createHtmlPlaceholder(
   macro: Macro,
