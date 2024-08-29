@@ -76,6 +76,8 @@ interface LinkFormProps {
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
 }
 
+const NO_LINK_TYPE = -1;
+
 export function LinkForm({
   cards,
   linkTypes,
@@ -83,7 +85,7 @@ export function LinkForm({
   cardType,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
-    defaultValues: { linkType: -1, cardKey: '', linkDescription: '' },
+    defaultValues: { linkType: NO_LINK_TYPE, cardKey: '', linkDescription: '' },
   });
   const { t } = useTranslation();
 
