@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.3.14",
-    "@types/chai-as-promised": "^7.1.8",
+    "@types/chai-as-promised": "^8.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/json-schema": "^7.0.15",
     "@types/mime-types": "^2.1.4",
