@@ -243,7 +243,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
     for (const header of headerArray) {
       const rect = header.getBoundingClientRect();
-      if (rect.top < (boxRect?.top || -4) + 1) {
+      // we are using 1px offset to make sure the header is in the viewport
+      // if top is not available, we want to use 0 which is why we use -1 for the fallback since 1 is the offset
+      if (rect.top < (boxRect?.top || -1) + 1) {
         lastTitle = header.id;
         break;
       }
