@@ -42,9 +42,10 @@
     "build": {
       "patterns": [
         "tools/cli/src/",
-        "tools/data-handler/src/"
+        "tools/data-handler/src/",
+        "tools/app/"
       ],
-      "extensions": "ts"
+      "extensions": ["ts", "mjs"]
     }
   },
   "workspaces": [
