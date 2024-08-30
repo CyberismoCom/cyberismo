@@ -11,8 +11,15 @@
 */
 
 'use client';
-import React, { ReactElement, useState } from 'react';
-import { CardDetails, ParsedLink, Project } from '../lib/definitions';
+
+import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import {
+  CardAttachment,
+  CardDetails,
+  ParsedLink,
+  Project,
+} from '../lib/definitions';
+
 import Processor from '@asciidoctor/core';
 import { parse } from 'node-html-parser';
 import {
@@ -35,8 +42,12 @@ import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
 import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, set, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
+
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { viewChanged } from '../lib/slices/pageState';
+
 import {
   handleMacros,
   Macro,
@@ -260,7 +271,29 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
   const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
 
+  const boxRef = React.createRef<HTMLDivElement>();
+
+  const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
+
+  const dispatch = useAppDispatch();
+
   const { t } = useTranslation();
+
+  const lastTitle = useAppSelector((state) => state.page.title);
+  const cardKey = useAppSelector((state) => state.page.cardKey);
+  // scroll to last title on first render and when tab is changed
+  useEffect(() => {
+    if (lastTitle && contentRef && cardKey === card?.key) {
+      const header = document.getElementById(lastTitle);
+      if (header) {
+        header.scrollIntoView();
+      }
+    }
+  }, [contentRef]);
+
+  const setRef = useCallback((node: HTMLDivElement | null) => {
+    setContentRef(node);
+  }, []);
 
   const links: ParsedLink[] = (card.metadata?.links || [])
     .map((l) => ({
@@ -319,17 +352,31 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const handleScroll = () => {
     const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
     const visibleHeaderIds: string[] = [];
-    headers.forEach((header) => {
+    let newLastTitle: string | null = null;
+
+    const headerArray = Array.from(headers).reverse();
+
+    const boxRect = boxRef.current?.getBoundingClientRect();
+
+    for (const header of headerArray) {
       const rect = header.getBoundingClientRect();
-      if (
-        rect.top >= 0 &&
-        rect.bottom <= window.innerHeight &&
-        header.id &&
-        header.id !== ''
-      ) {
-        visibleHeaderIds.push(header.id);
+      // we are using 1px offset to make sure the header is in the viewport
+      // if top is not available, we want to use 0 which is why we use -1 for the fallback since 1 is the offset
+      if (rect.top < (boxRect?.top || -1) + 1) {
+        newLastTitle = header.id;
+        break;
       }
-    });
+    }
+
+    if (lastTitle === newLastTitle && cardKey === card.key) return;
+
+    dispatch(
+      viewChanged({
+        title: newLastTitle,
+        cardKey: card.key,
+      }),
+    );
+
     // Retain the scroll state if no headers are visible (we are in middle of a longer section)
     if (visibleHeaderIds.length > 0) {
       setVisibleHeaderId(visibleHeaderIds[0]);
@@ -348,6 +395,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           scrollbarWidth: 'thin',
         }}
         onScroll={handleScroll}
+        ref={boxRef}
       >
         <Stack spacing={3}>
           <Typography level="h1">{card.metadata?.title ?? card.key}</Typography>
@@ -457,7 +505,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             })}
           </Stack>
           <Box padding={4}>
-            <div className="doc">{parsedContent}</div>
+            <div className="doc" ref={setRef}>
+              {parsedContent}
+            </div>
           </Box>
         </Stack>
       </Box>

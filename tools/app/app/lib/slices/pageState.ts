@@ -11,13 +11,22 @@
 */
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-// stores whether there is edited content on the ui
+
+export interface ViewState {
+  title: string | null;
+  cardKey: string | null;
+}
+
 export interface PageState {
   isEdited: boolean;
+  title: string | null; // title of the section being viewed as an asciidoc id
+  cardKey: string | null; // cardKey of the section being edited. Mainly used to make sure we don't scroll on other cards
 }
 
 export const initialState: PageState = {
   isEdited: false,
+  title: null,
+  cardKey: null,
 };
 
 export const pageSlice = createSlice({
@@ -27,9 +36,13 @@ export const pageSlice = createSlice({
     isEdited: (state, action: PayloadAction<boolean>) => {
       state.isEdited = action.payload;
     },
+    viewChanged: (state, action: PayloadAction<ViewState>) => {
+      state.cardKey = action.payload.cardKey;
+      state.title = action.payload.title;
+    },
   },
 });
 
-export const { isEdited } = pageSlice.actions;
+export const { isEdited, viewChanged } = pageSlice.actions;
 
 export default pageSlice.reducer;

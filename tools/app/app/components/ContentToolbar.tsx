@@ -70,7 +70,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   );
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center' }} height={45}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs selectedCard={card} project={project} />
       </Box>
@@ -88,7 +88,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           color="neutral"
           style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.safeBack()}
+          onClick={() => router.safePush(`/cards/${cardKey}`)}
         >
           {t('cancel')}
         </Button>
