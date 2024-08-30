@@ -21,4 +21,14 @@
     background-color: rgb(240, 244, 248);
     border-radius: 16px;
     padding: 1px 24px 16px 24px;
-´}
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    font-size: x-small;
+}
+
+footer a {
+    text-decoration: underline;
+}
