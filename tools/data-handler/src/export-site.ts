@@ -58,7 +58,7 @@ export class ExportSite extends Export {
     this.pagesDir = join(this.moduleDir, 'pages');
     this.imagesDir = join(this.moduleDir, 'assets', 'images');
     this.navFile = join(this.moduleDir, 'nav.adoc');
-
+    
     const promiseContainer = [];
     promiseContainer.push(mkdir(this.pagesDir, { recursive: true }));
     promiseContainer.push(mkdir(this.imagesDir, { recursive: true }));
@@ -93,7 +93,7 @@ export class ExportSite extends Export {
     const playbook = {
       site: {
         title: ExportSite.project.configuration.name,
-        start_page: `cards:ROOT:${startPage}`,
+        start_page: `cards:ROOT:${startPage}`
       },
       content: {
         sources: [
@@ -187,10 +187,10 @@ export class ExportSite extends Export {
         const cardTypeForCard = await ExportSite.project.cardType(
           card.metadata?.cardtype,
         );
-        tempContent = "\n== ";
+        tempContent = "\n= ";
         tempContent += card.metadata?.title
-          ? `${card.metadata.title}\n`
-          : 'Untitled\n';
+          ? `${card.metadata.title}\n\n`
+          : 'Untitled\n\n';
         tempContent += super.metaToAdoc(card, cardTypeForCard);
       }
 
