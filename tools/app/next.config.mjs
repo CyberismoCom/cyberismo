@@ -8,6 +8,15 @@ const nextConfig = {
     );
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*.html',
+        destination: '/:path*',
+        permanent: false
+      },
+    ];
+  },
 };
 
 export default nextConfig;
