@@ -103,6 +103,9 @@ export class ExportSite extends Export {
           },
         ],
       },
+      urls: {
+        html_extension_style: 'default'
+      },
       ui: {
         bundle: {
           url: '/Users/sami/Cyberismo/source/cyberismo/resources/ui-bundle',
@@ -121,7 +124,7 @@ export class ExportSite extends Export {
     const descriptor = {
       name: 'cards',
       title: projectName,
-      version: '1.0', // TODO: Use the source content commit SHA?
+      version: null,
       nav: ['modules/ROOT/nav.adoc'],
     };
 
@@ -201,7 +204,7 @@ export class ExportSite extends Export {
       if (card.children) {
         // Recurse into the child cards
         await this.toAdocDirectoryAsContent(
-          join(path, card.key),
+          path,
           card.children,
           depth,
         );
