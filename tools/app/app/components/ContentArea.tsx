@@ -352,7 +352,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const handleScroll = () => {
     const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
     const visibleHeaderIds: string[] = [];
-    let lastTitle: string | null = null;
+    let newLastTitle: string | null = null;
 
     const headerArray = Array.from(headers).reverse();
 
@@ -363,14 +363,16 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       // we are using 1px offset to make sure the header is in the viewport
       // if top is not available, we want to use 0 which is why we use -1 for the fallback since 1 is the offset
       if (rect.top < (boxRect?.top || -1) + 1) {
-        lastTitle = header.id;
+        newLastTitle = header.id;
         break;
       }
     }
 
+    if (lastTitle === newLastTitle && cardKey === card.key) return;
+
     dispatch(
       viewChanged({
-        title: lastTitle,
+        title: newLastTitle,
         cardKey: card.key,
       }),
     );
@@ -503,7 +505,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             })}
           </Stack>
           <Box padding={4}>
-            <div className="doc">{parsedContent}</div>
+            <div className="doc" ref={setRef}>
+              {parsedContent}
+            </div>
           </Box>
         </Stack>
       </Box>

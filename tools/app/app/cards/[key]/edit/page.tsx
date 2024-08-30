@@ -233,6 +233,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const preview = watch();
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
+
   const { __content__, __title__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
@@ -263,11 +265,15 @@ export default function Page({ params }: { params: { key: string } }) {
         (key) => card?.metadata?.[key] === metadata[key],
       )
     ) {
-      dispatch(isEdited(false));
+      setHasUnsavedChanges(false);
       return;
     }
-    dispatch(isEdited(true));
-  }, [preview, card, dispatch]);
+    setHasUnsavedChanges(true);
+  }, [preview, card, setHasUnsavedChanges]);
+
+  useEffect(() => {
+    dispatch(isEdited(hasUnsavedChanges));
+  }, [dispatch, hasUnsavedChanges]);
 
   useEffect(() => {
     return () => {
@@ -338,7 +344,8 @@ export default function Page({ params }: { params: { key: string } }) {
       doc,
     );
 
-    if (!title) {
+    // making sure the title actually changed to not spam redux
+    if (!title || (title === lastTitle && cardKey === params.key)) {
       return;
     }
 
