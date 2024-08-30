@@ -99,7 +99,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
         );
       }
     }
-  }, [selected, updateCard, t, onClose, dispatch]);
+  }, [selected, updateCard, t, onClose, dispatch, router]);
 
   const moveableCards = useMoveableCards(cardKey);
 

@@ -42,7 +42,9 @@ describe('file utils', () => {
       await access(destination);
       expect(true);
     } catch (error) {
-      expect(false);
+      if (error instanceof Error) {
+        expect(false);
+      }
     }
   });
   it('copyDir with hierarchy (success)', async () => {
@@ -55,7 +57,9 @@ describe('file utils', () => {
       await access(destination);
       expect(true);
     } catch (error) {
-      expect(false);
+      if (error instanceof Error) {
+        expect(false);
+      }
     }
   });
   it('deleteDir (success)', async () => {
@@ -66,7 +70,9 @@ describe('file utils', () => {
       await access(targetDir);
       expect(false);
     } catch (error) {
-      expect(true);
+      if (error instanceof Error) {
+        expect(true);
+      }
     }
   });
   it('deleteFile (success)', async () => {
@@ -83,7 +89,9 @@ describe('file utils', () => {
       await access(target);
       expect(false);
     } catch (error) {
-      expect(true);
+      if (error instanceof Error) {
+        expect(true);
+      }
     }
   });
   it('deleteFile - file missing', async () => {

@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.2.0",
     "c8": "^9.1.0",
     "npm-watch": "^0.11.0",
     "nyc": "^15.1.0",
@@ -35,7 +35,8 @@
     "test-data-handler": "cd tools/data-handler && npm run test && cd ../..",
     "watch": "npm-watch",
     "prettier-check": "prettier --check .",
-    "prettier-fix": "prettier --write ."
+    "prettier-fix": "prettier --write .",
+    "script:schemas": "node scripts/generateSchemaImports && prettier --write tools/data-handler/src/utils/schemas.ts"
   },
   "watch": {
     "build": {

@@ -39,7 +39,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       dispatch(cardDeleted(key));
     },
     createCard: async (template: string) =>
-      (key && (await callUpdate(() => createCard(key, template)))) || null,
+      await callUpdate(() => createCard(key ?? 'root', template)),
     updateWorkFlowState: async (state: string) =>
       (key &&
         (await callUpdate(() =>
@@ -52,10 +52,16 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       target: string,
       type: string,
       linkDescription?: string,
+      direction: 'inbound' | 'outbound' = 'outbound',
     ) =>
       (key &&
         (await callUpdate(() =>
-          createLink(key, target, type, linkDescription).then(() => {
+          createLink(
+            direction === 'outbound' ? key : target,
+            direction === 'outbound' ? target : key,
+            type,
+            linkDescription,
+          ).then(() => {
             mutate(apiPaths.card(key));
             mutate(apiPaths.project());
           }),

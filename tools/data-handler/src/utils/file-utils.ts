@@ -60,7 +60,9 @@ export async function deleteFile(path: string): Promise<boolean> {
   try {
     await unlink(path);
   } catch (error) {
-    console.error(`Cannot delete file '${path}'`);
+    if (error instanceof Error) {
+      console.error(`Cannot delete file '${path}'`);
+    }
     return false;
   }
   return true;

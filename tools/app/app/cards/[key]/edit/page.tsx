@@ -12,7 +12,7 @@
 
 'use client';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { CardMode, MetadataValue } from '@/app/lib/definitions';
+import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
   Box,
@@ -29,6 +29,8 @@ import {
   AspectRatio,
   Grid,
   IconButton,
+  Link,
+  Tooltip,
 } from '@mui/joy';
 
 import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
@@ -42,11 +44,18 @@ import { ContentArea } from '@/app/components/ContentArea';
 import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
 import { Controller, FormProvider, set, useForm } from 'react-hook-form';
+
 import { useAppDispatch, useAppRouter, useAppSelector } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
-import { Delete, InsertDriveFile } from '@mui/icons-material';
+import {
+  AddLink,
+  Delete,
+  Download,
+  Edit,
+  InsertDriveFile,
+} from '@mui/icons-material';
 import {
   addAttachment,
   findCurrentTitleFromADoc,
@@ -55,6 +64,9 @@ import {
 import { apiPaths } from '@/app/lib/swr';
 import { useAttachments } from '@/app/lib/api/attachments';
 import { isEdited, viewChanged } from '@/app/lib/slices/pageState';
+import LoadingGate from '@/app/components/LoadingGate';
+import { openAttachment } from '@/app/lib/api/actions';
+
 import AsciiDoctor from '@asciidoctor/core';
 
 const asciiDoctor = AsciiDoctor();
@@ -65,42 +77,97 @@ function AttachmentPreviewCard({
   name,
   children,
   cardKey,
+  onInsert,
 }: {
   name: string;
   children?: React.ReactNode;
   cardKey: string;
+  onInsert?: () => void;
 }) {
   const { removeAttachment } = useAttachments(cardKey);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const dispatch = useAppDispatch();
+
+  const { t } = useTranslation();
+
   return (
     <Card
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       sx={{
         width: '100%',
         gap: 0,
-        cursor: 'pointer',
+        overflow: 'hidden',
       }}
     >
       <CardOverflow>
-        <IconButton
-          color="danger"
-          variant="solid"
+        <Box
+          position="absolute"
+          top={isHovered ? 0 : -36}
+          right={0}
+          zIndex={1}
           sx={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            zIndex: 1,
-          }}
-          loading={isUpdating}
-          onClick={async (e) => {
-            e.stopPropagation();
-            setIsUpdating(true);
-            await removeAttachment(name);
-            setIsUpdating(false);
+            transition: 'top 0.3s',
           }}
         >
-          <Delete />
-        </IconButton>
+          <Tooltip title={t('delete')}>
+            <IconButton
+              color="danger"
+              variant="solid"
+              loading={isUpdating}
+              onClick={async (e) => {
+                setIsUpdating(true);
+                await removeAttachment(name);
+                setIsUpdating(false);
+              }}
+            >
+              <Delete />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('saveCopy')}>
+            <IconButton variant="solid" color="primary">
+              <Link
+                endDecorator={<Download />}
+                href={apiPaths.attachment(cardKey, name)}
+                download
+                variant="solid"
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('openInEditor')}>
+            <IconButton
+              variant="solid"
+              color="primary"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  await openAttachment(cardKey, name);
+                } catch (error) {
+                  dispatch(
+                    addNotification({
+                      message: error instanceof Error ? error.message : '',
+                      type: 'error',
+                    }),
+                  );
+                }
+              }}
+            >
+              <Edit />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('insertToContent')}>
+            <IconButton
+              variant="solid"
+              color="primary"
+              onClick={(e) => onInsert && onInsert()}
+            >
+              <AddLink />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <AspectRatio
           ratio="1"
           maxHeight={100}
@@ -129,11 +196,24 @@ function AttachmentPreviewCard({
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
 
-  const { project } = useProject();
+  const {
+    project,
+    isLoading: isLoadingProject,
+    error: errorProject,
+  } = useProject();
 
-  const { card, updateCard } = useCard(params.key);
+  const {
+    card,
+    updateCard,
+    isLoading: isLoadingCard,
+    error: errorCard,
+  } = useCard(params.key);
 
-  const { linkTypes } = useLinkTypes();
+  const {
+    linkTypes,
+    isLoading: isLoadingLinkTypes,
+    error: errorLinkTypes,
+  } = useLinkTypes();
 
   const searchParams = useSearchParams();
 
@@ -149,27 +229,26 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const formMethods = useForm();
 
-  const {
-    handleSubmit,
-    control,
-    watch,
-    formState: { isDirty },
-  } = formMethods;
+  const { handleSubmit, control, watch } = formMethods;
 
   const preview = watch();
 
-  const previewCard = useMemo(() => {
-    const { __content__, __title__, ...metadata } = preview;
-    return {
-      ...card!,
-      metadata: {
-        ...card!.metadata!,
-        title: __title__,
-        ...metadata,
-      },
-      content: __content__,
-    };
-  }, [preview, card]);
+  const { __content__, __title__, ...metadata } = preview;
+
+  // Here we assume that metadata contains valid metadata values
+  const previewCard = (
+    card
+      ? {
+          ...card,
+          metadata: {
+            ...card.metadata,
+            title: __title__ ?? card.metadata?.title,
+            ...metadata,
+          },
+          content: __content__ ?? card.content,
+        }
+      : null
+  ) as CardDetails | null;
 
   useEffect(() => {
     if (!card || Object.keys(preview).length === 0) {
@@ -270,6 +349,23 @@ export default function Page({ params }: { params: { key: string } }) {
       }),
     );
   };
+  // For now, simply show loading if any of the data is loading
+  if (isLoadingCard || isLoadingProject || isLoadingLinkTypes) {
+    return <Box>{t('loading')}</Box>;
+  }
+  // If any of the data is missing, just show a message that the card was not found
+  if (!card || !card.metadata || !previewCard || !project || !linkTypes) {
+    return (
+      <Box>
+        {t('failedToLoad')}
+        {': '}
+        {[errorCard, errorProject, errorLinkTypes]
+          .map((error) => (error instanceof Error ? error.message : ''))
+          .filter(Boolean)
+          .join(', ')}
+      </Box>
+    );
+  }
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
@@ -348,7 +444,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <Controller
                     name="__title__"
                     control={control}
-                    defaultValue={card?.metadata?.title || ''}
+                    defaultValue={card.metadata.title}
                     render={({ field: { value, onChange } }: any) => (
                       <Textarea
                         sx={{
@@ -371,7 +467,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <Controller
                     name="__content__"
                     control={control}
-                    defaultValue={card?.content || ''}
+                    defaultValue={card.content}
                     render={({ field: { value, onChange } }: any) => (
                       <CodeMirror
                         value={value}
@@ -420,21 +516,21 @@ export default function Page({ params }: { params: { key: string } }) {
                         display="flex"
                         justifyContent="center"
                         width={146}
-                        onClick={() => {
-                          if (codemirror?.view && card) {
-                            addAttachment(
-                              codemirror.view,
-                              attachment,
-                              card.key,
-                            );
-                          }
-                        }}
                       >
                         <AttachmentPreviewCard
                           name={attachment.fileName}
                           cardKey={params.key}
+                          onInsert={() => {
+                            if (codemirror && codemirror.view && card) {
+                              addAttachment(
+                                codemirror.view,
+                                attachment,
+                                card.key,
+                              );
+                            }
+                          }}
                         >
-                          {attachment.mimeType.startsWith('image') ? (
+                          {attachment.mimeType?.startsWith('image') ? (
                             <Image
                               src={apiPaths.attachment(
                                 card.key,
@@ -460,13 +556,14 @@ export default function Page({ params }: { params: { key: string } }) {
               }}
             >
               <Box height="100%">
-                <ContentArea
-                  card={previewCard}
-                  error={null}
-                  linkTypes={linkTypes}
-                  project={project}
-                  preview={true}
-                />
+                <LoadingGate values={[linkTypes]}>
+                  <ContentArea
+                    card={previewCard}
+                    linkTypes={linkTypes!}
+                    project={project}
+                    preview={true}
+                  />
+                </LoadingGate>
               </Box>
             </TabPanel>
           </Tabs>

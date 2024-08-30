@@ -38,6 +38,7 @@ import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
+import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -267,7 +268,7 @@ export class Create extends EventEmitter {
    * @param {string} projectPath project path
    * @param {string} templateName name of a template to use
    * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the cardroot.
-   * @returns array of card keys that were created.
+   * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
   public async createCard(
     projectPath: string,
@@ -285,7 +286,10 @@ export class Create extends EventEmitter {
     try {
       projectObject = new Project(projectPath);
     } catch (error) {
-      throw new Error(`invalid path '${projectPath}'`);
+      if (error instanceof Error) {
+        throw new Error(`invalid path '${projectPath}'`);
+      }
+      return [];
     }
 
     const templateObject =
@@ -316,8 +320,13 @@ export class Create extends EventEmitter {
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
       this.emit('created', createdCards);
+      // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
+      const sorted = sortItems(createdCards, (item) => {
+        return `${item.parent === templateName ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
+      });
+      return sorted.map((item) => item.key);
     }
-    return createdCards.map((item) => item.key);
+    return [];
   }
 
   /**
@@ -452,16 +461,53 @@ export class Create extends EventEmitter {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const destinationCardPath = await project.pathToCard(destinationCardKey);
-    if (!destinationCardPath) {
+    const destinationCard = await project.findSpecificCard(destinationCardKey, {
+      metadata: true,
+    });
+    if (!destinationCard) {
       throw new Error(
         `Card '${destinationCardKey}' does not exist in the project`,
       );
     }
     // make sure the link type exists
+    const linkTypeObject = await project.linkType(linkType);
 
-    if (!(await this.linkTypeExists(projectPath, linkType))) {
+    if (!linkTypeObject) {
       throw new Error(`Link type '${linkType}' does not exist in the project`);
+    }
+
+    // make sure that if linkDescription is not enabled, linkDescription is not provided
+    if (
+      !linkTypeObject.enableLinkDescription &&
+      linkDescription !== undefined
+    ) {
+      throw new Error(
+        `Link type '${linkType}' does not allow link description`,
+      );
+    }
+
+    // make sure source cardkey exists in the linktype sourceCardTypes
+    // if sourceCardTypes is empty, any card can be linked
+    if (
+      linkTypeObject.sourceCardTypes.length > 0 &&
+      !linkTypeObject.sourceCardTypes.includes(card.metadata?.cardtype || '')
+    ) {
+      throw new Error(
+        `Card type '${card.metadata?.cardtype}' cannot be linked with link type '${linkType}'`,
+      );
+    }
+
+    // make sure destination cardkey exists in the linktype destinationCardTypes
+    // if destinationCardTypes is empty, any card can be linked
+    if (
+      linkTypeObject.destinationCardTypes.length > 0 &&
+      !linkTypeObject.destinationCardTypes.includes(
+        destinationCard.metadata!.cardtype,
+      )
+    ) {
+      throw new Error(
+        `Card type '${destinationCard.metadata!.cardtype}' cannot be linked with link type '${linkType}'`,
+      );
     }
 
     // if contains the same link, do not add it again
@@ -501,7 +547,14 @@ export class Create extends EventEmitter {
     projectPath = resolve(projectPath);
     const projectFolders: string[] = ['.cards/local', 'cardroot'];
     const projectSubFolders: string[][] = [
-      ['calculations', 'cardtypes', 'fieldtypes', 'templates', 'workflows'],
+      [
+        'calculations',
+        'cardtypes',
+        'fieldtypes',
+        'linktypes',
+        'templates',
+        'workflows',
+      ],
       [],
     ];
     const parentFolderToCreate = join(projectPath);
@@ -552,8 +605,10 @@ export class Create extends EventEmitter {
         join(project.fieldtypesFolder, '.gitkeep'),
         this.gitKeepContent,
       );
-    } catch (e) {
-      console.error('Failed to create project');
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Failed to create project');
+      }
     }
   }
 

@@ -65,12 +65,12 @@ describe('project', () => {
     expect(templates.length).to.equal(3);
     if (templates) {
       for (const template of templates) {
-        expect(await project.templateExists(template.name)).to.be.true;
+        expect(await project.templateExists(template.name)).to.equal(true);
         const fetchTemplate = await project.template(template.name);
         expect(fetchTemplate).to.equal(template);
       }
     }
-    expect(await project.templateExists('idontexist')).to.be.false;
+    expect(await project.templateExists('idontexist')).to.equal(false);
 
     const workflows = await project.workflows();
     expect(workflows.length).to.equal(2);
@@ -101,7 +101,7 @@ describe('project', () => {
 
     // Check that invalid workflow name does return correctly
     const initialState = await project.workflowInitialState('idontexist');
-    expect(initialState).to.be.undefined;
+    expect(initialState).to.equal(undefined);
   });
 
   it('create class - show details (success)', async () => {
@@ -352,7 +352,7 @@ describe('project', () => {
         additionalCardDetails.children?.find(
           (item) => item.key === 'decision_6',
         ),
-      ).to.not.be.undefined;
+      ).to.not.equal(undefined);
       expect(additionalCardDetails.parent).to.equal('root');
       expect(additionalCardDetails.content).to.not.equal(undefined);
     }
@@ -471,7 +471,7 @@ describe('project', () => {
     expect(project).to.not.equal(undefined);
 
     const nonExistingCard = await project.findSpecificCard('idontexist');
-    expect(nonExistingCard).to.be.undefined;
+    expect(nonExistingCard).to.equal(undefined);
 
     const existingCard = await project.findSpecificCard('decision_5', {
       content: true,
@@ -485,7 +485,7 @@ describe('project', () => {
     expect(project).to.not.equal(undefined);
 
     const nonExistingCard = await project.findSpecificCard('idontexist');
-    expect(nonExistingCard).to.be.undefined;
+    expect(nonExistingCard).to.equal(undefined);
 
     const existingCard = await project.findSpecificCard('decision_5', {
       content: true,
@@ -497,9 +497,9 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
-    expect(Project.isCreated(decisionRecordsPath)).to.be.true;
-    expect(Project.isCreated('idontexist')).to.be.false;
-    expect(Project.isCreated('')).to.be.false;
+    expect(Project.isCreated(decisionRecordsPath)).to.equal(true);
+    expect(Project.isCreated('idontexist')).to.equal(false);
+    expect(Project.isCreated('')).to.equal(false);
   });
   it('list all project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');

@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc --build --declaration",
     "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
-    "lint": "eslint . --ext .ts --config .eslintrc",
+    "lint": "npx eslint .",
     "test": "npm run lint"
   },
   "keywords": [],
@@ -23,7 +23,8 @@
     "commander": "^12.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.25",
+    "@types/node": "^22.5.0",
+    "eslint": "^9",
     "eslint-config-prettier": "^9.1.0",
     "typescript": "^5.4.2"
   },
