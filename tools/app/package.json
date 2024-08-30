@@ -43,7 +43,7 @@
     "@testing-library/react": "^16.0.0",
     "@types/css-modules": "^1.0.5",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/swagger-ui-react": "^4.18.3",
