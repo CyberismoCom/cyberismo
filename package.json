@@ -45,7 +45,7 @@
         "tools/data-handler/src/",
         "tools/app/"
       ],
-      "extensions": ["ts", "mjs"]
+      "extensions": ["ts", "mjs", "hbs"]
     }
   },
   "workspaces": [
