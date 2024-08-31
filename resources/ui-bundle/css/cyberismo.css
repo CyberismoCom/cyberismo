@@ -32,3 +32,8 @@ footer {
 footer a {
     text-decoration: underline;
 }
+
+/* Remove the unused version context div */
+.nav-panel-explore .context {
+    display: none;
+}
