@@ -10,3 +10,4 @@ compiled/
 examples/
 **/test-data/
 .github/
+*.hbs
