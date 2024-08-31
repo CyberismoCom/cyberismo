@@ -151,26 +151,28 @@ export class Export {
       content += `|Key|${card.key}\n`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
-        const displayName = cardtype?.customFields?.find(
-          (item) => item.name === key,
-        )?.displayName;
-        let nameToShow = displayName
-          ? displayName
-          : key[0].toUpperCase() + key.slice(1);
-        if (nameToShow === 'WorkflowState') {
-          nameToShow = 'Workflow state';
-        } else if (nameToShow === 'Cardtype') {
-          nameToShow = 'Card type';
+        if (cardtype?.alwaysVisibleFields?.includes(key) || cardtype?.optionallyVisibleFields?.includes(key)) {
+          const displayName = cardtype?.customFields?.find(
+            (item) => item.name === key,
+          )?.displayName;
+          let nameToShow = displayName
+            ? displayName
+            : key[0].toUpperCase() + key.slice(1);
+          if (nameToShow === 'WorkflowState') {
+            nameToShow = 'Workflow state';
+          } else if (nameToShow === 'Cardtype') {
+            nameToShow = 'Card type';
+          }
+
+          // Escape pipe character in cell values
+          let escapedValue = 'N/A';
+
+          if (value) {
+            escapedValue = value.toString().replace(/\|/g, '\\|');
+          }
+
+          content += `|${nameToShow}|${escapedValue}\n`;
         }
-
-        // Escape pipe character in cell values
-        let escapedValue = 'N/A';
-
-        if (value) {
-          escapedValue = value.toString().replace(/\|/g, '\\|');
-        }
-
-        content += `|${nameToShow}|${escapedValue}\n`;
       }
       content += '|===\n';
       content += '--\n';
