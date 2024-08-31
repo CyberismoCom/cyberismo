@@ -14,9 +14,10 @@
 import fs from 'node:fs';
 import { copyFile, appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from "url";
 
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
@@ -108,7 +109,7 @@ export class ExportSite extends Export {
       },
       ui: {
         bundle: {
-          url: '/Users/sami/Cyberismo/source/cyberismo/resources/ui-bundle',
+          url: join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'resources/ui-bundle'),
           snapshot: true,
         },
       },
