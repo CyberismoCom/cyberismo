@@ -164,6 +164,8 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                   justifyContent="center"
                   marginTop={2}
                   marginBottom={4}
+                  marginLeft={0}
+                  paddingRight={1}
                 >
                   {templates.map((template) => (
                     <TemplateCard
