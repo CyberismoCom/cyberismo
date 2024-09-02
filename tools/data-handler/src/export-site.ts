@@ -14,9 +14,10 @@
 import fs from 'node:fs';
 import { copyFile, appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'url';
 
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
@@ -103,9 +104,18 @@ export class ExportSite extends Export {
           },
         ],
       },
+      urls: {
+        html_extension_style: 'default',
+      },
       ui: {
         bundle: {
-          url: 'https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable',
+          url: join(
+            dirname(fileURLToPath(import.meta.url)),
+            '..',
+            '..',
+            '..',
+            'resources/ui-bundle',
+          ),
           snapshot: true,
         },
       },
@@ -121,7 +131,7 @@ export class ExportSite extends Export {
     const descriptor = {
       name: 'cards',
       title: projectName,
-      version: '1.0', // TODO: Use the source content commit SHA?
+      version: null,
       nav: ['modules/ROOT/nav.adoc'],
     };
 
@@ -184,11 +194,11 @@ export class ExportSite extends Export {
         const cardTypeForCard = await ExportSite.project.cardType(
           card.metadata?.cardtype,
         );
-        tempContent = super.metaToAdoc(card, cardTypeForCard);
-        tempContent += `\n== ${card.key} `;
+        tempContent = '\n= ';
         tempContent += card.metadata?.title
-          ? `${card.metadata.title}\n`
-          : 'Untitled\n';
+          ? `${card.metadata.title}\n\n`
+          : 'Untitled\n\n';
+        tempContent += super.metaToAdoc(card, cardTypeForCard);
       }
 
       if (card.content) {
@@ -200,11 +210,7 @@ export class ExportSite extends Export {
 
       if (card.children) {
         // Recurse into the child cards
-        await this.toAdocDirectoryAsContent(
-          join(path, card.key),
-          card.children,
-          depth,
-        );
+        await this.toAdocDirectoryAsContent(path, card.children, depth);
       }
 
       if (card.attachments) {

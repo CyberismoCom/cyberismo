@@ -140,27 +140,45 @@ export class Export {
   protected metaToAdoc(card: card, cardtype: cardtype | undefined): string {
     let content = '';
     if (card.metadata) {
-      content = `\n[caption=]`;
-      content += `\n.Details\n`;
+      content += `[.cyberismo-meta-wrapper]\n`;
+      content += '--\n';
+      content += `[.cyberismo-meta]\n`;
       content += '[cols="1,1"]\n';
+      content += '[frame=none]\n';
+      content += '[grid=none]\n';
       content += '|===\n';
       content += '|Field |Value\n\n';
+      content += `|Key|${card.key}\n`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
-        const displayName = cardtype?.customFields?.find(
-          (item) => item.name === key,
-        )?.displayName;
-        let nameToShow = displayName
-          ? displayName
-          : key[0].toUpperCase() + key.slice(1);
-        if (nameToShow === 'WorkflowState') {
-          nameToShow = 'Workflow state';
-        } else if (nameToShow === 'Cardtype') {
-          nameToShow = 'Card type';
+        if (
+          cardtype?.alwaysVisibleFields?.includes(key) ||
+          cardtype?.optionallyVisibleFields?.includes(key)
+        ) {
+          const displayName = cardtype?.customFields?.find(
+            (item) => item.name === key,
+          )?.displayName;
+          let nameToShow = displayName
+            ? displayName
+            : key[0].toUpperCase() + key.slice(1);
+          if (nameToShow === 'WorkflowState') {
+            nameToShow = 'Workflow state';
+          } else if (nameToShow === 'Cardtype') {
+            nameToShow = 'Card type';
+          }
+
+          // Escape pipe character in cell values
+          let escapedValue = 'N/A';
+
+          if (value) {
+            escapedValue = value.toString().replace(/\|/g, '\\|');
+          }
+
+          content += `|${nameToShow}|${escapedValue}\n`;
         }
-        content += `|${nameToShow}|${value}\n`;
       }
       content += '|===\n';
+      content += '--\n';
     }
     return content;
   }

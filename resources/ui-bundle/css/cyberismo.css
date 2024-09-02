@@ -1,0 +1,39 @@
+/** Navbar styling */
+.cyberismo-logo {
+    height: 32px;
+}
+
+/** Headings **/
+
+/* Remove bottom border from subheadings */
+.doc h2:not(.discrete) {
+    border-bottom: none;
+    border-bottom-width: 0;
+}
+
+/* Add margin below the top title */
+.doc h2:first-of-type {
+    margin-bottom: 24px;
+}
+
+/** Metadata table */
+.cyberismo-meta-wrapper {
+    background-color: rgb(240, 244, 248);
+    border-radius: 16px;
+    padding: 1px 24px 16px 24px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    font-size: x-small;
+}
+
+footer a {
+    text-decoration: underline;
+}
+
+/* Remove the unused version context div */
+.nav-panel-explore .context {
+    display: none;
+}
