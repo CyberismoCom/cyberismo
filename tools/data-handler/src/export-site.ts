@@ -59,7 +59,7 @@ export class ExportSite extends Export {
     this.pagesDir = join(this.moduleDir, 'pages');
     this.imagesDir = join(this.moduleDir, 'assets', 'images');
     this.navFile = join(this.moduleDir, 'nav.adoc');
-    
+
     const promiseContainer = [];
     promiseContainer.push(mkdir(this.pagesDir, { recursive: true }));
     promiseContainer.push(mkdir(this.imagesDir, { recursive: true }));
