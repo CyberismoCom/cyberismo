@@ -24,6 +24,7 @@ import {
   Stack,
   Radio,
   ModalClose,
+  CardOverflow,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { Grid } from '@mui/material';
@@ -31,6 +32,7 @@ import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
+import { template } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 interface NewCardModalProps {
   open: boolean;
@@ -59,42 +61,46 @@ export function TemplateCard({
         cursor: 'pointer',
         padding: 0,
         overflow: 'hidden',
+        gap: 0,
+        borderRadius: 16,
       }}
       onClick={onClick}
     >
-      <Stack direction="row" height="50%" flexGrow={0}>
-        <Typography
-          level="title-lg"
-          paddingTop={2}
-          paddingLeft={2}
-          fontWeight="bold"
-        >
-          {name}
-        </Typography>
-        <Box padding={1}>
-          <Radio checked={isChosen} variant="soft" />
-        </Box>
-      </Stack>
-      <Box
-        height="50%"
-        width="100%"
-        overflow="clip"
-        bgcolor="neutral.softBg"
-        flexShrink={0}
+      <Stack
+        direction="row"
+        padding={0}
+        height="75px"
         sx={{
-          borderBottomLeftRadius: 'inherit',
-          borderBottomRightRadius: 'inherit',
+          justifyContent: 'space-between',
         }}
       >
         <Typography
-          level="body-xs"
-          fontWeight="bold"
+          level="title-sm"
           paddingLeft={2}
-          paddingTop={2}
+          fontWeight="bold"
+          textOverflow="clip"
+          marginTop="auto"
+          marginBottom={1}
         >
-          {description}
+          {name}
         </Typography>
-      </Box>
+        <Box padding={1} height="100%">
+          <Radio checked={isChosen} variant="soft" />
+        </Box>
+      </Stack>
+      <CardOverflow>
+        <Box bgcolor="neutral.softBg">
+          <Typography
+            level="body-xs"
+            fontWeight="bold"
+            paddingLeft={2}
+            height="75px"
+            paddingTop={1}
+          >
+            {description}
+          </Typography>
+        </Box>
+      </CardOverflow>
     </Card>
   );
 }
@@ -117,6 +123,19 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     setChosenTemplate(null);
   }, [open]);
 
+  // divide templates into categories
+  const categories = (templates || []).reduce<Record<string, template[]>>(
+    (acc, template) => {
+      const category = template.metadata.category || 'Uncategorized';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(template);
+      return acc;
+    },
+    {},
+  );
+
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog>
@@ -127,26 +146,38 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             padding: 2,
           }}
         >
-          <Grid
-            container
-            spacing={2}
-            columnGap={2}
-            justifyContent="center"
+          <Box
             sx={{
               overflowY: 'scroll',
             }}
           >
-            {(templates || []).map((template) => (
-              <Grid key={template.name} item>
-                <TemplateCard
-                  isChosen={chosenTemplate === template.name}
-                  onClick={() => setChosenTemplate(template.name)}
-                  name={template.metadata.displayName ?? template.name}
-                  description={template.metadata.description ?? ''}
-                />
-              </Grid>
+            {Object.entries(categories).map(([category, templates]) => (
+              <Stack>
+                <Typography level="title-sm" color="neutral">
+                  {category}
+                </Typography>
+                <Grid
+                  container
+                  spacing={2}
+                  columnGap={2}
+                  rowGap={2}
+                  justifyContent="center"
+                  marginTop={2}
+                  marginBottom={4}
+                >
+                  {templates.map((template) => (
+                    <TemplateCard
+                      key={template.name}
+                      isChosen={chosenTemplate === template.name}
+                      onClick={() => setChosenTemplate(template.name)}
+                      name={template.metadata.displayName ?? template.name}
+                      description={template.metadata.description ?? ''}
+                    />
+                  ))}
+                </Grid>
+              </Stack>
             ))}
-          </Grid>
+          </Box>
           <DialogActions>
             <Button
               disabled={chosenTemplate === null}
