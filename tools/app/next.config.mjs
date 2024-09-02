@@ -13,7 +13,7 @@ const nextConfig = {
       {
         source: '/:path*.html',
         destination: '/:path*',
-        permanent: false
+        permanent: false,
       },
     ];
   },

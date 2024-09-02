@@ -17,7 +17,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from "url";
+import { fileURLToPath } from 'url';
 
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
@@ -105,11 +105,17 @@ export class ExportSite extends Export {
         ],
       },
       urls: {
-        html_extension_style: 'default'
+        html_extension_style: 'default',
       },
       ui: {
         bundle: {
-          url: join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'resources/ui-bundle'),
+          url: join(
+            dirname(fileURLToPath(import.meta.url)),
+            '..',
+            '..',
+            '..',
+            'resources/ui-bundle',
+          ),
           snapshot: true,
         },
       },
@@ -188,7 +194,7 @@ export class ExportSite extends Export {
         const cardTypeForCard = await ExportSite.project.cardType(
           card.metadata?.cardtype,
         );
-        tempContent = "\n= ";
+        tempContent = '\n= ';
         tempContent += card.metadata?.title
           ? `${card.metadata.title}\n\n`
           : 'Untitled\n\n';
@@ -204,11 +210,7 @@ export class ExportSite extends Export {
 
       if (card.children) {
         // Recurse into the child cards
-        await this.toAdocDirectoryAsContent(
-          path,
-          card.children,
-          depth,
-        );
+        await this.toAdocDirectoryAsContent(path, card.children, depth);
       }
 
       if (card.attachments) {

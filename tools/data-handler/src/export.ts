@@ -151,7 +151,10 @@ export class Export {
       content += `|Key|${card.key}\n`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
-        if (cardtype?.alwaysVisibleFields?.includes(key) || cardtype?.optionallyVisibleFields?.includes(key)) {
+        if (
+          cardtype?.alwaysVisibleFields?.includes(key) ||
+          cardtype?.optionallyVisibleFields?.includes(key)
+        ) {
           const displayName = cardtype?.customFields?.find(
             (item) => item.name === key,
           )?.displayName;
