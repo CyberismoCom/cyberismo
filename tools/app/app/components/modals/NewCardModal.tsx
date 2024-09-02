@@ -152,7 +152,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             }}
           >
             {Object.entries(categories).map(([category, templates]) => (
-              <Stack>
+              <Stack key={category}>
                 <Typography level="title-sm" color="neutral">
                   {category}
                 </Typography>
