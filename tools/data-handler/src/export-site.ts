@@ -94,7 +94,7 @@ export class ExportSite extends Export {
     const playbook = {
       site: {
         title: ExportSite.project.configuration.name,
-        start_page: `cards:ROOT:${startPage}`
+        start_page: `cards:ROOT:${startPage}`,
       },
       content: {
         sources: [
