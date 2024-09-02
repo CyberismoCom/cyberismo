@@ -197,7 +197,6 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                         type: 'success',
                       }),
                     );
-                    throw new Error('Not implemented');
 
                     if (cards && cards.length > 0) {
                       router.push(`/cards/${cards[0]}`);
