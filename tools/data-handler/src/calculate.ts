@@ -17,7 +17,7 @@ import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 // ismo
-import { card } from './interfaces/project-interfaces.js';
+import { card, link } from './interfaces/project-interfaces.js';
 import { deleteFile, pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 
@@ -112,6 +112,10 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
           if (field === 'labels') {
             for (const label of value as Array<string>) {
               logicProgram += `label(${card.key}, "${label}").\n`;
+            }
+          } else if (field === 'links') {
+            for (const link of value as Array<link>) {
+              logicProgram += `link(${card.key}, ${link.cardKey}, "${link.linkType}"${link.linkDescription != null ? `, "${link.linkDescription}"` : ''}).\n`;
             }
           } else {
             logicProgram += `field(${card.key}, "${field}", "${value}").\n`;
