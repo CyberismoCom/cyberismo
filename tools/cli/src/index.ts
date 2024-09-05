@@ -23,7 +23,7 @@ import {
 function handleResponse(response: requestStatus) {
   if (response.statusCode === 200) {
     if (response.payload) {
-      console.log(response.payload);
+      console.log(JSON.stringify(response.payload, null, 2));
     } else if (response.message) {
       console.log(response.message);
     } else {

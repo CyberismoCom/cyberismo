@@ -30,7 +30,7 @@ interface Result {
     editField: { fieldName: string; errorMessage: string }[];
     editContent: { errorMessage: string }[];
   };
-  results?: Result[]; // Nested results
+  results: Result[]; // Nested results
   [key: string]: any;
 }
 
@@ -170,6 +170,7 @@ class ClingoParser {
         key,
         labels: [],
         links: [],
+        results: [],
         policyChecks: { successes: [], failures: [] },
         deniedOperations: {
           transition: [],
@@ -217,7 +218,6 @@ class ClingoParser {
     this.childResultQueue.forEach(({ parentKey, childKey }) => {
       const parent = this.getOrInitResult(parentKey);
       const child = this.getOrInitResult(childKey);
-      parent.results = parent.results || [];
       parent.results.push(child);
     });
 
