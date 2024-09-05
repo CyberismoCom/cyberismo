@@ -73,7 +73,11 @@ class ClingoParser {
     direction: 'ASC' | 'DESC';
   }[] = [];
 
-  // Simplified command handlers
+  /**
+   * Command handlers for each possible keyword
+   * All of them will get parameters as strings
+   * You can trust that clingo will always provide the correct number of parameters / types
+   */
   private commandHandlers: { [command: string]: Function } = {
     query_error: (message: string, ...params: string[]) => {
       this.result.error = message;
@@ -150,14 +154,15 @@ class ClingoParser {
     },
     order: (
       level: string,
-      fieldIndex: number,
+      fieldIndex: string,
       field: string,
       direction: 'ASC' | 'DESC',
     ) => {
       const parsedLevel = parseInt(level, 10);
+      const parsedFieldIndex = parseInt(fieldIndex, 10);
       this.orderQueue.push({
         level: parsedLevel,
-        fieldIndex,
+        fieldIndex: parsedFieldIndex,
         field,
         direction,
       });
