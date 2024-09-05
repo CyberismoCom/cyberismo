@@ -334,14 +334,15 @@ export class Calculate {
   ): Promise<ParseResult | undefined> {
     Calculate.project = new Project(projectPath);
 
-    const card = await Calculate.project.findSpecificCard(cardKey);
+    /*     const card = await Calculate.project.findSpecificCard(cardKey);
     if (!card) {
       throw new Error(`Card '${cardKey}' not found`);
     }
-    /* const text = `
+    const text = `
     select_all.
     result(${card.key}).
     order_by("title", "ASC").`;*/
+    /*
     const text = `
     select_all.
 
@@ -350,6 +351,7 @@ child_result(X, Y) :- result(X), parent(Y, X).
 child_result(X, Y) :- child_result(X), parent(Y, X).
 
 order_by("rank", "DESC").`;
+*/
     const main = join(
       Calculate.project.calculationFolder,
       Calculate.mainLogicFileName,
@@ -359,14 +361,22 @@ order_by("rank", "DESC").`;
       Calculate.queryLanguageFileName,
     );
 
-    const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
+    const file = join(process.cwd(), cardKey);
+
+    const args = [
+      '-',
+      '--outf=0',
+      '--out-ifs=\\n',
+      '-V0',
+      main,
+      queryLanguage,
+      file,
+    ];
     const clingo = spawnSync(this.logicBinaryName, args, {
       encoding: 'utf8',
-      input: text,
     });
     // print the command
     console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
-    console.log(`With query: ${text}`);
 
     if (clingo.stdout) {
       console.log(`Clingo output: \n${clingo.stdout}`);
