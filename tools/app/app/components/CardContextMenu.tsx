@@ -56,19 +56,22 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
   return (
     <>
       <Dropdown>
-        <MenuButton size="sm">
+        <MenuButton data-cy="contextMenuButton" size="sm">
           <MoreIcon />
         </MenuButton>
         <Menu>
           <MenuItem onClick={openModal('metadata')}>{t('metadata')}</MenuItem>
           <Divider />
-          <MenuItem onClick={openModal('delete')}>
+          <MenuItem data-cy="deleteCardButton" onClick={openModal('delete')}>
             <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
-          <MenuItem onClick={openModal('move')}>
+          <MenuItem id="moveCardButton" onClick={openModal('move')}>
             <Typography>{t('move')}</Typography>
           </MenuItem>
-          <MenuItem onClick={openModal('addAttachment')}>
+          <MenuItem
+            data-cy="addAttachmentButton"
+            onClick={openModal('addAttachment')}
+          >
             <Typography>{t('addAttachment')}</Typography>
           </MenuItem>
         </Menu>

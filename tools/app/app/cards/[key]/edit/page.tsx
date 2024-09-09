@@ -160,6 +160,7 @@ function AttachmentPreviewCard({
           </Tooltip>
           <Tooltip title={t('insertToContent')}>
             <IconButton
+              data-cy="insertToContentButton"
               variant="solid"
               color="primary"
               onClick={(e) => onInsert && onInsert()}
@@ -428,8 +429,8 @@ export default function Page({ params }: { params: { key: string } }) {
                 width: '70%',
               }}
             >
-              <Tab>{t('edit')}</Tab>
-              <Tab>{t('preview')}</Tab>
+              <Tab data-cy="editTab">{t('edit')}</Tab>
+              <Tab data-cy="previewTab">{t('preview')}</Tab>
             </TabList>
             <TabPanel
               value={0}

@@ -34,6 +34,7 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <Button
+        data-cy="createNewCardButton"
         variant="plain"
         sx={{
           bgcolor: 'black',

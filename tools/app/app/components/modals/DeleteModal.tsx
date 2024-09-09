@@ -126,6 +126,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
           )}
           <DialogActions>
             <Button
+              data-cy="confirmDeleteButton"
               onClick={handleDelete}
               color="danger"
               disabled={warning != null && !checked}

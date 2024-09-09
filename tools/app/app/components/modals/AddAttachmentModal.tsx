@@ -89,7 +89,11 @@ export function AddAttachmentModal({
               >
                 <Typography>{t('addAttachmentModal.dragNdrop')}</Typography>
                 <Typography>{t('or')}</Typography>
-                <Button variant="outlined" component="label">
+                <Button
+                  data-cy="fileUploadButton"
+                  variant="outlined"
+                  component="label"
+                >
                   {t('addAttachmentModal.browseFiles')}
                   <input
                     type="file"
@@ -127,6 +131,7 @@ export function AddAttachmentModal({
           </Box>
           <DialogActions>
             <Button
+              data-cy="confirmAddAttachmentButton"
               disabled={files.length === 0 || isUpdating}
               color="primary"
               onClick={async () => {

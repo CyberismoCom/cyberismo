@@ -83,6 +83,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
 
       {mode === CardMode.EDIT && (
         <Button
+          id="cancelButton"
           variant="plain"
           aria-label="cancel"
           size="sm"
@@ -104,6 +105,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         <Button
           variant="solid"
           aria-label="edit"
+          data-cy="editButton"
           size="sm"
           startDecorator={<EditIcon />}
           style={{ marginLeft: 16, minWidth: 80 }}
@@ -118,6 +120,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           variant="solid"
           size="sm"
           aria-label="update"
+          data-cy="updateButton"
           style={{ marginLeft: 16, minWidth: 80 }}
           onClick={onUpdate}
           disabled={isUpdating}
