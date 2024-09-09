@@ -30,7 +30,7 @@
     "html-react-parser": "^5.1.12",
     "i18next": "^23.11.5",
     "moment": "^2.30.1",
-    "next": "14.2.7",
+    "next": "14.2.8",
     "node-html-parser": "^6.1.13",
     "react": "^18",
     "react-arborist": "^3.4.0",
