@@ -14,7 +14,6 @@
 import { useState } from 'react';
 import { TreeMenu } from '../components/TreeMenu';
 import AppToolbar from '../components/AppToolbar';
-import { CssBaseline, Snackbar } from '@mui/material';
 
 import {
   Stack,
@@ -25,6 +24,8 @@ import {
   Container,
   Alert,
   IconButton,
+  Snackbar,
+  CssBaseline,
 } from '@mui/joy';
 import { useProject } from '../lib/api';
 import { SWRConfig } from 'swr';
@@ -32,8 +33,8 @@ import { getSwrConfig } from '../lib/swr';
 import theme from '../theme';
 import '../lib/i18n';
 import {
-  experimental_extendTheme as materialExtendTheme,
-  Experimental_CssVarsProvider as MaterialCssVarsProvider,
+  createTheme,
+  ThemeProvider,
   THEME_ID as MATERIAL_THEME_ID,
 } from '@mui/material/styles';
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
@@ -106,41 +107,35 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
       {notifications.map((notification, index) => (
         <Snackbar
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-          TransitionProps={{
-            onExited: () => dispatch(removeNotification(notification.id)),
-          }}
           key={notification.id}
           open={!notification.closed}
           sx={{
-            marginBottom: index * 8,
-            transition: 'margin 0.5s',
+            marginBottom: index * 9,
           }}
           autoHideDuration={4000}
-          onClose={(e) => {
-            if (e === null) {
-              // this means auto hide
-              dispatch(closeNotification(notification.id));
-            }
+          color={notification.type === 'error' ? 'danger' : 'success'}
+          variant="solid"
+          onClose={(_, reason) => {
+            if (reason === 'clickaway') return;
+            dispatch(closeNotification(notification.id));
           }}
+          onUnmount={() => {
+            dispatch(removeNotification(notification.id));
+          }}
+          endDecorator={
+            <IconButton
+              variant="plain"
+              size="sm"
+              color="neutral"
+              onClick={() => {
+                dispatch(closeNotification(notification.id));
+              }}
+            >
+              <CloseRounded />
+            </IconButton>
+          }
         >
-          <Alert
-            color={notification.type === 'error' ? 'danger' : 'success'}
-            sx={{ width: '100%' }}
-            endDecorator={
-              <IconButton
-                variant="plain"
-                size="sm"
-                color="neutral"
-                onClick={() => {
-                  dispatch(closeNotification(notification.id));
-                }}
-              >
-                <CloseRounded />
-              </IconButton>
-            }
-          >
-            {notification.message}
-          </Alert>
+          {notification.message}
         </Snackbar>
       ))}
     </Stack>
@@ -173,13 +168,13 @@ function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-const materialTheme = materialExtendTheme();
+const materialTheme = createTheme();
 
 export default function CardsLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <MaterialCssVarsProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
+    <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
       <JoyCssVarsProvider theme={theme}>
         <CssBaseline />
         <StoreProvider>
@@ -192,6 +187,6 @@ export default function CardsLayout({
           </SWRConfig>
         </StoreProvider>
       </JoyCssVarsProvider>
-    </MaterialCssVarsProvider>
+    </ThemeProvider>
   );
 }

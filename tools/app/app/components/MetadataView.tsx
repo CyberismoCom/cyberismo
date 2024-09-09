@@ -13,7 +13,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCardType, useFieldTypes } from '../lib/api';
 import { useTranslation } from 'react-i18next';
-import { Box, Link, Stack } from '@mui/joy';
+import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
   Controller,
   FormProvider,
@@ -26,7 +26,6 @@ import {
   FieldTypeDefinition,
   MetadataValue,
 } from '../lib/definitions';
-import { Collapse } from '@mui/material';
 import EditableField from './EditableField';
 
 export interface MetadataViewProps {
@@ -132,28 +131,32 @@ function MetadataView({
     >
       <Stack flexGrow={1} spacing={1} paddingY={2}>
         {allFields.map(({ name, dataType, enumValues, displayName }) => (
-          <Collapse
-            in={cardType?.alwaysVisibleFields?.includes(name) || expanded}
+          <Accordion
+            expanded={cardType?.alwaysVisibleFields?.includes(name) || expanded}
             key={name}
           >
-            <Controller
-              name={name}
-              control={context?.control}
-              defaultValue={metadata?.[name] ?? null}
-              render={({ field: { value, onChange } }: any) => {
-                return (
-                  <EditableField
-                    value={value}
-                    dataType={dataType}
-                    edit={(editMode && editableFields.includes(name)) ?? false}
-                    onChange={(e) => handleChange(e, onChange, dataType)}
-                    enumValues={enumValues}
-                    label={displayName || name}
-                  />
-                );
-              }}
-            />
-          </Collapse>
+            <AccordionDetails>
+              <Controller
+                name={name}
+                control={context?.control}
+                defaultValue={metadata?.[name] ?? null}
+                render={({ field: { value, onChange } }: any) => {
+                  return (
+                    <EditableField
+                      value={value}
+                      dataType={dataType}
+                      edit={
+                        (editMode && editableFields.includes(name)) ?? false
+                      }
+                      onChange={(e) => handleChange(e, onChange, dataType)}
+                      enumValues={enumValues}
+                      label={displayName || name}
+                    />
+                  );
+                }}
+              />
+            </AccordionDetails>
+          </Accordion>
         ))}
       </Stack>
       {!(allFieldKeys.length === cardType?.alwaysVisibleFields?.length) && (

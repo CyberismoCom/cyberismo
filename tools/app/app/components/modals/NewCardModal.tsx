@@ -25,9 +25,9 @@ import {
   Radio,
   ModalClose,
   CardOverflow,
+  Grid,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { Grid } from '@mui/material';
 import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { useAppRouter } from '@/app/lib/hooks';
