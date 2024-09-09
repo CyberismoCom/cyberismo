@@ -10,28 +10,43 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-interface Result {
+interface Link {
+  key: string;
+  linkType: string;
+  displayName: string;
+  linkDescription?: string;
+}
+
+interface PolicyCheckCollection {
+  successes: { testSuite: string; testCase: string }[];
+  failures: { testSuite: string; testCase: string; errorMessage: string }[];
+}
+
+interface DeniedOperationCollection {
+  transition: { transitionName: string; errorMessage: string }[];
+  move: { errorMessage: string }[];
+  delete: { errorMessage: string }[];
+  editField: { fieldName: string; errorMessage: string }[];
+  editContent: { errorMessage: string }[];
+}
+
+interface Result
+  extends Record<
+    string,
+    | string
+    | string[]
+    | Link[]
+    | PolicyCheckCollection
+    | DeniedOperationCollection
+    | Result[]
+    | null
+  > {
   key: string;
   labels: string[];
-  links: {
-    key: string;
-    linkType: string;
-    displayName: string;
-    linkDescription?: string;
-  }[];
-  policyChecks: {
-    successes: { testSuite: string; testCase: string }[];
-    failures: { testSuite: string; testCase: string; errorMessage: string }[];
-  };
-  deniedOperations: {
-    transition: { transitionName: string; errorMessage: string }[];
-    move: { errorMessage: string }[];
-    delete: { errorMessage: string }[];
-    editField: { fieldName: string; errorMessage: string }[];
-    editContent: { errorMessage: string }[];
-  };
+  links: Link[];
+  policyChecks: PolicyCheckCollection;
+  deniedOperations: DeniedOperationCollection;
   results: Result[]; // Nested results
-  [key: string]: any;
 }
 
 export interface ParseResult {
@@ -199,6 +214,9 @@ class ClingoParser {
       results.sort((a, b) => {
         for (const { field, direction } of levelOrders) {
           const sortOrder = direction === 'ASC' ? 1 : -1;
+
+          if (!a[field]) return sortOrder;
+          if (!b[field]) return -sortOrder;
           const comparison = a[field] < b[field] ? sortOrder : -sortOrder;
           if (comparison !== 0) return comparison; // If not equal, stop and return result
         }
