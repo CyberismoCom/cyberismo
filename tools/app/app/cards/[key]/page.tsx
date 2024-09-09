@@ -70,10 +70,18 @@ export default function Page({ params }: { params: { key: string } }) {
             project={project}
             onLinkFormSubmit={async (data) => {
               try {
+                const linkType = linkTypes?.find(
+                  (lt) => lt.name === data.linkType,
+                );
+                if (!linkType) {
+                  throw new Error('Link type not found');
+                }
                 await createLink(
                   data.cardKey,
                   data.linkType,
-                  data.linkDescription,
+                  linkType.enableLinkDescription
+                    ? data.linkDescription
+                    : undefined,
                 );
                 return true;
               } catch (error) {
