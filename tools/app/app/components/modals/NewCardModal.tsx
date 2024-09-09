@@ -53,6 +53,7 @@ export function TemplateCard({
 }) {
   return (
     <Card
+      className="templateCard"
       variant="outlined"
       sx={{
         height: '200px',
@@ -186,6 +187,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
           </Box>
           <DialogActions>
             <Button
+              data-cy="confirmCreateButton"
               disabled={chosenTemplate === null}
               onClick={async () => {
                 if (chosenTemplate) {
