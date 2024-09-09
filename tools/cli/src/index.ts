@@ -48,16 +48,6 @@ function parseSupportedTypes(value: string): string {
   return parseTypes(commandHandler.allAllowedTypes(), value);
 }
 
-// Parse allowed subcommands for calc command.
-function parseCalcSubCommands(value: string): string {
-  if (value === 'run' || value === 'generate') {
-    return value;
-  }
-  console.error(`Unknown subcommand: '${value}'`);
-  console.error('Supported subcommands for "calc" are: generate, run');
-  return '';
-}
-
 // Commander
 const program = new Command();
 
@@ -69,8 +59,6 @@ const nameGuideline =
   '\nName can contain letters (a-z|A-Z), spaces, underscores or hyphens.';
 const pathGuideline =
   'Path to the project root. Mandatory if not running inside a project tree.';
-const subCalcCommandGuideline =
-  'Supported subcommands are: \n"generate" that generates a new logic program, \n"run" that executes already generated logic program.';
 
 program.name('cards').description('CLI tool to handle tasks.').version('1.0.0');
 
@@ -105,30 +93,37 @@ program
     },
   );
 
-// Calculate - both generate a logic program and execute one.
-program
+const calculate = program
   .command('calc')
-  .description('Either generates or runs a logic program.')
-  .argument('<subcommand>', subCalcCommandGuideline, parseCalcSubCommands)
-  .argument(
-    '[cardkey]',
-    'Cardkey of card; if omitted "calc generate" affects the whole cardtree. "calc run" always needs "card key"',
-  )
+  .description('Used for running logic programs');
+
+calculate
+  .command('generate')
+  .description('Generate a logic program')
+  .argument('[cardKey]', 'If given, calculates on the subtree of the card')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option('-g, --ground-only', 'Only for "run"; ...')
-  .option('-s, --solve-only', 'Only for "run"; ...')
-  .action(
-    async (subcommand: string, cardkey: string, options: CardsOptions) => {
-      if (subcommand !== '') {
-        const result = await commandHandler.command(
-          Cmd.calc,
-          [subcommand, cardkey],
-          options,
-        );
-        handleResponse(result);
-      }
-    },
-  );
+  .action(async (filePath: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.calc,
+      ['generate', filePath],
+      options,
+    );
+    handleResponse(result);
+  });
+
+calculate
+  .command('run')
+  .description('Run a logic program')
+  .argument('<filePath>', 'Path to the logic program')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (filePath: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.calc,
+      ['run', filePath],
+      options,
+    );
+    handleResponse(result);
+  });
 
 // Create command and the subcommands
 const create = program.command('create');

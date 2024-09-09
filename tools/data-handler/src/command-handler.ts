@@ -246,7 +246,15 @@ export class Commands {
       }
       if (command === Cmd.calc) {
         const [command, cardKey] = args;
-        return this.calculate(command, options, cardKey); // todo: params are in wrong order
+        if (command === 'run') {
+          if (!cardKey) {
+            return { statusCode: 400, message: 'Card key is missing' };
+          }
+          return this.runLogicProgram(this.projectPath, cardKey);
+        }
+        if (command === 'generate') {
+          return this.generateLogicProgram(this.projectPath, cardKey);
+        }
       }
       if (command === Cmd.create) {
         const target = args.splice(0, 1)[0];
@@ -429,40 +437,46 @@ export class Commands {
       };
     }
   }
-
   /**
-   * Calculate logic program.
-   * @param command Specific calculate command to execute. Supported values: generate, run
-   * @param options Options for the command. See below.
-   * @param cardKey Optional, parent cardKey, if any. If omitted, the calculations will be done for the whole card-tree.
-   * @details Options can contain two command specific options:
-   *          grounding - (description omitted)
-   *          solving - (description omitted)
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
+   * Runs a given logic program along with the query-language
+   * @param projectPath Path to the project
+   * @param filePath Path to the file
+   * @returns
    */
-  private async calculate(
-    command: string,
-    options: CardsOptions,
-    cardKey?: string,
+  private async runLogicProgram(
+    projectPath: string,
+    filePath: string,
   ): Promise<requestStatus> {
-    if (command === 'generate') {
-      this.calcCmd.generate(options?.projectPath || '', cardKey);
-      return { statusCode: 200 };
-    } else if (command === 'run') {
-      if (!cardKey) {
-        return { statusCode: 400, message: `"${command}" requires cardkey` };
-      }
+    try {
       return {
         statusCode: 200,
-        payload: await this.calcCmd.run(options?.projectPath || '', cardKey),
+        payload: await this.calcCmd.run(
+          projectPath,
+          join(process.cwd(), filePath),
+        ),
       };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
     }
-    return {
-      statusCode: 400,
-      message: `Invalid command for calculation ${command}`,
-    };
+  }
+
+  /**
+   * Generates logic program for a card.
+   * @param projectPath Optional, path to the project. If omitted, project is set from current path.
+   * @param cardKey optional, if defined, logic program is generated for the subtree of the card
+   * @returns statusCode 200 when operation succeeded
+   * <br> statusCode 500 when there was a internal problem generating logic program
+   */
+  private async generateLogicProgram(
+    projectPath?: string,
+    cardKey?: string,
+  ): Promise<requestStatus> {
+    try {
+      await this.calcCmd.generate(projectPath || '', cardKey);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
   }
 
   /**

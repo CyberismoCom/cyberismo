@@ -323,35 +323,15 @@ export class Calculate {
   /**
    * Runs a logic program.
    *
-   * @param {string} projectPath Path to a project
-   * @param {string} cardKey Optional, if missing the calculations are run for the whole cardtree.
-   *                         If defined, calculates only subtree.
+   * @param projectPath Path to a project
+   * @param filePath Path to a query file to be run in relation to current working directory
    * @returns parsed program output
    */
   public async run(
     projectPath: string,
-    cardKey: string,
+    filePath: string,
   ): Promise<ParseResult | undefined> {
     Calculate.project = new Project(projectPath);
-
-    /*     const card = await Calculate.project.findSpecificCard(cardKey);
-    if (!card) {
-      throw new Error(`Card '${cardKey}' not found`);
-    }
-    const text = `
-    select_all.
-    result(${card.key}).
-    order_by("title", "ASC").`;*/
-    /*
-    const text = `
-    select_all.
-
-result(X) :- parent(X, cisms_56).
-child_result(X, Y) :- result(X), parent(Y, X).
-child_result(X, Y) :- child_result(X), parent(Y, X).
-
-order_by("rank", "DESC").`;
-*/
     const main = join(
       Calculate.project.calculationFolder,
       Calculate.mainLogicFileName,
@@ -361,8 +341,6 @@ order_by("rank", "DESC").`;
       Calculate.queryLanguageFileName,
     );
 
-    const file = join(process.cwd(), cardKey);
-
     const args = [
       '-',
       '--outf=0',
@@ -370,7 +348,7 @@ order_by("rank", "DESC").`;
       '-V0',
       main,
       queryLanguage,
-      file,
+      filePath,
     ];
     const clingo = spawnSync(this.logicBinaryName, args, {
       encoding: 'utf8',
