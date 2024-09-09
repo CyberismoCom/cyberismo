@@ -27,6 +27,7 @@ import { card } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { Export } from './export.js';
 import { Project } from './containers/project.js';
+import { sortItems } from './utils/lexorank.js';
 
 export class ExportSite extends Export {
   private tmpDir: string = '';
@@ -178,6 +179,11 @@ export class ExportSite extends Export {
     depth: number,
   ) {
     depth++;
+
+    // Sort the cards by rank
+    cards = sortItems(cards, function (card) {
+      return card.metadata?.rank || '1|z';
+    });
 
     // Ensure the target path exists
     await mkdir(path, { recursive: true });
