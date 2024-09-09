@@ -55,8 +55,8 @@ export function TemplateCard({
     <Card
       variant="outlined"
       sx={{
-        height: '150px',
-        width: '150px',
+        height: '200px',
+        width: '200px',
         boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.5)',
         cursor: 'pointer',
         padding: 0,
@@ -69,7 +69,7 @@ export function TemplateCard({
       <Stack
         direction="row"
         padding={0}
-        height="75px"
+        height="50%"
         sx={{
           justifyContent: 'space-between',
         }}
@@ -88,13 +88,17 @@ export function TemplateCard({
           <Radio checked={isChosen} variant="soft" />
         </Box>
       </Stack>
-      <CardOverflow>
-        <Box bgcolor="neutral.softBg">
+      <CardOverflow
+        sx={{
+          height: '50%',
+        }}
+      >
+        <Box bgcolor="neutral.softBg" height="100%">
           <Typography
             level="body-xs"
             fontWeight="bold"
             paddingLeft={2}
-            height="75px"
+            height="100%"
             paddingTop={1}
           >
             {description}
