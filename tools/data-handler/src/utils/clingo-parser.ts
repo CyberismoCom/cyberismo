@@ -88,6 +88,17 @@ class ClingoParser {
     direction: 'ASC' | 'DESC';
   }[] = [];
 
+  private reset() {
+    this.result = {
+      results: [],
+      error: null,
+    };
+    this.resultQueue = [];
+    this.childResultQueue = [];
+    this.tempResults = {};
+    this.orderQueue = [];
+  }
+
   /**
    * Command handlers for each possible keyword
    * All of them will get parameters as strings
@@ -96,7 +107,7 @@ class ClingoParser {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private commandHandlers: Record<string, Function> = {
     query_error: (message: string, ...params: string[]) => {
-      this.result.error = `${message} ${params.join(', ')}`;
+      this.result.error = `${message}${params.length > 1 ? ` ${params.join(', ')}` : ''}`;
     },
     result: (key: string) => {
       this.resultQueue.push({ key });
@@ -204,7 +215,7 @@ class ClingoParser {
     }
     return this.tempResults[key];
   }
-  private sortByLevel(results: Result[], level: number) {
+  private sortByLevel(results: Result[], level: number = 1) {
     // Get all the orders for the current hierarchy level
     const levelOrders = this.orderQueue
       .filter((order) => order.level === level)
@@ -214,7 +225,7 @@ class ClingoParser {
     if (levelOrders.length > 0) {
       results.sort((a, b) => {
         for (const { field, direction } of levelOrders) {
-          const sortOrder = direction === 'ASC' ? 1 : -1;
+          const sortOrder = direction === 'ASC' ? -1 : 1;
 
           if (!a[field]) return sortOrder;
           if (!b[field]) return -sortOrder;
@@ -245,11 +256,7 @@ class ClingoParser {
       parent.results.push(child);
     });
 
-    // Apply sorting for each level in the orderQueue
-    const maxLevel = Math.max(...this.orderQueue.map((o) => o.level), 1);
-    for (let level = 1; level <= maxLevel; level++) {
-      this.sortByLevel(this.result.results, level);
-    }
+    this.sortByLevel(this.result.results);
   }
 
   public parseInput(input: string): ParseResult {
@@ -271,7 +278,12 @@ class ClingoParser {
     }
 
     this.applyResultProcessing();
-    return this.result;
+    const result = this.result;
+
+    // reset the parser state
+    this.reset();
+
+    return result;
   }
 }
 
