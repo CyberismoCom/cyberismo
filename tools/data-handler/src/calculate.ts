@@ -21,7 +21,7 @@ import { card, link } from './interfaces/project-interfaces.js';
 import { copyDir, deleteFile, pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { fileURLToPath } from 'node:url';
-import ClingoParser, { ParseResult } from './utils/ClingoParser.js';
+import ClingoParser, { ParseResult } from './utils/clingo-parser.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -34,7 +34,7 @@ export class Calculate {
   private static queryLanguageFileName: string = 'query_language.lp';
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../calc/common',
+    '../../../../calculations/common',
   );
 
   private clingoParser: ClingoParser = new ClingoParser();

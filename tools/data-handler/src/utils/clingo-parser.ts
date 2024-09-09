@@ -40,7 +40,7 @@ export interface ParseResult {
 }
 
 class ClingoParser {
-  private possibleKeywords = [
+  private keywords = [
     'query_error',
     'result',
     'child_result',
@@ -234,9 +234,7 @@ class ClingoParser {
   }
 
   public parseInput(input: string): ParseResult {
-    const regex = new RegExp(
-      `(${this.possibleKeywords.join('|')})\\(([^)]*)\\)`,
-    );
+    const regex = new RegExp(`(${this.keywords.join('|')})\\(([^)]*)\\)`);
     const lines = input.split('\n');
 
     for (const line of lines) {
