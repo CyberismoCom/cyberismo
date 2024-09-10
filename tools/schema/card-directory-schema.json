@@ -11,7 +11,7 @@
     "name": {
       "description": "The name of the card directory is the card key, for example ABC-123",
       "type": "string",
-      "pattern": "^[a-z]+_[0-9]+$"
+      "pattern": "^[a-z]+_[0-9a-z]+$"
     },
     "files": {
       "type": "object",
@@ -45,7 +45,7 @@
             "directories": {
               "type": "object",
               "patternProperties": {
-                "^[a-z]+_[0-9]+$": {
+                "^[a-z]+_[0-9a-z]+$": {
                   "description": "A directory that contains a child card. The name of the directory is the cardkey, for example ABC-123.",
                   "$ref": "#"
                 }

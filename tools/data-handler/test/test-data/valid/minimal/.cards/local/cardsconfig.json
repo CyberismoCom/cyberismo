@@ -1,5 +1,4 @@
 {
     "cardkeyPrefix":"mini",
-    "name":"minimal",
-    "nextAvailableCardNumber":1
+    "name":"minimal"
 }

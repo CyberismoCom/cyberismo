@@ -19,7 +19,6 @@ export interface dotSchemaContent {
   version: number;
   cardkeyPrefix?: never;
   name?: never;
-  nextAvailableCardNumber?: never;
 }
 
 // Project's settings (=cardsconfig.json).
@@ -28,7 +27,6 @@ export interface projectSettings {
   version?: never;
   cardkeyPrefix: string;
   name: string;
-  nextAvailableCardNumber: number;
 }
 
 // Module content
@@ -121,7 +119,6 @@ export interface project {
   name: string;
   path: string;
   prefix: string;
-  nextAvailableCardNumber: number;
   numberOfCards: number;
 }
 
@@ -203,8 +200,8 @@ export interface attachmentDetails {
   mimeType: string | null;
 }
 
-// Name for a card (consists of prefix and running number; e.g. 'test_1')
-export const cardNameRegEx = new RegExp(/^[a-z]+_[0-9]+$/);
+// Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')
+export const cardNameRegEx = new RegExp(/^[a-z]+_[0-9a-z]+$/);
 
 // Define which details of a card are fetched.
 export interface fetchCardDetails {

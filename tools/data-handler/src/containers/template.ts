@@ -86,7 +86,7 @@ export class Template extends CardContainer {
     for (const card of cards) {
       templateIDMap.push({
         from: card.key,
-        to: this.project.configuration.newCardKey(),
+        to: await this.project.newCardKey(),
       });
     }
 
@@ -246,11 +246,10 @@ export class Template extends CardContainer {
       }
       // Finally, delete temp folder.
       await rm(tempDestination, { recursive: true, force: true });
-      await this.project.configuration.commit();
+      await this.project.configuration.save();
     } catch (error) {
       if (error instanceof Error) {
-        this.project.configuration.rollback();
-        // If card creation causes an exception, remove 'temp' and reset the cardkey id value.
+        // If card creation causes an exception, remove 'temp'.
         await rm(tempDestination, { recursive: true, force: true });
         throw new Error(error.message);
       }
@@ -348,7 +347,7 @@ export class Template extends CardContainer {
         );
       }
 
-      newCardKey = this.project.configuration.newCardKey();
+      newCardKey = await this.project.newCardKey();
       const templateCardToCreate = parentCard
         ? join(destinationCardPath, newCardKey)
         : join(this.templateCardsPath, newCardKey);
@@ -359,11 +358,10 @@ export class Template extends CardContainer {
         formatJson(defaultContent),
       );
       await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
-      await this.project.configuration.commit();
+      await this.project.configuration.save();
     } catch (error) {
       if (error instanceof Error) {
         // todo: does this ever really throw?
-        this.project.configuration.rollback();
         // todo: use temp folder and destroy everything from there.
         throw new Error(error.message);
       }

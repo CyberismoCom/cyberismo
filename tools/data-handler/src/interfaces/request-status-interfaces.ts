@@ -19,6 +19,7 @@ enum httpStatusCode {
 export interface requestStatus {
   statusCode: httpStatusCode;
   message?: string;
+  affectsCards?: string[];
   payload?: object | attachmentPayload;
 }
 

@@ -27,22 +27,18 @@ export class ProjectSettings implements projectSettings {
 
   name: string;
   cardkeyPrefix: string;
-  nextAvailableCardNumber: number;
-  currentTemporalKeyValue: number;
   private settingPath: string;
 
   constructor(path: string) {
     this.name = '';
     this.settingPath = path;
     this.cardkeyPrefix = '';
-    this.nextAvailableCardNumber = 0;
-    this.currentTemporalKeyValue = 0;
     this.readSettings();
   }
 
   // Persists configuration file to disk.
-  private async persistConfiguration() {
-    if (this.cardkeyPrefix === '' || this.nextAvailableCardNumber < 1) {
+  public async save() {
+    if (this.cardkeyPrefix === '') {
       throw new Error('wrong configuration');
     }
     await open(this.settingPath, 'w').then(async (file) => {
@@ -70,16 +66,11 @@ export class ProjectSettings implements projectSettings {
       }
     }
 
-    const valid =
-      'cardkeyPrefix' in settings &&
-      'nextAvailableCardNumber' in settings &&
-      'name' in settings;
+    const valid = 'cardkeyPrefix' in settings && 'name' in settings;
 
     if (valid) {
       this.cardkeyPrefix = settings.cardkeyPrefix;
-      this.nextAvailableCardNumber = settings.nextAvailableCardNumber;
       this.name = settings.name;
-      this.currentTemporalKeyValue = this.nextAvailableCardNumber;
     } else {
       throw new Error(`Invalid configuration file '${this.settingPath}'`);
     }
@@ -90,16 +81,7 @@ export class ProjectSettings implements projectSettings {
     return {
       cardkeyPrefix: this.cardkeyPrefix,
       name: this.name,
-      nextAvailableCardNumber: this.nextAvailableCardNumber,
     };
-  }
-
-  /**
-   * Persists the current configuration.
-   */
-  public async commit() {
-    await this.persistConfiguration();
-    this.currentTemporalKeyValue = this.nextAvailableCardNumber;
   }
 
   /**
@@ -118,22 +100,6 @@ export class ProjectSettings implements projectSettings {
   }
 
   /**
-   * Returns next available card key (e.g. test_11).
-   * @returns next available card-key
-   */
-  public newCardKey(): string {
-    return `${this.cardkeyPrefix}_${this.nextAvailableCardNumber++}`;
-  }
-
-  /**
-   * Rolls back the changes in settings until last commit() call.
-   */
-  public rollback() {
-    this.nextAvailableCardNumber = this.currentTemporalKeyValue;
-    this.currentTemporalKeyValue = this.nextAvailableCardNumber;
-  }
-
-  /**
    * Changes project prefix.
    * @param newPrefix New prefix to use in the project
    */
@@ -141,7 +107,7 @@ export class ProjectSettings implements projectSettings {
     const isValid = Validate.validatePrefix(newPrefix);
     if (isValid) {
       this.cardkeyPrefix = newPrefix;
-      this.commit();
+      this.save();
       return;
     }
     throw new Error(

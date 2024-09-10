@@ -71,7 +71,6 @@ export class Create extends EventEmitter {
       content: {
         name: '$PROJECT-NAME',
         cardkeyPrefix: '$PROJECT-PREFIX',
-        nextAvailableCardNumber: 1,
       },
       name: Project.projectConfigFileName,
     },
@@ -155,7 +154,7 @@ export class Create extends EventEmitter {
    * @param {string} templateName Template name to add cards into.
    * @param {string} card Optional, if defined adds a new child-card under the card.
    * @param {number} count How many cards to add. By default one.
-   * @returns string with information about the operation
+   * @returns non-empty string array with ids of added cards
    */
   public async addCards(
     projectPath: string,
@@ -163,7 +162,7 @@ export class Create extends EventEmitter {
     templateName: string,
     card?: string,
     count: number = 1,
-  ): Promise<string> {
+  ): Promise<string[]> {
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
     templateName = Template.normalizedTemplateName(templateName);
@@ -209,11 +208,7 @@ export class Create extends EventEmitter {
     }
 
     if (promisesResult === undefined) {
-      const messageTxt =
-        count > 1
-          ? `${count} cards were added to the template '${templateName} : ${JSON.stringify(cardsContainer)}'`
-          : `card '${cardsContainer[0]}' was added to the template '${templateName}'`;
-      return messageTxt;
+      return cardsContainer;
     } else {
       throw new Error('Unknown error');
     }

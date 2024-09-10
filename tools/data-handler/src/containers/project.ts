@@ -37,6 +37,7 @@ import { ProjectSettings } from '../project-settings.js';
 import { readJsonFile } from '../utils/json.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
+import { generateRandomString } from '../utils/random.js';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -231,6 +232,27 @@ export class Project extends CardContainer {
     );
 
     return resources;
+  }
+
+  /**
+   * Returns a new unique card key with project prefix (e.g. test_x649it4x).
+   * Random part of string will be always 8 characters in base-36 (0-9a-z)
+   * @returns a new card key string
+   * @throws if a unique key could not be created within set number of attempts
+   */
+  public async newCardKey(): Promise<string> {
+    const maxAttempts = 10;
+    const base = 36;
+    const length = 8;
+    for (let i = 0; i < maxAttempts; i++) {
+      // Create a key and check that there are no collisions with other keys in project
+      const newKey = `${this.settings.cardkeyPrefix}_${generateRandomString(base, length)}`;
+      const exists = await this.findSpecificCard(newKey);
+      if (exists) continue;
+      return newKey;
+    }
+
+    throw 'Could not generate unique card key';
   }
 
   /**
@@ -695,7 +717,6 @@ export class Project extends CardContainer {
         name: moduleConfig.name,
         path: moduleNameAndPath,
         cardkeyPrefix: moduleConfig.cardkeyPrefix,
-        nextAvailableCardNumber: moduleConfig.nextAvailableCardNumber,
         // resources:
         calculations: [
           ...(await this.collectResourcesFromModules('calculations')).map(
@@ -843,7 +864,6 @@ export class Project extends CardContainer {
       name: this.containerName,
       path: this.basePath,
       prefix: this.projectPrefix,
-      nextAvailableCardNumber: this.settings.nextAvailableCardNumber,
       numberOfCards: (await this.listAllCards(false))[0].cards.length,
     };
   }

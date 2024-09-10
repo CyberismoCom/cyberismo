@@ -1,5 +1,4 @@
 {
     "cardkeyPrefix": "testmissing",
-    "name":"missing",
-    "nextAvailableCardNumber": 1
+    "name":"missing"
 }
