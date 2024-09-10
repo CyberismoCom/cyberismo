@@ -76,6 +76,10 @@ export class Calculate {
               logicProgram += `link(${card.key}, ${link.cardKey}, "${link.linkType}"${link.linkDescription != null ? `, "${link.linkDescription}"` : ''}).\n`;
             }
           } else {
+            // Do not write null values
+            if (value === null) {
+              continue;
+            }
             logicProgram += `field(${card.key}, "${field}", "${value}").\n`;
           }
         }
@@ -358,8 +362,7 @@ export class Calculate {
 
     if (clingo.stdout) {
       console.log(`Clingo output: \n${clingo.stdout}`);
-      const result = await this.parseClingoResult(clingo.stdout);
-      return result;
+      return this.parseClingoResult(clingo.stdout);
     }
 
     if (clingo.stderr && clingo.status) {
