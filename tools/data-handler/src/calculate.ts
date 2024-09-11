@@ -18,72 +18,28 @@ import { spawnSync } from 'node:child_process';
 
 // ismo
 import { card, link } from './interfaces/project-interfaces.js';
-import { deleteFile, pathExists } from './utils/file-utils.js';
+import { copyDir, deleteFile, pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-
-// Parsed Clingo result.
-interface ParseResult {
-  cardKey: string;
-  field: string;
-  value: string | number;
-}
+import { fileURLToPath } from 'node:url';
+import ClingoParser, { ParseResult } from './utils/clingo-parser.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   static project: Project;
 
   private logicBinaryName: string = 'clingo';
-  private static baseLogicFileName: string = 'base.lp';
   private static cardTreeFileName: string = 'cardtree.lp';
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
-  private static commonDefinitions: string = `
-%
-% Common definitions for all Cards projects
-%
-
-% parent and ancestor
-ancestor(A, C) :- parent(A, C), card(A), card(B).
-ancestor(A, C) :- parent(A, B), ancestor (B, C), card(A), card(B), card(C).
-
-% if the cardtype is given, then it's a card
-card(C) :- field(C, "cardtype", _).
-
-% the default fields are not calculated, so let's mark them as user fields.
-userfield(Cardkey, "cardtype") :- field(Cardkey, "cardtype", Cardtype).
-userfield(Cardkey, "title") :- field(Cardkey, "cardtype", Cardtype).
-userfield(Cardkey, "workflowState") :- field(Cardkey, "cardtype", Cardtype).
-
-% if all values of a field are cardkeys, then the field is of type "cardkeys"
-fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Field, Value).
-
-`;
-  private static mainLogicFile: string = `
-#include "base.lp".
-#include "cardtree.lp".
-#include "modules.lp".
-`;
+  private static queryLanguageFileName: string = 'query_language.lp';
+  private static commonFolderLocation: string = join(
+    fileURLToPath(import.meta.url),
+    '../../../../calculations/common',
+  );
 
   constructor() {
     // todo: set reusable paths here - problem is that project's path should be set
   }
-
-  // Write the base.lp that contains common definitions.
-  private async generateBase(parentCard: card | undefined) {
-    // When generating calculations for a specific module, do not generate common calculations.
-    if (parentCard) {
-      return;
-    }
-    const destinationFile = join(
-      Calculate.project.calculationFolder,
-      Calculate.baseLogicFileName,
-    );
-    await writeFile(destinationFile, Calculate.commonDefinitions, {
-      encoding: 'utf-8',
-      flag: 'w',
-    });
-  }
-
   // Write the cardtree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: card | undefined) {
     const destinationFileBase = join(
@@ -118,6 +74,10 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
               logicProgram += `link(${card.key}, ${link.cardKey}, "${link.linkType}"${link.linkDescription != null ? `, "${link.linkDescription}"` : ''}).\n`;
             }
           } else {
+            // Do not write null values
+            if (value === null) {
+              continue;
+            }
             logicProgram += `field(${card.key}, "${field}", "${value}").\n`;
           }
         }
@@ -169,20 +129,12 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
     });
   }
 
-  // Write the main.lp that includes all other logic programs.
-  private async generateMainLogicFile(parentCard: card | undefined) {
-    // When generating calculations for a specific module, do not generate common calculations.
-    if (parentCard) {
-      return;
-    }
-    const destinationFile = join(
+  // Write all common files which are not card specific.
+  private async generateCommonFiles() {
+    await copyDir(
+      Calculate.commonFolderLocation,
       Calculate.project.calculationFolder,
-      Calculate.mainLogicFileName,
     );
-    await writeFile(destinationFile, Calculate.mainLogicFile, {
-      encoding: 'utf-8',
-      flag: 'w',
-    });
   }
 
   // Collects all logic calculation files from project (local and imported modules)
@@ -239,36 +191,13 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
   }
 
   // Checks that Clingo successfully returned result.
-  private async parseClingoResult(
-    data: string,
-  ): Promise<ParseResult[] | undefined> {
+  private parseClingoResult(data: string) {
     const actual_result = data.substring(0, data.indexOf('SATISFIABLE'));
     if (actual_result.length === 0 || !actual_result) {
       return;
     }
-    const parseResult = this.parseInput(actual_result);
-    return parseResult;
-  }
-
-  // Parses Clingo's result to an array of objects (key, field, value).
-  private parseInput(input: string): ParseResult[] {
-    const regex =
-      /(field|fieldtype)\(([a-zA-Z0-9_]+),"([a-zA-Z0-9_]+)",([a-zA-Z0-9_" ]+)/;
-    const results: ParseResult[] = [];
-
-    for (const datum of input.split('\n')) {
-      if (datum) {
-        const match = datum.match(regex);
-        if (match) {
-          results.push({
-            cardKey: match[2],
-            field: match[3],
-            value: match[4],
-          });
-        }
-      }
-    }
-    return results;
+    const parser = new ClingoParser(Calculate.project);
+    return parser.parseInput(actual_result);
   }
 
   // Creates a project, if it is not already created.
@@ -305,11 +234,10 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
 
     // Calculation files are in their own files, so they can be generated parallel.
     const promiseContainer = [
-      this.generateBase(card),
+      this.generateCommonFiles(),
       this.generateCardTreeContent(card),
       this.genereteCardTree(),
       this.generateModules(card),
-      this.generateMainLogicFile(card),
     ];
 
     await Promise.all(promiseContainer);
@@ -398,45 +326,42 @@ fieldtype(X, Field, "cardkeys") :- field(X, Field, _), card(Value) : field(X, Fi
   /**
    * Runs a logic program.
    *
-   * @param {string} projectPath Path to a project
-   * @param {string} cardKey Optional, if missing the calculations are run for the whole cardtree.
-   *                         If defined, calculates only subtree.
+   * @param projectPath Path to a project
+   * @param filePath Path to a query file to be run in relation to current working directory
    * @returns parsed program output
    */
   public async run(
     projectPath: string,
-    cardKey: string,
-  ): Promise<ParseResult[] | undefined> {
+    filePath: string,
+  ): Promise<ParseResult | undefined> {
     Calculate.project = new Project(projectPath);
-
-    const card = await Calculate.project.findSpecificCard(cardKey);
-    if (!card) {
-      throw new Error(`Card '${cardKey}' not found`);
-    }
-
-    const text = `
-            #show.
-            #show field(Cardkey, Field, Value):
-                field(Cardkey, Field, Value),
-                Cardkey = ${card.key},
-                not userfield(Cardkey, Field).
-            #show fieldtype(Cardkey, Field, Fieldtype):
-                fieldtype(Cardkey, Field, Fieldtype),
-                Cardkey = ${card.key},
-                not userfield(Cardkey, Field).`;
     const main = join(
       Calculate.project.calculationFolder,
       Calculate.mainLogicFileName,
     );
-    const clingo = spawnSync(
-      this.logicBinaryName,
-      ['-', '--outf=0', '--out-ifs=\\n', '-V0', `${main}`],
-      { encoding: 'utf8', input: text },
+    const queryLanguage = join(
+      Calculate.project.calculationFolder,
+      Calculate.queryLanguageFileName,
     );
 
+    const args = [
+      '-',
+      '--outf=0',
+      '--out-ifs=\\n',
+      '-V0',
+      main,
+      queryLanguage,
+      filePath,
+    ];
+    const clingo = spawnSync(this.logicBinaryName, args, {
+      encoding: 'utf8',
+    });
+    // print the command
+    console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
+
     if (clingo.stdout) {
-      const result = await this.parseClingoResult(clingo.stdout);
-      return result;
+      console.log(`Clingo output: \n${clingo.stdout}`);
+      return this.parseClingoResult(clingo.stdout);
     }
 
     if (clingo.stderr && clingo.status) {
