@@ -37,8 +37,6 @@ export class Calculate {
     '../../../../calculations/common',
   );
 
-  private clingoParser: ClingoParser = new ClingoParser();
-
   constructor() {
     // todo: set reusable paths here - problem is that project's path should be set
   }
@@ -198,7 +196,8 @@ export class Calculate {
     if (actual_result.length === 0 || !actual_result) {
       return;
     }
-    return this.clingoParser.parseInput(actual_result);
+    const parser = new ClingoParser(Calculate.project);
+    return parser.parseInput(actual_result);
   }
 
   // Creates a project, if it is not already created.

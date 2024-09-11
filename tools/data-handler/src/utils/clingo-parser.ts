@@ -10,7 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-interface Link {
+import { Project } from '../containers/project.js';
+
+interface CalculationLink {
   key: string;
   linkType: string;
   displayName: string;
@@ -35,7 +37,7 @@ interface Result
     string,
     | string
     | string[]
-    | Link[]
+    | CalculationLink[]
     | PolicyCheckCollection
     | DeniedOperationCollection
     | Result[]
@@ -43,7 +45,7 @@ interface Result
   > {
   key: string;
   labels: string[];
-  links: Link[];
+  links: CalculationLink[];
   policyChecks: PolicyCheckCollection;
   deniedOperations: DeniedOperationCollection;
   results: Result[]; // Nested results
@@ -88,6 +90,13 @@ class ClingoParser {
     direction: 'ASC' | 'DESC';
   }[] = [];
 
+  // For now we depend on the project to get link display names
+  private project: Project;
+
+  constructor(project: Project) {
+    this.project = project;
+  }
+
   private reset() {
     this.result = {
       results: [],
@@ -106,7 +115,7 @@ class ClingoParser {
    */
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private commandHandlers: Record<string, Function> = {
-    query_error: (message: string, ...params: string[]) => {
+    query_error: async (message: string, ...params: string[]) => {
       this.result.error = `${message}${params.length > 1 ? ` ${params.join(', ')}` : ''}`;
     },
     result: (key: string) => {
@@ -123,16 +132,25 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.labels.push(label);
     },
-    link: (
+    link: async (
       key: string,
       cardKey: string,
       linkType: string,
       linkDescription?: string,
     ) => {
       const res = this.getOrInitResult(key);
-      const displayName =
-        res.key === key ? 'outboundDisplayName' : 'inboundDisplayName';
-      res.links.push({ key: cardKey, linkType, displayName, linkDescription });
+
+      const linkTypeObj = await this.project.linkType(linkType);
+      if (!linkTypeObj) {
+        throw new Error(`Link type '${linkType}' not found`);
+      }
+      const displayName = linkTypeObj.outboundDisplayName;
+      res.links.push({
+        key: cardKey,
+        linkType,
+        displayName,
+        linkDescription,
+      });
     },
     transition_denied: (
       key: string,
@@ -259,7 +277,7 @@ class ClingoParser {
     this.sortByLevel(this.result.results);
   }
 
-  public parseInput(input: string): ParseResult {
+  public async parseInput(input: string): Promise<ParseResult> {
     const regex = new RegExp(`(${this.keywords.join('|')})\\(([^)]*)\\)`);
     const lines = input.split('\n');
 
@@ -273,7 +291,7 @@ class ClingoParser {
         const sanitizedArgs = args.map((arg) => arg.replace(/^"(.*)"$/, '$1'));
 
         // Apply the command handler with sanitized arguments
-        this.commandHandlers[command](...sanitizedArgs);
+        await this.commandHandlers[command](...sanitizedArgs);
       }
     }
 
