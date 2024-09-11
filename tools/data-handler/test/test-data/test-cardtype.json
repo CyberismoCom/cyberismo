@@ -1,4 +1,4 @@
 {
-    "name": "test-cardtype",
-    "workflow": "myWorkflow"
+    "name": "decision/cardtypes/test-cardtype",
+    "workflow": "decision/workflows/myWorkflow"
 }

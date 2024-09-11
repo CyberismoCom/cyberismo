@@ -346,14 +346,12 @@ export class Create extends EventEmitter {
       );
     }
 
-    const content: cardtype = { name, workflow };
-    const destinationFolder = join(
-      projectPath,
-      '.cards',
-      'local',
-      'cardtypes',
-      `${content.name}.json`,
-    );
+    const project = new Project(projectPath);
+    const fullName = `${project.projectPrefix}/cardtypes/${name}`;
+    const fullFileName = `.cards/local/cardtypes/${name}.json`;
+
+    const content: cardtype = { name: fullName, workflow };
+    const destinationFolder = join(projectPath, fullFileName);
     await writeFile(destinationFolder, formatJson(content), {
       encoding: 'utf-8',
       flag: 'wx',
@@ -371,7 +369,10 @@ export class Create extends EventEmitter {
     fieldTypeName: string,
     dataType: string,
   ) {
-    const content: fieldtype = { name: fieldTypeName, dataType: dataType };
+    const content: fieldtype = {
+      name: `local/fieldtypes/${fieldTypeName}`,
+      dataType: dataType,
+    };
 
     if (await this.fieldTypeExists(projectPath, fieldTypeName)) {
       throw new Error(
@@ -387,8 +388,6 @@ export class Create extends EventEmitter {
     const destinationFolder = join(
       projectPath,
       '.cards',
-      'local',
-      'fieldtypes',
       `${content.name}.json`,
     );
     await writeFile(destinationFolder, formatJson(content), {
@@ -642,6 +641,15 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
+    // todo: Move this somewhere? This could be part of template or project? or utiliity class
+    // Only allow 'local' or module/project name in multipart names.
+    const parts = templateName.split('/');
+    if (parts.length > 1) {
+      if (parts[0] !== 'local' && parts[0] !== project.projectPrefix) {
+        throw new Error('Invalid name');
+      }
+    }
+
     if (await project.templateExists(templateName)) {
       throw new Error(
         `Template '${templateName}' already exists in the project`,
@@ -660,18 +668,16 @@ export class Create extends EventEmitter {
   public async createWorkflow(projectPath: string, workflow: workflowMetadata) {
     const validator = Validate.getInstance();
     const schemaId = 'workflow-schema';
+    const project = new Project(projectPath);
+    const fullName = `${project.projectPrefix}/workflows/${workflow.name}`;
+    const fullFileName = `.cards/local/workflows/${workflow.name}.json`;
+    workflow.name = fullName;
     const validJson = await validator.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
     }
     const content = JSON.parse(JSON.stringify(workflow));
-    const destinationFile = join(
-      projectPath,
-      '.cards',
-      'local',
-      'workflows',
-      `${content.name}.json`,
-    );
+    const destinationFile = join(projectPath, fullFileName);
     await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
   }
 

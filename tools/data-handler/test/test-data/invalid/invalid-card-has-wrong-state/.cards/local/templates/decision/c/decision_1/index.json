@@ -1,6 +1,6 @@
 {
-    "cardtype": "decision-cardtype",
+    "cardtype": "decision/cardtypes/decision-cardtype",
     "title": "Untitled",
     "workflowState": "Draft",
-    "obsoletedBy": null
+    "decision/fieldtypes/obsoletedBy": null
 }

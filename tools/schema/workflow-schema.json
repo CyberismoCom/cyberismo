@@ -9,7 +9,7 @@
       "description": "The name of this workflow",
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z._-]+$"
+      "pattern": "^[A-Za-z/._-]+$"
     },
     "states": {
       "description": "The states of the workflow",

@@ -1,12 +1,12 @@
 {
-    "name": "decision-cardtype",
-    "workflow": "decision-workflow",
+    "name": "decision/cardtypes/decision-cardtype",
+    "workflow": "decision/workflows/decision-workflow",
     "customFields": [
         {
-            "name": "obsoletedBy",
+            "name": "decision/fieldtypes/obsoletedBy",
             "isEditable": true
         }
     ],
-    "alwaysVisibleFields": [ "obsoletedBy" ],
+    "alwaysVisibleFields": [ "decision/fieldtypes/obsoletedBy" ],
     "optionallyVisibleFields": []
 }

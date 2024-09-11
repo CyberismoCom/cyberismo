@@ -1,4 +1,4 @@
 {
-  "name": "myCardtype",
-  "workflow": "minimal-workflow"
+  "name": "mini/cardtypes/myCardtype",
+  "workflow": "mini/workflows/minimal-workflow"
 }

@@ -1,5 +1,5 @@
 {
-    "name": "simpleWorkflow",
+    "name": "decision/workflows/simpleWorkflow",
     "states": [ { "name": "Created" } ],
     "transitions": [
         {

@@ -178,6 +178,7 @@ export class Template extends CardContainer {
         if (!workflow) {
           throw new Error(`Workflow '${cardtype.workflow}' cannot be found`);
         }
+
         const initialWorkflowState = await this.project.workflowInitialState(
           workflow.name,
         );
@@ -531,12 +532,12 @@ export class Template extends CardContainer {
    */
   public static normalizedTemplateName(templateName: string): string {
     const parts = templateName.split(sepRegex);
-    if (parts.length == 0 || parts.length > 2) {
+    if (parts.length == 0 || parts.length > 3) {
       return '';
     }
-    if (parts.length === 2) {
+    if (parts.length === 3) {
       if (parts[0] === 'local') {
-        return parts[1];
+        return parts[2];
       }
     }
     return templateName;
@@ -548,7 +549,7 @@ export class Template extends CardContainer {
    */
   public async show(): Promise<template> {
     return {
-      name: this.containerName,
+      name: `${this.project.projectPrefix}/templates/${this.containerName}`,
       path: this.templateFolder(),
       project: this.project.projectName,
       numberOfCards: (await super.cards(this.templateCardsPath)).length,

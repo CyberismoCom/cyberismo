@@ -180,11 +180,12 @@ export class Commands {
   private validateName(name: string) {
     // Common names might have 'local' in the beginning before the actual name.
     const parts = name.split(sepRegex);
-    if ((parts.length === 2 && parts[0] !== 'local') || parts.length > 2) {
+
+    if (parts.length > 3) {
       return false;
     }
-    if (parts.length === 2) {
-      name = parts[1];
+    if (parts.length === 3) {
+      name = parts[2];
     }
 
     const validName = new RegExp('^[A-Za-z ._-]+$');
@@ -313,8 +314,8 @@ export class Commands {
       if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
-          const [source, name] = args;
-          return this.import(source, name, this.projectPath);
+          const [source] = args;
+          return this.import(source, this.projectPath);
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -767,7 +768,6 @@ export class Commands {
     const content = workflowContent
       ? JSON.parse(workflowContent)
       : Create.defaultWorkflowContent(workflowName);
-    content.name = workflowName;
     // Note that workflowContent is validated in the createWorkflow function.
     try {
       await this.createCmd.createWorkflow(path, content);
@@ -855,17 +855,12 @@ export class Commands {
   /**
    * Imports another project to the 'path' project as a module.
    * @param {string} source Path to project to import
-   * @param {string} name Module name for the imported project (what will the project be called as a module)
    * @param {string} path Optional. Destination project path. If omitted, destination project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    */
-  private async import(
-    source: string,
-    name: string,
-    path: string,
-  ): Promise<requestStatus> {
+  private async import(source: string, path: string): Promise<requestStatus> {
     if (!this.validateFolder(source)) {
       return {
         statusCode: 400,
@@ -878,14 +873,8 @@ export class Commands {
         message: `Input validation error: cannot find project '${source}'`,
       };
     }
-    if (!this.validateName(name)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: module name is invalid '${name}'`,
-      };
-    }
     try {
-      await this.importCmd.importProject(source, path, name);
+      await this.importCmd.importProject(source, path);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };

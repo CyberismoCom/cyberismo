@@ -1,5 +1,5 @@
 {
-    "name":"defaultWorkflow",
+    "name":"mini/defaultWorkflow",
     "states":[
         { "name": "Open", "category": "initial" },
         { "name": "In Progress", "category": "active" },

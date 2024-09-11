@@ -1,6 +1,6 @@
 {
-    "cardtype": "decision-cardtype",
+    "cardtype": "decision/cardtypes/decision-cardtype",
     "title": "Document Decisions with Decision Records",
     "workflowState": "Approved",
-    "obsoletedBy": null
+    "decision/fieldtypes/obsoletedBy": null
 }

@@ -175,14 +175,18 @@ describe('show command', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(2);
-      expect(payloadAsArray.at(0)).to.equal('decision-cardtype.json');
-      expect(payloadAsArray.at(1)).to.equal('simplepage-cardtype.json');
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/cardtypes/decision-cardtype.json',
+      );
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/cardtypes/simplepage-cardtype.json',
+      );
     }
   });
   it('show particular cardtype - success()', async () => {
     const result = await commandHandler.command(
       Cmd.show,
-      ['cardtypes', 'decision-cardtype'],
+      ['cardtypes', 'decision/cardtypes/decision-cardtype'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -216,15 +220,15 @@ describe('show command', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal('decision');
-      expect(payloadAsArray.at(1)).to.equal('empty');
-      expect(payloadAsArray.at(2)).to.equal('simplepage');
+      expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
+      expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
+      expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
     }
   });
   it('show particular template - success()', async () => {
     const result = await commandHandler.command(
       Cmd.show,
-      ['template', 'decision'],
+      ['template', 'decision/templates/decision'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -252,14 +256,18 @@ describe('show command', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(2);
-      expect(payloadAsArray.at(0)).to.equal('decision-workflow.json');
-      expect(payloadAsArray.at(1)).to.equal('simple-workflow.json');
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/workflows/decision-workflow.json',
+      );
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/workflows/simple-workflow.json',
+      );
     }
   });
   it('show particular workflow - success()', async () => {
     const result = await commandHandler.command(
       Cmd.show,
-      ['workflow', 'decision-workflow'],
+      ['workflow', 'decision/workflows/decision-workflow'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -273,14 +281,10 @@ describe('show command', () => {
 describe('show command with modules', () => {
   before(async () => {
     // import each project to each other
+    await commandHandler.command(Cmd.import, ['module', minimalPath], options);
     await commandHandler.command(
       Cmd.import,
-      ['module', minimalPath, 'mini'],
-      options,
-    );
-    await commandHandler.command(
-      Cmd.import,
-      ['module', decisionRecordsPath, 'decision'],
+      ['module', decisionRecordsPath],
       optionsMini,
     );
   });
@@ -315,10 +319,14 @@ describe('show command with modules', () => {
       expect(module.path).to.equal(
         join(decisionRecordsPath, '.cards', 'modules', 'mini'),
       );
-      expect(module.cardtypes).to.include('mini/myCardtype.json');
-      expect(module.templates).to.include('mini/test-template');
-      expect(module.workflows).to.include('mini/defaultWorkflow.json');
-      expect(module.workflows).to.include('mini/minimimal-workflow.json');
+      expect(module.cardtypes).to.include('mini/cardtypes/myCardtype.json');
+      expect(module.templates).to.include('mini/templates/test-template');
+      expect(module.workflows).to.include(
+        'mini/workflows/defaultWorkflow.json',
+      );
+      expect(module.workflows).to.include(
+        'mini/workflows/minimimal-workflow.json',
+      );
     }
   });
   it('show particular card', async () => {
@@ -376,9 +384,13 @@ describe('show command with modules', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal('decision-cardtype.json');
-      expect(payloadAsArray.at(1)).to.equal('mini/myCardtype.json');
-      expect(payloadAsArray.at(2)).to.equal('simplepage-cardtype.json');
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/cardtypes/decision-cardtype.json',
+      );
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/cardtypes/simplepage-cardtype.json',
+      );
+      expect(payloadAsArray.at(2)).to.equal('mini/cardtypes/myCardtype.json');
     }
     const resultFromModule = await commandHandler.command(
       Cmd.show,
@@ -389,11 +401,13 @@ describe('show command with modules', () => {
     if (resultFromModule.payload) {
       const payloadAsArray = Object.values(resultFromModule.payload);
       expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal('decision/decision-cardtype.json');
-      expect(payloadAsArray.at(1)).to.equal(
-        'decision/simplepage-cardtype.json',
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/cardtypes/decision-cardtype.json',
       );
-      expect(payloadAsArray.at(2)).to.equal('myCardtype.json');
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/cardtypes/simplepage-cardtype.json',
+      );
+      expect(payloadAsArray.at(2)).to.equal('mini/cardtypes/myCardtype.json');
     }
   });
   it('show templates', async () => {
@@ -406,10 +420,10 @@ describe('show command with modules', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision');
-      expect(payloadAsArray.at(1)).to.equal('empty');
-      expect(payloadAsArray.at(3)).to.equal('simplepage');
-      expect(payloadAsArray.at(2)).to.equal('mini/test-template');
+      expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
+      expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
+      expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
+      expect(payloadAsArray.at(3)).to.equal('mini/templates/test-template');
     }
     const resultFromModule = await commandHandler.command(
       Cmd.show,
@@ -420,10 +434,10 @@ describe('show command with modules', () => {
     if (resultFromModule.payload) {
       const payloadAsArray = Object.values(resultFromModule.payload);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/decision');
-      expect(payloadAsArray.at(1)).to.equal('decision/empty');
-      expect(payloadAsArray.at(2)).to.equal('decision/simplepage');
-      expect(payloadAsArray.at(3)).to.equal('test-template');
+      expect(payloadAsArray.at(0)).to.equal('decision/templates/decision');
+      expect(payloadAsArray.at(1)).to.equal('decision/templates/empty');
+      expect(payloadAsArray.at(2)).to.equal('decision/templates/simplepage');
+      expect(payloadAsArray.at(3)).to.equal('mini/templates/test-template');
     }
   });
   it('show workflows', async () => {
@@ -436,10 +450,18 @@ describe('show command with modules', () => {
     if (result.payload) {
       const payloadAsArray = Object.values(result.payload);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision-workflow.json');
-      expect(payloadAsArray.at(1)).to.equal('mini/defaultWorkflow.json');
-      expect(payloadAsArray.at(2)).to.equal('mini/minimimal-workflow.json');
-      expect(payloadAsArray.at(3)).to.equal('simple-workflow.json');
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/workflows/decision-workflow.json',
+      );
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/workflows/simple-workflow.json',
+      );
+      expect(payloadAsArray.at(2)).to.equal(
+        'mini/workflows/defaultWorkflow.json',
+      );
+      expect(payloadAsArray.at(3)).to.equal(
+        'mini/workflows/minimimal-workflow.json',
+      );
     }
     const resultFromModule = await commandHandler.command(
       Cmd.show,
@@ -450,10 +472,18 @@ describe('show command with modules', () => {
     if (resultFromModule.payload) {
       const payloadAsArray = Object.values(resultFromModule.payload);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal('decision/decision-workflow.json');
-      expect(payloadAsArray.at(1)).to.equal('decision/simple-workflow.json');
-      expect(payloadAsArray.at(2)).to.equal('defaultWorkflow.json');
-      expect(payloadAsArray.at(3)).to.equal('minimimal-workflow.json');
+      expect(payloadAsArray.at(0)).to.equal(
+        'decision/workflows/decision-workflow.json',
+      );
+      expect(payloadAsArray.at(1)).to.equal(
+        'decision/workflows/simple-workflow.json',
+      );
+      expect(payloadAsArray.at(2)).to.equal(
+        'mini/workflows/defaultWorkflow.json',
+      );
+      expect(payloadAsArray.at(3)).to.equal(
+        'mini/workflows/minimimal-workflow.json',
+      );
     }
   });
   it('show attachments', async () => {
@@ -589,7 +619,7 @@ describe('add command', () => {
   it('add template card (success)', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision-cardtype'],
+      ['decision', 'decision/cardtypes/decision-cardtype'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -597,7 +627,7 @@ describe('add command', () => {
   it('add template card to under a parent (success)', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision-cardtype', 'decision_1'],
+      ['decision', 'decision/cardtypes/decision-cardtype', 'decision_1'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -605,7 +635,7 @@ describe('add command', () => {
   it('try to add template card to non-existent template', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['idontexists', 'decision-cardtype'],
+      ['idontexists', 'decision/cardtypes/decision-cardtype'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -613,7 +643,7 @@ describe('add command', () => {
   it('try to add template card to non-existent template parent card', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision-cardtype', 'decision_999'],
+      ['decision', 'decision/cardtypes/decision-cardtype', 'decision_999'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -621,7 +651,7 @@ describe('add command', () => {
   it('try to add template card with invalid path', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision-cardtype'],
+      ['decision', 'decision/cardtypes/decision-cardtype'],
       { projectPath: 'random-path' },
     );
     expect(result.statusCode).to.equal(400);
@@ -630,7 +660,7 @@ describe('add command', () => {
     options.repeat = -1;
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision-cardtype'],
+      ['decision', 'decision/cardtypes/decision-cardtype'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -722,13 +752,13 @@ describe('create command', () => {
   it('card (success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['card', 'simplepage'],
+      ['card', 'decision/templates/simplepage'],
       options,
     );
     expect(result.statusCode).to.equal(200);
   });
   it('card with parent (success)', async () => {
-    const templateName = 'decision';
+    const templateName = 'decision/templates/decision';
     const parentCard = 'decision_5';
     const result = await commandHandler.command(
       Cmd.create,
@@ -747,7 +777,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('card missing project', async () => {
-    const templateName = 'simplepage';
+    const templateName = 'decision/templates/simplepage';
     const invalidOptions = {
       projectPath: join(testDir, 'valid/no-such-project'),
     };
@@ -762,7 +792,7 @@ describe('create command', () => {
     const invalidOptions = {
       projectPath: join(testDir, 'invalid/missing-cardsconfig.json'),
     };
-    const templateName = 'simplepage';
+    const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
       Cmd.create,
       ['card', templateName],
@@ -774,7 +804,7 @@ describe('create command', () => {
     const invalidOptions = {
       projectPath: join(testDir, 'invalid/invalid-cardsconfig.json'),
     };
-    const templateName = 'simplepage';
+    const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
       Cmd.create,
       ['card', templateName],
@@ -784,7 +814,7 @@ describe('create command', () => {
   });
   it('card parent card missing', async () => {
     const parentCard = 'i-dont-exist';
-    const templateName = 'simplepage';
+    const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
       Cmd.create,
       ['card', templateName, parentCard],
@@ -797,7 +827,7 @@ describe('create command', () => {
   // cardtype
   it('cardtype (success)', async () => {
     const cardtype = 'test-cardtype';
-    const workflow = 'defaultWorkflow';
+    const workflow = 'mini/workflows/defaultWorkflow';
     const result = await commandHandler.command(
       Cmd.create,
       ['cardtype', cardtype, workflow],
@@ -807,7 +837,7 @@ describe('create command', () => {
   });
   it('cardtype invalid project', async () => {
     const cardtype = 'test-cardtype';
-    const workflow = 'defaultWorkflow';
+    const workflow = 'mini/workflows/defaultWorkflow';
     const invalidOptions = {
       projectPath: join(testDir, 'valid/no-such-project'),
     };
@@ -820,7 +850,7 @@ describe('create command', () => {
   });
   it('cardtype create existing cardtype', async () => {
     const cardtype = 'test-cardtype';
-    const workflow = 'defaultWorkflow';
+    const workflow = 'mini/workflows/defaultWorkflow';
     let result = await commandHandler.command(
       Cmd.create,
       ['cardtype', cardtype, workflow],
@@ -911,7 +941,7 @@ describe('create command', () => {
   it('create link (success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test'],
+      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -919,7 +949,13 @@ describe('create command', () => {
   it('create link with different description(success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test', 'description2'],
+      [
+        'link',
+        'decision_5',
+        'decision_6',
+        'decision/linktypes/test',
+        'description2',
+      ],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -927,7 +963,7 @@ describe('create command', () => {
   it('try create link - link already exists', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test'],
+      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -936,7 +972,12 @@ describe('create command', () => {
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'card-does-not-exist', 'card-does-not-exist', 'test'],
+      [
+        'link',
+        'card-does-not-exist',
+        'card-does-not-exist',
+        'decision/linktypes/test',
+      ],
       options,
     );
 
@@ -946,7 +987,7 @@ describe('create command', () => {
   it('try create link - card type not valid', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test-types'],
+      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test-types'],
       options,
     );
 
@@ -956,7 +997,13 @@ describe('create command', () => {
   it('try create link - link description provided but not allowed', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'test-types', 'description2'],
+      [
+        'link',
+        'decision_5',
+        'decision_6',
+        'decision/linktypes/test-types',
+        'description2',
+      ],
       options,
     );
     expect(result.message).to.contain('does not allow');
@@ -1106,7 +1153,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('template with "local" (success)', async () => {
-    const templateName = 'local/template-name_second';
+    const templateName = 'local/templates/template-name_second';
     const templateContent =
       '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
     const result = await commandHandler.command(
@@ -1127,7 +1174,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('template with "loc"', async () => {
-    const templateName = 'loc/template-name_second';
+    const templateName = 'loc/templates/template-name_second';
     const templateContent =
       '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
     const result = await commandHandler.command(
@@ -1182,7 +1229,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('template already exists', async () => {
-    const templateName = 'decision';
+    const templateName = 'decision/templates/decision';
     const templateContent =
       '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
     const result = await commandHandler.command(
@@ -1366,17 +1413,17 @@ describe('import csv command', () => {
       { metadata: true, content: true },
       key2,
     );
-
     expect(card1.metadata?.title).to.equal('Title1');
     expect(card1.content).to.equal('content1');
     expect(card1.metadata?.labels).to.deep.equal(['label1', 'label2']);
-    expect(card1.metadata?.responsible).to.equal('responsible@email.com');
+    expect(card1.metadata?.['decision/fieldtypes/responsible']).to.equal(
+      'responsible@email.com',
+    );
     expect(card1.metadata?.doesnotexist).to.equal(undefined);
-
     expect(card2.metadata?.title).to.equal('Title2');
     expect(card2.content).to.equal('content2');
     expect(card2.metadata?.labels).to.equal(undefined);
-    expect(card2.metadata?.responsible).to.equal('');
+    expect(card2.metadata?.['decision/fieldtypes/responsible']).to.equal('');
     expect(card2.metadata?.doesnotexist).to.equal(undefined);
   });
   it('import csv file with parent (success)', async () => {
@@ -1441,7 +1488,7 @@ describe('import module command', () => {
   it('import module (success)', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath],
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
@@ -1449,7 +1496,7 @@ describe('import module command', () => {
   it('try to import module - no source', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', '', decisionModule],
+      ['module', ''],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -1460,7 +1507,7 @@ describe('import module command', () => {
     try {
       result = await commandHandler.command(
         Cmd.import,
-        ['module', decisionRecordsPath, decisionModule],
+        ['module', decisionRecordsPath],
         invalidOptions,
       );
       assert(false, 'this should not be reached as the above throws');
@@ -1471,24 +1518,16 @@ describe('import module command', () => {
     }
     expect(result.statusCode).to.equal(0);
   });
-  it('try to import module - no name', async () => {
-    const result = await commandHandler.command(
-      Cmd.import,
-      ['module', decisionRecordsPath, ''],
-      optionsMini,
-    );
-    expect(result.statusCode).to.equal(400);
-  });
   it('try to import module - twice the same module', async () => {
     const result1 = await commandHandler.command(
       Cmd.import,
-      ['module', decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath],
       optionsMini,
     );
     expect(result1.statusCode).to.equal(200);
     const result2 = await commandHandler.command(
       Cmd.import,
-      ['module', decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath],
       optionsMini,
     );
     expect(result2.statusCode).to.equal(400);
@@ -1496,7 +1535,7 @@ describe('import module command', () => {
   it('try to import module - that has the same prefix', async () => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', minimalPath, 'mini-too'],
+      ['module', minimalPath],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -1507,26 +1546,19 @@ describe('import module command', () => {
 });
 
 describe('modifying imported module content is forbidden', () => {
-  const miniModule = 'mini';
-  const decisionModule = 'decision';
-
   before(async () => {
     // import each project to each other
+    await commandHandler.command(Cmd.import, ['module', minimalPath], options);
     await commandHandler.command(
       Cmd.import,
-      ['module', minimalPath, miniModule],
-      options,
-    );
-    await commandHandler.command(
-      Cmd.import,
-      ['module', decisionRecordsPath, decisionModule],
+      ['module', decisionRecordsPath],
       optionsMini,
     );
   });
 
   it('try to add card to module template', async () => {
     const templateName = 'minimal';
-    const cardType = 'decision-cardtype';
+    const cardType = 'decision/cardtypes/decision-cardtype';
     const cardKey = '';
     const result = await commandHandler.command(
       Cmd.add,
@@ -1539,7 +1571,7 @@ describe('modifying imported module content is forbidden', () => {
   });
   it('try to add child card to a module card', async () => {
     const templateName = 'decision';
-    const cardType = 'decision-cardtype';
+    const cardType = 'decision/cardtypes/decision-cardtype';
     const cardKey = 'decision_2';
     // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
     const result = await commandHandler.command(
@@ -1582,7 +1614,7 @@ describe('modifying imported module content is forbidden', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('try to remove template from a module', async () => {
-    const template = 'decision/decision';
+    const template = 'decision/templates/decision';
     const result = await commandHandler.command(
       Cmd.remove,
       ['template', template],
@@ -1605,7 +1637,7 @@ describe('modifying imported module content is forbidden', () => {
 describe('move command', () => {
   it('move card to root (success)', async () => {
     // Create few more cards to play with.
-    const template = 'decision';
+    const template = 'decision/templates/decision';
     const parent = '';
     const done = await commandHandler.command(
       Cmd.create,
@@ -1737,7 +1769,7 @@ describe('remove command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('remove linktype (success)', async () => {
-    const linktype = 'lt_name';
+    const linktype = 'mini/linktypes/lt_name';
     const result = await commandHandler.command(
       Cmd.remove,
       ['linktype', linktype],
@@ -1746,7 +1778,7 @@ describe('remove command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('remove linktype - linktype missing', async () => {
-    const linktype = 'lt_name';
+    const linktype = 'mini/linktypes/lt_name';
     const result = await commandHandler.command(
       Cmd.remove,
       ['linktype', linktype],
@@ -1758,7 +1790,7 @@ describe('remove command', () => {
   it('remove link (success)', async () => {
     const result = await commandHandler.command(
       Cmd.remove,
-      ['link', 'decision_5', 'decision_6', 'test'],
+      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -1805,7 +1837,7 @@ describe('remove command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('remove template (success)', async () => {
-    const templateName = 'decision';
+    const templateName = 'decision/templates/decision';
     const result = await commandHandler.command(
       Cmd.remove,
       ['template', templateName],
@@ -1814,7 +1846,7 @@ describe('remove command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('remove template - template missing', async () => {
-    const templateName = 'decision'; // was deleted in the previous round
+    const templateName = 'decision/templates/decision'; // was deleted in the previous round
     const result = await commandHandler.command(
       Cmd.remove,
       ['template', templateName],
@@ -1823,7 +1855,7 @@ describe('remove command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('remove template - project missing', async () => {
-    const templateName = 'simplepage';
+    const templateName = 'decision/templates/simplepage';
     const invalidProject = { projectPath: 'idontexist' };
     const result = await commandHandler.command(
       Cmd.remove,
@@ -1955,7 +1987,7 @@ describe('rank command', () => {
   const childCardKey = 'decision_8';
   beforeEach(async () => {
     // Create a few cards to play with.
-    const template = 'decision';
+    const template = 'decision/templates/decision';
     await commandHandler.command(
       Cmd.create,
       ['card', template, ''],
@@ -1985,7 +2017,7 @@ describe('rank command', () => {
 
       const details = await new Show().showCardDetails(
         optionsReuse.projectPath,
-        { metadata: true, content: true },
+        { metadata: true },
         rankBefore,
       );
       expect(details.metadata?.rank).to.equal('0|c');

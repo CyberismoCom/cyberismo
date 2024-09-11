@@ -1,4 +1,4 @@
 {
-    "name": "simplepage",
-    "workflow": "simpleWorkflow"
+    "name": "decision/cardtypes/simplepage",
+    "workflow": "decision/workflows/simpleWorkflow"
 }

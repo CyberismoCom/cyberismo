@@ -1,1 +1,1 @@
-{"name":"test-types","outboundDisplayName":"test","inboundDisplayName":"test","sourceCardTypes":["decision-cardtype"],"destinationCardTypes":["simplepage-cardtype"],"enableLinkDescription":false}
+{"name":"decision/linktypes/test-types","outboundDisplayName":"test","inboundDisplayName":"test","sourceCardTypes":["decision/cardtypes/decision-cardtype"],"destinationCardTypes":["decision/cardtypes/simplepage-cardtype"],"enableLinkDescription":false}

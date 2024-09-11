@@ -353,12 +353,11 @@ importCmd
   .command('module')
   .description('Imports another project to this project.')
   .argument('<source>', 'Path to import from')
-  .argument('<name>', 'Name for the import in this project')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (source: string, name: string, options: CardsOptions) => {
+  .action(async (source: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', source, name],
+      ['module', source],
       options,
     );
     handleResponse(result);
