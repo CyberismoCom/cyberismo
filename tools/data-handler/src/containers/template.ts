@@ -278,6 +278,19 @@ export class Template extends CardContainer {
     return '';
   }
 
+  private moduleNameFromPath(template: string): string {
+    const modulePath = this.moduleTemplatePath(template);
+    if (modulePath !== '') {
+      const parts = modulePath.split(sep);
+      const modulesIndex = parts.indexOf('modules');
+      if (modulesIndex === -1) {
+        throw new Error(`incorrect module path: ${modulePath}`);
+      }
+      return parts.at(modulesIndex + 1) as string;
+    }
+    return '';
+  }
+
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
     const normalizedTemplateName =
@@ -548,8 +561,12 @@ export class Template extends CardContainer {
    * @returns details of template
    */
   public async show(): Promise<template> {
+    const name =
+      this.moduleTemplatePath(this.containerName) !== ''
+        ? this.moduleNameFromPath(this.containerName)
+        : this.project.projectPrefix;
     return {
-      name: `${this.project.projectPrefix}/templates/${this.containerName}`,
+      name: `${name}/templates/${this.containerName}`,
       path: this.templateFolder(),
       project: this.project.projectName,
       numberOfCards: (await super.cards(this.templateCardsPath)).length,
