@@ -26,7 +26,7 @@ i18n.use(initReactI18next).init({
       translation: en,
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: false,
   parseMissingKeyHandler: (key) => {
     return `__${key}__`; // show missing keys so it's easier to spot
   },
