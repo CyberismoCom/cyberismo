@@ -28,10 +28,10 @@ export class Calculate {
   static project: Project;
 
   private logicBinaryName: string = 'clingo';
-  private static cardTreeFileName: string = 'cardtree.lp';
+  private static cardTreeFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
-  private static queryLanguageFileName: string = 'query_language.lp';
+  private static queryLanguageFileName: string = 'queryLanguage.lp';
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../calculations/common',
@@ -232,15 +232,17 @@ export class Calculate {
       recursive: true,
     });
 
-    // Calculation files are in their own files, so they can be generated parallel.
     const promiseContainer = [
       this.generateCommonFiles(),
       this.generateCardTreeContent(card),
-      this.genereteCardTree(),
       this.generateModules(card),
     ];
 
     await Promise.all(promiseContainer);
+
+    // Card tree must be generated after all card specific files have been created,
+    // because it reads all card files
+    await this.genereteCardTree();
   }
 
   /**
