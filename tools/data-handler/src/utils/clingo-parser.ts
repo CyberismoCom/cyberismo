@@ -58,19 +58,19 @@ export interface ParseResult {
 
 class ClingoParser {
   private keywords = [
-    'query_error',
+    'queryError',
     'result',
-    'child_result',
+    'childResult',
     'field',
     'label',
     'link',
-    'transition_denied',
-    'moving_card_denied',
-    'deleting_card_denied',
-    'editing_field_denied',
-    'editing_content_denied',
-    'policy_check_failure',
-    'policy_check_success',
+    'transitionDenied',
+    'movingCardDenied',
+    'deletingCardDenied',
+    'editingFieldDenied',
+    'editingContentDenied',
+    'policyCheckFailure',
+    'policyCheckSuccess',
     'order',
   ];
 
@@ -115,13 +115,13 @@ class ClingoParser {
    */
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private commandHandlers: Record<string, Function> = {
-    query_error: async (message: string, ...params: string[]) => {
+    queryError: async (message: string, ...params: string[]) => {
       this.result.error = `${message}${params.length > 1 ? ` ${params.join(', ')}` : ''}`;
     },
     result: (key: string) => {
       this.resultQueue.push({ key });
     },
-    child_result: (parentKey: string, childKey: string) => {
+    childResult: (parentKey: string, childKey: string) => {
       this.childResultQueue.push({ parentKey, childKey });
     },
     field: (key: string, fieldName: string, fieldValue: string) => {
@@ -152,7 +152,7 @@ class ClingoParser {
         linkDescription,
       });
     },
-    transition_denied: (
+    transitionDenied: (
       key: string,
       transitionName: string,
       errorMessage: string,
@@ -160,15 +160,15 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.deniedOperations.transition.push({ transitionName, errorMessage });
     },
-    moving_card_denied: (key: string, errorMessage: string) => {
+    movingCardDenied: (key: string, errorMessage: string) => {
       const res = this.getOrInitResult(key);
       res.deniedOperations.move.push({ errorMessage });
     },
-    deleting_card_denied: (key: string, errorMessage: string) => {
+    deletingCardDenied: (key: string, errorMessage: string) => {
       const res = this.getOrInitResult(key);
       res.deniedOperations.delete.push({ errorMessage });
     },
-    editing_field_denied: (
+    editingFieldDenied: (
       key: string,
       fieldName: string,
       errorMessage: string,
@@ -176,11 +176,11 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.deniedOperations.editField.push({ fieldName, errorMessage });
     },
-    editing_content_denied: (key: string, errorMessage: string) => {
+    editingContentDenied: (key: string, errorMessage: string) => {
       const res = this.getOrInitResult(key);
       res.deniedOperations.editContent.push({ errorMessage });
     },
-    policy_check_failure: (
+    policyCheckFailure: (
       key: string,
       testSuite: string,
       testCase: string,
@@ -189,11 +189,7 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.policyChecks.failures.push({ testSuite, testCase, errorMessage });
     },
-    policy_check_success: (
-      key: string,
-      testSuite: string,
-      testCase: string,
-    ) => {
+    policyCheckSuccess: (key: string, testSuite: string, testCase: string) => {
       const res = this.getOrInitResult(key);
       res.policyChecks.successes.push({ testSuite, testCase });
     },

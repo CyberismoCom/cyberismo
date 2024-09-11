@@ -11,7 +11,7 @@ describe('ClingoParser', () => {
 
   it('should parse query_error correctly with 4 params', async () => {
     const input =
-      'query_error("An error occurred", "param1", "param2", "param3", "param4")';
+      'queryError("An error occurred", "param1", "param2", "param3", "param4")';
     const result = await parser.parseInput(input);
     expect(result.error).to.equal(
       'An error occurred param1, param2, param3, param4',
@@ -19,7 +19,7 @@ describe('ClingoParser', () => {
   });
 
   it('should parse query_error correctly with 0 params', async () => {
-    const input = 'query_error("An error occurred")';
+    const input = 'queryError("An error occurred")';
     const result = await parser.parseInput(input);
     expect(result.error).to.equal('An error occurred');
   });
@@ -31,8 +31,8 @@ describe('ClingoParser', () => {
     expect(result.results[0].key).to.equal('key1');
   });
 
-  it('should parse child_result correctly', async () => {
-    const input = 'result("parentKey")\nchild_result("parentKey", "childKey")';
+  it('should parse childResult correctly', async () => {
+    const input = 'result("parentKey")\nchildResult("parentKey", "childKey")';
     const result = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     expect(result.results[0].key).to.equal('parentKey');
@@ -77,9 +77,9 @@ describe('ClingoParser', () => {
     });
   });
 
-  it('should parse transition_denied correctly', async () => {
+  it('should parse transitionDenied correctly', async () => {
     const input =
-      'result("key1")\ntransition_denied("key1", "transitionName", "errorMessage")';
+      'result("key1")\ntransitionDenied("key1", "transitionName", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].deniedOperations.transition).to.have.lengthOf(1);
     expect(result.results[0].deniedOperations.transition[0]).to.deep.equal({
@@ -88,8 +88,8 @@ describe('ClingoParser', () => {
     });
   });
 
-  it('should parse moving_card_denied correctly', async () => {
-    const input = 'result("key1")\nmoving_card_denied("key1", "errorMessage")';
+  it('should parse movingCardDenied correctly', async () => {
+    const input = 'result("key1")\nmovingCardDenied("key1", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].deniedOperations.move).to.have.lengthOf(1);
     expect(result.results[0].deniedOperations.move[0].errorMessage).to.equal(
@@ -97,9 +97,8 @@ describe('ClingoParser', () => {
     );
   });
 
-  it('should parse deleting_card_denied correctly', async () => {
-    const input =
-      'result("key1")\ndeleting_card_denied("key1", "errorMessage")';
+  it('should parse deletingCardDenied correctly', async () => {
+    const input = 'result("key1")\ndeletingCardDenied("key1", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].deniedOperations.delete).to.have.lengthOf(1);
     expect(result.results[0].deniedOperations.delete[0].errorMessage).to.equal(
@@ -107,9 +106,9 @@ describe('ClingoParser', () => {
     );
   });
 
-  it('should parse editing_field_denied correctly', async () => {
+  it('should parse editingFieldDenied correctly', async () => {
     const input =
-      'result("key1")\nediting_field_denied("key1", "fieldName", "errorMessage")';
+      'result("key1")\neditingFieldDenied("key1", "fieldName", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].deniedOperations.editField).to.have.lengthOf(1);
     expect(result.results[0].deniedOperations.editField[0]).to.deep.equal({
@@ -118,9 +117,9 @@ describe('ClingoParser', () => {
     });
   });
 
-  it('should parse editing_content_denied correctly', async () => {
+  it('should parse editingContentDenied correctly', async () => {
     const input =
-      'result("key1")\nediting_content_denied("key1", "errorMessage")';
+      'result("key1")\neditingContentDenied("key1", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].deniedOperations.editContent).to.have.lengthOf(1);
     expect(
@@ -128,9 +127,9 @@ describe('ClingoParser', () => {
     ).to.equal('errorMessage');
   });
 
-  it('should parse policy_check_failure correctly', async () => {
+  it('should parse policyCheckFailure correctly', async () => {
     const input =
-      'result("key1")\npolicy_check_failure("key1", "testSuite", "testCase", "errorMessage")';
+      'result("key1")\npolicyCheckFailure("key1", "testSuite", "testCase", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].policyChecks.failures).to.have.lengthOf(1);
     expect(result.results[0].policyChecks.failures[0]).to.deep.equal({
@@ -141,9 +140,9 @@ describe('ClingoParser', () => {
     expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
   });
 
-  it('should parse policy_check_success correctly', async () => {
+  it('should parse policyCheckSuccess correctly', async () => {
     const input =
-      'result("key1")\npolicy_check_success("key1", "testSuite", "testCase")';
+      'result("key1")\npolicyCheckSuccess("key1", "testSuite", "testCase")';
     const result = await parser.parseInput(input);
     expect(result.results[0].policyChecks.successes).to.have.lengthOf(1);
     expect(result.results[0].policyChecks.successes[0]).to.deep.equal({
@@ -190,11 +189,11 @@ describe('ClingoParser', () => {
   it('should handle order on multiple levels correctly', async () => {
     const input = `
         result("key1")
-        child_result("key1", "key2")
+        childResult("key1", "key2")
         field("key2", "field", "b")
-        child_result("key1", "key3")
+        childResult("key1", "key3")
         field("key3", "field", "a")
-        child_result("key1", "key4")
+        childResult("key1", "key4")
         field("key4", "field", "c")
         order(2, 1, "field", "ASC")
     `;
@@ -209,11 +208,11 @@ describe('ClingoParser', () => {
   it('should handle order on multiple levels correctly in reverse', async () => {
     const input = `
         result("key1")
-        child_result("key1", "key2")
+        childResult("key1", "key2")
         field("key2", "field", "b")
-        child_result("key1", "key3")
+        childResult("key1", "key3")
         field("key3", "field", "a")
-        child_result("key1", "key4")
+        childResult("key1", "key4")
         field("key4", "field", "c")
         order(2, 1, "field", "DESC")
     `;
@@ -229,13 +228,13 @@ describe('ClingoParser', () => {
   it('should handle oreder on 4th level correctly', async () => {
     const input = `
         result("key1")
-        child_result("key1", "key2")
-        child_result("key2", "key3")
-        child_result("key3", "key4")
+        childResult("key1", "key2")
+        childResult("key2", "key3")
+        childResult("key3", "key4")
         field("key4", "field", "b")
-        child_result("key3", "key5")
+        childResult("key3", "key5")
         field("key5", "field", "a")
-        child_result("key3", "key6")
+        childResult("key3", "key6")
         field("key6", "field", "c")
         order(4, 1, "field", "ASC")
     `;
@@ -262,13 +261,13 @@ describe('ClingoParser', () => {
             field("key1", "fieldName", "fieldValue")
             label("key1", "label1")
             link("key1", "cardKey", "linkType", "linkDescription")
-            transition_denied("key1", "transitionName", "errorMessage")
-            moving_card_denied("key1", "errorMessage")
-            deleting_card_denied("key1", "errorMessage")
-            editing_field_denied("key1", "fieldName", "errorMessage")
-            editing_content_denied("key1", "errorMessage")
-            policy_check_failure("key1", "testSuite", "testCase", "errorMessage")
-            policy_check_success("key1", "testSuite", "testCase")
+            transitionDenied("key1", "transitionName", "errorMessage")
+            movingCardDenied("key1", "errorMessage")
+            deletingCardDenied("key1", "errorMessage")
+            editingFieldDenied("key1", "fieldName", "errorMessage")
+            editingContentDenied("key1", "errorMessage")
+            policyCheckFailure("key1", "testSuite", "testCase", "errorMessage")
+            policyCheckSuccess("key1", "testSuite", "testCase")
             order("1", "0", "field", "ASC")
         `;
     const result = await parser.parseInput(input);

@@ -1,210 +1,210 @@
 % Cyberismo query language
 
 % select(n, field): on result level n, "field" should be returned
-% select_all(n): on result level n, all fields should be returned
+% selectAll(n): on result level n, all fields should be returned
 % select(field): "field" should be returned on all levels of hierarchy
-% select_all: all fields should be returned on all levels of hierarchy
+% selectAll: all fields should be returned on all levels of hierarchy
 
 % select works similarly for "labels", "links", "policyChecks" and "deniedOperations" as it works for fields
 
-select(N, Field) :- select(Field), result_level(_, N).
-select_all(N) :- select_all, result_level(_, N).
+select(N, Field) :- select(Field), resultLevel(_, N).
+selectAll(N) :- selectAll, resultLevel(_, N).
 
-% result_level(key, n): result "key" is on result level n
-result_level(Key, 1) :- result(Key).
-result_level(Child, N+1) :- child_result(Key, Child), result_level(Key, N).
+% resultLevel(key, n): result "key" is on result level n
+resultLevel(Key, 1) :- result(Key).
+resultLevel(Child, N+1) :- childResult(Key, Child), resultLevel(Key, N).
 
 % result(key): key is a result of the query
-#show result(Key) : result(Key), not query_error.
+#show result(Key) : result(Key), not queryError.
 
-% child_result(key, child key): child key is a child result of key
-#show child_result(Key, Child) : child_result(Key, Child), not query_error.
+% childResult(key, child key): child key is a child result of key
+#show childResult(Key, Child) : childResult(Key, Child), not queryError.
 
 % helpers for simplifying some of the #show statements
 
-% result_or_child_result(key): key is included in the results as a result or a child result
-result_or_child_result(Key) :- result(Key).
-result_or_child_result(Key) :- child_result(Key).
+% resultOrChildResult(key): key is included in the results as a result or a child result
+resultOrChildResult(Key) :- result(Key).
+resultOrChildResult(Key) :- childResult(_, Key).
 
-% show_all(key): whether all fields or field-like things of a key should be included in the results
-show_all(Key) :-
-    result_or_child_result(Key),
-    result_level(Key, Level),
-    select_all(Level),
-    not query_error.
+% showAll(key): whether all fields or field-like things of a key should be included in the results
+showAll(Key) :-
+    resultOrChildResult(Key),
+    resultLevel(Key, Level),
+    selectAll(Level),
+    not queryError.
 
-% show_field: whether a certain field or field-like thing of a key should be included in the results
-show_field(Key, Field) :-
-    result_or_child_result(Key),
-    result_level(Key, Level),
+% showField: whether a certain field or field-like thing of a key should be included in the results
+showField(Key, Field) :-
+    resultOrChildResult(Key),
+    resultLevel(Key, Level),
     select(Level, Field),
-    not query_error.
+    not queryError.
 
 % field(key, field, value): "field" of result/child result "key" has value "value"
 #show field(Key, Field, Value) :
     field(Key, Field, Value),
-    show_field(Key, Field).
+    showField(Key, Field).
 
 #show field(Key, Field, Value) :
     field(Key, Field, Value),
-    show_all(Key).
+    showAll(Key).
 
 % label(key, label): key is tagged with "label"
 
 #show label(Key, Label) :
     label(Key, Label),
-    show_field(Key, "labels").
+    showField(Key, "labels").
 
 #show label(Key, Label) :
     label(Key, Label),
-    show_all(Key).
+    showAll(Key).
 
 % links
 
 #show link(Source, Destination, LinkType, LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
-    show_field(Source, "links").
+    showField(Source, "links").
 
 #show link(Source, Destination, LinkType, LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
-    show_field(Destination, "links").
+    showField(Destination, "links").
 
 #show link(Source, Destination, LinkType, LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
-    show_all(Source).
+    showAll(Source).
 
 #show link(Source, Destination, LinkType, LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
-    show_all(Destination).
+    showAll(Destination).
 
 #show link(Source, Destination, LinkType) :
     link(Source, Destination, LinkType),
-    show_field(Source, "links").
+    showField(Source, "links").
 
 #show link(Source, Destination, LinkType) :
     link(Source, Destination, LinkType),
-    show_field(Destination, "links").
+    showField(Destination, "links").
 
 #show link(Source, Destination, LinkType) :
     link(Source, Destination, LinkType),
-    show_all(Source).
+    showAll(Source).
 
 #show link(Source, Destination, LinkType) :
     link(Source, Destination, LinkType),
-    show_all(Destination).
+    showAll(Destination).
 
 % policy checks
 
-#show policy_check_failure(Key, TestSuite, TestCase, ErrorMessage) :
-    policy_check_failure(Key, TestSuite, TestCase, ErrorMessage),
-    show_field(Key, "policyChecks").
+#show policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage) :
+    policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage),
+    showField(Key, "policyChecks").
 
-#show policy_check_failure(Key, TestSuite, TestCase, ErrorMessage) :
-    policy_check_failure(Key, TestSuite, TestCase, ErrorMessage),
-    show_all(Key).
+#show policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage) :
+    policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage),
+    showAll(Key).
 
-#show policy_check_success(Key, TestSuite, TestCase, ErrorMessage) :
-    policy_check_success(Key, TestSuite, TestCase, ErrorMessage),
-    show_field(Key, "policyChecks").
+#show policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage) :
+    policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage),
+    showField(Key, "policyChecks").
 
-#show policy_check_success(Key, TestSuite, TestCase, ErrorMessage) :
-    policy_check_success(Key, TestSuite, TestCase, ErrorMessage),
-    show_all(Key).
+#show policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage) :
+    policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage),
+    showAll(Key).
 
 % denied operations
 
-#show transition_denied(Key, Transition, ErrorMessage) :
-    transition_denied(Key, Transition, ErrorMessage),
-    show_field(Key, "deniedOperations").
+#show transitionDenied(Key, Transition, ErrorMessage) :
+    transitionDenied(Key, Transition, ErrorMessage),
+    showField(Key, "deniedOperations").
 
-#show transition_denied(Key, Transition, ErrorMessage) :
-    transition_denied(Key, Transition, ErrorMessage),
-    show_all(Key).
+#show transitionDenied(Key, Transition, ErrorMessage) :
+    transitionDenied(Key, Transition, ErrorMessage),
+    showAll(Key).
 
-#show moving_card_denied(Key, ErrorMessage) :
-    moving_card_denied(Key, ErrorMessage),
-    show_field(Key, "deniedOperations").
+#show movingCardDenied(Key, ErrorMessage) :
+    movingCardDenied(Key, ErrorMessage),
+    showField(Key, "deniedOperations").
 
-#show moving_card_denied(Key, ErrorMessage) :
-    moving_card_denied(Key, ErrorMessage),
-    show_all(Key).
+#show movingCardDenied(Key, ErrorMessage) :
+    movingCardDenied(Key, ErrorMessage),
+    showAll(Key).
 
-#show deleting_card_denied(Key, ErrorMessage) :
-    deleting_card_denied(Key, ErrorMessage),
-    show_field(Key, "deniedOperations").
+#show deletingCardDenied(Key, ErrorMessage) :
+    deletingCardDenied(Key, ErrorMessage),
+    showField(Key, "deniedOperations").
 
-#show deleting_card_denied(Key, ErrorMessage) :
-    deleting_card_denied(Key, ErrorMessage),
-    show_all(Key).
+#show deletingCardDenied(Key, ErrorMessage) :
+    deletingCardDenied(Key, ErrorMessage),
+    showAll(Key).
 
-#show editing_field_denied(Key, Field, ErrorMessage) :
-    editing_field_denied(Key, Field, ErrorMessage),
-    show_field(Key, "deniedOperations").
+#show editingFieldDenied(Key, Field, ErrorMessage) :
+    editingFieldDenied(Key, Field, ErrorMessage),
+    showField(Key, "deniedOperations").
 
-#show editing_field_denied(Key, Field, ErrorMessage) :
-    editing_field_denied(Key, Field, ErrorMessage),
-    show_all(Key).
+#show editingFieldDenied(Key, Field, ErrorMessage) :
+    editingFieldDenied(Key, Field, ErrorMessage),
+    showAll(Key).
 
-#show editing_content_denied(Key, ErrorMessage) :
-    editing_content_denied(Key, ErrorMessage),
-    show_field(Key, "deniedOperations").
+#show editingContentDenied(Key, ErrorMessage) :
+    editingContentDenied(Key, ErrorMessage),
+    showField(Key, "deniedOperations").
 
-#show editing_content_denied(Key, ErrorMessage) :
-    editing_content_denied(Key, ErrorMessage),
-    show_all(Key).
+#show editingContentDenied(Key, ErrorMessage) :
+    editingContentDenied(Key, ErrorMessage),
+    showAll(Key).
 
 % order(n, 1, field, direction): the results on level n should be first ordered by "field" in "direction"
 % order(n, 2, field, direction): the results on level n should be secondly ordered by "field" in "direction"
 % etc.
 % direction must be "ASC" or "DESC".
 
-% order_by is syntactic sugar for order, as you can order by 1..3 fields with one predicate
+% orderBy is syntactic sugar for order, as you can order by 1..3 fields with one predicate
 
-% order_by with an even numer of parameters refers to results on all levels of hierarchy.
-order(N, 1, Field, Direction) :- order_by(Field, Direction), result_level(_, N).
-order(N, 1, Field1, Direction1) :- order_by(Field1, Direction1, _, _), result_level(_, N).
-order(N, 2, Field2, Direction2) :- order_by(_, _, Field2, Direction2), result_level(_, N).
-order(N, 1, Field1, Direction1) :- order_by(Field1, Direction1, _, _, _, _), result_level(_, N).
-order(N, 2, Field2, Direction2) :- order_by(_, _, Field2, Direction2, _, _), result_level(_, N).
-order(N, 3, Field3, Direction3) :- order_by(_, _, _, _, Field3, Direction3), result_level(_, N).
+% orderBy with an even numer of parameters refers to results on all levels of hierarchy.
+order(N, 1, Field, Direction) :- orderBy(Field, Direction), resultLevel(_, N).
+order(N, 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _), resultLevel(_, N).
+order(N, 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2), resultLevel(_, N).
+order(N, 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _, _, _), resultLevel(_, N).
+order(N, 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2, _, _), resultLevel(_, N).
+order(N, 3, Field3, Direction3) :- orderBy(_, _, _, _, Field3, Direction3), resultLevel(_, N).
 
-% order_by with an odd numer of parameters has the result level as the first parameter
-order(Level, 1, Field, Direction) :- order_by(Level, Field, Direction).
-order(Level, 1, Field1, Direction1) :- order_by(Level, Field1, Direction1, _, _).
-order(Level, 2, Field2, Direction2) :- order_by(Level, _, _, Field2, Direction2).
-order(Level, 1, Field1, Direction1) :- order_by(Level, Field1, Direction1, _, _, _, _).
-order(Level, 2, Field2, Direction2) :- order_by(Level, _, _, Field2, Direction2, _, _).
-order(Level, 3, Field3, Direction3) :- order_by(Level, _, _, _, _, Field3, Direction3).
+% orderBy with an odd numer of parameters has the result level as the first parameter
+order(Level, 1, Field, Direction) :- orderBy(Level, Field, Direction).
+order(Level, 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _).
+order(Level, 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2).
+order(Level, 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _, _, _).
+order(Level, 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2, _, _).
+order(Level, 3, Field3, Direction3) :- orderBy(Level, _, _, _, _, Field3, Direction3).
 
-query_error("Invalid direction in ordering:", Level, Index, Field, Direction) :-
+queryError("Invalid direction in ordering:", Level, Index, Field, Direction) :-
     order(Level, Index, Field, Direction),
     Direction != "ASC",
     Direction != "DESC".
 
-query_error("Ordering direction missing:", Field) :- order_by(Field).
+queryError("Ordering direction missing:", Field) :- orderBy(Field).
 
-query_error("Conflicting ordering for fields: ", Field1, Field2) :-
+queryError("Conflicting ordering for fields: ", Field1, Field2) :-
     order(Level, Index, Field1, _),
     order(Level, Index, Field2, _),
     Field1 != Field2.
 
-query_error("Conflicting ordering direction", Field, Direction1, Direction2) :-
+queryError("Conflicting ordering direction", Field, Direction1, Direction2) :-
     order(Level, Index, Field, Direction1),
     order(Level, Index, Field, Direction2),
     Direction1 != Direction2.
 
-query_error :- query_error(_).
-query_error :- query_error(_, _).
-query_error :- query_error(_, _, _).
-query_error :- query_error(_, _, _, _).
-query_error :- query_error(_, _, _, _, _).
+queryError :- queryError(_).
+queryError :- queryError(_, _).
+queryError :- queryError(_, _, _).
+queryError :- queryError(_, _, _, _).
+queryError :- queryError(_, _, _, _, _).
 
 #show order(Level, Index, Field, Direction) :
     order(Level, Index, Field, Direction),
-    not query_error.
+    not queryError.
 
-#show query_error/1.
-#show query_error/2.
-#show query_error/3.
-#show query_error/4.
-#show query_error/5.
+#show queryError/1.
+#show queryError/2.
+#show queryError/3.
+#show queryError/4.
+#show queryError/5.
