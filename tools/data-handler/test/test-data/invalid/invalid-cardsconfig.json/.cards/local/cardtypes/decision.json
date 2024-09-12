@@ -1,0 +1,10 @@
+{
+    "name": "decision/cardTypes/decision",
+    "workflow": "decision/workflows/decision",
+    "customFields": [
+        {
+            "name": "decision/fieldTypes/obsoletedBy",
+            "displayName": "Obsoleted By"
+        }
+    ]
+}

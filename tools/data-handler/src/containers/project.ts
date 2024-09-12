@@ -22,10 +22,10 @@ import {
   cardListContainer,
   cardMetadata,
   cardNameRegEx,
-  cardtype,
+  cardType,
   fetchCardDetails,
-  fieldtype,
-  linktype,
+  fieldType,
+  linkType,
   metadataContent,
   moduleSettings,
   project,
@@ -52,8 +52,8 @@ export class Project extends CardContainer {
 
   private localCalculations: resource[] = [];
   private localCardtypes: resource[] = [];
-  private localFieldtypes: resource[] = [];
-  private localLinktypes: resource[] = [];
+  private localFieldTypes: resource[] = [];
+  private localLinkTypes: resource[] = [];
   private localTemplates: resource[] = [];
   private localWorkflows: resource[] = [];
 
@@ -66,9 +66,9 @@ export class Project extends CardContainer {
     this.validator = Validate.getInstance();
 
     this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardtypes = this.resourcesSync('cardtype', 'file');
-    this.localFieldtypes = this.resourcesSync('fieldtype', 'file');
-    this.localLinktypes = this.resourcesSync('linktype', 'file');
+    this.localCardtypes = this.resourcesSync('cardType', 'file');
+    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
+    this.localLinkTypes = this.resourcesSync('linkType', 'file');
     this.localTemplates = this.resourcesSync('template', 'folder');
     this.localWorkflows = this.resourcesSync('workflow', 'file');
   }
@@ -139,16 +139,16 @@ export class Project extends CardContainer {
     return join(this.resourcesFolder, Project.projectConfigFileName);
   }
 
-  // Reads cardtree to memory. This is with minimal information (e.g no attachments, no content).
+  // Reads card tree to memory. This is with minimal information (e.g no attachments, no content).
   // todo: combine with function of same in Export; add here booleans 'include content', 'include attachments'
-  private async readCardTreeToMemory(cardrootPath: string, cards?: card[]) {
+  private async readCardTreeToMemory(cardRootPath: string, cards?: card[]) {
     // Finds card from already collected cards using filename path.
     function findCard(path: string, cards: card[] | undefined) {
       return cards?.find((card) => card.key === basename(path));
     }
 
     // Filter out the schema validation files.
-    let entries = await readdir(cardrootPath, { withFileTypes: true });
+    let entries = await readdir(cardRootPath, { withFileTypes: true });
     entries = entries.filter((entry) => {
       return entry.name !== Project.schemaContentFile;
     });
@@ -189,12 +189,12 @@ export class Project extends CardContainer {
     let resourceFolder: string;
     if (type === 'calculation') {
       resourceFolder = this.calculationProjectFolder;
-    } else if (type === 'cardtype') {
-      resourceFolder = this.cardtypesFolder;
-    } else if (type === 'fieldtype') {
-      resourceFolder = this.fieldtypesFolder;
-    } else if (type === 'linktype') {
-      resourceFolder = this.linktypesFolder;
+    } else if (type === 'cardType') {
+      resourceFolder = this.cardTypesFolder;
+    } else if (type === 'fieldType') {
+      resourceFolder = this.fieldTypesFolder;
+    } else if (type === 'linkType') {
+      resourceFolder = this.linkTypesFolder;
     } else if (type === 'template') {
       resourceFolder = this.templatesFolder;
     } else if (type === 'workflow') {
@@ -289,7 +289,7 @@ export class Project extends CardContainer {
    * @returns all attachments in the project.
    */
   public async attachments(): Promise<attachmentDetails[]> {
-    return super.attachments(this.cardrootFolder);
+    return super.attachments(this.cardRootFolder);
   }
 
   /**
@@ -335,7 +335,7 @@ export class Project extends CardContainer {
 
     const pathToProjectCard = this.pathToCard(cardKey);
     return pathToProjectCard
-      ? join(this.cardrootFolder, pathToProjectCard, 'a')
+      ? join(this.cardRootFolder, pathToProjectCard, 'a')
       : '';
   }
 
@@ -358,7 +358,7 @@ export class Project extends CardContainer {
    * @returns path to card's folder.
    */
   public async cardFolder(cardKey: string): Promise<string> {
-    const found = await super.findCard(this.cardrootFolder, cardKey);
+    const found = await super.findCard(this.cardRootFolder, cardKey);
     if (found) {
       return found.path;
     }
@@ -379,8 +379,8 @@ export class Project extends CardContainer {
   /**
    * Getter. Returns path to card-root.
    */
-  public get cardrootFolder(): string {
-    return join(this.basePath, 'cardroot');
+  public get cardRootFolder(): string {
+    return join(this.basePath, 'cardRoot');
   }
 
   /**
@@ -390,36 +390,35 @@ export class Project extends CardContainer {
    * @returns all cards from the given path in the project.
    */
   public async cards(
-    path: string = this.cardrootFolder,
+    path: string = this.cardRootFolder,
     details: fetchCardDetails = { content: true, metadata: true },
   ): Promise<card[]> {
     return super.cards(path, details);
   }
 
   /**
-   * Returns the content of a specific cardtype.
-   * @param {string} cardTypeName Name of cardtype to fetch. Can either be filename (including .json extension), or just name.
-   * @returns JSON content of cardtype, or undefined if the cardtype cannot be found.
+   * Returns the content of a specific card type.
+   * @param {string} cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
+   * @returns JSON content of card type, or undefined if the card type cannot be found.
    */
   public async cardType(
     cardTypeName?: string,
     skipDefaults: boolean = false,
-  ): Promise<cardtype | undefined> {
+  ): Promise<cardType | undefined> {
     if (!cardTypeName) return undefined;
     if (!cardTypeName.endsWith('.json')) {
       cardTypeName += '.json';
     }
-    const found = (await this.cardtypes()).find(
+    const found = (await this.cardTypes()).find(
       (item) => item.name === cardTypeName && item.path,
     );
-
     if (!found || !found.path) {
       return undefined;
     }
     // todo: somehow should automatically fill-in 'default' values.
     const content = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as cardtype;
+    )) as cardType;
     if (content.customFields && !skipDefaults) {
       for (const item of content.customFields) {
         // Set "isEditable" if it is missing; default = true
@@ -456,18 +455,18 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local card types, or all card types (includes module card types)
    * @returns array of all card-types in the project.
    */
-  public async cardtypes(localOnly: boolean = false): Promise<resource[]> {
-    const moduleCardTypes = await this.collectResourcesFromModules('cardtypes');
+  public async cardTypes(localOnly: boolean = false): Promise<resource[]> {
+    const moduleCardTypes = await this.collectResourcesFromModules('cardTypes');
     return localOnly
       ? this.localCardtypes
       : [...this.localCardtypes, ...moduleCardTypes];
   }
 
   /**
-   * Getter. Returns path to 'cardtypes' folder.
+   * Getter. Returns path to 'cardTypes' folder.
    */
-  public get cardtypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'cardtypes');
+  public get cardTypesFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'cardTypes');
   }
 
   /**
@@ -515,14 +514,14 @@ export class Project extends CardContainer {
    */
   public async fieldType(
     fieldTypeName: string,
-  ): Promise<fieldtype | undefined> {
+  ): Promise<fieldType | undefined> {
     if (!fieldTypeName) {
       return undefined;
     }
     if (!fieldTypeName.endsWith('.json')) {
       fieldTypeName += '.json';
     }
-    const found = (await this.fieldtypes()).find(
+    const found = (await this.fieldTypes()).find(
       (item) => item.name === fieldTypeName && item.path,
     );
 
@@ -531,7 +530,7 @@ export class Project extends CardContainer {
     }
     const file = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as fieldtype;
+    )) as fieldType;
     return file;
   }
 
@@ -540,20 +539,20 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local field types, or all field types (includes module field types)
    * @returns array of all field types in the project.
    */
-  public async fieldtypes(localOnly: boolean = false): Promise<resource[]> {
+  public async fieldTypes(localOnly: boolean = false): Promise<resource[]> {
     const moduleFieldTypes =
-      await this.collectResourcesFromModules('fieldtypes');
+      await this.collectResourcesFromModules('fieldTypes');
     return localOnly
-      ? this.localFieldtypes
-      : [...this.localFieldtypes, ...moduleFieldTypes];
+      ? this.localFieldTypes
+      : [...this.localFieldTypes, ...moduleFieldTypes];
   }
 
   /**
-   * Returns path to 'fieldtypes' folder.
-   * @returns path to 'fieldtypes' folder.
+   * Returns path to 'fieldTypes' folder.
+   * @returns path to 'fieldTypes' folder.
    */
-  public get fieldtypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'fieldtypes');
+  public get fieldTypesFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'fieldTypes');
   }
 
   /**
@@ -586,7 +585,7 @@ export class Project extends CardContainer {
     details: fetchCardDetails = {},
   ): Promise<card | undefined> {
     const projectCard = await super.findCard(
-      this.cardrootFolder,
+      this.cardRootFolder,
       cardKey,
       details,
     );
@@ -611,9 +610,9 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Flattens card-tree so that children are shown on same level regardless of nesting level.
-   * @param {card[]} array cardtree
-   * @returns flattened cardtree.
+   * Flattens card tree so that children are shown on same level regardless of nesting level.
+   * @param {card[]} array card tree
+   * @returns flattened card tree.
    */
   public static flattenCardArray(array: card[]) {
     const result: card[] = [];
@@ -634,7 +633,7 @@ export class Project extends CardContainer {
    * @returns true if a given card is found from project, false otherwise.
    */
   public hasCard(cardKey: string): boolean {
-    return super.hasCard(cardKey, this.cardrootFolder);
+    return super.hasCard(cardKey, this.cardRootFolder);
   }
 
   /**
@@ -643,7 +642,7 @@ export class Project extends CardContainer {
    * @returns true, if in the given path there is a project; false otherwise
    */
   static isCreated(path: string): boolean {
-    return pathExists(join(path, 'cardroot'));
+    return pathExists(join(path, 'cardRoot'));
   }
 
   /**
@@ -659,9 +658,9 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns specific linktype path
+   * Returns specific link type path
    * @param {string} linkTypeName Name of the linkType
-   * @returns linktype path.
+   * @returns link type path.
    */
   public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
     if (!linkTypeName) {
@@ -681,11 +680,11 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns specific linktype metadata.
+   * Returns specific link type metadata.
    * @param {string} linkTypeName Name of the linkType
-   * @returns linktype metadata.
+   * @returns link type metadata.
    */
-  public async linkType(linkTypeName: string): Promise<linktype | undefined> {
+  public async linkType(linkTypeName: string): Promise<linkType | undefined> {
     const path = await this.linkTypePath(linkTypeName);
     if (!path) {
       return undefined;
@@ -698,18 +697,18 @@ export class Project extends CardContainer {
    * @returns array of all link types in the project.
    */
   public async linkTypes(localOnly: boolean = false): Promise<resource[]> {
-    const moduleLinkTypes = await this.collectResourcesFromModules('linktypes');
+    const moduleLinkTypes = await this.collectResourcesFromModules('linkTypes');
     return localOnly
-      ? this.localLinktypes
-      : [...this.localLinktypes, ...moduleLinkTypes];
+      ? this.localLinkTypes
+      : [...this.localLinkTypes, ...moduleLinkTypes];
   }
 
   /**
-   * Returns path to 'linktypes' folder.
-   * @returns path to 'linktypes' folder.
+   * Returns path to 'link types' folder.
+   * @returns path to 'link types' folder.
    */
-  public get linktypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'linktypes');
+  public get linkTypesFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'linkTypes');
   }
 
   /**
@@ -721,7 +720,7 @@ export class Project extends CardContainer {
     includeTemplateCards: boolean,
   ): Promise<cardListContainer[]> {
     const cardListContainer: cardListContainer[] = [];
-    const projectCards = (await super.cards(this.cardrootFolder)).map(
+    const projectCards = (await super.cards(this.cardRootFolder)).map(
       (item) => item.key,
     );
     cardListContainer.push({
@@ -765,25 +764,25 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         path: moduleNameAndPath,
-        cardkeyPrefix: moduleConfig.cardkeyPrefix,
+        cardKeyPrefix: moduleConfig.cardKeyPrefix,
         // resources:
         calculations: [
           ...(await this.collectResourcesFromModules('calculations')).map(
             (item) => item.name,
           ),
         ],
-        cardtypes: [
-          ...(await this.collectResourcesFromModules('cardtypes')).map(
+        cardTypes: [
+          ...(await this.collectResourcesFromModules('cardTypes')).map(
             (item) => item.name,
           ),
         ],
-        fieldtypes: [
-          ...(await this.collectResourcesFromModules('fieldtypes')).map(
+        fieldTypes: [
+          ...(await this.collectResourcesFromModules('fieldTypes')).map(
             (item) => item.name,
           ),
         ],
-        linktypes: [
-          ...(await this.collectResourcesFromModules('linktypes')).map(
+        linkTypes: [
+          ...(await this.collectResourcesFromModules('linkTypes')).map(
             (item) => item.name,
           ),
         ],
@@ -854,7 +853,7 @@ export class Project extends CardContainer {
     const length = 8;
     for (let i = 0; i < maxAttempts; i++) {
       // Create a key and check that there are no collisions with other keys in project
-      const newKey = `${this.settings.cardkeyPrefix}_${generateRandomString(base, length)}`;
+      const newKey = `${this.settings.cardKeyPrefix}_${generateRandomString(base, length)}`;
       const exists = await this.findSpecificCard(newKey);
       if (exists) continue;
       return newKey;
@@ -869,7 +868,7 @@ export class Project extends CardContainer {
    * @returns path to a given card.
    */
   public pathToCard(cardKey: string): string {
-    const allFiles = getFilesSync(this.cardrootFolder);
+    const allFiles = getFilesSync(this.cardRootFolder);
     const cardIndexJsonFile = join(cardKey, Project.cardMetadataFile);
     const foundFile = allFiles.find((file) => file.includes(cardIndexJsonFile));
     return foundFile ? dirname(foundFile) : '';
@@ -886,7 +885,7 @@ export class Project extends CardContainer {
    * Getter. Returns project prefix (part of card ID).
    */
   public get projectPrefix(): string {
-    return this.settings.cardkeyPrefix;
+    return this.settings.cardKeyPrefix;
   }
 
   /**
@@ -908,7 +907,7 @@ export class Project extends CardContainer {
         const configuration = (await readJsonFile(
           join(file.path, file.name),
         )) as projectSettings;
-        return configuration.cardkeyPrefix;
+        return configuration.cardKeyPrefix;
       });
 
       const configurationPrefixes = await Promise.all(configurationPromises);
@@ -944,7 +943,7 @@ export class Project extends CardContainer {
    */
   public async showProjectCards(): Promise<card[]> {
     const cards: card[] = [];
-    await this.readCardTreeToMemory(this.cardrootFolder, cards);
+    await this.readCardTreeToMemory(this.cardRootFolder, cards);
     return cards;
   }
 

@@ -45,7 +45,7 @@ export class Move {
     } else {
       const returnObject: card = {
         key: '',
-        path: Move.project.cardrootFolder,
+        path: Move.project.cardRootFolder,
       };
       promiseContainer.push(Promise.resolve(returnObject));
     }
@@ -80,7 +80,7 @@ export class Move {
 
     const destinationPath =
       destination === 'root'
-        ? join(Move.project.cardrootFolder, sourceCard.key)
+        ? join(Move.project.cardRootFolder, sourceCard.key)
         : join(destinationCard.path, 'c', sourceCard.key);
 
     // if the card is already in the destination, do nothing

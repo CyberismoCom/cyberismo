@@ -20,25 +20,25 @@ import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './validate.js';
 
 /**
- * Represents Project's cardsconfig.json file.
+ * Represents Project's cardsConfig.json file.
  */
 export class ProjectSettings implements projectSettings {
   private static instance: ProjectSettings;
 
   name: string;
-  cardkeyPrefix: string;
+  cardKeyPrefix: string;
   private settingPath: string;
 
   constructor(path: string) {
     this.name = '';
     this.settingPath = path;
-    this.cardkeyPrefix = '';
+    this.cardKeyPrefix = '';
     this.readSettings();
   }
 
   // Persists configuration file to disk.
   public async save() {
-    if (this.cardkeyPrefix === '') {
+    if (this.cardKeyPrefix === '') {
       throw new Error('wrong configuration');
     }
     await open(this.settingPath, 'w').then(async (file) => {
@@ -71,10 +71,10 @@ export class ProjectSettings implements projectSettings {
       );
     }
 
-    const valid = 'cardkeyPrefix' in settings && 'name' in settings;
+    const valid = 'cardKeyPrefix' in settings && 'name' in settings;
 
     if (valid) {
-      this.cardkeyPrefix = settings.cardkeyPrefix;
+      this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
     } else {
       throw new Error(`Invalid configuration file '${this.settingPath}'`);
@@ -84,7 +84,7 @@ export class ProjectSettings implements projectSettings {
   // Return the configuration as object
   private toJSON(): projectSettings {
     return {
-      cardkeyPrefix: this.cardkeyPrefix,
+      cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
     };
   }
@@ -111,7 +111,7 @@ export class ProjectSettings implements projectSettings {
   public async setCardPrefix(newPrefix: string) {
     const isValid = Validate.validatePrefix(newPrefix);
     if (isValid) {
-      this.cardkeyPrefix = newPrefix;
+      this.cardKeyPrefix = newPrefix;
       return this.save();
     }
     throw new Error(

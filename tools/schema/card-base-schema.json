@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
-    "cardtype": {
+    "cardType": {
       "type": "string",
       "minLength": 1,
       "description": "The name of the card type",
@@ -48,15 +48,15 @@
       "items": {
         "type": "object",
         "properties": {
-          "cardkey": {
+          "cardKey": {
             "type": "string",
             "minLength": 3,
             "maxLength": 20,
             "pattern": "^[a-z]+_[0-9a-z]+$"
           },
-          "linktype": {
-            "description": "The linktype is named according to the from-to direction. In user interfaces, the naming according to the linktype is shown in the 'from' card.",
-            "$comment": "The same linktype names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
+          "linkType": {
+            "description": "The link type is named according to the from-to direction. In user interfaces, the naming according to the link type is shown in the 'from' card.",
+            "$comment": "The same link type names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
             "enum": [
               "blocks",
               "causes",
@@ -72,10 +72,10 @@
             "description": "A description of the link"
           }
         },
-        "required": ["direction", "cardkey", "linktype"],
+        "required": ["direction", "cardKey", "linkType"],
         "additionalProperties": false
       }
     }
   },
-  "required": ["title", "cardtype", "workflowState", "rank"]
+  "required": ["title", "cardType", "workflowState", "rank"]
 }

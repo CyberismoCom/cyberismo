@@ -46,7 +46,7 @@ describe('TreeMenu', () => {
     render(
       <TreeMenu
         title={testProject.name}
-        selectedCardKey={'USDL-46'}
+        selectedCardKey={'usdl_46'}
         tree={testTree}
       />,
     );
@@ -100,19 +100,19 @@ const testProject: Project = {
   name: 'Test project',
   cards: [
     {
-      key: 'USDL-43',
-      path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43',
+      key: 'usdl_43',
+      path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43',
       children: [
         {
-          key: 'USDL-44',
-          path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
+          key: 'usdl_44',
+          path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44',
           children: [
             {
-              key: 'USDL-45',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
+              key: 'usdl_45',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_45',
               children: [],
               metadata: {
-                cardtype: 'controlledDocument',
+                cardType: 'test/cardTypes/controlledDocument',
                 title: 'Untitled',
                 workflowState: 'Draft',
                 rank: '0|a',
@@ -120,11 +120,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-46',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
+              key: 'usdl_46',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_46',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Demand phase',
                 workflowState: 'Created',
                 rank: '0|b',
@@ -132,15 +132,15 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-47',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
+              key: 'usdl_47',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47',
               children: [
                 {
-                  key: 'USDL-53',
-                  path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
+                  key: 'usdl_53',
+                  path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47/c/usdl_53',
                   children: [],
                   metadata: {
-                    cardtype: 'controlledDocument',
+                    cardType: 'test/cardTypes/controlledDocument',
                     title: 'Threat model',
                     workflowState: 'Draft',
                     rank: '0|a',
@@ -149,7 +149,7 @@ const testProject: Project = {
                 },
               ],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Design phase',
                 workflowState: 'Created',
                 rank: '0|c',
@@ -157,11 +157,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-48',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
+              key: 'usdl_48',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_48',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Implementation phase',
                 workflowState: 'Created',
                 rank: '0|d',
@@ -169,17 +169,17 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-49',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
+              key: 'usdl_49',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_49',
               children: [],
               // this card has no metadata
             },
             {
-              key: 'USDL-50',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
+              key: 'usdl_50',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_50',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Release phase',
                 workflowState: 'Created',
                 rank: '0|e',
@@ -187,11 +187,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-51',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
+              key: 'usdl_51',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_51',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Operations phase',
                 workflowState: 'Created',
                 rank: '0|f',
@@ -199,11 +199,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-52',
-              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
+              key: 'usdl_52',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_52',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Meetings',
                 workflowState: 'Created',
                 rank: '0|g',
@@ -212,7 +212,7 @@ const testProject: Project = {
             },
           ],
           metadata: {
-            cardtype: 'simplePage',
+            cardType: 'test/cardTypes/simplePage',
             title: 'SDL Project',
             workflowState: 'Created',
             rank: '0|a',
@@ -221,7 +221,7 @@ const testProject: Project = {
         },
       ],
       metadata: {
-        cardtype: 'decision',
+        cardType: 'test/cardTypes/decision',
         title: 'SDL Decision',
         workflowState: 'Draft',
         rank: '0|b',
@@ -231,7 +231,7 @@ const testProject: Project = {
   ],
   workflows: [
     {
-      name: 'controlled-document-workflow',
+      name: 'test/workflows/controlledDocument',
       states: [
         {
           name: 'Draft',
@@ -270,7 +270,7 @@ const testProject: Project = {
       ],
     },
     {
-      name: 'internalControlWorkflow',
+      name: 'test/workflows/internalControl',
       states: [
         {
           name: 'Open',
@@ -318,7 +318,7 @@ const testProject: Project = {
       ],
     },
     {
-      name: 'simple-workflow',
+      name: 'test/workflows/simple',
       states: [
         {
           name: 'Created',
@@ -336,29 +336,29 @@ const testProject: Project = {
   ],
   cardTypes: [
     {
-      name: 'controlledDocument',
-      workflow: 'controlled-document-workflow',
+      name: 'test/cardTypes/controlledDocument',
+      workflow: 'test/workflows/controlledDocument',
     },
     {
-      name: 'internalControl',
-      workflow: 'internalControlWorkflow',
+      name: 'test/cardTypes/internalControl',
+      workflow: 'test/workflows/internalControl',
     },
     {
-      name: 'simplepage',
-      workflow: 'simple-workflow',
+      name: 'test/cardTypes/simplePage',
+      workflow: 'test/workflows/simple',
     },
   ],
 };
 
 const testTree: QueryResult<'tree'>[] = [
   {
-    key: 'USDL-43',
+    key: 'usdl_43',
     results: [
       {
-        key: 'USDL-44',
+        key: 'usdl_44',
         results: [
           {
-            key: 'USDL-45',
+            key: 'usdl_45',
             results: [],
             title: 'Untitled',
             workflowState: 'Draft',
@@ -378,7 +378,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-46',
+            key: 'usdl_46',
             results: [],
             title: 'Demand phase',
             workflowState: 'Created',
@@ -398,10 +398,10 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-47',
+            key: 'usdl_47',
             results: [
               {
-                key: 'USDL-53',
+                key: 'usdl_53',
                 results: [],
                 title: 'Threat model',
                 workflowState: 'Draft',
@@ -441,7 +441,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-48',
+            key: 'usdl_48',
             results: [],
             title: 'Implementation phase',
             workflowState: 'Created',
@@ -461,7 +461,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-49',
+            key: 'usdl_49',
             results: [],
             links: [],
             title: 'Some title',
@@ -480,7 +480,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-50',
+            key: 'usdl_50',
             results: [],
             title: 'Release phase',
             workflowState: 'Created',
@@ -500,7 +500,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-51',
+            key: 'usdl_51',
             results: [],
             title: 'Operations phase',
             workflowState: 'Created',
@@ -520,7 +520,7 @@ const testTree: QueryResult<'tree'>[] = [
             },
           },
           {
-            key: 'USDL-52',
+            key: 'usdl_52',
             results: [],
             title: 'Meetings',
             workflowState: 'Created',
@@ -562,7 +562,7 @@ const testTree: QueryResult<'tree'>[] = [
     workflowState: 'Draft',
     rank: '0|b',
     links: [],
-    'base/fieldtypes/progress': 'progress',
+    'base/fieldTypes/progress': 'progress',
     labels: [],
     policyChecks: {
       successes: [],

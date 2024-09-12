@@ -45,7 +45,7 @@ export class Edit {
     ).getPreferences();
 
     // Construct paths for the card components (json and adoc)
-    const cardDirPath = join(Edit.project.cardrootFolder, cardPath);
+    const cardDirPath = join(Edit.project.cardRootFolder, cardPath);
     const cardContentPath = join(cardDirPath, Project.cardContentFile);
     const cardJsonPath = join(cardDirPath, Project.cardMetadataFile);
 

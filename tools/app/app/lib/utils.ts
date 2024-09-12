@@ -96,7 +96,7 @@ export function findWorkflowForCard(
   if (!card || !project) return null;
 
   let workflowName = project.cardTypes.find(
-    (cardType) => cardType.name === card.metadata?.cardtype,
+    (cardType) => cardType.name === card.metadata?.cardType,
   )?.workflow;
   if (workflowName == undefined) return null;
 

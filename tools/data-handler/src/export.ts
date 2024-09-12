@@ -24,7 +24,7 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import {
   card,
   cardNameRegEx,
-  cardtype,
+  cardType,
 } from './interfaces/project-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
@@ -53,14 +53,14 @@ export class Export {
     return cards?.find((card) => card.key === relatedCard);
   }
 
-  // Creates memory-based representation of <project>/cardroot
+  // Creates memory-based representation of <project>/cardRoot
   // todo: combine with function of same in Project
   protected async readCardTreeToMemory(
-    cardrootPath: string,
+    cardRootPath: string,
     cards?: card[],
     unknownFileIsAttachment: boolean = false,
   ) {
-    let entries = await readdir(cardrootPath, { withFileTypes: true });
+    let entries = await readdir(cardRootPath, { withFileTypes: true });
     entries = entries.filter((entry) => {
       return entry.name !== Project.schemaContentFile;
     });
@@ -136,7 +136,7 @@ export class Export {
   }
 
   // Format card metadata to an AsciiDoc table.
-  protected metaToAdoc(card: card, cardtype: cardtype | undefined): string {
+  protected metaToAdoc(card: card, cardType: cardType | undefined): string {
     let content = '';
     if (card.metadata) {
       content += `[.cyberismo-meta-wrapper]\n`;
@@ -151,10 +151,10 @@ export class Export {
 
       for (const [key, value] of Object.entries(card.metadata)) {
         if (
-          cardtype?.alwaysVisibleFields?.includes(key) ||
-          cardtype?.optionallyVisibleFields?.includes(key)
+          cardType?.alwaysVisibleFields?.includes(key) ||
+          cardType?.optionallyVisibleFields?.includes(key)
         ) {
-          const displayName = cardtype?.customFields?.find(
+          const displayName = cardType?.customFields?.find(
             (item) => item.name === key,
           )?.displayName;
           let nameToShow = displayName
@@ -200,7 +200,7 @@ export class Export {
 
       if (card.metadata) {
         const cardTypeForCard = await Export.project.cardType(
-          card.metadata?.cardtype,
+          card.metadata?.cardType,
         );
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);
         fileContent += metaDataContent;
@@ -234,21 +234,21 @@ export class Export {
    * Exports the card(s) to ascii doc.
    * @param source Cardroot path.
    * @param destination Path to where the resulting file(s) will be created.
-   * @param cardkey If not exporting the whole card tree, card key of parent card.
+   * @param cardKey If not exporting the whole card tree, card key of parent card.
    */
   public async exportToADoc(
     source: string,
     destination: string,
-    cardkey?: string,
+    cardKey?: string,
   ) {
     Export.project = new Project(source);
-    const sourcePath: string = Export.project.cardrootFolder;
+    const sourcePath: string = Export.project.cardRootFolder;
     let cards: card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardkey) {
+    if (cardKey) {
       cards.push({
-        key: cardkey,
+        key: cardKey,
         path: sourcePath,
       });
     }
@@ -282,14 +282,14 @@ export class Export {
    * Exports the card(s) to HTML and opens the browser.
    * @param source Cardroot path.
    * @param destination Path to where the resulting file(s) will be created.
-   * @param cardkey Optional; If not exporting the whole card tree, card key of parent card.
+   * @param cardKey Optional; If not exporting the whole card tree, card key of parent card.
    */
   public async exportToHTML(
     source: string,
     destination: string,
-    cardkey?: string,
+    cardKey?: string,
   ) {
-    return this.exportToADoc(source, destination, cardkey).then(() => {
+    return this.exportToADoc(source, destination, cardKey).then(() => {
       const asciiDocProcessor = Processor();
       const adocFile = join(destination, Project.cardContentFile);
       asciiDocProcessor.convertFile(adocFile, {

@@ -34,7 +34,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
-import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { linkType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
@@ -55,7 +55,7 @@ import parseReact from 'html-react-parser';
 type ContentAreaProps = {
   project: Project | null;
   card: CardDetails;
-  linkTypes: linktype[];
+  linkTypes: linkType[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
@@ -78,7 +78,7 @@ interface LinkFormData {
 }
 
 interface LinkFormProps {
-  linkTypes: linktype[];
+  linkTypes: linkType[];
   cards: Project['cards'];
   cardType: string | undefined;
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
@@ -97,7 +97,7 @@ export function LinkForm({
   });
   const { t } = useTranslation();
 
-  const handledLinkTypes: (linktype & {
+  const handledLinkTypes: (linkType & {
     direction: 'inbound' | 'outbound';
     id: number;
   })[] = [];
@@ -137,13 +137,13 @@ export function LinkForm({
     if (selectedLinkType.direction === 'outbound') {
       return (
         selectedLinkType.destinationCardTypes.includes(
-          card.metadata?.cardtype || '',
+          card.metadata?.cardType || '',
         ) || selectedLinkType.destinationCardTypes.length === 0
       );
     } else {
       return (
         selectedLinkType.sourceCardTypes.includes(
-          card.metadata?.cardtype || '',
+          card.metadata?.cardType || '',
         ) || selectedLinkType.sourceCardTypes.length === 0
       );
     }
@@ -424,7 +424,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               cards={project?.cards ?? []}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
-              cardType={card.metadata?.cardtype}
+              cardType={card.metadata?.cardType}
             />
           )}
           <Stack>

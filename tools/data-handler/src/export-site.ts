@@ -194,7 +194,7 @@ export class ExportSite extends Export {
       let tempContent: string = '';
       if (card.metadata) {
         const cardTypeForCard = await ExportSite.project.cardType(
-          card.metadata?.cardtype,
+          card.metadata?.cardType,
         );
         tempContent = '\n= ';
         tempContent += card.metadata?.title
@@ -242,23 +242,23 @@ export class ExportSite extends Export {
    * Export the card tree as an Antora site
    * @param source Cardroot path
    * @param destination Path where the site is generated
-   * @param cardkey Optional; If defined exports the card tree from underneath this card.
+   * @param cardKey Optional; If defined exports the card tree from underneath this card.
    */
   public async exportToSite(
     source: string,
     destination: string,
-    cardkey?: string,
+    cardKey?: string,
   ) {
     Export.project = new Project(source);
-    const sourcePath: string = cardkey
-      ? join(Export.project.cardrootFolder, Export.project.pathToCard(cardkey))
-      : Export.project.cardrootFolder;
+    const sourcePath: string = cardKey
+      ? join(Export.project.cardRootFolder, Export.project.pathToCard(cardKey))
+      : Export.project.cardRootFolder;
     const cards: card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardkey) {
+    if (cardKey) {
       cards.push({
-        key: cardkey,
+        key: cardKey,
         path: sourcePath,
       });
     }

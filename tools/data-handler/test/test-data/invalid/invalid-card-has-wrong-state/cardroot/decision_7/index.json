@@ -1,8 +1,0 @@
-{
-    "cardtype": "decision/cardtypes/decision-cardtype-wrong-wf",
-    "title": "Decision Records",
-    "workflowState": "Draft",
-    "decision/fieldtypes/obsoletedBy": null,
-    "rank": "0|m",
-    "lastUpdated": "2024-09-13T11:49:45.180Z"
-}

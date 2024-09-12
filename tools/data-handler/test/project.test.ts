@@ -31,15 +31,15 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const cardrootFolder = project.cardrootFolder;
-    const cardtypesFolder = project.cardtypesFolder;
+    const cardRootFolder = project.cardRootFolder;
+    const cardTypesFolder = project.cardTypesFolder;
     const templatesFolder = project.templatesFolder;
     const workflowsFolder = project.workflowsFolder;
     const resourcesFolder = project.resourcesFolder;
     const modulesFolder = project.modulesFolder;
 
-    expect(cardrootFolder).to.include('cardroot');
-    expect(cardtypesFolder).to.include('cardtypes');
+    expect(cardRootFolder).to.include('cardRoot');
+    expect(cardTypesFolder).to.include('cardTypes');
     expect(templatesFolder).to.include('templates');
     expect(workflowsFolder).to.include('workflows');
     expect(resourcesFolder).to.include('local');
@@ -55,10 +55,10 @@ describe('project', () => {
     expect(attachments.length).to.equal(1);
     const cards = await project.cards();
     expect(cards.length).to.equal(2);
-    const cardtypes = await project.cardtypes();
-    expect(cardtypes.length).to.equal(2);
-    const cardType1 = await project.cardType(cardtypes[0].name);
-    const cardType2 = await project.cardType(cardtypes[1].name);
+    const cardTypes = await project.cardTypes();
+    expect(cardTypes.length).to.equal(2);
+    const cardType1 = await project.cardType(cardTypes[0].name);
+    const cardType2 = await project.cardType(cardTypes[1].name);
     expect(cardType1).to.not.equal(undefined);
     expect(cardType2).to.not.equal(undefined);
     const templates = await project.templates();
@@ -112,7 +112,7 @@ describe('project', () => {
     const projectDetails = await project.show();
     expect(projectDetails.name).to.equal(project.projectName);
     expect(projectDetails.prefix).to.equal(project.projectPrefix);
-    expect(projectDetails.path).to.equal(resolve(project.cardrootFolder, '..'));
+    expect(projectDetails.path).to.equal(resolve(project.cardRootFolder, '..'));
     expect(projectDetails.numberOfCards).to.equal(2);
   });
 
@@ -130,7 +130,7 @@ describe('project', () => {
     const projectSettings = ProjectSettings.getInstance(configFile);
     expect(projectSettings).to.not.equal(undefined);
 
-    const prefix = projectSettings.cardkeyPrefix;
+    const prefix = projectSettings.cardKeyPrefix;
     expect(prefix).to.equal('decision');
 
     const prefixes = await project.projectPrefixes();
@@ -162,11 +162,11 @@ describe('project', () => {
 
     expect(projectSettings1.name).to.not.equal(projectSettings2.name);
     expect(projectSettings2.name).to.equal(projectSettings3.name);
-    expect(projectSettings1.cardkeyPrefix).to.not.equal(
-      projectSettings2.cardkeyPrefix,
+    expect(projectSettings1.cardKeyPrefix).to.not.equal(
+      projectSettings2.cardKeyPrefix,
     );
-    expect(projectSettings2.cardkeyPrefix).to.equal(
-      projectSettings3.cardkeyPrefix,
+    expect(projectSettings2.cardKeyPrefix).to.equal(
+      projectSettings3.cardKeyPrefix,
     );
   });
 
@@ -206,9 +206,7 @@ describe('project', () => {
     expect(card).to.not.equal(undefined);
     if (card) {
       expect(card.metadata?.title).to.equal('Decision Records');
-      expect(card.metadata?.cardtype).to.equal(
-        'decision/cardtypes/simplepage-cardtype',
-      );
+      expect(card.metadata?.cardType).to.equal('decision/cardTypes/simplepage');
       expect(card.metadata?.workflowState).to.equal('Created');
 
       const templatePath = Project.templatePathFromCardPath(card);
@@ -231,8 +229,8 @@ describe('project', () => {
       expect(additionalCardDetails.metadata?.title).to.equal(
         'Decision Records',
       );
-      expect(additionalCardDetails.metadata?.cardtype).to.equal(
-        'decision/cardtypes/simplepage-cardtype',
+      expect(additionalCardDetails.metadata?.cardType).to.equal(
+        'decision/cardTypes/simplepage',
       );
       expect(additionalCardDetails.metadata?.workflowState).to.equal('Created');
       expect(
@@ -258,25 +256,20 @@ describe('project', () => {
     });
     expect(card).to.equal(undefined);
   });
-  it('access cardtype details (success)', async () => {
+  it('access card type details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
     const cardTypeDetails = await project.cardType(
-      'decision/cardtypes/simplepage-cardtype',
+      'decision/cardTypes/simplepage',
     );
     expect(cardTypeDetails).to.not.equal(undefined);
     if (cardTypeDetails) {
-      expect(cardTypeDetails.name).to.equal(
-        'decision/cardtypes/simplepage-cardtype',
-      );
-      expect(cardTypeDetails.workflow).to.equal(
-        'decision/workflows/simple-workflow',
-      );
+      expect(cardTypeDetails.workflow).to.equal('decision/workflows/simple');
     }
   });
-  it('try to access cardtype details with non-existing name', async () => {
+  it('try to access card type details with non-existing name', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
@@ -372,14 +365,9 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const workflowDetails = await project.workflow(
-      'decision/workflows/simple-workflow',
-    );
+    const workflowDetails = await project.workflow('decision/workflows/simple');
     expect(workflowDetails).to.not.equal(undefined);
     if (workflowDetails) {
-      expect(workflowDetails.name).to.equal(
-        'decision/workflows/simple-workflow',
-      );
       expect(workflowDetails.states.length).to.equal(3);
       expect(workflowDetails.transitions.length).to.equal(3);
     }
@@ -405,9 +393,7 @@ describe('project', () => {
     expect(cardDetails).to.not.equal(undefined);
     expect(cardDetails?.metadata?.workflowState).not.to.equal(state);
 
-    const workflowDetails = await project.workflow(
-      'decision/workflows/simple-workflow',
-    );
+    const workflowDetails = await project.workflow('decision/workflows/simple');
     expect(workflowDetails).to.not.equal(undefined);
     const found = workflowDetails?.states.find((item) => item.name === state);
     expect(found).to.not.equal(undefined);

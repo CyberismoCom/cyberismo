@@ -1,6 +1,6 @@
 {
-    "name": "decision/fieldtypes/obsoletedByy",
-    "displayName": "Obsoleted by (from fieldtype)",
-    "fieldDescription": "Card is obsolete (from fieldtype)",
+    "name": "decision/fieldTypes/obsoletedBy",
+    "displayName": "Obsoleted by (from field type)",
+    "fieldDescription": "Card is obsolete (from field type)",
     "dataType": "shorttext"
 }

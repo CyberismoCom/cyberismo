@@ -11,7 +11,7 @@
 */
 
 import {
-  cardtype,
+  cardType,
   link,
   workflowCategory,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
@@ -20,7 +20,7 @@ export interface Project {
   name: string;
   cards: Card[];
   workflows: Workflow[];
-  cardTypes: cardtype[];
+  cardTypes: cardType[];
 }
 
 // Single card with metadata and children, but no content.
@@ -56,7 +56,7 @@ export type ParsedLink = link & {
 export type CardMetadata = {
   title: string;
   workflowState: string;
-  cardtype: string;
+  cardType: string;
   rank: string;
   links: link[];
 } & Record<string, MetadataValue>;

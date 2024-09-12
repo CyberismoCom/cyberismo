@@ -23,8 +23,8 @@ import { EventEmitter } from 'node:events';
 // ismo
 import { Calculate } from './calculate.js';
 import {
-  cardtype,
-  fieldtype,
+  cardType,
+  fieldType,
   link,
   projectFile,
   templateMetadata,
@@ -43,7 +43,7 @@ import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 
 /**
  * Handles all creation operations.
- * Resources that it can create include attachments, cards, cardroots, projects, templates and workflows.
+ * Resources that it can create include attachments, cards, card types, projects, templates and workflows.
  */
 export class Create extends EventEmitter {
   private calculateCmd: Calculate;
@@ -68,22 +68,22 @@ export class Create extends EventEmitter {
       path: '.cards/local',
       content: {
         name: '$PROJECT-NAME',
-        cardkeyPrefix: '$PROJECT-PREFIX',
+        cardKeyPrefix: '$PROJECT-PREFIX',
       },
       name: Project.projectConfigFileName,
     },
     {
-      path: '.cards/local/cardtypes',
+      path: '.cards/local/cardTypes',
       content: { id: '/cardtype-schema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
-      path: '.cards/local/fieldtypes',
+      path: '.cards/local/fieldTypes',
       content: { id: 'field-type-schema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
-      path: '.cards/local/linktypes',
+      path: '.cards/local/linkTypes',
       content: { id: 'link-type-schema', version: 1 },
       name: Project.schemaContentFile,
     },
@@ -106,14 +106,14 @@ export class Create extends EventEmitter {
 
   gitKeepContent: string = '';
 
-  // Checks if fieldtype is created to a project.
+  // Checks if field type is created to a project.
   // todo: we could have generic 'does resource exists' in Project
   private async fieldTypeExists(
     path: string,
     fieldTypeName: string,
   ): Promise<boolean> {
     const project = new Project(path);
-    const fieldType = (await project.fieldtypes()).find(
+    const fieldType = (await project.fieldTypes()).find(
       (item) =>
         item.name === fieldTypeName + '.json' || item.name === fieldTypeName,
     );
@@ -256,7 +256,7 @@ export class Create extends EventEmitter {
    * Creates card(s) to a project. All cards from template are instantiated to the project.
    * @param {string} projectPath project path
    * @param {string} templateName name of a template to use
-   * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the cardroot.
+   * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
    * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
   public async createCard(
@@ -319,12 +319,12 @@ export class Create extends EventEmitter {
   }
 
   /**
-   * Creates a cardtype.
+   * Creates a card type.
    * @param {string} projectPath project path.
-   * @param {string} name name for the cardtype.
-   * @param {string} workflow workflow name to use in the cardtype.
+   * @param {string} name name for the card type.
+   * @param {string} workflow workflow name to use in the card type.
    */
-  public async createCardtype(
+  public async createCardType(
     projectPath: string,
     name: string,
     workflow: string,
@@ -336,10 +336,10 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
-    const fullName = `${project.projectPrefix}/cardtypes/${name}`;
-    const fullFileName = `.cards/local/cardtypes/${name}.json`;
+    const fullName = `${project.projectPrefix}/cardTypes/${name}`;
+    const fullFileName = `.cards/local/cardTypes/${name}.json`;
 
-    const content: cardtype = { name: fullName, workflow };
+    const content: cardType = { name: fullName, workflow };
     const destinationFolder = join(projectPath, fullFileName);
     await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
@@ -347,18 +347,18 @@ export class Create extends EventEmitter {
   }
 
   /**
-   * Creates a new fieldtype.
+   * Creates a new field type.
    * @param {string} projectPath project path
-   * @param {string} fieldTypeName name for the fieldtype
-   * @param {string} dataType data type for the fieldtype
+   * @param {string} fieldTypeName name for the field type
+   * @param {string} dataType data type for the field type
    */
   public async createFieldType(
     projectPath: string,
     fieldTypeName: string,
     dataType: string,
   ) {
-    const content: fieldtype = {
-      name: `local/fieldtypes/${fieldTypeName}`,
+    const content: fieldType = {
+      name: `local/fieldTypes/${fieldTypeName}`,
       dataType: dataType,
     };
 
@@ -384,13 +384,12 @@ export class Create extends EventEmitter {
   }
 
   /**
-   * Creates a new linktype.
+   * Creates a new link type.
    * @param {string} projectPath project path
-   * @param {string} linkTypeName name for the linktype
-   * @param {string} linkTypeContent JSON content for the linktype
+   * @param {string} linkTypeName name for the link type
    */
   public async createLinkType(projectPath: string, linkTypeName: string) {
-    // check if linktype already exists
+    // check if link type already exists
     if (await this.linkTypeExists(projectPath, linkTypeName)) {
       throw new Error(
         `Link type with name '${linkTypeName}' already exists in the project`,
@@ -398,21 +397,21 @@ export class Create extends EventEmitter {
     }
 
     const linkTypeContent = Create.getLinkTypeContent(linkTypeName);
-    // check if linktype JSON is valid
+    // check if link type JSON is valid
     const validator = Validate.getInstance();
     const validJson = validator.validateJson(
       linkTypeContent,
       'link-type-schema',
     );
     if (validJson.length !== 0) {
-      throw new Error(`Invalid linktype JSON: ${validJson}`);
+      throw new Error(`Invalid link type JSON: ${validJson}`);
     }
 
     const destinationFolder = join(
       projectPath,
       '.cards',
       'local',
-      'linktypes',
+      'linkTypes',
       `${linkTypeName}.json`,
     );
     await writeJsonFile(destinationFolder, linkTypeContent, {
@@ -471,27 +470,27 @@ export class Create extends EventEmitter {
       );
     }
 
-    // make sure source cardkey exists in the linktype sourceCardTypes
+    // make sure source card key exists in the link type sourceCardTypes
     // if sourceCardTypes is empty, any card can be linked
     if (
       linkTypeObject.sourceCardTypes.length > 0 &&
-      !linkTypeObject.sourceCardTypes.includes(card.metadata?.cardtype || '')
+      !linkTypeObject.sourceCardTypes.includes(card.metadata!.cardType)
     ) {
       throw new Error(
-        `Card type '${card.metadata?.cardtype}' cannot be linked with link type '${linkType}'`,
+        `Card type '${card.metadata?.cardType}' cannot be linked with link type '${linkType}'`,
       );
     }
 
-    // make sure destination cardkey exists in the linktype destinationCardTypes
+    // make sure destination card key exists in the link type destinationCardTypes
     // if destinationCardTypes is empty, any card can be linked
     if (
       linkTypeObject.destinationCardTypes.length > 0 &&
       !linkTypeObject.destinationCardTypes.includes(
-        destinationCard.metadata!.cardtype,
+        destinationCard.metadata!.cardType,
       )
     ) {
       throw new Error(
-        `Card type '${destinationCard.metadata!.cardtype}' cannot be linked with link type '${linkType}'`,
+        `Card type '${destinationCard.metadata!.cardType}' cannot be linked with link type '${linkType}'`,
       );
     }
 
@@ -530,13 +529,13 @@ export class Create extends EventEmitter {
     projectName: string,
   ) {
     projectPath = resolve(projectPath);
-    const projectFolders: string[] = ['.cards/local', 'cardroot'];
+    const projectFolders: string[] = ['.cards/local', 'cardRoot'];
     const projectSubFolders: string[][] = [
       [
         'calculations',
-        'cardtypes',
-        'fieldtypes',
-        'linktypes',
+        'cardTypes',
+        'fieldTypes',
+        'linkTypes',
         'templates',
         'workflows',
       ],
@@ -566,8 +565,8 @@ export class Create extends EventEmitter {
       });
 
     this.schemaFilesContent.forEach(async (entry) => {
-      if (entry.content.cardkeyPrefix?.includes('$PROJECT-PREFIX')) {
-        entry.content.cardkeyPrefix = projectPrefix.toLowerCase();
+      if (entry.content.cardKeyPrefix?.includes('$PROJECT-PREFIX')) {
+        entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
       }
       if (entry.content.name?.includes('$PROJECT-NAME')) {
         entry.content.name = projectName;
@@ -587,7 +586,7 @@ export class Create extends EventEmitter {
         this.gitKeepContent,
       );
       await writeFile(
-        join(project.fieldtypesFolder, '.gitkeep'),
+        join(project.fieldTypesFolder, '.gitkeep'),
         this.gitKeepContent,
       );
     } catch (error) {
@@ -709,9 +708,9 @@ export class Create extends EventEmitter {
   }
 
   /**
-   * Default content for linktype JSON values.
-   * @param {string} linkTypeName linktype name
-   * @returns Default content for linktype JSON values.
+   * Default content for link type JSON values.
+   * @param {string} linkTypeName link type name
+   * @returns Default content for link type JSON values.
    */
   public static getLinkTypeContent(linkTypeName: string) {
     return {

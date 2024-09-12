@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/responsible",
+    "displayName": "Responsible",
+    "fieldDescription": "Who is responsible for the task",
+    "dataType": "person"
+}

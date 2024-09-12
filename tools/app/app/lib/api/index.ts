@@ -12,11 +12,11 @@
 
 import { CardUpdate } from './types';
 
-export * from './fieldtypes';
+export * from './fieldTypes';
 export * from './project';
 export * from './card';
-export * from './cardtype';
+export * from './cardType';
 export * from './templates';
-export * from './linktypes';
+export * from './linkTypes';
 export * from './tree';
 export type { CardUpdate };

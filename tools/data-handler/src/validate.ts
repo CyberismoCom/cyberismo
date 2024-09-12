@@ -25,7 +25,7 @@ import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { card, fieldtype } from './interfaces/project-interfaces.js';
+import { card, fieldType } from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -182,7 +182,7 @@ export class Validate {
   }
 
   // Validates that card's dataType can be used with JS types.
-  private validType<T>(value: T, fieldType: fieldtype): boolean {
+  private validType<T>(value: T, fieldType: fieldType): boolean {
     const field = fieldType.dataType;
     const typeOfValue = typeof value;
 
@@ -386,10 +386,10 @@ export class Validate {
       );
     }
 
-    const cardType = await project.cardType(card.metadata?.cardtype);
+    const cardType = await project.cardType(card.metadata?.cardType);
     if (!cardType) {
       validationErrors.push(
-        `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`,
+        `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );
     }
 
@@ -431,7 +431,7 @@ export class Validate {
   }
 
   /**
-   * Checks if card's current workflow state matches workflow that card's cardtype is using.
+   * Checks if card's current workflow state matches workflow that card's card type is using.
    * Template cards are expected to have empty workflow state.
    * @param {Project} project Project object.
    * @param {card} card Card object to validate
@@ -449,17 +449,17 @@ export class Validate {
       );
     }
 
-    const cardType = await project.cardType(card.metadata?.cardtype);
+    const cardType = await project.cardType(card.metadata?.cardType);
     if (!cardType) {
       validationErrors.push(
-        `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`,
+        `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );
     }
 
     if (cardType) {
       if (!cardType.workflow) {
         validationErrors.push(
-          `Cardtype '${cardType?.name}' does not have 'workflow'`,
+          `Card type '${card.metadata?.cardType}' does not have 'workflow'`,
         );
       }
 
@@ -484,7 +484,7 @@ export class Validate {
         }
       } else {
         validationErrors.push(
-          `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`,
+          `Workflow of '${cardType.workflow}' card type '${card.metadata?.cardType}' does not exist in the project`,
         );
       }
     }

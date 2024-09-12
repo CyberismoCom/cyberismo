@@ -20,10 +20,10 @@ import {
   attachmentDetails,
   card,
   cardListContainer,
-  cardtype,
+  cardType,
   fetchCardDetails,
-  fieldtype,
-  linktype,
+  fieldType,
+  linkType,
   moduleSettings,
   project,
   template,
@@ -64,7 +64,7 @@ export class Show {
   /**
    * Returns file buffer and mime type of an attachment. Used by app UI to download attachments.
    * @param {string} projectPath path to a project
-   * @param {string} cardKey cardkey to find
+   * @param {string} cardKey card key to find
    * @param {string} filename attachment filename
    * @returns attachment details
    */
@@ -99,7 +99,8 @@ export class Show {
 
   /**
    * Opens an attachment using a configured application or the operating system's default application.
-   * @param key cardkey of the attachment
+   * @param projectPath path to the project
+   * @param cardKey card key of the attachment
    * @param filename attachment filename
    * @param waitDelay amount of time to wait for the application to open the attachment
    */
@@ -200,7 +201,7 @@ export class Show {
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
    * @param {string} projectPath path to a project
    * @param {string} details card details to show
-   * @param {string} cardKey cardkey to find
+   * @param {string} cardKey card key to find
    * @returns card details object
    */
   public async showCardDetails(
@@ -243,54 +244,56 @@ export class Show {
   }
 
   /**
-   * Shows details of a particular cardtype.
+   * Shows details of a particular card type.
    * @param {string} projectPath path to a project
-   * @param {string} cardtypeName cardtype name
-   * @returns cardtype details
+   * @param {string} cardTypeName card type name
+   * @returns card type details
    */
   public async showCardTypeDetails(
     projectPath: string,
-    cardtypeName: string,
-  ): Promise<cardtype> {
+    cardTypeName: string,
+  ): Promise<cardType> {
     Show.project = new Project(projectPath);
-    if (cardtypeName === '') {
-      throw new Error(`Must define cardtype name to query its details.`);
+    if (cardTypeName === '') {
+      throw new Error(`Must define card type name to query its details.`);
     }
-    const cardtypeDetails = await Show.project.cardType(cardtypeName);
-    if (cardtypeDetails === undefined) {
-      throw new Error(`Cardtype '${cardtypeName}' not found from the project.`);
+    const cardTypeDetails = await Show.project.cardType(cardTypeName);
+    if (cardTypeDetails === undefined) {
+      throw new Error(
+        `Card type '${cardTypeName}' not found from the project.`,
+      );
     }
-    return cardtypeDetails;
+    return cardTypeDetails;
   }
 
   /**
-   * Shows all cardtypes in a project.
+   * Shows all card types in a project.
    * @param {string} projectPath path to a project
-   * @returns array of cardtype names
+   * @returns array of card type names
    */
   public async showCardTypes(projectPath: string): Promise<string[]> {
     Show.project = new Project(projectPath);
-    const cardtypes = (await Show.project.cardtypes())
+    const cardTypes = (await Show.project.cardTypes())
       .map((item) => item.name)
       .sort();
-    return cardtypes;
+    return cardTypes;
   }
 
   /**
-   * Shows all cardtypes in a project.
+   * Shows all card types in a project.
    * @todo: missing tests
    * @param {string} projectPath path to a project
-   * @returns array of cardtype details
+   * @returns array of card type details
    */
   public async showCardTypesWithDetails(
     projectPath: string,
-  ): Promise<(cardtype | undefined)[]> {
+  ): Promise<(cardType | undefined)[]> {
     Show.project = new Project(projectPath);
     const promiseContainer = [];
-    for (const cardtype of await Show.project.cardtypes()) {
-      const cardtypeDetails = Show.project.cardType(cardtype.name);
-      if (cardtypeDetails) {
-        promiseContainer.push(cardtypeDetails);
+    for (const cardType of await Show.project.cardTypes()) {
+      const cardTypeDetails = Show.project.cardType(cardType.name);
+      if (cardTypeDetails) {
+        promiseContainer.push(cardTypeDetails);
       }
     }
     const results = await Promise.all(promiseContainer);
@@ -304,10 +307,10 @@ export class Show {
    */
   public async showLinkTypes(projectPath: string): Promise<string[]> {
     Show.project = new Project(projectPath);
-    const linktypes = (await Show.project.linkTypes())
+    const linkTypes = (await Show.project.linkTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();
-    return linktypes;
+    return linkTypes;
   }
 
   /**
@@ -319,7 +322,7 @@ export class Show {
   public async showLinkType(
     projectPath: string,
     linkTypeName: string,
-  ): Promise<linktype | undefined> {
+  ): Promise<linkType | undefined> {
     Show.project = new Project(projectPath);
     const linkTypeDetails = await Show.project.linkType(linkTypeName);
     return linkTypeDetails;
@@ -332,10 +335,10 @@ export class Show {
    */
   public async showFieldTypes(projectPath: string): Promise<string[]> {
     Show.project = new Project(projectPath);
-    const cardtypes = (await Show.project.fieldtypes())
+    const fieldTypes = (await Show.project.fieldTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();
-    return cardtypes;
+    return fieldTypes;
   }
 
   /**
@@ -347,7 +350,7 @@ export class Show {
   public async showFieldType(
     projectPath: string,
     fieldTypeName: string,
-  ): Promise<fieldtype | undefined> {
+  ): Promise<fieldType | undefined> {
     Show.project = new Project(projectPath);
     const filedTypeDetails = await Show.project.fieldType(fieldTypeName);
     return filedTypeDetails;

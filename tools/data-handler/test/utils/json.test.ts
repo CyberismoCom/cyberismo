@@ -77,8 +77,8 @@ describe('read Json files', () => {
   });
   it('formatJson', () => {
     const referenceJson =
-      '{\n    "title": "Untitled",\n    "cardtype": "page"\n}';
-    const formattedJson = formatJson({ title: 'Untitled', cardtype: 'page' });
+      '{\n    "title": "Untitled",\n    "cardType": "page"\n}';
+    const formattedJson = formatJson({ title: 'Untitled', cardType: 'page' });
 
     expect(formattedJson).to.equal(referenceJson);
   });

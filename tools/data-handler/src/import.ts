@@ -80,7 +80,7 @@ export class Import {
       const card = await project.findSpecificCard(cardKey, {
         metadata: true,
       });
-      const cardType = await project.cardType(card?.metadata?.cardtype);
+      const cardType = await project.cardType(card?.metadata?.cardType);
 
       if (!cardType) {
         throw new Error(`Cardtype not found for card ${cardKey}`);
@@ -112,7 +112,7 @@ export class Import {
   }
 
   /**
-   * Import module to another project. This basically copies templates, workflows and cardtypes to a new project.
+   * Import module to another project. This basically copies templates, workflows and card types to a new project.
    * Resources will be added to a new directory under '.cards/modules'. The name of the
    * folder will be module prefix.
    * @param source Path to module that will be imported

@@ -1,0 +1,36 @@
+{
+    "name": "decision/cardTypes/decision",
+    "workflow": "decision/workflows/decision",
+    "customFields": [
+        {
+            "name": "decision/fieldTypes/obsoletedBy",
+            "isEditable": true
+        },
+        {
+            "name": "decision/fieldTypes/admins"
+        },
+        {
+            "name": "decision/fieldTypes/commitDescription"
+        },
+        {
+            "name": "decision/fieldTypes/responsible"
+        },
+        {
+            "name": "decision/fieldTypes/numberOfCommits"
+        },
+        {
+            "name": "decision/fieldTypes/percentageReady"
+        },
+        {
+            "name": "decision/fieldTypes/lastChangedDate"
+        },
+        {
+            "name": "decision/fieldTypes/lastChangedTimestamp"
+        },
+        {
+            "name": "decision/fieldTypes/finished"
+        }
+    ],
+    "alwaysVisibleFields": [ "decision/fieldTypes/obsoletedBy", "decision/fieldTypes/admins", "decision/fieldTypes/commitDescription" ],
+    "optionallyVisibleFields": []
+}

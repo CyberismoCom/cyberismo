@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/finished",
+    "displayName": "Finished",
+    "fieldDescription": "True, if the task is ready; false otherwise",
+    "dataType": "boolean"
+}

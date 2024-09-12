@@ -191,70 +191,70 @@ describe('create command', () => {
   });
   // todo: add more child card creation tests
 
-  // cardtype
-  it('cardtype (success)', async () => {
-    const cardtype = 'test-cardtype';
-    const workflow = 'mini/workflows/defaultWorkflow';
+  // card type
+  it('cardType (success)', async () => {
+    const cardType = 'test';
+    const workflow = 'mini/workflows/default';
     const result = await commandHandler.command(
       Cmd.create,
-      ['cardtype', cardtype, workflow],
+      ['cardType', cardType, workflow],
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
   });
-  it('cardtype invalid project', async () => {
-    const cardtype = 'test-cardtype';
-    const workflow = 'mini/workflows/defaultWorkflow';
+  it('cardType invalid project', async () => {
+    const cardType = 'test';
+    const workflow = 'mini/workflows/default';
     const invalidOptions = {
       projectPath: join(testDir, 'valid/no-such-project'),
     };
     const result = await commandHandler.command(
       Cmd.create,
-      ['cardtype', cardtype, workflow],
+      ['cardType', cardType, workflow],
       invalidOptions,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('cardtype create existing cardtype', async () => {
-    const cardtype = 'test-cardtype';
-    const workflow = 'mini/workflows/defaultWorkflow';
+  it('cardType create existing card type', async () => {
+    const cardType = 'test';
+    const workflow = 'mini/workflows/default';
     let result = await commandHandler.command(
       Cmd.create,
-      ['cardtype', cardtype, workflow],
+      ['cardType', cardType, workflow],
       optionsMini,
     );
     result = await commandHandler.command(
       Cmd.create,
-      ['cardtype', cardtype, workflow],
+      ['cardType', cardType, workflow],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('cardtype create no workflow', async () => {
-    const cardtype = 'test-cardtype';
+  it('cardType create no workflow', async () => {
+    const cardType = 'test';
     const workflow = 'i-do-not-exist';
     const result = await commandHandler.command(
       Cmd.create,
-      ['cardtype', cardtype, workflow],
+      ['cardType', cardType, workflow],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
 
-  // fieldtype
-  it('fieldtype all supported types (success)', async () => {
+  // field type
+  it('fieldType all supported types (success)', async () => {
     const fieldTypes = Create.supportedFieldTypes();
     for (const fieldType of fieldTypes) {
       const name = `ft_${fieldType}`;
       const result = await commandHandler.command(
         Cmd.create,
-        ['fieldtype', name, fieldType],
+        ['fieldType', name, fieldType],
         optionsMini,
       );
       expect(result.statusCode).to.equal(200);
     }
   });
-  it('fieldtype invalid project', async () => {
+  it('fieldType invalid project', async () => {
     const name = `name`;
     const dataType = 'integer';
     const invalidOptions = {
@@ -262,44 +262,44 @@ describe('create command', () => {
     };
     const result = await commandHandler.command(
       Cmd.create,
-      ['fieldtype', name, dataType],
+      ['fieldType', name, dataType],
       invalidOptions,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('fieldtype name already exists', async () => {
+  it('fieldType name already exists', async () => {
     const name = `name`;
     const dataType1 = 'integer';
     const dataType2 = 'number';
     const result1 = await commandHandler.command(
       Cmd.create,
-      ['fieldtype', name, dataType1],
+      ['fieldType', name, dataType1],
       optionsMini,
     );
     const result2 = await commandHandler.command(
       Cmd.create,
-      ['fieldtype', name, dataType2],
+      ['fieldType', name, dataType2],
       optionsMini,
     );
     expect(result1.statusCode).to.equal(200);
     expect(result2.statusCode).to.equal(400);
   });
-  it('fieldtype with invalid name', async () => {
+  it('fieldType with invalid name', async () => {
     const name = `name1`;
     const dataType = 'integer';
     const result = await commandHandler.command(
       Cmd.create,
-      ['fieldtype', name, dataType],
+      ['fieldType', name, dataType],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('fieldtype with invalid type', async () => {
+  it('fieldType with invalid type', async () => {
     const name = `name1`;
     const dataType = 'invalidType';
     const result = await commandHandler.command(
       Cmd.create,
-      ['fieldtype', name, dataType],
+      ['fieldType', name, dataType],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -308,7 +308,7 @@ describe('create command', () => {
   it('create link (success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test'],
+      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -320,7 +320,7 @@ describe('create command', () => {
         'link',
         'decision_5',
         'decision_6',
-        'decision/linktypes/test',
+        'decision/linkTypes/test',
         'description2',
       ],
       options,
@@ -330,7 +330,7 @@ describe('create command', () => {
   it('try create link - link already exists', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test'],
+      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -343,7 +343,7 @@ describe('create command', () => {
         'link',
         'card-does-not-exist',
         'card-does-not-exist',
-        'decision/linktypes/test',
+        'decision/linkTypes/test',
       ],
       options,
     );
@@ -354,7 +354,7 @@ describe('create command', () => {
   it('try create link - card type not valid', async () => {
     const result = await commandHandler.command(
       Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linktypes/test-types'],
+      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/testTypes'],
       options,
     );
 
@@ -368,7 +368,7 @@ describe('create command', () => {
         'link',
         'decision_5',
         'decision_6',
-        'decision/linktypes/test-types',
+        'decision/linkTypes/testTypes',
         'description2',
       ],
       options,
@@ -376,51 +376,51 @@ describe('create command', () => {
     expect(result.message).to.contain('does not allow');
   });
 
-  // linktype
-  it('linktype (success)', async () => {
+  // link type
+  it('linkType (success)', async () => {
     const name = 'lt_name';
     const result = await commandHandler.command(
       Cmd.create,
-      ['linktype', name],
+      ['linkType', name],
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
   });
 
-  it('linktype invalid project', async () => {
+  it('linkType invalid project', async () => {
     const name = 'lt_name';
     const invalidOptions = {
       projectPath: join(testDir, 'valid/no-such-project'),
     };
     const result = await commandHandler.command(
       Cmd.create,
-      ['linktype', name],
+      ['linkType', name],
       invalidOptions,
     );
     expect(result.statusCode).to.equal(400);
   });
 
-  it('linktype name already exists', async () => {
+  it('linkType name already exists', async () => {
     const name = 'lt_name_exists';
     const result1 = await commandHandler.command(
       Cmd.create,
-      ['linktype', name],
+      ['linkType', name],
       optionsMini,
     );
     const result2 = await commandHandler.command(
       Cmd.create,
-      ['linktype', name],
+      ['linkType', name],
       optionsMini,
     );
     expect(result1.statusCode).to.equal(200);
     expect(result2.statusCode).to.equal(400);
   });
 
-  it('linktype with invalid name', async () => {
+  it('linkType with invalid name', async () => {
     const name = 'lt_name';
     const result = await commandHandler.command(
       Cmd.create,
-      ['linktype', name],
+      ['linkType', name],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
@@ -663,7 +663,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('workflow invalid workflow schema', async () => {
-    const workflowName = 'defaultWorkflow';
+    const workflowName = 'default';
     const content = `
           {
             "name": "${workflowName}",
@@ -678,7 +678,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('workflow invalid project', async () => {
-    const workflowName = 'defaultWorkflow';
+    const workflowName = 'default';
     const content = `
           {
             "name": "${workflowName}",
@@ -722,7 +722,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('workflow with existing name', async () => {
-    const workflowName = 'defaultWorkflow';
+    const workflowName = 'default';
     const result = await commandHandler.command(
       Cmd.create,
       ['workflow', workflowName, ''],

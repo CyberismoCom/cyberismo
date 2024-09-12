@@ -1,0 +1,11 @@
+{
+    "name": "decision/workflows/minimal",
+    "states": [ { "name": "Created" } ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": "",
+            "toState": "Created"
+        }
+    ]
+}

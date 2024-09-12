@@ -28,8 +28,8 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.equal(0);
   });
-  it('try to validate() - invalid-cardsconfig.json', async () => {
-    const path = join(testDir, 'invalid/invalid-cardsconfig.json');
+  it('try to validate() - invalid-cardsConfig.json', async () => {
+    const path = join(testDir, 'invalid/invalid-cardsConfig.json');
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -38,13 +38,13 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - missing-cardsconfig.json', async () => {
-    const path = 'test/test-data/invalid/missing-cardsconfig.json';
+  it('try to validate() - missing-cardsConfig.json', async () => {
+    const path = 'test/test-data/invalid/missing-cardsConfig.json';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - missing-cardtypes-subfolder', async () => {
-    const path = 'test/test-data/invalid/missing-cardtypes-subfolder';
+  it('try to validate() - missing-cardTypes-subfolder', async () => {
+    const path = 'test/test-data/invalid/missing-cardTypes-subfolder';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -63,8 +63,8 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - no-.schema-in.cards-cardtypes', async () => {
-    const path = 'test/test-data/invalid/no-.schema-in.cards-cardtypes';
+  it('try to validate() - no-.schema-in.cards-cardTypes', async () => {
+    const path = 'test/test-data/invalid/no-.schema-in.cards-cardTypes';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -78,8 +78,8 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - no-.schema-in-cardroot', async () => {
-    const path = 'test/test-data/invalid/o-.schema-in-cardroot';
+  it('try to validate() - no-.schema-in-card-root', async () => {
+    const path = 'test/test-data/invalid/o-.schema-in-cardRoot';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -88,8 +88,8 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - missing-cardroot', async () => {
-    const path = 'test/test-data/invalid/missing-cardroot';
+  it('try to validate() - missing-card-root', async () => {
+    const path = 'test/test-data/invalid/missing-cardRoot';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -103,17 +103,17 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('validateJson() - cardsconfig', async () => {
+  it('validateJson() - cardsConfig', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/cardsconfig.json';
+      'test/test-data/valid/decision-records/.cards/local/cardsConfig.json';
     const schemaId = 'cardsconfig-schema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.equal(0);
   });
-  it('validateJson() - cardtype', async () => {
+  it('validateJson() - card type', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/cardtypes/decision-cardtype.json';
+      'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
     const schemaId = '/cardtype-schema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -129,7 +129,7 @@ describe('validate cmd tests', () => {
   });
   it('validateJson() - workflow', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
+      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
     const schemaId = 'workflow-schema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -142,22 +142,22 @@ describe('validate cmd tests', () => {
   });
   it('try to validateJson() - invalid schemaId', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
+      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
     const schemaId = 'i-do-not-exists';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('validateSchema() - cardsconfig', async () => {
+  it('validateSchema() - cardsConfig', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/cardsconfig.json';
+      'test/test-data/valid/decision-records/.cards/local/cardsConfig.json';
     const schemaId = 'cardsconfig-schema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
   });
-  it('validateSchema() - cardtype', async () => {
+  it('validateSchema() - card type', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/cardtypes/decision-cardtype.json';
+      'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
     const schemaId = '/cardtype-schema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
@@ -171,7 +171,7 @@ describe('validate cmd tests', () => {
   });
   it('validateSchema() - workflow', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
+      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
     const schemaId = 'workflow-schema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
@@ -186,7 +186,7 @@ describe('validate cmd tests', () => {
   });
   it('try to validateSchema() - invalid schemaId', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision-workflow.json';
+      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
     const schemaId = 'i-do-not-exists';
     await validateCmd
       .validateSchema(path, schemaId)
@@ -219,7 +219,7 @@ describe('validate cmd tests', () => {
       expect(valid.length).to.be.greaterThan(0);
     }
   });
-  it('try to validateWorkflowState - cardtype not found', async () => {
+  it('try to validateWorkflowState - card type not found', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
@@ -266,7 +266,7 @@ describe('validate cmd tests', () => {
       expect(valid.length).to.equal(0);
     }
   });
-  it('try to validate card custom fields - cardtype not found', async () => {
+  it('try to validate card custom fields - card type not found', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );

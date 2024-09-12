@@ -80,7 +80,7 @@ export class Template extends CardContainer {
     parentCard?: card,
   ): Promise<card[]> {
     const templateIDMap: mappingValue[] = [];
-    const tempDestination = join(this.project.cardrootFolder, 'temp');
+    const tempDestination = join(this.project.cardRootFolder, 'temp');
 
     // First, create a mapping table.
     for (const card of cards) {
@@ -168,33 +168,33 @@ export class Template extends CardContainer {
           card.path = card.path.replace(templatesFolder, tempDestination);
         }
         // @todo: could just fetch initial state based on card
-        const cardtype = await this.project.cardType(card.metadata?.cardtype);
-        if (!cardtype) {
+        const cardType = await this.project.cardType(card.metadata?.cardType);
+        if (!cardType) {
           throw new Error(
-            `Cardtype '${card.metadata?.cardtype}' of card ${card.key} cannot be found`,
+            `Cardtype '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
           );
         }
-        const workflow = await this.project.workflow(cardtype.workflow);
+        const workflow = await this.project.workflow(cardType.workflow);
         if (!workflow) {
-          throw new Error(`Workflow '${cardtype.workflow}' cannot be found`);
+          throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
         }
 
         const initialWorkflowState = await this.project.workflowInitialState(
-          workflow.name,
+          cardType.workflow,
         );
         if (!initialWorkflowState) {
           throw new Error(
-            `Workflow '${workflow.name}' initial state cannot be found`,
+            `Workflow '${cardType.workflow}' initial state cannot be found`,
           );
         }
         if (card.metadata) {
           const cardWithRank = parentCards.find((c) => c.key === card.key);
           card.metadata.workflowState = initialWorkflowState;
-          card.metadata.cardtype = cardtype.name;
+          card.metadata.cardType = cardType.name;
           card.metadata.rank =
             cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK;
-          if (cardtype.customFields !== undefined) {
-            for (const customField of cardtype.customFields) {
+          if (cardType.customFields !== undefined) {
+            for (const customField of cardType.customFields) {
               const defaultValue = null;
               card.metadata = {
                 ...card.metadata,
@@ -242,7 +242,7 @@ export class Template extends CardContainer {
         await mkdir(parentCard.path, { recursive: true });
         await copyDir(tempDestination, parentCard.path);
       } else {
-        await copyDir(tempDestination, this.project.cardrootFolder);
+        await copyDir(tempDestination, this.project.cardRootFolder);
       }
       // Finally, delete temp folder.
       await rm(tempDestination, { recursive: true, force: true });
@@ -319,17 +319,17 @@ export class Template extends CardContainer {
 
   /**
    * Adds a new card to template.
-   * @param {string} cardtype cardtype
+   * @param {string} cardType card type
    * @param {string} parentCard parent card; optional - if missing will create a top-level card
    * @returns next available card key ID
    */
-  public async addCard(cardtype: string, parentCard?: card): Promise<string> {
+  public async addCard(cardType: string, parentCard?: card): Promise<string> {
     const destinationCardPath = parentCard
       ? join(await this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
     const defaultContent = {
       title: 'Untitled',
-      cardtype: cardtype,
+      cardType: cardType,
       workflowState: '',
     };
     let newCardKey = '';
@@ -338,8 +338,8 @@ export class Template extends CardContainer {
       if (!pathExists(this.templateFolder())) {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
-      if ((await this.project.cardType(cardtype)) === undefined) {
-        throw new Error(`Cardtype '${cardtype}' does not exist`);
+      if ((await this.project.cardType(cardType)) === undefined) {
+        throw new Error(`Cardtype '${cardType}' does not exist`);
       }
       if (parentCard && !this.hasCard(parentCard.key)) {
         throw new Error(

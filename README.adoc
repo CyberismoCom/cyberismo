@@ -10,7 +10,7 @@ We are busy making Cyberismo ready for your use.  Right now, the project is runn
 
 . Install Clingo. The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda, as instructed in https://github.com/potassco/clingo/releases/.
 
-. Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with 
+. Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with
 
 [source,console]
 ----
@@ -57,7 +57,7 @@ A new type requires a new or existing workflow and the actual card type. For ins
 [source,console]
 ----
 cyberismo create workflow risk-workflow
-cyberismo create cardtype risk risk-workflow
+cyberismo create cardType risk risk-workflow
 ----
 
 === Adding a new template

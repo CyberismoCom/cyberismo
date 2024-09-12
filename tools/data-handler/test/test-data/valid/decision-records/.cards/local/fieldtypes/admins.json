@@ -1,6 +1,0 @@
-{
-    "name": "decision/fieldtypes/admins",
-    "displayName": "Administrators",
-    "fieldDescription": "List of admin persons",
-    "dataType": "list"
-}
