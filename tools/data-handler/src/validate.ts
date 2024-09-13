@@ -271,25 +271,29 @@ export class Validate {
         // Finally, validate that each card is correct
         const project = new Project(projectPath);
         const cards = await project.cards();
+        cards.push(...(await project.templateCards()));
+
         const errorMsg: string[] = [];
         for (const card of cards) {
           if (card.metadata) {
             // validate card's workflow
-            const validWorkflow = await this.validateWorkflowState(
-              project,
-              card,
-            );
-            if (validWorkflow.length !== 0) {
-              errorMsg.push(validWorkflow);
+            if (!Project.isTemplateCard(card)) {
+              const validWorkflow = await this.validateWorkflowState(
+                project,
+                card,
+              );
+              if (validWorkflow.length !== 0) {
+                errorMsg.push(validWorkflow);
+              }
             }
+          }
 
-            const validCustomFields = await this.validateCustomFields(
-              project,
-              card,
-            );
-            if (validCustomFields.length !== 0) {
-              errorMsg.push(validCustomFields);
-            }
+          const validCustomFields = await this.validateCustomFields(
+            project,
+            card,
+          );
+          if (validCustomFields.length !== 0) {
+            errorMsg.push(validCustomFields);
           }
         }
         if (errorMsg.length) {
@@ -415,6 +419,7 @@ export class Validate {
 
   /**
    * Checks if card's current workflow state matches workflow that card's cardtype is using.
+   * Template cards are expected to have empty workflow state.
    * @param {Project} project Project object.
    * @param {card} card Card object to validate
    * @returns string containing all validation errors
@@ -423,35 +428,54 @@ export class Validate {
     project: Project,
     card: card,
   ): Promise<string> {
-    let validationErrors = '';
+    const validationErrors: string[] = [];
 
     if (!card.metadata) {
-      validationErrors += `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`;
+      validationErrors.push(
+        `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`,
+      );
     }
 
     const cardType = await project.cardType(card.metadata?.cardtype);
     if (!cardType) {
-      validationErrors += `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`;
+      validationErrors.push(
+        `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`,
+      );
     }
 
     if (cardType) {
       if (!cardType.workflow) {
-        validationErrors += `Cardtype '${cardType?.name}' does not have 'workflow'`;
+        validationErrors.push(
+          `Cardtype '${cardType?.name}' does not have 'workflow'`,
+        );
       }
 
       const workflow = await project.workflow(cardType?.workflow);
       if (workflow) {
-        const states = workflow.states;
-        const cardState = card.metadata?.workflowState;
-        const found = states.find((item) => item.name === cardState);
-        if (!found) {
-          validationErrors += `Card '${card.key}' has invalid state '${cardState}'`;
+        if (!Project.isTemplateCard(card)) {
+          const states = workflow.states;
+          const cardState = card.metadata?.workflowState;
+          const found = states.find((item) => item.name === cardState);
+          if (!found) {
+            validationErrors.push(
+              `Card '${card.key}' has invalid state '${cardState}'`,
+            );
+          }
+        } else {
+          const cardState = card.metadata?.workflowState;
+          if (cardState) {
+            validationErrors.push(
+              `Template card ${card.key} must have empty "workflowState"`,
+            );
+          }
         }
       } else {
-        validationErrors += `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`;
+        validationErrors.push(
+          `Workflow of '${cardType.workflow}' cardtype '${cardType?.name}' does not exist in the project`,
+        );
       }
     }
-    return validationErrors;
+    return validationErrors.join('\n');
   }
 
   /**
