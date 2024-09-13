@@ -287,7 +287,7 @@ export class Create extends EventEmitter {
       projectObject = new Project(projectPath);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`invalid path '${projectPath}'`);
+        throw new Error(`Invalid path '${projectPath}'`);
       }
       return [];
     }

@@ -156,7 +156,9 @@ export class Commands {
     if (this.isProjectPath(path)) {
       return path;
     } else {
-      console.error(`invalid path '${path}'`);
+      console.error(
+        `Invalid path '${path}'. Project must have '.cards' and 'cardRoot' folders`,
+      );
       return '';
     }
   }

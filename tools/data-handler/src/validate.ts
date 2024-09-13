@@ -128,6 +128,7 @@ export class Validate {
     if (!message) {
       return true;
     }
+    console.error(message);
     return false;
   }
 
@@ -316,9 +317,9 @@ export class Validate {
     content: object,
     schemaId: string,
   ): Promise<string> {
-    let validationErrors = '';
+    const validationErrors: string[] = [];
     if (this.validator.schemas[schemaId] === undefined) {
-      validationErrors += `Unknown schema ${schemaId}`;
+      validationErrors.push(`Unknown schema ${schemaId}`);
     } else {
       const result = this.validator.validate(
         content,
@@ -326,10 +327,10 @@ export class Validate {
       );
       for (const error of result.errors) {
         const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-        validationErrors += msg;
+        validationErrors.push(msg);
       }
     }
-    return validationErrors;
+    return validationErrors.join('\n');
   }
 
   /**
@@ -342,7 +343,7 @@ export class Validate {
     projectPath: string,
     schemaId: string,
   ): Promise<string> {
-    let validationErrors = '';
+    const validationErrors: string[] = [];
     const activeJsonSchema = this.validator.schemas[schemaId];
     if (activeJsonSchema === undefined) {
       throw new Error(`Unknown schema '${schemaId}'`);
@@ -356,11 +357,11 @@ export class Validate {
         );
         for (const error of result.errors) {
           const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-          validationErrors += msg;
+          validationErrors.push(msg);
         }
       }
     }
-    return validationErrors;
+    return validationErrors.join('\n');
   }
 
   /**
@@ -373,7 +374,7 @@ export class Validate {
     project: Project,
     card: card,
   ): Promise<string> {
-    let validationErrors = '';
+    const validationErrors: string[] = [];
 
     if (!card.metadata) {
       throw new Error(
@@ -383,13 +384,17 @@ export class Validate {
 
     const cardType = await project.cardType(card.metadata?.cardtype);
     if (!cardType) {
-      validationErrors += `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`;
+      validationErrors.push(
+        `Card '${card.key}' has invalid cardtype '${card.metadata?.cardtype}'`,
+      );
     }
 
     if (cardType && cardType.customFields) {
       for (const field of cardType.customFields) {
         if (card.metadata[field.name] === undefined) {
-          validationErrors += `Card '${card.key}' is missing custom field 'name' from ${field}`;
+          validationErrors.push(
+            `Card '${card.key}' is missing custom field 'name' from '${field.name}'`,
+          );
         }
         const fieldType = await project.fieldType(field.name);
         if (
@@ -403,18 +408,22 @@ export class Validate {
               ? `"${card.metadata[field.name]}"`
               : '""';
           }
-          validationErrors += `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`;
+          validationErrors.push(
+            `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+          );
           if (fieldType.dataType === 'enum') {
             const listOfEnumValues = fieldType.enumValues?.map(
               (item) => item.enumValue,
             );
-            validationErrors += `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`;
+            validationErrors.push(
+              `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
+            );
           }
         }
       }
     }
 
-    return validationErrors;
+    return validationErrors.join('\n');
   }
 
   /**

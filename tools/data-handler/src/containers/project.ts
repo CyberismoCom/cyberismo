@@ -1022,18 +1022,25 @@ export class Project extends CardContainer {
    * @param {card} card Card to validate.
    */
   public async validateCard(card: card): Promise<string> {
-    const validCustomData = await this.validator.validateCustomFields(
+    const invalidCustomData = await this.validator.validateCustomFields(
       this,
       card,
     );
-    const validWorkFlow = await this.validator.validateWorkflowState(
+    const invalidWorkFlow = await this.validator.validateWorkflowState(
       this,
       card,
     );
-    if (validCustomData.length === 0 && validWorkFlow.length === 0) {
+    if (invalidCustomData.length === 0 && invalidWorkFlow.length === 0) {
       return '';
     }
-    return `${validCustomData} + ${validWorkFlow}`;
+    const errors: string[] = [];
+    if (invalidCustomData.length > 0) {
+      errors.push(invalidCustomData);
+    }
+    if (invalidWorkFlow.length > 0) {
+      errors.push(invalidWorkFlow);
+    }
+    return errors.join('\n');
   }
 
   /**

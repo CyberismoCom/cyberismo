@@ -1,37 +1,36 @@
 {
     "name": "decision/templates/decisionWorkflow",
     "states": [
-        { "name": "Draft" },
-        { "name":"Approved" },
-        { "name":"Rejected" },
-        { "name":"Deprecated" }
+        { "name": "Draft", "category": "initial" },
+        { "name": "Approved", "category": "active" },
+        { "name": "Rejected", "category": "closed" },
+        { "name": "Deprecated", "category": "closed" }
     ],
     "transitions": [
         {
             "name": "Create",
-            "fromState": "",
+            "fromState": [""],
             "toState": "Draft"
         },
         {
             "name": "Approve",
-            "fromState": "Draft",
+            "fromState": ["Draft"],
             "toState": "Approved"
         },
         {
             "name": "Reject",
-            "fromState": "*",
+            "fromState": ["*"],
             "toState": "Rejected"
         },
         {
             "name": "Reopen",
-            "fromState": "*",
+            "fromState": ["*"],
             "toState": "Draft"
         },
         {
             "name": "Deprecate",
-            "fromState": "Approved",
-            "toState": "Deprecated",
-            "requiredCardFields": [ "obsoletedBy" ]
+            "fromState": ["Approved"],
+            "toState": "Deprecated"
         }
     ]
 }

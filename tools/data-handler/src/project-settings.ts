@@ -81,9 +81,7 @@ export class ProjectSettings implements projectSettings {
       this.name = settings.name;
       this.currentTemporalKeyValue = this.nextAvailableCardNumber;
     } else {
-      throw new Error(
-        `Invalid path '${this.settingPath}' to configuration file`,
-      );
+      throw new Error(`Invalid configuration file '${this.settingPath}'`);
     }
   }
 
