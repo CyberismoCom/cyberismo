@@ -90,12 +90,7 @@ export class Calculate {
       // write card-specific logic program file
       const filename = join(destinationFileBase, card.key);
       const cardLogicFile = `${filename}.lp`;
-      promiseContainer.push(
-        writeFile(cardLogicFile, logicProgram, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      promiseContainer.push(writeFile(cardLogicFile, logicProgram));
     }
     await Promise.all(promiseContainer);
   }
@@ -123,10 +118,7 @@ export class Calculate {
     for await (const file of files) {
       cardTreeContent += `#include "cards/${removeExtension(file)}.lp".\n`;
     }
-    await writeFile(destinationFile, cardTreeContent, {
-      encoding: 'utf-8',
-      flag: 'w',
-    });
+    await writeFile(destinationFile, cardTreeContent);
   }
 
   // Write all common files which are not card specific.
@@ -161,10 +153,7 @@ export class Calculate {
         modulesContent += `#include "${moduleLogicFile}".\n`;
       }
     }
-    await writeFile(destinationFile, modulesContent, {
-      encoding: 'utf-8',
-      flag: 'w',
-    });
+    await writeFile(destinationFile, modulesContent);
   }
 
   // Gets either all the cards (no parent), or a subtree.
@@ -292,7 +281,7 @@ export class Calculate {
       cardTreeContent = cardTreeContent.replace(removeRow, '');
     }
     if (calculationsForTreeExist) {
-      await writeFile(cardTreeFile, cardTreeContent, 'utf-8');
+      await writeFile(cardTreeFile, cardTreeContent);
     }
   }
 
