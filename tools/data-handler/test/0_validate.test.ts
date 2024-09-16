@@ -1,6 +1,6 @@
 // node
-import { join } from 'node:path';
-import { dirname } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // testing
@@ -255,7 +255,6 @@ describe('validate cmd tests', () => {
       expect(valid.length).to.be.greaterThan(0);
     }
   });
-
   it('validate card custom fields data (success)', async () => {
     const project = new Project('test/test-data/valid/decision-records/');
     // card _6 has all of the types as custom fields (with null values)
@@ -292,6 +291,18 @@ describe('validate cmd tests', () => {
             "Card 'decision_5' has no metadata. Card object needs to be instantiated with '{metadata: true}'",
           ),
         );
+    }
+  });
+  it('try to validate invalid projects', async () => {
+    const pathToInvalidProject = resolve('test/test-data/invalid');
+    const invalidProjects = (
+      await readdir(pathToInvalidProject, { withFileTypes: true })
+    )
+      .filter((dirent) => dirent.isDirectory())
+      .map((dirent) => join(dirent.path, dirent.name));
+    for (const projectPath of invalidProjects) {
+      const result = await validateCmd.validate(projectPath);
+      expect(result).to.not.equal(undefined); // all of the invalid projects have validation errors
     }
   });
   // @todo add more tests that test various values types can have (correct and incorrect)

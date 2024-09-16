@@ -1,6 +1,8 @@
 {
-    "cardtype": "decision/cardtypes/decision-cardtype",
+    "cardtype": "IdontExist",
     "title": "Document Decisions with Decision Records",
-    "workflowState": "IdontExist",
-    "decision/fieldtypes/obsoletedBy": null
+    "workflowState": "Draft",
+    "decision/fieldtypes/obsoletedBy": null,
+    "rank": "0|a",
+    "lastUpdated": "2024-09-13T11:49:45.179Z"
 }

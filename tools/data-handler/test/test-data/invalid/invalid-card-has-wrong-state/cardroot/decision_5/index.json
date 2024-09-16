@@ -1,5 +1,8 @@
 {
     "cardtype": "IdontExist",
     "title": "Decision Records",
-    "workflowState": "Created"
+    "workflowState": "Draft",
+    "decision/fieldtypes/obsoletedBy": null,
+    "rank": "0|a",
+    "lastUpdated": "2024-09-13T11:49:45.176Z"
 }

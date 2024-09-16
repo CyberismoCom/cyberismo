@@ -1,5 +1,7 @@
 {
     "cardtype": "decision/cardtypes/simplepage-cardtype",
     "title": "Untitled",
-    "workflowState": "Created"
+    "workflowState": "Created",
+    "rank": "0|a",
+    "lastUpdated": "2024-09-13T11:49:45.185Z"
 }
