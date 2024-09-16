@@ -34,6 +34,7 @@ import { readADocFileSync, readJsonFileSync } from './utils/json.js';
 import Processor from '@asciidoctor/core';
 
 import mime from 'mime-types';
+import { sortItems } from './utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
 
@@ -244,7 +245,7 @@ export class Export {
   ) {
     Export.project = new Project(source);
     const sourcePath: string = Export.project.cardrootFolder;
-    const cards: card[] = [];
+    let cards: card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
     if (cardkey) {
@@ -255,13 +256,9 @@ export class Export {
     }
     await this.readCardTreeToMemory(sourcePath, cards);
 
-    // Return cards in numeric order.
-    cards.sort((a, b) => {
-      const aIDNumberPart = Number(a.key.slice(a.key.indexOf('_') + 1));
-      const bIDNumberPart = Number(b.key.slice(b.key.indexOf('_') + 1));
-      if (aIDNumberPart > bIDNumberPart) return 1;
-      if (aIDNumberPart < bIDNumberPart) return -1;
-      return 0;
+    // Sort the cards by rank
+    cards = sortItems(cards, function (card) {
+      return card.metadata?.rank || '1|z';
     });
 
     await mkdir(join(destination, attachmentFolder), { recursive: true });
