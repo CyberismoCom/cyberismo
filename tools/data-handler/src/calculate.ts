@@ -37,8 +37,19 @@ export class Calculate {
     '../../../../calculations/common',
   );
 
+  private static queryFolderLocation: string = join(
+    fileURLToPath(import.meta.url),
+    '../../../../calculations/queries',
+  );
+
   constructor() {
     // todo: set reusable paths here - problem is that project's path should be set
+  }
+
+  // Return path to query file if it exists, else return null.
+  private async getQuery(queryName: string) {
+    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
+    return pathExists(location) ? location : null;
   }
   // Write the cardtree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: card | undefined) {
@@ -312,6 +323,20 @@ export class Calculate {
     //         this might in some cases (sub-tree created) improve performance
     await this.generateCardTreeContent(undefined);
     await this.genereteCardTree();
+  }
+
+  /**
+   * Runs a pre-defined query.
+   * @param projectPath Path to a project
+   * @param queryName Name of the query file without extension
+   * @returns parsed program output
+   */
+  public async runQuery(projectPath: string, queryName: string) {
+    const query = await this.getQuery(queryName);
+    if (!query) {
+      throw new Error(`Query file ${queryName} not found`);
+    }
+    return this.run(projectPath, query);
   }
 
   /**

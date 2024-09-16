@@ -13,6 +13,7 @@
 import { Show } from '@cyberismocom/data-handler/show';
 import { project } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { NextResponse } from 'next/server';
+import { Calculate } from '@cyberismocom/data-handler/calculate';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export async function GET() {
   }
 
   const showCommand = new Show();
+  const calculateCommand = new Calculate();
 
   let projectResponse: project;
   try {
@@ -65,6 +67,8 @@ export async function GET() {
     });
   }
 
+  const calculations = await calculateCommand.runQuery(projectPath, 'tree');
+
   const cardsResponse = await showCommand.showProjectCards(projectPath);
   if (cardsResponse) {
     const response = {
@@ -72,6 +76,7 @@ export async function GET() {
       cards: cardsResponse,
       workflows: workflowsResponse,
       cardTypes: cardTypesResponse,
+      calculations: calculations,
     };
     return NextResponse.json(response);
   } else {
