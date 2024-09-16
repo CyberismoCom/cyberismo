@@ -1171,6 +1171,16 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('template with no content (success)', async () => {
+    const templateName = 'anotherValidName';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['template', templateName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
     const templateContent = '{}';
