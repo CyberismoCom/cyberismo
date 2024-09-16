@@ -872,6 +872,37 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns all template cards from the project. This includes all module templates' cards.
+   * @returns all the template cards from the project
+   */
+  public async templateCards(): Promise<card[]> {
+    const templates = await this.templates();
+    const cards: card[] = [];
+    for (const template of templates) {
+      const templateObject = await this.createTemplateObject(template);
+      const templateCards = await templateObject?.cards();
+      if (templateCards) {
+        for (const card of templateCards) {
+          cards.push(card);
+        }
+      }
+    }
+    return cards;
+  }
+
+  /**
+   * Indicates if a template exists in a project.
+   * @param {string} templateName Name of a template
+   * @returns true, if template named 'templateName' exists in project; false otherwise.
+   */
+  public async templateExists(templateName: string): Promise<boolean> {
+    if (!templateName) {
+      return false;
+    }
+    return (await this.templates()).some((item) => item.name === templateName);
+  }
+
+  /**
    * Returns path from a template card
    * @param {card} card template card item
    * @returns path of template card
@@ -887,18 +918,6 @@ export class Project extends CardContainer {
     }
 
     return '';
-  }
-
-  /**
-   * Indicates if a template exists in a project.
-   * @param {string} templateName Name of a template
-   * @returns true, if template named 'templateName' exists in project; false otherwise.
-   */
-  public async templateExists(templateName: string): Promise<boolean> {
-    if (!templateName) {
-      return false;
-    }
-    return (await this.templates()).some((item) => item.name === templateName);
   }
 
   /**

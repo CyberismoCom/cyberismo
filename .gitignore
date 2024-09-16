@@ -41,3 +41,6 @@ tools/*/.idea
 
 # Test screenshots
 **/cypress/screenshots
+
+#vscode
+**/.vscode/
