@@ -148,8 +148,6 @@ export interface template {
 
 // Template configuration content details.
 export interface templateMetadata {
-  buttonLabel: string;
-  namePrompt: string;
   displayName?: string;
   description?: string;
   category?: string;

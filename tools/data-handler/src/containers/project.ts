@@ -431,7 +431,7 @@ export class Project extends CardContainer {
     }
 
     const templateObject = new Template(this.basePath, template, this);
-    await templateObject.create({ buttonLabel: '', namePrompt: '' });
+    await templateObject.create({});
     return templateObject;
   }
 

@@ -1143,8 +1143,7 @@ describe('create command', () => {
   // template
   it('template (success)', async () => {
     const templateName = 'template-name_first';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1154,8 +1153,7 @@ describe('create command', () => {
   });
   it('template with "local" (success)', async () => {
     const templateName = 'local/templates/template-name_second';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1173,10 +1171,19 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('template with no content (success)', async () => {
+    const templateName = 'anotherValidName';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['template', templateName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1186,8 +1193,7 @@ describe('create command', () => {
   });
   it('template with "123"', async () => {
     const templateName = 'loc/123';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1197,8 +1203,7 @@ describe('create command', () => {
   });
   it('template invalid project', async () => {
     const templateName = 'validName';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const invalidOptions = { projectPath: join(testDir, 'no-such-project') };
     const result = await commandHandler.command(
       Cmd.create,
@@ -1207,20 +1212,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('template invalid template content', async () => {
-    const templateName = 'validname';
-    const templateContent = '{"wrongKey1": "Button1", "wrongKey2": 12}';
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['template', templateName, templateContent],
-      optionsMini,
-    );
-    expect(result.statusCode).to.equal(400);
-  });
   it('template invalid template name', async () => {
     const templateName = 'aux';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1230,8 +1224,7 @@ describe('create command', () => {
   });
   it('template already exists', async () => {
     const templateName = 'decision/templates/decision';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -1242,8 +1235,7 @@ describe('create command', () => {
   // todo: same as test on row 701?
   it('template invalid template name (reserved Windows filename)', async () => {
     const templateName = 'aux';
-    const templateContent =
-      '{"buttonLabel": "Button1", "namePrompt": "Prompt1"}';
+    const templateContent = '{}';
     const testOptions = { projectPath: join(testDir, 'test-template.json') };
     const result = await commandHandler.command(
       Cmd.create,
@@ -1373,8 +1365,6 @@ describe('create command', () => {
   });
   it('access default parameters for template (success)', () => {
     const defaultContent = Create.defaultTemplateContent();
-    expect(defaultContent.buttonLabel).to.equal('Button');
-    expect(defaultContent.namePrompt).to.equal('Prompt');
     expect(defaultContent.displayName).to.equal(undefined);
     expect(defaultContent.category).to.equal(undefined);
     expect(defaultContent.description).to.equal(undefined);

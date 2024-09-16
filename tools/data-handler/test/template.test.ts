@@ -150,10 +150,7 @@ describe('template', () => {
     const template = new Template(path, { name: 'idontexistyet' });
 
     expect(template.isCreated()).to.equal(false);
-    const success = await template.create({
-      buttonLabel: 'X',
-      namePrompt: 'New template',
-    });
+    const success = await template.create({});
     expect(template.isCreated()).to.equal(true);
     expect(success).to.not.equal(undefined);
   });
@@ -396,12 +393,6 @@ describe('template', () => {
     expect(templateDetails.path).includes('.cards');
     expect(templateDetails.path).includes('decision');
     expect(templateDetails.project).to.equal(project.projectName);
-    expect(templateDetails.metadata.buttonLabel).to.equal(
-      'Create a New Decision',
-    );
-    expect(templateDetails.metadata.namePrompt).to.equal(
-      'The title of the new decision:',
-    );
     expect(templateDetails.metadata.description).to.equal('description');
     expect(templateDetails.metadata.category).to.equal('category');
     expect(templateDetails.metadata.displayName).to.equal('Decision');

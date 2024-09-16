@@ -686,10 +686,7 @@ export class Create extends EventEmitter {
    * @returns Default content for template.json values.
    */
   public static defaultTemplateContent(): templateMetadata {
-    return {
-      buttonLabel: 'Button',
-      namePrompt: 'Prompt',
-    };
+    return {};
   }
 
   /**
