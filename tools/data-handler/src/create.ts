@@ -353,7 +353,6 @@ export class Create extends EventEmitter {
     const content: cardtype = { name: fullName, workflow };
     const destinationFolder = join(projectPath, fullFileName);
     await writeFile(destinationFolder, formatJson(content), {
-      encoding: 'utf-8',
       flag: 'wx',
     });
   }
@@ -391,7 +390,6 @@ export class Create extends EventEmitter {
       `${content.name}.json`,
     );
     await writeFile(destinationFolder, formatJson(content), {
-      encoding: 'utf-8',
       flag: 'wx',
     });
   }
@@ -428,8 +426,7 @@ export class Create extends EventEmitter {
       'linktypes',
       `${linkTypeName}.json`,
     );
-    await writeFile(destinationFolder, JSON.stringify(linkTypeContent), {
-      encoding: 'utf-8',
+    await writeFile(destinationFolder, formatJson(linkTypeContent), {
       flag: 'wx',
     });
   }
