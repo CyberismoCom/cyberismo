@@ -284,6 +284,61 @@ describe('project', () => {
     const cardTypeDetails = await project.cardType('i-dont-exist');
     expect(cardTypeDetails).to.equal(undefined);
   });
+  it('update metadata (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = new Project(decisionRecordsPath);
+    const card = await project.cardDetailsById(cardToOperateOn, {
+      metadata: true,
+    });
+    expect(card).to.not.equal(undefined);
+
+    if (card) {
+      const previousTitle = card?.metadata?.title;
+      const previouslyUpdated = card?.metadata?.lastUpdated;
+      const newTitle = 'TheTitle';
+      await project.updateCardMetadata(card?.key, 'title', newTitle);
+      const updatedCard = await project.cardDetailsById(cardToOperateOn, {
+        metadata: true,
+      });
+
+      // Expect that title is updated, and lastUpdated has been updated.
+      expect(previousTitle).to.not.equal(updatedCard?.metadata?.title);
+      expect(previouslyUpdated).to.not.equal(
+        updatedCard?.metadata?.lastUpdated,
+      );
+      expect(updatedCard?.metadata?.title).to.equal(newTitle);
+      // Change the title back
+      await project.updateCardMetadata(card?.key, 'title', previousTitle);
+    }
+  });
+  it('try to update metadata with same content again', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = new Project(decisionRecordsPath);
+    const card = await project.cardDetailsById(cardToOperateOn, {
+      metadata: true,
+    });
+    expect(card).to.not.equal(undefined);
+
+    if (card) {
+      const previousTitle = card?.metadata?.title;
+      const previouslyUpdated = card?.metadata?.lastUpdated;
+      const newTitle = 'Decision Records';
+      await project.updateCardMetadata(card?.key, 'title', newTitle);
+      const updatedCard = await project.cardDetailsById(cardToOperateOn, {
+        metadata: true,
+      });
+
+      // Expect the data be unchanged
+      expect(previousTitle).to.equal(updatedCard?.metadata?.title);
+      expect(previouslyUpdated).to.equal(updatedCard?.metadata?.lastUpdated);
+      expect(updatedCard?.metadata?.title).to.equal(newTitle);
+    }
+  });
+
   it('show all project cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
