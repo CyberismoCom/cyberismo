@@ -423,15 +423,23 @@ export class Commands {
       };
     }
     try {
+      const addedCards = await this.createCmd.addCards(
+        path,
+        cardTypeName,
+        templateName,
+        cardKey,
+        repeat,
+      );
+
+      const messageTxt =
+        addedCards.length > 1
+          ? `${addedCards.length} cards were added to the template '${templateName} : ${JSON.stringify(addedCards)}'`
+          : `card '${addedCards[0]}' was added to the template '${templateName}'`;
+
       return {
         statusCode: 200,
-        message: await this.createCmd.addCards(
-          path,
-          cardTypeName,
-          templateName,
-          cardKey,
-          repeat,
-        ),
+        affectsCards: addedCards,
+        message: messageTxt,
       };
     } catch (e) {
       return {
@@ -536,6 +544,7 @@ export class Commands {
       );
       return {
         statusCode: 200,
+        affectsCards: createdCards,
         message: `Created cards ${JSON.stringify(createdCards)}`,
       };
     } catch (e) {

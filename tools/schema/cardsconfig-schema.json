@@ -16,12 +16,7 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z ._-]+$"
-    },
-    "nextAvailableCardNumber": {
-      "description": "The next available card key number, or the second component of the card key.",
-      "type": "integer",
-      "min": 1
     }
   },
-  "required": ["cardkeyPrefix", "nextAvailableCardNumber"]
+  "required": ["cardkeyPrefix"]
 }

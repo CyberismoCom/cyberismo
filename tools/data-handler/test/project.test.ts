@@ -113,7 +113,6 @@ describe('project', () => {
     expect(projectDetails.name).to.equal(project.projectName);
     expect(projectDetails.prefix).to.equal(project.projectPrefix);
     expect(projectDetails.path).to.equal(resolve(project.cardrootFolder, '..'));
-    expect(projectDetails.nextAvailableCardNumber).to.equal(7);
     expect(projectDetails.numberOfCards).to.equal(2);
   });
 
@@ -132,99 +131,10 @@ describe('project', () => {
     expect(projectSettings).to.not.equal(undefined);
 
     const prefix = projectSettings.cardkeyPrefix;
-    const nextNumber = projectSettings.nextAvailableCardNumber;
     expect(prefix).to.equal('decision');
-    expect(nextNumber).to.equal(7);
-
-    const expectedCardKey = `${prefix}_${nextNumber}`;
-    const nextCardKey = projectSettings.newCardKey();
-    expect(nextCardKey).to.equal(expectedCardKey);
 
     const prefixes = await project.projectPrefixes();
     expect(prefixes).to.contain(prefix);
-
-    // to avoid impacting other tests, rollback
-    projectSettings.rollback();
-  });
-
-  it('increment project settings IDs', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    const configFile = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings = ProjectSettings.getInstance(configFile);
-
-    // Make four calls -> ID raises by four (three after first call);
-    const valueFirst = projectSettings.newCardKey();
-    const valuePartsFirst = valueFirst.split('_');
-    projectSettings.newCardKey();
-    projectSettings.newCardKey();
-    const valueLater = projectSettings.newCardKey();
-    const valuePartsLater = valueLater.split('_');
-    expect(valuePartsFirst[0]).to.equal(valuePartsLater[0]);
-    expect(Number(valuePartsFirst[1]) + 3).to.equal(Number(valuePartsLater[1]));
-
-    // to avoid impacting other tests, rollback
-    projectSettings.rollback();
-  });
-
-  it('rollback project settings changes', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    const configFile = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings = ProjectSettings.getInstance(configFile);
-
-    // Make a call, but then rollback -> values are same
-    const valueFirst = projectSettings.newCardKey();
-    const valuePartsFirst = valueFirst.split('_');
-    projectSettings.rollback();
-    const valueLater = projectSettings.newCardKey();
-    const valuePartsLater = valueLater.split('_');
-    expect(valuePartsFirst[0]).to.equal(valuePartsLater[0]);
-    expect(Number(valuePartsFirst[1])).to.equal(Number(valuePartsLater[1]));
-
-    // to avoid impacting other tests, rollback
-    projectSettings.rollback();
-  });
-
-  it('commit project settings changes', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    const configFile = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings = ProjectSettings.getInstance(configFile);
-
-    // Make a call, then commit.
-    // Calling rollback will not revert the setting values.
-    const valueFirst = projectSettings.newCardKey();
-    const valuePartsFirst = Number(valueFirst.split('_')[1]);
-    await projectSettings.commit();
-    projectSettings.rollback();
-    const valueLater = projectSettings.newCardKey();
-    const valuePartsLater = Number(valueLater.split('_')[1]);
-    expect(valuePartsFirst + 1).to.equal(valuePartsLater);
-
-    // to avoid impacting other tests, rollback
-    projectSettings.rollback();
   });
 
   it('multiple instances of settings class', async () => {
@@ -258,31 +168,6 @@ describe('project', () => {
     expect(projectSettings2.cardkeyPrefix).to.equal(
       projectSettings3.cardkeyPrefix,
     );
-    expect(projectSettings1.nextAvailableCardNumber).to.not.equal(
-      projectSettings2.nextAvailableCardNumber,
-    );
-    expect(projectSettings2.nextAvailableCardNumber).to.equal(
-      projectSettings3.nextAvailableCardNumber,
-    );
-
-    // Create new keys from the settings and ensure that instances behave correctly.
-    const key1_1 = projectSettings1.newCardKey();
-    const key1_2 = projectSettings1.newCardKey();
-    const key2_1 = projectSettings2.newCardKey();
-    const key2_2 = projectSettings2.newCardKey();
-    const key3_1 = projectSettings3.newCardKey();
-    const key3_2 = projectSettings3.newCardKey();
-
-    expect(key1_1).to.equal('decision_8');
-    expect(key1_2).to.equal('decision_9');
-    expect(key2_1).to.equal('mini_1');
-    expect(key2_2).to.equal('mini_2');
-    expect(key3_1).to.equal('mini_3');
-    expect(key3_2).to.equal('mini_4');
-
-    // to avoid impacting other tests, rollback
-    projectSettings1.rollback();
-    projectSettings2.rollback();
   });
 
   it('create class - card operation (success)', async () => {

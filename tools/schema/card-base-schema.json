@@ -52,7 +52,7 @@
             "type": "string",
             "minLength": 3,
             "maxLength": 20,
-            "pattern": "^[a-z]+_[0-9]+$"
+            "pattern": "^[a-z]+_[0-9a-z]+$"
           },
           "linktype": {
             "description": "The linktype is named according to the from-to direction. In user interfaces, the naming according to the linktype is shown in the 'from' card.",
