@@ -12,7 +12,7 @@
 
 // node
 import { basename, join, sep } from 'node:path';
-import { Dirent } from 'node:fs';
+import { Dirent, write } from 'node:fs';
 import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
@@ -50,6 +50,53 @@ export class Calculate {
   private async getQuery(queryName: string) {
     const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
     return pathExists(location) ? location : null;
+  }
+  private async generateWorkFlowStates() {
+    const destinationFileBase = join(
+      Calculate.project.calculationFolder,
+      'workflows',
+    );
+
+    const workflows = await Calculate.project.workflows();
+
+    const promises = [];
+    // loop through workflows
+    for (const workflow of await Promise.all(
+      workflows.map((m) => Calculate.project.workflow(m.name)),
+    )) {
+      if (!workflow) continue;
+      let content = '';
+
+      // add states
+      for (const state of workflow.states) {
+        content += `workflowState("${workflow.name}, ${state.name}"`;
+        if (state.category) {
+          content += `, "${state.category}").`;
+        } else {
+          content += ').';
+        }
+        content += '\n';
+      }
+
+      // add transitions
+      for (const transition of workflow.transitions) {
+        for (const from of transition.fromState) {
+          content += `workflowTransition(${workflow.name}, ${transition.name}, ${from}, ${transition.toState})\n`;
+        }
+        if (transition.fromState.length === 0) {
+          content += `workflowTransition(${workflow.name}, ${transition.name}, "", ${transition.toState})\n`;
+        }
+      }
+
+      const workFlowFile = join(destinationFileBase, `${workflow.name}.lp`);
+      promises.push(
+        writeFile(workFlowFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
   }
   // Write the cardtree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: card | undefined) {
@@ -191,10 +238,13 @@ export class Calculate {
   }
 
   // Checks that Clingo successfully returned result.
-  private parseClingoResult(data: string) {
+  private async parseClingoResult(data: string): Promise<ParseResult> {
     const actual_result = data.substring(0, data.indexOf('SATISFIABLE'));
     if (actual_result.length === 0 || !actual_result) {
-      return;
+      return {
+        results: [],
+        error: null,
+      };
     }
     const parser = new ClingoParser(Calculate.project);
     return parser.parseInput(actual_result);
@@ -228,21 +278,21 @@ export class Calculate {
       }
     }
 
-    await mkdir(join(Calculate.project.calculationFolder, 'cards'), {
-      recursive: true,
-    });
+    const folders = ['cards', 'workflows'];
+    for (const folder of folders) {
+      await mkdir(join(Calculate.project.calculationFolder, folder), {
+        recursive: true,
+      });
+    }
 
     const promiseContainer = [
       this.generateCommonFiles(),
-      this.generateCardTreeContent(card),
+      this.generateCardTreeContent(card).then(this.genereteCardTree),
       this.generateModules(card),
+      this.generateWorkFlowStates(),
     ];
 
     await Promise.all(promiseContainer);
-
-    // Card tree must be generated after all card specific files have been created,
-    // because it reads all card files
-    await this.genereteCardTree();
   }
 
   /**
@@ -349,7 +399,7 @@ export class Calculate {
   public async run(
     projectPath: string,
     filePath: string,
-  ): Promise<ParseResult | undefined> {
+  ): Promise<ParseResult> {
     Calculate.project = new Project(projectPath);
     const main = join(
       Calculate.project.calculationFolder,
