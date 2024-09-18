@@ -28,10 +28,11 @@ export class Calculate {
   static project: Project;
 
   private logicBinaryName: string = 'clingo';
-  private static cardTreeFileName: string = 'cardTree.lp';
+  private static importFileName: string = 'imports.lp';
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
   private static queryLanguageFileName: string = 'queryLanguage.lp';
+  private static resources = ['workflows', 'cardtypes'];
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../calculations/common',
@@ -51,12 +52,40 @@ export class Calculate {
     const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
     return pathExists(location) ? location : null;
   }
-  private async generateWorkFlowStates() {
-    const destinationFileBase = join(
-      Calculate.project.calculationFolder,
-      'workflows',
-    );
 
+  private async generateCardTypes() {
+    const cardTypes = await Calculate.project.cardtypes();
+
+    const promises = [];
+
+    for (const cardType of await Promise.all(
+      cardTypes.map((c) => Calculate.project.cardType(c.name)),
+    )) {
+      if (!cardType) continue;
+
+      let content = '';
+
+      content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
+
+      for (const customField of cardType.customFields || []) {
+        content += `customField("${cardType.name}", "${customField.name}", "${customField.displayName}", "${customField.isEditable ? '#true' : '#false'}").\n`;
+      }
+      const cardTypeFile = join(
+        Calculate.project.calculationFolder,
+        `${cardType.name}.lp`,
+      );
+
+      promises.push(
+        writeFile(cardTypeFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
+  }
+
+  private async generateWorkFlows() {
     const workflows = await Calculate.project.workflows();
 
     const promises = [];
@@ -81,14 +110,18 @@ export class Calculate {
       // add transitions
       for (const transition of workflow.transitions) {
         for (const from of transition.fromState) {
-          content += `workflowTransition(${workflow.name}, ${transition.name}, ${from}, ${transition.toState})\n`;
+          content += `workflowTransition("${workflow.name}", "${transition.name}", "${from}", "${transition.toState}").\n`;
         }
         if (transition.fromState.length === 0) {
-          content += `workflowTransition(${workflow.name}, ${transition.name}, "", ${transition.toState})\n`;
+          content += `workflowTransition("${workflow.name}", "${transition.name}", "", "${transition.toState}").\n`;
         }
       }
 
-      const workFlowFile = join(destinationFileBase, `${workflow.name}.lp`);
+      const workFlowFile = join(
+        Calculate.project.calculationFolder,
+        `${workflow.name}.lp`,
+      );
+
       promises.push(
         writeFile(workFlowFile, content, {
           encoding: 'utf-8',
@@ -136,7 +169,7 @@ export class Calculate {
             if (value === null) {
               continue;
             }
-            logicProgram += `field(${card.key}, "${field}", "${value}").\n`;
+            logicProgram += `field(${card.key}, "${field}", "${value !== undefined ? value.toString().replace('\n', '') : undefined}").\n`;
           }
         }
       }
@@ -153,16 +186,22 @@ export class Calculate {
     await Promise.all(promiseContainer);
   }
 
-  // Once card specific files have been done, write the cardtree.lp.
-  private async genereteCardTree() {
+  private getResourceFolders() {
+    const projectName = Calculate.project.projectPrefix;
+
+    return Calculate.resources
+      .map((r) => join(projectName, r))
+      .concat(['cards']);
+  }
+
+  // Once card specific files have been done, write the the imports
+  private async generateImports() {
     const destinationFile = join(
       Calculate.project.calculationFolder,
-      Calculate.cardTreeFileName,
+      Calculate.importFileName,
     );
-    const destinationFileBase = join(
-      Calculate.project.calculationFolder,
-      'cards',
-    );
+
+    const folders = this.getResourceFolders();
 
     // Helper to remove extension from filename.
     function removeExtension(dirent: Dirent) {
@@ -171,12 +210,19 @@ export class Calculate {
       return index === -1 ? name : name.substring(0, index);
     }
 
-    const files = await opendir(destinationFileBase);
-    let cardTreeContent: string = '';
-    for await (const file of files) {
-      cardTreeContent += `#include "cards/${removeExtension(file)}.lp".\n`;
+    let importsContent: string = '';
+    for (const folder of folders) {
+      importsContent += `% ${folder}\n`;
+      const files = await opendir(
+        join(Calculate.project.calculationFolder, folder),
+      );
+      for await (const file of files) {
+        importsContent += `#include "${join(folder, removeExtension(file) + '.lp')}".\n`;
+      }
+      importsContent += '\n';
     }
-    await writeFile(destinationFile, cardTreeContent);
+
+    await writeFile(destinationFile, importsContent);
   }
 
   // Write all common files which are not card specific.
@@ -277,8 +323,7 @@ export class Calculate {
         throw new Error(`Card '${cardKey}' not found`);
       }
     }
-
-    const folders = ['cards', 'workflows'];
+    const folders = this.getResourceFolders();
     for (const folder of folders) {
       await mkdir(join(Calculate.project.calculationFolder, folder), {
         recursive: true,
@@ -287,12 +332,13 @@ export class Calculate {
 
     const promiseContainer = [
       this.generateCommonFiles(),
-      this.generateCardTreeContent(card).then(this.genereteCardTree),
+      this.generateCardTreeContent(card),
       this.generateModules(card),
-      this.generateWorkFlowStates(),
+      this.generateWorkFlows(),
+      this.generateCardTypes(),
     ];
 
-    await Promise.all(promiseContainer);
+    await Promise.all(promiseContainer).then(this.generateImports.bind(this));
   }
 
   /**
@@ -318,7 +364,7 @@ export class Calculate {
     const affectedCards = await this.getCards(deletedCard);
     const cardTreeFile = join(
       Calculate.project.calculationFolder,
-      Calculate.cardTreeFileName,
+      Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
@@ -359,7 +405,7 @@ export class Calculate {
     await this.setCalculateProject(firstCard); // can throw
     const cardTreeFile = join(
       Calculate.project.calculationFolder,
-      Calculate.cardTreeFileName,
+      Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
@@ -372,7 +418,7 @@ export class Calculate {
     // @todo - should only generate card-tree for created cards' common ancestor (or root)
     //         this might in some cases (sub-tree created) improve performance
     await this.generateCardTreeContent(undefined);
-    await this.genereteCardTree();
+    await this.generateImports();
   }
 
   /**
