@@ -278,7 +278,7 @@
                   "description": "A logic program that contains basic common definitions that are the same in all cards projects",
                   "type": "object"
                 },
-                "cardtree.lp": {
+                "cardTree.lp": {
                   "description": "A logic program that only includes all the card-specific logic programs in the cards directory",
                   "type": "object"
                 },
@@ -288,6 +288,10 @@
                 },
                 "main.lp": {
                   "description": "The main logic program",
+                  "type": "object"
+                },
+                "queryLanguage.lp": {
+                  "description": "A logic program that defines the Cyberismo query language",
                   "type": "object"
                 }
               },
