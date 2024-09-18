@@ -22,7 +22,7 @@ export function errorFunction(error: unknown): string {
   } else if (typeof error === 'string') {
     return errorMessage(`${error}`);
   } else {
-    return `${logError.name} called without an error object. Actual object is ${error}`;
+    return `${logError.name} called without an error object. Actual object is ${JSON.stringify(error)}`;
   }
 }
 
@@ -55,7 +55,7 @@ export function logError(error: unknown) {
     logErrorMessage(`${err.message}`);
   } else {
     console.error(
-      `${logError.name} called without an error object. Actual object is ${error}`,
+      `${logError.name} called without an error object. Actual object is ${JSON.stringify(error)}`,
     );
   }
 }

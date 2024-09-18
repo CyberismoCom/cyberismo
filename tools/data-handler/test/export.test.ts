@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-export-tests');
-const testDirForExport = join(baseDir, 'tmp-command-export-tests');
+const testDirForExport = join(baseDir, 'tmp-command-export-site-tests');
 
-const decisionRecordsPath = join(testDirForExport, 'valid/decision-records');
-const minimalPath = join(testDirForExport, 'valid/minimal');
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+const minimalPath = join(testDir, 'valid/minimal');
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
@@ -26,6 +26,7 @@ describe('export-site', () => {
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    rmSync(testDirForExport, { recursive: true, force: true });
   });
   it('export site - initialise', async () => {
     const project = new Project(decisionRecordsPath);
@@ -40,12 +41,30 @@ describe('export-site', () => {
 describe('export command', () => {
   const commandHandler = new Commands();
 
+  before(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+  });
+
+  after(() => {
+    rmSync(testDir, { recursive: true, force: true });
+    rmSync(testDirForExport, { recursive: true, force: true });
+  });
+
   beforeEach(async () => {
     rmSync(join(decisionRecordsPath, 'output'), {
       recursive: true,
       force: true,
     });
     rmSync(join(decisionRecordsPath, 'test/output'), {
+      recursive: true,
+      force: true,
+    });
+    rmSync(join(minimalPath, 'output'), {
+      recursive: true,
+      force: true,
+    });
+    rmSync(join(minimalPath, 'test/output'), {
       recursive: true,
       force: true,
     });

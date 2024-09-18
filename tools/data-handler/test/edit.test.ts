@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 describe('edit card', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
-  const testDir = join(baseDir, 'tmp-export-tests');
+  const testDir = join(baseDir, 'tmp-edit-tests');
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
