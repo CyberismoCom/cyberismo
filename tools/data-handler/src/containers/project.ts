@@ -1028,13 +1028,13 @@ export class Project extends CardContainer {
       throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
     }
 
-    if (card.metadata) {
-      const cardAsRecord: Record<string, metadataContent> = card.metadata;
-      cardAsRecord[changedKey] = newValue;
-      await this.saveCardMetadata(card);
-      return true;
+    if (!card.metadata || card.metadata[changedKey] === newValue) {
+      return false;
     }
-    return false;
+    const cardAsRecord: Record<string, metadataContent> = card.metadata;
+    cardAsRecord[changedKey] = newValue;
+    await this.saveCardMetadata(card);
+    return true;
   }
 
   /**
