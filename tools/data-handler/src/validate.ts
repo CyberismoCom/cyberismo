@@ -206,6 +206,7 @@ export class Validate {
     if (field === 'person') {
       // Accept empty names
       return (
+        value === undefined ||
         EmailValidator.validate(<string>value) ||
         this.length(<string>value) === 0
       );
