@@ -18,7 +18,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { existsSync, lstatSync, PathLike, readdirSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 

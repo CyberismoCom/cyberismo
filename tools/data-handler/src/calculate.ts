@@ -12,8 +12,7 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { Dirent, write } from 'node:fs';
-import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
 // ismo
@@ -252,9 +251,8 @@ export class Calculate {
     for (const calculationFile of calculations) {
       if (calculationFile.path) {
         // modules resources are always prefixed with module name (to ensure uniqueness), remove module name
-        const moduleLogicFile = join(
-          calculationFile.path,
-          basename(calculationFile.name),
+        const moduleLogicFile = resolve(
+          join(calculationFile.path, basename(calculationFile.name)),
         );
         modulesContent += `#include "${moduleLogicFile}".\n`;
       }
