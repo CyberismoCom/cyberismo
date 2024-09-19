@@ -16,6 +16,7 @@ import {
   linktype,
   template,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { ParseResult } from '@cyberismocom/data-handler/utils/clingo-parser';
 
 import { SWRResponse } from 'swr';
 
@@ -26,6 +27,7 @@ export type Resources = {
   cardType: cardtype;
   templates: template[];
   linkTypes: linktype[];
+  query: ParseResult;
 };
 
 export type ResourceName = keyof Resources;

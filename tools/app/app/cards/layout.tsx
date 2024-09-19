@@ -47,11 +47,15 @@ import {
 } from '../lib/slices/notifications';
 import { useParams } from 'next/navigation';
 import { findParentCard } from '../lib/utils';
+import { useQuery } from '../lib/api/query';
 
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const params = useParams<{ key?: string }>();
   const { project, error, isLoading, updateCard } = useProject();
+  const { query } = useQuery('tree');
+
+  console.log(query);
   const router = useAppRouter();
 
   const notifications = useAppSelector(
