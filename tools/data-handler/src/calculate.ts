@@ -76,7 +76,7 @@ export class Calculate {
       content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
 
       for (const customField of cardType.customFields || []) {
-        content += `customField("${cardType.name}", "${customField.name}", "${customField.displayName}", "${customField.isEditable ? '#true' : '#false'}").\n`;
+        content += `customField("${cardType.name}", "${customField.name}", "${customField.displayName}", "${customField.isEditable ? 'true' : 'false'}").\n`;
       }
       const cardTypeFile = join(
         this.getResourceFolder(),
@@ -105,7 +105,7 @@ export class Calculate {
 
       // add states
       for (const state of workflow.states) {
-        content += `workflowState("${workflow.name}, ${state.name}"`;
+        content += `workflowState("${workflow.name}", "${state.name}"`;
         if (state.category) {
           content += `, "${state.category}").`;
         } else {
