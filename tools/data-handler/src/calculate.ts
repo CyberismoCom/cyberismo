@@ -18,7 +18,13 @@ import { spawnSync } from 'node:child_process';
 
 // ismo
 import { card, link } from './interfaces/project-interfaces.js';
-import { copyDir, deleteFile, pathExists } from './utils/file-utils.js';
+import {
+  copyDir,
+  deleteFile,
+  getFilesSync,
+  pathExists,
+  writeFileSafe,
+} from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { fileURLToPath } from 'node:url';
 import ClingoParser, { ParseResult } from './utils/clingo-parser.js';
@@ -53,6 +59,10 @@ export class Calculate {
     return pathExists(location) ? location : null;
   }
 
+  private getResourceFolder() {
+    return join(Calculate.project.calculationFolder, 'resources');
+  }
+
   private async generateCardTypes() {
     const cardTypes = await Calculate.project.cardtypes();
 
@@ -71,12 +81,12 @@ export class Calculate {
         content += `customField("${cardType.name}", "${customField.name}", "${customField.displayName}", "${customField.isEditable ? '#true' : '#false'}").\n`;
       }
       const cardTypeFile = join(
-        Calculate.project.calculationFolder,
+        this.getResourceFolder(),
         `${cardType.name}.lp`,
       );
 
       promises.push(
-        writeFile(cardTypeFile, content, {
+        writeFileSafe(cardTypeFile, content, {
           encoding: 'utf-8',
           flag: 'w',
         }),
@@ -118,12 +128,12 @@ export class Calculate {
       }
 
       const workFlowFile = join(
-        Calculate.project.calculationFolder,
+        this.getResourceFolder(),
         `${workflow.name}.lp`,
       );
 
       promises.push(
-        writeFile(workFlowFile, content, {
+        writeFileSafe(workFlowFile, content, {
           encoding: 'utf-8',
           flag: 'w',
         }),
@@ -181,17 +191,9 @@ export class Calculate {
       // write card-specific logic program file
       const filename = join(destinationFileBase, card.key);
       const cardLogicFile = `${filename}.lp`;
-      promiseContainer.push(writeFile(cardLogicFile, logicProgram));
+      promiseContainer.push(writeFileSafe(cardLogicFile, logicProgram));
     }
     await Promise.all(promiseContainer);
-  }
-
-  private getResourceFolders() {
-    const projectName = Calculate.project.projectPrefix;
-
-    return Calculate.resources
-      .map((r) => join(projectName, r))
-      .concat(['cards']);
   }
 
   // Once card specific files have been done, write the the imports
@@ -201,28 +203,30 @@ export class Calculate {
       Calculate.importFileName,
     );
 
-    const folders = this.getResourceFolders();
-
-    // Helper to remove extension from filename.
-    function removeExtension(dirent: Dirent) {
-      const name = dirent.name;
-      const index = name.lastIndexOf('.');
-      return index === -1 ? name : name.substring(0, index);
-    }
+    const folders = [
+      this.getResourceFolder(),
+      join(Calculate.project.calculationFolder, 'cards'),
+    ];
 
     let importsContent: string = '';
+
     for (const folder of folders) {
+      const files: string[] = getFilesSync(folder);
+
+      // Helper to remove extension from filename.
+      function removeExtension(file: string) {
+        const index = file.lastIndexOf('.');
+        return index === -1 ? file : file.substring(0, index);
+      }
+
       importsContent += `% ${folder}\n`;
-      const files = await opendir(
-        join(Calculate.project.calculationFolder, folder),
-      );
-      for await (const file of files) {
+      for (const file of files) {
         importsContent += `#include "${join(folder, removeExtension(file) + '.lp')}".\n`;
       }
       importsContent += '\n';
     }
 
-    await writeFile(destinationFile, importsContent);
+    await writeFileSafe(destinationFile, importsContent);
   }
 
   // Write all common files which are not card specific.
@@ -257,7 +261,7 @@ export class Calculate {
         modulesContent += `#include "${moduleLogicFile}".\n`;
       }
     }
-    await writeFile(destinationFile, modulesContent);
+    await writeFileSafe(destinationFile, modulesContent);
   }
 
   // Gets either all the cards (no parent), or a subtree.
@@ -323,12 +327,6 @@ export class Calculate {
         throw new Error(`Card '${cardKey}' not found`);
       }
     }
-    const folders = this.getResourceFolders();
-    for (const folder of folders) {
-      await mkdir(join(Calculate.project.calculationFolder, folder), {
-        recursive: true,
-      });
-    }
 
     const promiseContainer = [
       this.generateCommonFiles(),
@@ -388,7 +386,7 @@ export class Calculate {
       cardTreeContent = cardTreeContent.replace(removeRow, '');
     }
     if (calculationsForTreeExist) {
-      await writeFile(cardTreeFile, cardTreeContent);
+      await writeFileSafe(cardTreeFile, cardTreeContent);
     }
   }
 
