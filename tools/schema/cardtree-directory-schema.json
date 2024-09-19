@@ -253,20 +253,20 @@
             "directories": {
               "type": "object",
               "properties": {
-                  "resources": {
-                    "description": "Schema of the .calc resource folder",
-                    "type": "object",
-                    "properties": {
-                      "files": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "patternProperties": {
-                          "^.+\\.lp$": {
-                            "type": "object"
-                          }
+                "resources": {
+                  "description": "Schema of the .calc resource folder",
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^.+\\.lp$": {
+                          "type": "object"
                         }
                       }
                     }
+                  }
                 },
                 "cards": {
                   "description": "Directory that contains separate logic program files for each card",
