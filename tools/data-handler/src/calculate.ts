@@ -11,7 +11,7 @@
 */
 
 // node
-import { basename, join, sep } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
 import { Dirent, write } from 'node:fs';
 import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
@@ -38,7 +38,6 @@ export class Calculate {
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
   private static queryLanguageFileName: string = 'queryLanguage.lp';
-  private static resources = ['workflows', 'cardtypes'];
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../calculations/common',
@@ -84,7 +83,6 @@ export class Calculate {
         this.getResourceFolder(),
         `${cardType.name}.lp`,
       );
-
       promises.push(
         writeFileSafe(cardTypeFile, content, {
           encoding: 'utf-8',
@@ -221,7 +219,7 @@ export class Calculate {
 
       importsContent += `% ${folder}\n`;
       for (const file of files) {
-        importsContent += `#include "${join(folder, removeExtension(file) + '.lp')}".\n`;
+        importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp'))}".\n`;
       }
       importsContent += '\n';
     }
