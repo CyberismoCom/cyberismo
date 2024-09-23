@@ -24,10 +24,7 @@ import {
   WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import {
-  link,
-  workflowCategory,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 /**
  * Flattens the Card tree into a single array of Cards

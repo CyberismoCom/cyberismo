@@ -13,12 +13,7 @@
 'use client';
 
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
-import {
-  CardAttachment,
-  CardDetails,
-  ParsedLink,
-  Project,
-} from '../lib/definitions';
+import { CardDetails, ParsedLink, Project } from '../lib/definitions';
 
 import Processor from '@asciidoctor/core';
 import { parse } from 'node-html-parser';
@@ -42,7 +37,7 @@ import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
 import { linktype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
-import { Controller, set, useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';

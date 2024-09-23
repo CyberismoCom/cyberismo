@@ -15,13 +15,6 @@ import MoreIcon from '@mui/icons-material/MoreHoriz';
 
 import { CardMetadata } from '../lib/definitions';
 import {
-  Button,
-  Modal,
-  DialogActions,
-  DialogContent,
-  ModalDialog,
-  DialogTitle,
-  Table,
   MenuButton,
   Menu,
   MenuItem,
@@ -31,7 +24,6 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useModals } from '../lib/utils';
-import { useCard } from '../lib/api';
 import {
   MoveCardModal,
   DeleteModal,

@@ -14,12 +14,11 @@
 import React from 'react';
 import { Card, Project, WorkflowState } from '../lib/definitions';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { findCard, findParentCard, getStateColor } from '../lib/utils';
+import { getStateColor } from '../lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
-import { updateCard } from '../lib/api';
 import { useAppRouter } from '../lib/hooks';
 import { FiberManualRecord } from '@mui/icons-material';
 
@@ -46,7 +45,6 @@ const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
     style,
     dragHandle,
   }: NodeRendererProps<CardNode>) {
-    const router = useAppRouter();
     return (
       <Box
         style={style}

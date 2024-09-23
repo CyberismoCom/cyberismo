@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { Box, Button, IconButton } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';

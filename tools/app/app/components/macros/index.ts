@@ -12,6 +12,7 @@
 
 import { MacroName } from '@cyberismocom/data-handler/utils/macros';
 import CreateCards from './CreateCards';
+import { ReactElement } from 'react';
 
 export interface MacroContext {
   /**
@@ -24,6 +25,6 @@ export interface MacroContext {
   preview: boolean;
 }
 
-export const macros: Record<MacroName, (props: any) => React.ReactElement> = {
+export const macros: Record<MacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
 };

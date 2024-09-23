@@ -11,14 +11,12 @@
 */
 
 import React, { useMemo } from 'react';
-import colors from '@mui/joy/colors';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import {
   Workflow,
   WorkflowState,
   WorkflowTransition,
 } from '../lib/definitions';
-import { workflowCategory } from '../../../data-handler/src/interfaces/project-interfaces';
 import {
   Menu,
   MenuItem,

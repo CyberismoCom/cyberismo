@@ -15,8 +15,6 @@ import { Create } from '@cyberismocom/data-handler/create';
 import { Calculate } from '@cyberismocom/data-handler/calculate';
 import { Remove } from '@cyberismocom/data-handler/remove';
 import { Show } from '@cyberismocom/data-handler/show';
-import { join, resolve } from 'path';
-import { spawn } from 'child_process';
 
 export async function addAttachments(key: string, formData: FormData) {
   const projectPath = process.env.npm_config_project_path;
