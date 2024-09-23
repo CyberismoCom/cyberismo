@@ -11,6 +11,40 @@ use(chaiAsPromised);
 
 const calculate = new Calculate();
 
+const expectedTree = [
+  {
+    key: 'decision_5',
+    labels: [],
+    links: [],
+    results: [
+      {
+        key: 'decision_6',
+        labels: [],
+        links: [],
+        results: [],
+        policyChecks: { successes: [], failures: [] },
+        deniedOperations: {
+          transition: [],
+          move: [],
+          delete: [],
+          editField: [],
+          editContent: [],
+        },
+        title: 'Document Decisions with Decision Records',
+      },
+    ],
+    policyChecks: { successes: [], failures: [] },
+    deniedOperations: {
+      transition: [],
+      move: [],
+      delete: [],
+      editField: [],
+      editContent: [],
+    },
+    title: 'Decision Records',
+  },
+];
+
 describe('calculate', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
   const testDir = join(baseDir, 'tmp-calculate-tests');
@@ -29,7 +63,7 @@ describe('calculate', () => {
 
     const res = await calculate.runQuery(decisionRecordsPath, query);
 
-    expect(res.results).to.have.length.above(0);
+    expect(res.results).to.deep.equal(expectedTree);
     expect(res.error).to.eq(null);
   });
   it('try to run non-existing query', async () => {
