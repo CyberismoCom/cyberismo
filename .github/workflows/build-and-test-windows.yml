@@ -28,8 +28,7 @@ jobs:
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
-        python-version: 3.8
-        activate-environment: base
+        python-version: 3.12
         auto-update-conda: true
     - name: Install Clingo from Potassco channel
       run: conda install -c potassco clingo
