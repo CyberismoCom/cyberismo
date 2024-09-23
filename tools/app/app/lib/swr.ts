@@ -18,7 +18,9 @@ export class ApiCallError extends Error {
     public response: Response,
     reason?: string,
   ) {
-    super(`Api call failed: ${response.status} ${response.statusText}`);
+    super(
+      reason ?? `Api call failed: ${response.status} ${response.statusText}`,
+    );
     this.reason = reason || 'unknown';
   }
 }
@@ -26,12 +28,7 @@ export class ApiCallError extends Error {
 export async function createApiCallError(
   response: Response,
 ): Promise<ApiCallError> {
-  return new ApiCallError(
-    response,
-    response.headers.get('content-type')?.includes('text/plain')
-      ? await response.text()
-      : `Api call failed: ${response.status} ${response.statusText}`,
-  );
+  return new ApiCallError(response, await response.text());
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {
