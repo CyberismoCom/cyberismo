@@ -17,10 +17,15 @@ export const dynamic = 'force-dynamic';
 
 /**
  * @swagger
- * /api/cardtypes/{key}:
+ * /api/cardtypes:
  *   get:
  *     summary: Returns the full content of a specific card type.
  *     description: The key parameter is the unique identifier ("cardtype") of the card type. The response includes the card type details.
+ *     parameters:
+ *       - name: name
+ *         in: query
+ *         required: true
+ *         description: name of cardtype, including path (such as /project/cardtypes/page)
  *     responses:
  *       200:
  *        description: Object containing card type details. See definitions.ts/CardType for the structure.
