@@ -15,9 +15,12 @@ import { apiPaths } from '../swr';
 
 import { SWRConfiguration } from 'swr';
 
-export const useCardType = (key: string | null, options?: SWRConfiguration) =>
+export const useCardType = (
+  cardtype: string | null,
+  options?: SWRConfiguration,
+) =>
   useSWRHook<'cardType'>(
-    key ? apiPaths.cardType(key) : null,
+    cardtype ? apiPaths.cardType(cardtype) : null,
     'cardType',
     options,
   );
