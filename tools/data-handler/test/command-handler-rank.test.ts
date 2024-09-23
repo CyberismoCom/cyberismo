@@ -30,7 +30,15 @@ describe('rank command', () => {
   });
 
   after(() => {
-    rmSync(testDir, { recursive: true, force: true });
+    try {
+      rmSync(testDir, { recursive: true, force: true, maxRetries: 5 });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(
+          `There was an issue cleaning up after "rank" tests: ${error.message}`,
+        );
+      }
+    }
   });
 
   beforeEach(async () => {
@@ -107,6 +115,9 @@ describe('rank command', () => {
 
       expect(details.metadata?.rank).to.equal('0|a');
     });
+  });
+
+  describe('rank attempts - test data is not cleaned', () => {
     it('try rank card - project missing', async () => {
       const rankBefore = 'decision_6';
       const invalidProject = { projectPath: 'idontexist' };
@@ -146,6 +157,7 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(400);
     });
   });
+
   // note: these tests could be more detailed
   describe('rebalance', () => {
     it('rebalance (success)', async () => {
