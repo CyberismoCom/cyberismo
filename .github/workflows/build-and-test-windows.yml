@@ -25,6 +25,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Setup Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: 3.8
+        activate-environment: base
+        auto-update-conda: true
+    - name: Install Clingo from Potassco channel
+      run: conda install -c potassco clingo
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
