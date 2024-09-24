@@ -80,7 +80,7 @@ export const apiPaths = {
   project: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
   fieldTypes: () => '/api/fieldtypes',
-  cardType: (key: string) => `/api/cardtypes/${key}`,
+  cardType: (cardtype: string) => `/api/cardtypes?name=${cardtype}`,
   templates: () => '/api/templates',
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,
