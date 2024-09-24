@@ -218,7 +218,7 @@ export class Calculate {
 
       importsContent += `% ${folder}\n`;
       for (const file of files) {
-        importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp'))}".\n`;
+        importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp')).replace(/\\/g, "/")}".\n`;
       }
       importsContent += '\n';
     }
@@ -254,7 +254,7 @@ export class Calculate {
         const moduleLogicFile = resolve(
           join(calculationFile.path, basename(calculationFile.name)),
         );
-        modulesContent += `#include "${moduleLogicFile}".\n`;
+        modulesContent += `#include "${moduleLogicFile.replace(/\\/g, "/")}".\n`;
       }
     }
     await writeFileSafe(destinationFile, modulesContent);
@@ -378,7 +378,7 @@ export class Calculate {
         await deleteFile(cardCalculationsFile);
       }
       // Then, delete rows from cardtree.lp.
-      const removeRow = `#include "cards/${card.key}.lp".\n`;
+      const removeRow = `#include "cards/${card.key}.lp".\n`.replace(/\\/g, "/");
       cardTreeContent = cardTreeContent.replace(removeRow, '');
     }
     if (calculationsForTreeExist) {
