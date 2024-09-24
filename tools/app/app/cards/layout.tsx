@@ -72,7 +72,7 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return (
       <Container>
         <Typography level="body-md" color="danger">
-          Could not open project:
+          Could not open project
         </Typography>
         <Typography level="body-md" color="danger">
           {error.message}

@@ -19,8 +19,9 @@ import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
-import { Box, Stack } from '@mui/joy';
+import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const router = useAppRouter();
 
+  const { t } = useTranslation();
+
   const [linksVisible, setLinksVisible] = useState(false);
 
   useEffect(() => {
@@ -50,6 +53,14 @@ export default function Page({ params }: { params: { key: string } }) {
       );
     }
   }, [listCard, dispatch]);
+
+  if (error) {
+    let errorMessage = t('unknownError');
+    if (error instanceof Error) {
+      errorMessage = (error as Error).message;
+    }
+    return <Typography level="title-md">{errorMessage}</Typography>;
+  }
 
   return (
     <Stack height="100%">

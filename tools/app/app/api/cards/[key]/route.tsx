@@ -246,12 +246,12 @@ async function getCardDetails(
     if (cardDetailsResponse) {
       return NextResponse.json(cardDetailsResponse);
     } else {
-      return new NextResponse(`Card not found from path ${projectPath}`, {
+      return new NextResponse(`Card ${key} not found from project`, {
         status: 400,
       });
     }
   } catch (error) {
-    return new NextResponse(`Card not found from path ${projectPath}`, {
+    return new NextResponse(`Card ${key} not found from project`, {
       status: 400,
     });
   }
