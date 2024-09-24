@@ -284,6 +284,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         header.scrollIntoView();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef]);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {

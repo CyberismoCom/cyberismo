@@ -325,6 +325,7 @@ export default function Page({ params }: { params: { key: string } }) {
         y: 'start',
       }),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, card, codemirror]);
 
   const setRef = useCallback((ref: ReactCodeMirrorRef) => {

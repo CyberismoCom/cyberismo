@@ -19,7 +19,6 @@ import { Box, Stack, Typography } from '@mui/joy';
 import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
-import { useAppRouter } from '../lib/hooks';
 import { FiberManualRecord } from '@mui/icons-material';
 
 type CardNode = Card & {
