@@ -3,6 +3,7 @@
   "$id": "cardsconfig-schema",
   "description": "General configuration settings for the card tree.",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "cardkeyPrefix": {
       "type": "string",
