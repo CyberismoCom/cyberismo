@@ -32,17 +32,7 @@ interface DeniedOperationCollection {
   editContent: { errorMessage: string }[];
 }
 
-interface Result
-  extends Record<
-    string,
-    | string
-    | string[]
-    | CalculationLink[]
-    | PolicyCheckCollection
-    | DeniedOperationCollection
-    | Result[]
-    | null
-  > {
+export interface Result extends Record<string, unknown> {
   key: string;
   labels: string[];
   links: CalculationLink[];

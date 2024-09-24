@@ -47,15 +47,14 @@ import {
 } from '../lib/slices/notifications';
 import { useParams } from 'next/navigation';
 import { findParentCard } from '../lib/utils';
-import { useQuery } from '../lib/api/query';
+import { useTree } from '../lib/api/tree';
 
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const params = useParams<{ key?: string }>();
   const { project, error, isLoading, updateCard } = useProject();
-  const { query } = useQuery('tree');
+  const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
 
-  console.log(query);
   const router = useAppRouter();
 
   const notifications = useAppSelector(
@@ -64,21 +63,21 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
 
   const dispatch = useAppDispatch();
 
-  if (isLoading)
+  if (isLoading || isLoadingTree)
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
       </Box>
     );
 
-  if (error || !project) {
+  if (error || !project || !tree) {
     return (
       <Container>
         <Typography level="body-md" color="danger">
           Could not open project
         </Typography>
         <Typography level="body-md" color="danger">
-          {error.message}
+          {treeError ? treeError.message : error.message}
         </Typography>
       </Container>
     );
@@ -88,7 +87,7 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
       <Box width="274px" flexShrink={0}>
         <TreeMenu
           title={project.name}
-          project={project}
+          tree={tree}
           selectedCardKey={params.key ?? null}
           onMove={async (cardKey: string, newParent: string, index: number) => {
             const parent = findParentCard(project.cards, cardKey);

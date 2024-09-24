@@ -25,6 +25,7 @@ import {
 } from './definitions';
 import { useForm } from 'react-hook-form';
 import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { Result } from '@cyberismocom/data-handler/utils/clingo-parser';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -414,22 +415,39 @@ export function getMoveableCards(cards: Card[], card: Card): Card[] {
 }
 
 /**
+ * This methods tries to find key from any object and return it, if its a string, otherwise null
+ * Since typescript doesn't support defining extra parameters with a specified type, without this we'd
+ * @param obj
+ * @param key
+ * @returns
+ */
+export function getString<T extends Record<string, unknown>>(
+  obj: T,
+  key: string,
+): string | null {
+  if (obj[key] && typeof obj[key] === 'string') {
+    return obj[key];
+  }
+  return null;
+}
+
+/**
  * Returns filtered tree of cards
  * @param cards: array of cards to filter
  * @param filter: filter function that returns true if the card should be included
  * @returns filtered array of cards
  */
 export function filterCards(
-  cards: Card[],
-  filter: (card: Card) => boolean,
-): Card[] {
+  cards: Result[],
+  filter: (card: Result) => boolean,
+): Result[] {
   return cards.filter((card) => {
     if (filter(card)) {
       return true;
     }
-    if (card.children) {
-      card.children = filterCards(card.children, filter);
-      return card.children.length > 0;
+    if (card.results) {
+      card.results = filterCards(card.results, filter);
+      return card.results.length > 0;
     }
     return false;
   });
@@ -479,7 +497,26 @@ export async function withUpdating<T>(
  * @param state workflow state
  * @returns joy color representing the category of the workflow
  */
-export function getStateColor(state: WorkflowState) {
+export function getStateColor(category: string) {
+  switch (category) {
+    case workflowCategory.initial:
+      return 'neutral.300';
+    case workflowCategory.active:
+      return 'warning.300';
+    case workflowCategory.closed:
+      return 'success.400';
+    default:
+      return 'black';
+  }
+}
+
+/**
+ * Returns the color representing the category of the workflow
+ * @param state workflow state
+ * @returns joy color representing the category of the workflow
+ * @deprecated
+ */
+export function getStateColorDeprecated(state: WorkflowState) {
   switch (state.category) {
     case workflowCategory.initial:
       return 'neutral.300';

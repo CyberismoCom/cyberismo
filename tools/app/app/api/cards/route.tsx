@@ -67,8 +67,6 @@ export async function GET() {
     });
   }
 
-  const calculations = await calculateCommand.runQuery(projectPath, 'tree');
-
   const cardsResponse = await showCommand.showProjectCards(projectPath);
   if (cardsResponse) {
     const response = {
@@ -76,7 +74,6 @@ export async function GET() {
       cards: cardsResponse,
       workflows: workflowsResponse,
       cardTypes: cardTypesResponse,
-      calculations: calculations,
     };
     return NextResponse.json(response);
   } else {

@@ -10,33 +10,24 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Calculate } from '@cyberismocom/data-handler/calculate';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * @swagger
- * /api/queries/[name]
+ * /api/tree
  *   get:
- *     summary: Runs a query and returns the result
- *     description: This can be used to run a named query of data-handler. The result is not post-processed in anyway.
+ *     summary: Returns everything required by treeview
+ *     description: Returns the query result
  *     responses:
  *       200:
  *        description: Object containing the query result
  *       500:
  *         description: project_path not set or other internal error
  */
-export async function GET(
-  _: NextRequest,
-  {
-    params,
-  }: {
-    params: {
-      name: string;
-    };
-  },
-) {
+export async function GET() {
   const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
     return new NextResponse('project_path environment variable not set.', {
@@ -45,9 +36,12 @@ export async function GET(
   }
   try {
     const calculate = new Calculate();
-    return NextResponse.json(
-      await calculate.runQuery(projectPath, params.name),
-    );
+    await calculate.generate(projectPath);
+    const tree = await calculate.runQuery(projectPath, 'tree');
+    if (tree.error) {
+      throw new Error(tree.error);
+    }
+    return NextResponse.json(tree.results);
   } catch (e) {
     return new NextResponse((e instanceof Error && e.message) || '', {
       status: 500,

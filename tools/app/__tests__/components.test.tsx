@@ -5,6 +5,7 @@ import { Project } from '@/app/lib/definitions';
 import StateSelector from '@/app/components/StateSelector';
 import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
 import { useTranslation } from 'react-i18next';
+import { ParseResult } from '@cyberismocom/data-handler/utils/clingo-parser';
 
 // mock resize observer
 global.ResizeObserver = class {
@@ -29,9 +30,9 @@ describe('TreeMenu', () => {
   it('renders with test data', () => {
     render(
       <TreeMenu
-        project={testProject}
         title={testProject.name}
         selectedCardKey={null}
+        tree={testTree}
       />,
     );
 
@@ -44,9 +45,9 @@ describe('TreeMenu', () => {
   it('parameter card key is visible and selected in UI', () => {
     render(
       <TreeMenu
-        project={testProject}
         title={testProject.name}
         selectedCardKey={'USDL-46'}
+        tree={testTree}
       />,
     );
     const node = screen.getByText('Demand phase').parentNode?.parentNode;
@@ -348,3 +349,251 @@ const testProject: Project = {
     },
   ],
 };
+
+const testTree: ParseResult['results'] = [
+  {
+    key: 'USDL-43',
+    path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43',
+    results: [
+      {
+        key: 'USDL-44',
+        path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
+        results: [
+          {
+            key: 'USDL-45',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
+            results: [],
+            cardtype: 'controlledDocument',
+            title: 'Untitled',
+            workflowState: 'Draft',
+            rank: '0|a',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-46',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
+            results: [],
+            cardtype: 'simplePage',
+            title: 'Demand phase',
+            workflowState: 'Created',
+            rank: '0|b',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-47',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
+            results: [
+              {
+                key: 'USDL-53',
+                path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
+                results: [],
+                cardtype: 'controlledDocument',
+                title: 'Threat model',
+                workflowState: 'Draft',
+                rank: '0|a',
+                links: [],
+
+                labels: [],
+                policyChecks: {
+                  successes: [],
+                  failures: [],
+                },
+                deniedOperations: {
+                  transition: [],
+                  move: [],
+                  delete: [],
+                  editField: [],
+                  editContent: [],
+                },
+              },
+            ],
+            cardtype: 'simplePage',
+            title: 'Design phase',
+            workflowState: 'Created',
+            rank: '0|c',
+            links: [],
+
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-48',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
+            results: [],
+            cardtype: 'simplePage',
+            title: 'Implementation phase',
+            workflowState: 'Created',
+            rank: '0|d',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-49',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
+            results: [],
+            links: [],
+            // this card has no metadata
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-50',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
+            results: [],
+            cardtype: 'simplePage',
+            title: 'Release phase',
+            workflowState: 'Created',
+            rank: '0|e',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-51',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
+            results: [],
+            cardtype: 'simplePage',
+            title: 'Operations phase',
+            workflowState: 'Created',
+            rank: '0|f',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+          {
+            key: 'USDL-52',
+            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
+            results: [],
+            cardtype: 'simplePage',
+            title: 'Meetings',
+            workflowState: 'Created',
+            rank: '0|g',
+            links: [],
+            labels: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+          },
+        ],
+        cardtype: 'simplePage',
+        title: 'SDL Project',
+        workflowState: 'Created',
+        rank: '0|a',
+        links: [],
+        labels: [],
+        policyChecks: {
+          successes: [],
+          failures: [],
+        },
+        deniedOperations: {
+          transition: [],
+          move: [],
+          delete: [],
+          editField: [],
+          editContent: [],
+        },
+      },
+    ],
+    cardtype: 'decision',
+    title: 'SDL Decision',
+    workflowState: 'Draft',
+    rank: '0|b',
+    links: [],
+
+    labels: [],
+    policyChecks: {
+      successes: [],
+      failures: [],
+    },
+    deniedOperations: {
+      transition: [],
+      move: [],
+      delete: [],
+      editField: [],
+      editContent: [],
+    },
+  },
+];

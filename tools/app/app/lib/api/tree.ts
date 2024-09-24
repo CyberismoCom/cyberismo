@@ -15,5 +15,5 @@ import { apiPaths } from '../swr';
 
 import { SWRConfiguration } from 'swr';
 
-export const useQuery = (key: string | null, options?: SWRConfiguration) =>
-  useSWRHook<'query'>(key ? apiPaths.query(key) : null, 'query', options);
+export const useTree = (options?: SWRConfiguration) =>
+  useSWRHook<'tree'>(apiPaths.tree(), 'tree', options);

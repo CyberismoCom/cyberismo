@@ -28,6 +28,7 @@ export type Resources = {
   templates: template[];
   linkTypes: linktype[];
   query: ParseResult;
+  tree: ParseResult['results'];
 };
 
 export type ResourceName = keyof Resources;

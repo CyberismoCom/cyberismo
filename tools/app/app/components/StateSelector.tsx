@@ -27,7 +27,7 @@ import {
   Box,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { getStateColor } from '../lib/utils';
+import { getStateColor, getStateColorDeprecated } from '../lib/utils';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -67,7 +67,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         disabled={availableTransitions.length == 0}
         variant="soft"
         startDecorator={
-          <Box color={getStateColor(currentState)}>
+          <Box color={getStateColorDeprecated(currentState)}>
             <FiberManualRecordIcon />
           </Box>
         }
