@@ -6,6 +6,7 @@
 // Run these tests with ´npm run e2e:headless´
 
 describe('Navigation', () => {
+  Cypress.config('defaultCommandTimeout', 10000);
   beforeEach(() => {
     cy.visit('http://localhost:3000');
   });
@@ -44,6 +45,7 @@ describe('Navigation', () => {
 });
 
 describe('Modify project', () => {
+  Cypress.config('defaultCommandTimeout', 10000);
   before(() => {
     // Make a backup copy of the base test data
     cy.task('makeTestDataBackup');

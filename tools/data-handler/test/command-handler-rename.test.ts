@@ -18,6 +18,8 @@ const testDir = join(baseDir, 'tmp-command-handler-rename-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const commandHandler: Commands = new Commands();
 const options: CardsOptions = { projectPath: decisionRecordsPath };
+const minimalPath = join(testDir, 'valid/minimal');
+const optionsMini: CardsOptions = { projectPath: minimalPath };
 
 describe('rename command', () => {
   beforeEach(async () => {
@@ -26,7 +28,15 @@ describe('rename command', () => {
   });
 
   afterEach(() => {
-    rmSync(testDir, { recursive: true, force: true });
+    try {
+      rmSync(testDir, { force: true, recursive: true });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(
+          `There was an issue cleaning up after "rename" tests: ${error.message}`,
+        );
+      }
+    }
   });
 
   it('rename project (success)', async () => {
@@ -35,8 +45,6 @@ describe('rename command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('rename project - no cards at all (success)', async () => {
-    const minimalPath = join(testDir, 'valid/minimal');
-    const optionsMini: CardsOptions = { projectPath: minimalPath };
     const newName = 'empty';
     const result = await commandHandler.command(
       Cmd.rename,
@@ -45,6 +53,14 @@ describe('rename command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('try to rename project - invalid "to" ', async () => {
+    const newName = 'decrec_2';
+    const result = await commandHandler.command(Cmd.rename, [newName], options);
+    expect(result.statusCode).to.equal(400);
+  });
+});
+
+describe('rename attempts - test data is not cleaned', () => {
   it('try to rename project - path missing or invalid', async () => {
     const invalidProject = { projectPath: 'idontexist' };
     const newName = 'decrec';
@@ -64,10 +80,5 @@ describe('rename command', () => {
           "Input validation error: empty 'to' is not allowed",
         ),
       );
-  });
-  it('try to rename project - invalid "to" ', async () => {
-    const newName = 'decrec_2';
-    const result = await commandHandler.command(Cmd.rename, [newName], options);
-    expect(result.statusCode).to.equal(400);
   });
 });
