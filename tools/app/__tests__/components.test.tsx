@@ -115,6 +115,7 @@ const testProject: Project = {
                 title: 'Untitled',
                 workflowState: 'Draft',
                 rank: '0|a',
+                links: [],
               },
             },
             {
@@ -126,6 +127,7 @@ const testProject: Project = {
                 title: 'Demand phase',
                 workflowState: 'Created',
                 rank: '0|b',
+                links: [],
               },
             },
             {
@@ -141,6 +143,7 @@ const testProject: Project = {
                     title: 'Threat model',
                     workflowState: 'Draft',
                     rank: '0|a',
+                    links: [],
                   },
                 },
               ],
@@ -149,6 +152,7 @@ const testProject: Project = {
                 title: 'Design phase',
                 workflowState: 'Created',
                 rank: '0|c',
+                links: [],
               },
             },
             {
@@ -160,6 +164,7 @@ const testProject: Project = {
                 title: 'Implementation phase',
                 workflowState: 'Created',
                 rank: '0|d',
+                links: [],
               },
             },
             {
@@ -177,6 +182,7 @@ const testProject: Project = {
                 title: 'Release phase',
                 workflowState: 'Created',
                 rank: '0|e',
+                links: [],
               },
             },
             {
@@ -188,6 +194,7 @@ const testProject: Project = {
                 title: 'Operations phase',
                 workflowState: 'Created',
                 rank: '0|f',
+                links: [],
               },
             },
             {
@@ -199,6 +206,7 @@ const testProject: Project = {
                 title: 'Meetings',
                 workflowState: 'Created',
                 rank: '0|g',
+                links: [],
               },
             },
           ],
@@ -207,6 +215,7 @@ const testProject: Project = {
             title: 'SDL Project',
             workflowState: 'Created',
             rank: '0|a',
+            links: [],
           },
         },
       ],
@@ -215,6 +224,7 @@ const testProject: Project = {
         title: 'SDL Decision',
         workflowState: 'Draft',
         rank: '0|b',
+        links: [],
       },
     },
   ],

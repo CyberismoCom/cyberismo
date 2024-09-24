@@ -10,10 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { EditorView, ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { EditorView } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
 import { attachmentDetails } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { AbstractBlock, Document, Section } from '@asciidoctor/core';
+import { Document, Section } from '@asciidoctor/core';
 
 /**
  * Counts the number of empty lines in the codemirror editor in the given direction

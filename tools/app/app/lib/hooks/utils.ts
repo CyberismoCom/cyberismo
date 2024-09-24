@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { findParentCard } from '../utils';
 import { useProject } from '../api';
 

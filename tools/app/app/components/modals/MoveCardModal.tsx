@@ -12,7 +12,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Checkbox,
   Modal,
   ModalDialog,
   Typography,
@@ -21,7 +20,6 @@ import {
   Divider,
   DialogActions,
   Button,
-  Alert,
   Tabs,
   Tab,
   TabList,

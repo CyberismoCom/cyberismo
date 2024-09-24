@@ -11,7 +11,7 @@
 */
 
 'use client';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { TreeMenu } from '../components/TreeMenu';
 import AppToolbar from '../components/AppToolbar';
 
@@ -22,7 +22,6 @@ import {
   Typography,
   styled,
   Container,
-  Alert,
   IconButton,
   Snackbar,
   CssBaseline,
@@ -49,7 +48,7 @@ import {
 import { useParams } from 'next/navigation';
 import { findParentCard } from '../lib/utils';
 
-function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const params = useParams<{ key?: string }>();
   const { project, error, isLoading, updateCard } = useProject();
@@ -142,12 +141,12 @@ function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   );
 }
 
-const Main = styled('main')(({ theme }) => ({
+const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
   flexGrow: 1,
 }));
 
-function MainLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const params = useParams<{
     key?: string;
@@ -172,7 +171,7 @@ const materialTheme = createTheme();
 
 export default function CardsLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ children: ReactNode }>) {
   return (
     <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
       <JoyCssVarsProvider theme={theme}>

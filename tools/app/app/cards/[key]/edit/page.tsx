@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -43,7 +43,7 @@ import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
 import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
-import { Controller, FormProvider, set, useForm } from 'react-hook-form';
+import { Controller, FormProvider, useForm } from 'react-hook-form';
 
 import { useAppDispatch, useAppRouter, useAppSelector } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
@@ -118,7 +118,7 @@ function AttachmentPreviewCard({
               color="danger"
               variant="solid"
               loading={isUpdating}
-              onClick={async (e) => {
+              onClick={async () => {
                 setIsUpdating(true);
                 await removeAttachment(name);
                 setIsUpdating(false);
@@ -163,7 +163,7 @@ function AttachmentPreviewCard({
               data-cy="insertToContentButton"
               variant="solid"
               color="primary"
-              onClick={(e) => onInsert && onInsert()}
+              onClick={() => onInsert && onInsert()}
             >
               <AddLink />
             </IconButton>
@@ -325,6 +325,7 @@ export default function Page({ params }: { params: { key: string } }) {
         y: 'start',
       }),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, card, codemirror]);
 
   const setRef = useCallback((ref: ReactCodeMirrorRef) => {

@@ -35,7 +35,7 @@ function DnDFile({
     }
   };
 
-  const handleDragEnter: DragEventHandler = (e) => {
+  const handleDragEnter: DragEventHandler = () => {
     setIsHovering(true);
   };
 
