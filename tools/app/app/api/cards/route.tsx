@@ -13,7 +13,6 @@
 import { Show } from '@cyberismocom/data-handler/show';
 import { project } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { NextResponse } from 'next/server';
-import { Calculate } from '@cyberismocom/data-handler/calculate';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +39,6 @@ export async function GET() {
   }
 
   const showCommand = new Show();
-  const calculateCommand = new Calculate();
 
   let projectResponse: project;
   try {
