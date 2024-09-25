@@ -27,7 +27,6 @@ export type Resources = {
   cardType: cardtype;
   templates: template[];
   linkTypes: linktype[];
-  query: ParseResult;
   tree: ParseResult['results'];
 };
 
