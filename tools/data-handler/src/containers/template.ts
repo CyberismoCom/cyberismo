@@ -26,7 +26,7 @@ import {
   templateMetadata,
 } from '../interfaces/project-interfaces.js';
 import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
-import { formatJson, readJsonFile } from '../utils/json.js';
+import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 
 // Base class
@@ -50,10 +50,10 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static dotSchemaContent: string = formatJson({
+  private static dotSchemaContent: object = {
     id: 'card-base-schema',
     version: 1,
-  });
+  };
 
   constructor(path: string, template: resource, project?: Project) {
     // Templates might come from modules. Remove module name from template name.
@@ -150,7 +150,7 @@ export class Template extends CardContainer {
       // Create temp-folder and schema file.
       const templatesFolder = this.templateFolder();
       await mkdir(tempDestination, { recursive: true });
-      await writeFile(
+      await writeJsonFile(
         join(tempDestination, Project.schemaContentFile),
         Template.dotSchemaContent,
       );
@@ -205,9 +205,9 @@ export class Template extends CardContainer {
           }
 
           await mkdir(card.path, { recursive: true });
-          await writeFile(
+          await writeJsonFile(
             join(card.path, Project.cardMetadataFile),
-            formatJson(card.metadata),
+            card.metadata,
           );
         }
 
@@ -353,9 +353,9 @@ export class Template extends CardContainer {
         : join(this.templateCardsPath, newCardKey);
 
       await mkdir(templateCardToCreate, { recursive: true });
-      await writeFile(
+      await writeJsonFile(
         join(templateCardToCreate, Project.cardMetadataFile),
-        formatJson(defaultContent),
+        defaultContent,
       );
       await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
       await this.project.configuration.save();
@@ -446,15 +446,15 @@ export class Template extends CardContainer {
           recursive: true,
         }).then(async (name) => {
           await Promise.all([
-            writeFile(
+            writeJsonFile(
               this.templateConfigurationFilePath(),
-              formatJson(templateContent),
+              templateContent,
             ),
-            writeFile(
-              join(this.templatePath, Project.schemaContentFile),
-              formatJson({ id: 'template-schema', version: 1 }),
-            ),
-            writeFile(
+            writeJsonFile(join(this.templatePath, Project.schemaContentFile), {
+              id: 'template-schema',
+              version: 1,
+            }),
+            writeJsonFile(
               join(this.templateCardsPath, Project.schemaContentFile),
               Template.dotSchemaContent,
             ),

@@ -238,24 +238,50 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns a new unique card key with project prefix (e.g. test_x649it4x).
-   * Random part of string will be always 8 characters in base-36 (0-9a-z)
-   * @returns a new card key string
-   * @throws if a unique key could not be created within set number of attempts
+   * This function should be called after card is updated.
+   * Updates lastUpdated metadata key.
    */
-  public async newCardKey(): Promise<string> {
-    const maxAttempts = 10;
-    const base = 36;
-    const length = 8;
-    for (let i = 0; i < maxAttempts; i++) {
-      // Create a key and check that there are no collisions with other keys in project
-      const newKey = `${this.settings.cardkeyPrefix}_${generateRandomString(base, length)}`;
-      const exists = await this.findSpecificCard(newKey);
-      if (exists) continue;
-      return newKey;
+  private async onCardUpdate(cardKey: string) {
+    return this.updateMetadataKey(
+      cardKey,
+      'lastUpdated',
+      new Date().toISOString(),
+    );
+  }
+
+  /**
+   * Updates metadata key.
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
+   * @returns true if metadata key was updated, false otherwise.
+   */
+  private async updateMetadataKey(
+    cardKey: string,
+    changedKey: string,
+    newValue: metadataContent,
+  ) {
+    const card = await this.findCard(this.basePath, cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    throw new Error('Could not generate unique card key');
+    const validCard = Project.isTemplateCard(card)
+      ? ''
+      : await this.validateCard(card);
+    if (validCard.length !== 0) {
+      throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
+    }
+
+    if (!card.metadata || card.metadata[changedKey] === newValue) {
+      return false;
+    }
+    const cardAsRecord: Record<string, metadataContent> = card.metadata;
+    cardAsRecord[changedKey] = newValue;
+    await this.saveCardMetadata(card);
+    return true;
   }
 
   /**
@@ -282,12 +308,15 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the calculation files (*.lp) in the project.
+   * @param {boolean} localOnly Return local calculations, or all calculations (includes module calculations)
    * @returns array of all calculation files in the project.
    */
-  public async calculations(): Promise<resource[]> {
+  public async calculations(localOnly: boolean = true): Promise<resource[]> {
     const moduleCalculations =
       await this.collectResourcesFromModules('calculations');
-    return [...this.localCalculations, ...moduleCalculations];
+    return localOnly
+      ? this.localCalculations
+      : [...this.localCalculations, ...moduleCalculations];
   }
 
   /**
@@ -372,7 +401,10 @@ export class Project extends CardContainer {
    * @param {string} cardTypeName Name of cardtype to fetch. Can either be filename (including .json extension), or just name.
    * @returns JSON content of cardtype, or undefined if the cardtype cannot be found.
    */
-  public async cardType(cardTypeName?: string): Promise<cardtype | undefined> {
+  public async cardType(
+    cardTypeName?: string,
+    skipDefaults: boolean = false,
+  ): Promise<cardtype | undefined> {
     if (!cardTypeName) return undefined;
     if (!cardTypeName.endsWith('.json')) {
       cardTypeName += '.json';
@@ -388,7 +420,7 @@ export class Project extends CardContainer {
     const content = (await readJsonFile(
       join(found.path, basename(found.name)),
     )) as cardtype;
-    if (content.customFields) {
+    if (content.customFields && !skipDefaults) {
       for (const item of content.customFields) {
         // Set "isEditable" if it is missing; default = true
         if (item.isEditable === undefined) {
@@ -406,7 +438,7 @@ export class Project extends CardContainer {
             console.error(
               `Missing fieldType '${item.name}' in cardType '${cardTypeName}'`,
             );
-            return undefined;
+            continue;
           }
         } else {
           console.error(
@@ -420,12 +452,15 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns an array of all the cardtypes in the project.
-   * @returns array of all cardtypes in the project.
+   * Returns an array of all the card types in the project.
+   * @param {boolean} localOnly Return local card types, or all card types (includes module card types)
+   * @returns array of all card-types in the project.
    */
-  public async cardtypes(): Promise<resource[]> {
-    const moduleCardtypes = await this.collectResourcesFromModules('cardtypes');
-    return [...this.localCardtypes, ...moduleCardtypes];
+  public async cardtypes(localOnly: boolean = false): Promise<resource[]> {
+    const moduleCardTypes = await this.collectResourcesFromModules('cardtypes');
+    return localOnly
+      ? this.localCardtypes
+      : [...this.localCardtypes, ...moduleCardTypes];
   }
 
   /**
@@ -501,13 +536,16 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns an array of all the fieldtypes in the project.
-   * @returns array of all fieldtypes in the project.
+   * Returns an array of all the field types in the project.
+   * @param {boolean} localOnly Return local field types, or all field types (includes module field types)
+   * @returns array of all field types in the project.
    */
-  public async fieldtypes(): Promise<resource[]> {
-    const moduleFieldtypes =
+  public async fieldtypes(localOnly: boolean = false): Promise<resource[]> {
+    const moduleFieldTypes =
       await this.collectResourcesFromModules('fieldtypes');
-    return [...this.localFieldtypes, ...moduleFieldtypes];
+    return localOnly
+      ? this.localFieldtypes
+      : [...this.localFieldtypes, ...moduleFieldTypes];
   }
 
   /**
@@ -516,58 +554,6 @@ export class Project extends CardContainer {
    */
   public get fieldtypesFolder(): string {
     return join(this.basePath, '.cards', 'local', 'fieldtypes');
-  }
-
-  /**
-   * Returns specific linktype path
-   * @param {string} linkTypeName Name of the linkType
-   * @returns linktype path.
-   */
-  public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
-    if (!linkTypeName) {
-      return undefined;
-    }
-    if (!linkTypeName.endsWith('.json')) {
-      linkTypeName += '.json';
-    }
-    const found = (await this.linkTypes()).find(
-      (item) => item.name === linkTypeName && item.path,
-    );
-
-    if (!found || !found.path) {
-      return undefined;
-    }
-    return join(found.path, basename(found.name));
-  }
-
-  /**
-   * Returns specific linktype metadata.
-   * @param {string} linkTypeName Name of the linkType
-   * @returns linktype metadata.
-   */
-  public async linkType(linkTypeName: string): Promise<linktype | undefined> {
-    const path = await this.linkTypePath(linkTypeName);
-    if (!path) {
-      return undefined;
-    }
-    const file = (await readJsonFile(path)) as linktype;
-    return file;
-  }
-  /**
-   * Returns an array of all the linktypes in the project.
-   * @returns array of all linktypes in the project.
-   */
-  public async linkTypes(): Promise<resource[]> {
-    const moduleLinktypes = await this.collectResourcesFromModules('linktypes');
-    return [...this.localLinktypes, ...moduleLinktypes];
-  }
-
-  /**
-   * Returns path to 'linktypes' folder.
-   * @returns path to 'linktypes' folder.
-   */
-  public get linktypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'linktypes');
   }
 
   /**
@@ -670,6 +656,60 @@ export class Project extends CardContainer {
       card.path.includes(`${sep}templates${sep}`) ||
       card.path.includes(`${sep}modules${sep}`)
     );
+  }
+
+  /**
+   * Returns specific linktype path
+   * @param {string} linkTypeName Name of the linkType
+   * @returns linktype path.
+   */
+  public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
+    if (!linkTypeName) {
+      return undefined;
+    }
+    if (!linkTypeName.endsWith('.json')) {
+      linkTypeName += '.json';
+    }
+    const found = (await this.linkTypes()).find(
+      (item) => item.name === linkTypeName && item.path,
+    );
+
+    if (!found || !found.path) {
+      return undefined;
+    }
+    return join(found.path, basename(found.name));
+  }
+
+  /**
+   * Returns specific linktype metadata.
+   * @param {string} linkTypeName Name of the linkType
+   * @returns linktype metadata.
+   */
+  public async linkType(linkTypeName: string): Promise<linktype | undefined> {
+    const path = await this.linkTypePath(linkTypeName);
+    if (!path) {
+      return undefined;
+    }
+    return readJsonFile(path);
+  }
+  /**
+   * Returns an array of all the link types in the project.
+   * @param {boolean} localOnly Return local link types, or all link types (includes module link types)
+   * @returns array of all link types in the project.
+   */
+  public async linkTypes(localOnly: boolean = false): Promise<resource[]> {
+    const moduleLinkTypes = await this.collectResourcesFromModules('linktypes');
+    return localOnly
+      ? this.localLinktypes
+      : [...this.localLinktypes, ...moduleLinkTypes];
+  }
+
+  /**
+   * Returns path to 'linktypes' folder.
+   * @returns path to 'linktypes' folder.
+   */
+  public get linktypesFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'linktypes');
   }
 
   /**
@@ -800,6 +840,27 @@ export class Project extends CardContainer {
    */
   public get modulesFolder(): string {
     return join(this.basePath, '.cards', 'modules');
+  }
+
+  /**
+   * Returns a new unique card key with project prefix (e.g. test_x649it4x).
+   * Random part of string will be always 8 characters in base-36 (0-9a-z)
+   * @returns a new card key string
+   * @throws if a unique key could not be created within set number of attempts
+   */
+  public async newCardKey(): Promise<string> {
+    const maxAttempts = 10;
+    const base = 36;
+    const length = 8;
+    for (let i = 0; i < maxAttempts; i++) {
+      // Create a key and check that there are no collisions with other keys in project
+      const newKey = `${this.settings.cardkeyPrefix}_${generateRandomString(base, length)}`;
+      const exists = await this.findSpecificCard(newKey);
+      if (exists) continue;
+      return newKey;
+    }
+
+    throw 'Could not generate unique card key';
   }
 
   /**
@@ -957,7 +1018,7 @@ export class Project extends CardContainer {
   public async templates(localOnly: boolean = false): Promise<resource[]> {
     const moduleTemplates = await this.collectResourcesFromModules('templates');
     return localOnly
-      ? [...this.localTemplates]
+      ? this.localTemplates
       : [...this.localTemplates, ...moduleTemplates];
   }
 
@@ -984,12 +1045,12 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Updates card metadata.
+   * Updates card metadata's single key.
    * @param {string} cardKey card that is updated.
    * @param {string} changedKey changed metadata key
    * @param {metadataContent} newValue changed value for the key
    */
-  public async updateCardMetadata(
+  public async updateCardMetadataKey(
     cardKey: string,
     changedKey: string,
     newValue: metadataContent,
@@ -1000,50 +1061,25 @@ export class Project extends CardContainer {
   }
 
   /**
-   * This function should be called after card is updated.
-   * Updates lastUpdated metadata key.
+   * Updates card metadata.
+   * @param {card} card affected card
+   * @param {cardMetadata} changedMetadata changed content for the card
+   * @param {boolean} skipValidation Optional, if set does not validate the card
    */
-  private async onCardUpdate(cardKey: string) {
-    return this.updateMetadataKey(
-      cardKey,
-      'lastUpdated',
-      new Date().toISOString(),
-    );
-  }
-
-  /**
-   * Updates metadata key.
-   * @param cardKey card that is updated.
-   * @param changedKey changed metadata key
-   * @param newValue changed value for the key
-   * @returns true if metadata key was updated, false otherwise.
-   */
-  private async updateMetadataKey(
-    cardKey: string,
-    changedKey: string,
-    newValue: metadataContent,
+  public async updateCardMetadata(
+    card: card,
+    changedMetadata: cardMetadata,
+    skipValidation: boolean = false,
   ) {
-    const card = await this.findCard(this.basePath, cardKey, {
-      metadata: true,
-    });
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    card.metadata = changedMetadata;
+    // In some mass operations cannot make single card validation while making the whole op (e.g. rename).
+    if (skipValidation) {
+      card.metadata.lastUpdated = new Date().toISOString();
+      return await this.saveCardMetadata(card);
+    } else {
+      await this.saveCardMetadata(card);
+      return this.onCardUpdate(card.key);
     }
-
-    const validCard = Project.isTemplateCard(card)
-      ? ''
-      : await this.validateCard(card);
-    if (validCard.length !== 0) {
-      throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
-    }
-
-    if (!card.metadata || card.metadata[changedKey] === newValue) {
-      return false;
-    }
-    const cardAsRecord: Record<string, metadataContent> = card.metadata;
-    cardAsRecord[changedKey] = newValue;
-    await this.saveCardMetadata(card);
-    return true;
   }
 
   /**
@@ -1123,11 +1159,14 @@ export class Project extends CardContainer {
 
   /**
    * Array of workflows in the project.
+   * @param {boolean} localOnly Return local workflows, or all workflows (includes module workflows)
    * @returns array of all workflows in the project.
    */
-  public async workflows(): Promise<resource[]> {
+  public async workflows(localOnly: boolean = false): Promise<resource[]> {
     const moduleWorkflows = await this.collectResourcesFromModules('workflows');
-    return [...this.localWorkflows, ...moduleWorkflows];
+    return localOnly
+      ? this.localWorkflows
+      : [...this.localWorkflows, ...moduleWorkflows];
   }
 
   /**

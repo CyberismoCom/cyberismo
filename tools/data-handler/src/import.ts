@@ -90,14 +90,19 @@ export class Import {
         await project.updateCardContent(cardKey, description);
       }
 
+      // todo: could update all of the metadata values with single call to updateMetadataKey()
       if (labels) {
-        await project.updateCardMetadata(cardKey, 'labels', labels.split(' '));
+        await project.updateCardMetadataKey(
+          cardKey,
+          'labels',
+          labels.split(' '),
+        );
       }
 
-      await project.updateCardMetadata(cardKey, 'title', title);
+      await project.updateCardMetadataKey(cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
         if (cardType.customFields?.find((field) => field.name === key)) {
-          await project.updateCardMetadata(cardKey, key, value);
+          await project.updateCardMetadataKey(cardKey, key, value);
         }
       }
       console.log(`Successfully imported card ${title}`);

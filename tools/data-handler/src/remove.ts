@@ -115,7 +115,11 @@ export class Remove extends EventEmitter {
         l.linkDescription !== linkDescription,
     );
 
-    await Remove.project.updateCardMetadata(sourceCardKey, 'links', newLinks);
+    await Remove.project.updateCardMetadataKey(
+      sourceCardKey,
+      'links',
+      newLinks,
+    );
   }
 
   /**

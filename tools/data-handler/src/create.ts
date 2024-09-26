@@ -32,7 +32,7 @@ import {
   workflowMetadata,
 } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
-import { formatJson, readJsonFile } from './utils/json.js';
+import { readJsonFile, writeJsonFile } from './utils/json.js';
 import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
@@ -341,7 +341,7 @@ export class Create extends EventEmitter {
 
     const content: cardtype = { name: fullName, workflow };
     const destinationFolder = join(projectPath, fullFileName);
-    await writeFile(destinationFolder, formatJson(content), {
+    await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
     });
   }
@@ -378,7 +378,7 @@ export class Create extends EventEmitter {
       '.cards',
       `${content.name}.json`,
     );
-    await writeFile(destinationFolder, formatJson(content), {
+    await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
     });
   }
@@ -415,7 +415,7 @@ export class Create extends EventEmitter {
       'linktypes',
       `${linkTypeName}.json`,
     );
-    await writeFile(destinationFolder, formatJson(linkTypeContent), {
+    await writeJsonFile(destinationFolder, linkTypeContent, {
       flag: 'wx',
     });
   }
@@ -515,7 +515,7 @@ export class Create extends EventEmitter {
       linkDescription,
     });
 
-    await project.updateCardMetadata(cardKey, 'links', links);
+    await project.updateCardMetadataKey(cardKey, 'links', links);
   }
 
   /**
@@ -572,9 +572,9 @@ export class Create extends EventEmitter {
       if (entry.content.name?.includes('$PROJECT-NAME')) {
         entry.content.name = projectName;
       }
-      await writeFile(
+      await writeJsonFile(
         join(parentFolderToCreate, entry.path, entry.name),
-        formatJson(entry.content),
+        entry.content,
       );
     });
 
@@ -664,7 +664,7 @@ export class Create extends EventEmitter {
     }
     const content = JSON.parse(JSON.stringify(workflow)) as workflowMetadata;
     const destinationFile = join(projectPath, fullFileName);
-    await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
+    await writeJsonFile(destinationFile, content, { flag: 'wx' });
   }
 
   /**

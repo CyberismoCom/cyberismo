@@ -298,7 +298,7 @@ describe('project', () => {
       const previousTitle = card?.metadata?.title;
       const previouslyUpdated = card?.metadata?.lastUpdated;
       const newTitle = 'TheTitle';
-      await project.updateCardMetadata(card?.key, 'title', newTitle);
+      await project.updateCardMetadataKey(card?.key, 'title', newTitle);
       const updatedCard = await project.cardDetailsById(cardToOperateOn, {
         metadata: true,
       });
@@ -310,7 +310,7 @@ describe('project', () => {
       );
       expect(updatedCard?.metadata?.title).to.equal(newTitle);
       // Change the title back
-      await project.updateCardMetadata(card?.key, 'title', previousTitle);
+      await project.updateCardMetadataKey(card?.key, 'title', previousTitle);
     }
   });
   it('try to update metadata with same content again', async () => {
@@ -327,7 +327,7 @@ describe('project', () => {
       const previousTitle = card?.metadata?.title;
       const previouslyUpdated = card?.metadata?.lastUpdated;
       const newTitle = 'Decision Records';
-      await project.updateCardMetadata(card?.key, 'title', newTitle);
+      await project.updateCardMetadataKey(card?.key, 'title', newTitle);
       const updatedCard = await project.cardDetailsById(cardToOperateOn, {
         metadata: true,
       });
