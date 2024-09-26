@@ -103,12 +103,11 @@ export class ProjectSettings implements projectSettings {
    * Changes project prefix.
    * @param newPrefix New prefix to use in the project
    */
-  public setCardPrefix(newPrefix: string) {
+  public async setCardPrefix(newPrefix: string) {
     const isValid = Validate.validatePrefix(newPrefix);
     if (isValid) {
       this.cardkeyPrefix = newPrefix;
-      this.save();
-      return;
+      return this.save();
     }
     throw new Error(
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,

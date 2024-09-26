@@ -94,7 +94,7 @@ export class Rename extends EventEmitter {
     const re = new RegExp(`${from}(?!.*${from})`);
 
     // First change project prefix to project settings.
-    Rename.project.configuration.setCardPrefix(to);
+    await Rename.project.configuration.setCardPrefix(to);
 
     // Then rename all project cards. Sort cards so that cards that deeper in file hierarchy are renamed first.
     const projectCards = (
