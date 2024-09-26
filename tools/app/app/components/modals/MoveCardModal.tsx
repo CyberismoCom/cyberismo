@@ -332,7 +332,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                     setSelected(node.data.key);
                   }}
                   title={project.name}
-                  tree={tree}
+                  tree={moveableTree}
                 />
               </TabPanel>
             </Tabs>

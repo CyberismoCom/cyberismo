@@ -44,3 +44,6 @@ tools/*/.idea
 
 #vscode
 **/.vscode/
+
+
+**/.calc

@@ -25,7 +25,7 @@ import {
 } from './definitions';
 import { useForm } from 'react-hook-form';
 import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { Result } from '@cyberismocom/data-handler/utils/clingo-parser';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -415,32 +415,15 @@ export function getMoveableCards(cards: Card[], card: Card): Card[] {
 }
 
 /**
- * This methods tries to find key from any object and return it, if its a string, otherwise null
- * Since typescript doesn't support defining extra parameters with a specified type, without this we'd
- * @param obj
- * @param key
- * @returns
- */
-export function getString<T extends Record<string, unknown>>(
-  obj: T,
-  key: string,
-): string | null {
-  if (obj[key] && typeof obj[key] === 'string') {
-    return obj[key];
-  }
-  return null;
-}
-
-/**
  * Returns filtered tree of cards
  * @param cards: array of cards to filter
  * @param filter: filter function that returns true if the card should be included
  * @returns filtered array of cards
  */
 export function filterCards(
-  cards: Result[],
-  filter: (card: Result) => boolean,
-): Result[] {
+  cards: QueryResult<'tree'>[],
+  filter: (card: QueryResult<'tree'>) => boolean,
+): QueryResult<'tree'>[] {
   return cards.filter((card) => {
     if (filter(card)) {
       return true;

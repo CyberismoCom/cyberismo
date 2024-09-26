@@ -13,7 +13,7 @@
 'use client';
 import React from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { getString, getStateColor } from '../lib/utils';
+import { getStateColor } from '../lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
