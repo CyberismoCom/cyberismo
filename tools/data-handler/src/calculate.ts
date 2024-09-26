@@ -290,9 +290,9 @@ export class Calculate {
   }
 
   // Checks that Clingo successfully returned result.
-  private async parseClingoResult<T extends BaseResult>(
+  private async parseClingoResult(
     data: string,
-  ): Promise<ParseResult<T>> {
+  ): Promise<ParseResult<BaseResult>> {
     const actual_result = data.substring(0, data.indexOf('SATISFIABLE'));
     if (actual_result.length === 0 || !actual_result) {
       return {
@@ -300,7 +300,7 @@ export class Calculate {
         error: null,
       };
     }
-    const parser = new ClingoParser<T>(Calculate.project);
+    const parser = new ClingoParser(Calculate.project);
     return parser.parseInput(actual_result);
   }
 
@@ -440,7 +440,8 @@ export class Calculate {
     if (!query) {
       throw new Error(`Query file ${queryName} not found`);
     }
-    return this.run(projectPath, query);
+    // We assume named queries are correct and produce the specified result
+    return this.run(projectPath, query) as Promise<ParseResult<QueryResult<T>>>;
   }
 
   /**
@@ -450,10 +451,10 @@ export class Calculate {
    * @param filePath Path to a query file to be run in relation to current working directory
    * @returns parsed program output
    */
-  public async run<T extends BaseResult>(
+  public async run(
     projectPath: string,
     filePath: string,
-  ): Promise<ParseResult<T>> {
+  ): Promise<ParseResult<BaseResult>> {
     Calculate.project = new Project(projectPath);
     const main = join(
       Calculate.project.calculationFolder,

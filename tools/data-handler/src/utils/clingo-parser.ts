@@ -13,7 +13,7 @@
 import { Project } from '../containers/project.js';
 import { BaseResult, ParseResult } from '../types/queries.js';
 
-class ClingoParser<T extends BaseResult> {
+class ClingoParser {
   private keywords = [
     'queryError',
     'result',
@@ -31,7 +31,7 @@ class ClingoParser<T extends BaseResult> {
     'order',
   ];
 
-  private result: ParseResult<T> = {
+  private result: ParseResult<BaseResult> = {
     results: [],
     error: null,
   };
@@ -218,7 +218,7 @@ class ClingoParser<T extends BaseResult> {
     // Process results and parent-child relationships
     this.resultQueue.forEach(({ key }) => {
       const res = this.getOrInitResult(key);
-      this.result.results.push(res as T); // Here we assume the query is correct and returns the data specified by the query
+      this.result.results.push(res); // Here we assume the query is correct and returns the data specified by the query
     });
 
     this.childResultQueue.forEach(({ parentKey, childKey }) => {
@@ -230,7 +230,7 @@ class ClingoParser<T extends BaseResult> {
     this.sortByLevel(this.result.results);
   }
 
-  public async parseInput(input: string): Promise<ParseResult<T>> {
+  public async parseInput(input: string): Promise<ParseResult<BaseResult>> {
     const regex = new RegExp(`(${this.keywords.join('|')})\\(([^)]*)\\)`);
     const lines = input.split('\n');
 
@@ -254,7 +254,7 @@ class ClingoParser<T extends BaseResult> {
     // reset the parser state
     this.reset();
 
-    return result;
+    return result; // We can assume
   }
 }
 
