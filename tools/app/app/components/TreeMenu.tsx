@@ -18,22 +18,24 @@ import { Box, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
-import {
-  ParseResult,
-  Result,
-} from '@cyberismocom/data-handler/utils/clingo-parser';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 type TreeMenuProps = {
   title: string;
   selectedCardKey: string | null;
-  onCardSelect?: (node: NodeApi<Result>) => void;
+  onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
-  tree: ParseResult['results'];
+  tree: QueryResult<'tree'>[];
 };
 
-const RenderTree = (onCardSelect?: (node: NodeApi<Result>) => void) =>
-  function RenderNode({ node, style, dragHandle }: NodeRendererProps<Result>) {
-    const workflowStateCategory = getString(node.data, 'workflowStateCategory');
+const RenderTree = (
+  onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void,
+) =>
+  function RenderNode({
+    node,
+    style,
+    dragHandle,
+  }: NodeRendererProps<QueryResult<'tree'>>) {
     return (
       <Box
         style={style}
@@ -55,10 +57,10 @@ const RenderTree = (onCardSelect?: (node: NodeApi<Result>) => void) =>
             }}
           />
         )}
-        <div>{getString(node.data, 'base/fieldtypes/progress')}</div>
-        {workflowStateCategory && (
+        <div>{node.data['base/fieldtypes/progress']}</div>
+        {node.data.workflowStateCategory && (
           <Box
-            color={getStateColor(workflowStateCategory)}
+            color={getStateColor(node.data.workflowStateCategory)}
             display="flex"
             alignItems="center
               "
@@ -71,7 +73,7 @@ const RenderTree = (onCardSelect?: (node: NodeApi<Result>) => void) =>
           </Box>
         )}
         <Typography level="title-sm" noWrap alignSelf="center">
-          {node.data?.title?.toString() ?? node.data.key}
+          {node.data.title ?? node.data.key}
         </Typography>
       </Box>
     );

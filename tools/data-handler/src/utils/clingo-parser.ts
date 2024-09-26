@@ -11,42 +11,9 @@
 */
 
 import { Project } from '../containers/project.js';
+import { BaseResult, ParseResult } from '../types/queries.js';
 
-interface CalculationLink {
-  key: string;
-  linkType: string;
-  displayName: string;
-  linkDescription?: string;
-}
-
-interface PolicyCheckCollection {
-  successes: { testSuite: string; testCase: string }[];
-  failures: { testSuite: string; testCase: string; errorMessage: string }[];
-}
-
-interface DeniedOperationCollection {
-  transition: { transitionName: string; errorMessage: string }[];
-  move: { errorMessage: string }[];
-  delete: { errorMessage: string }[];
-  editField: { fieldName: string; errorMessage: string }[];
-  editContent: { errorMessage: string }[];
-}
-
-export interface Result extends Record<string, unknown> {
-  key: string;
-  labels: string[];
-  links: CalculationLink[];
-  policyChecks: PolicyCheckCollection;
-  deniedOperations: DeniedOperationCollection;
-  results: Result[]; // Nested results
-}
-
-export interface ParseResult {
-  results: Result[];
-  error: string | null;
-}
-
-class ClingoParser {
+class ClingoParser<T extends BaseResult> {
   private keywords = [
     'queryError',
     'result',
@@ -64,7 +31,7 @@ class ClingoParser {
     'order',
   ];
 
-  private result: ParseResult = {
+  private result: ParseResult<T> = {
     results: [],
     error: null,
   };
@@ -72,7 +39,7 @@ class ClingoParser {
   // The queue now stores the parameters instead of functions
   private resultQueue: { key: string }[] = [];
   private childResultQueue: { parentKey: string; childKey: string }[] = [];
-  private tempResults: { [key: string]: Result } = {};
+  private tempResults: { [key: string]: BaseResult } = {};
   private orderQueue: {
     level: number;
     fieldIndex: number;
@@ -200,7 +167,7 @@ class ClingoParser {
     },
   };
 
-  private getOrInitResult(key: string): Result {
+  private getOrInitResult(key: string): BaseResult {
     if (!this.tempResults[key]) {
       this.tempResults[key] = {
         key,
@@ -219,7 +186,7 @@ class ClingoParser {
     }
     return this.tempResults[key];
   }
-  private sortByLevel(results: Result[], level: number = 1) {
+  private sortByLevel(results: BaseResult[], level: number = 1) {
     // Get all the orders for the current hierarchy level
     const levelOrders = this.orderQueue
       .filter((order) => order.level === level)
@@ -251,7 +218,7 @@ class ClingoParser {
     // Process results and parent-child relationships
     this.resultQueue.forEach(({ key }) => {
       const res = this.getOrInitResult(key);
-      this.result.results.push(res);
+      this.result.results.push(res as T); // Here we assume the query is correct and returns the data specified by the query
     });
 
     this.childResultQueue.forEach(({ parentKey, childKey }) => {
@@ -263,7 +230,7 @@ class ClingoParser {
     this.sortByLevel(this.result.results);
   }
 
-  public async parseInput(input: string): Promise<ParseResult> {
+  public async parseInput(input: string): Promise<ParseResult<T>> {
     const regex = new RegExp(`(${this.keywords.join('|')})\\(([^)]*)\\)`);
     const lines = input.split('\n');
 

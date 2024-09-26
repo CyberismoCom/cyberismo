@@ -26,7 +26,13 @@ import {
 } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { fileURLToPath } from 'node:url';
-import ClingoParser, { ParseResult } from './utils/clingo-parser.js';
+import ClingoParser from './utils/clingo-parser.js';
+import {
+  BaseResult,
+  ParseResult,
+  QueryName,
+  QueryResult,
+} from './types/queries.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -284,7 +290,9 @@ export class Calculate {
   }
 
   // Checks that Clingo successfully returned result.
-  private async parseClingoResult(data: string): Promise<ParseResult> {
+  private async parseClingoResult<T extends BaseResult>(
+    data: string,
+  ): Promise<ParseResult<T>> {
     const actual_result = data.substring(0, data.indexOf('SATISFIABLE'));
     if (actual_result.length === 0 || !actual_result) {
       return {
@@ -292,7 +300,7 @@ export class Calculate {
         error: null,
       };
     }
-    const parser = new ClingoParser(Calculate.project);
+    const parser = new ClingoParser<T>(Calculate.project);
     return parser.parseInput(actual_result);
   }
 
@@ -424,7 +432,10 @@ export class Calculate {
    * @param queryName Name of the query file without extension
    * @returns parsed program output
    */
-  public async runQuery(projectPath: string, queryName: string) {
+  public async runQuery<T extends QueryName>(
+    projectPath: string,
+    queryName: T,
+  ): Promise<ParseResult<QueryResult<T>>> {
     const query = await this.getQuery(queryName);
     if (!query) {
       throw new Error(`Query file ${queryName} not found`);
@@ -439,10 +450,10 @@ export class Calculate {
    * @param filePath Path to a query file to be run in relation to current working directory
    * @returns parsed program output
    */
-  public async run(
+  public async run<T extends BaseResult>(
     projectPath: string,
     filePath: string,
-  ): Promise<ParseResult> {
+  ): Promise<ParseResult<T>> {
     Calculate.project = new Project(projectPath);
     const main = join(
       Calculate.project.calculationFolder,
