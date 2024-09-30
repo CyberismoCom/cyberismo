@@ -47,6 +47,7 @@ import moment from 'moment';
 import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/app/lib/slices/notifications';
+import { useTree } from '@/app/lib/api/tree';
 
 export interface MoveCardModalProps {
   open: boolean;
@@ -64,7 +65,11 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
 
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const { project, isLoading } = useProject();
+  const { tree, isLoading } = useTree();
+
+  // TODO: get rid of this dependency
+  const { project, isLoading: isLoadingProject } = useProject();
+
   const { updateCard } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
   const router = useAppRouter();
@@ -102,12 +107,12 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const moveableCards = useMoveableCards(cardKey);
 
   const moveableTree = useMemo(() => {
-    return filterCards(deepCopy(project?.cards) || [], (card) => {
+    return filterCards(deepCopy(tree) || [], (card) => {
       return moveableCards.some(
         (moveableCard) => moveableCard.key === card.key,
       );
     });
-  }, [project, moveableCards]);
+  }, [tree, moveableCards]);
 
   const recentCards = useMemo(
     () =>
@@ -132,18 +137,13 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     }
   }, [currentTab, recentCards, moveableCards]);
 
-  if (isLoading || !project) {
+  if (isLoading || !tree || !project || isLoadingProject) {
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
       </Box>
     );
   }
-
-  const moveableProject = {
-    ...project,
-    cards: moveableTree,
-  };
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog
@@ -214,7 +214,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                             {page.metadata?.title}
                           </Typography>
                           <Typography level="body-sm">
-                            {findParentCard(project?.cards || [], page.key)
+                            {findParentCard(project.cards || [], page.key)
                               ?.metadata?.title ?? '-'}
                           </Typography>
                         </Stack>
@@ -327,12 +327,12 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                 }}
               >
                 <TreeMenu
-                  project={moveableProject}
                   selectedCardKey={selected}
                   onCardSelect={(node) => {
                     setSelected(node.data.key);
                   }}
                   title={project.name}
+                  tree={moveableTree}
                 />
               </TabPanel>
             </Tabs>

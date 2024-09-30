@@ -16,7 +16,7 @@ import {
   linktype,
   template,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { SWRResponse } from 'swr';
 
 export type Resources = {
@@ -26,6 +26,7 @@ export type Resources = {
   cardType: cardtype;
   templates: template[];
   linkTypes: linktype[];
+  tree: QueryResult<'tree'>[];
 };
 
 export type ResourceName = keyof Resources;

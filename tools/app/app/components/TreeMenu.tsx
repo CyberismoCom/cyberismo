@@ -12,38 +12,30 @@
 
 'use client';
 import React from 'react';
-import { Card, Project, WorkflowState } from '../lib/definitions';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
-import { sortItems } from '@cyberismocom/data-handler/utils/lexorank';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
-
-type CardNode = Card & {
-  workflowState: WorkflowState | undefined;
-};
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 type TreeMenuProps = {
   title: string;
-  project: Project;
   selectedCardKey: string | null;
-  onCardSelect?: (node: NodeApi<CardNode>) => void;
+  onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
+  tree: QueryResult<'tree'>[];
 };
 
-// since we aren't using buckets, 1 means that missing ranks will be last
-function rankGetter(card: Card) {
-  return card.metadata?.rank || '1|z';
-}
-
-const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
+const RenderTree = (
+  onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void,
+) =>
   function RenderNode({
     node,
     style,
     dragHandle,
-  }: NodeRendererProps<CardNode>) {
+  }: NodeRendererProps<QueryResult<'tree'>>) {
     return (
       <Box
         style={style}
@@ -57,7 +49,7 @@ const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
         display="flex"
         bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
       >
-        {node.data.children && node.data.children.length > 0 && (
+        {node.children && node.children.length > 0 && (
           <ExpandMoreIcon
             sx={{
               // direction is down if open, right if closed
@@ -65,11 +57,13 @@ const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
             }}
           />
         )}
-        {node.data.workflowState && (
+        <div>{node.data['base/fieldtypes/progress']}</div>
+        {node.data.workflowStateCategory && (
           <Box
-            color={getStateColor(node.data.workflowState)}
+            color={getStateColor(node.data.workflowStateCategory)}
             display="flex"
-            alignItems="center"
+            alignItems="center
+              "
             alignSelf="center"
             width={10}
             height={10}
@@ -79,47 +73,20 @@ const RenderTree = (onCardSelect?: (node: NodeApi<CardNode>) => void) =>
           </Box>
         )}
         <Typography level="title-sm" noWrap alignSelf="center">
-          {node.data.metadata?.title ?? node.data.key}
+          {node.data.title ?? node.data.key}
         </Typography>
       </Box>
     );
   };
 
 export const TreeMenu: React.FC<TreeMenuProps> = ({
-  project: { cards, workflows, cardTypes },
   selectedCardKey,
   title,
   onMove,
   onCardSelect,
+  tree,
 }) => {
   const { ref, width, height } = useResizeObserver();
-
-  // sort card at all levels
-  const sortCards = (
-    cards: Card[],
-  ): (Card & {
-    workflowState: WorkflowState | undefined;
-  })[] => {
-    return sortItems(cards, rankGetter).map((card) => {
-      if (card.children) {
-        card.children = sortCards(card.children);
-      }
-      const cardType = cardTypes.find(
-        (type) => type.name === card.metadata?.cardtype,
-      );
-      const workflow = workflows.find(
-        (workflow) => workflow.name === cardType?.workflow,
-      );
-      const workflowState = workflow?.states.find(
-        (state) => state.name === card.metadata?.workflowState,
-      );
-      return {
-        ...card,
-        workflowState,
-      };
-    });
-  };
-  const sortedCards = sortCards(cards);
 
   return (
     <Stack
@@ -137,10 +104,11 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
         ref={ref}
       >
         <Tree
-          data={sortedCards}
+          data={tree}
           openByDefault={false}
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
+          childrenAccessor="results"
           indent={24}
           width={(width || 0) - 1}
           height={height}

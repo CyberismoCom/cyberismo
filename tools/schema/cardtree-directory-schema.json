@@ -253,6 +253,21 @@
             "directories": {
               "type": "object",
               "properties": {
+                "resources": {
+                  "description": "Schema of the .calc resource folder",
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^.+\\.lp$": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                },
                 "cards": {
                   "description": "Directory that contains separate logic program files for each card",
                   "type": "object",
@@ -278,8 +293,8 @@
                   "description": "A logic program that contains basic common definitions that are the same in all cards projects",
                   "type": "object"
                 },
-                "cardTree.lp": {
-                  "description": "A logic program that only includes all the card-specific logic programs in the cards directory",
+                "imports.lp": {
+                  "description": "A logic program that only includes all the resource and card-specific logic programs",
                   "type": "object"
                 },
                 "modules.lp": {

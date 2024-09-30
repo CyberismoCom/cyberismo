@@ -25,6 +25,7 @@ import {
 } from './definitions';
 import { useForm } from 'react-hook-form';
 import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -420,16 +421,16 @@ export function getMoveableCards(cards: Card[], card: Card): Card[] {
  * @returns filtered array of cards
  */
 export function filterCards(
-  cards: Card[],
-  filter: (card: Card) => boolean,
-): Card[] {
+  cards: QueryResult<'tree'>[],
+  filter: (card: QueryResult<'tree'>) => boolean,
+): QueryResult<'tree'>[] {
   return cards.filter((card) => {
     if (filter(card)) {
       return true;
     }
-    if (card.children) {
-      card.children = filterCards(card.children, filter);
-      return card.children.length > 0;
+    if (card.results) {
+      card.results = filterCards(card.results, filter);
+      return card.results.length > 0;
     }
     return false;
   });
@@ -479,7 +480,26 @@ export async function withUpdating<T>(
  * @param state workflow state
  * @returns joy color representing the category of the workflow
  */
-export function getStateColor(state: WorkflowState) {
+export function getStateColor(category: string) {
+  switch (category) {
+    case workflowCategory.initial:
+      return 'neutral.300';
+    case workflowCategory.active:
+      return 'warning.300';
+    case workflowCategory.closed:
+      return 'success.400';
+    default:
+      return 'black';
+  }
+}
+
+/**
+ * Returns the color representing the category of the workflow
+ * @param state workflow state
+ * @returns joy color representing the category of the workflow
+ * @deprecated
+ */
+export function getStateColorDeprecated(state: WorkflowState) {
   switch (state.category) {
     case workflowCategory.initial:
       return 'neutral.300';

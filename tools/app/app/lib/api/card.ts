@@ -64,6 +64,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
           ).then(() => {
             mutate(apiPaths.card(key));
             mutate(apiPaths.project());
+            mutate(apiPaths.tree());
           }),
         ))) ||
       null,
@@ -78,6 +79,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
           removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
             mutate(apiPaths.card(fromCard));
             mutate(apiPaths.project());
+            mutate(apiPaths.tree());
           }),
         ))) ||
       null,
@@ -92,6 +94,7 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   mutate(swrKey, result, false);
 
   mutate(apiPaths.project());
+  mutate(apiPaths.tree());
 }
 
 export async function deleteCard(key: string) {
@@ -112,6 +115,7 @@ export async function deleteCard(key: string) {
     },
     false,
   );
+  mutate(apiPaths.tree());
 }
 
 export async function createCard(
@@ -124,6 +128,7 @@ export async function createCard(
 
   // revalidate whole project
   mutate(apiPaths.project());
+  mutate(apiPaths.tree());
 
   return result;
 }

@@ -10,10 +10,33 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { copyFile, mkdir, readdir, rm, unlink } from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  rm,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { existsSync, lstatSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
+
+/**
+ * Works like the writeFile method, but ensures that the directory exists
+ * There is only one difference: This method only supports a string as the filePath
+ */
+export async function writeFileSafe(
+  filePath: string,
+  data: Parameters<typeof writeFile>[1],
+  options?: Parameters<typeof writeFile>[2],
+) {
+  const dir = dirname(filePath);
+  await mkdir(dir, {
+    recursive: true,
+  });
+  return writeFile(filePath, data, options);
+}
 
 /**
  * Copies directory content (subdirectories and files) to destination.
