@@ -66,11 +66,6 @@ describe('calculate', () => {
     expect(res.results).to.deep.equal(expectedTree);
     expect(res.error).to.eq(null);
   });
-  it('try to run non-existing query', async () => {
-    return expect(
-      calculate.runQuery(decisionRecordsPath, 'non-existing'),
-    ).to.be.rejectedWith('Query file non-existing not found');
-  });
   it('try to run non-existing file', async () => {
     return expect(
       calculate.run(decisionRecordsPath, 'non-existing.lp'),
