@@ -60,7 +60,7 @@ export class Validate {
     );
     this.validator = new JSONValidator();
     this.directoryValidator = new DirectoryValidator();
-    this.parentSchema = readJsonFileSync(Validate.parentSchemaFile);
+    this.parentSchema = readJsonFileSync(Validate.parentSchemaFile) as Schema;
     this.addChildSchemas();
   }
 
@@ -74,7 +74,7 @@ export class Validate {
     readdirSync(Validate.baseFolder, { withFileTypes: true })
       .filter((dirent) => dirent.name !== Validate.parentSchemaFile)
       .forEach((file) => {
-        const schema = readJsonFileSync(this.fullPath(file));
+        const schema = readJsonFileSync(this.fullPath(file)) as Schema;
         this.validator.addSchema(schema, schema.$id);
       });
   }
@@ -105,10 +105,16 @@ export class Validate {
       for (const file of fileNames) {
         const fullFileNameWithPath = this.fullPath(file);
         if (file.name === Validate.schemaConfigurationFile) {
-          const jsonSchema = await readJsonFile(fullFileNameWithPath);
-          activeJsonSchema = this.validator.schemas[jsonSchema.id];
-          if (activeJsonSchema === undefined) {
-            throw new Error(`Unknown schema name ${jsonSchema.id}, aborting.`);
+          const jsonSchema = (await readJsonFile(
+            fullFileNameWithPath,
+          )) as Schema;
+          if (jsonSchema) {
+            activeJsonSchema = this.validator.schemas[jsonSchema.id as string];
+            if (activeJsonSchema === undefined) {
+              throw new Error(
+                `Unknown schema name ${jsonSchema.id}, aborting.`,
+              );
+            }
           }
         } else {
           // console.log(`FILE ${fullFileNameWithPath} ACTIVE SCHEMA : ${activeJsonSchema.$id}`);
@@ -117,7 +123,7 @@ export class Validate {
             activeJsonSchema,
           );
           for (const error of result.errors) {
-            const msg = `\nValidation error from '${fullFileNameWithPath}': '${error.path[0]}' ${error.message}.\n`;
+            const msg = `\nValidation error from '${fullFileNameWithPath}': ${error.message}.\n`;
             message += msg;
           }
         }
@@ -314,10 +320,7 @@ export class Validate {
    * @param schemaId Schema ID to identify a JSON schema.
    * @returns string containing all validation errors
    */
-  public async validateJson(
-    content: object,
-    schemaId: string,
-  ): Promise<string> {
+  public validateJson(content: object, schemaId: string): string {
     const validationErrors: string[] = [];
     if (this.validator.schemas[schemaId] === undefined) {
       validationErrors.push(`Unknown schema ${schemaId}`);

@@ -11,7 +11,7 @@
 */
 
 // node
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, join, resolve, sep } from 'node:path';
 import {
   constants as fsConstants,
   copyFile,
@@ -32,12 +32,10 @@ import {
   workflowMetadata,
 } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
-import { formatJson, readJsonFile, readJsonFileSync } from './utils/json.js';
-import { pathExists } from './utils/file-utils.js';
+import { formatJson, readJsonFile } from './utils/json.js';
 import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
-import { fileURLToPath } from 'node:url';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
@@ -188,9 +186,7 @@ export class Create extends EventEmitter {
     const promiseContainer = [];
     const cardsContainer: string[] = [];
     for (let cardCount = 0; cardCount < count; ++cardCount) {
-      promiseContainer.push(
-        await templateObject.addCard(cardTypeName, specificCard),
-      );
+      promiseContainer.push(templateObject.addCard(cardTypeName, specificCard));
     }
     const promisesResult = await Promise.allSettled(promiseContainer).then(
       (results) => {
@@ -241,17 +237,15 @@ export class Create extends EventEmitter {
     try {
       await mkdir(attachmentFolder, { recursive: true }).then(async () => {
         if (!buffer) {
-          return await copyFile(
+          return copyFile(
             attachment,
             join(attachmentFolder, basename(attachment)),
             fsConstants.COPYFILE_EXCL,
           );
         }
-        return await writeFile(
-          join(attachmentFolder, basename(attachment)),
-          buffer,
-          { flag: 'wx' },
-        );
+        return writeFile(join(attachmentFolder, basename(attachment)), buffer, {
+          flag: 'wx',
+        });
       });
     } catch (error) {
       throw new Error(errorFunction(error));
@@ -294,10 +288,10 @@ export class Create extends EventEmitter {
     }
 
     const validator = Validate.getInstance();
-    const content = await readJsonFile(
+    const content = (await readJsonFile(
       templateObject.templateConfigurationFilePath(),
-    );
-    const validJson = await validator.validateJson(content, 'template-schema');
+    )) as templateMetadata;
+    const validJson = validator.validateJson(content, 'template-schema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
@@ -375,7 +369,7 @@ export class Create extends EventEmitter {
     }
     if (!Create.supportedFieldTypes().includes(dataType)) {
       throw new Error(
-        `Field type '${dataType}' not supported. Supported types ${Create.supportedFieldTypes()}`,
+        `Field type '${dataType}' not supported. Supported types ${Create.supportedFieldTypes().join(', ')}`,
       );
     }
 
@@ -406,7 +400,7 @@ export class Create extends EventEmitter {
     const linkTypeContent = Create.getLinkTypeContent(linkTypeName);
     // check if linktype JSON is valid
     const validator = Validate.getInstance();
-    const validJson = await validator.validateJson(
+    const validJson = validator.validateJson(
       linkTypeContent,
       'link-type-schema',
     );
@@ -624,7 +618,7 @@ export class Create extends EventEmitter {
     }
 
     const validator = Validate.getInstance();
-    const validJson = await validator.validateJson(
+    const validJson = validator.validateJson(
       templateContent,
       'template-schema',
     );
@@ -664,11 +658,11 @@ export class Create extends EventEmitter {
     const fullName = `${project.projectPrefix}/workflows/${workflow.name}`;
     const fullFileName = `.cards/local/workflows/${workflow.name}.json`;
     workflow.name = fullName;
-    const validJson = await validator.validateJson(workflow, schemaId);
+    const validJson = validator.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
     }
-    const content = JSON.parse(JSON.stringify(workflow));
+    const content = JSON.parse(JSON.stringify(workflow)) as workflowMetadata;
     const destinationFile = join(projectPath, fullFileName);
     await writeFile(destinationFile, formatJson(content), { flag: 'wx' });
   }
@@ -735,19 +729,17 @@ export class Create extends EventEmitter {
    * @returns list of supported field types.
    */
   public static supportedFieldTypes(): string[] {
-    const baseDir = dirname(fileURLToPath(import.meta.url));
-
-    const baseFolder = pathExists(
-      join(process.cwd(), '../schema', 'cardtree-directory-schema.json'),
-    )
-      ? join(process.cwd(), '../schema')
-      : join(baseDir, '../../schema');
-
-    const schemaContent = readJsonFileSync(
-      join(baseFolder, 'field-type-schema.json'),
-    );
-    return schemaContent.properties.dataType.pattern
-      .replace(/\$|\^/g, '')
-      .split('|');
+    return [
+      'shorttext',
+      'longtext',
+      'number',
+      'integer',
+      'boolean',
+      'enum',
+      'list',
+      'date',
+      'datetime',
+      'person',
+    ];
   }
 }

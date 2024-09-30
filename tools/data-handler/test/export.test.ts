@@ -33,7 +33,7 @@ describe('export-site', () => {
 
     const exportSite = new ExportSite();
     const projectRoot = join(project.cardrootFolder, '..');
-    exportSite.exportToSite(projectRoot, '/tmp/foo');
+    await exportSite.exportToSite(projectRoot, '/tmp/foo');
     expect(true).to.equal(true);
   });
 });
@@ -51,7 +51,7 @@ describe('export command', () => {
     rmSync(testDirForExport, { recursive: true, force: true });
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     rmSync(join(decisionRecordsPath, 'output'), {
       recursive: true,
       force: true,

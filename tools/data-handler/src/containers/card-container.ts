@@ -72,7 +72,7 @@ export class CardContainer {
     include?: boolean,
   ): Promise<string | attachmentDetails[] | card[]> {
     return include
-      ? await readFile(join(currentPath, CardContainer.cardContentFile), {
+      ? readFile(join(currentPath, CardContainer.cardContentFile), {
           encoding: 'utf-8',
         })
       : '';
@@ -84,7 +84,7 @@ export class CardContainer {
     include?: boolean,
   ): Promise<string | attachmentDetails[] | card[]> {
     return include
-      ? await readFile(join(currentPath, CardContainer.cardMetadataFile), {
+      ? readFile(join(currentPath, CardContainer.cardMetadataFile), {
           encoding: 'utf-8',
         })
       : '';
@@ -96,7 +96,7 @@ export class CardContainer {
     files: attachmentDetails[],
     include?: boolean,
   ): Promise<string | attachmentDetails[] | card[]> {
-    return include ? await this.doCollectAttachments(currentPath, files) : [];
+    return include ? this.doCollectAttachments(currentPath, files) : [];
   }
 
   // Gets conditionally children
@@ -104,9 +104,7 @@ export class CardContainer {
     currentPath: string,
     details: fetchCardDetails = {},
   ): Promise<string | attachmentDetails[] | card[]> {
-    return details.children
-      ? await this.childrenCards(currentPath, details)
-      : [];
+    return details.children ? this.childrenCards(currentPath, details) : [];
   }
 
   // Find specific card
@@ -198,7 +196,7 @@ export class CardContainer {
           const entryAttachments = await readdir(attachmentFolder, {
             withFileTypes: true,
           });
-          entryAttachments.forEach(async (attachment) =>
+          entryAttachments.forEach((attachment) =>
             attachments.push({
               card: cardItem,
               fileName: attachment.name,

@@ -30,11 +30,12 @@ async function createLinkType(name: string): Promise<void> {
 
 async function createCard(): Promise<requestStatus> {
   const templateName = 'decision/templates/decision';
-  return await commandHandler.command(
+  const status = await commandHandler.command(
     Cmd.create,
     ['card', templateName],
     options,
   );
+  return status;
 }
 
 describe('remove command', () => {
@@ -48,7 +49,8 @@ describe('remove command', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    // @todo: Test case commented out for now; for some reason claims to target tmp-command-handler-create-tests. Huh?
+    // @todo: Test case commented out for now;
+    // the event emitter from create is creating the files after the content should have been destroyed.
     /*
     it('remove card', async () => {
       const card = await createCard();

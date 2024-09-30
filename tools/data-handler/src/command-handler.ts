@@ -29,6 +29,10 @@ import { Transition } from './transition.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from './utils/log-utils.js';
+import {
+  templateMetadata,
+  workflowMetadata,
+} from './interfaces/project-interfaces.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
@@ -352,7 +356,7 @@ export class Commands {
           const [cardKey] = args;
           try {
             if (cardKey) {
-              this.moveCmd.rebalanceChildren(this.projectPath, cardKey);
+              await this.moveCmd.rebalanceChildren(this.projectPath, cardKey);
             } else {
               await this.moveCmd.rebalanceProject(this.projectPath);
             }
@@ -744,7 +748,7 @@ export class Commands {
       };
     }
     const content = templateContent
-      ? JSON.parse(templateContent)
+      ? (JSON.parse(templateContent) as templateMetadata)
       : Create.defaultTemplateContent();
     // Note that templateContent is validated in createTemplate()
     try {
@@ -777,7 +781,7 @@ export class Commands {
       };
     }
     const content = workflowContent
-      ? JSON.parse(workflowContent)
+      ? (JSON.parse(workflowContent) as workflowMetadata)
       : Create.defaultWorkflowContent(workflowName);
     // Note that workflowContent is validated in the createWorkflow function.
     try {
@@ -1024,7 +1028,7 @@ export class Commands {
     switch (type) {
       case 'attachments':
         parameters.push(path);
-        functionToCall = this.showCmd.showAttachments;
+        functionToCall = this.showCmd.showAttachments.bind(this);
         break;
       case 'card':
         {
@@ -1037,64 +1041,64 @@ export class Commands {
             attachments: true,
           };
           parameters.push(path, cardDetails, detail);
-          functionToCall = this.showCmd.showCardDetails;
+          functionToCall = this.showCmd.showCardDetails.bind(this);
         }
         break;
       case 'cards':
         parameters.push(path);
-        functionToCall = this.showCmd.showCards;
+        functionToCall = this.showCmd.showCards.bind(this);
         break;
       case 'cardtype':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showCardTypeDetails;
+        functionToCall = this.showCmd.showCardTypeDetails.bind(this);
         break;
       case 'cardtypes':
         parameters.push(path);
-        functionToCall = this.showCmd.showCardTypes;
+        functionToCall = this.showCmd.showCardTypes.bind(this);
         break;
       case 'fieldtype':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showFieldType;
+        functionToCall = this.showCmd.showFieldType.bind(this);
         break;
       case 'fieldtypes':
         parameters.push(path);
-        functionToCall = this.showCmd.showFieldTypes;
+        functionToCall = this.showCmd.showFieldTypes.bind(this);
         break;
       case 'linktype':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showLinkType;
+        functionToCall = this.showCmd.showLinkType.bind(this);
         break;
       case 'linktypes':
         parameters.push(path);
-        functionToCall = this.showCmd.showLinkTypes;
+        functionToCall = this.showCmd.showLinkTypes.bind(this);
         break;
       case 'module':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showModule;
+        functionToCall = this.showCmd.showModule.bind(this);
         break;
       case 'modules':
         parameters.push(path);
-        functionToCall = this.showCmd.showModules;
+        functionToCall = this.showCmd.showModules.bind(this);
         break;
       case 'project':
         parameters.push(path);
-        functionToCall = this.showCmd.showProject;
+        functionToCall = this.showCmd.showProject.bind(this);
         break;
       case 'template':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showTemplate;
+        functionToCall = this.showCmd.showTemplate.bind(this);
         break;
       case 'templates':
         parameters.push(path);
-        functionToCall = this.showCmd.showTemplates;
+        functionToCall = this.showCmd.showTemplates.bind(this);
         break;
       case 'workflow':
         parameters.push(path, detail);
-        functionToCall = this.showCmd.showWorkflow;
+        functionToCall = this.showCmd.showWorkflow.bind(this);
         break;
       case 'workflows':
         parameters.push(path);
-        functionToCall = this.showCmd.showWorkflows;
+        functionToCall = this.showCmd.showWorkflows.bind(this);
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet

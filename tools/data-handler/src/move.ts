@@ -29,8 +29,6 @@ import {
 export class Move {
   static project: Project;
 
-  constructor() {}
-
   /**
    * Moves card from 'destination' to 'source'.
    * @param path Project path
@@ -298,7 +296,7 @@ export class Move {
       const templateObject = await Move.project.createTemplateObject(template);
 
       if (!templateObject) {
-        throw new Error(`Template '${template}' not found`);
+        throw new Error(`Template '${template.name}' not found`);
       }
 
       const templateCards = await templateObject.cards('', {
@@ -323,6 +321,7 @@ export class Move {
       );
 
       for (const [, cards] of Object.entries(cardGroups)) {
+        // todo: this could be done parallel
         await this.rebalanceCards(cards);
       }
     }
@@ -351,6 +350,7 @@ export class Move {
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
+      // todo: this could be done parallel
       await Move.project.updateCardMetadata(card.key, 'rank', ranks[i]);
     }
   }

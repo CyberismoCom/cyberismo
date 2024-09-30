@@ -27,7 +27,7 @@ after(() => {
 });
 
 describe('template', () => {
-  it('try to create template with no name', async () => {
+  it('try to create template with no name', () => {
     try {
       new Template(path, { name: '' });
     } catch (error) {
@@ -174,7 +174,7 @@ describe('template', () => {
     };
     await template
       .addCard('decision/cardtypes/decision-cardtype', parentCard)
-      .then(async () => {
+      .then(() => {
         expect(true);
       })
       .catch(() => {
@@ -233,7 +233,7 @@ describe('template', () => {
 
     await template
       .addCard('decision/cardtypes/decision-cardtype')
-      .then(async () => {
+      .then(() => {
         expect(false);
       })
       .catch(() => {
@@ -250,7 +250,7 @@ describe('template', () => {
 
     await template
       .addCard('i-dont-exist')
-      .then(async () => {
+      .then(() => {
         expect(false);
       })
       .catch(() => {
@@ -271,7 +271,7 @@ describe('template', () => {
 
     await template
       .addCard('decision/cardtypes/decision-cardtype', parentCard)
-      .then(async () => {
+      .then(() => {
         expect(false);
       })
       .catch(() => {
@@ -322,7 +322,7 @@ describe('template', () => {
       }
     }
   });
-  it('check if template is created', async () => {
+  it('check if template is created', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     const template = new Template(
@@ -375,7 +375,7 @@ describe('template', () => {
     expect(templateDetails.metadata.category).to.equal('category');
     expect(templateDetails.metadata.displayName).to.equal('Decision');
   });
-  it('normalize template name', async () => {
+  it('normalize template name', () => {
     const empty = Template.normalizedTemplateName('');
     const localDecision = Template.normalizedTemplateName(
       'local/templates/decision',

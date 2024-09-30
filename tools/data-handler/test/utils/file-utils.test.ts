@@ -33,7 +33,7 @@ after(async () => {
 describe('file utils', () => {
   it('copyDir (success)', async () => {
     const destination = join(testDir, 'this-temp');
-    after(async () => {
+    after(() => {
       rmSync(destination, { recursive: true, force: true });
     });
     await mkdir(destination, { recursive: true });
@@ -49,7 +49,7 @@ describe('file utils', () => {
   });
   it('copyDir with hierarchy (success)', async () => {
     const destination = join(testDir, 'some/hierarchy/that/is/rather/deep');
-    after(async () => {
+    after(() => {
       rmSync(destination, { recursive: true, force: true });
     });
     await copyDir('test/test-data/valid/minimal/', destination);
@@ -99,15 +99,15 @@ describe('file utils', () => {
     const success = await deleteFile(target);
     expect(success).to.equal(false);
   });
-  it('getFilesSync (success)', async () => {
+  it('getFilesSync (success)', () => {
     const files = getFilesSync('test/test-data/valid/minimal');
     expect(files.length).to.be.greaterThan(0);
   });
-  it('pathExists (success)', async () => {
+  it('pathExists (success)', () => {
     const path = '/';
     expect(pathExists(path)).to.equal(true);
   });
-  it('pathExists - not found', async () => {
+  it('pathExists - not found', () => {
     const path = '/i-do-not-exist';
     const retVal = pathExists(path);
     expect(retVal).to.equal(false);

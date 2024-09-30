@@ -20,6 +20,7 @@ import {
   attachmentDetails,
   card,
   cardListContainer,
+  cardMetadata,
   cardNameRegEx,
   cardtype,
   fetchCardDetails,
@@ -175,7 +176,9 @@ export class Project extends CardContainer {
         // Metadata file in card directory.
         const found = findCard(entry.path, cards);
         if (found) {
-          found.metadata = await readJsonFile(join(entry.path, entry.name));
+          found.metadata = (await readJsonFile(
+            join(entry.path, entry.name),
+          )) as cardMetadata;
         }
       }
     }
@@ -252,7 +255,7 @@ export class Project extends CardContainer {
       return newKey;
     }
 
-    throw 'Could not generate unique card key';
+    throw new Error('Could not generate unique card key');
   }
 
   /**
@@ -382,7 +385,9 @@ export class Project extends CardContainer {
       return undefined;
     }
     // todo: somehow should automatically fill-in 'default' values.
-    const content = await readJsonFile(join(found.path, basename(found.name)));
+    const content = (await readJsonFile(
+      join(found.path, basename(found.name)),
+    )) as cardtype;
     if (content.customFields) {
       for (const item of content.customFields) {
         // Set "isEditable" if it is missing; default = true
@@ -489,7 +494,10 @@ export class Project extends CardContainer {
     if (!found || !found.path) {
       return undefined;
     }
-    return readJsonFile(join(found.path, basename(found.name)));
+    const file = (await readJsonFile(
+      join(found.path, basename(found.name)),
+    )) as fieldtype;
+    return file;
   }
 
   /**
@@ -542,7 +550,8 @@ export class Project extends CardContainer {
     if (!path) {
       return undefined;
     }
-    return readJsonFile(path);
+    const file = (await readJsonFile(path)) as linktype;
+    return file;
   }
   /**
    * Returns an array of all the linktypes in the project.
@@ -710,9 +719,9 @@ export class Project extends CardContainer {
     const module = await this.findSpecificModule(moduleName);
     if (module && module.path) {
       const moduleNameAndPath = join(module.path, module.name);
-      const moduleConfig = await readJsonFile(
+      const moduleConfig = (await readJsonFile(
         join(moduleNameAndPath, Project.projectConfigFileName),
-      );
+      )) as moduleSettings;
       return {
         name: moduleConfig.name,
         path: moduleNameAndPath,
@@ -835,9 +844,9 @@ export class Project extends CardContainer {
         .filter((dirent) => dirent.name === Project.projectConfigFileName);
 
       const configurationPromises = configurationFiles.map(async (file) => {
-        const configuration: projectSettings = await readJsonFile(
+        const configuration = (await readJsonFile(
           join(file.path, file.name),
-        );
+        )) as projectSettings;
         return configuration.cardkeyPrefix;
       });
 
@@ -1084,7 +1093,10 @@ export class Project extends CardContainer {
     if (!found || !found.path) {
       return undefined;
     }
-    return readJsonFile(join(found.path, basename(found.name)));
+    const file = (await readJsonFile(
+      join(found.path, basename(found.name)),
+    )) as workflowMetadata;
+    return file;
   }
 
   /**

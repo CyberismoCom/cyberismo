@@ -41,8 +41,6 @@ const attachmentFolder: string = 'a';
 export class Export {
   static project: Project;
 
-  constructor() {}
-
   // Finds card based on name.
   private findCard(path: string, cards: card[] | undefined) {
     return cards?.find((card) => card.key === basename(path));
@@ -291,7 +289,7 @@ export class Export {
     destination: string,
     cardkey?: string,
   ) {
-    await this.exportToADoc(source, destination, cardkey).then(async () => {
+    return this.exportToADoc(source, destination, cardkey).then(() => {
       const asciiDocProcessor = Processor();
       const adocFile = join(destination, Project.cardContentFile);
       asciiDocProcessor.convertFile(adocFile, {
