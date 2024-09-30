@@ -11,10 +11,10 @@
 */
 
 // node
-import { open, writeFile } from 'node:fs/promises';
+import { open } from 'node:fs/promises';
 
 // ismo
-import { formatJson } from './utils/json.js';
+import { writeJsonFile } from './utils/json.js';
 import { projectSettings } from './interfaces/project-interfaces.js';
 import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './validate.js';
@@ -43,8 +43,8 @@ export class ProjectSettings implements projectSettings {
     }
     await open(this.settingPath, 'w').then(async (file) => {
       try {
-        await writeFile(file, formatJson(this.toJSON()));
-        await file.close();
+        await writeJsonFile(file, this.toJSON());
+        file.close();
       } catch (error) {
         if (error instanceof Error) {
           console.error(error.message);

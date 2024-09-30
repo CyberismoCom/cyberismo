@@ -13,13 +13,12 @@
 // node
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
-import { writeFileSync } from 'node:fs';
 
 // ismo
 import { Calculate } from './calculate.js';
 import { card, workflowState } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
-import { formatJson } from './utils/json.js';
+import { writeJsonFile } from './utils/json.js';
 import { Edit } from './edit.js';
 
 export class Transition extends EventEmitter {
@@ -38,12 +37,12 @@ export class Transition extends EventEmitter {
   }
 
   // Sets card state
-  private setCardState(card: card, state: string) {
+  private async setCardState(card: card, state: string) {
     if (card.metadata) {
       card.metadata.workflowState = state;
-      writeFileSync(
+      await writeJsonFile(
         join(card.path, Project.cardMetadataFile),
-        formatJson(card.metadata),
+        card.metadata,
       );
     }
   }
@@ -122,7 +121,7 @@ export class Transition extends EventEmitter {
     }
 
     // Write new state and re-calculate.
-    this.setCardState(details, found.toState);
+    await this.setCardState(details, found.toState);
     await this.editCmd.editCardMetadata(
       Transition.project.basePath,
       details.key,

@@ -115,7 +115,7 @@ export class Move {
       lastChild && lastChild.metadata
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
-    await Move.project.updateCardMetadata(sourceCard.key, 'rank', rank);
+    await Move.project.updateCardMetadataKey(sourceCard.key, 'rank', rank);
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
   }
@@ -177,13 +177,13 @@ export class Move {
     }
 
     if (beforeCardIndex === children.length - 1) {
-      await Move.project.updateCardMetadata(
+      await Move.project.updateCardMetadataKey(
         cardKey,
         'rank',
         getRankAfter(beforeCard.metadata?.rank as string),
       );
     } else {
-      await Move.project.updateCardMetadata(
+      await Move.project.updateCardMetadataKey(
         cardKey,
         'rank',
         getRankBetween(
@@ -266,15 +266,15 @@ export class Move {
         throw new Error(`Second rank not found`);
       }
       const rankBetween = getRankBetween(firstRank, secondRank);
-      await Move.project.updateCardMetadata(
+      await Move.project.updateCardMetadataKey(
         children[0].key,
         'rank',
         rankBetween,
       );
-      await Move.project.updateCardMetadata(cardKey, 'rank', firstRank);
+      await Move.project.updateCardMetadataKey(cardKey, 'rank', firstRank);
     } else {
       // if the card is not at the first rank, we just use the first rank
-      await Move.project.updateCardMetadata(cardKey, 'rank', FIRST_RANK);
+      await Move.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
     }
   }
 
@@ -350,8 +350,7 @@ export class Move {
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
-      // todo: this could be done parallel
-      await Move.project.updateCardMetadata(card.key, 'rank', ranks[i]);
+      await Move.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
     }
   }
 
@@ -362,7 +361,7 @@ export class Move {
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
-      await Move.project.updateCardMetadata(card.key, 'rank', ranks[i]);
+      await Move.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
       if (card.children && card.children.length > 0) {
         await this.rebalanceProjectRecursively(card.children);
       }

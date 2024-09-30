@@ -11,7 +11,7 @@
 */
 
 import { readFileSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { FileHandle, readFile, writeFile } from 'node:fs/promises';
 
 /**
  * Handles reading of a JSON file.
@@ -78,4 +78,18 @@ export function readADocFileSync(file: string) {
  */
 export function formatJson(json: object) {
   return JSON.stringify(json, null, 4);
+}
+
+/**
+ * Writes and formats a JSON file.
+ * @param filename file name (and path) to write.
+ * @param json JSON object to format.
+ * @param options Optional, write options
+ */
+export async function writeJsonFile(
+  filename: string | FileHandle,
+  json: object,
+  options?: object,
+) {
+  await writeFile(filename, formatJson(json), options);
 }

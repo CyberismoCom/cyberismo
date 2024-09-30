@@ -15,7 +15,7 @@ import { basename, join, sep } from 'node:path';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
 // ismo
-import { formatJson } from '../utils/json.js';
+import { writeJsonFile } from '../utils/json.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 
 // interfaces
@@ -341,7 +341,7 @@ export class CardContainer {
     }
     if (card.metadata) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
-      await writeFile(metadataFile, formatJson(card.metadata));
+      await writeJsonFile(metadataFile, card.metadata);
       return;
     }
     throw new Error(`No content for card ${card.key}`);
@@ -350,7 +350,7 @@ export class CardContainer {
   protected async saveCardMetadata(card: card) {
     if (card.metadata) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
-      await writeFile(metadataFile, formatJson(card.metadata));
+      await writeJsonFile(metadataFile, card.metadata);
       return;
     }
     throw new Error(`No metadata for card ${card.key}`);

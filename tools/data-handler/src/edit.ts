@@ -120,6 +120,6 @@ export class Edit {
     if (!changedKey) {
       throw new Error(`Changed key cannot be empty`);
     }
-    await Edit.project.updateCardMetadata(cardKey, changedKey, newValue);
+    await Edit.project.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 }
