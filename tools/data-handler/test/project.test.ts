@@ -26,7 +26,7 @@ describe('project', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('create class - paths to resources (success)', async () => {
+  it('create class - paths to resources (success)', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
@@ -137,7 +137,7 @@ describe('project', () => {
     expect(prefixes).to.contain(prefix);
   });
 
-  it('multiple instances of settings class', async () => {
+  it('multiple instances of settings class', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const emptyProjectPath = join(testDir, 'valid/minimal');
     const project = new Project(decisionRecordsPath);
@@ -449,7 +449,7 @@ describe('project', () => {
     });
     expect(existingCard).to.not.equal(undefined);
   });
-  it('check if project is created (success)', async () => {
+  it('check if project is created (success)', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);

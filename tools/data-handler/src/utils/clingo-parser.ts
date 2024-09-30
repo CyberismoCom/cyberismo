@@ -72,7 +72,7 @@ class ClingoParser {
    */
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private commandHandlers: Record<string, Function> = {
-    queryError: async (message: string, ...params: string[]) => {
+    queryError: (message: string, ...params: string[]) => {
       this.result.error = `${message}${params.length > 1 ? ` ${params.join(', ')}` : ''}`;
     },
     result: (key: string) => {

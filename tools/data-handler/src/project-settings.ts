@@ -44,7 +44,7 @@ export class ProjectSettings implements projectSettings {
     await open(this.settingPath, 'w').then(async (file) => {
       try {
         await writeFile(file, formatJson(this.toJSON()));
-        file.close();
+        await file.close();
       } catch (error) {
         if (error instanceof Error) {
           console.error(error.message);
@@ -57,13 +57,18 @@ export class ProjectSettings implements projectSettings {
   private readSettings() {
     let settings;
     try {
-      settings = readJsonFileSync(this.settingPath);
+      settings = readJsonFileSync(this.settingPath) as projectSettings;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
           `Invalid path '${this.settingPath}' to configuration file`,
         );
       }
+    }
+    if (!settings) {
+      throw new Error(
+        `Invalid path '${this.settingPath}' to configuration file`,
+      );
     }
 
     const valid = 'cardkeyPrefix' in settings && 'name' in settings;

@@ -38,7 +38,7 @@ export class Transition extends EventEmitter {
   }
 
   // Sets card state
-  private async setCardState(card: card, state: string) {
+  private setCardState(card: card, state: string) {
     if (card.metadata) {
       card.metadata.workflowState = state;
       writeFileSync(
@@ -122,7 +122,7 @@ export class Transition extends EventEmitter {
     }
 
     // Write new state and re-calculate.
-    await this.setCardState(details, found.toState);
+    this.setCardState(details, found.toState);
     await this.editCmd.editCardMetadata(
       Transition.project.basePath,
       details.key,

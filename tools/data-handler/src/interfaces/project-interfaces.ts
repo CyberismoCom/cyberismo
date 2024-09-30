@@ -188,6 +188,7 @@ export interface enumValue {
 // Custom field
 export interface customField {
   name: string;
+  description?: string;
   displayName?: string;
   isEditable: boolean;
 }

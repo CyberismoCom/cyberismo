@@ -90,13 +90,12 @@ describe('edit card', () => {
     const firstCard = cards.at(0);
     if (firstCard) {
       const EditCmd = new Edit();
-      await EditCmd.editCard(project.basePath, firstCard.key + 1)
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
+      try {
+        EditCmd.editCard(project.basePath, firstCard.key + 1);
+        expect(false);
+      } catch {
+        expect(true);
+      }
     }
   });
   // @todo: Make sinon fake/mock for user preferences

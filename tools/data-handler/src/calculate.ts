@@ -53,10 +53,6 @@ export class Calculate {
     '../../../../calculations/queries',
   );
 
-  constructor() {
-    // todo: set reusable paths here - problem is that project's path should be set
-  }
-
   // Return path to query file if it exists, else return null.
   private async getQuery(queryName: string) {
     const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
@@ -311,7 +307,7 @@ export class Calculate {
       if (path) {
         Calculate.project = new Project(path);
       } else {
-        throw `Card '${card.key}' not in project structure`;
+        throw new Error(`Card '${card.key}' not in project structure`);
       }
     }
   }

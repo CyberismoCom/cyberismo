@@ -7,7 +7,7 @@
  */
 export function generateRandomString(base: number, length: number): string {
   if (!Number.isInteger(base) || !Number.isInteger(length)) {
-    throw 'parameters must be integers';
+    throw new Error('parameters must be integers');
   }
 
   // Generate a random number between 0 and given base max number - 1

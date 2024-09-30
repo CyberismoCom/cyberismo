@@ -38,8 +38,6 @@ import { homedir } from 'node:os';
 export class Show {
   static project: Project;
 
-  constructor() {}
-
   /**
    * Shows all attachments (either template or project attachments) from a project.
    * @param {string} projectPath path to a project
@@ -134,7 +132,7 @@ export class Show {
     const path = resolve(attachment.path, attachment.fileName);
 
     if (!editor) {
-      await this.openUsingDefaultApplication(path);
+      this.openUsingDefaultApplication(path);
       return;
     }
 
@@ -152,7 +150,7 @@ export class Show {
 
     // If the application exists with a non-zero exit code, open the attachment using the operating system's default application
     if (processHandle.exitCode !== 0 && processHandle.exitCode !== null) {
-      await this.openUsingDefaultApplication(path);
+      this.openUsingDefaultApplication(path);
     }
   }
 
@@ -184,7 +182,7 @@ export class Show {
    * Doesn't block the main thread.
    * @param path path to a file
    */
-  private async openUsingDefaultApplication(path: string) {
+  private openUsingDefaultApplication(path: string) {
     if (process.platform === 'win32') {
       // This is a workaround to get windows to open the file in foreground
       spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
@@ -411,7 +409,7 @@ export class Show {
    */
   public async showProject(projectPath: string): Promise<project> {
     Show.project = new Project(projectPath);
-    return await Show.project.show();
+    return Show.project.show();
   }
 
   /**
