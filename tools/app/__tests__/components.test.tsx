@@ -5,7 +5,7 @@ import { Project } from '@/app/lib/definitions';
 import StateSelector from '@/app/components/StateSelector';
 import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
 import { useTranslation } from 'react-i18next';
-import { ParseResult } from '@cyberismocom/data-handler/utils/clingo-parser';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 // mock resize observer
 global.ResizeObserver = class {
@@ -101,15 +101,15 @@ const testProject: Project = {
   cards: [
     {
       key: 'USDL-43',
-      path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43',
+      path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43',
       children: [
         {
           key: 'USDL-44',
-          path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
+          path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
           children: [
             {
               key: 'USDL-45',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
               children: [],
               metadata: {
                 cardtype: 'controlledDocument',
@@ -121,7 +121,7 @@ const testProject: Project = {
             },
             {
               key: 'USDL-46',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
               children: [],
               metadata: {
                 cardtype: 'simplePage',
@@ -133,11 +133,11 @@ const testProject: Project = {
             },
             {
               key: 'USDL-47',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
               children: [
                 {
                   key: 'USDL-53',
-                  path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
+                  path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
                   children: [],
                   metadata: {
                     cardtype: 'controlledDocument',
@@ -158,7 +158,7 @@ const testProject: Project = {
             },
             {
               key: 'USDL-48',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
               children: [],
               metadata: {
                 cardtype: 'simplePage',
@@ -170,13 +170,13 @@ const testProject: Project = {
             },
             {
               key: 'USDL-49',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
               children: [],
               // this card has no metadata
             },
             {
               key: 'USDL-50',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
               children: [],
               metadata: {
                 cardtype: 'simplePage',
@@ -188,7 +188,7 @@ const testProject: Project = {
             },
             {
               key: 'USDL-51',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
               children: [],
               metadata: {
                 cardtype: 'simplePage',
@@ -200,7 +200,7 @@ const testProject: Project = {
             },
             {
               key: 'USDL-52',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
+              path: '/Users/test/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
               children: [],
               metadata: {
                 cardtype: 'simplePage',
@@ -350,20 +350,16 @@ const testProject: Project = {
   ],
 };
 
-const testTree: ParseResult['results'] = [
+const testTree: QueryResult<'tree'>[] = [
   {
     key: 'USDL-43',
-    path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43',
     results: [
       {
         key: 'USDL-44',
-        path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
         results: [
           {
             key: 'USDL-45',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
             results: [],
-            cardtype: 'controlledDocument',
             title: 'Untitled',
             workflowState: 'Draft',
             rank: '0|a',
@@ -383,9 +379,7 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-46',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
             results: [],
-            cardtype: 'simplePage',
             title: 'Demand phase',
             workflowState: 'Created',
             rank: '0|b',
@@ -405,13 +399,10 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-47',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
             results: [
               {
                 key: 'USDL-53',
-                path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
                 results: [],
-                cardtype: 'controlledDocument',
                 title: 'Threat model',
                 workflowState: 'Draft',
                 rank: '0|a',
@@ -431,7 +422,6 @@ const testTree: ParseResult['results'] = [
                 },
               },
             ],
-            cardtype: 'simplePage',
             title: 'Design phase',
             workflowState: 'Created',
             rank: '0|c',
@@ -452,9 +442,7 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-48',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
             results: [],
-            cardtype: 'simplePage',
             title: 'Implementation phase',
             workflowState: 'Created',
             rank: '0|d',
@@ -474,10 +462,10 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-49',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
             results: [],
             links: [],
-            // this card has no metadata
+            title: 'Some title',
+            rank: '0|uio',
             labels: [],
             policyChecks: {
               successes: [],
@@ -493,9 +481,7 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-50',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
             results: [],
-            cardtype: 'simplePage',
             title: 'Release phase',
             workflowState: 'Created',
             rank: '0|e',
@@ -515,9 +501,7 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-51',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
             results: [],
-            cardtype: 'simplePage',
             title: 'Operations phase',
             workflowState: 'Created',
             rank: '0|f',
@@ -537,9 +521,7 @@ const testTree: ParseResult['results'] = [
           },
           {
             key: 'USDL-52',
-            path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
             results: [],
-            cardtype: 'simplePage',
             title: 'Meetings',
             workflowState: 'Created',
             rank: '0|g',
@@ -558,7 +540,6 @@ const testTree: ParseResult['results'] = [
             },
           },
         ],
-        cardtype: 'simplePage',
         title: 'SDL Project',
         workflowState: 'Created',
         rank: '0|a',
@@ -577,12 +558,11 @@ const testTree: ParseResult['results'] = [
         },
       },
     ],
-    cardtype: 'decision',
     title: 'SDL Decision',
     workflowState: 'Draft',
     rank: '0|b',
     links: [],
-
+    'base/fieldtypes/progress': 'progress',
     labels: [],
     policyChecks: {
       successes: [],
