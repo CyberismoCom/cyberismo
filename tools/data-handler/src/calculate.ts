@@ -78,7 +78,7 @@ export class Calculate {
       content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
 
       for (const customField of cardType.customFields || []) {
-        content += `customField("${cardType.name}", "${customField.name}", "${customField.displayName}", "${customField.isEditable ? 'true' : 'false'}").\n`;
+        content += `customField("${cardType.name}", "${encodeClingoValue(customField.name)}", "${encodeClingoValue(customField.displayName || '')}", "${customField.isEditable ? 'true' : 'false'}").\n`;
       }
       const cardTypeFile = join(
         this.getResourceFolder(),
@@ -167,18 +167,18 @@ export class Calculate {
         for (const [field, value] of Object.entries(card.metadata)) {
           if (field === 'labels') {
             for (const label of value as Array<string>) {
-              logicProgram += `label(${card.key}, "${label}").\n`;
+              logicProgram += `label(${card.key}, "${encodeClingoValue(label)}").\n`;
             }
           } else if (field === 'links') {
             for (const link of value as Array<link>) {
-              logicProgram += `link(${card.key}, ${link.cardKey}, "${link.linkType}"${link.linkDescription != null ? `, "${link.linkDescription}"` : ''}).\n`;
+              logicProgram += `link(${card.key}, ${link.cardKey}, "${encodeClingoValue(link.linkType)}"${link.linkDescription != null ? `, "${encodeClingoValue(link.linkDescription)}"` : ''}).\n`;
             }
           } else {
             // Do not write null values
             if (value === null) {
               continue;
             }
-            logicProgram += `field(${card.key}, "${field}", "${value !== undefined ? encodeClingoValue(value.toString()) : undefined}").\n`;
+            logicProgram += `field(${card.key}, "${encodeClingoValue(field)}", "${value !== undefined ? encodeClingoValue(value.toString()) : undefined}").\n`;
           }
         }
       }
