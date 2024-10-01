@@ -26,7 +26,7 @@ import {
 } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { fileURLToPath } from 'node:url';
-import ClingoParser from './utils/clingo-parser.js';
+import ClingoParser, { encodeClingoValue } from './utils/clingo-parser.js';
 import {
   BaseResult,
   ParseResult,
@@ -178,7 +178,7 @@ export class Calculate {
             if (value === null) {
               continue;
             }
-            logicProgram += `field(${card.key}, "${field}", "${value !== undefined ? value.toString().replace('\n', '') : undefined}").\n`;
+            logicProgram += `field(${card.key}, "${field}", "${value !== undefined ? encodeClingoValue(value.toString()) : undefined}").\n`;
           }
         }
       }
