@@ -13,18 +13,15 @@
 import { Project } from '../containers/project.js';
 import { BaseResult, ParseResult } from '../types/queries.js';
 
-export const CLINGO_VALUE_ENCODING = 'base64url';
-
 export function encodeClingoValue(value: string) {
-  return value.replace(/[^a-zA-Z0-9 /|:.]/g, (char) => {
-    const code = char.charCodeAt(0);
-    return `\\u${('0000' + code.toString(16)).slice(-4)}`;
+  return value.replace(/[\n\\"]/g, (char) => {
+    return `\\${char}`;
   });
 }
 
 export function decodeClingoValue(value: string) {
-  return value.replace(/\\u([0-9a-fA-F]{4})/g, (match, code) => {
-    return String.fromCharCode(parseInt(code, 16));
+  return value.replace(/\\([\n\\"])/g, (match, char) => {
+    return char;
   });
 }
 
