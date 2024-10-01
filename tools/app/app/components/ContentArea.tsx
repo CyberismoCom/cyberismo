@@ -344,38 +344,38 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     },
   });
 
-  // On scroll, check which document headers are visible and update the table of contents scrolling state
+  // On scroll, check which document headers are visible and update state accordingly
   const handleScroll = () => {
     const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
     const visibleHeaderIds: string[] = [];
-    let newLastTitle: string | null = null;
-
-    const headerArray = Array.from(headers).reverse();
-
-    const boxRect = boxRef.current?.getBoundingClientRect();
-
-    for (const header of headerArray) {
+    headers.forEach((header) => {
       const rect = header.getBoundingClientRect();
-      // we are using 1px offset to make sure the header is in the viewport
-      // if top is not available, we want to use 0 which is why we use -1 for the fallback since 1 is the offset
-      if (rect.top < (boxRect?.top || -1) + 1) {
-        newLastTitle = header.id;
-        break;
+      if (
+        rect.top >= 0 &&
+        rect.bottom <= window.innerHeight &&
+        header.id &&
+        header.id !== ''
+      ) {
+        visibleHeaderIds.push(header.id);
       }
-    }
+    });
 
-    if (lastTitle === newLastTitle && cardKey === card.key) return;
-
-    dispatch(
-      viewChanged({
-        title: newLastTitle,
-        cardKey: card.key,
-      }),
-    );
-
-    // Retain the scroll state if no headers are visible (we are in middle of a longer section)
+    // If no headers are visible, we are in the middle of a long section and should not update anything
     if (visibleHeaderIds.length > 0) {
-      setVisibleHeaderId(visibleHeaderIds[0]);
+      const lastVisibleHeaderId = visibleHeaderIds[visibleHeaderIds.length - 1];
+
+      // Update table of contents highlight
+      setVisibleHeaderId(lastVisibleHeaderId);
+
+      // Save current position for switching between edit/view modes
+      if (lastTitle !== lastVisibleHeaderId) {
+        dispatch(
+          viewChanged({
+            title: lastVisibleHeaderId,
+            cardKey: card.key,
+          }),
+        );
+      }
     }
   };
 
