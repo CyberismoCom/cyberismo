@@ -56,6 +56,7 @@ describe('calculate', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    await calculate.generate(decisionRecordsPath);
   });
 
   after(() => {
