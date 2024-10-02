@@ -55,7 +55,7 @@ export type QueryResult<T extends QueryName> = QueryMap[T];
  * Define all the queries below
  */
 interface TreeQueryResult extends BaseResult {
-  'base/fieldtypes/progress'?: string;
+  'base/fieldTypes/progress'?: string;
   rank: string;
   title: string;
   workflowStateCategory?: workflowCategory;

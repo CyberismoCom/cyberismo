@@ -25,7 +25,7 @@ const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
 async function createLinkType(name: string): Promise<void> {
-  await commandHandler.command(Cmd.create, ['linktype', name], options);
+  await commandHandler.command(Cmd.create, ['linkType', name], options);
 }
 
 async function createCard(): Promise<requestStatus> {
@@ -63,20 +63,20 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     */
-    it('remove linktype', async () => {
+    it('remove linkType', async () => {
       const name = 'test';
       await createLinkType(name);
-      const fullName = 'decision/linktypes/' + name;
+      const fullName = 'decision/linkTypes/' + name;
       const result = await commandHandler.command(
         Cmd.remove,
-        ['linktype', fullName],
+        ['linkType', fullName],
         options,
       );
       expect(result.statusCode).to.equal(200);
     });
     it('remove link (success)', async () => {
       const linkName = 'test';
-      const linkFullName = 'decision/linktypes/' + linkName;
+      const linkFullName = 'decision/linkTypes/' + linkName;
       await createLinkType(linkName);
       const card = await createCard();
       const cardId = card.affectsCards![0];
@@ -158,11 +158,11 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove linktype - linktype missing', async () => {
-      const linktype = 'mini/linktypes/lt_name';
+    it('remove linkType - linkType missing', async () => {
+      const linkType = 'mini/linkTypes/lt_name';
       const result = await commandHandler.command(
         Cmd.remove,
-        ['linktype', linktype],
+        ['linkType', linkType],
         optionsMini,
       );
       expect(result.statusCode).to.equal(400);

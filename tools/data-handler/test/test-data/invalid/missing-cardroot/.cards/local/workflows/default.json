@@ -1,0 +1,30 @@
+{
+    "name": "decision/workflows/default",
+    "states":[
+        { "name":"Open" },
+        { "name":"In Progress" },
+        { "name":"Closed" }
+    ],
+    "transitions":[
+        {
+            "name":"Create",
+            "fromState":"",
+            "toState":"Open"
+        },
+        {
+            "name":"Working",
+            "fromState":"Open",
+            "toState":"In Progress"
+        },
+        {
+            "name":"Done",
+            "fromState":"*",
+            "toState":"Closed"
+        },
+        {
+            "name":"Reopen",
+            "fromState":"Closed",
+            "toState":"Open"
+        }
+    ]
+}

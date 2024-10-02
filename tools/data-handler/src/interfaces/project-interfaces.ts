@@ -17,33 +17,33 @@
 export interface dotSchemaContent {
   id: string;
   version: number;
-  cardkeyPrefix?: never;
+  cardKeyPrefix?: never;
   name?: never;
 }
 
-// Project's settings (=cardsconfig.json).
+// Project's settings (=cardsConfig.json).
 export interface projectSettings {
   id?: never;
   version?: never;
-  cardkeyPrefix: string;
+  cardKeyPrefix: string;
   name: string;
 }
 
 // Module content
 export interface moduleSettings extends projectSettings {
   path: string;
-  cardtypes: string[];
+  cardTypes: string[];
   calculations: string[];
-  fieldtypes: string[];
-  linktypes: string[];
+  fieldTypes: string[];
+  linkTypes: string[];
   templates: string[];
   workflows: string[];
 }
 
-// Content in project (apart from cards) is either .schema files or cardsconfig.json.
+// Content in project (apart from cards) is either .schema files or cardsConfig.json.
 type contentType = dotSchemaContent | projectSettings;
 
-// Files in project in addition to cards (.schema files and cardsconfig.json).
+// Files in project in addition to cards (.schema files and cardsConfig.json).
 export interface projectFile {
   content: contentType;
   path: string;
@@ -68,8 +68,8 @@ export interface cardListContainer {
   cards: string[];
 }
 
-// Cardtype content.
-export interface cardtype {
+// Card type content.
+export interface cardType {
   name: string;
   workflow: string;
   customFields?: customField[];
@@ -80,7 +80,7 @@ export interface cardtype {
 // Card's index.json file content.
 export interface cardMetadata {
   title: string;
-  cardtype: string;
+  cardType: string;
   workflowState: string;
   rank: string;
   lastTransitioned?: string;
@@ -97,7 +97,7 @@ export interface link {
 }
 
 // FieldType content.
-export interface fieldtype {
+export interface fieldType {
   name: string;
   displayName?: string;
   fieldDescription?: string;
@@ -105,7 +105,7 @@ export interface fieldtype {
   enumValues?: enumValue[];
 }
 
-export interface linktype {
+export interface linkType {
   name: string;
   outboundDisplayName: string;
   inboundDisplayName: string;
@@ -122,7 +122,7 @@ export interface project {
   numberOfCards: number;
 }
 
-// Project resource, such as workflow, template or cardtype
+// Project resource, such as workflow, template or card type
 export interface resource {
   name: string;
   path?: string;

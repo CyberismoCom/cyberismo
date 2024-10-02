@@ -2,13 +2,13 @@
  * @jest-environment node
  */
 
-import { Card, CardDetails, Project } from '@/app/lib/definitions';
+import { CardDetails, Project } from '@/app/lib/definitions';
 import { GET as GET_PROJECT } from '../app/api/cards/route';
 import { GET as GET_CARD } from '../app/api/cards/[key]/route';
 import { GET as GET_ATTACHMENT } from '../app/api/cards/[key]/a/[attachment]/route';
-import { GET as GET_CARDTYPE } from '../app/api/cardtypes/route';
+import { GET as GET_CARD_TYPE } from '../app/api/cardTypes/route';
 import { NextRequest } from 'next/server';
-import { cardtype } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { cardType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
@@ -75,15 +75,15 @@ test('non-existing attachment file returns an error', async () => {
   expect(response.status).toBe(404);
 });
 
-test('cardtypes endpoint returns cardtype pbject', async () => {
+test('cardTypes endpoint returns card type object', async () => {
   const request = new NextRequest(
-    'http://localhost:3000/api/cards/cardtypes?name=decision/cardtypes/decision-cardtype',
+    'http://localhost:3000/api/cards/cardTypes?name=decision/cardTypes/decision',
   );
-  const response = await GET_CARDTYPE(request);
+  const response = await GET_CARD_TYPE(request);
   expect(response).not.toBe(null);
 
-  const result: cardtype = await response.json();
+  const result: cardType = await response.json();
   expect(response.status).toBe(200);
-  expect(result.name).toBe('decision/cardtypes/decision-cardtype');
-  expect(result.workflow).toBe('decision/workflows/decision-workflow');
+  expect(result.name).toBe('decision/cardTypes/decision');
+  expect(result.workflow).toBe('decision/workflows/decision');
 });

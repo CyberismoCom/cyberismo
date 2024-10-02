@@ -44,7 +44,7 @@ function MetadataView({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(initialExpanded);
 
-  const { cardType } = useCardType(metadata?.cardtype ?? null);
+  const { cardType } = useCardType(metadata?.cardType ?? null);
 
   const { fieldTypes } = useFieldTypes();
 

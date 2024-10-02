@@ -1,0 +1,8 @@
+{
+    "name": "decision/linkTypes/testTypes",
+    "outboundDisplayName": "test",
+    "inboundDisplayName": "test",
+    "sourceCardTypes": ["decision/cardTypes/decision"],
+    "destinationCardTypes": ["decision/cardTypes/simplepage"],
+    "enableLinkDescription": false
+}

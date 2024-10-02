@@ -29,10 +29,10 @@
                       "type": "object",
                       "additionalProperties": false,
                       "properties": {
-                        "cardsconfig.json": {},
-                        ".schema": {}
+                        ".schema": {},
+                        "cardsConfig.json": {}
                       },
-                      "required": [".schema", "cardsconfig.json"]
+                      "required": [".schema", "cardsConfig.json"]
                     },
                     "directories": {
                       "type": "object",
@@ -60,7 +60,7 @@
                             }
                           }
                         },
-                        "cardtypes": {
+                        "cardTypes": {
                           "type": "object",
                           "allOf": [
                             {
@@ -93,7 +93,7 @@
                             }
                           ]
                         },
-                        "linktypes": {
+                        "linkTypes": {
                           "type": "object",
                           "allOf": [
                             {
@@ -126,7 +126,7 @@
                             }
                           ]
                         },
-                        "fieldtypes": {
+                        "fieldTypes": {
                           "type": "object",
                           "allOf": [
                             {
@@ -255,8 +255,8 @@
                         }
                       },
                       "required": [
-                        "cardtypes",
-                        "fieldtypes",
+                        "cardTypes",
+                        "fieldTypes",
                         "templates",
                         "workflows"
                       ]
@@ -268,8 +268,8 @@
             }
           }
         },
-        "cardroot": {
-          "description": "The contents of the card-tree. Each subdirectory contains a top level card. The name of the directory is the card-key",
+        "cardRoot": {
+          "description": "The contents of the card tree. Each subdirectory contains a top level card. The name of the directory is the card key.",
           "type": "object",
           "properties": {
             "files": {
@@ -360,12 +360,12 @@
           }
         }
       },
-      "required": [".cards", "cardroot"]
+      "required": [".cards", "cardRoot"]
     }
   },
   "$defs": {
     "card-module-schema": {
-      "description": "The schema for modules. Each module is in a named directory containing 'cardtypes', 'templates' and 'workflows'. ",
+      "description": "The schema for modules. Each module is in a named directory containing 'cardTypes', 'templates' and 'workflows'. ",
       "type": "object",
       "properties": {
         "directories": {
@@ -377,7 +377,7 @@
                 "directories": {
                   "type": "object",
                   "properties": {
-                    "cardtypes": {
+                    "cardTypes": {
                       "type": "object",
                       "allOf": [
                         {
@@ -405,7 +405,7 @@
                         }
                       ]
                     },
-                    "linktypes": {
+                    "linkTypes": {
                       "type": "object",
                       "allOf": [
                         {
@@ -433,7 +433,7 @@
                         }
                       ]
                     },
-                    "fieldtypes": {
+                    "fieldTypes": {
                       "type": "object",
                       "properties": {
                         "files": {
@@ -509,8 +509,8 @@
                     }
                   },
                   "required": [
-                    "cardtypes",
-                    "fieldtypes",
+                    "cardTypes",
+                    "fieldTypes",
                     "templates",
                     "workflows"
                   ]
@@ -524,7 +524,7 @@
                       "type": "object"
                     }
                   },
-                  "required": ["cardsconfig.json", ".schema"]
+                  "required": ["cardsConfig.json", ".schema"]
                 }
               }
             }
@@ -549,7 +549,7 @@
           "properties": {
             ".schema": {},
             "index.json": {
-              "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its cardtype",
+              "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its card type",
               "type": "object",
               "$comment": "Each file needs to be separately validated against 'contentSchema'",
               "contentSchema": "card-base-schema.json"

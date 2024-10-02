@@ -1,0 +1,11 @@
+{
+    "name": "mini/workflows/minimal",
+    "states": [ { "name": "Created", "category": "initial" } ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [],
+            "toState": "Created"
+        }
+    ]
+}

@@ -104,7 +104,7 @@ export class Remove extends EventEmitter {
     );
     if (!link) {
       throw new Error(
-        `Link from '${sourceCardKey}' to '${destinationCardKey}' with linktype '${linkType}' not found`,
+        `Link from '${sourceCardKey}' to '${destinationCardKey}' with link type '${linkType}' not found`,
       );
     }
 
@@ -123,8 +123,8 @@ export class Remove extends EventEmitter {
   }
 
   /**
-   * Removes linktype from project.
-   * @param linktypeName Linktype name
+   * Removes link type from project.
+   * @param linkTypeName Link type name
    */
   private async removeLinktype(linkTypeName: string) {
     const path = await Remove.project.linkTypePath(linkTypeName);
@@ -183,7 +183,7 @@ export class Remove extends EventEmitter {
         return this.removeCard(targetName);
       case 'link':
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
-      case 'linktype':
+      case 'linkType':
         return this.removeLinktype(targetName);
       case 'module':
         return this.removeModule(targetName);

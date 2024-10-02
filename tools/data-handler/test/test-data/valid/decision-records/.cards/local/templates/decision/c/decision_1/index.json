@@ -1,16 +1,16 @@
 {
-    "cardtype": "decision/cardtypes/decision-cardtype",
+    "cardType": "decision/cardTypes/decision",
     "title": "Untitled",
     "workflowState": "Draft",
     "rank": "0|a",
     "lastUpdated": "2024-07-12T11:07:35.266Z",
-    "decision/fieldtypes/obsoletedBy": null,
-    "decision/fieldtypes/admins": null,
-    "decision/fieldtypes/commit-description": null,
-    "decision/fieldtypes/finished": null,
-    "decision/fieldtypes/last-changed-date": null,
-    "decision/fieldtypes/last-changed-timestamp": null,
-    "decision/fieldtypes/number-of-commits": null,
-    "decision/fieldtypes/percentage-ready": null,
-    "decision/fieldtypes/responsible": null
+    "decision/fieldTypes/obsoletedBy": null,
+    "decision/fieldTypes/admins": null,
+    "decision/fieldTypes/commitDescription": null,
+    "decision/fieldTypes/finished": null,
+    "decision/fieldTypes/lastChangedDate": null,
+    "decision/fieldTypes/lastChangedTimestamp": null,
+    "decision/fieldTypes/numberOfCommits": null,
+    "decision/fieldTypes/percentageReady": null,
+    "decision/fieldTypes/responsible": null
 }

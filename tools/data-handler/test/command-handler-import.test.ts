@@ -54,14 +54,14 @@ describe('import csv command', () => {
     expect(card1.metadata?.title).to.equal('Title1');
     expect(card1.content).to.equal('content1');
     expect(card1.metadata?.labels).to.deep.equal(['label1', 'label2']);
-    expect(card1.metadata?.['decision/fieldtypes/responsible']).to.equal(
+    expect(card1.metadata?.['decision/fieldTypes/responsible']).to.equal(
       'responsible@email.com',
     );
     expect(card1.metadata?.doesnotexist).to.equal(undefined);
     expect(card2.metadata?.title).to.equal('Title2');
     expect(card2.content).to.equal('content2');
     expect(card2.metadata?.labels).to.equal(undefined);
-    expect(card2.metadata?.['decision/fieldtypes/responsible']).to.equal('');
+    expect(card2.metadata?.['decision/fieldTypes/responsible']).to.equal('');
     expect(card2.metadata?.doesnotexist).to.equal(undefined);
   });
   it('import csv file with parent (success)', async () => {
@@ -195,7 +195,7 @@ describe('import module', () => {
   describe('modifying imported module content is forbidden', () => {
     it('try to add card to module template', async () => {
       const templateName = 'minimal';
-      const cardType = 'decision/cardtypes/decision-cardtype';
+      const cardType = 'decision/cardTypes/decision';
       const cardKey = '';
       const result = await commandHandler.command(
         Cmd.add,
@@ -208,7 +208,7 @@ describe('import module', () => {
     });
     it('try to add child card to a module card', async () => {
       const templateName = 'decision';
-      const cardType = 'decision/cardtypes/decision-cardtype';
+      const cardType = 'decision/cardTypes/decision';
       const cardKey = 'decision_2';
       // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
       const result = await commandHandler.command(

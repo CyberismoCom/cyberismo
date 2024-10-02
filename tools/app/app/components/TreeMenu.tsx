@@ -57,7 +57,7 @@ const RenderTree = (
             }}
           />
         )}
-        <div>{node.data['base/fieldtypes/progress']}</div>
+        <div>{node.data['base/fieldTypes/progress']}</div>
         {node.data.workflowStateCategory && (
           <Box
             color={getStateColor(node.data.workflowStateCategory)}

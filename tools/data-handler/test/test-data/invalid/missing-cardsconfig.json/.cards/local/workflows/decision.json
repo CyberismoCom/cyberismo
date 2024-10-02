@@ -1,0 +1,37 @@
+{
+    "name": "decision/workflows/decision",
+    "states": [
+        { "name": "Draft" },
+        { "name":"Approved" },
+        { "name":"Rejected" },
+        { "name":"Deprecated" }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": "",
+            "toState": "Draft"
+        },
+        {
+            "name": "Approve",
+            "fromState": "Draft",
+            "toState": "Approved"
+        },
+        {
+            "name": "Reject",
+            "fromState": "*",
+            "toState": "Rejected"
+        },
+        {
+            "name": "Reopen",
+            "fromState": "*",
+            "toState": "Draft"
+        },
+        {
+            "name": "Deprecate",
+            "fromState": "Approved",
+            "toState": "Deprecated",
+            "requiredCardFields": [ "obsoletedBy" ]
+        }
+    ]
+}

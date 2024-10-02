@@ -50,7 +50,7 @@ export class Transition extends EventEmitter {
   /**
    * Transitions a card from its current state to a new state.
    * @param {string} projectPath path to a project
-   * @param {string} cardKey cardkey
+   * @param {string} cardKey card key
    * @param {string} transition which transition to do
    */
   public async cardTransition(
@@ -68,21 +68,21 @@ export class Transition extends EventEmitter {
       throw new Error(`Card ${cardKey} does not exist in the project`);
     }
 
-    // Cardtype
-    const cardtype = await Transition.project.cardType(
-      details.metadata?.cardtype,
+    // Card type
+    const cardType = await Transition.project.cardType(
+      details.metadata?.cardType,
     );
-    if (cardtype === undefined) {
+    if (cardType === undefined) {
       throw new Error(
-        `Card's cardtype '${details.metadata?.cardtype}' does not exist in the project`,
+        `Card's card type '${details.metadata?.cardType}' does not exist in the project`,
       );
     }
 
     // Workflow
-    const workflow = await Transition.project.workflow(cardtype.workflow);
+    const workflow = await Transition.project.workflow(cardType.workflow);
     if (workflow === undefined) {
       throw new Error(
-        `Card's workflow '${cardtype.workflow}' does not exist in the project`,
+        `Card's workflow '${cardType.workflow}' does not exist in the project`,
       );
     }
 
@@ -95,7 +95,7 @@ export class Transition extends EventEmitter {
     );
     if (!foundFrom) {
       throw new Error(
-        `Card's workflow '${cardtype.workflow}' does not contain transition from card's current state '${details.metadata?.workflowState}'`,
+        `Card's workflow '${cardType.workflow}' does not contain transition from card's current state '${details.metadata?.workflowState}'`,
       );
     }
 
@@ -105,7 +105,7 @@ export class Transition extends EventEmitter {
     );
     if (!found) {
       const transitionNames = workflow.transitions.map((item) => item.name);
-      throw new Error(`Card's workflow '${cardtype.workflow}' does not contain state transition '${transition.name}'.
+      throw new Error(`Card's workflow '${cardType.workflow}' does not contain state transition '${transition.name}'.
                           \nThe available transitions are: ${transitionNames.join(', ')}`);
     }
 
@@ -116,7 +116,7 @@ export class Transition extends EventEmitter {
       )
     ) {
       throw new Error(
-        `Card's workflow '${cardtype.workflow}' does not contain state transition from state '${details.metadata?.workflowState}' for '${transition.name}`,
+        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${details.metadata?.workflowState}' for '${transition.name}`,
       );
     }
 

@@ -64,8 +64,7 @@ export class Calculate {
   }
 
   private async generateCardTypes() {
-    const cardTypes = await Calculate.project.cardtypes();
-
+    const cardTypes = await Calculate.project.cardTypes();
     const promises = [];
 
     for (const cardType of await Promise.all(
@@ -96,7 +95,6 @@ export class Calculate {
 
   private async generateWorkFlows() {
     const workflows = await Calculate.project.workflows();
-
     const promises = [];
     // loop through workflows
     for (const workflow of await Promise.all(
@@ -140,7 +138,7 @@ export class Calculate {
     }
     await Promise.all(promises);
   }
-  // Write the cardtree.lp that contain data from the selected card-tree.
+  // Write the cardTree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: card | undefined) {
     const destinationFileBase = join(
       Calculate.project.calculationFolder,
@@ -151,7 +149,7 @@ export class Calculate {
     // Small helper to deduce parent path
     function parentPath(cardPath: string) {
       const pathParts = cardPath.split(sep);
-      if (pathParts.at(pathParts.length - 2) === 'cardroot') {
+      if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
         return '';
       } else {
         return pathParts.at(pathParts.length - 3);
@@ -381,7 +379,7 @@ export class Calculate {
       if (pathExists(cardCalculationsFile)) {
         await deleteFile(cardCalculationsFile);
       }
-      // Then, delete rows from cardtree.lp.
+      // Then, delete rows from cardTree.lp.
       const removeRow = `#include "cards/${card.key}.lp".\n`.replace(
         /\\/g,
         '/',

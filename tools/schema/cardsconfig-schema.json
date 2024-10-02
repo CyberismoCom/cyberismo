@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "cardkeyPrefix": {
+    "cardKeyPrefix": {
       "type": "string",
       "description": "The prefix or the fist component of the card key. For example, ABC",
       "pattern": "^[a-z]+$",
@@ -19,5 +19,5 @@
       "pattern": "^[A-Za-z ._-]+$"
     }
   },
-  "required": ["cardkeyPrefix"]
+  "required": ["cardKeyPrefix"]
 }

@@ -1,0 +1,4 @@
+{
+  "name": "decision/cardTypes/myCardType",
+  "workflow": "mini/workflows/minimalWorkflow"
+}

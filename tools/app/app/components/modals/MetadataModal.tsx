@@ -27,7 +27,7 @@ import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-inte
 import moment from 'moment';
 
 function Metadata({
-  cardtype,
+  cardType,
   title,
   workflowState,
   lastTransitioned,
@@ -44,7 +44,7 @@ function Metadata({
       <tbody>
         <tr>
           <td>{t('cardType')}</td>
-          <td>{cardtype}</td>
+          <td>{cardType}</td>
         </tr>
         <tr>
           <td>{t('title')}</td>

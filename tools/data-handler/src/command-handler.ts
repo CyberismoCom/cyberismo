@@ -100,9 +100,9 @@ export class Commands {
   public static allowedTypes = [
     'attachment',
     'card',
-    'cardtype',
-    'fieldtype',
-    'linktype',
+    'cardType',
+    'fieldType',
+    'linkType',
     'module',
     'project',
     'template',
@@ -113,7 +113,7 @@ export class Commands {
     'attachment',
     'card',
     'link',
-    'linktype',
+    'linkType',
     'module',
     'template',
   ];
@@ -170,8 +170,8 @@ export class Commands {
   // Check that path is a project path
   private isProjectPath(path: string) {
     const cardsPath = resolve(join(path, '.cards'));
-    const cardrootPath = resolve(join(path, 'cardroot'));
-    return pathExists(cardsPath) && pathExists(cardrootPath);
+    const cardRootPath = resolve(join(path, 'cardRoot'));
+    return pathExists(cardsPath) && pathExists(cardRootPath);
   }
 
   // Validates folder name
@@ -242,11 +242,11 @@ export class Commands {
     }
     try {
       if (command === Cmd.add) {
-        const [template, cardtype, cardkey] = args;
+        const [template, cardType, cardKey] = args;
         return this.addCard(
           template,
-          cardtype,
-          cardkey,
+          cardType,
+          cardKey,
           this.projectPath,
           options.repeat,
         );
@@ -266,16 +266,16 @@ export class Commands {
       if (command === Cmd.create) {
         const target = args.splice(0, 1)[0];
         if (target === 'attachment') {
-          const [cardkey, attachment] = args;
-          return this.createAttachment(cardkey, attachment, this.projectPath);
+          const [cardKey, attachment] = args;
+          return this.createAttachment(cardKey, attachment, this.projectPath);
         }
         if (target === 'card') {
           const [template, parent] = args;
           return this.createCard(template, parent, this.projectPath);
         }
-        if (target === 'cardtype') {
+        if (target === 'cardType') {
           const [name, workflow] = args;
-          return this.createCardtype(name, workflow, this.projectPath);
+          return this.createCardType(name, workflow, this.projectPath);
         }
         if (target === 'project') {
           const [name, prefix] = args;
@@ -286,7 +286,7 @@ export class Commands {
           const [name, content] = args;
           return this.createTemplate(name, content, this.projectPath);
         }
-        if (target === 'fieldtype') {
+        if (target === 'fieldType') {
           const [name, datatype] = args;
           return this.createFieldType(name, datatype, this.projectPath);
         }
@@ -300,7 +300,7 @@ export class Commands {
             this.projectPath,
           );
         }
-        if (target === 'linktype') {
+        if (target === 'linkType') {
           const [name] = args;
           return this.createLinkType(name, this.projectPath);
         }
@@ -310,12 +310,12 @@ export class Commands {
         }
       }
       if (command === Cmd.edit) {
-        const [cardkey] = args;
-        return this.edit(cardkey, options);
+        const [cardKey] = args;
+        return this.edit(cardKey, options);
       }
       if (command === Cmd.export) {
-        const [format, output, cardkey] = args;
-        return this.export(output, this.projectPath, cardkey, format);
+        const [format, output, cardKey] = args;
+        return this.export(output, this.projectPath, cardKey, format);
       }
       if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
@@ -383,8 +383,8 @@ export class Commands {
         return this.startApp(this.projectPath);
       }
       if (command === Cmd.transition) {
-        const [cardkey, state] = args;
-        return this.transition(cardkey, state, this.projectPath);
+        const [cardKey, state] = args;
+        return this.transition(cardKey, state, this.projectPath);
       }
       if (command === Cmd.validate) {
         return this.validate(this.projectPath);
@@ -423,7 +423,7 @@ export class Commands {
     if (cardTypeName === undefined) {
       return {
         statusCode: 400,
-        message: `Input validation error: cardtype cannot be empty`,
+        message: `Input validation error: card type cannot be empty`,
       };
     }
     try {
@@ -557,16 +557,16 @@ export class Commands {
   }
 
   /**
-   * Creates a new cardtype.
-   * @param {string} cardTypeName Name of the cardtype.
-   * @param {string} workflowName Name of the workflow that the cardtype uses.
+   * Creates a new card type.
+   * @param {string} cardTypeName Name of the card type.
+   * @param {string} workflowName Name of the workflow that the card type uses.
    * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating cardtype
+   *  <br> statusCode 500 when there was a internal problem creating card type
    */
-  private async createCardtype(
+  private async createCardType(
     cardTypeName: string,
     workflowName: string,
     path: string,
@@ -574,7 +574,7 @@ export class Commands {
     if (!this.validateName(cardTypeName)) {
       return {
         statusCode: 400,
-        message: `Input validation error: invalid cardtype name '${cardTypeName}'`,
+        message: `Input validation error: invalid card type name '${cardTypeName}'`,
       };
     }
     if (!this.validateName(workflowName)) {
@@ -584,7 +584,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createCardtype(path, cardTypeName, workflowName);
+      await this.createCmd.createCardType(path, cardTypeName, workflowName);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -592,14 +592,14 @@ export class Commands {
   }
 
   /**
-   * Creates a new fieldtype.
-   * @param {string} fieldTypeName Name of the fieldtype.
-   * * @param {string} dataType Name of the fieldtype.
+   * Creates a new field type.
+   * @param {string} fieldTypeName Name of the field type.
+   * * @param {string} dataType Name of the field type.
    * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating fieldtype
+   *  <br> statusCode 500 when there was a internal problem creating field type
    */
   private async createFieldType(
     fieldTypeName: string,
@@ -609,7 +609,7 @@ export class Commands {
     if (!this.validateName(fieldTypeName)) {
       return {
         statusCode: 400,
-        message: `Input validation error: invalid fieldtype name '${fieldTypeName}'`,
+        message: `Input validation error: invalid field type name '${fieldTypeName}'`,
       };
     }
     try {
@@ -624,7 +624,7 @@ export class Commands {
    * Creates a new link
    * @param cardKey Card key of the card where the link is created
    * @param destinationCardKey Card key of the destination card
-   * @param linkType Name of the linktype
+   * @param linkType Name of the link type
    * @param linkDescription Description of the link
    * @param path Optional, path to the project. If omitted, project is set from current path.
    */
@@ -650,8 +650,8 @@ export class Commands {
   }
 
   /**
-   * Creates a new linktype.
-   * @param name Name of the linktype.
+   * Creates a new link type.
+   * @param name Name of the link type.
    * @param path Optional, path to the project. If omitted, project is set from current path.
    */
   private async createLinkType(
@@ -661,7 +661,7 @@ export class Commands {
     if (!this.validateName(name)) {
       return {
         statusCode: 400,
-        message: `Input validation error: invalid linktype name '${name}'`,
+        message: `Input validation error: invalid link type name '${name}'`,
       };
     }
     try {
@@ -992,7 +992,7 @@ export class Commands {
   /**
    * Shows wanted resources from a project / template.
    * @param {string} type type of resources to list
-   * @param {string} typeDetail additional information about the resource (for example a cardkey for 'show card <cardkey>')
+   * @param {string} typeDetail additional information about the resource (for example a card key for 'show card <cardKey>')
    * @param {CardsOptions} options Optional parameters. If options.path is omitted, project path is assumed to be current path (or it one of its parents).
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
@@ -1048,27 +1048,27 @@ export class Commands {
         parameters.push(path);
         functionToCall = this.showCmd.showCards.bind(this);
         break;
-      case 'cardtype':
+      case 'cardType':
         parameters.push(path, detail);
         functionToCall = this.showCmd.showCardTypeDetails.bind(this);
         break;
-      case 'cardtypes':
+      case 'cardTypes':
         parameters.push(path);
         functionToCall = this.showCmd.showCardTypes.bind(this);
         break;
-      case 'fieldtype':
+      case 'fieldType':
         parameters.push(path, detail);
         functionToCall = this.showCmd.showFieldType.bind(this);
         break;
-      case 'fieldtypes':
+      case 'fieldTypes':
         parameters.push(path);
         functionToCall = this.showCmd.showFieldTypes.bind(this);
         break;
-      case 'linktype':
+      case 'linkType':
         parameters.push(path, detail);
         functionToCall = this.showCmd.showLinkType.bind(this);
         break;
-      case 'linktypes':
+      case 'linkTypes':
         parameters.push(path);
         functionToCall = this.showCmd.showLinkTypes.bind(this);
         break;

@@ -39,7 +39,7 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-  it('showAttachment - empty cardkey', async () => {
+  it('showAttachment - empty card key', async () => {
     const cardId = '';
     const attahcmentName = 'the-needle.heic';
     await showCmd
@@ -75,7 +75,7 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-  it('showCardDetails - empty cardkey', async () => {
+  it('showCardDetails - empty card key', async () => {
     const cardId = '';
     const details: fetchCardDetails = {
       content: true,
@@ -118,12 +118,12 @@ describe('show', () => {
       .showProjectCards('')
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Invalid path '.cards${sep}local${sep}cardsconfig.json' to configuration file`,
+          `Invalid path '.cards${sep}local${sep}cardsConfig.json' to configuration file`,
         ),
       );
   });
   it('showCardTypeDetails (success)', async () => {
-    const cardType = 'decision/cardtypes/decision-cardtype';
+    const cardType = 'decision/cardTypes/decision';
     const results = await showCmd.showCardTypeDetails(
       decisionRecordsPath,
       cardType,
@@ -136,17 +136,17 @@ describe('show', () => {
       .showCardTypeDetails(decisionRecordsPath, cardType)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Must define cardtype name to query its details.`,
+          `Must define card type name to query its details.`,
         ),
       );
   });
-  it('showCardTypeDetails - card-type does not exist in project', async () => {
+  it('showCardTypeDetails - card type does not exist in project', async () => {
     const cardType = 'my-card-type';
     await showCmd
       .showCardTypeDetails(decisionRecordsPath, cardType)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Cardtype 'my-card-type' not found from the project.`,
+          `Card type 'my-card-type' not found from the project.`,
         ),
       );
   });
@@ -163,7 +163,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showFieldType (success)', async () => {
-    const fieldTypeName = 'decision/fieldtypes/obsoletedBy';
+    const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
     const results = await showCmd.showFieldType(
       decisionRecordsPath,
       fieldTypeName,
@@ -176,7 +176,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showLinkType (success)', async () => {
-    const fieldTypeName = 'decision/linktypes/test';
+    const fieldTypeName = 'decision/linkTypes/test';
     const results = await showCmd.showLinkType(
       decisionRecordsPath,
       fieldTypeName,
@@ -251,7 +251,7 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('showWorkflow (success)', async () => {
-    const workflowName = 'decision/workflows/decision-workflow';
+    const workflowName = 'decision/workflows/decision';
     const results = await showCmd.showWorkflow(
       decisionRecordsPath,
       workflowName,

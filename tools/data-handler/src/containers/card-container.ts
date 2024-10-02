@@ -39,7 +39,7 @@ export class CardContainer {
   public basePath: string;
   protected containerName: string;
 
-  static projectConfigFileName = 'cardsconfig.json';
+  static projectConfigFileName = 'cardsConfig.json';
   static cardMetadataFile = 'index.json';
   static cardContentFile = 'index.adoc';
   static schemaContentFile = '.schema';
@@ -52,7 +52,7 @@ export class CardContainer {
   // Finds parent
   private parentCard(cardPath: string) {
     const pathParts = cardPath.split(sep);
-    if (pathParts.at(pathParts.length - 2) === 'cardroot') {
+    if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
       return 'root';
     } else {
       return pathParts.at(pathParts.length - 3);

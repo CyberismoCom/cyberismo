@@ -5,28 +5,28 @@ test('flattenTree works with test data', async () => {
   const result = flattenTree(testProject.cards);
 
   expect(result.length).toBe(11);
-  expect(result[0].key).toBe('USDL-43');
-  expect(result[1].key).toBe('USDL-44');
-  expect(result[2].key).toBe('USDL-45');
-  expect(result[3].key).toBe('USDL-46');
-  expect(result[4].key).toBe('USDL-47');
-  expect(result[5].key).toBe('USDL-53');
-  expect(result[6].key).toBe('USDL-48');
-  expect(result[7].key).toBe('USDL-49');
-  expect(result[8].key).toBe('USDL-50');
-  expect(result[9].key).toBe('USDL-51');
-  expect(result[10].key).toBe('USDL-52');
+  expect(result[0].key).toBe('usdl_43');
+  expect(result[1].key).toBe('usdl_44');
+  expect(result[2].key).toBe('usdl_45');
+  expect(result[3].key).toBe('usdl_46');
+  expect(result[4].key).toBe('usdl_47');
+  expect(result[5].key).toBe('usdl_53');
+  expect(result[6].key).toBe('usdl_48');
+  expect(result[7].key).toBe('usdl_49');
+  expect(result[8].key).toBe('usdl_50');
+  expect(result[9].key).toBe('usdl_51');
+  expect(result[10].key).toBe('usdl_52');
 });
 
 test('findPathTo works with test data', async () => {
-  const result = findPathTo('USDL-53', testProject.cards);
+  const result = findPathTo('usdl_53', testProject.cards);
 
   expect(result).not.toBeNull();
   expect(result!.length).toBe(4);
-  expect(result![0].key).toBe('USDL-43');
-  expect(result![1].key).toBe('USDL-44');
-  expect(result![2].key).toBe('USDL-47');
-  expect(result![3].key).toBe('USDL-53');
+  expect(result![0].key).toBe('usdl_43');
+  expect(result![1].key).toBe('usdl_44');
+  expect(result![2].key).toBe('usdl_47');
+  expect(result![3].key).toBe('usdl_53');
 });
 
 test('findPathTo returns null when card not found', async () => {
@@ -37,27 +37,29 @@ test('findPathTo returns null when card not found', async () => {
 
 test('findWorkflowForCard returns correct workflow', async () => {
   const card = testProject.cards[0].children![0];
+  expect(card.key).toBe('usdl_44');
+  expect(card.metadata?.cardType).toBe('test/cardTypes/simplePage');
   const result = findWorkflowForCard(card, testProject);
-  expect(result?.name).toBe('simple-workflow');
+  expect(result?.name).toBe('test/workflows/simple');
 });
 
 const testProject: Project = {
   name: 'Test project',
   cards: [
     {
-      key: 'USDL-43',
-      path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43',
+      key: 'usdl_43',
+      path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43',
       children: [
         {
-          key: 'USDL-44',
-          path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44',
+          key: 'usdl_44',
+          path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44',
           children: [
             {
-              key: 'USDL-45',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-45',
+              key: 'usdl_45',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_45',
               children: [],
               metadata: {
-                cardtype: 'controlledDocument',
+                cardType: 'test/cardTypes/controlledDocument',
                 title: 'Untitled',
                 workflowState: 'Draft',
                 rank: '0|a',
@@ -65,11 +67,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-46',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-46',
+              key: 'usdl_46',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_46',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Demand phase',
                 workflowState: 'Created',
                 rank: '0|b',
@@ -77,15 +79,15 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-47',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47',
+              key: 'usdl_47',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47',
               children: [
                 {
-                  key: 'USDL-53',
-                  path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-47/c/USDL-53',
+                  key: 'usdl_53',
+                  path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47/c/usdl_53',
                   children: [],
                   metadata: {
-                    cardtype: 'controlledDocument',
+                    cardType: 'test/cardTypes/controlledDocument',
                     title: 'Threat model',
                     workflowState: 'Draft',
                     rank: '0|c',
@@ -94,7 +96,7 @@ const testProject: Project = {
                 },
               ],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Design phase',
                 workflowState: 'Created',
                 rank: '0|d',
@@ -102,11 +104,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-48',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-48',
+              key: 'usdl_48',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_48',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Implementation phase',
                 workflowState: 'Created',
                 rank: '0|e',
@@ -114,17 +116,17 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-49',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-49',
+              key: 'usdl_49',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_49',
               children: [],
               // this card has no metadata
             },
             {
-              key: 'USDL-50',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-50',
+              key: 'usdl_50',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_50',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Release phase',
                 workflowState: 'Created',
                 rank: '0|f',
@@ -132,11 +134,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-51',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-51',
+              key: 'usdl_51',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_51',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Operations phase',
                 workflowState: 'Created',
                 rank: '0|g',
@@ -144,11 +146,11 @@ const testProject: Project = {
               },
             },
             {
-              key: 'USDL-52',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardroot/USDL-43/c/USDL-44/c/USDL-52',
+              key: 'usdl_52',
+              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_52',
               children: [],
               metadata: {
-                cardtype: 'simplePage',
+                cardType: 'test/cardTypes/simplePage',
                 title: 'Meetings',
                 workflowState: 'Created',
                 rank: '0|h',
@@ -157,7 +159,7 @@ const testProject: Project = {
             },
           ],
           metadata: {
-            cardtype: 'simplePage',
+            cardType: 'test/cardTypes/simplePage',
             title: 'SDL Project',
             workflowState: 'Created',
             rank: '0|i',
@@ -166,7 +168,7 @@ const testProject: Project = {
         },
       ],
       metadata: {
-        cardtype: 'decision',
+        cardType: 'test/cardTypes/decision',
         title: 'SDL Decision',
         workflowState: 'Draft',
         rank: '0|i',
@@ -176,7 +178,7 @@ const testProject: Project = {
   ],
   workflows: [
     {
-      name: 'controlled-document-workflow',
+      name: 'test/workflows/controlledDocument',
       states: [
         {
           name: 'Draft',
@@ -212,7 +214,7 @@ const testProject: Project = {
       ],
     },
     {
-      name: 'internalControlWorkflow',
+      name: 'test/workflows/internalControl',
       states: [
         {
           name: 'Open',
@@ -256,7 +258,7 @@ const testProject: Project = {
       ],
     },
     {
-      name: 'simple-workflow',
+      name: 'test/workflows/simple',
       states: [
         {
           name: 'Created',
@@ -273,16 +275,16 @@ const testProject: Project = {
   ],
   cardTypes: [
     {
-      name: 'controlledDocument',
-      workflow: 'controlled-document-workflow',
+      name: 'test/cardTypes/controlledDocument',
+      workflow: 'test/workflows/controlledDocument',
     },
     {
-      name: 'internalControl',
-      workflow: 'internalControlWorkflow',
+      name: 'test/cardTypes/internalControl',
+      workflow: 'test/workflows/internalControl',
     },
     {
-      name: 'simplePage',
-      workflow: 'simple-workflow',
+      name: 'test/cardTypes/simplePage',
+      workflow: 'test/workflows/simple',
     },
   ],
 };

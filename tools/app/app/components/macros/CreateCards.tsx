@@ -21,18 +21,18 @@ import { useState } from 'react';
 export type CreateCardsProps = {
   buttonlabel: string;
   template: string;
-  cardkey?: string;
+  cardKey?: string;
 } & MacroContext;
 
 export default function CreateCards({
   buttonlabel,
   template,
-  cardkey,
+  cardKey,
   key,
   preview,
 }: CreateCardsProps) {
   const { t } = useTranslation();
-  const { createCard, isUpdating } = useCard(cardkey || key);
+  const { createCard, isUpdating } = useCard(cardKey || key);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const router = useAppRouter();

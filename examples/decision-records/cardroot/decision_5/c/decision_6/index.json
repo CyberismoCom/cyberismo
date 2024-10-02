@@ -1,6 +1,0 @@
-{
-    "cardtype": "decision/cardtypes/decision-cardtype",
-    "title": "Document Decisions with Decision Records",
-    "workflowState": "Approved",
-    "decision/fieldtypes/obsoletedBy": null
-}

@@ -117,10 +117,10 @@ describe('shows command', () => {
         expect(children.length).to.equal(1);
       }
     });
-    it('show cardtypes - success()', async () => {
+    it('show cardTypes - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
-        ['cardtypes'],
+        ['cardTypes'],
         options,
       );
       expect(result.statusCode).to.equal(200);
@@ -128,17 +128,17 @@ describe('shows command', () => {
         const payloadAsArray = Object.values(result.payload);
         expect(payloadAsArray.length).to.equal(2);
         expect(payloadAsArray.at(0)).to.equal(
-          'decision/cardtypes/decision-cardtype.json',
+          'decision/cardTypes/decision.json',
         );
         expect(payloadAsArray.at(1)).to.equal(
-          'decision/cardtypes/simplepage-cardtype.json',
+          'decision/cardTypes/simplepage.json',
         );
       }
     });
-    it('show particular cardtype - success()', async () => {
+    it('show particular card type - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
-        ['cardtypes', 'decision/cardtypes/decision-cardtype'],
+        ['cardTypes', 'decision/cardTypes/decision'],
         options,
       );
       expect(result.statusCode).to.equal(200);
@@ -217,17 +217,15 @@ describe('shows command', () => {
         const payloadAsArray = Object.values(result.payload);
         expect(payloadAsArray.length).to.equal(2);
         expect(payloadAsArray.at(0)).to.equal(
-          'decision/workflows/decision-workflow.json',
+          'decision/workflows/decision.json',
         );
-        expect(payloadAsArray.at(1)).to.equal(
-          'decision/workflows/simple-workflow.json',
-        );
+        expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple.json');
       }
     });
     it('show particular workflow - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
-        ['workflow', 'decision/workflows/decision-workflow'],
+        ['workflow', 'decision/workflows/decision'],
         options,
       );
       expect(result.statusCode).to.equal(200);
@@ -287,19 +285,15 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       expect(result.payload).to.not.equal(undefined);
       const module = result.payload as moduleSettings;
-      expect(module.cardkeyPrefix).to.equal('mini');
+      expect(module.cardKeyPrefix).to.equal('mini');
       expect(module.name).to.equal('minimal');
       expect(module.path).to.equal(
         join(decisionRecordsPath, '.cards', 'modules', 'mini'),
       );
-      expect(module.cardtypes).to.include('mini/cardtypes/myCardtype.json');
+      expect(module.cardTypes).to.include('mini/cardTypes/myCardtype.json');
       expect(module.templates).to.include('mini/templates/test-template');
-      expect(module.workflows).to.include(
-        'mini/workflows/defaultWorkflow.json',
-      );
-      expect(module.workflows).to.include(
-        'mini/workflows/minimimal-workflow.json',
-      );
+      expect(module.workflows).to.include('mini/workflows/default.json');
+      expect(module.workflows).to.include('mini/workflows/minimal.json');
     });
     it('show particular card', async () => {
       // Since projects have been imported to each other, all cards can be found from each.
@@ -338,37 +332,33 @@ describe('shows command', () => {
       expect(cards.length).to.be.greaterThan(1);
       expect(cards.at(cards.length - 1)).to.include('decision_2');
     });
-    it('show cardtypes', async () => {
+    it('show cardTypes', async () => {
       const result = await commandHandler.command(
         Cmd.show,
-        ['cardtypes'],
+        ['cardTypes'],
         options,
       );
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
       expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal(
-        'decision/cardtypes/decision-cardtype.json',
-      );
+      expect(payloadAsArray.at(0)).to.equal('decision/cardTypes/decision.json');
       expect(payloadAsArray.at(1)).to.equal(
-        'decision/cardtypes/simplepage-cardtype.json',
+        'decision/cardTypes/simplepage.json',
       );
-      expect(payloadAsArray.at(2)).to.equal('mini/cardtypes/myCardtype.json');
+      expect(payloadAsArray.at(2)).to.equal('mini/cardTypes/myCardtype.json');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
-        ['cardtypes'],
+        ['cardTypes'],
         optionsMini,
       );
       expect(resultFromModule.statusCode).to.equal(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
       expect(payloadAsArray.length).to.equal(3);
-      expect(payloadAsArray.at(0)).to.equal(
-        'decision/cardtypes/decision-cardtype.json',
-      );
+      expect(payloadAsArray.at(0)).to.equal('decision/cardTypes/decision.json');
       expect(payloadAsArray.at(1)).to.equal(
-        'decision/cardtypes/simplepage-cardtype.json',
+        'decision/cardTypes/simplepage.json',
       );
-      expect(payloadAsArray.at(2)).to.equal('mini/cardtypes/myCardtype.json');
+      expect(payloadAsArray.at(2)).to.equal('mini/cardTypes/myCardtype.json');
     });
     it('show templates', async () => {
       const result = await commandHandler.command(
@@ -405,18 +395,10 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal(
-        'decision/workflows/decision-workflow.json',
-      );
-      expect(payloadAsArray.at(1)).to.equal(
-        'decision/workflows/simple-workflow.json',
-      );
-      expect(payloadAsArray.at(2)).to.equal(
-        'mini/workflows/defaultWorkflow.json',
-      );
-      expect(payloadAsArray.at(3)).to.equal(
-        'mini/workflows/minimimal-workflow.json',
-      );
+      expect(payloadAsArray.at(0)).to.equal('decision/workflows/decision.json');
+      expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple.json');
+      expect(payloadAsArray.at(2)).to.equal('mini/workflows/default.json');
+      expect(payloadAsArray.at(3)).to.equal('mini/workflows/minimal.json');
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['workflows'],
@@ -425,18 +407,10 @@ describe('shows command', () => {
       expect(resultFromModule.statusCode).to.equal(200);
       payloadAsArray = Object.values(resultFromModule.payload!);
       expect(payloadAsArray.length).to.equal(4);
-      expect(payloadAsArray.at(0)).to.equal(
-        'decision/workflows/decision-workflow.json',
-      );
-      expect(payloadAsArray.at(1)).to.equal(
-        'decision/workflows/simple-workflow.json',
-      );
-      expect(payloadAsArray.at(2)).to.equal(
-        'mini/workflows/defaultWorkflow.json',
-      );
-      expect(payloadAsArray.at(3)).to.equal(
-        'mini/workflows/minimimal-workflow.json',
-      );
+      expect(payloadAsArray.at(0)).to.equal('decision/workflows/decision.json');
+      expect(payloadAsArray.at(1)).to.equal('decision/workflows/simple.json');
+      expect(payloadAsArray.at(2)).to.equal('mini/workflows/default.json');
+      expect(payloadAsArray.at(3)).to.equal('mini/workflows/minimal.json');
     });
     it('show attachments', async () => {
       const result = await commandHandler.command(
