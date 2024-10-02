@@ -27,6 +27,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "enumValue": {
             "type": "string"

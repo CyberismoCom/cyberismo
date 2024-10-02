@@ -11,6 +11,10 @@
           "description": "Configuration for the card tree",
           "type": "object",
           "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false
+            },
             "directories": {
               "type": "object",
               "additionalProperties": false,
@@ -23,8 +27,10 @@
                   "properties": {
                     "files": {
                       "type": "object",
+                      "additionalProperties": false,
                       "properties": {
-                        "cardsconfig.json": {}
+                        "cardsconfig.json": {},
+                        ".schema": {}
                       },
                       "required": [".schema", "cardsconfig.json"]
                     },
@@ -35,6 +41,10 @@
                         "calculations": {
                           "type": "object",
                           "properties": {
+                            "directories": {
+                              "type": "object",
+                              "additionalProperties": false
+                            },
                             "files": {
                               "type": "object",
                               "$comment": "Each file must be a logic program file",
@@ -55,6 +65,14 @@
                           "allOf": [
                             {
                               "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
@@ -67,9 +85,7 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {
-                                      "type": "object"
-                                    }
+                                    ".schema": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -80,6 +96,14 @@
                         "linktypes": {
                           "type": "object",
                           "allOf": [
+                            {
+                              "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
                             {
                               "properties": {
                                 "files": {
@@ -94,9 +118,7 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {
-                                      "type": "object"
-                                    }
+                                    ".schema": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -107,6 +129,14 @@
                         "fieldtypes": {
                           "type": "object",
                           "allOf": [
+                            {
+                              "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
                             {
                               "properties": {
                                 "files": {
@@ -121,9 +151,7 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {
-                                      "type": "object"
-                                    }
+                                    ".schema": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -154,9 +182,15 @@
                                               "additionalProperties": false,
                                               "patternProperties": {
                                                 "^[a-z]+_[0-9a-z]+$": {
-                                                  "type": "object",
                                                   "$ref": "#/$defs/card-directory-schema#"
                                                 }
+                                              }
+                                            },
+                                            "files": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                ".schema": {}
                                               }
                                             }
                                           }
@@ -167,9 +201,7 @@
                                       "type": "object",
                                       "additionalProperties": false,
                                       "properties": {
-                                        ".schema": {
-                                          "type": "object"
-                                        },
+                                        ".schema": {},
                                         "template.json": {
                                           "type": "object",
                                           "$comment": "Each file needs to be separately validated against 'contentSchema'",
@@ -193,6 +225,14 @@
                           "allOf": [
                             {
                               "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
@@ -205,9 +245,7 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {
-                                      "type": "object"
-                                    }
+                                    ".schema": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -231,15 +269,22 @@
           }
         },
         "cardroot": {
-          "description": "The contents of the cardtree. Each subdirectory contains a top level card. The name of the directory is the cardkey, for example ABC-123.",
+          "description": "The contents of the card-tree. Each subdirectory contains a top level card. The name of the directory is the card-key",
           "type": "object",
           "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                ".gitkeep": {},
+                ".schema": {}
+              }
+            },
             "directories": {
               "type": "object",
               "additionalProperties": false,
               "patternProperties": {
                 "^[a-z]+_[0-9a-z]+$": {
-                  "type": "object",
                   "$ref": "#/$defs/card-directory-schema#"
                 }
               }
@@ -352,9 +397,7 @@
                             "files": {
                               "type": "object",
                               "properties": {
-                                ".schema": {
-                                  "type": "object"
-                                }
+                                ".schema": {}
                               },
                               "required": [".schema"]
                             }
@@ -382,9 +425,7 @@
                             "files": {
                               "type": "object",
                               "properties": {
-                                ".schema": {
-                                  "type": "object"
-                                }
+                                ".schema": {}
                               },
                               "required": [".schema"]
                             }
@@ -438,9 +479,7 @@
                                   "type": "object",
                                   "additionalProperties": false,
                                   "properties": {
-                                    ".schema": {
-                                      "type": "object"
-                                    },
+                                    ".schema": {},
                                     "template.json": {
                                       "type": "object",
                                       "$comment": "Each file needs to be separately validated against 'contentSchema'",
@@ -480,9 +519,7 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    ".schema": {
-                      "type": "object"
-                    },
+                    ".schema": {},
                     "cardsconfig.json": {
                       "type": "object"
                     }
@@ -499,12 +536,8 @@
       "description": "The directory schema of a card, using the format of https://github.com/jpoehnelt/directory-schema-validator",
       "type": "object",
       "properties": {
-        "type": {
-          "type": "string",
-          "pattern": "^directory$"
-        },
         "name": {
-          "description": "The name of the card directory is the card key, for example abc_123",
+          "description": "The name of the card directory is the card key",
           "type": "string",
           "minLength": 5,
           "maxLength": 20,
@@ -512,7 +545,9 @@
         },
         "files": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
+            ".schema": {},
             "index.json": {
               "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its cardtype",
               "type": "object",
@@ -536,7 +571,13 @@
           "properties": {
             "a": {
               "description": "A directory for file attachments of the card",
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "directories": {
+                  "type": "object",
+                  "additionalProperties": false
+                }
+              }
             },
             "c": {
               "description": "A directory for child cards",

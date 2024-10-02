@@ -3,6 +3,7 @@
   "$id": "template-schema",
   "description": "A template object provides supplemental information about a template directory structure ",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "displayName": {
       "description": "The name of the template as it should be displayed in the user interface. For example, 'Decision'.",
