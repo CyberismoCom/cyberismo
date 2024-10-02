@@ -520,7 +520,7 @@
                   "additionalProperties": false,
                   "properties": {
                     ".schema": {},
-                    "cardsconfig.json": {
+                    "cardsConfig.json": {
                       "type": "object"
                     }
                   },
