@@ -7,21 +7,24 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 
 import chaiAsPromised from 'chai-as-promised';
+import { QueryResult } from '../src/types/queries.js';
 use(chaiAsPromised);
 
 const calculate = new Calculate();
 
-const expectedTree = [
+const expectedTree: QueryResult<'tree'>[] = [
   {
     key: 'decision_5',
     labels: [],
     links: [],
+    rank: '0|a',
     results: [
       {
         key: 'decision_6',
         labels: [],
         links: [],
         results: [],
+        rank: '0|a',
         policyChecks: { successes: [], failures: [] },
         deniedOperations: {
           transition: [],
