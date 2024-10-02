@@ -13,6 +13,25 @@
 import { Project } from '../containers/project.js';
 import { BaseResult, ParseResult } from '../types/queries.js';
 
+/**
+ * This function takes care of encoding chars, which might produce issues in clingo
+ * This should be done for user provided values
+ */
+export function encodeClingoValue(value: string) {
+  return value.replace(/[\n\\"]/g, (char) => {
+    return `\\${char}`;
+  });
+}
+
+/**
+ * This function reverses the encoding made by the "encodeClingoValue" function
+ */
+export function decodeClingoValue(value: string) {
+  return value.replace(/\\([\n\\"])/g, (match, char) => {
+    return char;
+  });
+}
+
 class ClingoParser {
   private keywords = [
     'queryError',
@@ -83,7 +102,7 @@ class ClingoParser {
     },
     field: (key: string, fieldName: string, fieldValue: string) => {
       const res = this.getOrInitResult(key);
-      res[fieldName] = fieldValue;
+      res[fieldName] = decodeClingoValue(fieldValue);
     },
     label: (key: string, label: string) => {
       const res = this.getOrInitResult(key);
@@ -230,31 +249,127 @@ class ClingoParser {
     this.sortByLevel(this.result.results);
   }
 
+  /**
+   * This methods is responsible for converting clingo output to a parsed object
+   * @param input clingo input to parse
+   * @returns
+   */
   public async parseInput(input: string): Promise<ParseResult<BaseResult>> {
-    const regex = new RegExp(`(${this.keywords.join('|')})\\(([^)]*)\\)`);
-    const lines = input.split('\n');
+    let position = 0;
 
-    for (const line of lines) {
-      const match = line.match(regex);
-      if (match && match.length === 3) {
-        const command = match[1];
-        const args = match[2].split(',').map((x) => x.trim());
+    while (position < input.length) {
+      const keywordMatch = this.findKeyword(input, position);
 
-        // Sanitize the arguments to remove extra quotes
-        const sanitizedArgs = args.map((arg) => arg.replace(/^"(.*)"$/, '$1'));
+      if (!keywordMatch) {
+        break;
+      }
 
+      const { keyword, endIndex } = keywordMatch;
+      position = endIndex;
+
+      const parsed = this.parseArguments(input, position);
+      if (parsed) {
         // Apply the command handler with sanitized arguments
-        await this.commandHandlers[command](...sanitizedArgs);
+        await this.commandHandlers[keyword](...parsed.args);
+        position = parsed.endPosition; // move position after the argument closing parenthesis
       }
     }
 
     this.applyResultProcessing();
     const result = this.result;
 
-    // reset the parser state
+    // Reset the parser state
     this.reset();
 
-    return result; // We can assume
+    return result;
+  }
+
+  /**
+   * This method finds the next keyword in a string after a specified point
+   * @param input The string which it being searched
+   * @param start The position from which to start the search from
+   * @returns
+   */
+  private findKeyword(
+    input: string,
+    start: number,
+  ): { keyword: string; startIndex: number; endIndex: number } | null {
+    // Create a regex dynamically from the keywords list
+    const regex = new RegExp(`(${this.keywords.join('|')})\\(`, 'g');
+
+    // Apply the regex starting from the current position
+    regex.lastIndex = start;
+    const match = regex.exec(input);
+
+    if (match) {
+      return {
+        keyword: match[1], // The matched keyword (first capture group)
+        startIndex: match.index, // Position of the matched keyword
+        endIndex: match.index + match[0].length, // Position after the keyword and opening parenthesis
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * This method is a custom parser, which takes in the whole clingo output and parses the arguments.
+   * @param input Clingo output
+   * @param position Position of the command being parsed inside the string
+   * @returns
+   */
+  private parseArguments(
+    input: string,
+    position: number,
+  ): { args: string[]; endPosition: number } | null {
+    let currentArg = '';
+    const args: string[] = [];
+    let insideQuote = false;
+    let escapeNext = false;
+
+    for (let i = position; i < input.length; i++) {
+      const char = input[i];
+
+      if (escapeNext) {
+        currentArg += char; // Add the escaped character
+        escapeNext = false;
+        continue;
+      }
+
+      if (char === '\\') {
+        escapeNext = true; // Set flag to escape the next character
+        continue;
+      }
+
+      if (char === '"') {
+        if (!insideQuote) {
+          // We can ignore the chars, which are before a quoted string
+          currentArg = '';
+        }
+        insideQuote = !insideQuote; // Toggle inside/outside quotes
+        continue;
+      }
+
+      if (char === ',' && !insideQuote) {
+        args.push(currentArg);
+        currentArg = '';
+        continue;
+      }
+
+      if (char === ')' && !insideQuote) {
+        if (currentArg) {
+          args.push(currentArg);
+        }
+        return {
+          args,
+          endPosition: i + 1,
+        };
+      }
+
+      currentArg += char;
+    }
+
+    return null; // No valid arguments found
   }
 }
 

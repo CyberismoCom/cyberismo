@@ -1,5 +1,7 @@
 import { expect } from 'chai';
-import ClingoParser from '../../src/utils/clingo-parser.js';
+import ClingoParser, {
+  encodeClingoValue,
+} from '../../src/utils/clingo-parser.js';
 import { Project } from '../../src/containers/project.js';
 
 describe('ClingoParser', () => {
@@ -41,9 +43,16 @@ describe('ClingoParser', () => {
   });
 
   it('should parse field correctly', async () => {
-    const input = 'result("key1")\nfield("key1", "fieldName", "fieldValue")';
+    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue('fieldValue')}")`;
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal('fieldValue');
+  });
+
+  it('should parse field correctly which has special characeters', async () => {
+    const fieldValue = 'fieldValueä)"()="()()()=\n';
+    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;
+    const result = await parser.parseInput(input);
+    expect(result.results[0].fieldName).to.equal(fieldValue);
   });
 
   it('should parse label correctly', async () => {
@@ -162,8 +171,8 @@ describe('ClingoParser', () => {
     const input = `
             result("key1")
             result("key2")
-            field("key1", "field", "b")
-            field("key2", "field", "a")
+            field("key1", "field", "${encodeClingoValue('b')}")
+            field("key2", "field", "${encodeClingoValue('a')}")
             order("1", "0", "field", "ASC")`;
     const result = await parser.parseInput(input);
 
@@ -176,8 +185,8 @@ describe('ClingoParser', () => {
     const input = `
             result("key1")
             result("key2")
-            field("key1", "field", "b")
-            field("key2", "field", "a")
+            field("key1", "field", "${encodeClingoValue('a')}")
+            field("key2", "field", "${encodeClingoValue('b')}")
             order("1", "0", "field", "DESC")`;
     const result = await parser.parseInput(input);
 
@@ -190,11 +199,11 @@ describe('ClingoParser', () => {
     const input = `
         result("key1")
         childResult("key1", "key2")
-        field("key2", "field", "b")
+        field("key2", "field", "${encodeClingoValue('b')}")
         childResult("key1", "key3")
-        field("key3", "field", "a")
+        field("key3", "field", "${encodeClingoValue('a')}")
         childResult("key1", "key4")
-        field("key4", "field", "c")
+        field("key4", "field", "${encodeClingoValue('c')}")
         order(2, 1, "field", "ASC")
     `;
 
@@ -209,11 +218,11 @@ describe('ClingoParser', () => {
     const input = `
         result("key1")
         childResult("key1", "key2")
-        field("key2", "field", "b")
+        field("key2", "field", "${encodeClingoValue('b')}")
         childResult("key1", "key3")
-        field("key3", "field", "a")
+        field("key3", "field", "${encodeClingoValue('a')}")
         childResult("key1", "key4")
-        field("key4", "field", "c")
+        field("key4", "field", "${encodeClingoValue('c')}")
         order(2, 1, "field", "DESC")
     `;
 
@@ -231,11 +240,11 @@ describe('ClingoParser', () => {
         childResult("key1", "key2")
         childResult("key2", "key3")
         childResult("key3", "key4")
-        field("key4", "field", "b")
+        field("key4", "field", "${encodeClingoValue('b')}")
         childResult("key3", "key5")
-        field("key5", "field", "a")
+        field("key5", "field", "${encodeClingoValue('a')}")
         childResult("key3", "key6")
-        field("key6", "field", "c")
+        field("key6", "field", "${encodeClingoValue('c')}")
         order(4, 1, "field", "ASC")
     `;
 
@@ -258,7 +267,7 @@ describe('ClingoParser', () => {
   it('should handle multiple commands correctly', async () => {
     const input = `
             result("key1")
-            field("key1", "fieldName", "fieldValue")
+            field("key1", "fieldName", "${encodeClingoValue('fieldValue')}")
             label("key1", "label1")
             link("key1", "cardKey", "linkType", "linkDescription")
             transitionDenied("key1", "transitionName", "errorMessage")
