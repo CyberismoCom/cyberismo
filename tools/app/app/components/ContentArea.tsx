@@ -362,20 +362,24 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
     // If no headers are visible, we are in the middle of a long section and should not update anything
     if (visibleHeaderIds.length > 0) {
+      const firstVisibleHeaderId = visibleHeaderIds[0];
       const lastVisibleHeaderId = visibleHeaderIds[visibleHeaderIds.length - 1];
 
       // Update table of contents highlight
       setVisibleHeaderId(lastVisibleHeaderId);
 
+      if (lastTitle === firstVisibleHeaderId && cardKey === card.key) return;
+
+      // Don't scroll upon edit if we are at top of document (first header visible)
+      const shouldScroll = !visibleHeaderIds.includes(headers[0].id);
+
       // Save current position for switching between edit/view modes
-      if (lastTitle !== lastVisibleHeaderId) {
-        dispatch(
-          viewChanged({
-            title: lastVisibleHeaderId,
-            cardKey: card.key,
-          }),
-        );
-      }
+      dispatch(
+        viewChanged({
+          title: shouldScroll ? firstVisibleHeaderId : null,
+          cardKey: card.key,
+        }),
+      );
     }
   };
 
