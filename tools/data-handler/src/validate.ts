@@ -85,8 +85,8 @@ export class Validate {
   }
 
   // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(path: string): Promise<boolean> {
-    let message = '';
+  private async readAndValidateContentFiles(path: string): Promise<string[]> {
+    const message: string[] = [];
     try {
       const files = await readdir(path, {
         withFileTypes: true,
@@ -123,19 +123,15 @@ export class Validate {
             activeJsonSchema,
           );
           for (const error of result.errors) {
-            const msg = `\nValidation error from '${fullFileNameWithPath}': ${error.message}.\n`;
-            message += msg;
+            const msg = `Validation error from '${fullFileNameWithPath}': ${error.message}.`;
+            message.push(msg);
           }
         }
       }
     } catch (error) {
       throw new Error(errorFunction(error));
     }
-    if (!message) {
-      return true;
-    }
-    console.error(message);
-    return false;
+    return message;
   }
 
   private parseValidatorMessage(errorObject: object[]): string {
@@ -273,15 +269,19 @@ export class Validate {
         }
         return validationErrors;
       } else {
+        const errorMsg: string[] = [];
+
         // Then, validate that each 'contentSchema' children as well.
-        await this.readAndValidateContentFiles(projectPath);
+        const result = await this.readAndValidateContentFiles(projectPath);
+        if (result.length > 0) {
+          errorMsg.push(...result);
+        }
 
         // Finally, validate that each card is correct
         const project = new Project(projectPath);
         const cards = await project.cards();
         cards.push(...(await project.templateCards()));
 
-        const errorMsg: string[] = [];
         for (const card of cards) {
           if (card.metadata) {
             // validate card's workflow
