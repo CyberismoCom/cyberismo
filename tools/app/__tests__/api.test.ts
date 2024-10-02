@@ -8,7 +8,7 @@ import { GET as GET_CARD } from '../app/api/cards/[key]/route';
 import { GET as GET_ATTACHMENT } from '../app/api/cards/[key]/a/[attachment]/route';
 import { GET as GET_CARD_TYPE } from '../app/api/cardTypes/route';
 import { NextRequest } from 'next/server';
-import { cardType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { CardType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 

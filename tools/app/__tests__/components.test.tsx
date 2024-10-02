@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { TreeMenu } from '../app/components/TreeMenu';
 import { Project } from '@/app/lib/definitions';
 import StateSelector from '@/app/components/StateSelector';
-import { workflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
+import { WorkflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
 import { useTranslation } from 'react-i18next';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
@@ -235,15 +235,15 @@ const testProject: Project = {
       states: [
         {
           name: 'Draft',
-          category: workflowCategory.initial,
+          category: WorkflowCategory.initial,
         },
         {
           name: 'Approved',
-          category: workflowCategory.closed,
+          category: WorkflowCategory.closed,
         },
         {
           name: 'Archived',
-          category: workflowCategory.closed,
+          category: WorkflowCategory.closed,
         },
       ],
       transitions: [
@@ -274,19 +274,19 @@ const testProject: Project = {
       states: [
         {
           name: 'Open',
-          category: workflowCategory.initial,
+          category: WorkflowCategory.initial,
         },
         {
           name: 'Not Required',
-          category: workflowCategory.closed,
+          category: WorkflowCategory.closed,
         },
         {
           name: 'OK',
-          category: workflowCategory.closed,
+          category: WorkflowCategory.closed,
         },
         {
           name: 'Not OK',
-          category: workflowCategory.active,
+          category: WorkflowCategory.active,
         },
       ],
       transitions: [
@@ -322,7 +322,7 @@ const testProject: Project = {
       states: [
         {
           name: 'Created',
-          category: workflowCategory.initial,
+          category: WorkflowCategory.initial,
         },
       ],
       transitions: [

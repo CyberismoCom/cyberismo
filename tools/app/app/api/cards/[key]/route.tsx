@@ -20,8 +20,8 @@ import { Transition } from '@cyberismocom/data-handler/transition';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  fetchCardDetails,
-  metadataContent,
+  FetchCardDetails,
+  MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 export const dynamic = 'force-dynamic';
@@ -155,7 +155,7 @@ export async function PUT(request: NextRequest) {
     const editCommand = new Edit();
 
     for (const [metadataKey, metadataValue] of Object.entries(res.metadata)) {
-      const value = metadataValue as metadataContent;
+      const value = metadataValue as MetadataContent;
 
       try {
         await editCommand.editCardMetadata(
@@ -227,7 +227,7 @@ async function getCardDetails(
     });
   }
 
-  const fetchCardDetails: fetchCardDetails = {
+  const fetchCardDetails: FetchCardDetails = {
     attachments: true,
     children: false,
     content: true,

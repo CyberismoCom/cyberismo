@@ -17,13 +17,13 @@ import { readdirSync } from 'node:fs';
 
 // ismo
 import {
-  attachmentDetails,
-  card,
-  cardNameRegEx,
-  fetchCardDetails,
-  resource,
-  template,
-  templateMetadata,
+  Card,
+  CardAttachment,
+  CardNameRegEx,
+  FetchCardDetails,
+  Resource,
+  Template as TemplateInterface,
+  TemplateMetadata,
 } from '../interfaces/project-interfaces.js';
 import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
@@ -50,12 +50,12 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static dotSchemaContent: object = {
+  private static DotSchemaContent: object = {
     id: 'card-base-schema',
     version: 1,
   };
 
-  constructor(path: string, template: resource, project?: Project) {
+  constructor(path: string, template: Resource, project?: Project) {
     // Templates might come from modules. Remove module name from template name.
     template.name = basename(template.name);
     super(path, template.name);
@@ -76,9 +76,9 @@ export class Template extends CardContainer {
   //           Make 'card' item changed to write them to json file.
   //           Finally copy from temp to real place.
   private async doCreateCards(
-    cards: card[],
-    parentCard?: card,
-  ): Promise<card[]> {
+    cards: Card[],
+    parentCard?: Card,
+  ): Promise<Card[]> {
     const templateIDMap: mappingValue[] = [];
     const tempDestination = join(this.project.cardRootFolder, 'temp');
 
@@ -130,7 +130,7 @@ export class Template extends CardContainer {
         card.path = card.path
           .split(sep)
           .map((pathPart) => {
-            if (cardNameRegEx.test(pathPart)) {
+            if (CardNameRegEx.test(pathPart)) {
               const found = templateIDMap.find(
                 (element) => element.from === pathPart,
               );
@@ -152,7 +152,7 @@ export class Template extends CardContainer {
       await mkdir(tempDestination, { recursive: true });
       await writeJsonFile(
         join(tempDestination, Project.schemaContentFile),
-        Template.dotSchemaContent,
+        Template.DotSchemaContent,
       );
 
       // Create cards to the temp-folder.
@@ -323,7 +323,7 @@ export class Template extends CardContainer {
    * @param {string} parentCard parent card; optional - if missing will create a top-level card
    * @returns next available card key ID
    */
-  public async addCard(cardType: string, parentCard?: card): Promise<string> {
+  public async addCard(cardType: string, parentCard?: Card): Promise<string> {
     const destinationCardPath = parentCard
       ? join(await this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
@@ -373,7 +373,7 @@ export class Template extends CardContainer {
    * Return all attachment in the template.
    * @returns all attachments in the template.
    */
-  public async attachments(): Promise<attachmentDetails[]> {
+  public async attachments(): Promise<CardAttachment[]> {
     return super.attachments(this.templateCardsPath);
   }
 
@@ -393,13 +393,13 @@ export class Template extends CardContainer {
   /**
    * Returns details (as defined by cardDetails) of a card.
    * @param {string} cardKey card key (project prefix and a number, e.g. test_1)
-   * @param {fetchCardDetails} cardDetails which card details are returned.
+   * @param {FetchCardDetails} cardDetails which card details are returned.
    * @returns Card details, or undefined if the card cannot be found.
    */
   public async cardDetailsById(
     cardKey: string,
-    cardDetails: fetchCardDetails,
-  ): Promise<card | undefined> {
+    cardDetails: FetchCardDetails,
+  ): Promise<Card | undefined> {
     return super.findCard(this.templateCardsPath, cardKey, cardDetails);
   }
 
@@ -421,8 +421,8 @@ export class Template extends CardContainer {
    */
   public async cards(
     placeHolderPath?: string,
-    details?: fetchCardDetails,
-  ): Promise<card[]> {
+    details?: FetchCardDetails,
+  ): Promise<Card[]> {
     if (placeHolderPath) {
       console.log('Variable is not used');
     }
@@ -437,7 +437,7 @@ export class Template extends CardContainer {
    * todo: it would make more sense if Project would have this function
    * @returns operation details
    */
-  public async create(templateContent: templateMetadata): Promise<string> {
+  public async create(templateContent: TemplateMetadata): Promise<string> {
     const isCreated = this.isCreated();
     if (!isCreated) {
       try {
@@ -456,7 +456,7 @@ export class Template extends CardContainer {
             }),
             writeJsonFile(
               join(this.templateCardsPath, Project.schemaContentFile),
-              Template.dotSchemaContent,
+              Template.DotSchemaContent,
             ),
           ]);
 
@@ -482,7 +482,7 @@ export class Template extends CardContainer {
    * @param parentCard parent card
    * @returns array of created card keys
    */
-  public async createCards(parentCard?: card): Promise<card[]> {
+  public async createCards(parentCard?: Card): Promise<Card[]> {
     const cards = await this.cards('', {
       content: true,
       contentType: 'adoc',
@@ -506,8 +506,8 @@ export class Template extends CardContainer {
    */
   public async findSpecificCard(
     cardKey: string,
-    details: fetchCardDetails = {},
-  ): Promise<card | undefined> {
+    details: FetchCardDetails = {},
+  ): Promise<Card | undefined> {
     return super.findCard(this.templateCardsPath, cardKey, details);
   }
 
@@ -532,7 +532,7 @@ export class Template extends CardContainer {
    * Returns an array of all the cards in the project. Cards don't have content nor metadata.
    * @returns all cards in the project.
    */
-  public async listCards(): Promise<card[]> {
+  public async listCards(): Promise<Card[]> {
     return super.cards(this.templateCardsPath);
   }
 
@@ -558,7 +558,7 @@ export class Template extends CardContainer {
    * Shows details of template.
    * @returns details of template
    */
-  public async show(): Promise<template> {
+  public async show(): Promise<TemplateInterface> {
     const name =
       this.moduleTemplatePath(this.containerName) !== ''
         ? this.moduleNameFromPath(this.containerName)
@@ -570,7 +570,7 @@ export class Template extends CardContainer {
       numberOfCards: (await super.cards(this.templateCardsPath)).length,
       metadata: (await readJsonFile(
         this.templateConfigurationFilePath(),
-      )) as templateMetadata,
+      )) as TemplateMetadata,
     };
   }
 

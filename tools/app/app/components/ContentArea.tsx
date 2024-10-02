@@ -34,7 +34,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
-import { linkType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { LinkType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
@@ -55,7 +55,7 @@ import parseReact from 'html-react-parser';
 type ContentAreaProps = {
   project: Project | null;
   card: CardDetails;
-  linkTypes: linkType[];
+  linkTypes: LinkType[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
@@ -78,7 +78,7 @@ interface LinkFormData {
 }
 
 interface LinkFormProps {
-  linkTypes: linkType[];
+  linkTypes: LinkType[];
   cards: Project['cards'];
   cardType: string | undefined;
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
@@ -97,7 +97,7 @@ export function LinkForm({
   });
   const { t } = useTranslation();
 
-  const handledLinkTypes: (linkType & {
+  const handledLinkTypes: (LinkType & {
     direction: 'inbound' | 'outbound';
     id: number;
   })[] = [];

@@ -30,8 +30,8 @@ import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from './utils/log-utils.js';
 import {
-  templateMetadata,
-  workflowMetadata,
+  TemplateMetadata,
+  WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
 
 const invalidNames = new RegExp(
@@ -748,7 +748,7 @@ export class Commands {
       };
     }
     const content = templateContent
-      ? (JSON.parse(templateContent) as templateMetadata)
+      ? (JSON.parse(templateContent) as TemplateMetadata)
       : Create.defaultTemplateContent();
     // Note that templateContent is validated in createTemplate()
     try {
@@ -781,7 +781,7 @@ export class Commands {
       };
     }
     const content = workflowContent
-      ? (JSON.parse(workflowContent) as workflowMetadata)
+      ? (JSON.parse(workflowContent) as WorkflowMetadata)
       : Create.defaultWorkflowContent(workflowName);
     // Note that workflowContent is validated in the createWorkflow function.
     try {

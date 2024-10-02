@@ -9,7 +9,7 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 // ismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
-import { ProjectSettings } from '../src/project-settings.js';
+import { ProjectConfiguration } from '../src/project-settings.js';
 import { fileURLToPath } from 'node:url';
 
 describe('project', () => {
@@ -127,7 +127,7 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = ProjectSettings.getInstance(configFile);
+    const projectSettings = ProjectConfiguration.getInstance(configFile);
     expect(projectSettings).to.not.equal(undefined);
 
     const prefix = projectSettings.cardKeyPrefix;
@@ -156,9 +156,9 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings1 = ProjectSettings.getInstance(configFile1);
-    const projectSettings2 = ProjectSettings.getInstance(configFile2);
-    const projectSettings3 = ProjectSettings.getInstance(configFile2);
+    const projectSettings1 = ProjectConfiguration.getInstance(configFile1);
+    const projectSettings2 = ProjectConfiguration.getInstance(configFile2);
+    const projectSettings3 = ProjectConfiguration.getInstance(configFile2);
 
     expect(projectSettings1.name).to.not.equal(projectSettings2.name);
     expect(projectSettings2.name).to.equal(projectSettings3.name);

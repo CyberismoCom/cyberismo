@@ -12,7 +12,7 @@
 
 import { EditorView } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
-import { attachmentDetails } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { Document, Section } from '@asciidoctor/core';
 
 /**
@@ -122,7 +122,7 @@ export function isLastChar(view: EditorView, position: number) {
  */
 export function addAttachment(
   editor: EditorView,
-  { fileName, mimeType }: attachmentDetails,
+  { fileName, mimeType }: CardAttachment,
   cardKey: string,
 ) {
   const target = editor.state.selection.main.to;

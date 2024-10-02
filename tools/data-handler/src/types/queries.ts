@@ -2,7 +2,7 @@
  * Types for query result
  */
 
-import { workflowCategory } from '../interfaces/project-interfaces.js';
+import { WorkflowCategory } from '../interfaces/project-interfaces.js';
 
 export interface CalculationLink {
   key: string;
@@ -58,6 +58,6 @@ interface TreeQueryResult extends BaseResult {
   'base/fieldTypes/progress'?: string;
   rank: string;
   title: string;
-  workflowStateCategory?: workflowCategory;
+  workflowStateCategory?: WorkflowCategory;
   results: TreeQueryResult[];
 }

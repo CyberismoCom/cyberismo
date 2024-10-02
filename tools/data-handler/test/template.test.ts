@@ -8,7 +8,7 @@ import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // ismo
-import { card } from '../src/interfaces/project-interfaces.js';
+import { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Template } from '../src/containers/template.js';
@@ -90,7 +90,7 @@ describe('template', () => {
   it('try to create a specific card from an empty template', async () => {
     const template = new Template(path, { name: 'empty' });
     const cards = await template.cards();
-    const nonExistingCard: card = {
+    const nonExistingCard: Card = {
       key: '1111',
       path: '',
       content: '',
@@ -168,7 +168,7 @@ describe('template', () => {
     const template = new Template(path, {
       name: 'decision/templates/decision',
     });
-    const parentCard: card = {
+    const parentCard: Card = {
       key: 'decision_1',
       path: join(template.templateCardsFolder(), 'decision_1'),
     };
@@ -261,7 +261,7 @@ describe('template', () => {
       { name: 'decision/templates/decision' },
       project,
     );
-    const parentCard: card = {
+    const parentCard: Card = {
       key: 'i-dont-exist',
       path: join(template.templateCardsFolder(), 'decision_1'),
     };

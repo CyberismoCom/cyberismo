@@ -15,15 +15,15 @@ import { open } from 'node:fs/promises';
 
 // ismo
 import { writeJsonFile } from './utils/json.js';
-import { projectSettings } from './interfaces/project-interfaces.js';
+import { ProjectSettings } from './interfaces/project-interfaces.js';
 import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './validate.js';
 
 /**
  * Represents Project's cardsConfig.json file.
  */
-export class ProjectSettings implements projectSettings {
-  private static instance: ProjectSettings;
+export class ProjectConfiguration implements ProjectSettings {
+  private static instance: ProjectConfiguration;
 
   name: string;
   cardKeyPrefix: string;
@@ -57,7 +57,7 @@ export class ProjectSettings implements projectSettings {
   private readSettings() {
     let settings;
     try {
-      settings = readJsonFileSync(this.settingPath) as projectSettings;
+      settings = readJsonFileSync(this.settingPath) as ProjectSettings;
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(
@@ -82,7 +82,7 @@ export class ProjectSettings implements projectSettings {
   }
 
   // Return the configuration as object
-  private toJSON(): projectSettings {
+  private toJSON(): ProjectSettings {
     return {
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
@@ -93,15 +93,15 @@ export class ProjectSettings implements projectSettings {
    * Possibly creates (if no instance exists, or path is different) and returns an instance of ProjectSettings.
    * @returns instance of ProjectSettings.
    */
-  public static getInstance(path: string): ProjectSettings {
+  public static getInstance(path: string): ProjectConfiguration {
     // If there is no instance, or if path is not the same as current instance's path; create a new one.
     if (
-      !ProjectSettings.instance ||
-      path !== ProjectSettings.instance.settingPath
+      !ProjectConfiguration.instance ||
+      path !== ProjectConfiguration.instance.settingPath
     ) {
-      ProjectSettings.instance = new ProjectSettings(path);
+      ProjectConfiguration.instance = new ProjectConfiguration(path);
     }
-    return ProjectSettings.instance;
+    return ProjectConfiguration.instance;
   }
 
   /**

@@ -4,7 +4,7 @@ import { dirname, join, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Show } from '../src/show.js';
-import { fetchCardDetails } from '../src/interfaces/project-interfaces.js';
+import { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from '../src/utils/log-utils.js';
 
@@ -63,7 +63,7 @@ describe('show', () => {
   });
   it('showCardDetails (success)', async () => {
     const cardId = 'decision_1';
-    const details: fetchCardDetails = {
+    const details: FetchCardDetails = {
       content: true,
       metadata: true,
       attachments: true,
@@ -77,7 +77,7 @@ describe('show', () => {
   });
   it('showCardDetails - empty card key', async () => {
     const cardId = '';
-    const details: fetchCardDetails = {
+    const details: FetchCardDetails = {
       content: true,
       metadata: true,
       attachments: true,
@@ -92,7 +92,7 @@ describe('show', () => {
   });
   it('showCardDetails - card not in project', async () => {
     const cardId = 'decision_999';
-    const details: fetchCardDetails = {
+    const details: FetchCardDetails = {
       content: true,
       metadata: true,
       attachments: true,

@@ -17,24 +17,24 @@ import { readdir } from 'node:fs/promises';
 
 // ismo
 import {
-  attachmentDetails,
-  card,
-  cardListContainer,
-  cardMetadata,
-  cardNameRegEx,
-  cardType,
-  fetchCardDetails,
-  fieldType,
-  linkType,
-  metadataContent,
-  moduleSettings,
-  project,
-  projectSettings,
-  resource,
-  workflowMetadata,
+  Card,
+  CardAttachment,
+  CardListContainer,
+  CardMetadata,
+  CardNameRegEx,
+  CardType,
+  FetchCardDetails,
+  FieldTypeDefinition,
+  LinkType,
+  MetadataContent,
+  ModuleSettings,
+  ProjectMetadata,
+  ProjectSettings,
+  Resource,
+  WorkflowMetadata,
 } from '../interfaces/project-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
-import { ProjectSettings } from '../project-settings.js';
+import { ProjectConfiguration } from '../project-settings.js';
 import { readJsonFile } from '../utils/json.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
@@ -47,26 +47,26 @@ import { CardContainer } from './card-container.js';
  * Represents project folder.
  */
 export class Project extends CardContainer {
-  private settings: ProjectSettings;
+  private settings: ProjectConfiguration;
   private validator: Validate;
 
-  private localCalculations: resource[] = [];
-  private localCardtypes: resource[] = [];
-  private localFieldTypes: resource[] = [];
-  private localLinkTypes: resource[] = [];
-  private localTemplates: resource[] = [];
-  private localWorkflows: resource[] = [];
+  private localCalculations: Resource[] = [];
+  private localCardTypes: Resource[] = [];
+  private localFieldTypes: Resource[] = [];
+  private localLinkTypes: Resource[] = [];
+  private localTemplates: Resource[] = [];
+  private localWorkflows: Resource[] = [];
 
   constructor(path: string) {
     super(path, '');
 
-    this.settings = ProjectSettings.getInstance(this.projectSettingFile);
+    this.settings = ProjectConfiguration.getInstance(this.projectSettingFile);
     this.containerName = this.settings.name;
     // todo: implement project validation
     this.validator = Validate.getInstance();
 
     this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardtypes = this.resourcesSync('cardType', 'file');
+    this.localCardTypes = this.resourcesSync('cardType', 'file');
     this.localFieldTypes = this.resourcesSync('fieldType', 'file');
     this.localLinkTypes = this.resourcesSync('linkType', 'file');
     this.localTemplates = this.resourcesSync('template', 'folder');
@@ -77,8 +77,8 @@ export class Project extends CardContainer {
   private async addResources(
     resources: Dirent[],
     requestedType: string,
-  ): Promise<resource[]> {
-    const collectedResources: resource[] = [];
+  ): Promise<Resource[]> {
+    const collectedResources: Resource[] = [];
     const filteredDirectories = requestedType === 'templates' ? true : false;
     for (const resource of resources) {
       if (requestedType === 'modules') {
@@ -108,7 +108,7 @@ export class Project extends CardContainer {
   }
 
   // Collect resources from modules
-  private async collectResourcesFromModules(type: string): Promise<resource[]> {
+  private async collectResourcesFromModules(type: string): Promise<Resource[]> {
     if (!pathExists(this.modulesFolder)) {
       return [];
     }
@@ -124,7 +124,7 @@ export class Project extends CardContainer {
   // Finds specific module.
   private async findSpecificModule(
     moduleName: string,
-  ): Promise<resource | undefined> {
+  ): Promise<Resource | undefined> {
     const found = (await this.collectResourcesFromModules('modules')).find(
       (item) => item.name === moduleName,
     );
@@ -141,9 +141,9 @@ export class Project extends CardContainer {
 
   // Reads card tree to memory. This is with minimal information (e.g no attachments, no content).
   // todo: combine with function of same in Export; add here booleans 'include content', 'include attachments'
-  private async readCardTreeToMemory(cardRootPath: string, cards?: card[]) {
+  private async readCardTreeToMemory(cardRootPath: string, cards?: Card[]) {
     // Finds card from already collected cards using filename path.
-    function findCard(path: string, cards: card[] | undefined) {
+    function findCard(path: string, cards: Card[] | undefined) {
       return cards?.find((card) => card.key === basename(path));
     }
 
@@ -155,7 +155,7 @@ export class Project extends CardContainer {
 
     // Loop through all the found file entries and collect found cards.
     for (const entry of entries) {
-      if (entry.isDirectory() && cardNameRegEx.test(entry.name)) {
+      if (entry.isDirectory() && CardNameRegEx.test(entry.name)) {
         // Card directory (e.g. 'decision_11')
         cards?.push({
           key: entry.name,
@@ -178,14 +178,14 @@ export class Project extends CardContainer {
         if (found) {
           found.metadata = (await readJsonFile(
             join(entry.path, entry.name),
-          )) as cardMetadata;
+          )) as CardMetadata;
         }
       }
     }
   }
 
   // Collects certain kinds of resources.
-  private resourcesSync(type: string, requirement: string): resource[] {
+  private resourcesSync(type: string, requirement: string): Resource[] {
     let resourceFolder: string;
     if (type === 'calculation') {
       resourceFolder = this.calculationProjectFolder;
@@ -203,7 +203,7 @@ export class Project extends CardContainer {
       return [];
     }
 
-    const resources: resource[] = [];
+    const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
       // for some reason, the specific resource folder does not exists
       console.error(`Cannot find folder '${resourceFolder}'`);
@@ -259,7 +259,7 @@ export class Project extends CardContainer {
   private async updateMetadataKey(
     cardKey: string,
     changedKey: string,
-    newValue: metadataContent,
+    newValue: MetadataContent,
   ) {
     const card = await this.findCard(this.basePath, cardKey, {
       metadata: true,
@@ -278,7 +278,7 @@ export class Project extends CardContainer {
     if (!card.metadata || card.metadata[changedKey] === newValue) {
       return false;
     }
-    const cardAsRecord: Record<string, metadataContent> = card.metadata;
+    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     cardAsRecord[changedKey] = newValue;
     await this.saveCardMetadata(card);
     return true;
@@ -288,7 +288,7 @@ export class Project extends CardContainer {
    * Returns an array of all the attachments in the project card's (excluding ones in templates).
    * @returns all attachments in the project.
    */
-  public async attachments(): Promise<attachmentDetails[]> {
+  public async attachments(): Promise<CardAttachment[]> {
     return super.attachments(this.cardRootFolder);
   }
 
@@ -311,7 +311,7 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local calculations, or all calculations (includes module calculations)
    * @returns array of all calculation files in the project.
    */
-  public async calculations(localOnly: boolean = true): Promise<resource[]> {
+  public async calculations(localOnly: boolean = true): Promise<Resource[]> {
     const moduleCalculations =
       await this.collectResourcesFromModules('calculations');
     return localOnly
@@ -342,13 +342,13 @@ export class Project extends CardContainer {
   /**
    * Returns details (as defined by cardDetails) of a card.
    * @param {string} cardKey card key (project prefix and a number, e.g. test_1)
-   * @param {fetchCardDetails} cardDetails which card details are returned.
+   * @param {FetchCardDetails} cardDetails which card details are returned.
    * @returns Card details, or undefined if the card cannot be found.
    */
   public async cardDetailsById(
     cardKey: string,
-    cardDetails: fetchCardDetails,
-  ): Promise<card | undefined> {
+    cardDetails: FetchCardDetails,
+  ): Promise<Card | undefined> {
     return this.findSpecificCard(cardKey, cardDetails);
   }
 
@@ -391,8 +391,8 @@ export class Project extends CardContainer {
    */
   public async cards(
     path: string = this.cardRootFolder,
-    details: fetchCardDetails = { content: true, metadata: true },
-  ): Promise<card[]> {
+    details: FetchCardDetails = { content: true, metadata: true },
+  ): Promise<Card[]> {
     return super.cards(path, details);
   }
 
@@ -404,7 +404,7 @@ export class Project extends CardContainer {
   public async cardType(
     cardTypeName?: string,
     skipDefaults: boolean = false,
-  ): Promise<cardType | undefined> {
+  ): Promise<CardType | undefined> {
     if (!cardTypeName) return undefined;
     if (!cardTypeName.endsWith('.json')) {
       cardTypeName += '.json';
@@ -418,7 +418,7 @@ export class Project extends CardContainer {
     // todo: somehow should automatically fill-in 'default' values.
     const content = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as cardType;
+    )) as CardType;
     if (content.customFields && !skipDefaults) {
       for (const item of content.customFields) {
         // Set "isEditable" if it is missing; default = true
@@ -455,11 +455,11 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local card types, or all card types (includes module card types)
    * @returns array of all card-types in the project.
    */
-  public async cardTypes(localOnly: boolean = false): Promise<resource[]> {
+  public async cardTypes(localOnly: boolean = false): Promise<Resource[]> {
     const moduleCardTypes = await this.collectResourcesFromModules('cardTypes');
     return localOnly
-      ? this.localCardtypes
-      : [...this.localCardtypes, ...moduleCardTypes];
+      ? this.localCardTypes
+      : [...this.localCardTypes, ...moduleCardTypes];
   }
 
   /**
@@ -473,7 +473,7 @@ export class Project extends CardContainer {
    * Returns project configuration.
    * @returns project configuration.
    */
-  public get configuration(): ProjectSettings {
+  public get configuration(): ProjectConfiguration {
     return this.settings;
   }
 
@@ -483,7 +483,7 @@ export class Project extends CardContainer {
    * @returns Template object, or undefined if template does not exist in the project.
    */
   public async createTemplateObject(
-    template: resource,
+    template: Resource,
   ): Promise<Template | undefined> {
     template.name = Template.normalizedTemplateName(template.name);
 
@@ -514,7 +514,7 @@ export class Project extends CardContainer {
    */
   public async fieldType(
     fieldTypeName: string,
-  ): Promise<fieldType | undefined> {
+  ): Promise<FieldTypeDefinition | undefined> {
     if (!fieldTypeName) {
       return undefined;
     }
@@ -530,7 +530,7 @@ export class Project extends CardContainer {
     }
     const file = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as fieldType;
+    )) as FieldTypeDefinition;
     return file;
   }
 
@@ -539,7 +539,7 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local field types, or all field types (includes module field types)
    * @returns array of all field types in the project.
    */
-  public async fieldTypes(localOnly: boolean = false): Promise<resource[]> {
+  public async fieldTypes(localOnly: boolean = false): Promise<Resource[]> {
     const moduleFieldTypes =
       await this.collectResourcesFromModules('fieldTypes');
     return localOnly
@@ -577,13 +577,13 @@ export class Project extends CardContainer {
   /**
    * Returns specific card.
    * @param {string} cardKey Cardkey to find
-   * @param {fetchCardDetails} details Defines which card details are included in the return values.
+   * @param {FetchCardDetails} details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
   public async findSpecificCard(
     cardKey: string,
-    details: fetchCardDetails = {},
-  ): Promise<card | undefined> {
+    details: FetchCardDetails = {},
+  ): Promise<Card | undefined> {
     const projectCard = await super.findCard(
       this.cardRootFolder,
       cardKey,
@@ -614,8 +614,8 @@ export class Project extends CardContainer {
    * @param {card[]} array card tree
    * @returns flattened card tree.
    */
-  public static flattenCardArray(array: card[]) {
-    const result: card[] = [];
+  public static flattenCardArray(array: Card[]) {
+    const result: Card[] = [];
     array.forEach((item) => {
       //todo: for more generic utility, define details
       const { key, path, children, metadata } = item;
@@ -647,10 +647,10 @@ export class Project extends CardContainer {
 
   /**
    * Checks if given card is in some template.
-   * @param {card} card card object to check
+   * @param {Card} card card object to check
    * @returns true if card exists in a template; false otherwise
    */
-  static isTemplateCard(card: card): boolean {
+  static isTemplateCard(card: Card): boolean {
     return (
       card.path.includes(`${sep}templates${sep}`) ||
       card.path.includes(`${sep}modules${sep}`)
@@ -684,7 +684,7 @@ export class Project extends CardContainer {
    * @param {string} linkTypeName Name of the linkType
    * @returns link type metadata.
    */
-  public async linkType(linkTypeName: string): Promise<linkType | undefined> {
+  public async linkType(linkTypeName: string): Promise<LinkType | undefined> {
     const path = await this.linkTypePath(linkTypeName);
     if (!path) {
       return undefined;
@@ -696,7 +696,7 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local link types, or all link types (includes module link types)
    * @returns array of all link types in the project.
    */
-  public async linkTypes(localOnly: boolean = false): Promise<resource[]> {
+  public async linkTypes(localOnly: boolean = false): Promise<Resource[]> {
     const moduleLinkTypes = await this.collectResourcesFromModules('linkTypes');
     return localOnly
       ? this.localLinkTypes
@@ -718,8 +718,8 @@ export class Project extends CardContainer {
    */
   public async listAllCards(
     includeTemplateCards: boolean,
-  ): Promise<cardListContainer[]> {
-    const cardListContainer: cardListContainer[] = [];
+  ): Promise<CardListContainer[]> {
+    const cardListContainer: CardListContainer[] = [];
     const projectCards = (await super.cards(this.cardRootFolder)).map(
       (item) => item.key,
     );
@@ -754,13 +754,13 @@ export class Project extends CardContainer {
    * @param {string} moduleName Name of the module.
    * @returns module details, or undefined if workflow cannot be found.
    */
-  public async module(moduleName: string): Promise<moduleSettings | undefined> {
+  public async module(moduleName: string): Promise<ModuleSettings | undefined> {
     const module = await this.findSpecificModule(moduleName);
     if (module && module.path) {
       const moduleNameAndPath = join(module.path, module.name);
       const moduleConfig = (await readJsonFile(
         join(moduleNameAndPath, Project.projectConfigFileName),
-      )) as moduleSettings;
+      )) as ModuleSettings;
       return {
         name: moduleConfig.name,
         path: moduleNameAndPath,
@@ -830,7 +830,7 @@ export class Project extends CardContainer {
    * Returns list of modules in the project.
    * @returns list of modules in the project.
    */
-  public async modules(): Promise<resource[]> {
+  public async modules(): Promise<Resource[]> {
     return this.collectResourcesFromModules('modules');
   }
 
@@ -906,7 +906,7 @@ export class Project extends CardContainer {
       const configurationPromises = configurationFiles.map(async (file) => {
         const configuration = (await readJsonFile(
           join(file.path, file.name),
-        )) as projectSettings;
+        )) as ProjectSettings;
         return configuration.cardKeyPrefix;
       });
 
@@ -928,7 +928,7 @@ export class Project extends CardContainer {
    * Shows details of a project.
    * @returns details of a project.
    */
-  public async show(): Promise<project> {
+  public async show(): Promise<ProjectMetadata> {
     return {
       name: this.containerName,
       path: this.basePath,
@@ -941,8 +941,8 @@ export class Project extends CardContainer {
    * Show cards of a project.
    * @returns an array of all project cards in the project.
    */
-  public async showProjectCards(): Promise<card[]> {
-    const cards: card[] = [];
+  public async showProjectCards(): Promise<Card[]> {
+    const cards: Card[] = [];
     await this.readCardTreeToMemory(this.cardRootFolder, cards);
     return cards;
   }
@@ -952,7 +952,7 @@ export class Project extends CardContainer {
    * @param templateName Name of the template.
    * @returns template resource details.
    */
-  public async template(templateName: string): Promise<resource | undefined> {
+  public async template(templateName: string): Promise<Resource | undefined> {
     return (
       (await this.templates()).find(
         (item) => item.name === templateName && item.path,
@@ -964,9 +964,9 @@ export class Project extends CardContainer {
    * Returns all template cards from the project. This includes all module templates' cards.
    * @returns all the template cards from the project
    */
-  public async templateCards(): Promise<card[]> {
+  public async templateCards(): Promise<Card[]> {
     const templates = await this.templates();
-    const cards: card[] = [];
+    const cards: Card[] = [];
     for (const template of templates) {
       const templateObject = await this.createTemplateObject(template);
       const templateCards = await templateObject?.cards();
@@ -996,7 +996,7 @@ export class Project extends CardContainer {
    * @param {card} card template card item
    * @returns path of template card
    */
-  public static templatePathFromCardPath(card: card): string {
+  public static templatePathFromCardPath(card: Card): string {
     if (Project.isTemplateCard(card)) {
       const parts = card.path.split(sep);
       const index = parts.indexOf('c');
@@ -1014,7 +1014,7 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local templates, or all templates (includes module templates)
    * @returns array of all templates in the project.
    */
-  public async templates(localOnly: boolean = false): Promise<resource[]> {
+  public async templates(localOnly: boolean = false): Promise<Resource[]> {
     const moduleTemplates = await this.collectResourcesFromModules('templates');
     return localOnly
       ? this.localTemplates
@@ -1047,12 +1047,12 @@ export class Project extends CardContainer {
    * Updates card metadata's single key.
    * @param {string} cardKey card that is updated.
    * @param {string} changedKey changed metadata key
-   * @param {metadataContent} newValue changed value for the key
+   * @param {MetadataContent} newValue changed value for the key
    */
   public async updateCardMetadataKey(
     cardKey: string,
     changedKey: string,
-    newValue: metadataContent,
+    newValue: MetadataContent,
   ) {
     if (await this.updateMetadataKey(cardKey, changedKey, newValue)) {
       await this.onCardUpdate(cardKey);
@@ -1062,12 +1062,12 @@ export class Project extends CardContainer {
   /**
    * Updates card metadata.
    * @param {card} card affected card
-   * @param {cardMetadata} changedMetadata changed content for the card
+   * @param {CardMetadata} changedMetadata changed content for the card
    * @param {boolean} skipValidation Optional, if set does not validate the card
    */
   public async updateCardMetadata(
-    card: card,
-    changedMetadata: cardMetadata,
+    card: Card,
+    changedMetadata: CardMetadata,
     skipValidation: boolean = false,
   ) {
     card.metadata = changedMetadata;
@@ -1085,7 +1085,7 @@ export class Project extends CardContainer {
    * Validates that card's data is valid.
    * @param {card} card Card to validate.
    */
-  public async validateCard(card: card): Promise<string> {
+  public async validateCard(card: Card): Promise<string> {
     const invalidCustomData = await this.validator.validateCustomFields(
       this,
       card,
@@ -1114,7 +1114,7 @@ export class Project extends CardContainer {
    */
   public async workflow(
     workflowName: string,
-  ): Promise<workflowMetadata | undefined> {
+  ): Promise<WorkflowMetadata | undefined> {
     if (!workflowName) {
       return undefined;
     }
@@ -1130,7 +1130,7 @@ export class Project extends CardContainer {
     }
     const file = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as workflowMetadata;
+    )) as WorkflowMetadata;
     return file;
   }
 
@@ -1161,7 +1161,7 @@ export class Project extends CardContainer {
    * @param {boolean} localOnly Return local workflows, or all workflows (includes module workflows)
    * @returns array of all workflows in the project.
    */
-  public async workflows(localOnly: boolean = false): Promise<resource[]> {
+  public async workflows(localOnly: boolean = false): Promise<Resource[]> {
     const moduleWorkflows = await this.collectResourcesFromModules('workflows');
     return localOnly
       ? this.localWorkflows

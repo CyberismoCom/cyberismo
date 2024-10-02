@@ -12,10 +12,10 @@
 
 // node
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-import type { metadataContent } from './interfaces/project-interfaces.js';
-import { homedir } from 'os';
+import type { MetadataContent } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { UserPreferences } from './utils/user-preferences.js';
 
@@ -108,7 +108,7 @@ export class Edit {
     projectPath: string,
     cardKey: string,
     changedKey: string,
-    newValue: metadataContent,
+    newValue: MetadataContent,
   ) {
     Edit.project = new Project(projectPath);
 

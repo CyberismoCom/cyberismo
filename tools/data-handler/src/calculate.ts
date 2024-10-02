@@ -14,9 +14,10 @@
 import { basename, join, resolve, sep } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 // ismo
-import { card, link } from './interfaces/project-interfaces.js';
+import { Card, Link } from './interfaces/project-interfaces.js';
 import {
   copyDir,
   deleteFile,
@@ -25,7 +26,6 @@ import {
   writeFileSafe,
 } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { fileURLToPath } from 'node:url';
 import ClingoParser, { encodeClingoValue } from './utils/clingo-parser.js';
 import {
   BaseResult,
@@ -139,7 +139,7 @@ export class Calculate {
     await Promise.all(promises);
   }
   // Write the cardTree.lp that contain data from the selected card-tree.
-  private async generateCardTreeContent(parentCard: card | undefined) {
+  private async generateCardTreeContent(parentCard: Card | undefined) {
     const destinationFileBase = join(
       Calculate.project.calculationFolder,
       'cards',
@@ -168,7 +168,7 @@ export class Calculate {
               logicProgram += `label(${card.key}, "${encodeClingoValue(label)}").\n`;
             }
           } else if (field === 'links') {
-            for (const link of value as Array<link>) {
+            for (const link of value as Array<Link>) {
               logicProgram += `link(${card.key}, ${link.cardKey}, "${encodeClingoValue(link.linkType)}"${link.linkDescription != null ? `, "${encodeClingoValue(link.linkDescription)}"` : ''}).\n`;
             }
           } else {
@@ -235,7 +235,7 @@ export class Calculate {
   }
 
   // Collects all logic calculation files from project (local and imported modules)
-  private async generateModules(parentCard: card | undefined) {
+  private async generateModules(parentCard: Card | undefined) {
     // When generating calculations for a specific module, do not generate common calculations.
     if (parentCard) {
       return;
@@ -261,8 +261,8 @@ export class Calculate {
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private async getCards(parentCard: card | undefined): Promise<card[]> {
-    let cards: card[] = [];
+  private async getCards(parentCard: Card | undefined): Promise<Card[]> {
+    let cards: Card[] = [];
     if (parentCard) {
       const card = await Calculate.project.findSpecificCard(parentCard.key, {
         metadata: true,
@@ -299,7 +299,7 @@ export class Calculate {
   }
 
   // Creates a project, if it is not already created.
-  private async setCalculateProject(card: card) {
+  private async setCalculateProject(card: Card) {
     if (!Calculate.project) {
       const path = await Project.findProjectRoot(card.path);
       if (path) {
@@ -318,7 +318,7 @@ export class Calculate {
   public async generate(projectPath: string, cardKey?: string) {
     Calculate.project = new Project(projectPath);
 
-    let card: card | undefined;
+    let card: Card | undefined;
     if (cardKey) {
       card = await Calculate.project.findSpecificCard(cardKey);
       if (!card) {
@@ -339,9 +339,9 @@ export class Calculate {
 
   /**
    * When card changes, update the card specific calculations.
-   * @param {card} changedCard Card that was changed.
+   * @param {Card} changedCard Card that was changed.
    */
-  public async handleCardChanged(changedCard: card) {
+  public async handleCardChanged(changedCard: Card) {
     await this.setCalculateProject(changedCard); // can throw
     await this.generate(Calculate.project.basePath, changedCard.key);
     return { statusCode: 200 };
@@ -349,9 +349,9 @@ export class Calculate {
 
   /**
    * When cards are removed, automatically remove card-specific calculations.
-   * @param {card} deletedCard Card that is to be removed.
+   * @param {Card} deletedCard Card that is to be removed.
    */
-  public async handleDeleteCard(deletedCard: card) {
+  public async handleDeleteCard(deletedCard: Card) {
     if (!deletedCard) {
       return;
     }
@@ -393,9 +393,9 @@ export class Calculate {
 
   /**
    * When new cards are added, automatically calculate card-specific values.
-   * @param {card[]} cards Added cards.
+   * @param {Card[]} cards Added cards.
    */
-  public async handleNewCards(cards: card[]) {
+  public async handleNewCards(cards: Card[]) {
     if (!cards) {
       return;
     }

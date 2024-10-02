@@ -12,9 +12,9 @@
 
 import { Project, CardDetails, FieldTypes } from '../definitions';
 import {
-  cardType,
-  linkType,
-  template,
+  CardType,
+  LinkType,
+  Template,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { SWRResponse } from 'swr';
@@ -23,9 +23,9 @@ export type Resources = {
   project: Project;
   card: CardDetails;
   fieldTypes: FieldTypes;
-  cardType: cardType;
-  templates: template[];
-  linkTypes: linkType[];
+  cardType: CardType;
+  templates: Template[];
+  linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
 };
 

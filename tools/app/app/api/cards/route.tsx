@@ -11,7 +11,7 @@
 */
 
 import { Show } from '@cyberismocom/data-handler/show';
-import { project } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { ProjectMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +40,7 @@ export async function GET() {
 
   const showCommand = new Show();
 
-  let projectResponse: project;
+  let projectResponse: ProjectMetadata;
   try {
     projectResponse = await showCommand.showProject(projectPath);
   } catch (error) {
