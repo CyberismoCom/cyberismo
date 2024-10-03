@@ -1,8 +1,15 @@
 import { expect } from 'chai';
 import ClingoParser, {
+  decodeClingoValue,
   encodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
 import { Project } from '../../src/containers/project.js';
+
+const encodingTests = [
+  ['\n', '\\n'],
+  ['\\', '\\\\'],
+  ['"', '\\"'],
+];
 
 describe('ClingoParser', () => {
   const parser: ClingoParser = new ClingoParser({
@@ -10,6 +17,20 @@ describe('ClingoParser', () => {
       outboundDisplayName: 'testing',
     }),
   } as unknown as Project);
+
+  encodingTests.forEach(([input, expected]) => {
+    it(`should encode special value ${input} to ${expected}`, () => {
+      const res = encodeClingoValue(input);
+
+      expect(res).to.equal(expected);
+    });
+
+    it(`should decode special value ${expected} to ${input}`, () => {
+      const res = decodeClingoValue(expected);
+
+      expect(res).to.equal(input);
+    });
+  });
 
   it('should parse query_error correctly with 4 params', async () => {
     const input =
@@ -48,7 +69,7 @@ describe('ClingoParser', () => {
     expect(result.results[0].fieldName).to.equal('fieldValue');
   });
 
-  it('should parse field correctly which has special characeters', async () => {
+  it('should parse field correctly which has special characters', async () => {
     const fieldValue = 'fieldValueä)"()="()()()=\n';
     const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;
     const result = await parser.parseInput(input);

@@ -19,6 +19,9 @@ import { BaseResult, ParseResult } from '../types/queries.js';
  */
 export function encodeClingoValue(value: string) {
   return value.replace(/[\n\\"]/g, (char) => {
+    if (char === '\n') {
+      return '\\n';
+    }
     return `\\${char}`;
   });
 }
@@ -27,7 +30,10 @@ export function encodeClingoValue(value: string) {
  * This function reverses the encoding made by the "encodeClingoValue" function
  */
 export function decodeClingoValue(value: string) {
-  return value.replace(/\\([\n\\"])/g, (match, char) => {
+  return value.replace(/\\([n\\"])/g, (_, char) => {
+    if (char === 'n') {
+      return '\n';
+    }
     return char;
   });
 }
@@ -314,6 +320,8 @@ class ClingoParser {
 
   /**
    * This method is a custom parser, which takes in the whole clingo output and parses the arguments.
+   * Note: Do not decode in this function. It will be handled on a higher level.
+   * As long as this function returns valid clingo, it has done it's responsibility
    * @param input Clingo output
    * @param position Position of the command being parsed inside the string
    * @returns
@@ -325,23 +333,15 @@ class ClingoParser {
     let currentArg = '';
     const args: string[] = [];
     let insideQuote = false;
-    let escapeNext = false;
 
     for (let i = position; i < input.length; i++) {
       const char = input[i];
 
-      if (escapeNext) {
-        currentArg += char; // Add the escaped character
-        escapeNext = false;
-        continue;
-      }
-
-      if (char === '\\') {
-        escapeNext = true; // Set flag to escape the next character
-        continue;
-      }
-
       if (char === '"') {
+        if (i !== 0 && input[i - 1] === '\\') {
+          currentArg += '"';
+          continue;
+        }
         if (!insideQuote) {
           // We can ignore the chars, which are before a quoted string
           currentArg = '';
