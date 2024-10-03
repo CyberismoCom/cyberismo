@@ -192,6 +192,54 @@ export interface Resource {
   path?: string;
 }
 
+// Resource's metadata. Each one MUST have 'name'.
+export type ResourceMetadataType =
+  | CardType
+  | FieldTypeDefinition
+  | LinkType
+  | TemplateMetadata
+  | WorkflowMetadata;
+
+// Resources that have own folders.
+export type ResourceFolderType =
+  | 'calculation'
+  | 'cardType'
+  | 'fieldType'
+  | 'linkType'
+  | 'module'
+  | 'report'
+  | 'template'
+  | 'workflow';
+
+// Resources that are possible to remove.
+export type RemovableResourceTypes =
+  | 'attachment'
+  | 'card'
+  | 'link'
+  | 'linkType'
+  | 'module'
+  | 'template';
+
+// Add resource types; both singular and plural.
+export type ResourceTypes =
+  | RemovableResourceTypes
+  | 'attachments'
+  | 'cards'
+  | 'cardType'
+  | 'cardTypes'
+  | 'fieldType'
+  | 'fieldTypes'
+  | 'links'
+  | 'linkTypes'
+  | 'modules'
+  | 'project'
+  | 'projects'
+  | 'report'
+  | 'reports'
+  | 'templates'
+  | 'workflow'
+  | 'workflows';
+
 // Template configuration details.
 export interface Template {
   name: string;
@@ -202,6 +250,7 @@ export interface Template {
 
 // Template configuration content details.
 export interface TemplateMetadata {
+  name?: string; // to make Template similar to other resources
   displayName?: string;
   description?: string;
   category?: string;

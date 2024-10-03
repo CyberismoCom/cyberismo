@@ -12,7 +12,7 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -148,6 +148,9 @@ export class Calculate {
       'cards',
     );
     const promiseContainer = [];
+    if (!pathExists(destinationFileBase)) {
+      await mkdir(destinationFileBase);
+    }
 
     // Small helper to deduce parent path
     function parentPath(cardPath: string) {
@@ -324,6 +327,7 @@ export class Calculate {
     await Calculate.mutex.runExclusive(async () => {
       // Cleanup old calculations before starting new ones.
       await deleteDir(Calculate.project.calculationFolder);
+      await mkdir(Calculate.project.calculationFolder);
 
       let card: Card | undefined;
       if (cardKey) {
@@ -370,7 +374,9 @@ export class Calculate {
       Calculate.project.calculationFolder,
       Calculate.importFileName,
     );
+    const cardsFolder = join(Calculate.project.calculationFolder, 'cards');
     const calculationsForTreeExist =
+      pathExists(cardsFolder) &&
       pathExists(cardTreeFile) &&
       pathExists(Calculate.project.calculationFolder);
 

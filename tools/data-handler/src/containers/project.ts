@@ -15,7 +15,6 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import { Dirent, readdirSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 
-// ismo
 import {
   Card,
   CardAttachment,
@@ -33,10 +32,12 @@ import {
   Report,
   ReportMetadata,
   Resource,
+  ResourceFolderType,
   WorkflowMetadata,
 } from '../interfaces/project-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
+import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
@@ -49,6 +50,7 @@ import { CardContainer } from './card-container.js';
  * Represents project folder.
  */
 export class Project extends CardContainer {
+  private projectPaths: ProjectPaths;
   private settings: ProjectConfiguration;
   private validator: Validate;
 
@@ -64,6 +66,7 @@ export class Project extends CardContainer {
     super(path, '');
 
     this.settings = ProjectConfiguration.getInstance(this.projectSettingFile);
+    this.projectPaths = new ProjectPaths(path, this.projectPrefix);
     this.containerName = this.settings.name;
     // todo: implement project validation
     this.validator = Validate.getInstance();
@@ -78,23 +81,27 @@ export class Project extends CardContainer {
   }
 
   // Add resources to an array.
-  private async addResources(
-    resources: Dirent[],
+  private async addResourcesFromModules(
+    moduleFolders: Dirent[],
     requestedType: string,
   ): Promise<Resource[]> {
     const collectedResources: Resource[] = [];
-    const filteredDirectories = requestedType === 'templates' ? true : false;
-    for (const resource of resources) {
+    const resourceIsADirectory = requestedType === 'templates' ? true : false;
+    for (const module of moduleFolders) {
       if (requestedType === 'modules') {
-        collectedResources.push(...resources);
+        collectedResources.push(...moduleFolders);
       } else {
-        const resourcePath = join(
+        const resourceFolder = join(
           this.modulesFolder,
-          resource.name,
+          module.name,
           requestedType,
         );
-        const files = await readdir(resourcePath, { withFileTypes: true });
-        const filteredFiles = filteredDirectories
+        if (!pathExists(resourceFolder)) {
+          // If certain resource type does not exist in this module, skip to the next one.
+          continue;
+        }
+        const files = await readdir(resourceFolder, { withFileTypes: true });
+        const filteredFiles = resourceIsADirectory
           ? files.filter((item) => item.isDirectory())
           : files.filter(
               (item) =>
@@ -103,7 +110,7 @@ export class Project extends CardContainer {
             );
 
         filteredFiles.forEach((item) => {
-          item.name = `${resource.name}/${requestedType}/${item.name}`;
+          item.name = `${module.name}/${requestedType}/${item.name}`;
           collectedResources.push({ name: item.name, path: item.path });
         });
       }
@@ -122,7 +129,7 @@ export class Project extends CardContainer {
     });
     const modules = moduleDirectories.filter((item) => item.isDirectory());
 
-    return [...(await this.addResources(modules, type))];
+    return [...(await this.addResourcesFromModules(modules, type))];
   }
 
   // Finds specific module.
@@ -189,31 +196,14 @@ export class Project extends CardContainer {
   }
 
   // Collects certain kinds of resources.
-  private resourcesSync(type: string, requirement: string): Resource[] {
-    let resourceFolder: string;
-    if (type === 'calculation') {
-      resourceFolder = this.calculationProjectFolder;
-    } else if (type === 'cardType') {
-      resourceFolder = this.cardTypesFolder;
-    } else if (type === 'fieldType') {
-      resourceFolder = this.fieldTypesFolder;
-    } else if (type === 'linkType') {
-      resourceFolder = this.linkTypesFolder;
-    } else if (type === 'template') {
-      resourceFolder = this.templatesFolder;
-    } else if (type === 'workflow') {
-      resourceFolder = this.workflowsFolder;
-    } else if (type === 'report') {
-      resourceFolder = this.reportsFolder;
-    } else {
-      return [];
-    }
+  private resourcesSync(
+    type: ResourceFolderType,
+    requirement: string,
+  ): Resource[] {
+    const resourceFolder: string = this.paths.resourcePath(type);
 
     const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
-      // for some reason, the specific resource folder does not exists
-      console.error(`Cannot find folder '${resourceFolder}'`);
-      // todo: automatically create resource folder with correct .schema file.
       return [];
     }
     const entries = readdirSync(resourceFolder, { withFileTypes: true });
@@ -241,6 +231,21 @@ export class Project extends CardContainer {
     );
 
     return resources;
+  }
+
+  // Returns (local or all) resources of a given type.
+  private async resourcesOfType(
+    type: ResourceFolderType,
+    localOnly: boolean = true,
+  ): Promise<Resource[]> {
+    if (type === 'cardType') return this.cardTypes(localOnly);
+    if (type === 'fieldType') return this.fieldTypes(localOnly);
+    if (type === 'linkType') return this.linkTypes(localOnly);
+    if (type === 'template') return this.templates(localOnly);
+    if (type === 'workflow') return this.workflows(localOnly);
+    if (type === 'module') return this.modules();
+    if (type === 'calculation') return this.calculations(localOnly);
+    return [];
   }
 
   /**
@@ -309,7 +314,7 @@ export class Project extends CardContainer {
    * Getter. Returns path to project local calculations folder
    */
   public get calculationProjectFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'calculations');
+    return this.projectPaths.calculationProjectFolder;
   }
 
   /**
@@ -472,7 +477,7 @@ export class Project extends CardContainer {
    * Getter. Returns path to 'cardTypes' folder.
    */
   public get cardTypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'cardTypes');
+    return this.projectPaths.cardTypesFolder;
   }
 
   /**
@@ -558,7 +563,7 @@ export class Project extends CardContainer {
    * @returns path to 'fieldTypes' folder.
    */
   public get fieldTypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'fieldTypes');
+    return this.projectPaths.fieldTypesFolder;
   }
 
   /**
@@ -582,7 +587,7 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific card.
-   * @param {string} cardKey Cardkey to find
+   * @param {string} cardKey Card key to find
    * @param {FetchCardDetails} details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
@@ -714,7 +719,7 @@ export class Project extends CardContainer {
    * @returns path to 'link types' folder.
    */
   public get linkTypesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'linkTypes');
+    return this.projectPaths.linkTypesFolder;
   }
 
   /**
@@ -849,7 +854,7 @@ export class Project extends CardContainer {
    * Getter. Path to modules folder.
    */
   public get modulesFolder(): string {
-    return join(this.basePath, '.cards', 'modules');
+    return this.projectPaths.modulesFolder;
   }
 
   /**
@@ -871,6 +876,10 @@ export class Project extends CardContainer {
     }
 
     throw 'Could not generate unique card key';
+  }
+
+  public get paths(): ProjectPaths {
+    return this.projectPaths;
   }
 
   /**
@@ -926,6 +935,23 @@ export class Project extends CardContainer {
     }
 
     return prefixes;
+  }
+
+  /**
+   * Checks if a given resource exists in the project already.
+   * @param resourceType Type of resource as a string.
+   * @param name
+   * @returns boolean, true if resource exists; false otherwise.
+   */
+  public async resourceExists(
+    resourceType: ResourceFolderType,
+    name: string,
+  ): Promise<boolean> {
+    const resources = await this.resourcesOfType(resourceType);
+    const resource = resources.find(
+      (item) => item.name === name + '.json' || item.name === name,
+    );
+    return resource !== undefined;
   }
 
   /**
@@ -1036,7 +1062,7 @@ export class Project extends CardContainer {
    * Getter. Returns path to 'templates' subfolder.
    */
   public get templatesFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'templates');
+    return this.projectPaths.templatesFolder;
   }
 
   /**
@@ -1184,7 +1210,7 @@ export class Project extends CardContainer {
    * @returns path to 'workflows' subfolder.
    */
   public get workflowsFolder(): string {
-    return join(this.basePath, '.cards', 'local', 'workflows');
+    return this.projectPaths.workflowsFolder;
   }
 
   /**
