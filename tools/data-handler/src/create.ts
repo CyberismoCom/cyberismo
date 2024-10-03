@@ -25,9 +25,13 @@ import { Calculate } from './calculate.js';
 import {
   CardType,
   DataType,
-  FieldTypeDefinition,
+  type DotSchemaContent,
+  FieldTypeDefinition as FieldType,
   Link,
+  LinkType,
   ProjectFile,
+  ResourceFolderType,
+  ResourceMetadataType,
   TemplateMetadata,
   WorkflowCategory,
   WorkflowMetadata,
@@ -38,6 +42,7 @@ import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
+import { pathExists } from './utils/file-utils.js';
 import { resourceNameParts } from './utils/resource-utils.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
@@ -49,9 +54,19 @@ import { resourceNameParts } from './utils/resource-utils.js';
  */
 export class Create extends EventEmitter {
   private calculateCmd: Calculate;
+  private contentSchemaMap: Map<string, DotSchemaContent | undefined>;
 
   constructor(calculateCmd: Calculate) {
     super();
+
+    // Match resource type to content schema file.
+    this.contentSchemaMap = new Map([
+      ['cardType', { id: 'cardTypeSchema', version: 1 }],
+      ['fieldType', { id: 'fieldTypeSchema', version: 1 }],
+      ['linkType', { id: 'linkTypeSchema', version: 1 }],
+      ['template', undefined], // template's content schema is inside its main folder
+      ['workflow', { id: 'workflowSchema', version: 1 }],
+    ]);
 
     this.calculateCmd = calculateCmd;
     this.addListener(
@@ -60,7 +75,7 @@ export class Create extends EventEmitter {
     );
   }
 
-  schemaFilesContent: ProjectFile[] = [
+  JSONFilesContent: ProjectFile[] = [
     {
       path: '.cards/local',
       content: { id: 'cardsConfigSchema', version: 1 },
@@ -73,26 +88,6 @@ export class Create extends EventEmitter {
         cardKeyPrefix: '$PROJECT-PREFIX',
       },
       name: Project.projectConfigFileName,
-    },
-    {
-      path: '.cards/local/cardTypes',
-      content: { id: 'cardTypeSchema', version: 1 },
-      name: Project.schemaContentFile,
-    },
-    {
-      path: '.cards/local/fieldTypes',
-      content: { id: 'fieldTypeSchema', version: 1 },
-      name: Project.schemaContentFile,
-    },
-    {
-      path: '.cards/local/linkTypes',
-      content: { id: 'linkTypeSchema', version: 1 },
-      name: Project.schemaContentFile,
-    },
-    {
-      path: '.cards/local/workflows',
-      content: { id: 'workflowSchema', version: 1 },
-      name: Project.schemaContentFile,
     },
   ];
 
@@ -108,22 +103,47 @@ export class Create extends EventEmitter {
 
   gitKeepContent: string = '';
 
-  // Checks if field type is created to a project.
-  // todo: we could have generic 'does resource exists' in Project
-  private async fieldTypeExists(
-    path: string,
-    fieldTypeName: string,
-  ): Promise<boolean> {
-    const project = new Project(path);
-    const fieldType = (await project.fieldTypes()).find(
-      (item) =>
-        item.name === fieldTypeName + '.json' || item.name === fieldTypeName,
-    );
-    return fieldType ? true : false;
+  // Creates a new resource (...). If the resource folder is missing, creates it.
+  private async createResource(
+    project: Project,
+    resourceType: ResourceFolderType,
+    resourceContent: ResourceMetadataType,
+  ) {
+    const resourceFolder = project.paths.resourcePath(resourceType);
+
+    if (!pathExists(resourceFolder)) {
+      await mkdir(resourceFolder);
+
+      // Newly created folders should have content schema ('.schema') file.
+      const contentSchema = this.contentSchemaMap.get(resourceType);
+      if (contentSchema) {
+        await writeJsonFile(join(resourceFolder, '.schema'), contentSchema, {
+          flag: 'wx',
+        });
+      }
+    }
+
+    if (resourceType !== 'template') {
+      const { name } = resourceNameParts(resourceContent.name!);
+      await writeJsonFile(
+        join(resourceFolder, `${name}.json`),
+        resourceContent,
+        { flag: 'wx' },
+      );
+    } else {
+      // Templates are special; they are folders with card trees inside them.
+      const template = new Template(project.basePath, {
+        name: resourceContent.name || '',
+      });
+      await template.create(resourceContent);
+    }
   }
 
   // Default content for link type JSON values.
-  private static defaultLinkTypeContent(prefix: string, linkTypeName: string) {
+  private static defaultLinkTypeContent(
+    prefix: string,
+    linkTypeName: string,
+  ): LinkType {
     return {
       name: `${prefix}/linkTypes/${linkTypeName}`,
       outboundDisplayName: linkTypeName,
@@ -132,31 +152,6 @@ export class Create extends EventEmitter {
       destinationCardTypes: [],
       enableLinkDescription: false,
     };
-  }
-
-  private async linkTypeExists(
-    path: string,
-    linkTypeName: string,
-  ): Promise<boolean> {
-    const project = new Project(path);
-    const linkType = (await project.linkTypes()).find(
-      (item) =>
-        item.name === linkTypeName + '.json' || item.name === linkTypeName,
-    );
-    return linkType ? true : false;
-  }
-
-  // Checks if workflow is created to a project.
-  private async workflowExists(
-    path: string,
-    workflowName: string,
-  ): Promise<boolean> {
-    const project = new Project(path);
-    const workflow = (await project.workflows()).find(
-      (item) =>
-        item.name === workflowName + '.json' || item.name === workflowName,
-    );
-    return workflow ? true : false;
   }
 
   /**
@@ -343,21 +338,16 @@ export class Create extends EventEmitter {
     name: string,
     workflow: string,
   ) {
-    if (!(await this.workflowExists(projectPath, workflow))) {
+    const project = new Project(projectPath);
+    if (!(await project.resourceExists('workflow', workflow))) {
       throw new Error(
         `Input validation error: workflow '${workflow}' does not exist in the project.`,
       );
     }
 
-    const project = new Project(projectPath);
-    const fullName = `${project.projectPrefix}/cardTypes/${name}`;
-    const fullFileName = `.cards/local/cardTypes/${name}.json`;
-
+    const fullName = project.paths.resourceFullName('cardType', name);
     const content: CardType = { name: fullName, workflow };
-    const destinationFolder = join(projectPath, fullFileName);
-    await writeJsonFile(destinationFolder, content, {
-      flag: 'wx',
-    });
+    await this.createResource(project, 'cardType', content);
   }
 
   /**
@@ -371,7 +361,8 @@ export class Create extends EventEmitter {
     fieldTypeName: string,
     dataType: string,
   ) {
-    if (await this.fieldTypeExists(projectPath, fieldTypeName)) {
+    const project = new Project(projectPath);
+    if (await project.resourceExists('fieldType', fieldTypeName)) {
       throw new Error(
         `Field type with name '${fieldTypeName}' already exists in the project`,
       );
@@ -383,19 +374,12 @@ export class Create extends EventEmitter {
     }
     const useDataType: DataType = dataType as DataType;
 
-    const content: FieldTypeDefinition = {
-      name: `local/fieldTypes/${fieldTypeName}`,
+    const content: FieldType = {
+      name: project.paths.resourceFullName('fieldType', fieldTypeName),
       dataType: useDataType,
     };
 
-    const destinationFolder = join(
-      projectPath,
-      '.cards',
-      `${content.name}.json`,
-    );
-    await writeJsonFile(destinationFolder, content, {
-      flag: 'wx',
-    });
+    await this.createResource(project, 'fieldType', content);
   }
 
   /**
@@ -405,13 +389,13 @@ export class Create extends EventEmitter {
    */
   public async createLinkType(projectPath: string, linkTypeName: string) {
     // check if link type already exists
-    if (await this.linkTypeExists(projectPath, linkTypeName)) {
+    const project = new Project(projectPath);
+    if (await project.resourceExists('linkType', linkTypeName)) {
       throw new Error(
         `Link type with name '${linkTypeName}' already exists in the project`,
       );
     }
 
-    const project = new Project(projectPath);
     // Validate that name is correct; either in short or long format.
     const { name, prefix, type } = resourceNameParts(linkTypeName);
     if (prefix && prefix !== project.projectPrefix) {
@@ -435,16 +419,7 @@ export class Create extends EventEmitter {
       throw new Error(`Invalid link type JSON: ${validJson}`);
     }
 
-    const destinationFolder = join(
-      projectPath,
-      '.cards',
-      'local',
-      'linkTypes',
-      `${name}.json`,
-    );
-    await writeJsonFile(destinationFolder, linkTypeContent, {
-      flag: 'wx',
-    });
+    await this.createResource(project, 'linkType', linkTypeContent);
   }
 
   /**
@@ -558,41 +533,21 @@ export class Create extends EventEmitter {
   ) {
     projectPath = resolve(projectPath);
     const projectFolders: string[] = ['.cards/local', 'cardRoot'];
-    const projectSubFolders: string[][] = [
-      [
-        'calculations',
-        'cardTypes',
-        'fieldTypes',
-        'linkTypes',
-        'templates',
-        'workflows',
-      ],
-      [],
-    ];
     const parentFolderToCreate = join(projectPath);
 
     if (Project.isCreated(projectPath)) {
       throw new Error('Project already exists');
     }
 
-    await mkdir(parentFolderToCreate, { recursive: true })
-      .then(async () => {
-        return await Promise.all(
-          projectFolders.map((folder) =>
-            mkdir(`${parentFolderToCreate}/${folder}`, { recursive: true }),
-          ),
-        );
-      })
-      .then(async () => {
-        projectSubFolders.forEach((subFolders, index) => {
-          subFolders.forEach((subFolder) => {
-            const parent = join(parentFolderToCreate, projectFolders[index]);
-            return mkdir(`${parent}/${subFolder}`);
-          });
-        });
-      });
+    await mkdir(parentFolderToCreate, { recursive: true }).then(async () => {
+      return await Promise.all(
+        projectFolders.map((folder) =>
+          mkdir(`${parentFolderToCreate}/${folder}`, { recursive: true }),
+        ),
+      );
+    });
 
-    this.schemaFilesContent.forEach(async (entry) => {
+    this.JSONFilesContent.forEach(async (entry) => {
       if (entry.content.cardKeyPrefix?.includes('$PROJECT-PREFIX')) {
         entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
       }
@@ -605,18 +560,8 @@ export class Create extends EventEmitter {
       );
     });
 
-    await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
-
     try {
-      const project = new Project(projectPath);
-      await writeFile(
-        join(project.calculationProjectFolder, '.gitkeep'),
-        this.gitKeepContent,
-      );
-      await writeFile(
-        join(project.fieldTypesFolder, '.gitkeep'),
-        this.gitKeepContent,
-      );
+      await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
     } catch (error) {
       if (error instanceof Error) {
         console.error('Failed to create project');
@@ -644,15 +589,10 @@ export class Create extends EventEmitter {
       );
     }
 
-    const validator = Validate.getInstance();
-    const validJson = validator.validateJson(templateContent, 'templateSchema');
-    if (validJson.length !== 0) {
-      throw new Error(`Invalid template JSON: ${validJson}`);
-    }
-
-    const project = new Project(projectPath);
     // todo: Move this somewhere? This could be part of template or project? or utility class
+    // todo: should use the resource-utils split method.
     // Only allow 'local' or module/project name in multipart names.
+    const project = new Project(projectPath);
     const parts = templateName.split('/');
     if (parts.length > 1) {
       if (parts[0] !== 'local' && parts[0] !== project.projectPrefix) {
@@ -666,8 +606,14 @@ export class Create extends EventEmitter {
       );
     }
 
-    const template = new Template(projectPath, { name: templateName });
-    await template.create(templateContent);
+    const validator = Validate.getInstance();
+    const validJson = validator.validateJson(templateContent, 'templateSchema');
+    if (validJson.length !== 0) {
+      throw new Error(`Invalid template JSON: ${validJson}`);
+    }
+
+    templateContent.name = templateName;
+    await this.createResource(project, 'template', templateContent);
   }
 
   /**
@@ -676,19 +622,17 @@ export class Create extends EventEmitter {
    * @param {WorkflowMetadata} workflow workflow JSON
    */
   public async createWorkflow(projectPath: string, workflow: WorkflowMetadata) {
+    const project = new Project(projectPath);
+    workflow.name = project.paths.resourceFullName('workflow', workflow.name);
+
+    // Validate that the incoming content is correct.
     const validator = Validate.getInstance();
     const schemaId = 'workflowSchema';
-    const project = new Project(projectPath);
-    const fullName = `${project.projectPrefix}/workflows/${workflow.name}`;
-    const fullFileName = `.cards/local/workflows/${workflow.name}.json`;
-    workflow.name = fullName;
     const validJson = validator.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
     }
-    const content = JSON.parse(JSON.stringify(workflow)) as WorkflowMetadata;
-    const destinationFile = join(projectPath, fullFileName);
-    await writeJsonFile(destinationFile, content, { flag: 'wx' });
+    await this.createResource(project, 'workflow', workflow); // todo: should be in Project
   }
 
   /**
