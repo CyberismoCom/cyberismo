@@ -30,7 +30,12 @@ describe('Navigation', () => {
   });
 
   it('opens edit card page', () => {
-    cy.visit('http://localhost:3000/cards/decision_6/edit');
+    cy.visit('http://localhost:3000/cards/decision_6');
+    
+    // Check that edit element is visible and clicks it
+    cy.get('[data-cy="editButton"]')
+      .contains('Edit')
+      .click();
 
     // Check that editor elements are visible
     cy.get('textarea').contains('Document Decisions with Decision Records');
