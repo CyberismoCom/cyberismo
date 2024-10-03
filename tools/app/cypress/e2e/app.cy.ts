@@ -65,7 +65,8 @@ describe('Modify project', () => {
       .type('Updated title');
     cy.get('[role="textbox"]').invoke('text', '== Updated content');
     cy.get('[data-cy="updateButton"]').click();
-
+    cy.get('[role="presentation"]').contains('Card saved successfully'); // checks text in popup infobox 
+  
     cy.get('p').contains('Updated title'); // Title in tree menu
     cy.get('h1').contains('Updated title'); // Title in content area
     cy.get('h2').contains('Updated content'); // Text in asciidoc content
@@ -80,6 +81,7 @@ describe('Modify project', () => {
       './cypress/fixtures/cyberismo.png',
     );
     cy.get('[data-cy="confirmAddAttachmentButton"]').click();
+    cy.get('[role="presentation"]').contains('Attachment(s) added successfully'); // checks text in popup infobox 
 
     // Check that attachment side panel element exists and "hover" over it to show action buttons
     cy.get('span').contains('cyberismo.png').trigger('mouseover');
@@ -95,13 +97,15 @@ describe('Modify project', () => {
     cy.get('[data-cy="createNewCardButton"]').click();
     cy.get('.templateCard').contains('Decision').click();
     cy.get('[data-cy="confirmCreateButton"]').click();
-
+    cy.get('[role="presentation"]').contains('Card created successfully'); // checks text in popup infobox 
+  
     cy.get('p').contains('Untitled'); // Tree menu item
 
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[data-cy="deleteCardButton"]').click();
     cy.get('[data-cy="confirmDeleteButton"]').click();
-
+    cy.get('[role="presentation"]').contains('Card deleted successfully'); // checks text in popup infobox 
+  
     cy.get('p').contains('Untitled').should('not.exist');
   });
 });
