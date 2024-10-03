@@ -7,7 +7,6 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { assert } from 'node:console';
 import { parse } from 'node:path';
 
 interface ResourceName {
@@ -18,16 +17,27 @@ interface ResourceName {
 
 /**
  * Returns resource name parts (project prefix, type in plural, name of the resource).
- * @todo - add unit tests
  * @param resourceName Full name of the resource (e.g. <prefix>/<type>/<name>)
  * @returns resource name parts: project or module prefix, resource type (plural) and actual name of the resource.
  */
 export function resourceNameParts(resourceName: string): ResourceName {
   const parts = resourceName.split('/');
-  assert(parts.length === 3);
-  return {
-    prefix: parts[0],
-    type: parts[1],
-    name: parse(parts[2]).name,
-  };
+  // short name format - type and prefix are unknown
+  if (parts.length === 1 && parts.at(0) !== '') {
+    return {
+      prefix: '',
+      type: '',
+      name: resourceName,
+    };
+  }
+  // long name format
+  if (parts.length === 3) {
+    return {
+      prefix: parts[0],
+      type: parts[1],
+      name: parse(parts[2]).name,
+    };
+  }
+  // other formats are not accepted
+  throw new Error(`Name '${resourceName}' is not valid resource name`);
 }
