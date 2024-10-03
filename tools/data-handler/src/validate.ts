@@ -25,7 +25,7 @@ import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { card, fieldType } from './interfaces/project-interfaces.js';
+import { Card, FieldTypeDefinition } from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -178,7 +178,7 @@ export class Validate {
   }
 
   // Validates that card's dataType can be used with JS types.
-  private validType<T>(value: T, fieldType: fieldType): boolean {
+  private validType<T>(value: T, fieldType: FieldTypeDefinition): boolean {
     const field = fieldType.dataType;
     const typeOfValue = typeof value;
 
@@ -376,7 +376,7 @@ export class Validate {
    */
   public async validateCustomFields(
     project: Project,
-    card: card,
+    card: Card,
   ): Promise<string> {
     const validationErrors: string[] = [];
 
@@ -439,7 +439,7 @@ export class Validate {
    */
   public async validateWorkflowState(
     project: Project,
-    card: card,
+    card: Card,
   ): Promise<string> {
     const validationErrors: string[] = [];
 

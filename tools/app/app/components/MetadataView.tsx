@@ -22,6 +22,7 @@ import {
 } from 'react-hook-form';
 import {
   CardMetadata,
+  CustomField,
   DataType,
   FieldTypeDefinition,
   MetadataValue,
@@ -88,8 +89,9 @@ function MetadataView({
       return [];
     }
     return (
-      cardType.customFields?.filter((f) => f.isEditable).map((f) => f.name) ??
-      []
+      cardType.customFields
+        ?.filter((f: CustomField) => f.isEditable)
+        .map((f: CustomField) => f.name) ?? []
     );
   }, [cardType]);
 
@@ -105,7 +107,9 @@ function MetadataView({
   const allFields = useMemo(() => {
     if (!fieldTypes) return [];
     return allFieldKeys
-      .map((field) => fieldTypes?.find((f) => f.name === field))
+      .map((field: string) =>
+        fieldTypes?.find((f: FieldTypeDefinition) => f.name === field),
+      )
       .filter((f) => f != null) as FieldTypeDefinition[];
   }, [allFieldKeys, fieldTypes]);
 

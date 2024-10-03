@@ -17,17 +17,17 @@ import mime from 'mime-types';
 // cyberismo
 import { attachmentPayload } from './interfaces/request-status-interfaces.js';
 import {
-  attachmentDetails,
-  card,
-  cardListContainer,
-  cardType,
-  fetchCardDetails,
-  fieldType,
-  linkType,
-  moduleSettings,
-  project,
-  template,
-  workflowMetadata,
+  CardAttachment,
+  Card,
+  CardListContainer,
+  CardType,
+  FetchCardDetails,
+  FieldTypeDefinition,
+  LinkType,
+  ModuleSettings,
+  ProjectMetadata,
+  Template,
+  WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { spawn } from 'node:child_process';
@@ -43,12 +43,10 @@ export class Show {
    * @param {string} projectPath path to a project
    * @returns array of card attachments
    */
-  public async showAttachments(
-    projectPath: string,
-  ): Promise<attachmentDetails[]> {
+  public async showAttachments(projectPath: string): Promise<CardAttachment[]> {
     Show.project = new Project(projectPath);
-    const attachments: attachmentDetails[] = await Show.project.attachments();
-    const templateAttachments: attachmentDetails[] = [];
+    const attachments: CardAttachment[] = await Show.project.attachments();
+    const templateAttachments: CardAttachment[] = [];
     const templates = await Show.project.templates();
     for (const template of templates) {
       const templateObject = await Show.project.createTemplateObject(template);
@@ -206,9 +204,9 @@ export class Show {
    */
   public async showCardDetails(
     projectPath: string,
-    details: fetchCardDetails,
+    details: FetchCardDetails,
     cardKey?: string,
-  ): Promise<card> {
+  ): Promise<Card> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
@@ -225,7 +223,7 @@ export class Show {
    * @param {string} projectPath path to a project
    * @returns cards list array
    */
-  public async showCards(projectPath: string): Promise<cardListContainer[]> {
+  public async showCards(projectPath: string): Promise<CardListContainer[]> {
     Show.project = new Project(projectPath);
     const projectCards = await Show.project.listAllCards(true);
     return projectCards;
@@ -237,7 +235,7 @@ export class Show {
    * @note AppUi uses this method.
    * @returns array of cards
    */
-  public async showProjectCards(projectPath: string): Promise<card[]> {
+  public async showProjectCards(projectPath: string): Promise<Card[]> {
     Show.project = new Project(projectPath);
     const projectCards = await Show.project.showProjectCards();
     return projectCards;
@@ -252,7 +250,7 @@ export class Show {
   public async showCardTypeDetails(
     projectPath: string,
     cardTypeName: string,
-  ): Promise<cardType> {
+  ): Promise<CardType> {
     Show.project = new Project(projectPath);
     if (cardTypeName === '') {
       throw new Error(`Must define card type name to query its details.`);
@@ -287,7 +285,7 @@ export class Show {
    */
   public async showCardTypesWithDetails(
     projectPath: string,
-  ): Promise<(cardType | undefined)[]> {
+  ): Promise<(CardType | undefined)[]> {
     Show.project = new Project(projectPath);
     const promiseContainer = [];
     for (const cardType of await Show.project.cardTypes()) {
@@ -322,7 +320,7 @@ export class Show {
   public async showLinkType(
     projectPath: string,
     linkTypeName: string,
-  ): Promise<linkType | undefined> {
+  ): Promise<LinkType | undefined> {
     Show.project = new Project(projectPath);
     const linkTypeDetails = await Show.project.linkType(linkTypeName);
     return linkTypeDetails;
@@ -350,7 +348,7 @@ export class Show {
   public async showFieldType(
     projectPath: string,
     fieldTypeName: string,
-  ): Promise<fieldType | undefined> {
+  ): Promise<FieldTypeDefinition | undefined> {
     Show.project = new Project(projectPath);
     const filedTypeDetails = await Show.project.fieldType(fieldTypeName);
     return filedTypeDetails;
@@ -365,7 +363,7 @@ export class Show {
   public async showModule(
     projectPath: string,
     moduleName: string,
-  ): Promise<moduleSettings> {
+  ): Promise<ModuleSettings> {
     Show.project = new Project(projectPath);
     const moduleDetails = await Show.project.module(moduleName);
     if (!moduleDetails) {
@@ -395,7 +393,7 @@ export class Show {
    */
   public async showModulesWithDetails(
     projectPath: string,
-  ): Promise<(moduleSettings | undefined)[]> {
+  ): Promise<(ModuleSettings | undefined)[]> {
     Show.project = new Project(projectPath);
     const promiseContainer = [];
     for (const module of await Show.project.modules()) {
@@ -410,7 +408,7 @@ export class Show {
    * @param {string} projectPath path to a project
    * @returns project information
    */
-  public async showProject(projectPath: string): Promise<project> {
+  public async showProject(projectPath: string): Promise<ProjectMetadata> {
     Show.project = new Project(projectPath);
     return Show.project.show();
   }
@@ -461,7 +459,7 @@ export class Show {
    */
   public async showTemplatesWithDetails(
     projectPath: string,
-  ): Promise<template[]> {
+  ): Promise<Template[]> {
     Show.project = new Project(projectPath);
     const promiseContainer = (await Show.project.templates()).map((template) =>
       Show.project
@@ -469,7 +467,7 @@ export class Show {
         .then((t) => t?.show()),
     );
     const result = await Promise.all(promiseContainer);
-    return result.filter(Boolean) as template[];
+    return result.filter(Boolean) as Template[];
   }
 
   /**
@@ -481,7 +479,7 @@ export class Show {
   public async showWorkflow(
     projectPath: string,
     workflowName: string,
-  ): Promise<workflowMetadata> {
+  ): Promise<WorkflowMetadata> {
     Show.project = new Project(projectPath);
     if (workflowName === '') {
       throw new Error(`Must define workflow name to query its details.`);
@@ -514,7 +512,7 @@ export class Show {
    */
   public async showWorkflowsWithDetails(
     projectPath: string,
-  ): Promise<(workflowMetadata | undefined)[]> {
+  ): Promise<(WorkflowMetadata | undefined)[]> {
     const promiseContainer = [];
     Show.project = new Project(projectPath);
     for (const workflow of await Show.project.workflows()) {

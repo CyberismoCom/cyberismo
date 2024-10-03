@@ -23,13 +23,14 @@ import { EventEmitter } from 'node:events';
 // ismo
 import { Calculate } from './calculate.js';
 import {
-  cardType,
-  fieldType,
-  link,
-  projectFile,
-  templateMetadata,
-  workflowCategory,
-  workflowMetadata,
+  CardType,
+  DataType,
+  FieldTypeDefinition,
+  Link,
+  ProjectFile,
+  TemplateMetadata,
+  WorkflowCategory,
+  WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from './utils/json.js';
@@ -58,7 +59,7 @@ export class Create extends EventEmitter {
     );
   }
 
-  schemaFilesContent: projectFile[] = [
+  schemaFilesContent: ProjectFile[] = [
     {
       path: '.cards/local',
       content: { id: 'cardsconfig-schema', version: 1 },
@@ -290,7 +291,7 @@ export class Create extends EventEmitter {
     const validator = Validate.getInstance();
     const content = (await readJsonFile(
       templateObject.templateConfigurationFilePath(),
-    )) as templateMetadata;
+    )) as TemplateMetadata;
     const validJson = validator.validateJson(content, 'template-schema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid template JSON: ${validJson}`);
@@ -339,7 +340,7 @@ export class Create extends EventEmitter {
     const fullName = `${project.projectPrefix}/cardTypes/${name}`;
     const fullFileName = `.cards/local/cardTypes/${name}.json`;
 
-    const content: cardType = { name: fullName, workflow };
+    const content: CardType = { name: fullName, workflow };
     const destinationFolder = join(projectPath, fullFileName);
     await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
@@ -357,11 +358,6 @@ export class Create extends EventEmitter {
     fieldTypeName: string,
     dataType: string,
   ) {
-    const content: fieldType = {
-      name: `local/fieldTypes/${fieldTypeName}`,
-      dataType: dataType,
-    };
-
     if (await this.fieldTypeExists(projectPath, fieldTypeName)) {
       throw new Error(
         `Field type with name '${fieldTypeName}' already exists in the project`,
@@ -372,6 +368,12 @@ export class Create extends EventEmitter {
         `Field type '${dataType}' not supported. Supported types ${Create.supportedFieldTypes().join(', ')}`,
       );
     }
+    const useDataType: DataType = dataType as DataType;
+
+    const content: FieldTypeDefinition = {
+      name: `local/fieldTypes/${fieldTypeName}`,
+      dataType: useDataType,
+    };
 
     const destinationFolder = join(
       projectPath,
@@ -507,7 +509,7 @@ export class Create extends EventEmitter {
       );
     }
 
-    const links: link[] = card.metadata?.links || [];
+    const links: Link[] = card.metadata?.links || [];
     links.push({
       linkType,
       cardKey: destinationCardKey,
@@ -600,12 +602,12 @@ export class Create extends EventEmitter {
    * Creates a new template to a project.
    * @param {string} projectPath Project path
    * @param {string} templateName Name of the template
-   * @param {templateMetadata} templateContent JSON content for the template file.
+   * @param {TemplateMetadata} templateContent JSON content for the template file.
    */
   public async createTemplate(
     projectPath: string,
     templateName: string,
-    templateContent: templateMetadata,
+    templateContent: TemplateMetadata,
   ) {
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
@@ -648,9 +650,9 @@ export class Create extends EventEmitter {
   /**
    * Creates a workflow.
    * @param {string} projectPath project path
-   * @param {workflowMetadata} workflow workflow JSON
+   * @param {WorkflowMetadata} workflow workflow JSON
    */
-  public async createWorkflow(projectPath: string, workflow: workflowMetadata) {
+  public async createWorkflow(projectPath: string, workflow: WorkflowMetadata) {
     const validator = Validate.getInstance();
     const schemaId = 'workflow-schema';
     const project = new Project(projectPath);
@@ -661,7 +663,7 @@ export class Create extends EventEmitter {
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
     }
-    const content = JSON.parse(JSON.stringify(workflow)) as workflowMetadata;
+    const content = JSON.parse(JSON.stringify(workflow)) as WorkflowMetadata;
     const destinationFile = join(projectPath, fullFileName);
     await writeJsonFile(destinationFile, content, { flag: 'wx' });
   }
@@ -670,7 +672,7 @@ export class Create extends EventEmitter {
    * Default content for template.json values.
    * @returns Default content for template.json values.
    */
-  public static defaultTemplateContent(): templateMetadata {
+  public static defaultTemplateContent(): TemplateMetadata {
     return {};
   }
 
@@ -679,13 +681,13 @@ export class Create extends EventEmitter {
    * @param {string} workflowName workflow name
    * @returns Default content for workflow JSON values.
    */
-  public static defaultWorkflowContent(workflowName: string): workflowMetadata {
+  public static defaultWorkflowContent(workflowName: string): WorkflowMetadata {
     return {
       name: workflowName,
       states: [
-        { name: 'Draft', category: workflowCategory.initial },
-        { name: 'Approved', category: workflowCategory.closed },
-        { name: 'Deprecated', category: workflowCategory.closed },
+        { name: 'Draft', category: WorkflowCategory.initial },
+        { name: 'Approved', category: WorkflowCategory.closed },
+        { name: 'Deprecated', category: WorkflowCategory.closed },
       ],
       transitions: [
         {

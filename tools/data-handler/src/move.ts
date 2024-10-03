@@ -15,7 +15,7 @@ import { join, sep } from 'node:path';
 
 // ismo
 import { copyDir, deleteDir } from './utils/file-utils.js';
-import { card } from './interfaces/project-interfaces.js';
+import { Card } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import {
   EMPTY_RANK,
@@ -43,7 +43,7 @@ export class Move {
     if (destination !== 'root') {
       promiseContainer.push(Move.project.findSpecificCard(destination));
     } else {
-      const returnObject: card = {
+      const returnObject: Card = {
         key: '',
         path: Move.project.cardRootFolder,
       };
@@ -317,7 +317,7 @@ export class Move {
           result[card.parent].push(card);
           return result;
         },
-        {} as Record<string, card[]>,
+        {} as Record<string, Card[]>,
       );
 
       for (const [, cards] of Object.entries(cardGroups)) {
@@ -343,7 +343,7 @@ export class Move {
     await this.rebalanceCards(parentCard.children);
   }
 
-  private async rebalanceCards(cards: card[]) {
+  private async rebalanceCards(cards: Card[]) {
     const ranks = rebalanceRanks(cards.length);
 
     cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
@@ -354,7 +354,7 @@ export class Move {
     }
   }
 
-  private async rebalanceProjectRecursively(cards: card[]) {
+  private async rebalanceProjectRecursively(cards: Card[]) {
     const ranks = rebalanceRanks(cards.length);
 
     cards = sortItems(cards, (item) => item.metadata?.rank || 'z');

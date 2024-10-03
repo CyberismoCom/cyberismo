@@ -12,200 +12,102 @@
 
 // @todo: consider splitting this to several smaller files.
 
-// Content in project files is either .schema, or project setting file.
-// Interfaces are mainly symmetrical, optional members for values that are not needed.
-export interface dotSchemaContent {
-  id: string;
-  version: number;
-  cardKeyPrefix?: never;
-  name?: never;
-}
-
-// Project's settings (=cardsConfig.json).
-export interface projectSettings {
-  id?: never;
-  version?: never;
-  cardKeyPrefix: string;
-  name: string;
-}
-
-// Module content
-export interface moduleSettings extends projectSettings {
-  path: string;
-  cardTypes: string[];
-  calculations: string[];
-  fieldTypes: string[];
-  linkTypes: string[];
-  templates: string[];
-  workflows: string[];
-}
-
-// Content in project (apart from cards) is either .schema files or cardsConfig.json.
-type contentType = dotSchemaContent | projectSettings;
-
-// Files in project in addition to cards (.schema files and cardsConfig.json).
-export interface projectFile {
-  content: contentType;
-  path: string;
-  name: string;
-}
-
-// One card; either in project or in template.
-export interface card {
+// Single card; either in project or in template.
+export interface Card {
   key: string;
   path: string;
   content?: string;
-  metadata?: cardMetadata;
+  metadata?: CardMetadata;
   parent?: string;
-  children?: card[];
-  attachments?: attachmentDetails[];
-}
-
-// When cards are listed using 'show cards'
-export interface cardListContainer {
-  name: string;
-  type: string;
-  cards: string[];
-}
-
-// Card type content.
-export interface cardType {
-  name: string;
-  workflow: string;
-  customFields?: customField[];
-  alwaysVisibleFields?: string[];
-  optionallyVisibleFields?: string[];
-}
-
-// Card's index.json file content.
-export interface cardMetadata {
-  title: string;
-  cardType: string;
-  workflowState: string;
-  rank: string;
-  lastTransitioned?: string;
-  lastUpdated?: string;
-  links?: link[];
-  [key: string]: metadataContent;
-}
-
-// Link content.
-export interface link {
-  linkType: string;
-  cardKey: string;
-  linkDescription?: string;
-}
-
-// FieldType content.
-export interface fieldType {
-  name: string;
-  displayName?: string;
-  fieldDescription?: string;
-  dataType: string;
-  enumValues?: enumValue[];
-}
-
-export interface linkType {
-  name: string;
-  outboundDisplayName: string;
-  inboundDisplayName: string;
-  sourceCardTypes: string[];
-  destinationCardTypes: string[];
-  enableLinkDescription: boolean;
-}
-
-// Project metadata details.
-export interface project {
-  name: string;
-  path: string;
-  prefix: string;
-  numberOfCards: number;
-}
-
-// Project resource, such as workflow, template or card type
-export interface resource {
-  name: string;
-  path?: string;
-}
-
-// Template content.
-export interface templateContent {
-  name: string;
-  cards?: card[];
-}
-
-// Template configuration details.
-export interface template {
-  name: string;
-  path: string;
-  project: string;
-  numberOfCards: number;
-  metadata: templateMetadata;
-}
-
-// Template configuration content details.
-export interface templateMetadata {
-  displayName?: string;
-  description?: string;
-  category?: string;
-}
-
-// Workflow's json file content.
-export interface workflowMetadata {
-  name: string;
-  states: workflowState[];
-  transitions: workflowTransition[];
-}
-
-// Workflow state categories.
-export enum workflowCategory {
-  initial = 'initial',
-  active = 'active',
-  closed = 'closed',
-}
-
-// Workflow state.
-export interface workflowState {
-  name: string;
-  category?: workflowCategory;
-}
-
-// Workflow transition.
-export interface workflowTransition {
-  name: string;
-  fromState: string[];
-  toState: string;
-  requiredCardFields?: string[];
-}
-
-// Custom field enum value
-export interface enumValue {
-  enumValue: string;
-  enumDisplayValue: string;
-  enumDescription: string;
-}
-
-// Custom field
-export interface customField {
-  name: string;
-  description?: string;
-  displayName?: string;
-  isEditable: boolean;
+  children?: Card[];
+  attachments?: CardAttachment[];
 }
 
 // Attachment details
-export interface attachmentDetails {
+export interface CardAttachment {
   card: string;
   path: string;
   fileName: string;
   mimeType: string | null;
 }
 
-// Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')
-export const cardNameRegEx = new RegExp(/^[a-z]+_[0-9a-z]+$/);
+// When cards are listed using 'show cards'
+export interface CardListContainer {
+  name: string;
+  type: string;
+  cards: string[];
+}
 
-// Define which details of a card are fetched.
-export interface fetchCardDetails {
+// Card type content.
+export interface CardType {
+  name: string;
+  workflow: string;
+  customFields?: CustomField[];
+  alwaysVisibleFields?: string[];
+  optionallyVisibleFields?: string[];
+}
+
+// Card's index.json file content.
+export interface CardMetadata {
+  title: string;
+  cardType: string;
+  workflowState: string;
+  rank: string;
+  lastTransitioned?: string;
+  lastUpdated?: string;
+  links?: Link[];
+  [key: string]: MetadataContent;
+}
+
+// Content in project (apart from cards) is either .schema files or cardsConfig.json.
+type ContentType = DotSchemaContent | ProjectSettings;
+
+// Single CSV row as read from a file.
+export type CSVRowRaw = {
+  [key: string]: string;
+};
+
+// Custom field
+export interface CustomField {
+  name: string;
+  description?: string;
+  displayName?: string;
+  isEditable: boolean;
+}
+
+// Supported data types.
+export type DataType =
+  | 'shorttext'
+  | 'longtext'
+  | 'enum'
+  | 'date'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'enum'
+  | 'list'
+  | 'date'
+  | 'datetime'
+  | 'person';
+
+// Content in project files is either .schema, or project setting file.
+// Interfaces are mainly symmetrical, optional members for values that are not needed.
+export interface DotSchemaContent {
+  id: string;
+  version: number;
+  cardKeyPrefix?: never;
+  name?: never;
+}
+
+// Custom field enum value
+export interface EnumDefinition {
+  enumValue: string;
+  enumDisplayValue: string;
+  enumDescription: string;
+}
+
+// Defines which details of a card are fetched.
+export interface FetchCardDetails {
   attachments?: boolean;
   calculations?: true;
   children?: boolean;
@@ -215,23 +117,125 @@ export interface fetchCardDetails {
   parent?: boolean;
 }
 
-export type metadataContent =
+// FieldType content.
+export interface FieldTypeDefinition {
+  name: string;
+  displayName?: string;
+  fieldDescription?: string;
+  dataType: DataType;
+  enumValues?: Array<EnumDefinition>;
+}
+
+// Link content.
+export interface Link {
+  linkType: string;
+  cardKey: string;
+  linkDescription?: string;
+}
+
+// Link type content.
+export interface LinkType {
+  name: string;
+  outboundDisplayName: string;
+  inboundDisplayName: string;
+  sourceCardTypes: string[];
+  destinationCardTypes: string[];
+  enableLinkDescription: boolean;
+}
+
+// Metadata content type.
+export type MetadataContent =
   | number
   | boolean
   | string
   | string[]
-  | link[]
+  | Link[]
   | null
   | undefined;
 
-export type csvRowRaw = {
-  [key: string]: string;
-};
-
-export interface importCsvRow {
-  title: string;
-  template: string;
-  description?: string;
-  labels?: string[];
-  [key: string]: string | string[] | undefined; // Custom fields
+// Module content
+export interface ModuleSettings extends ProjectSettings {
+  path: string;
+  calculations: string[];
+  cardTypes: string[];
+  fieldTypes: string[];
+  linkTypes: string[];
+  templates: string[];
+  workflows: string[];
 }
+
+// Files in project in addition to cards (.schema files and cardsConfig.json).
+export interface ProjectFile {
+  content: ContentType;
+  path: string;
+  name: string;
+}
+
+// Project's settings (=cardsConfig.json).
+export interface ProjectSettings {
+  id?: never;
+  version?: never;
+  cardKeyPrefix: string;
+  name: string;
+}
+
+// Project metadata details.
+export interface ProjectMetadata {
+  name: string;
+  path: string;
+  prefix: string;
+  numberOfCards: number;
+}
+
+// Project resource, such as workflow, template or card type
+export interface Resource {
+  name: string;
+  path?: string;
+}
+
+// Template configuration details.
+export interface Template {
+  name: string;
+  path: string;
+  project: string;
+  numberOfCards: number;
+  metadata: TemplateMetadata;
+}
+
+// Template configuration content details.
+export interface TemplateMetadata {
+  displayName?: string;
+  description?: string;
+  category?: string;
+}
+
+// Workflow state categories.
+export enum WorkflowCategory {
+  initial = 'initial',
+  active = 'active',
+  closed = 'closed',
+}
+
+// Workflow's json file content.
+export interface WorkflowMetadata {
+  name: string;
+  states: WorkflowState[];
+  transitions: WorkflowTransition[];
+}
+
+// Workflow state.
+export interface WorkflowState {
+  name: string;
+  category?: WorkflowCategory;
+}
+
+// Workflow transition.
+export interface WorkflowTransition {
+  name: string;
+  fromState: string[];
+  toState: string;
+  requiredCardFields?: string[];
+}
+
+// Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')
+export const CardNameRegEx = new RegExp(/^[a-z]+_[0-9a-z]+$/);

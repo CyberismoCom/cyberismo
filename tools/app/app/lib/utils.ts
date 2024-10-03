@@ -24,7 +24,7 @@ import {
   WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import { workflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { WorkflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 /**
@@ -482,11 +482,11 @@ export async function withUpdating<T>(
  */
 export function getStateColor(category: string) {
   switch (category) {
-    case workflowCategory.initial:
+    case WorkflowCategory.initial:
       return 'neutral.300';
-    case workflowCategory.active:
+    case WorkflowCategory.active:
       return 'warning.300';
-    case workflowCategory.closed:
+    case WorkflowCategory.closed:
       return 'success.400';
     default:
       return 'black';
@@ -501,11 +501,11 @@ export function getStateColor(category: string) {
  */
 export function getStateColorDeprecated(state: WorkflowState) {
   switch (state.category) {
-    case workflowCategory.initial:
+    case WorkflowCategory.initial:
       return 'neutral.300';
-    case workflowCategory.active:
+    case WorkflowCategory.active:
       return 'warning.300';
-    case workflowCategory.closed:
+    case WorkflowCategory.closed:
       return 'success.400';
     default:
       return 'black';

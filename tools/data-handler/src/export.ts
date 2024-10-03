@@ -22,9 +22,9 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 
 // ismo
 import {
-  card,
-  cardNameRegEx,
-  cardType,
+  Card,
+  CardNameRegEx,
+  CardType,
 } from './interfaces/project-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
@@ -42,12 +42,12 @@ export class Export {
   static project: Project;
 
   // Finds card based on name.
-  private findCard(path: string, cards: card[] | undefined) {
+  private findCard(path: string, cards: Card[] | undefined) {
     return cards?.find((card) => card.key === basename(path));
   }
 
   // Finds owner of attachment (card) based on name.
-  private findAttachmentOwner(path: string, cards: card[] | undefined) {
+  private findAttachmentOwner(path: string, cards: Card[] | undefined) {
     const parts = path.split(sep);
     const relatedCard = parts.at(parts.length - 2);
     return cards?.find((card) => card.key === relatedCard);
@@ -57,7 +57,7 @@ export class Export {
   // todo: combine with function of same in Project
   protected async readCardTreeToMemory(
     cardRootPath: string,
-    cards?: card[],
+    cards?: Card[],
     unknownFileIsAttachment: boolean = false,
   ) {
     let entries = await readdir(cardRootPath, { withFileTypes: true });
@@ -66,7 +66,7 @@ export class Export {
     });
 
     for (const entry of entries) {
-      if (entry.isDirectory() && cardNameRegEx.test(entry.name)) {
+      if (entry.isDirectory() && CardNameRegEx.test(entry.name)) {
         cards?.push({
           key: entry.name,
           path: entry.path,
@@ -130,13 +130,13 @@ export class Export {
   }
 
   // This file should set the top level items to the adoc.
-  private async toAdocFile(path: string, cards: card[]) {
+  private async toAdocFile(path: string, cards: Card[]) {
     await appendFile(path, `:imagesdir: ./${attachmentFolder}/\n`);
     await this.toAdocFileAsContent(path, cards);
   }
 
   // Format card metadata to an AsciiDoc table.
-  protected metaToAdoc(card: card, cardType: cardType | undefined): string {
+  protected metaToAdoc(card: Card, cardType: CardType | undefined): string {
     let content = '';
     if (card.metadata) {
       content += `[.cyberismo-meta-wrapper]\n`;
@@ -182,7 +182,7 @@ export class Export {
     return content;
   }
 
-  private async toAdocFileAsContent(path: string, cards: card[]) {
+  private async toAdocFileAsContent(path: string, cards: Card[]) {
     for (const card of cards) {
       let fileContent = '';
       if (card.content) {
@@ -243,7 +243,7 @@ export class Export {
   ) {
     Export.project = new Project(source);
     const sourcePath: string = Export.project.cardRootFolder;
-    let cards: card[] = [];
+    let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
     if (cardKey) {

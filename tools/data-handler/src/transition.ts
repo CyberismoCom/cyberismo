@@ -16,7 +16,7 @@ import { join } from 'node:path';
 
 // ismo
 import { Calculate } from './calculate.js';
-import { card, workflowState } from './interfaces/project-interfaces.js';
+import { Card, WorkflowState } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { writeJsonFile } from './utils/json.js';
 import { Edit } from './edit.js';
@@ -37,7 +37,7 @@ export class Transition extends EventEmitter {
   }
 
   // Sets card state
-  private async setCardState(card: card, state: string) {
+  private async setCardState(card: Card, state: string) {
     if (card.metadata) {
       card.metadata.workflowState = state;
       await writeJsonFile(
@@ -56,7 +56,7 @@ export class Transition extends EventEmitter {
   public async cardTransition(
     projectPath: string,
     cardKey: string,
-    transition: workflowState,
+    transition: WorkflowState,
   ) {
     Transition.project = new Project(projectPath);
 

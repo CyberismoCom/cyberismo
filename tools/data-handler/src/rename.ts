@@ -18,7 +18,7 @@ import { rename, readFile, writeFile } from 'node:fs/promises';
 
 // ismo
 import { Calculate } from './calculate.js';
-import { card, resource } from './interfaces/project-interfaces.js';
+import { Card, Resource } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { resourceNameParts } from './utils/resource-utils.js';
 import { Template } from './containers/template.js';
@@ -44,7 +44,7 @@ export class Rename extends EventEmitter {
   }
 
   // Renames a card and all of its attachments (if it is a project card).
-  private async renameCard(re: RegExp, card: card): Promise<void> {
+  private async renameCard(re: RegExp, card: Card): Promise<void> {
     // Update card's metadata
     await this.updateCardMetadata(card);
 
@@ -55,9 +55,9 @@ export class Rename extends EventEmitter {
 
   // Update all the cards in a container.
   // Sort cards so that cards that deeper in file hierarchy are renamed first.
-  private async renameCards(cards: card[]): Promise<void> {
+  private async renameCards(cards: Card[]): Promise<void> {
     // Sort cards by path length (so that renaming starts from children)
-    function sortCards(a: card, b: card) {
+    function sortCards(a: Card, b: Card) {
       if (a.path.length > b.path.length) {
         return -1;
       }
@@ -86,7 +86,7 @@ export class Rename extends EventEmitter {
   }
 
   // Update card's attachments.
-  private async updateCardAttachments(re: RegExp, card: card): Promise<void> {
+  private async updateCardAttachments(re: RegExp, card: Card): Promise<void> {
     if (!Project.isTemplateCard(card)) {
       const attachments = card.attachments ? card.attachments : [];
       await Promise.all(
@@ -114,7 +114,7 @@ export class Rename extends EventEmitter {
   }
 
   // Update card's metadata.
-  private async updateCardMetadata(card: card): Promise<void> {
+  private async updateCardMetadata(card: Card): Promise<void> {
     if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
       const { prefix, type, name } = resourceNameParts(card.metadata.cardType);
       if (prefix === this.from) {
@@ -150,7 +150,7 @@ export class Rename extends EventEmitter {
   }
 
   // Updates single calculation file.
-  private async updateCalculationFile(calculation: resource) {
+  private async updateCalculationFile(calculation: Resource) {
     if (!calculation.path) {
       throw new Error(
         `Calculation file's '${calculation.name}' path is not defined`,

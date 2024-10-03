@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Show } from '../src/show.js';
 import { errorFunction } from '../src/utils/log-utils.js';
-import { moduleSettings } from '../src/interfaces/project-interfaces.js';
+import { ModuleSettings } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
@@ -284,7 +284,7 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       expect(result.payload).to.not.equal(undefined);
-      const module = result.payload as moduleSettings;
+      const module = result.payload as ModuleSettings;
       expect(module.cardKeyPrefix).to.equal('mini');
       expect(module.name).to.equal('minimal');
       expect(module.path).to.equal(

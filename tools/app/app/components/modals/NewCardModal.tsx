@@ -32,7 +32,7 @@ import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
 import { useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
-import { template } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { Template } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 interface NewCardModalProps {
   open: boolean;
@@ -129,7 +129,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   }, [open]);
 
   // divide templates into categories
-  const categories = (templates || []).reduce<Record<string, template[]>>(
+  const categories = (templates || []).reduce<Record<string, Template[]>>(
     (acc, template) => {
       const category = template.metadata.category || 'Uncategorized';
       if (!acc[category]) {

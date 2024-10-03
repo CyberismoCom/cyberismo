@@ -12,14 +12,14 @@
 
 import { readFile } from 'fs/promises';
 import { parse } from 'csv-parse/sync';
-import { csvRowRaw } from '../interfaces/project-interfaces.js';
+import { CSVRowRaw } from '../interfaces/project-interfaces.js';
 
 /**
  * Reads a CSV file and returns its content as an array of objects.
  * @param file Path to the CSV file.
  * @returns Array of objects. Each object represents a row in the CSV file.
  */
-export async function readCsvFile(file: string): Promise<csvRowRaw[]> {
+export async function readCsvFile(file: string): Promise<CSVRowRaw[]> {
   const content = await readFile(file, {
     encoding: 'utf-8',
   });

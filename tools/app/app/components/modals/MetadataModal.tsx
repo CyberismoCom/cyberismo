@@ -23,7 +23,7 @@ import {
   Table,
 } from '@mui/joy';
 import { useCard } from '@/app/lib/api';
-import { cardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { CardMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import moment from 'moment';
 
 function Metadata({
@@ -31,7 +31,7 @@ function Metadata({
   title,
   workflowState,
   lastTransitioned,
-}: cardMetadata) {
+}: CardMetadata) {
   const { t } = useTranslation();
   return (
     <Table size="sm">
