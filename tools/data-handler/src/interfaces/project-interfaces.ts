@@ -77,8 +77,8 @@ export interface CustomField {
 
 // Supported data types.
 export type DataType =
-  | 'shorttext'
-  | 'longtext'
+  | 'shortText'
+  | 'longText'
   | 'enum'
   | 'date'
   | 'number'
@@ -87,7 +87,7 @@ export type DataType =
   | 'enum'
   | 'list'
   | 'date'
-  | 'datetime'
+  | 'dateTime'
   | 'person';
 
 // Content in project files is either .schema, or project setting file.

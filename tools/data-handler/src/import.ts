@@ -42,7 +42,7 @@ export class Import {
   ): Promise<string[]> {
     const csv = await readCsvFile(csvFilePath);
 
-    const isValid = Validate.getInstance().validateJson(csv, 'csv-schema');
+    const isValid = Validate.getInstance().validateJson(csv, 'csvSchema');
     if (isValid.length !== 0) {
       throw new Error(isValid);
     }

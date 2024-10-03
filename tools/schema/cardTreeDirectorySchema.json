@@ -1,6 +1,6 @@
 {
   "title": "Card directory tree schema",
-  "$id": "cardtree-directory-schema",
+  "$id": "cardTreeDirectorySchema",
   "description": "This schema represents the directory structure of a card tree, using the format of https://github.com/jpoehnelt/directory-schema-validator",
   "type": "object",
   "properties": {
@@ -20,7 +20,7 @@
               "additionalProperties": false,
               "properties": {
                 "modules": {
-                  "$ref": "#/$defs/card-module-schema"
+                  "$ref": "#/$defs/cardModuleSchema"
                 },
                 "local": {
                   "type": "object",
@@ -76,7 +76,7 @@
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "cardtype-schema.json"
+                                  "contentSchema": "cardTypeSchema.json"
                                 }
                               }
                             },
@@ -109,7 +109,7 @@
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "linktype-schema.json"
+                                  "contentSchema": "linkTypeSchema.json"
                                 }
                               }
                             },
@@ -142,7 +142,7 @@
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "card-type-schema.json"
+                                  "contentSchema": "cardTypeSchema.json"
                                 }
                               }
                             },
@@ -182,7 +182,7 @@
                                               "additionalProperties": false,
                                               "patternProperties": {
                                                 "^[a-z]+_[0-9a-z]+$": {
-                                                  "$ref": "#/$defs/card-directory-schema#"
+                                                  "$ref": "#/$defs/cardDirectorySchema#"
                                                 }
                                               }
                                             },
@@ -205,7 +205,7 @@
                                         "template.json": {
                                           "type": "object",
                                           "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                          "contentSchema": "template-schema.json"
+                                          "contentSchema": "templateSchema.json"
                                         }
                                       },
                                       "required": [".schema", "template.json"]
@@ -236,7 +236,7 @@
                                 "files": {
                                   "type": "object",
                                   "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "workflow-schema.json"
+                                  "contentSchema": "workflowSchema.json"
                                 }
                               }
                             },
@@ -285,7 +285,7 @@
               "additionalProperties": false,
               "patternProperties": {
                 "^[a-z]+_[0-9a-z]+$": {
-                  "$ref": "#/$defs/card-directory-schema#"
+                  "$ref": "#/$defs/cardDirectorySchema#"
                 }
               }
             }
@@ -364,7 +364,7 @@
     }
   },
   "$defs": {
-    "card-module-schema": {
+    "cardModuleSchema": {
       "description": "The schema for modules. Each module is in a named directory containing 'cardTypes', 'templates' and 'workflows'. ",
       "type": "object",
       "properties": {
@@ -438,7 +438,7 @@
                       "properties": {
                         "files": {
                           "type": "object",
-                          "contentSchema": "field-type-schema.json"
+                          "contentSchema": "fieldTypeSchema.json"
                         }
                       }
                     },
@@ -466,7 +466,7 @@
                                           "additionalProperties": false,
                                           "patternProperties": {
                                             "^[a-z]+_[0-9a-z]+$": {
-                                              "$ref": "#/$defs/card-directory-schema#"
+                                              "$ref": "#/$defs/cardDirectorySchema#"
                                             }
                                           }
                                         }
@@ -483,7 +483,7 @@
                                     "template.json": {
                                       "type": "object",
                                       "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                      "contentSchema": "template-schema.json"
+                                      "contentSchema": "templateSchema.json"
                                     }
                                   },
                                   "required": [".schema", "template.json"]
@@ -503,7 +503,7 @@
                       "properties": {
                         "files": {
                           "type": "object",
-                          "contentSchema": "workflow-schema.json"
+                          "contentSchema": "workflowSchema.json"
                         }
                       }
                     }
@@ -532,7 +532,7 @@
         }
       }
     },
-    "card-directory-schema": {
+    "cardDirectorySchema": {
       "description": "The directory schema of a card, using the format of https://github.com/jpoehnelt/directory-schema-validator",
       "type": "object",
       "properties": {
@@ -549,10 +549,10 @@
           "properties": {
             ".schema": {},
             "index.json": {
-              "description": "The fields of the card. This file must validate against both the card-base-schema.json and the custom fields of its card type",
+              "description": "The fields of the card. This file must validate against both the cardBaseSchema.json and the custom fields of its card type",
               "type": "object",
               "$comment": "Each file needs to be separately validated against 'contentSchema'",
-              "contentSchema": "card-base-schema.json"
+              "contentSchema": "cardBaseSchema.json"
             },
             "index.adoc": {
               "description": "The description field of the card as an Asciidoc file",
@@ -584,7 +584,7 @@
               "type": "object",
               "properties": {
                 "directories": {
-                  "$ref": "#/$defs/card-directory-schema#"
+                  "$ref": "#/$defs/cardDirectorySchema#"
                 }
               }
             }

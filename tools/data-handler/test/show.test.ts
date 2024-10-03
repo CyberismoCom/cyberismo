@@ -130,7 +130,7 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-  it('showCardTypeDetails - empty card-type', async () => {
+  it('showCardTypeDetails - empty cardType', async () => {
     const cardType = '';
     await showCmd
       .showCardTypeDetails(decisionRecordsPath, cardType)

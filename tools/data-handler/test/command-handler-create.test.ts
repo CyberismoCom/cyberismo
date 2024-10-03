@@ -155,9 +155,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('card incorrect or missing cardsconfig.json', async () => {
+  it('card incorrect or missing cardsConfig.json', async () => {
     const invalidOptions = {
-      projectPath: join(testDir, 'invalid/missing-cardsconfig.json'),
+      projectPath: join(testDir, 'invalid/missing-cardsConfig.json'),
     };
     const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
@@ -167,9 +167,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('card invalid cardsconfig.json', async () => {
+  it('card invalid cardsConfig.json', async () => {
     const invalidOptions = {
-      projectPath: join(testDir, 'invalid/invalid-cardsconfig.json'),
+      projectPath: join(testDir, 'invalid/invalid-cardsConfig.json'),
     };
     const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(

@@ -3,7 +3,7 @@ const path = require('path');
 
 const schemaDir = './tools/schema';
 const outputFilePath = './tools/data-handler/src/utils/schemas.ts';
-const parentSchemaFile = 'cardtree-directory-schema';
+const parentSchemaFile = 'cardTreeDirectorySchema';
 
 const license = `
 /**

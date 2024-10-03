@@ -1,6 +1,6 @@
 {
   "title": "FieldType",
-  "$id": "field-type-schema",
+  "$id": "fieldTypeSchema",
   "description": "Field type defines the workflow and optional additional fields for the cards.",
   "type": "object",
   "additionalProperties": false,
@@ -20,7 +20,7 @@
     "dataType": {
       "type": "string",
       "description": "",
-      "pattern": "^shorttext$|^longtext$|^number$|^integer$|^boolean$|^enum$|^list$|^date$|^datetime$|^person$"
+      "pattern": "^shortText$|^longText$|^number$|^integer$|^boolean$|^enum$|^list$|^date$|^dateTime$|^person$"
     },
     "enumValues": {
       "description": "An array of available enum values. Used for the enum fieldType only.",

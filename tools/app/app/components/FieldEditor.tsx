@@ -78,11 +78,11 @@ export default function FieldEditor({
           fullWidth
         />
       );
-    case 'shorttext':
-    case 'longtext':
+    case 'shortText':
+    case 'longText':
     case 'person':
     case 'date':
-    case 'datetime':
+    case 'dateTime':
     default:
       return (
         <Input

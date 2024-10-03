@@ -6,7 +6,7 @@
             "fieldName": "decision/fieldTypes/obsoletedBy",
             "fieldDisplayName": "Obsoleted By",
             "fieldDescription": "The card key of the card that obsoleted this decision.",
-            "fieldType": "shorttext"
+            "fieldType": "shortText"
         }
     ]
 }

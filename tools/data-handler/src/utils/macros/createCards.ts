@@ -27,7 +27,7 @@ export interface CreateCardsOptions {
 const macro: Macro = {
   name: 'createCards',
   tagName: 'create-cards',
-  schema: 'create-cards-macro-schema',
+  schema: 'createCardsMacroSchema',
   handleStatic: () => {
     // Buttons aren't supported in static mode
     return '';

@@ -50,13 +50,13 @@ export class Validate {
 
   constructor() {
     Validate.baseFolder = pathExists(
-      join(process.cwd(), '../schema', 'cardtree-directory-schema.json'),
+      join(process.cwd(), '../schema', 'cardTreeDirectorySchema.json'),
     )
       ? join(process.cwd(), '../schema')
       : join(baseDir, '../../schema');
     Validate.parentSchemaFile = join(
       Validate.baseFolder,
-      'cardtree-directory-schema.json',
+      'cardTreeDirectorySchema.json',
     );
     this.validator = new JSONValidator();
     this.directoryValidator = new DirectoryValidator();
@@ -187,7 +187,7 @@ export class Validate {
       return true;
     }
 
-    if (field === 'date' || field === 'datetime') {
+    if (field === 'date' || field === 'dateTime') {
       return !isNaN(Date.parse(<string>value));
     }
     if (field === 'list') {
@@ -196,10 +196,10 @@ export class Validate {
     if (field === 'boolean' || field === 'number') {
       return typeOfValue === field;
     }
-    if (field === 'shorttext') {
+    if (field === 'shortText') {
       return typeOfValue === 'string' && this.length(<string>value) <= 80;
     }
-    if (field === 'longtext') {
+    if (field === 'longText') {
       return typeOfValue === 'string';
     }
     if (field === 'integer') {

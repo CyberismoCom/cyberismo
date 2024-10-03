@@ -78,7 +78,7 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - no-.schema-in-card-root', async () => {
+  it('try to validate() - no-.schema-in-cardRoot', async () => {
     const path = 'test/test-data/invalid/o-.schema-in-cardRoot';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
@@ -88,7 +88,7 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - missing-card-root', async () => {
+  it('try to validate() - missing-cardRoot', async () => {
     const path = 'test/test-data/invalid/missing-cardRoot';
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
@@ -106,7 +106,7 @@ describe('validate cmd tests', () => {
   it('validateJson() - cardsConfig', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/cardsConfig.json';
-    const schemaId = 'cardsconfig-schema';
+    const schemaId = 'cardsConfigSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.equal(0);
@@ -114,7 +114,7 @@ describe('validate cmd tests', () => {
   it('validateJson() - card type', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
-    const schemaId = '/cardtype-schema';
+    const schemaId = 'cardTypeSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.equal(0);
@@ -122,7 +122,7 @@ describe('validate cmd tests', () => {
   it('validateJson() - template', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/templates/decision/template.json';
-    const schemaId = 'template-schema';
+    const schemaId = 'templateSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.equal(0);
@@ -130,13 +130,13 @@ describe('validate cmd tests', () => {
   it('validateJson() - workflow', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
-    const schemaId = 'workflow-schema';
+    const schemaId = 'workflowSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.equal(0);
   });
   it('try to validateJson() - invalid JSON', () => {
-    const schemaId = 'workflow-schema';
+    const schemaId = 'workflowSchema';
     const valid = validateCmd.validateJson({}, schemaId);
     expect(valid.length).to.be.greaterThan(0);
   });
@@ -151,33 +151,33 @@ describe('validate cmd tests', () => {
   it('validateSchema() - cardsConfig', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/cardsConfig.json';
-    const schemaId = 'cardsconfig-schema';
+    const schemaId = 'cardsConfigSchema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
   });
   it('validateSchema() - card type', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
-    const schemaId = '/cardtype-schema';
+    const schemaId = 'cardTypeSchema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
   });
   it('validateSchema() - template', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/templates/decision/template.json';
-    const schemaId = 'template-schema';
+    const schemaId = 'templateSchema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
   });
   it('validateSchema() - workflow', async () => {
     const path =
       'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
-    const schemaId = 'workflow-schema';
+    const schemaId = 'workflowSchema';
     const valid = await validateCmd.validateSchema(path, schemaId);
     expect(valid.length).to.equal(0);
   });
   it('try to validateSchema() - invalid JSON', async () => {
-    const schemaId = 'workflow-schema';
+    const schemaId = 'workflowSchema';
     await validateCmd
       .validateSchema('', schemaId)
       .catch((error) =>
