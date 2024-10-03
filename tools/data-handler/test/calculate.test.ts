@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import chaiAsPromised from 'chai-as-promised';
 import { QueryResult } from '../src/types/queries.js';
-import { workflowCategory } from '../src/interfaces/project-interfaces.js';
+import { WorkflowCategory } from '../src/interfaces/project-interfaces.js';
 use(chaiAsPromised);
 
 const calculate = new Calculate();
@@ -19,7 +19,7 @@ const expectedTree: QueryResult<'tree'>[] = [
     labels: [],
     links: [],
     rank: '0|a',
-    workflowStateCategory: workflowCategory.initial,
+    workflowStateCategory: WorkflowCategory.initial,
     results: [
       {
         key: 'decision_6',
@@ -28,7 +28,7 @@ const expectedTree: QueryResult<'tree'>[] = [
         results: [],
         rank: '0|a',
         policyChecks: { successes: [], failures: [] },
-        workflowStateCategory: workflowCategory.closed,
+        workflowStateCategory: WorkflowCategory.closed,
         deniedOperations: {
           transition: [],
           move: [],
