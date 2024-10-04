@@ -1,6 +1,6 @@
 {
   "title": "Card",
-  "$id": "card-base-schema",
+  "$id": "cardBaseSchema",
   "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
   "type": "object",
   "additionalProperties": true,

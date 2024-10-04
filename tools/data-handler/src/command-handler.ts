@@ -762,7 +762,7 @@ export class Commands {
   /**
    * Creates a new workflow to a project.
    * @param {string} workflowName Workflow name.
-   * @param {string} workflowContent Workflow content as JSON. Must conform to workflow-schema.json
+   * @param {string} workflowContent Workflow content as JSON. Must conform to workflowSchema.json
    * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
@@ -925,7 +925,7 @@ export class Commands {
    * Removes a card (single card, or parent card and children), or an attachment.
    * @param {string} type Type of resource to remove (attachment, card, template)
    * @param {string} targetName What will be removed. Either card-id or templateName
-   * @param {string} detail Additional detail of removal, such as attachment name
+   * @param {string} args Additional detail of removal, such as attachment name
    * @param {string} path Path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded

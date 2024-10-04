@@ -1,6 +1,6 @@
 {
   "title": "LinkType",
-  "$id": "link-type-schema",
+  "$id": "linkTypeSchema",
   "description": "Link types defined different ways to link cards together.",
   "type": "object",
   "additionalProperties": false,

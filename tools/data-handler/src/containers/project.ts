@@ -377,7 +377,7 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Getter. Returns path to card-root.
+   * Getter. Returns path to card root.
    */
   public get cardRootFolder(): string {
     return join(this.basePath, 'cardRoot');
@@ -453,7 +453,7 @@ export class Project extends CardContainer {
   /**
    * Returns an array of all the card types in the project.
    * @param {boolean} localOnly Return local card types, or all card types (includes module card types)
-   * @returns array of all card-types in the project.
+   * @returns array of all card types in the project.
    */
   public async cardTypes(localOnly: boolean = false): Promise<Resource[]> {
     const moduleCardTypes = await this.collectResourcesFromModules('cardTypes');

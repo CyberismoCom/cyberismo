@@ -1,6 +1,6 @@
 {
   "title": "CardsConfig",
-  "$id": "cardsconfig-schema",
+  "$id": "cardsConfigSchema",
   "description": "General configuration settings for the card tree.",
   "type": "object",
   "additionalProperties": false,

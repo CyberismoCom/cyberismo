@@ -1,6 +1,6 @@
 {
   "title": "Workflow",
-  "$id": "workflow-schema",
+  "$id": "workflowSchema",
   "description": "A state machine for the workflow of cards",
   "type": "object",
   "additionalProperties": false,

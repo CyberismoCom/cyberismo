@@ -62,7 +62,7 @@ export class Create extends EventEmitter {
   schemaFilesContent: ProjectFile[] = [
     {
       path: '.cards/local',
-      content: { id: 'cardsconfig-schema', version: 1 },
+      content: { id: 'cardsConfigSchema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
@@ -75,22 +75,22 @@ export class Create extends EventEmitter {
     },
     {
       path: '.cards/local/cardTypes',
-      content: { id: '/cardtype-schema', version: 1 },
+      content: { id: 'cardTypeSchema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/fieldTypes',
-      content: { id: 'field-type-schema', version: 1 },
+      content: { id: 'fieldTypeSchema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/linkTypes',
-      content: { id: 'link-type-schema', version: 1 },
+      content: { id: 'linkTypeSchema', version: 1 },
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/workflows',
-      content: { id: 'workflow-schema', version: 1 },
+      content: { id: 'workflowSchema', version: 1 },
       name: Project.schemaContentFile,
     },
   ];
@@ -292,7 +292,7 @@ export class Create extends EventEmitter {
     const content = (await readJsonFile(
       templateObject.templateConfigurationFilePath(),
     )) as TemplateMetadata;
-    const validJson = validator.validateJson(content, 'template-schema');
+    const validJson = validator.validateJson(content, 'templateSchema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
@@ -401,10 +401,7 @@ export class Create extends EventEmitter {
     const linkTypeContent = Create.getLinkTypeContent(linkTypeName);
     // check if link type JSON is valid
     const validator = Validate.getInstance();
-    const validJson = validator.validateJson(
-      linkTypeContent,
-      'link-type-schema',
-    );
+    const validJson = validator.validateJson(linkTypeContent, 'linkTypeSchema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid link type JSON: ${validJson}`);
     }
@@ -619,10 +616,7 @@ export class Create extends EventEmitter {
     }
 
     const validator = Validate.getInstance();
-    const validJson = validator.validateJson(
-      templateContent,
-      'template-schema',
-    );
+    const validJson = validator.validateJson(templateContent, 'templateSchema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
@@ -654,7 +648,7 @@ export class Create extends EventEmitter {
    */
   public async createWorkflow(projectPath: string, workflow: WorkflowMetadata) {
     const validator = Validate.getInstance();
-    const schemaId = 'workflow-schema';
+    const schemaId = 'workflowSchema';
     const project = new Project(projectPath);
     const fullName = `${project.projectPrefix}/workflows/${workflow.name}`;
     const fullFileName = `.cards/local/workflows/${workflow.name}.json`;
@@ -731,15 +725,15 @@ export class Create extends EventEmitter {
    */
   public static supportedFieldTypes(): string[] {
     return [
-      'shorttext',
-      'longtext',
+      'shortText',
+      'longText',
       'number',
       'integer',
       'boolean',
       'enum',
       'list',
       'date',
-      'datetime',
+      'dateTime',
       'person',
     ];
   }

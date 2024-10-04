@@ -1,6 +1,6 @@
 {
   "title": "Cardtype",
-  "$id": "/cardtype-schema",
+  "$id": "cardTypeSchema",
   "description": "Card type defines the workflow and optional additional fields for the cards.",
   "type": "object",
   "additionalProperties": false,

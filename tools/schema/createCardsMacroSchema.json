@@ -1,6 +1,6 @@
 {
   "type": "object",
-  "$id": "create-cards-macro-schema",
+  "$id": "createCardsMacroSchema",
   "properties": {
     "buttonLabel": {
       "type": "string",

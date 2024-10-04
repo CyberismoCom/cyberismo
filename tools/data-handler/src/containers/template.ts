@@ -51,7 +51,7 @@ export class Template extends CardContainer {
   private project: Project;
 
   private static DotSchemaContent: object = {
-    id: 'card-base-schema',
+    id: 'cardBaseSchema',
     version: 1,
   };
 
@@ -451,7 +451,7 @@ export class Template extends CardContainer {
               templateContent,
             ),
             writeJsonFile(join(this.templatePath, Project.schemaContentFile), {
-              id: 'template-schema',
+              id: 'templateSchema',
               version: 1,
             }),
             writeJsonFile(
