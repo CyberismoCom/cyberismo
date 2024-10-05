@@ -12,7 +12,7 @@
 
 // node
 import { Dirent, readdirSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { dirname, extname, join, parse } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
@@ -24,8 +24,19 @@ import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
+import { resourceNameParts } from './utils/resource-utils.js';
 import { Project } from './containers/project.js';
-import { Card, FieldTypeDefinition } from './interfaces/project-interfaces.js';
+import {
+  Card,
+  FieldTypeDefinition,
+  TemplateMetadata,
+  CardType,
+  CustomField,
+  DotSchemaContent,
+  LinkType,
+  ProjectSettings,
+  WorkflowMetadata,
+} from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -47,6 +58,9 @@ export class Validate {
   static jsonFileExtension = '.json';
   static parentSchemaFile: string;
   static schemaConfigurationFile = '.schema';
+  static projectConfigurationFile = 'cardsConfig.json';
+  static templateMetadataFile = 'template.json';
+  static cardMetadataFile = 'index.json';
 
   constructor() {
     Validate.baseFolder = pathExists(
@@ -85,7 +99,10 @@ export class Validate {
   }
 
   // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(path: string): Promise<string[]> {
+  private async readAndValidateContentFiles(
+    project: Project,
+    path: string,
+  ): Promise<string[]> {
     const message: string[] = [];
     try {
       const files = await readdir(path, {
@@ -118,10 +135,17 @@ export class Validate {
           }
         } else {
           // console.log(`FILE ${fullFileNameWithPath} ACTIVE SCHEMA : ${activeJsonSchema.$id}`);
-          const result = this.validator.validate(
-            await readJsonFile(fullFileNameWithPath),
-            activeJsonSchema,
+          const content = await readJsonFile(fullFileNameWithPath);
+          const nameErrors = this.validateResourceName(
+            fullFileNameWithPath,
+            file,
+            content,
+            project.projectPrefix,
           );
+          if (nameErrors) {
+            message.push(...nameErrors);
+          }
+          const result = this.validator.validate(content, activeJsonSchema);
           for (const error of result.errors) {
             const msg = `Validation error from '${fullFileNameWithPath}': ${error.message}.`;
             message.push(msg);
@@ -132,6 +156,57 @@ export class Validate {
       throw new Error(errorFunction(error));
     }
     return message;
+  }
+
+  // Validates that 'name' in resources matches filename, location and project prefix.
+  // @todo: Can be removed when INTDEV-463 is implemented.
+  private validateResourceName(
+    fullFileNameWithPath: string,
+    file: Dirent,
+    content:
+      | TemplateMetadata
+      | CardType
+      | CustomField
+      | DotSchemaContent
+      | FieldTypeDefinition
+      | LinkType
+      | ProjectSettings
+      | WorkflowMetadata,
+    projectPrefix: string,
+  ): string[] {
+    const errors: string[] = [];
+    // Exclude cardsConfig.json, .schemas and template.json.
+    if (
+      file.name !== Validate.projectConfigurationFile &&
+      file.name !== Validate.templateMetadataFile &&
+      file.name !== Validate.cardMetadataFile
+    ) {
+      const namedContent = content as
+        | CardType
+        | CustomField
+        | FieldTypeDefinition
+        | LinkType
+        | WorkflowMetadata;
+      const { name, type, prefix } = resourceNameParts(namedContent.name);
+      const filenameWithoutExtension = parse(file.name).name;
+
+      if (projectPrefix !== prefix) {
+        errors.push(
+          `Wrong prefix in resource '${namedContent.name}'. Project prefix is '${projectPrefix}'`,
+        );
+      }
+      if (name !== filenameWithoutExtension) {
+        errors.push(
+          `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
+        );
+      }
+      if (!fullFileNameWithPath.includes(type)) {
+        errors.push(
+          `Wrong type name in resource '${namedContent.name}'. Should match filename path: '${fullFileNameWithPath}'`,
+        );
+      }
+    }
+    return errors;
   }
 
   private parseValidatorMessage(errorObject: object[]): string {
@@ -270,15 +345,18 @@ export class Validate {
         return validationErrors;
       } else {
         const errorMsg: string[] = [];
+        const project = new Project(projectPath);
 
         // Then, validate that each 'contentSchema' children as well.
-        const result = await this.readAndValidateContentFiles(projectPath);
+        const result = await this.readAndValidateContentFiles(
+          project,
+          projectPath,
+        );
         if (result.length > 0) {
           errorMsg.push(...result);
         }
 
         // Finally, validate that each card is correct
-        const project = new Project(projectPath);
         const cards = await project.cards();
         cards.push(...(await project.templateCards()));
 

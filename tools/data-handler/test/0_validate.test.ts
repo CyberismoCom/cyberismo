@@ -1,6 +1,6 @@
 // node
 import { readdir } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // testing
@@ -305,5 +305,18 @@ describe('validate cmd tests', () => {
       expect(result).to.not.equal(undefined); // all of the invalid projects have validation errors
     }
   });
-  // @todo add more tests that test various values types can have (correct and incorrect)
+  it('try to validate resource that has name conflicts with filename', async () => {
+    const project = new Project(
+      'test/test-data/invalid/invalid-wrong-resource-names/',
+    );
+    const errors = await validateCmd.validate(project.basePath);
+    const separatedErrors = errors.split('\n');
+    const expectWrongPrefix =
+      "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefix is 'decision'";
+    const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
+    const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
+    expect(separatedErrors[0]).to.equal(expectWrongPrefix);
+    expect(separatedErrors[1]).to.equal(expectWrongName);
+    expect(separatedErrors[2]).to.equal(expectWrongType);
+  });
 });
