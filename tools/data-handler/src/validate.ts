@@ -98,6 +98,49 @@ export class Validate {
     return join(file.path, file.name);
   }
 
+  private parseValidatorMessage(errorObject: object[]): string {
+    let parsedErrorMessage = '';
+    // todo: get schema name here?
+    for (const error of errorObject) {
+      let instancePath = '';
+      let params = '';
+      let message = '';
+      let fileError = false;
+      if (Object.prototype.hasOwnProperty.call(error, 'instancePath')) {
+        const temp = Object(error)['instancePath'];
+        if (temp.endsWith('files')) fileError = true;
+        instancePath = temp;
+        instancePath = instancePath.replace(/\/directories/g, '');
+        instancePath = instancePath.replace(/\/files/g, '');
+        if (instancePath === '') {
+          instancePath = 'project root';
+        }
+        if (instancePath[0] === '/') {
+          instancePath = instancePath.slice(1);
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'params')) {
+        params = Object(error)['params']['additionalProperty'];
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'message')) {
+        message = Object(error)['message'];
+        message = message.replace(
+          'must have required property',
+          fileError ? 'must have file' : 'must have subdirectory',
+        );
+        if (message === 'must NOT have additional properties') {
+          message = message.replace(
+            'must NOT have additional properties',
+            'non-allowed additional property',
+          );
+          message = message + `: ${params}`;
+        }
+      }
+      parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
+    }
+    return parsedErrorMessage;
+  }
+
   // Handles reading and validating 'contentSchema' in a directory.
   private async readAndValidateContentFiles(
     project: Project,
@@ -159,6 +202,35 @@ export class Validate {
     return message;
   }
 
+  // Removes same items from an array.
+  private removeDuplicateEntries(
+    value: string,
+    index: number,
+    array: string[],
+  ) {
+    return array.indexOf(value) === index;
+  }
+
+  private async validateArrayOfFields(
+    project: Project,
+    cardType: CardType,
+    fieldArray: string[],
+    nameOfArray: string,
+  ) {
+    const errors: string[] = [];
+    if (cardType && fieldArray) {
+      for (const field of fieldArray) {
+        const fieldType = await project.fieldType(field);
+        if (!fieldType) {
+          errors.push(
+            `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`,
+          );
+        }
+      }
+    }
+    return errors;
+  }
+
   // Validates that 'name' in resources matches filename, location and project prefix.
   // @todo: Can be removed when INTDEV-463 is implemented.
   private validateResourceName(
@@ -208,49 +280,6 @@ export class Validate {
       }
     }
     return errors;
-  }
-
-  private parseValidatorMessage(errorObject: object[]): string {
-    let parsedErrorMessage = '';
-    // todo: get schema name here?
-    for (const error of errorObject) {
-      let instancePath = '';
-      let params = '';
-      let message = '';
-      let fileError = false;
-      if (Object.prototype.hasOwnProperty.call(error, 'instancePath')) {
-        const temp = Object(error)['instancePath'];
-        if (temp.endsWith('files')) fileError = true;
-        instancePath = temp;
-        instancePath = instancePath.replace(/\/directories/g, '');
-        instancePath = instancePath.replace(/\/files/g, '');
-        if (instancePath === '') {
-          instancePath = 'project root';
-        }
-        if (instancePath[0] === '/') {
-          instancePath = instancePath.slice(1);
-        }
-      }
-      if (Object.prototype.hasOwnProperty.call(error, 'params')) {
-        params = Object(error)['params']['additionalProperty'];
-      }
-      if (Object.prototype.hasOwnProperty.call(error, 'message')) {
-        message = Object(error)['message'];
-        message = message.replace(
-          'must have required property',
-          fileError ? 'must have file' : 'must have subdirectory',
-        );
-        if (message === 'must NOT have additional properties') {
-          message = message.replace(
-            'must NOT have additional properties',
-            'non-allowed additional property',
-          );
-          message = message + `: ${params}`;
-        }
-      }
-      parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
-    }
-    return parsedErrorMessage;
   }
 
   // Validates that card's dataType can be used with JS types.
@@ -308,18 +337,6 @@ export class Validate {
       }
     });
     return valid;
-  }
-
-  /**
-   * Validates that 'prefix' is valid project prefix.
-   * @param prefix project prefix
-   * @returns true, if prefix can be used as project prefix, false otherwise.
-   */
-  public static validatePrefix(prefix: string): boolean {
-    const validPrefix = new RegExp('^[a-z]+$');
-    const contentValidated = validPrefix.test(prefix);
-    const lengthValidated = prefix.length > 2 && prefix.length < 11;
-    return contentValidated && lengthValidated;
   }
 
   /**
@@ -384,7 +401,9 @@ export class Validate {
           }
         }
         if (errorMsg.length) {
-          validationErrors += errorMsg.join('\n');
+          validationErrors += errorMsg
+            .filter(this.removeDuplicateEntries)
+            .join('\n');
         }
       }
     } catch (error) {
@@ -414,6 +433,18 @@ export class Validate {
       }
     }
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates that 'prefix' is valid project prefix.
+   * @param prefix project prefix
+   * @returns true, if prefix can be used as project prefix, false otherwise.
+   */
+  public static validatePrefix(prefix: string): boolean {
+    const validPrefix = new RegExp('^[a-z]+$');
+    const contentValidated = validPrefix.test(prefix);
+    const lengthValidated = prefix.length > 2 && prefix.length < 11;
+    return contentValidated && lengthValidated;
   }
 
   /**
@@ -466,7 +497,27 @@ export class Validate {
     }
 
     const cardType = await project.cardType(card.metadata?.cardType);
-    if (!cardType) {
+    if (cardType) {
+      // Check that arrays of field types refer to existing fields.
+      let fieldErrors = await this.validateArrayOfFields(
+        project,
+        cardType,
+        cardType.optionallyVisibleFields
+          ? cardType.optionallyVisibleFields
+          : [],
+        'optionally visible fields',
+      );
+      validationErrors.push(...fieldErrors);
+      fieldErrors = await this.validateArrayOfFields(
+        project,
+        cardType,
+        cardType.optionallyVisibleFields
+          ? cardType.optionallyVisibleFields
+          : [],
+        'always visible fields',
+      );
+      validationErrors.push(...fieldErrors);
+    } else {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );
