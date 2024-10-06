@@ -130,7 +130,7 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-  it('showCardTypeDetails - empty cardType', async () => {
+  it('showCardTypeDetails - no cardType', async () => {
     const cardType = '';
     await showCmd
       .showCardTypeDetails(decisionRecordsPath, cardType)
@@ -170,7 +170,16 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-
+  it('showFieldType (success)', async () => {
+    const fieldTypeName = 'i-do-not-exist';
+    await showCmd
+      .showFieldType(decisionRecordsPath, fieldTypeName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Field type 'i-do-not-exist' not found from the project.`,
+        ),
+      );
+  });
   it('showLinkTypes (success)', async () => {
     const results = await showCmd.showLinkTypes(decisionRecordsPath);
     expect(results).to.not.equal(undefined);
@@ -184,13 +193,14 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('try showLinkType', async () => {
-    const linkTypeName = 'test2';
-
-    const results = await showCmd.showLinkType(
-      decisionRecordsPath,
-      linkTypeName,
-    );
-    expect(results).to.equal(undefined);
+    const linkTypeName = 'i-do-not-exist';
+    await showCmd
+      .showLinkType(decisionRecordsPath, linkTypeName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Link type 'i-do-not-exist' not found from the project.`,
+        ),
+      );
   });
   it('showModule - no module name defined', async () => {
     const moduleName = '';
@@ -233,12 +243,12 @@ describe('show', () => {
       );
   });
   it('showTemplate - template does not exist in project', async () => {
-    const templateName = 'i-dont-exist';
+    const templateName = 'i-do-not-exist';
     await showCmd
       .showTemplate(decisionRecordsPath, templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Template 'i-dont-exist' does not exist in the project`,
+          `Template 'i-do-not-exist' does not exist in the project`,
         ),
       );
   });

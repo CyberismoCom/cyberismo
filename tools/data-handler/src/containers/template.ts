@@ -566,7 +566,6 @@ export class Template extends CardContainer {
     return {
       name: `${name}/templates/${this.containerName}`,
       path: this.templateFolder(),
-      project: this.project.projectName,
       numberOfCards: (await super.cards(this.templateCardsPath)).length,
       metadata: (await readJsonFile(
         this.templateConfigurationFilePath(),

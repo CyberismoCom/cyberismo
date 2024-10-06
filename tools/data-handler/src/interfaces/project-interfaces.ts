@@ -197,7 +197,6 @@ export interface Resource {
 export interface Template {
   name: string;
   path: string;
-  project: string;
   numberOfCards: number;
   metadata: TemplateMetadata;
 }
