@@ -439,7 +439,9 @@ export class Calculate {
       throw new Error(`Query file ${queryName} not found`);
     }
     // We assume named queries are correct and produce the specified result
-    return this.run(projectPath, query) as Promise<ParseResult<QueryResult<T>>>;
+    return this.run(projectPath, {
+      file: query,
+    }) as Promise<ParseResult<QueryResult<T>>>;
   }
 
   /**
@@ -451,7 +453,10 @@ export class Calculate {
    */
   public async run(
     projectPath: string,
-    filePath: string,
+    data: {
+      query?: string;
+      file?: string;
+    },
   ): Promise<ParseResult<BaseResult>> {
     Calculate.project = new Project(projectPath);
     const main = join(
@@ -463,17 +468,17 @@ export class Calculate {
       Calculate.queryLanguageFileName,
     );
 
-    const args = [
-      '-',
-      '--outf=0',
-      '--out-ifs=\\n',
-      '-V0',
-      main,
-      queryLanguage,
-      filePath,
-    ];
+    if (!data.file && !data.query) {
+      throw new Error('Must provide either query or file to run func');
+    }
+
+    const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
+    if (data.file) {
+      args.push(data.file);
+    }
     const clingo = spawnSync(this.logicBinaryName, args, {
       encoding: 'utf8',
+      input: data.query,
     });
     // print the command
     console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);

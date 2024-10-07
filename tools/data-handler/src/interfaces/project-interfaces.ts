@@ -162,6 +162,7 @@ export interface ModuleSettings extends ProjectSettings {
   linkTypes: string[];
   templates: string[];
   workflows: string[];
+  reports: string[];
 }
 
 // Files in project in addition to cards (.schema files and cardsConfig.json).
@@ -234,6 +235,19 @@ export interface WorkflowTransition {
   fromState: string[];
   toState: string;
   requiredCardFields?: string[];
+}
+
+export interface ReportMetadata {
+  displayName: string;
+  description: string;
+  category: string;
+}
+
+export interface Report {
+  metadata: ReportMetadata;
+  contentTemplate: string;
+  queryTemplate: string;
+  schema?: string;
 }
 
 // Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')

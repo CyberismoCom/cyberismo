@@ -1,0 +1,20 @@
+{
+    "title": "Report",
+    "$id": "reportMacroSchema",
+    "description": "A report object provides supplemental information about a report",
+    "type": "object",
+    "properties": {
+      "displayName": {
+        "description": "The name of the report as it should be displayed in the user interface. For example, 'Children list'.",
+        "type": "string"
+      },
+      "description": {
+        "description": "A description of the report. For example, 'A Children list shows the child cards as an unordered list.'.",
+        "type": "string"
+      },
+      "category": {
+        "description": "The category of the report. For example, 'Architecture'.",
+        "type": "string"
+      }
+    }
+  }
