@@ -11,7 +11,6 @@
 */
 
 import React, { useMemo } from 'react';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import {
   Workflow,
   WorkflowState,
@@ -23,11 +22,9 @@ import {
   ListItemContent,
   Dropdown,
   MenuButton,
-  Typography,
-  Box,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { getStateColor, getStateColorDeprecated } from '../lib/utils';
+import { getStateColor } from '../lib/utils';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -67,16 +64,22 @@ const StateSelector: React.FC<StateSelectorProps> = ({
         disabled={availableTransitions.length == 0}
         variant="soft"
         startDecorator={
-          <Box color={getStateColorDeprecated(currentState)}>
-            <FiberManualRecordIcon />
-          </Box>
+          <span
+            style={{
+              width: '16px',
+              height: '16px',
+              backgroundColor: getStateColor(currentState.category),
+              borderRadius: '50%',
+              marginRight: '2px',
+            }}
+          ></span>
         }
       >
-        <Typography fontWeight={600}>
+        <div style={{ whiteSpace: 'nowrap' }}>
           {t('stateSelector.status', {
             state: currentState.name,
           })}
-        </Typography>
+        </div>
       </MenuButton>
       <Menu>
         {availableTransitions.map((transition) => (

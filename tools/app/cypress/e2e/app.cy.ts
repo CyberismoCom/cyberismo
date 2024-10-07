@@ -26,7 +26,7 @@ describe('Navigation', () => {
     cy.get('h1').contains('Document Decisions with Decision Records');
     cy.get('h2').contains('Context');
     cy.get('.toc-menu');
-    cy.get('p').contains('Status: Approved');
+    cy.get('button').contains('Status: Approved');
   });
 
   it('opens edit card page', () => {

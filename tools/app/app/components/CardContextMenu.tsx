@@ -12,8 +12,6 @@
 
 import * as React from 'react';
 import MoreIcon from '@mui/icons-material/MoreHoriz';
-
-import { CardMetadata } from '../lib/definitions';
 import {
   MenuButton,
   Menu,
@@ -21,15 +19,11 @@ import {
   Divider,
   Typography,
   Dropdown,
+  Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useModals } from '../lib/utils';
-import {
-  MoveCardModal,
-  DeleteModal,
-  MetadataModal,
-  AddAttachmentModal,
-} from './modals';
+import { MoveCardModal, DeleteModal, AddAttachmentModal } from './modals';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -48,15 +42,17 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
   return (
     <>
       <Dropdown>
-        <MenuButton data-cy="contextMenuButton" size="sm">
-          <MoreIcon />
-        </MenuButton>
+        <Tooltip title={t('moreTooltip')}>
+          <MenuButton
+            data-cy="contextMenuButton"
+            size="sm"
+            variant="plain"
+            style={{ width: 40 }}
+          >
+            <MoreIcon />
+          </MenuButton>
+        </Tooltip>
         <Menu>
-          <MenuItem onClick={openModal('metadata')}>{t('metadata')}</MenuItem>
-          <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={openModal('delete')}>
-            <Typography color="danger">{t('deleteCard')}</Typography>
-          </MenuItem>
           <MenuItem id="moveCardButton" onClick={openModal('move')}>
             <Typography>{t('move')}</Typography>
           </MenuItem>
@@ -65,6 +61,10 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
             onClick={openModal('addAttachment')}
           >
             <Typography>{t('addAttachment')}</Typography>
+          </MenuItem>
+          <Divider />
+          <MenuItem data-cy="deleteCardButton" onClick={openModal('delete')}>
+            <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
         </Menu>
       </Dropdown>
@@ -77,11 +77,6 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
       <DeleteModal
         open={modalOpen.delete}
         onClose={closeModal('delete')}
-        cardKey={cardKey}
-      />
-      <MetadataModal
-        open={modalOpen.metadata}
-        onClose={closeModal('metadata')}
         cardKey={cardKey}
       />
       <AddAttachmentModal

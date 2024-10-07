@@ -1,3 +1,9 @@
+@media (max-width: 800px) {
+  .breadcrumbs {
+    display: none;
+  }
+}
+
 /* Antora default styles from https://gitlab.com/antora/antora-ui-default, only .doc scoped styles included */
 
 .doc {

@@ -19,6 +19,7 @@ import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import Link from 'next/link';
 
 type TreeMenuProps = {
   title: string;
@@ -96,7 +97,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       height="100%"
       width="100%"
     >
-      <Typography level="h4">{title}</Typography>
+      <Link href="/cards" style={{ textDecoration: 'none' }}>
+        <Typography level="h4">{title}</Typography>
+      </Link>
       <Box
         sx={{
           flexGrow: 1,

@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 
 import { Stack, Button, Box, Typography } from '@mui/joy';
+import Link from 'next/link';
 
 interface AppToolbarProps {
   onNewCard: () => void;
@@ -25,12 +26,14 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
   return (
     <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
       <Box marginLeft={2} height="19px">
-        <Image
-          src="/static/images/cyberismo.png"
-          alt="Cyberismo"
-          width="102"
-          height="19"
-        />
+        <Link href="/cards">
+          <Image
+            src="/static/images/cyberismo.png"
+            alt="Cyberismo"
+            width="102"
+            height="19"
+          />
+        </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
       <Button
