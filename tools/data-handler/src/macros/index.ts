@@ -86,11 +86,11 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
 export async function handleMacros(
   content: string,
   context: MacroGenerationContext,
+  maxTries: number = 10,
 ) {
   const handlebars = Handlebars.create();
   const macroInstances = registerMacros(handlebars, context);
   let result = content;
-  let maxTries = 10;
   while (maxTries-- > 0) {
     const compiled = handlebars.compile(result, {
       strict: true,
