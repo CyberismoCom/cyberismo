@@ -11,40 +11,26 @@
 */
 
 import Handlebars from 'handlebars';
-import createCards from './createCards.js';
-import { validateJson } from '../validate.js';
-import { DHValidationError } from '../../exceptions/index.js';
-import { AdmonitionType } from '../../interfaces/adoc.js';
+import createCards from './createCards/index.js';
+import report from './report/index.js';
+import { validateJson } from '../utils/validate.js';
+import { DHValidationError } from '../exceptions/index.js';
+import { AdmonitionType } from '../interfaces/adoc.js';
 import { Validator } from 'jsonschema';
+import { MacroGenerationContext, MacroMetadata, MacroName } from './common.js';
+import BaseMacro from './BaseMacro.js';
 
-type Mode = 'static' | 'inject';
-
-export interface Macro {
-  /**
-   * The name of the macro. This is the name that will be used in the content
-   */
-  name: string;
-  /**
-   * The tag name of the macro. This is the name that will be used in the HTML. This is separated for clarity since tags cannot have uppercase letters
-   */
-  tagName: string;
-
-  /**
-   * The schema of the macro. This is used to validate the data passed to the macro
-   */
-  schema?: string;
-  /**
-   * The function to handle the macro in static mode(when adoc is being generated)
-   */
-  handleStatic: (data: string) => string;
-  /**
-   * Inject mode handler - Used to generate an injectable pass-through element
-   */
-  handleInject: (data: string) => string;
+export interface MacroConstructor {
+  new (): BaseMacro; // Constructor signature
 }
 
+export const macros: { [K in MacroName]: MacroConstructor } = {
+  createCards,
+  report,
+};
+
 export function validateMacroContent<T>(
-  macro: Macro,
+  macro: MacroMetadata,
   data: string,
   validator?: Validator,
 ): T {
@@ -54,24 +40,24 @@ export function validateMacroContent<T>(
   return validateJson<T>(JSON.parse(data), macro.schema, validator);
 }
 
-export const macros = {
-  createCards,
-};
-
-export type MacroName = keyof typeof macros;
-
 /**
  * Registers the macros with Handlebars
  * @param {Mode} mode - The mode to register the macros in
  */
-export function registerMacros(instance: typeof Handlebars, mode: Mode) {
+export function registerMacros(
+  instance: typeof Handlebars,
+  context: MacroGenerationContext,
+) {
+  const macroInstances: BaseMacro[] = [];
   for (const macro of Object.keys(macros) as MacroName[]) {
-    instance.registerHelper(macro, function (data: string) {
-      return macros[macro][mode === 'static' ? 'handleStatic' : 'handleInject'](
-        data,
-      );
-    });
+    const MacroClass = macros[macro];
+    const macroInstance = new MacroClass();
+    instance.registerHelper(macro, (data: string) =>
+      macroInstance.handleMacro(context, data),
+    );
+    macroInstances.push(macroInstance);
   }
+  return macroInstances;
 }
 
 /**
@@ -79,19 +65,25 @@ export function registerMacros(instance: typeof Handlebars, mode: Mode) {
  * @param content - The content to handle the macros in
  * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc
  */
-export function handleMacros(content: string, mode: Mode) {
+export async function handleMacros(
+  content: string,
+  context: MacroGenerationContext,
+) {
   const handlebars = Handlebars.create();
-  registerMacros(handlebars, mode);
+  const macroInstances = registerMacros(handlebars, context);
   try {
-    return handlebars.compile(content, {
+    let result = handlebars.compile(content, {
       strict: true,
     })({});
+
+    for (const macro of macroInstances) {
+      result = await macro.handleResult(result);
+    }
+    return result;
   } catch (err) {
     return handleMacroError(err, {
       name: '',
       tagName: '',
-      handleStatic: () => '',
-      handleInject: () => '',
     });
   }
 }
@@ -104,7 +96,10 @@ export function handleMacros(content: string, mode: Mode) {
 export function validateMacros(content: string): string | null {
   const handlebars = Handlebars.create();
 
-  registerMacros(handlebars, 'static');
+  registerMacros(handlebars, {
+    // other objects can be skipped, because macro is not run during validate
+    mode: 'static',
+  } as any);
 
   const template = handlebars.compile(content, {
     strict: true,
@@ -123,7 +118,7 @@ export function validateMacros(content: string): string | null {
  * @param macro - The macro that caused the error
  * @returns The error message that is valid adoc
  */
-export function handleMacroError(error: unknown, macro: Macro): string {
+export function handleMacroError(error: unknown, macro: MacroMetadata): string {
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
@@ -145,7 +140,7 @@ export function handleMacroError(error: unknown, macro: Macro): string {
  * @param options - Options will be passed to the html element as attributes
  */
 export function createHtmlPlaceholder(
-  macro: Macro,
+  macro: MacroMetadata,
   options: Record<string, string | undefined>,
 ) {
   // Key value pairs are shown using the key as the attribute name and the value as the attribute value

@@ -10,23 +10,12 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroName } from '@cyberismocom/data-handler/macros/common';
-import CreateCards from './CreateCards';
-import { ReactElement } from 'react';
+import { MacroMetadata } from '../common.js';
 
-export interface MacroContext {
-  /**
-   * The key inside of which the macro is rendered.
-   */
-  key: string;
-  /**
-   * True if the macro is rendered in preview mode.
-   */
-  preview: boolean;
-}
-
-export type UIMacroName = Exclude<MacroName, 'report'>;
-
-export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
-  createCards: CreateCards,
+const macroMetadata: MacroMetadata = {
+  name: 'report',
+  tagName: 'report',
+  schema: 'reportMacroSchema',
 };
+
+export default macroMetadata;

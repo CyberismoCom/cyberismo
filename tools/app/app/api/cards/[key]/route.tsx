@@ -18,11 +18,14 @@ import { Remove } from '@cyberismocom/data-handler/remove';
 import { Show } from '@cyberismocom/data-handler/show';
 import { Transition } from '@cyberismocom/data-handler/transition';
 
+import Processor from '@asciidoctor/core';
+
 import { NextRequest, NextResponse } from 'next/server';
 import {
   FetchCardDetails,
   MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { handleMacros } from '@cyberismocom/data-handler/macros';
 
 export const dynamic = 'force-dynamic';
 
@@ -243,8 +246,33 @@ async function getCardDetails(
       fetchCardDetails,
       key,
     );
+    let asciidocContent = '';
+    try {
+      asciidocContent = await handleMacros(cardDetailsResponse.content || '', {
+        mode: 'inject',
+        projectPath,
+        cardKey: key,
+      });
+    } catch (error) {
+      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
+    }
+
+    let htmlContent = Processor()
+      .convert(asciidocContent, {
+        safe: 'safe',
+        attributes: {
+          imagesdir: `/api/cards/${key}/a`,
+          icons: 'font',
+        },
+      })
+      .toString();
+
     if (cardDetailsResponse) {
-      return NextResponse.json(cardDetailsResponse);
+      return NextResponse.json({
+        ...cardDetailsResponse,
+        content: cardDetailsResponse.content || '',
+        parsed: htmlContent,
+      });
     } else {
       return new NextResponse(`Card ${key} not found from project`, {
         status: 400,

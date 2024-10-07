@@ -465,10 +465,9 @@ export class Commands {
     try {
       return {
         statusCode: 200,
-        payload: await this.calcCmd.run(
-          projectPath,
-          join(process.cwd(), filePath),
-        ),
+        payload: await this.calcCmd.run(projectPath, {
+          file: join(process.cwd(), filePath),
+        }),
       };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };

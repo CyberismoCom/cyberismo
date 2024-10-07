@@ -11,24 +11,26 @@
 */
 
 import cardBaseSchema from '../../../schema/cardBaseSchema.json' with { type: 'json' };
-import cardsConfigSchema from '../../../schema/cardsConfigSchema.json' with { type: 'json' };
 import cardTypeSchema from '../../../schema/cardTypeSchema.json' with { type: 'json' };
+import cardsConfigSchema from '../../../schema/cardsConfigSchema.json' with { type: 'json' };
 import createCardsMacroSchema from '../../../schema/createCardsMacroSchema.json' with { type: 'json' };
 import csvSchema from '../../../schema/csvSchema.json' with { type: 'json' };
 import fieldTypeSchema from '../../../schema/fieldTypeSchema.json' with { type: 'json' };
 import linkTypeSchema from '../../../schema/linkTypeSchema.json' with { type: 'json' };
+import reportMacroSchema from '../../../schema/reportMacroSchema.json' with { type: 'json' };
 import templateSchema from '../../../schema/templateSchema.json' with { type: 'json' };
 import workflowSchema from '../../../schema/workflowSchema.json' with { type: 'json' };
 import cardTreeDirectorySchema from '../../../schema/cardTreeDirectorySchema.json' with { type: 'json' };
 
 export const schemas = [
   cardBaseSchema,
-  cardsConfigSchema,
   cardTypeSchema,
+  cardsConfigSchema,
   createCardsMacroSchema,
   csvSchema,
   fieldTypeSchema,
   linkTypeSchema,
+  reportMacroSchema,
   templateSchema,
   workflowSchema,
 ];

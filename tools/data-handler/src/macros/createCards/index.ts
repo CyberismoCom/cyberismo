@@ -13,9 +13,12 @@
 import {
   createHtmlPlaceholder,
   handleMacroError,
-  Macro,
   validateMacroContent,
-} from './index.js';
+} from '../index.js';
+
+import { MacroGenerationContext } from '../common.js';
+import macroMetadata from './metadata.js';
+import BaseMacro from '../BaseMacro.js';
 
 export interface CreateCardsOptions {
   buttonLabel: string;
@@ -24,26 +27,26 @@ export interface CreateCardsOptions {
   [key: string]: string | undefined;
 }
 
-const macro: Macro = {
-  name: 'createCards',
-  tagName: 'create-cards',
-  schema: 'createCardsMacroSchema',
-  handleStatic: () => {
+class CreateCardsMacro extends BaseMacro {
+  constructor() {
+    super(macroMetadata);
+  }
+  async handleStatic() {
     // Buttons aren't supported in static mode
     return '';
-  },
-  handleInject: (data: string) => {
-    try {
-      if (!data || typeof data !== 'string') {
-        throw new Error('createCards macro requires a JSON object as data');
-      }
-      const options = validateMacroContent<CreateCardsOptions>(macro, data);
+  }
 
-      return createHtmlPlaceholder(macro, options);
-    } catch (e) {
-      return handleMacroError(e, macro);
+  handleInject = async (_: MacroGenerationContext, data: string) => {
+    if (!data || typeof data !== 'string') {
+      throw new Error('createCards macro requires a JSON object as data');
     }
-  },
-};
+    const options = validateMacroContent<CreateCardsOptions>(
+      this.metadata,
+      data,
+    );
 
-export default macro;
+    return createHtmlPlaceholder(this.metadata, options);
+  };
+}
+
+export default CreateCardsMacro;
