@@ -1,0 +1,6 @@
+{
+    "name": "wrong/cardTypesWrong/decisionWrong",
+    "workflow": "decision/workflows/decision",
+    "customFields": [
+    ]
+}

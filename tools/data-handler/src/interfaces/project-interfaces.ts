@@ -179,7 +179,7 @@ export interface ProjectSettings {
   name: string;
 }
 
-// Project metadata details.
+// Project metadata details. @todo - this overlaps the above; check & merge
 export interface ProjectMetadata {
   name: string;
   path: string;
@@ -187,7 +187,7 @@ export interface ProjectMetadata {
   numberOfCards: number;
 }
 
-// Project resource, such as workflow, template or card type
+// Project resource, such as workflow, template or card type as file system object.
 export interface Resource {
   name: string;
   path?: string;
