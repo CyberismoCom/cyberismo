@@ -54,7 +54,7 @@
     "cross-env": "^7.0.3",
     "cypress": "^13.14.1",
     "eslint": "^8",
-    "eslint-config-next": "14.2.13",
+    "eslint-config-next": "14.2.14",
     "eslint-config-prettier": "^9.1.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
