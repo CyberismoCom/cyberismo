@@ -312,7 +312,7 @@ describe('validate cmd tests', () => {
     const errors = await validateCmd.validate(project.basePath);
     const separatedErrors = errors.split('\n');
     const expectWrongPrefix =
-      "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefix is 'decision'";
+      "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefixes are '[decision]'";
     const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
     const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
     expect(separatedErrors[0]).to.equal(expectWrongPrefix);

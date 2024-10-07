@@ -119,6 +119,7 @@ export class Validate {
         );
 
       let activeJsonSchema: Schema = {};
+      const prefixes = await project.projectPrefixes();
       for (const file of fileNames) {
         const fullFileNameWithPath = this.fullPath(file);
         if (file.name === Validate.schemaConfigurationFile) {
@@ -140,7 +141,7 @@ export class Validate {
             fullFileNameWithPath,
             file,
             content,
-            project.projectPrefix,
+            prefixes,
           );
           if (nameErrors) {
             message.push(...nameErrors);
@@ -172,7 +173,7 @@ export class Validate {
       | LinkType
       | ProjectSettings
       | WorkflowMetadata,
-    projectPrefix: string,
+    projectPrefixes: string[],
   ): string[] {
     const errors: string[] = [];
     // Exclude cardsConfig.json, .schemas and template.json.
@@ -190,9 +191,9 @@ export class Validate {
       const { name, type, prefix } = resourceNameParts(namedContent.name);
       const filenameWithoutExtension = parse(file.name).name;
 
-      if (projectPrefix !== prefix) {
+      if (!projectPrefixes.includes(prefix)) {
         errors.push(
-          `Wrong prefix in resource '${namedContent.name}'. Project prefix is '${projectPrefix}'`,
+          `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
         );
       }
       if (name !== filenameWithoutExtension) {
