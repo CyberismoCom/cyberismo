@@ -13,7 +13,7 @@
 'use client';
 import React from 'react';
 import { CardDetails, Project } from '../lib/definitions';
-import { Breadcrumbs, Link } from '@mui/joy';
+import { Breadcrumbs, Link, styled } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import { findPathTo } from '../lib/utils';
 
@@ -21,6 +21,12 @@ type ProjectBreadcrumbsProps = {
   selectedCard: CardDetails | null;
   project: Project | null;
 };
+
+const StyledBreadcrumbs = styled(Breadcrumbs)`
+  .MuiBreadcrumbs-ol {
+    line-height: 90%;
+  }
+`;
 
 export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
   selectedCard,
@@ -33,17 +39,23 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
   if (pathComponents == null) return <div></div>;
 
   return (
-    <Breadcrumbs>
+    <StyledBreadcrumbs className="breadcrumbs">
       {pathComponents.map((node, index) => (
         <Link
           key={node.key}
           href={`/cards/${node.key}`}
-          style={{ textDecoration: 'none', color: 'grey', fontSize: 14 }}
+          style={{
+            textDecorationColor: 'grey',
+            color: 'grey',
+            fontSize: 14,
+            marginTop: 1,
+            marginBottom: 1,
+          }}
         >
           {index == 0 && <HomeIcon sx={{ mr: 0.7 }} fontSize="inherit" />}
           {node.metadata?.title ?? node.key}
         </Link>
       ))}
-    </Breadcrumbs>
+    </StyledBreadcrumbs>
   );
 };

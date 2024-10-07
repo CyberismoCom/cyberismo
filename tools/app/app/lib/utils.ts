@@ -480,33 +480,14 @@ export async function withUpdating<T>(
  * @param state workflow state
  * @returns joy color representing the category of the workflow
  */
-export function getStateColor(category: string) {
+export function getStateColor(category: string | undefined) {
   switch (category) {
     case WorkflowCategory.initial:
-      return 'neutral.300';
+      return '#CDD7E1'; // 'neutral.300'
     case WorkflowCategory.active:
-      return 'warning.300';
+      return '#F3C896'; // 'warning.300'
     case WorkflowCategory.closed:
-      return 'success.400';
-    default:
-      return 'black';
-  }
-}
-
-/**
- * Returns the color representing the category of the workflow
- * @param state workflow state
- * @returns joy color representing the category of the workflow
- * @deprecated
- */
-export function getStateColorDeprecated(state: WorkflowState) {
-  switch (state.category) {
-    case WorkflowCategory.initial:
-      return 'neutral.300';
-    case WorkflowCategory.active:
-      return 'warning.300';
-    case WorkflowCategory.closed:
-      return 'success.400';
+      return '#51BC51'; // 'success.400'
     default:
       return 'black';
   }

@@ -57,6 +57,7 @@
   "emptyProject": "Project is empty",
   "preview": "Preview",
   "cancel": "Cancel",
+  "moreTooltip": "More actions",
   "showMore": "Show More",
   "showLess": "Show Less",
   "true": "True",
@@ -71,7 +72,7 @@
   "metadataNotFound": "Metadata not found",
   "recents": "Recents",
   "all": "All",
-  "move": "Move",
+  "move": "Move card",
   "stateSelector": {
     "status": "Status: {{state}}"
   },
@@ -80,6 +81,7 @@
   "addAttachment": "Add Attachment",
   "add": "Add",
   "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
+  "linkTooltip": "Link to another card",
   "linkedCards": "Linked cards",
   "linkForm": {
     "selectLinkType": "Select Link Type",
