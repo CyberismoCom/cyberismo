@@ -29,6 +29,11 @@ export const macros: { [K in MacroName]: MacroConstructor } = {
   report,
 };
 
+const emptyMacro = {
+  name: '',
+  tagName: '',
+};
+
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: string,
@@ -60,6 +65,19 @@ export function registerMacros(
   return macroInstances;
 }
 
+export function registerEmptyMacros(instance: typeof Handlebars) {
+  for (const macro of Object.keys(macros) as MacroName[]) {
+    instance.registerHelper(macro, (...args) => {
+      let argString = '';
+      // last is the options object so go through everything else
+      for (let i = 0; i < args.length - 1; i++) {
+        argString += `'${args[i]}'`;
+      }
+      return `{{{${macro}${argString ? ` ${argString}` : ''}}}}`;
+    });
+  }
+}
+
 /**
  * Handle the macros in the content
  * @param content - The content to handle the macros in
@@ -71,21 +89,23 @@ export async function handleMacros(
 ) {
   const handlebars = Handlebars.create();
   const macroInstances = registerMacros(handlebars, context);
-  try {
-    let result = handlebars.compile(content, {
+  let result = content;
+  let maxTries = 10;
+  while (maxTries-- > 0) {
+    const compiled = handlebars.compile(result, {
       strict: true,
-    })({});
-
-    for (const macro of macroInstances) {
-      result = await macro.handleResult(result);
-    }
-    return result;
-  } catch (err) {
-    return handleMacroError(err, {
-      name: '',
-      tagName: '',
     });
+    try {
+      result = compiled({});
+
+      for (const macro of macroInstances) {
+        result = await macro.handleResult(result);
+      }
+    } catch (err) {
+      return handleMacroError(err, emptyMacro);
+    }
   }
+  return result;
 }
 
 /**
