@@ -279,7 +279,6 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @todo: missing tests
    * @param {string} projectPath path to a project
    * @returns array of card type details
    */
@@ -323,6 +322,11 @@ export class Show {
   ): Promise<LinkType | undefined> {
     Show.project = new Project(projectPath);
     const linkTypeDetails = await Show.project.linkType(linkTypeName);
+    if (linkTypeDetails === undefined) {
+      throw new Error(
+        `Link type '${linkTypeName}' not found from the project.`,
+      );
+    }
     return linkTypeDetails;
   }
 
@@ -350,8 +354,13 @@ export class Show {
     fieldTypeName: string,
   ): Promise<FieldTypeDefinition | undefined> {
     Show.project = new Project(projectPath);
-    const filedTypeDetails = await Show.project.fieldType(fieldTypeName);
-    return filedTypeDetails;
+    const fieldTypeDetails = await Show.project.fieldType(fieldTypeName);
+    if (fieldTypeDetails === undefined) {
+      throw new Error(
+        `Field type '${fieldTypeName}' not found from the project.`,
+      );
+    }
+    return fieldTypeDetails;
   }
 
   /**
@@ -388,7 +397,6 @@ export class Show {
   /**
    * Shows all modules with full details in a project.
    * @param {string} projectPath path to a project
-   * @todo: add unit tests
    * @returns all modules in a project.
    */
   public async showModulesWithDetails(
@@ -422,7 +430,7 @@ export class Show {
   public async showTemplate(
     projectPath: string,
     templateName: string,
-  ): Promise<object> {
+  ): Promise<Template> {
     Show.project = new Project(projectPath);
     const templateObject =
       await Show.project.createTemplateObjectByName(templateName);
@@ -431,11 +439,7 @@ export class Show {
         `Template '${templateName}' does not exist in the project`,
       );
     }
-    // Remove 'project' from template data.
-    const { project: _, ...template } = await templateObject.show(); // eslint-disable-line @typescript-eslint/no-unused-vars
-
-    // todo: Define interface for template
-    return template;
+    return templateObject.show();
   }
 
   /**
@@ -454,7 +458,6 @@ export class Show {
   /**
    * Shows all templates with full details in a project.
    * @param {string} projectPath path to a project
-   * @todo: add unit tests
    * @returns all templates in a project.
    */
   public async showTemplatesWithDetails(
@@ -506,7 +509,6 @@ export class Show {
 
   /**
    * Shows all workflows with full details in a project.
-   * @todo: missing tests
    * @param {string} projectPath path to a project
    * @returns workflows with full details
    */
