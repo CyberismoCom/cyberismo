@@ -60,7 +60,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "next-swagger-doc": "^0.4.0",
     "start-server-and-test": "^2.0.5",
-    "swagger-ui-react": "^5.11.2",
+    "swagger-ui-react": "^5.17.14",
     "typescript": "^5"
   }
 }
