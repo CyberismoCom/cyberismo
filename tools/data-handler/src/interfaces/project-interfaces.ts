@@ -10,6 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Schema } from "jsonschema";
+
 // @todo: consider splitting this to several smaller files.
 
 // Single card; either in project or in template.
@@ -247,7 +249,7 @@ export interface Report {
   metadata: ReportMetadata;
   contentTemplate: string;
   queryTemplate: string;
-  schema?: string;
+  schema?: Schema;
 }
 
 // Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')

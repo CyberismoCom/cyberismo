@@ -18,6 +18,7 @@ import { Project } from '../../containers/project.js';
 import { Calculate } from '../../calculate.js';
 import Handlebars from 'handlebars';
 import BaseMacro from '../BaseMacro.js';
+import { validateJson } from '../../utils/validate.js';
 
 export interface ReportOptions extends Record<string, string> {
   name: string;
@@ -37,10 +38,22 @@ class ReportMacro extends BaseMacro {
       throw new Error('report macro requires a JSON object as data');
     }
     const options = validateMacroContent<ReportOptions>(this.metadata, data);
+
     const project = new Project(context.projectPath);
     const report = await project.report(options.name);
 
     if (!report) throw new Error(`Report ${options} does not exist`);
+
+    if (report.schema) {
+      validateJson(options, {
+        schema: report.schema,
+      });
+    }
+
+    const handlebarsContext = {
+      cardKey: context.cardKey,
+      ...options,
+    };
 
     const handlebars = Handlebars.create();
 
@@ -51,13 +64,16 @@ class ReportMacro extends BaseMacro {
     const calc = new Calculate();
 
     const res = await calc.run(context.projectPath, {
-      query: template({
-        cardKey: context.cardKey,
-        ...options,
-      }),
+      query: template(handlebarsContext),
     });
+    if (res.error) {
+      throw new Error(res.error);
+    }
     registerEmptyMacros(handlebars);
-    return handlebars.compile(report.contentTemplate)(res);
+    return handlebars.compile(report.contentTemplate)({
+      ...handlebarsContext,
+      ...res,
+    });
   };
 }
 
