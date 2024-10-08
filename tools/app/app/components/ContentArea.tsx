@@ -261,7 +261,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   linksVisible,
   onLinkToggle,
 }) => {
-  const [visibleHeaderId, setVisibleHeaderId] = useState<string | null>(null);
+  const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
+    null,
+  );
 
   const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
   const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
@@ -347,7 +349,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   // On scroll, check which document headers are visible and update state accordingly
   const handleScroll = () => {
     const headers = document.querySelectorAll('.doc h1, .doc h2, .doc h3');
-    const visibleHeaderIds: string[] = [];
+    const onScreenHeaderIds: string[] = [];
     headers.forEach((header) => {
       const rect = header.getBoundingClientRect();
       if (
@@ -356,22 +358,30 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         header.id &&
         header.id !== ''
       ) {
-        visibleHeaderIds.push(header.id);
+        onScreenHeaderIds.push(header.id);
       }
     });
 
     // If no headers are visible, we are in the middle of a long section and should not update anything
-    if (visibleHeaderIds.length > 0) {
-      const firstVisibleHeaderId = visibleHeaderIds[0];
-      const lastVisibleHeaderId = visibleHeaderIds[visibleHeaderIds.length - 1];
+    if (onScreenHeaderIds.length > 0) {
+      const firstVisibleHeaderId = onScreenHeaderIds[0];
+      const lastVisibleHeaderId =
+        onScreenHeaderIds[onScreenHeaderIds.length - 1];
+      const lastHeaderVisible =
+        lastVisibleHeaderId === headers[headers.length - 1].id;
 
       // Update table of contents highlight
-      setVisibleHeaderId(lastVisibleHeaderId);
+      // When scrolling to end, highlight all headers on screen
+      if (lastHeaderVisible) {
+        setVisibleHeaderIds(onScreenHeaderIds);
+      } else {
+        setVisibleHeaderIds([firstVisibleHeaderId]);
+      }
 
       if (lastTitle === firstVisibleHeaderId && cardKey === card.key) return;
 
       // Don't scroll upon edit if we are at top of document (first header visible)
-      const shouldScroll = !visibleHeaderIds.includes(headers[0].id);
+      const shouldScroll = !onScreenHeaderIds.includes(headers[0].id);
 
       // Save current position for switching between edit/view modes
       dispatch(
@@ -405,24 +415,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             metadata={card?.metadata}
             onClick={onMetadataClick}
           />
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            {(links.length > 0 || linksVisible) && (
+          {(links.length > 0 || linksVisible) && (
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
               <Typography level="title-sm">{t('linkedCards')}</Typography>
-            )}
-            {!preview &&
-              (links.length > 0 || linksVisible) &&
-              (linksVisible ? (
-                <ChipDelete onDelete={onLinkToggle} />
-              ) : (
-                <IconButton onClick={onLinkToggle}>
-                  <Add />
-                </IconButton>
-              ))}
-          </Stack>
+              {!preview &&
+                (linksVisible ? (
+                  <ChipDelete onDelete={onLinkToggle} />
+                ) : (
+                  <IconButton onClick={onLinkToggle}>
+                    <Add />
+                  </IconButton>
+                ))}
+            </Stack>
+          )}
           {!preview && linksVisible && (
             <LinkForm
               cards={project?.cards ?? []}
@@ -431,87 +440,91 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               cardType={card.metadata?.cardType}
             />
           )}
-          <Stack>
-            {links.map((link, index) => {
-              const linkType = linkTypes.find(
-                (linkType) => linkType.name === link.linkType,
-              );
-              if (!linkType || !project) return null;
+          {links.length > 0 && (
+            <Stack>
+              {links.map((link, index) => {
+                const linkType = linkTypes.find(
+                  (linkType) => linkType.name === link.linkType,
+                );
+                if (!linkType || !project) return null;
 
-              const otherCard = findCard(
-                project.cards,
-                link.cardKey === card.key ? link.fromCard || '' : link.cardKey,
-              );
+                const otherCard = findCard(
+                  project.cards,
+                  link.cardKey === card.key
+                    ? link.fromCard || ''
+                    : link.cardKey,
+                );
 
-              if (!otherCard) return null;
+                if (!otherCard) return null;
 
-              return (
-                <Box
-                  bgcolor="neutral.softBg"
-                  borderRadius={16}
-                  marginY={0.5}
-                  paddingY={2}
-                  paddingX={3}
-                  flexDirection="row"
-                  display="flex"
-                  key={index}
-                  alignItems="center"
-                  justifyContent="space-between"
-                  sx={{
-                    '&:hover .deleteButton': {
-                      opacity: 1,
-                    },
-                    '& .deleteButton': {
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                    },
-                  }}
-                >
-                  <Stack>
-                    <Stack direction="row" alignItems="center">
-                      <Typography level="body-sm" paddingRight={2}>
-                        {link.cardKey === card.key
-                          ? linkType.inboundDisplayName
-                          : linkType.outboundDisplayName}
-                      </Typography>
-                      <NextLink href={`/cards/${otherCard?.key}`}>
-                        <Link component={'div'}>{otherCard?.key}</Link>
-                      </NextLink>
-                      <Divider
-                        orientation="vertical"
-                        sx={{
-                          marginX: 1,
-                        }}
-                      />
-                      <Typography level="title-sm">
-                        {otherCard?.metadata?.title}
-                      </Typography>
-                    </Stack>
-                    <Typography level="body-sm">
-                      {link.linkDescription}
-                    </Typography>
-                  </Stack>
-                  <IconButton
-                    className="deleteButton"
-                    onClick={() => {
-                      setDeleteLinkModalVisible(true);
-                      setDeleteLinkData(link);
+                return (
+                  <Box
+                    bgcolor="neutral.softBg"
+                    borderRadius={16}
+                    marginY={0.5}
+                    paddingY={2}
+                    paddingX={3}
+                    flexDirection="row"
+                    display="flex"
+                    key={index}
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{
+                      '&:hover .deleteButton': {
+                        opacity: 1,
+                      },
+                      '& .deleteButton': {
+                        opacity: 0,
+                        transition: 'opacity 0.2s',
+                      },
                     }}
                   >
-                    <Delete fontSize="small" />
-                  </IconButton>
-                </Box>
-              );
-            })}
-          </Stack>
-          <Box padding={4}>
+                    <Stack>
+                      <Stack direction="row" alignItems="center">
+                        <Typography level="body-sm" paddingRight={2}>
+                          {link.cardKey === card.key
+                            ? linkType.inboundDisplayName
+                            : linkType.outboundDisplayName}
+                        </Typography>
+                        <NextLink href={`/cards/${otherCard?.key}`}>
+                          <Link component={'div'}>{otherCard?.key}</Link>
+                        </NextLink>
+                        <Divider
+                          orientation="vertical"
+                          sx={{
+                            marginX: 1,
+                          }}
+                        />
+                        <Typography level="title-sm">
+                          {otherCard?.metadata?.title}
+                        </Typography>
+                      </Stack>
+                      <Typography level="body-sm">
+                        {link.linkDescription}
+                      </Typography>
+                    </Stack>
+                    <IconButton
+                      className="deleteButton"
+                      onClick={() => {
+                        setDeleteLinkModalVisible(true);
+                        setDeleteLinkData(link);
+                      }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+          <Box pl={4} pr={4} mt={0}>
             <div className="doc" ref={setRef}>
               {parsedContent}
             </div>
           </Box>
         </Stack>
       </Box>
-      {renderTableOfContents(htmlContent, visibleHeaderId)}
+      {renderTableOfContents(htmlContent, visibleHeaderIds)}
       {!preview && (
         <GenericConfirmModal
           open={isDeleteLinkModalVisible}
@@ -536,7 +549,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
 function renderTableOfContents(
   htmlContent: string,
-  visibleHeaderId: string | null = null,
+  visibleHeaderIds: string[] | null = null,
 ) {
   // Parse the HTML content
   const root = parse(htmlContent);
@@ -550,7 +563,7 @@ function renderTableOfContents(
   }));
 
   // Hack for first render: mark first header as visible, after this updates via handleScroll
-  const highlightedHeader = visibleHeaderId ?? headers[0]?.id;
+  const highlightedHeaders = visibleHeaderIds ?? [headers[0]?.id ?? ''];
 
   return (
     <aside className="contentSidebar toc sidebar">
@@ -558,14 +571,13 @@ function renderTableOfContents(
         {headers.length > 0 && <h3>TABLE OF CONTENTS</h3>}
         <ul>
           {headers.map((header, index) => (
-            <li
-              key={index}
-              style={{ marginLeft: `${(header.level - 1) * 10}px` }}
-            >
+            <li key={index} data-level={header.level - 1}>
               <a
                 id={`toc_${header.id}`}
                 className={
-                  highlightedHeader === header.id ? 'is-active' : undefined
+                  highlightedHeaders.includes(header.id)
+                    ? 'is-active'
+                    : undefined
                 }
                 href={`#${header.id}`}
               >
