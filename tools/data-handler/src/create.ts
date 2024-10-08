@@ -38,6 +38,7 @@ import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
+import { resourceNameParts } from './utils/resource-utils.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -119,6 +120,18 @@ export class Create extends EventEmitter {
         item.name === fieldTypeName + '.json' || item.name === fieldTypeName,
     );
     return fieldType ? true : false;
+  }
+
+  // Default content for link type JSON values.
+  private static defaultLinkTypeContent(prefix: string, linkTypeName: string) {
+    return {
+      name: `${prefix}/linkTypes/${linkTypeName}`,
+      outboundDisplayName: linkTypeName,
+      inboundDisplayName: linkTypeName,
+      sourceCardTypes: [],
+      destinationCardTypes: [],
+      enableLinkDescription: false,
+    };
   }
 
   private async linkTypeExists(
@@ -398,7 +411,23 @@ export class Create extends EventEmitter {
       );
     }
 
-    const linkTypeContent = Create.getLinkTypeContent(linkTypeName);
+    const project = new Project(projectPath);
+    // Validate that name is correct; either in short or long format.
+    const { name, prefix, type } = resourceNameParts(linkTypeName);
+    if (prefix && prefix !== project.projectPrefix) {
+      throw new Error(
+        `Invalid project prefix in name: '${prefix}'. Prefix must match the project prefix '${project.projectPrefix}'`,
+      );
+    }
+    if (type && type !== 'linkTypes') {
+      throw new Error(
+        `Invalid resource type in name: '${type}'. When creating a link type, it must be 'linkTypes'`,
+      );
+    }
+    const linkTypeContent = Create.defaultLinkTypeContent(
+      project.projectPrefix,
+      name,
+    );
     // check if link type JSON is valid
     const validator = Validate.getInstance();
     const validJson = validator.validateJson(linkTypeContent, 'linkTypeSchema');
@@ -411,7 +440,7 @@ export class Create extends EventEmitter {
       '.cards',
       'local',
       'linkTypes',
-      `${linkTypeName}.json`,
+      `${name}.json`,
     );
     await writeJsonFile(destinationFolder, linkTypeContent, {
       flag: 'wx',
@@ -622,7 +651,7 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
-    // todo: Move this somewhere? This could be part of template or project? or utiliity class
+    // todo: Move this somewhere? This could be part of template or project? or utility class
     // Only allow 'local' or module/project name in multipart names.
     const parts = templateName.split('/');
     if (parts.length > 1) {
@@ -700,22 +729,6 @@ export class Create extends EventEmitter {
           toState: 'Deprecated',
         },
       ],
-    };
-  }
-
-  /**
-   * Default content for link type JSON values.
-   * @param {string} linkTypeName link type name
-   * @returns Default content for link type JSON values.
-   */
-  public static getLinkTypeContent(linkTypeName: string) {
-    return {
-      name: linkTypeName,
-      outboundDisplayName: linkTypeName,
-      inboundDisplayName: linkTypeName,
-      sourceCardTypes: [],
-      destinationCardTypes: [],
-      enableLinkDescription: false,
     };
   }
 
