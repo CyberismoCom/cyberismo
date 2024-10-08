@@ -315,7 +315,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     replace: (node) => {
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
-
         if (macro) {
           return macro.component({
             ...node.attribs,
