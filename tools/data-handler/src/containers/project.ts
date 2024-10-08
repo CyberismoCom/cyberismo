@@ -44,6 +44,7 @@ import { generateRandomString } from '../utils/random.js';
 
 // base class
 import { CardContainer } from './card-container.js';
+import { Schema } from 'jsonschema';
 
 /**
  * Represents project folder.
@@ -1228,12 +1229,17 @@ export class Project extends CardContainer {
       join(folder, 'report.json'),
     )) as ReportMetadata;
 
+    const schemaPath = join(folder, 'parameterSchema.json');
+
     return {
       metadata,
       contentTemplate: (
         await readFile(join(folder, 'index.adoc.hbs'))
       ).toString(),
       queryTemplate: (await readFile(join(folder, 'query.lp.hbs'))).toString(),
+      schema: pathExists(schemaPath)
+        ? JSON.parse((await readFile(schemaPath)).toString()) // Here we assume the file is actually a schema. Should be validated elsewhere
+        : undefined,
     };
   }
 }

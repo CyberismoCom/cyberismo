@@ -36,9 +36,6 @@ export interface MacroMetadata {
    * The schema of the macro. This is used to validate the data passed to the macro
    */
   schema?: string;
-  /**
-   * The function to handle the macro in static mode(when adoc is being generated)
-   */
 }
 
 export const macroMetadata = {

@@ -42,7 +42,10 @@ export function validateMacroContent<T>(
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
   }
-  return validateJson<T>(JSON.parse(data), macro.schema, validator);
+  return validateJson<T>(JSON.parse(data), {
+    schemaId: macro.schema,
+    validator,
+  });
 }
 
 /**

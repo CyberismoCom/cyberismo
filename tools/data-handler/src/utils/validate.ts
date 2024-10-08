@@ -9,7 +9,7 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Validator } from 'jsonschema';
+import { Schema, Validator } from 'jsonschema';
 import { DHValidationError, SchemaNotFound } from '../exceptions/index.js';
 import { schemas } from './schemas.js';
 
@@ -24,22 +24,38 @@ import { schemas } from './schemas.js';
  */
 export function validateJson<T>(
   object: unknown,
-  schemaId: string,
-  validator?: Validator,
+  options: {
+    schemaId?: string;
+    schema?: Schema;
+    validator?: Validator;
+  },
 ): T {
+  const { schemaId, schema } = options;
+  let validator = options.validator;
+
+  if (!schema && !schemaId) {
+    throw new Error('Must either specify schema or schemaId');
+  }
+
   if (!validator) {
     validator = new Validator();
+    for (const schema of schemas) {
+      validator.addSchema(schema, schema.$id);
+    }
   }
 
-  const schema =
-    Object.keys(validator.schemas).length > 0
-      ? validator.schemas[schemaId]
-      : schemas.find((s) => s.$id === schemaId);
+  let jsonSchema: Schema | undefined;
 
-  if (!schema) {
+  if (schema) {
+    jsonSchema = schema;
+  } else {
+    jsonSchema = schemas.find((s) => s.$id === schemaId);
+  }
+
+  if (!jsonSchema) {
     throw new SchemaNotFound(`Schema with id ${schemaId} not found`);
   }
-  const result = validator.validate(object, schema);
+  const result = validator.validate(object, jsonSchema);
   if (!result.valid) {
     throw new DHValidationError('Validation failed', result.errors);
   }
