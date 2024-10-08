@@ -68,6 +68,9 @@ import LoadingGate from '@/app/components/LoadingGate';
 import { openAttachment } from '@/app/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
+import { Icon } from '@mui/material';
+import { useModals } from '@/app/lib/utils';
+import { AddAttachmentModal } from '@/app/components/modals';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -118,6 +121,7 @@ function AttachmentPreviewCard({
               color="danger"
               variant="solid"
               loading={isUpdating}
+              sx={{ marginRight: '3px' }}
               onClick={async () => {
                 setIsUpdating(true);
                 await removeAttachment(name);
@@ -128,7 +132,11 @@ function AttachmentPreviewCard({
             </IconButton>
           </Tooltip>
           <Tooltip title={t('saveCopy')}>
-            <IconButton variant="solid" color="primary">
+            <IconButton
+              variant="solid"
+              color="primary"
+              sx={{ marginRight: '3px' }}
+            >
               <Link
                 endDecorator={<Download />}
                 href={apiPaths.attachment(cardKey, name)}
@@ -141,6 +149,7 @@ function AttachmentPreviewCard({
             <IconButton
               variant="solid"
               color="primary"
+              sx={{ marginRight: '3px' }}
               onClick={async (e) => {
                 e.stopPropagation();
                 try {
@@ -163,6 +172,7 @@ function AttachmentPreviewCard({
               data-cy="insertToContentButton"
               variant="solid"
               color="primary"
+              sx={{ marginRight: '2px' }}
               onClick={() => onInsert && onInsert()}
             >
               <AddLink />
@@ -171,7 +181,7 @@ function AttachmentPreviewCard({
         </Box>
         <AspectRatio
           ratio="1"
-          maxHeight={100}
+          maxHeight={97}
           variant="plain"
           objectFit="contain"
         >
@@ -196,6 +206,13 @@ function AttachmentPreviewCard({
 
 export default function Page({ params }: { params: { key: string } }) {
   const { t } = useTranslation();
+
+  const { modalOpen, openModal, closeModal } = useModals({
+    delete: false,
+    move: false,
+    metadata: false,
+    addAttachment: false,
+  });
 
   const {
     project,
@@ -406,178 +423,247 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   };
 
+  const handleDragDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const { items } = event.dataTransfer;
+    if (items.length === 0) return;
+    if (items[0].kind !== 'string' && items[0].type !== 'text/uri-list') return;
+    items[0].getAsString((uri) => {
+      let decodedURI;
+      try {
+        decodedURI = decodeURI(uri);
+      } catch (e) {
+        console.log(e);
+        return;
+      }
+
+      // Find attachment with same filename and add link to editor
+      const attachment = card.attachments?.find((attachment) =>
+        decodedURI.includes(attachment.fileName),
+      );
+      if (attachment && codemirror && codemirror.view && card) {
+        // Move editor cursor to drop point
+        codemirror.editor?.focus();
+        const dropPosition =
+          codemirror.view?.posAtCoords({
+            x: event.pageX,
+            y: event.pageY,
+          }) ?? 0;
+        codemirror.view?.dispatch({
+          selection: { anchor: dropPosition, head: dropPosition },
+        });
+
+        addAttachment(codemirror.view, attachment, card.key);
+      }
+    });
+  };
+
   return (
-    <Stack height="100%">
-      <FormProvider {...formMethods}>
-        <ContentToolbar
-          cardKey={params.key}
-          mode={CardMode.EDIT}
-          onUpdate={() => handleSubmit(handleSave)()}
-        />
-        <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
-          <Tabs
-            value={tab}
-            onChange={(e, newValue) =>
-              typeof newValue === 'number' && setTab(newValue)
-            }
-            sx={{
-              height: '100%',
-            }}
-          >
-            <TabList
-              sx={{
-                justifyContent: 'right',
-                width: '70%',
-              }}
-            >
-              <Tab data-cy="editTab">{t('edit')}</Tab>
-              <Tab data-cy="previewTab">{t('preview')}</Tab>
-            </TabList>
-            <TabPanel
-              value={0}
+    <>
+      <Stack height="100%">
+        <FormProvider {...formMethods}>
+          <ContentToolbar
+            cardKey={params.key}
+            mode={CardMode.EDIT}
+            onUpdate={() => handleSubmit(handleSave)()}
+          />
+          <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
+            <Tabs
+              value={tab}
+              onChange={(e, newValue) =>
+                typeof newValue === 'number' && setTab(newValue)
+              }
               sx={{
                 height: '100%',
               }}
             >
-              <Stack direction="row" height="100%">
-                <Box
-                  height="100%"
-                  sx={{
-                    overflowY: 'scroll',
-                    scrollbarWidth: 'thin',
-                  }}
-                  width="70%"
-                  paddingRight={3}
-                  onScroll={handleScroll}
-                >
-                  <Controller
-                    name="__title__"
-                    control={control}
-                    defaultValue={card.metadata.title}
-                    render={({ field: { value, onChange } }: any) => (
-                      <Textarea
-                        sx={{
-                          marginBottom: '10px',
-                          fontWeight: 'bold',
-                          fontSize: '1.2rem',
-                        }}
-                        value={value}
-                        onChange={onChange}
+              <TabList
+                sx={{
+                  justifyContent: 'right',
+                  width: '70%',
+                }}
+              >
+                <Tab data-cy="editTab">{t('edit')}</Tab>
+                <Tab data-cy="previewTab">{t('preview')}</Tab>
+              </TabList>
+              <TabPanel
+                value={0}
+                sx={{
+                  height: '100%',
+                }}
+              >
+                <Stack direction="row" height="100%">
+                  <Box
+                    height="100%"
+                    sx={{
+                      overflowY: 'scroll',
+                      scrollbarWidth: 'thin',
+                    }}
+                    width="70%"
+                    paddingRight={3}
+                    onScroll={handleScroll}
+                  >
+                    <Controller
+                      name="__title__"
+                      control={control}
+                      defaultValue={card.metadata.title}
+                      render={({ field: { value, onChange } }: any) => (
+                        <Textarea
+                          sx={{
+                            marginBottom: '10px',
+                            fontWeight: 'bold',
+                            fontSize: '1.8rem',
+                          }}
+                          value={value}
+                          onChange={onChange}
+                        />
+                      )}
+                    />
+                    <Box marginBottom={1.2}>
+                      <MetadataView
+                        initialExpanded={searchParams.get('expand') === 'true'}
+                        editMode={true}
+                        metadata={card?.metadata}
                       />
-                    )}
-                  />
-                  <Box paddingY={3}>
-                    <MetadataView
-                      initialExpanded={searchParams.get('expand') === 'true'}
-                      editMode={true}
-                      metadata={card?.metadata}
+                    </Box>
+                    <Controller
+                      name="__content__"
+                      control={control}
+                      defaultValue={card.content}
+                      render={({ field: { value, onChange } }: any) => (
+                        <CodeMirror
+                          value={value}
+                          onChange={onChange}
+                          ref={setRef}
+                          extensions={extensions}
+                          basicSetup={{
+                            lineNumbers: false,
+                          }}
+                          onDrop={handleDragDrop}
+                          style={{
+                            border: '1px solid',
+                            borderColor: 'rgba(0,0,0,0.23)',
+                            borderRadius: 4,
+                          }}
+                        />
+                      )}
                     />
                   </Box>
-                  <Controller
-                    name="__content__"
-                    control={control}
-                    defaultValue={card.content}
-                    render={({ field: { value, onChange } }: any) => (
-                      <CodeMirror
-                        value={value}
-                        onChange={onChange}
-                        ref={setRef}
-                        extensions={extensions}
-                        style={{
-                          border: '1px solid',
-                          borderColor: 'rgba(0,0,0,0.23)',
-                          borderRadius: 4,
-                        }}
-                      />
-                    )}
-                  />
-                </Box>
-                <Box
-                  flexGrow={1}
-                  display="flex"
-                  flexDirection="column"
-                  padding={2}
-                  sx={{
-                    scrollbarWidth: 'thin',
-                    overflowY: 'scroll',
-                  }}
-                  alignItems="flex-start"
-                  width="30%"
-                >
-                  <Stack direction="row" padding={4} paddingTop={0}>
-                    <Typography
-                      level="body-xs"
-                      color="warning"
-                      variant="soft"
-                      borderRadius={40}
-                      paddingX={1}
+                  <Box
+                    flexGrow={1}
+                    display="flex"
+                    flexDirection="column"
+                    padding={2}
+                    sx={{
+                      scrollbarWidth: 'thin',
+                      overflowY: 'scroll',
+                    }}
+                    alignItems="flex-start"
+                    width="30%"
+                  >
+                    <Stack
+                      direction="row"
+                      padding={4}
+                      paddingTop={0}
+                      alignItems="center"
                     >
-                      {card?.attachments?.length || 0}
-                    </Typography>
-                    <Typography level="body-xs" marginLeft={2}>
-                      {t('attachments')}
-                    </Typography>
-                  </Stack>
-                  <Grid container gap={2} paddingLeft={3}>
-                    {card?.attachments?.map((attachment) => (
-                      <Grid
-                        key={attachment.fileName}
-                        display="flex"
-                        justifyContent="center"
-                        width={146}
+                      <Typography
+                        level="body-xs"
+                        color="warning"
+                        variant="soft"
+                        width={24}
+                        height={24}
+                        alignContent="center"
+                        borderRadius={40}
+                        paddingX={1.1}
                       >
-                        <AttachmentPreviewCard
-                          name={attachment.fileName}
-                          cardKey={params.key}
-                          onInsert={() => {
-                            if (codemirror && codemirror.view && card) {
-                              addAttachment(
-                                codemirror.view,
-                                attachment,
-                                card.key,
-                              );
-                            }
-                          }}
-                        >
-                          {attachment.mimeType?.startsWith('image') ? (
+                        {card?.attachments?.length || 0}
+                      </Typography>
+                      <Typography level="body-xs" marginLeft={1.5}>
+                        {(card?.attachments?.length || 0) === 1
+                          ? t('attachment')
+                          : t('attachments')}
+                      </Typography>
+                      <Tooltip title={t('addAttachment')}>
+                        <IconButton onClick={openModal('addAttachment')}>
+                          <Icon>
                             <Image
-                              src={apiPaths.attachment(
-                                card.key,
-                                attachment.fileName,
-                              )}
-                              alt=""
-                              fill
+                              alt="Add attachment"
+                              width={24}
+                              height={24}
+                              src="/static/images/attach_file_add.svg"
                             />
-                          ) : (
-                            <InsertDriveFile />
-                          )}
-                        </AttachmentPreviewCard>
-                      </Grid>
-                    ))}
-                  </Grid>
+                          </Icon>
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                    <Grid container gap={2} paddingLeft={3}>
+                      {card?.attachments?.map((attachment) => (
+                        <Grid
+                          key={attachment.fileName}
+                          display="flex"
+                          justifyContent="center"
+                          width={160}
+                        >
+                          <AttachmentPreviewCard
+                            name={attachment.fileName}
+                            cardKey={params.key}
+                            onInsert={() => {
+                              if (codemirror && codemirror.view && card) {
+                                addAttachment(
+                                  codemirror.view,
+                                  attachment,
+                                  card.key,
+                                );
+                              }
+                            }}
+                          >
+                            {attachment.mimeType?.startsWith('image') ? (
+                              <Image
+                                src={apiPaths.attachment(
+                                  card.key,
+                                  attachment.fileName,
+                                )}
+                                alt=""
+                                fill
+                              />
+                            ) : (
+                              <InsertDriveFile />
+                            )}
+                          </AttachmentPreviewCard>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                </Stack>
+              </TabPanel>
+              <TabPanel
+                value={1}
+                sx={{
+                  height: '100%',
+                }}
+              >
+                <Box height="100%">
+                  <LoadingGate values={[linkTypes]}>
+                    <ContentArea
+                      card={previewCard}
+                      linkTypes={linkTypes!}
+                      project={project}
+                      preview={true}
+                    />
+                  </LoadingGate>
                 </Box>
-              </Stack>
-            </TabPanel>
-            <TabPanel
-              value={1}
-              sx={{
-                height: '100%',
-              }}
-            >
-              <Box height="100%">
-                <LoadingGate values={[linkTypes]}>
-                  <ContentArea
-                    card={previewCard}
-                    linkTypes={linkTypes!}
-                    project={project}
-                    preview={true}
-                  />
-                </LoadingGate>
-              </Box>
-            </TabPanel>
-          </Tabs>
-        </Stack>
-      </FormProvider>
-    </Stack>
+              </TabPanel>
+            </Tabs>
+          </Stack>
+        </FormProvider>
+      </Stack>
+      <AddAttachmentModal
+        open={modalOpen.addAttachment}
+        onClose={closeModal('addAttachment')}
+        cardKey={card.key}
+      />
+    </>
   );
 }

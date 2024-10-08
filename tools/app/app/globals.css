@@ -1066,7 +1066,6 @@
 .toc .toc-menu a.is-active {
   border-left-color: #2a7ee4;
   color: #2a7ee4;
-  -webkit-text-stroke-width: 1px;
 }
 .sidebar.toc .toc-menu a:focus {
   background: #fafafa;

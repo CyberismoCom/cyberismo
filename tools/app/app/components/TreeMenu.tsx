@@ -98,7 +98,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       width="100%"
     >
       <Link href="/cards" style={{ textDecoration: 'none' }}>
-        <Typography level="h4">{title}</Typography>
+        <Typography level="h4" marginBottom={2}>
+          {title}
+        </Typography>
       </Link>
       <Box
         sx={{

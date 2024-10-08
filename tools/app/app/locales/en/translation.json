@@ -77,8 +77,9 @@
     "status": "Status: {{state}}"
   },
   "none": "None",
+  "attachment": "Attachment",
   "attachments": "Attachments",
-  "addAttachment": "Add Attachment",
+  "addAttachment": "Add attachment",
   "add": "Add",
   "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
   "linkTooltip": "Link to another card",
