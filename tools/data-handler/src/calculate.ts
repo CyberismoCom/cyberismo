@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Card, Link } from './interfaces/project-interfaces.js';
 import {
   copyDir,
+  deleteDir,
   deleteFile,
   getFilesSync,
   pathExists,
@@ -317,6 +318,9 @@ export class Calculate {
    */
   public async generate(projectPath: string, cardKey?: string) {
     Calculate.project = new Project(projectPath);
+
+    // Cleanup old calculations before starting new ones.
+    await deleteDir(Calculate.project.calculationFolder);
 
     let card: Card | undefined;
     if (cardKey) {
