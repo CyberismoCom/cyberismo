@@ -39,6 +39,8 @@ import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 import { resourceNameParts } from './utils/resource-utils.js';
+import { fileURLToPath } from 'node:url';
+import { copyDir } from './utils/file-utils.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -49,6 +51,10 @@ import { resourceNameParts } from './utils/resource-utils.js';
  */
 export class Create extends EventEmitter {
   private calculateCmd: Calculate;
+  private defaultReportLocation: string = join(
+    fileURLToPath(import.meta.url),
+    '../../../../content/defaultReport',
+  );
 
   constructor(calculateCmd: Calculate) {
     super();
@@ -566,6 +572,7 @@ export class Create extends EventEmitter {
         'linkTypes',
         'templates',
         'workflows',
+        'reports',
       ],
       [],
     ];
@@ -615,6 +622,10 @@ export class Create extends EventEmitter {
       );
       await writeFile(
         join(project.fieldTypesFolder, '.gitkeep'),
+        this.gitKeepContent,
+      );
+      await writeFile(
+        join(project.reportsFolder, '.gitkeep'),
         this.gitKeepContent,
       );
     } catch (error) {
@@ -689,6 +700,19 @@ export class Create extends EventEmitter {
     const content = JSON.parse(JSON.stringify(workflow)) as WorkflowMetadata;
     const destinationFile = join(projectPath, fullFileName);
     await writeJsonFile(destinationFile, content, { flag: 'wx' });
+  }
+
+  /**
+   * Creates a report
+   * @param projectPath path to the project
+   * @param name name of the report
+   */
+  public async createReport(projectPath: string, name: string) {
+    const project = new Project(projectPath);
+    await copyDir(
+      this.defaultReportLocation,
+      join(project.reportsFolder, name),
+    );
   }
 
   /**
