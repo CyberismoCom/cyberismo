@@ -17,7 +17,7 @@ import createCardsMacroSchema from '../../../schema/createCardsMacroSchema.json'
 import csvSchema from '../../../schema/csvSchema.json' with { type: 'json' };
 import fieldTypeSchema from '../../../schema/fieldTypeSchema.json' with { type: 'json' };
 import linkTypeSchema from '../../../schema/linkTypeSchema.json' with { type: 'json' };
-import reportMacroDefaultSchema from '../../../schema/reportMacroDefaultSchema.json' with { type: 'json' };
+import reportMacroBaseSchema from '../../../schema/reportMacroBaseSchema.json' with { type: 'json' };
 import reportSchema from '../../../schema/reportSchema.json' with { type: 'json' };
 import templateSchema from '../../../schema/templateSchema.json' with { type: 'json' };
 import workflowSchema from '../../../schema/workflowSchema.json' with { type: 'json' };
@@ -31,7 +31,7 @@ export const schemas = [
   csvSchema,
   fieldTypeSchema,
   linkTypeSchema,
-  reportMacroDefaultSchema,
+  reportMacroBaseSchema,
   reportSchema,
   templateSchema,
   workflowSchema,
