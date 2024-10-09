@@ -67,7 +67,22 @@ export function registerMacros(
   }
   return macroInstances;
 }
+/**
+ * Calculate amount of handlebars templates inside a string
+ * @param input
+ */
+export function getMacroCount(input: string): number {
+  const regex = /{{{.+}}}/g;
+  const match = input.match(regex);
+  return match ? match.length : 0;
+}
 
+/**
+ * Registers macros as handlebars helpers, which just leaves the macros in the content
+ * Can be used when your macro uses handlebars and handles content that might contain macros
+ * The handleMacros function will handle recursive macros so do not execute them inside your macro
+ * @param instance handlebars instance
+ */
 export function registerEmptyMacros(instance: typeof Handlebars) {
   for (const macro of Object.keys(macros) as MacroName[]) {
     instance.registerHelper(macro, (...args) => {
@@ -104,9 +119,18 @@ export async function handleMacros(
       for (const macro of macroInstances) {
         result = await macro.handleResult(result);
       }
+      if (getMacroCount(result) === 0) {
+        break;
+      }
     } catch (err) {
       return handleMacroError(err, emptyMacro);
     }
+  }
+  if (getMacroCount(result) !== 0) {
+    return handleMacroError(
+      new Error(`Too many recursive macro evaluations.`),
+      emptyMacro,
+    );
   }
   return result;
 }
