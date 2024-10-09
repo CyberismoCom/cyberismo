@@ -15,7 +15,7 @@ import { MacroMetadata } from '../common.js';
 const macroMetadata: MacroMetadata = {
   name: 'report',
   tagName: 'report',
-  schema: 'reportMacroDefaultSchema',
+  schema: 'reportMacroBaseSchema',
 };
 
 export default macroMetadata;

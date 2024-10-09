@@ -1,6 +1,6 @@
 {
   "title": "Report",
-  "$id": "reportMacroDefaultSchema",
+  "$id": "reportMacroBaseSchema",
   "description": "A report object provides supplemental information about a report",
   "type": "object",
   "properties": {
