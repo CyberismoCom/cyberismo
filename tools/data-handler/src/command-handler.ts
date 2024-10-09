@@ -107,6 +107,7 @@ export class Commands {
     'project',
     'template',
     'workflow',
+    'report',
   ];
 
   public static removableTypes = [
@@ -307,6 +308,10 @@ export class Commands {
         if (target === 'workflow') {
           const [name, content] = args;
           return this.createWorkflow(name, content, this.projectPath);
+        }
+        if (target === 'report') {
+          const [name] = args;
+          return this.createReport(name, this.projectPath);
         }
       }
       if (command === Cmd.edit) {
@@ -792,6 +797,33 @@ export class Commands {
   }
 
   /**
+   * Creates a new report to a project.
+   * @param name Report name.
+   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
+   * @returns {requestStatus}
+   *       statusCode 200 when operation succeeded
+   *  <br> statusCode 400 when input validation failed
+   *  <br> statusCode 500 when there was a internal problem creating report
+   */
+  private async createReport(
+    name: string,
+    path: string,
+  ): Promise<requestStatus> {
+    if (!this.validateName(name)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: invalid report name '${name}'`,
+      };
+    }
+    try {
+      await this.createCmd.createReport(path, name);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 400, message: errorFunction(e) };
+    }
+  }
+
+  /**
    * Open a card (.json and .adoc) for editing
    *
    * @param cardKey Card key of a card
@@ -1099,9 +1131,14 @@ export class Commands {
         parameters.push(path);
         functionToCall = this.showCmd.showWorkflows.bind(this);
         break;
+      case 'reports':
+        parameters.push(path);
+        functionToCall = this.showCmd.showReports.bind(this);
+        break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
       case 'links': // fallthrough - not implemented yet
+      case 'report': // fallthrough - not implemented yet
       case 'projects': // fallthrough - not possible */
       default:
         return {
