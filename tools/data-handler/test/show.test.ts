@@ -2,11 +2,12 @@ import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 
-import { copyDir } from '../src/utils/file-utils.js';
+import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
 import { Show } from '../src/show.js';
 import { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from '../src/utils/log-utils.js';
+import { writeJsonFile } from '../src/utils/json.js';
 
 describe('show', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -104,6 +105,65 @@ describe('show', () => {
           `Card 'decision_999' does not exist in the project`,
         ),
       );
+  });
+  it('showCardDetails - empty attachment folder', async () => {
+    const details: FetchCardDetails = {
+      content: false,
+      metadata: true,
+      attachments: true,
+    };
+    const cardRoot = join(decisionRecordsPath, 'cardRoot');
+    // First create a test setup where there is a parent and child cards.
+    // Parent has empty attachment folder, child has attachment in attachment folder.
+    // Use just filesystem operations to create the setup.
+    const cardMetadata = {
+      title: 'A title',
+      cardType: 'decision/cardTypes/decision',
+      workflowState: 'Approved',
+    };
+    // Parent
+    const cardIdParent = 'decision_mycard';
+    await writeFileSafe(join(cardRoot, cardIdParent, 'index.adoc'), '');
+    await writeJsonFile(
+      join(cardRoot, cardIdParent, 'index.json'),
+      cardMetadata,
+    );
+    mkdirSync(join(decisionRecordsPath, 'cardRoot', cardIdParent, 'a'));
+
+    // Child
+    const cardIChild = 'decision_child';
+    await writeFileSafe(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.adoc'),
+      '',
+    );
+    await writeJsonFile(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.json'),
+      cardMetadata,
+    );
+    await writeFileSafe(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'a', 'image.png'),
+      '',
+    );
+
+    // Expect that parent has no attachments.
+    const parentResult = await showCmd.showCardDetails(
+      decisionRecordsPath,
+      details,
+      cardIdParent,
+    );
+    expect(parentResult.attachments?.length).equals(0);
+
+    // Child must have one attachment that is owned by the child.
+    const childResult = await showCmd.showCardDetails(
+      decisionRecordsPath,
+      details,
+      cardIChild,
+    );
+    expect(childResult.attachments?.length).equals(1);
+    const childAttachment = childResult.attachments?.at(0);
+    expect(childAttachment?.card).equals(cardIChild);
+
+    rmSync(join(cardRoot, cardIdParent), { recursive: true, force: true });
   });
   it('showCards (success)', async () => {
     const results = await showCmd.showCards(decisionRecordsPath);
