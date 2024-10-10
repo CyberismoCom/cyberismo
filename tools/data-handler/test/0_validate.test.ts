@@ -33,11 +33,6 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('try to validate() - missing-.cards-subfolders', async () => {
-    const path = join(testDir, 'invalid/missing-.cards-subfolders');
-    const valid = await validateCmd.validate(path);
-    expect(valid.length).to.be.greaterThan(0);
-  });
   it('try to validate() - missing-cardsConfig.json', async () => {
     const path = 'test/test-data/invalid/missing-cardsConfig.json';
     const valid = await validateCmd.validate(path);

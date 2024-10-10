@@ -12,6 +12,7 @@ import { Calculate } from '../src/calculate.js';
 import { Remove } from '../src/remove.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import { RemovableResourceTypes } from '../src/interfaces/project-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -229,7 +230,11 @@ describe('remove command', () => {
       const calculateCmd = new Calculate();
       const removeCmd = new Remove(calculateCmd);
       await removeCmd
-        .remove(decisionRecordsPath, 'i-dont-exist', cardId)
+        .remove(
+          decisionRecordsPath,
+          'i-dont-exist' as RemovableResourceTypes,
+          cardId,
+        )
         .then(() => {
           expect(false);
         })
