@@ -94,12 +94,12 @@ export type DataType =
 
 // Content in project files is either .schema, or project setting file.
 // Interfaces are mainly symmetrical, optional members for values that are not needed.
-export interface DotSchemaContent {
+export interface DotSchemaItem {
   id: string;
   version: number;
-  cardKeyPrefix?: never;
-  name?: never;
+  file?: string;
 }
+export type DotSchemaContent = DotSchemaItem[];
 
 // Custom field enum value
 export interface EnumDefinition {
@@ -176,8 +176,6 @@ export interface ProjectFile {
 
 // Project's settings (=cardsConfig.json).
 export interface ProjectSettings {
-  id?: never;
-  version?: never;
   cardKeyPrefix: string;
   name: string;
 }

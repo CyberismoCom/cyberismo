@@ -36,6 +36,7 @@ import {
   LinkType,
   ProjectSettings,
   WorkflowMetadata,
+  ReportMetadata,
 } from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
@@ -44,12 +45,6 @@ const baseDir = dirname(fileURLToPath(import.meta.url));
 
 export interface LengthProvider {
   length: number;
-}
-
-interface SchemaDefition {
-  id: string;
-  version: number;
-  file?: string;
 }
 
 export class Validate {
@@ -68,6 +63,8 @@ export class Validate {
   static templateMetadataFile = 'template.json';
   static cardMetadataFile = 'index.json';
   static dotSchemaSchemaId = 'dotSchema';
+  static parameterSchemaFile = 'parameterSchema.json';
+  static reportMetadataFile = 'report.json';
 
   constructor() {
     Validate.baseFolder = pathExists(
@@ -131,8 +128,11 @@ export class Validate {
   }
 
   // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(path: string): Promise<string[]> {
-    let message: string[] = [];
+  private async readAndValidateContentFiles(
+    project: Project,
+    path: string,
+  ): Promise<string[]> {
+    const message: string[] = [];
     try {
       const files = await readdir(path, {
         withFileTypes: true,
@@ -144,7 +144,7 @@ export class Validate {
           dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
       );
 
-      message = message.concat(await this.validateSchemaFiles(schemaFiles));
+      message.push(...(await this.validateSchemaFiles(schemaFiles)));
 
       // no point in validating contents if .schema files are not valid
       if (message.length !== 0) {
@@ -158,13 +158,31 @@ export class Validate {
             content: await readJsonFile(this.fullPath(dirent)),
           })),
         )
-      ).reduce<Record<string, SchemaDefition[]>>((acc, { dirent, content }) => {
+      ).reduce<Record<string, DotSchemaContent>>((acc, { dirent, content }) => {
         acc[dirent.parentPath] = content;
         return acc;
       }, {});
 
+      const prefixes = await project.projectPrefixes();
       // Go through every file
-      for (const file of files.filter((dirent) => dirent.isFile())) {
+      for (const file of files.filter(
+        (dirent) =>
+          dirent.isFile() &&
+          dirent.name !== Validate.schemaConfigurationFile &&
+          extname(dirent.name) === Validate.jsonFileExtension,
+      )) {
+        const fullPath = this.fullPath(file);
+        const content = await readJsonFile(fullPath);
+        const nameErrors = this.validateResourceName(
+          fullPath,
+          file,
+          content,
+          prefixes,
+        );
+
+        if (nameErrors) {
+          message.push(...nameErrors);
+        }
         const schemas = schemaConfigs[file.parentPath];
         // if schema is not defined for the directory, skip it
         if (!schemas) {
@@ -172,10 +190,7 @@ export class Validate {
         }
         const fileSchema = schemas.find(
           (schema) =>
-            schema.file === file.name ||
-            (schemas.length === 1 &&
-              !schema.file &&
-              extname(file.name) === 'json'),
+            schema.file === file.name || (schemas.length === 1 && !schema.file),
         );
 
         if (!fileSchema) {
@@ -187,12 +202,8 @@ export class Validate {
         if (!schema) {
           throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
         }
-        const fullPath = this.fullPath(file);
 
-        const result = this.validator.validate(
-          await readJsonFile(fullPath),
-          schema,
-        );
+        const result = this.validator.validate(content, schema);
         for (const error of result.errors) {
           const msg = `Validation error from '${fullPath}': ${error.message}.`;
           message.push(msg);
@@ -289,7 +300,8 @@ export class Validate {
       | FieldTypeDefinition
       | LinkType
       | ProjectSettings
-      | WorkflowMetadata,
+      | WorkflowMetadata
+      | ReportMetadata,
     projectPrefixes: string[],
   ): string[] {
     const errors: string[] = [];
@@ -297,7 +309,10 @@ export class Validate {
     if (
       file.name !== Validate.projectConfigurationFile &&
       file.name !== Validate.templateMetadataFile &&
-      file.name !== Validate.cardMetadataFile
+      file.name !== Validate.cardMetadataFile &&
+      file.name !== Validate.dotSchemaSchemaId &&
+      file.name !== Validate.parameterSchemaFile &&
+      file.name !== Validate.reportMetadataFile
     ) {
       const namedContent = content as
         | CardType
