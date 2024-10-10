@@ -18,7 +18,7 @@ import { Remove } from '@cyberismocom/data-handler/remove';
 import { Show } from '@cyberismocom/data-handler/show';
 import { Transition } from '@cyberismocom/data-handler/transition';
 
-import Processor from '@asciidoctor/core';
+import Processor from 'asciidoctor';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {

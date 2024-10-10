@@ -8,9 +8,13 @@ import { GET as GET_CARD } from '../app/api/cards/[key]/route';
 import { GET as GET_ATTACHMENT } from '../app/api/cards/[key]/a/[attachment]/route';
 import { GET as GET_CARD_TYPE } from '../app/api/cardTypes/route';
 import { NextRequest } from 'next/server';
-import { CardType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
+
+// Fixes weird issue with asciidoctor
+beforeAll(() => {
+  process.argv = [];
+});
 
 test('/api/cards returns a project with a list of cards', async () => {
   const response = await GET_PROJECT();
@@ -30,7 +34,6 @@ test('/api/cards/decision_5 returns a card object', async () => {
   expect(response).not.toBe(null);
 
   console.log(response);
-
   const result: CardDetails = await response.json();
   expect(response.status).toBe(200);
   expect(result.metadata!.title).toBe('Decision Records');
