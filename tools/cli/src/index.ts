@@ -303,6 +303,20 @@ create
     handleResponse(result);
   });
 
+create
+  .command('report')
+  .description('Create a report')
+  .argument('<name>', `Name for the report. ${nameGuideline}`)
+  .option('-p, --project-path [path]', pathGuideline)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
 // Edit command
 program
   .command('edit')

@@ -21,7 +21,9 @@ import { SWRResponse } from 'swr';
 
 export type Resources = {
   project: Project;
-  card: CardDetails;
+  card: CardDetails & {
+    parsed: string;
+  };
   fieldTypes: FieldTypes;
   cardType: CardType;
   templates: Template[];

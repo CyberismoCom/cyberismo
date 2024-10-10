@@ -16,7 +16,6 @@
     "e2e:headless": "start-server-and-test test-env-dev http://localhost:3000 \"cypress run --e2e\""
   },
   "dependencies": {
-    "@asciidoctor/core": "^3.0.4",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@fontsource/inter": "^5.0.18",
@@ -26,6 +25,7 @@
     "@mui/x-tree-view": "^7.14.0",
     "@reduxjs/toolkit": "^2.2.5",
     "@uiw/react-codemirror": "^4.22.2",
+    "asciidoctor": "^3.0.4",
     "codemirror-asciidoc": "^2.0.1",
     "html-react-parser": "^5.1.12",
     "i18next": "^23.11.5",

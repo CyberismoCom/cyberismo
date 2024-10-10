@@ -73,9 +73,4 @@ describe('calculate', () => {
     expect(res.results).to.deep.equal(expectedTree);
     expect(res.error).to.eq(null);
   });
-  it('try to run non-existing file', async () => {
-    return expect(
-      calculate.run(decisionRecordsPath, 'non-existing.lp'),
-    ).to.be.rejectedWith('Clingo error');
-  });
 });

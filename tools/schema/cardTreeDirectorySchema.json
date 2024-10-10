@@ -252,13 +252,54 @@
                               }
                             }
                           ]
+                        },
+                        "reports": {
+                          "type": "object",
+                          "properties": {
+                            "additionalProperties": false,
+                            "directories": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                ".+": {
+                                  "type": "object",
+                                  "properties": {
+                                    "files": {
+                                      "type": "object",
+                                      "properties": {
+                                        "index.adoc.hbs": {
+                                          "type": "object"
+                                        },
+                                        "query.lp.hbs": {
+                                          "type": "object"
+                                        },
+                                        "report.json": {
+                                          "type": "object",
+                                          "contentSchema": "reportSchema.json"
+                                        },
+                                        "parametersSchema.json": {
+                                          "type": "object"
+                                        }
+                                      },
+                                      "required": [
+                                        "index.adoc.hbs",
+                                        "query.lp.hbs",
+                                        "report.json"
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
                         }
                       },
                       "required": [
                         "cardTypes",
                         "fieldTypes",
                         "templates",
-                        "workflows"
+                        "workflows",
+                        "reports"
                       ]
                     }
                   }
