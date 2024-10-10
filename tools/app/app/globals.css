@@ -4,6 +4,21 @@
   }
 }
 
+[role='treeitem'][aria-selected='false']:hover {
+  .treenode {
+    background-color: #dedede;
+  }
+}
+
+.resizeHandle {
+  width: 2px;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background-color: #0b6bcb;
+}
+
 /* Antora default styles from https://gitlab.com/antora/antora-ui-default, only .doc scoped styles included */
 
 .doc {
