@@ -399,7 +399,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         width="100%"
         padding={3}
         flexGrow={1}
-        minWidth={0}
         sx={{
           overflowY: 'scroll',
           scrollbarWidth: 'thin',
@@ -407,7 +406,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         onScroll={handleScroll}
         ref={boxRef}
       >
-        <Stack spacing={3}>
+        <Stack spacing={3} height="100%">
           <Typography level="h1">{card.metadata?.title ?? card.key}</Typography>
           <MetadataView
             editMode={false}
