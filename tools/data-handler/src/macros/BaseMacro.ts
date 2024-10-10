@@ -13,8 +13,6 @@
 import { MacroGenerationContext, MacroMetadata } from './common.js';
 import { handleMacroError } from './index.js';
 
-const placeholder = '___ASYNC___RESULT___';
-
 abstract class BaseMacro {
   /**
    * Used for identifying the macro globally.
@@ -25,7 +23,7 @@ abstract class BaseMacro {
   private globalId: string;
   private promiseList: {
     localId: number;
-    promise: Promise<any>;
+    promise: Promise<void>;
     placeholder: string;
     promiseResult: string | null;
   }[] = [];

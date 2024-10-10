@@ -146,7 +146,9 @@ export function validateMacros(content: string): string | null {
   registerMacros(handlebars, {
     // other objects can be skipped, because macro is not run during validate
     mode: 'static',
-  } as any);
+    cardKey: '',
+    projectPath: '',
+  });
 
   const template = handlebars.compile(content, {
     strict: true,

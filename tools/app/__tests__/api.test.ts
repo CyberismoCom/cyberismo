@@ -25,11 +25,11 @@ test('/api/cards returns a project with a list of cards', async () => {
 });
 
 test('/api/cards/decision_5 returns a card object', async () => {
-  const request = new NextRequest(
-    'http://localhost:3000/api/cards/decision_5?contentType=adoc',
-  );
+  const request = new NextRequest('http://localhost:3000/api/cards/decision_5');
   const response = await GET_CARD(request);
   expect(response).not.toBe(null);
+
+  console.log(response);
 
   const result: CardDetails = await response.json();
   expect(response.status).toBe(200);

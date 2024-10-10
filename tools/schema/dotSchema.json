@@ -1,0 +1,24 @@
+{
+  "title": "Dot Schema",
+  "$id": "dotSchema",
+  "description": "Schema of the .schema ",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "description": "Version of the schema",
+        "type": "number"
+      },
+      "file": {
+        "description": "File that is being validated. If empty, validates all json using the schema in the directory.",
+        "type": "string"
+      },
+      "id": {
+        "description": "Id of the schema that is used to validate the given file",
+        "type": "string"
+      }
+    },
+    "required": ["version", "id"]
+  }
+}

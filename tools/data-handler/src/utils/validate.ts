@@ -49,7 +49,9 @@ export function validateJson<T>(
   if (schema) {
     jsonSchema = schema;
   } else {
-    jsonSchema = schemas.find((s) => s.$id === schemaId);
+    jsonSchema = Object.values(validator.schemas).find(
+      (s) => s.$id === schemaId,
+    );
   }
 
   if (!jsonSchema) {
