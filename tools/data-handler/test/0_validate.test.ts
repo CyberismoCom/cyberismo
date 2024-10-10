@@ -21,7 +21,6 @@ describe('validate cmd tests', () => {
   it('validate() - decision-records (success)', async () => {
     const path = join(testDir, 'valid/decision-records');
     const valid = await validateCmd.validate(path);
-    console.log(valid);
     expect(valid.length).to.equal(0);
   });
   it('validate() - minimal (success)', async () => {

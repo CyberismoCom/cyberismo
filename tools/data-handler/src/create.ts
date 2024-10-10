@@ -69,7 +69,7 @@ export class Create extends EventEmitter {
   schemaFilesContent: ProjectFile[] = [
     {
       path: '.cards/local',
-      content: { id: 'cardsConfigSchema', version: 1 },
+      content: [{ id: 'cardsConfigSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
@@ -82,22 +82,22 @@ export class Create extends EventEmitter {
     },
     {
       path: '.cards/local/cardTypes',
-      content: { id: 'cardTypeSchema', version: 1 },
+      content: [{ id: 'cardTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/fieldTypes',
-      content: { id: 'fieldTypeSchema', version: 1 },
+      content: [{ id: 'fieldTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/linkTypes',
-      content: { id: 'linkTypeSchema', version: 1 },
+      content: [{ id: 'linkTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/workflows',
-      content: { id: 'workflowSchema', version: 1 },
+      content: [{ id: 'workflowSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
   ];
@@ -600,12 +600,15 @@ export class Create extends EventEmitter {
       });
 
     this.schemaFilesContent.forEach(async (entry) => {
-      if (entry.content.cardKeyPrefix?.includes('$PROJECT-PREFIX')) {
-        entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+      if ('cardKeyPrefix' in entry.content) {
+        if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
+          entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+        }
+        if (entry.content.name.includes('$PROJECT-NAME')) {
+          entry.content.name = projectName;
+        }
       }
-      if (entry.content.name?.includes('$PROJECT-NAME')) {
-        entry.content.name = projectName;
-      }
+
       await writeJsonFile(
         join(parentFolderToCreate, entry.path, entry.name),
         entry.content,
