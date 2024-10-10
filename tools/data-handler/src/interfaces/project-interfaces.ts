@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Schema } from "jsonschema";
+import { Schema } from 'jsonschema';
 
 // @todo: consider splitting this to several smaller files.
 

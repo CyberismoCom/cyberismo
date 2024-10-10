@@ -46,6 +46,12 @@ export interface LengthProvider {
   length: number;
 }
 
+interface SchemaDefition {
+  id: string;
+  version: number;
+  file?: string;
+}
+
 export class Validate {
   private static instance: Validate;
 
@@ -61,6 +67,7 @@ export class Validate {
   static projectConfigurationFile = 'cardsConfig.json';
   static templateMetadataFile = 'template.json';
   static cardMetadataFile = 'index.json';
+  static dotSchemaSchemaId = 'dotSchema';
 
   constructor() {
     Validate.baseFolder = pathExists(
@@ -95,7 +102,106 @@ export class Validate {
 
   // Return full path and filename.
   private fullPath(file: Dirent): string {
-    return join(file.path, file.name);
+    return join(file.parentPath, file.name);
+  }
+
+  // Handles validating .schema files
+  private async validateSchemaFiles(files: Dirent[]) {
+    const schema = this.validator.schemas[Validate.dotSchemaSchemaId];
+
+    if (!schema) {
+      throw new Error(`.schema schema not found`);
+    }
+
+    const message: string[] = [];
+
+    for (const file of files) {
+      const fullPath = this.fullPath(file);
+
+      const result = this.validator.validate(
+        await readJsonFile(fullPath),
+        schema,
+      );
+      for (const error of result.errors) {
+        const msg = `Validation error from '${fullPath}': ${error.message}.`;
+        message.push(msg);
+      }
+    }
+    return message;
+  }
+
+  // Handles reading and validating 'contentSchema' in a directory.
+  private async readAndValidateContentFiles(path: string): Promise<string[]> {
+    let message: string[] = [];
+    try {
+      const files = await readdir(path, {
+        withFileTypes: true,
+        recursive: true,
+      });
+
+      const schemaFiles = files.filter(
+        (dirent) =>
+          dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
+      );
+
+      message = message.concat(await this.validateSchemaFiles(schemaFiles));
+
+      // no point in validating contents if .schema files are not valid
+      if (message.length !== 0) {
+        return message;
+      }
+
+      const schemaConfigs = (
+        await Promise.all(
+          schemaFiles.map(async (dirent) => ({
+            dirent,
+            content: await readJsonFile(this.fullPath(dirent)),
+          })),
+        )
+      ).reduce<Record<string, SchemaDefition[]>>((acc, { dirent, content }) => {
+        acc[dirent.parentPath] = content;
+        return acc;
+      }, {});
+
+      // Go through every file
+      for (const file of files.filter((dirent) => dirent.isFile())) {
+        const schemas = schemaConfigs[file.parentPath];
+        // if schema is not defined for the directory, skip it
+        if (!schemas) {
+          continue;
+        }
+        const fileSchema = schemas.find(
+          (schema) =>
+            schema.file === file.name ||
+            (schemas.length === 1 &&
+              !schema.file &&
+              extname(file.name) === 'json'),
+        );
+
+        if (!fileSchema) {
+          continue;
+        }
+
+        const schema = this.validator.schemas[fileSchema.id];
+
+        if (!schema) {
+          throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
+        }
+        const fullPath = this.fullPath(file);
+
+        const result = this.validator.validate(
+          await readJsonFile(fullPath),
+          schema,
+        );
+        for (const error of result.errors) {
+          const msg = `Validation error from '${fullPath}': ${error.message}.`;
+          message.push(msg);
+        }
+      }
+    } catch (error) {
+      throw new Error(errorFunction(error));
+    }
+    return message;
   }
 
   private parseValidatorMessage(errorObject: object[]): string {
@@ -139,67 +245,6 @@ export class Validate {
       parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
     }
     return parsedErrorMessage;
-  }
-
-  // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(
-    project: Project,
-    path: string,
-  ): Promise<string[]> {
-    const message: string[] = [];
-    try {
-      const files = await readdir(path, {
-        withFileTypes: true,
-        recursive: true,
-      });
-      // Filter out directories and non-JSON files. Include special '.schema' files.
-      const fileNames = files
-        .filter((dirent) => dirent.isFile())
-        .filter(
-          (dirent) =>
-            dirent.name === Validate.schemaConfigurationFile ||
-            extname(dirent.name) === Validate.jsonFileExtension,
-        );
-
-      let activeJsonSchema: Schema = {};
-      const prefixes = await project.projectPrefixes();
-      for (const file of fileNames) {
-        const fullFileNameWithPath = this.fullPath(file);
-        if (file.name === Validate.schemaConfigurationFile) {
-          const jsonSchema = (await readJsonFile(
-            fullFileNameWithPath,
-          )) as Schema;
-          if (jsonSchema) {
-            activeJsonSchema = this.validator.schemas[jsonSchema.id as string];
-            if (activeJsonSchema === undefined) {
-              throw new Error(
-                `Unknown schema name ${jsonSchema.id}, aborting.`,
-              );
-            }
-          }
-        } else {
-          // console.log(`FILE ${fullFileNameWithPath} ACTIVE SCHEMA : ${activeJsonSchema.$id}`);
-          const content = await readJsonFile(fullFileNameWithPath);
-          const nameErrors = this.validateResourceName(
-            fullFileNameWithPath,
-            file,
-            content,
-            prefixes,
-          );
-          if (nameErrors) {
-            message.push(...nameErrors);
-          }
-          const result = this.validator.validate(content, activeJsonSchema);
-          for (const error of result.errors) {
-            const msg = `Validation error from '${fullFileNameWithPath}': ${error.message}.`;
-            message.push(msg);
-          }
-        }
-      }
-    } catch (error) {
-      throw new Error(errorFunction(error));
-    }
-    return message;
   }
 
   // Removes same items from an array.

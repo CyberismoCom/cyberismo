@@ -235,6 +235,13 @@ describe('shows command', () => {
     });
     // @todo add test cases for error situations
   });
+  it('show reports - success()', async () => {
+    const result = await commandHandler.command(Cmd.show, ['reports'], options);
+    const payloadAsArray = Object.values(result.payload || []);
+    expect(result.statusCode).to.equal(200);
+    expect(payloadAsArray.length).to.equal(1);
+    expect(payloadAsArray[0]).to.equal('decision/reports/testReport');
+  });
 
   describe('show command with modules', () => {
     beforeEach(async () => {

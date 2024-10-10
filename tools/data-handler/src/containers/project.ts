@@ -44,7 +44,6 @@ import { generateRandomString } from '../utils/random.js';
 
 // base class
 import { CardContainer } from './card-container.js';
-import { Schema } from 'jsonschema';
 
 /**
  * Represents project folder.

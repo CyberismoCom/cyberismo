@@ -10,11 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  createHtmlPlaceholder,
-  handleMacroError,
-  validateMacroContent,
-} from '../index.js';
+import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
 import { MacroGenerationContext } from '../common.js';
 import macroMetadata from './metadata.js';

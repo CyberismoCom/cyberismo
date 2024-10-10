@@ -709,6 +709,14 @@ export class Create extends EventEmitter {
    */
   public async createReport(projectPath: string, name: string) {
     const project = new Project(projectPath);
+
+    const report = await project.report(
+      `${project.projectPrefix}/reports/${name}`,
+    );
+    if (report) {
+      throw new Error(`Report '${name}' already exists in the project`);
+    }
+
     await copyDir(
       this.defaultReportLocation,
       join(project.reportsFolder, name),
