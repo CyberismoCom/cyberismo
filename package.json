@@ -47,6 +47,7 @@
       ],
       "extensions": [
         "ts",
+        "tsx",
         "mjs",
         "hbs"
       ]
