@@ -523,7 +523,7 @@ export class Calculate {
           console.error('Unknown error');
         }
       }
-      throw new Error('Clingo error');
+      throw new Error(clingo.stderr);
     }
     throw new Error(
       'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
