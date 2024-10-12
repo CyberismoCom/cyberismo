@@ -518,7 +518,8 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-  it('template with "local" (success)', async () => {
+  it('template with "local"', async () => {
+    // local is no longer a valid name part.
     const templateName = 'local/templates/template-name_second';
     const templateContent = '{}';
     const result = await commandHandler.command(
@@ -526,7 +527,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).to.equal(400);
   });
   it('template with default parameters (success)', async () => {
     const templateName = 'validname';

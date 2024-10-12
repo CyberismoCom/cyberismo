@@ -38,7 +38,6 @@ import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
-import { resourceNameParts } from './utils/resource-utils.js';
 import { fileURLToPath } from 'node:url';
 import { copyDir } from './utils/file-utils.js';
 
@@ -128,10 +127,16 @@ export class Create extends EventEmitter {
     return fieldType ? true : false;
   }
 
+  // Checks if name is in long format (3 parts, separated by '/').
+  static isFullName(name: string): boolean {
+    const partsCount = name.split('/').length;
+    return partsCount === 3;
+  }
+
   // Default content for link type JSON values.
   private static defaultLinkTypeContent(prefix: string, linkTypeName: string) {
     return {
-      name: `${prefix}/linkTypes/${linkTypeName}`,
+      name: `${linkTypeName}`,
       outboundDisplayName: linkTypeName,
       inboundDisplayName: linkTypeName,
       sourceCardTypes: [],
@@ -340,15 +345,20 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a card type.
-   * @param {string} projectPath project path.
-   * @param {string} name name for the card type.
-   * @param {string} workflow workflow name to use in the card type.
+   * @param projectPath project path.
+   * @param name name for the card type. It is expected that name is always in long format.
+   * @param workflow workflow name to use in the card type.
    */
   public async createCardType(
     projectPath: string,
     name: string,
     workflow: string,
   ) {
+    if (!Create.isFullName(name)) {
+      throw new Error(
+        `Resource name must be in long format when calling 'createCardType()'`,
+      );
+    }
     if (!(await this.workflowExists(projectPath, workflow))) {
       throw new Error(
         `Input validation error: workflow '${workflow}' does not exist in the project.`,
@@ -356,10 +366,12 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
-    const fullName = `${project.projectPrefix}/cardTypes/${name}`;
-    const fullFileName = `.cards/local/cardTypes/${name}.json`;
+    const fullFileName = `.cards/${name}.json`.replace(
+      project.projectPrefix,
+      'local',
+    );
 
-    const content: CardType = { name: fullName, workflow };
+    const content: CardType = { name: name, workflow: workflow };
     const destinationFolder = join(projectPath, fullFileName);
     await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
@@ -368,15 +380,20 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new field type.
-   * @param {string} projectPath project path
-   * @param {string} fieldTypeName name for the field type
-   * @param {string} dataType data type for the field type
+   * @param projectPath project path
+   * @param fieldTypeName name for the field type. It is expected that name is in long format.
+   * @param dataType data type for the field type
    */
   public async createFieldType(
     projectPath: string,
     fieldTypeName: string,
     dataType: string,
   ) {
+    if (!Create.isFullName(fieldTypeName)) {
+      throw new Error(
+        `Resource name must be in long format when calling 'createFieldType()'`,
+      );
+    }
     if (await this.fieldTypeExists(projectPath, fieldTypeName)) {
       throw new Error(
         `Field type with name '${fieldTypeName}' already exists in the project`,
@@ -389,15 +406,18 @@ export class Create extends EventEmitter {
     }
     const useDataType: DataType = dataType as DataType;
 
+    const project = new Project(projectPath);
     const content: FieldTypeDefinition = {
-      name: `local/fieldTypes/${fieldTypeName}`,
+      name: fieldTypeName,
       dataType: useDataType,
     };
+
+    fieldTypeName = fieldTypeName.replace(project.projectPrefix, 'local');
 
     const destinationFolder = join(
       projectPath,
       '.cards',
-      `${content.name}.json`,
+      `${fieldTypeName}.json`,
     );
     await writeJsonFile(destinationFolder, content, {
       flag: 'wx',
@@ -406,11 +426,15 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new link type.
-   * @param {string} projectPath project path
-   * @param {string} linkTypeName name for the link type
+   * @param projectPath project path
+   * @param linkTypeName name for the link type. It is expected that the name is in long format.
    */
   public async createLinkType(projectPath: string, linkTypeName: string) {
-    // check if link type already exists
+    if (!Create.isFullName(linkTypeName)) {
+      throw new Error(
+        `Resource name must be in long format when calling 'createLinkType()'`,
+      );
+    }
     if (await this.linkTypeExists(projectPath, linkTypeName)) {
       throw new Error(
         `Link type with name '${linkTypeName}' already exists in the project`,
@@ -418,21 +442,9 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
-    // Validate that name is correct; either in short or long format.
-    const { name, prefix, type } = resourceNameParts(linkTypeName);
-    if (prefix && prefix !== project.projectPrefix) {
-      throw new Error(
-        `Invalid project prefix in name: '${prefix}'. Prefix must match the project prefix '${project.projectPrefix}'`,
-      );
-    }
-    if (type && type !== 'linkTypes') {
-      throw new Error(
-        `Invalid resource type in name: '${type}'. When creating a link type, it must be 'linkTypes'`,
-      );
-    }
     const linkTypeContent = Create.defaultLinkTypeContent(
       project.projectPrefix,
-      name,
+      linkTypeName,
     );
     // check if link type JSON is valid
     const validator = Validate.getInstance();
@@ -441,12 +453,12 @@ export class Create extends EventEmitter {
       throw new Error(`Invalid link type JSON: ${validJson}`);
     }
 
+    linkTypeName = linkTypeName.replace(project.projectPrefix, 'local');
+
     const destinationFolder = join(
       projectPath,
       '.cards',
-      'local',
-      'linkTypes',
-      `${name}.json`,
+      `${linkTypeName}.json`,
     );
     await writeJsonFile(destinationFolder, linkTypeContent, {
       flag: 'wx',
@@ -471,7 +483,6 @@ export class Create extends EventEmitter {
     const project = new Project(projectPath);
 
     // Determine the card path
-
     const card = await project.findSpecificCard(cardKey, {
       metadata: true,
     });
@@ -640,15 +651,21 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new template to a project.
-   * @param {string} projectPath Project path
-   * @param {string} templateName Name of the template
-   * @param {TemplateMetadata} templateContent JSON content for the template file.
+   * @param projectPath Project path
+   * @param templateName Name of the template. It is expected that the name is in long format.
+   * @param templateContent JSON content for the template file.
    */
   public async createTemplate(
     projectPath: string,
     templateName: string,
     templateContent: TemplateMetadata,
   ) {
+    if (!Create.isFullName(templateName)) {
+      throw new Error(
+        `Resource name must be in long format when calling 'createTemplate()'`,
+      );
+    }
+
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
     templateName = Template.normalizedTemplateName(templateName);
@@ -665,15 +682,6 @@ export class Create extends EventEmitter {
     }
 
     const project = new Project(projectPath);
-    // todo: Move this somewhere? This could be part of template or project? or utility class
-    // Only allow 'local' or module/project name in multipart names.
-    const parts = templateName.split('/');
-    if (parts.length > 1) {
-      if (parts[0] !== 'local' && parts[0] !== project.projectPrefix) {
-        throw new Error('Invalid name');
-      }
-    }
-
     if (await project.templateExists(templateName)) {
       throw new Error(
         `Template '${templateName}' already exists in the project`,
@@ -686,16 +694,23 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a workflow.
-   * @param {string} projectPath project path
-   * @param {WorkflowMetadata} workflow workflow JSON
+   * @param projectPath project path
+   * @param workflow workflow JSON
    */
   public async createWorkflow(projectPath: string, workflow: WorkflowMetadata) {
     const validator = Validate.getInstance();
     const schemaId = 'workflowSchema';
     const project = new Project(projectPath);
-    const fullName = `${project.projectPrefix}/workflows/${workflow.name}`;
-    const fullFileName = `.cards/local/workflows/${workflow.name}.json`;
-    workflow.name = fullName;
+
+    if (!Create.isFullName(workflow.name)) {
+      throw new Error(
+        `Resource name must be in long format when calling 'createWorkflow()'`,
+      );
+    }
+
+    const pathName = workflow.name.replace(project.projectPrefix, 'local');
+    const fullFileName = `.cards/${pathName}.json`;
+
     const validJson = validator.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
