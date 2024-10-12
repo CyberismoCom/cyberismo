@@ -166,7 +166,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                   spacing={2}
                   columnGap={2}
                   rowGap={2}
-                  justifyContent="center"
+                  justifyContent="flex-start"
                   marginTop={2}
                   marginBottom={4}
                   marginLeft={0}
