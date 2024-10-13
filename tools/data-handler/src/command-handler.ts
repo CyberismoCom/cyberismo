@@ -1194,18 +1194,31 @@ export class Commands {
 
     // Start trying from port 3000 and increase the port number if the port is already in use
     let port = 3000;
-    let args = ['-s', `start`, `--project_path="${projectPath}"`, '--', `--port ${port}`];
-    
+    let args = [
+      '-s',
+      `start`,
+      `--project_path="${projectPath}"`,
+      '--',
+      `--port ${port}`,
+    ];
+
     while (port < 3099) {
       try {
-        console.log(`Starting Cyberismo on http://localhost:${port}. Enter CTRL+C to quit.`);
+        console.log(
+          `Starting Cyberismo on http://localhost:${port}. Enter CTRL+C to quit.`,
+        );
         execFileSync(`npm`, args, { shell: true, cwd: `${appPath}` });
         break;
       } catch (error) {
         port++;
-        args = [`start`, `--project_path="${projectPath}"`, '--', `--port ${port}`];
+        args = [
+          `start`,
+          `--project_path="${projectPath}"`,
+          '--',
+          `--port ${port}`,
+        ];
       }
-    }    
+    }
 
     return { statusCode: 200 };
   }
