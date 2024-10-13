@@ -1208,8 +1208,7 @@ export class Commands {
           `Starting Cyberismo on http://localhost:${port}. Enter CTRL+C to quit.`,
         );
         execFileSync(`npm`, args, { shell: true, cwd: `${appPath}` });
-        break;
-      } catch (error) {
+      } catch (error) { // eslint-disable-line @typescript-eslint/no-unused-vars
         port++;
         args = [
           `start`,
