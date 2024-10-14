@@ -12,7 +12,7 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -148,6 +148,9 @@ export class Calculate {
       'cards',
     );
     const promiseContainer = [];
+    if (!pathExists(destinationFileBase)) {
+      await mkdir(destinationFileBase, { recursive: true });
+    }
 
     // Small helper to deduce parent path
     function parentPath(cardPath: string) {
