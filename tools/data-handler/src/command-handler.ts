@@ -19,7 +19,7 @@ import { Edit } from './edit.js';
 import { ExportSite } from './export-site.js';
 import { Import } from './import.js';
 import { Move } from './move.js';
-import { pathExists, resolveTilde, sepRegex } from './utils/file-utils.js';
+import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { Remove } from './remove.js';
 import { Rename } from './rename.js';
@@ -33,6 +33,7 @@ import {
   TemplateMetadata,
   WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
+import { resourceNameParts } from './utils/resource-utils.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
@@ -183,22 +184,47 @@ export class Commands {
     return !invalidNames.test(basename(path));
   }
 
-  // Validates a resource name.
-  private validateName(name: string) {
-    // Common names might have 'local' in the beginning before the actual name.
-    const parts = name.split(sepRegex);
-
-    if (parts.length > 3) {
-      return false;
-    }
-    if (parts.length === 3) {
-      name = parts[2];
-    }
-
+  // Validates that new name of a resource is according to naming convention.
+  private validateNameResourceName(name: string) {
     const validName = new RegExp('^[A-Za-z ._-]+$');
     const contentValidated = validName.test(name);
     const lengthValidated = name.length > 0 && name.length < 256;
     return contentValidated && lengthValidated;
+  }
+
+  // Validate that long and shoer resource names are valid.
+  // Returns resource name as valid resource name (long format); in error case return empty string.
+  // @todo: replace 'resourceType: string' with `resourceTypes: ResourceTypes` once INTDEV-463 has been merged.
+  private validName(resourceType: string, resourceName: string): string {
+    try {
+      const project = new Project(this.projectPath);
+      const { prefix, type, name } = resourceNameParts(resourceName);
+      const validatePrefix = prefix !== '';
+      const validateType = type !== '';
+      if (validatePrefix) {
+        const projectPrefix = project.projectPrefix;
+        if (prefix !== projectPrefix) {
+          console.error(
+            `Resource name can only refer to project that it is part of. Prefix '${prefix}' does not match '${projectPrefix}'`,
+          );
+          return '';
+        }
+      }
+      if (validateType && resourceType !== type) {
+        console.error(
+          `Resource name must match the resource type. Type '${type}' does not match '${resourceType}'`,
+        );
+        return '';
+      }
+      if (!this.validateNameResourceName(name)) {
+        console.error(`Resource name must follow naming rules`);
+        return '';
+      }
+      return `${project.projectPrefix}/${resourceType}/${name}`;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      return '';
+    }
   }
 
   // Validates project prefix.
@@ -562,10 +588,10 @@ export class Commands {
 
   /**
    * Creates a new card type.
-   * @param {string} cardTypeName Name of the card type.
-   * @param {string} workflowName Name of the workflow that the card type uses.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
+   * @param cardTypeName Name of the card type.
+   * @param workflowName Name of the workflow that the card type uses.
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    *  <br> statusCode 500 when there was a internal problem creating card type
@@ -575,20 +601,26 @@ export class Commands {
     workflowName: string,
     path: string,
   ): Promise<requestStatus> {
-    if (!this.validateName(cardTypeName)) {
+    const validCardTypeName = this.validName('cardTypes', cardTypeName);
+    const validWorkflowName = this.validName('workflows', workflowName);
+    if (validCardTypeName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid card type name '${cardTypeName}'`,
       };
     }
-    if (!this.validateName(workflowName)) {
+    if (validWorkflowName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid workflow name '${workflowName}'`,
       };
     }
     try {
-      await this.createCmd.createCardType(path, cardTypeName, workflowName);
+      await this.createCmd.createCardType(
+        path,
+        validCardTypeName,
+        validWorkflowName,
+      );
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -597,27 +629,28 @@ export class Commands {
 
   /**
    * Creates a new field type.
-   * @param {string} fieldTypeName Name of the field type.
-   * * @param {string} dataType Name of the field type.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
+   * @param fieldTypeName Name of the field type.
+   * @param dataType Name of the field type.
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating field type
+   *  <br> statusCode 400 when there was a internal problem creating field type
    */
   private async createFieldType(
     fieldTypeName: string,
     dataType: string,
     path: string,
   ): Promise<requestStatus> {
-    if (!this.validateName(fieldTypeName)) {
+    const validFieldTypeName = this.validName('fieldTypes', fieldTypeName);
+    if (validFieldTypeName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid field type name '${fieldTypeName}'`,
       };
     }
     try {
-      await this.createCmd.createFieldType(path, fieldTypeName, dataType);
+      await this.createCmd.createFieldType(path, validFieldTypeName, dataType);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -631,6 +664,9 @@ export class Commands {
    * @param linkType Name of the link type
    * @param linkDescription Description of the link
    * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
+   *       statusCode 200 when operation succeeded
+   *  <br> statusCode 400 when there was a internal problem creating linkType
    */
   private async createLink(
     cardKey: string,
@@ -657,19 +693,24 @@ export class Commands {
    * Creates a new link type.
    * @param name Name of the link type.
    * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
+   *       statusCode 200 when operation succeeded
+   *  <br> statusCode 400 when input validation failed
+   *  <br> statusCode 400 when there was a internal problem creating linkType
    */
   private async createLinkType(
     name: string,
     path: string,
   ): Promise<requestStatus> {
-    if (!this.validateName(name)) {
+    const validLinkTypeName = this.validName('linkTypes', name);
+    if (validLinkTypeName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid link type name '${name}'`,
       };
     }
     try {
-      await this.createCmd.createLinkType(path, name);
+      await this.createCmd.createLinkType(path, validLinkTypeName);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -707,7 +748,7 @@ export class Commands {
         message: `Input validation error: prefix must be from 3 to 10 characters long. '${prefix}' does not fulfill the condition.`,
       };
     }
-    if (!this.validateName(projectName)) {
+    if (!this.validateNameResourceName(projectName)) {
       return {
         statusCode: 400,
         message: `Input validation error: invalid project name '${projectName}'`,
@@ -729,21 +770,22 @@ export class Commands {
 
   /**
    * Creates a new template.
-   * @param {string} templateName template name to create
-   * @param {string} templateContent content for template
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
+   * @param templateName template name to create
+   * @param templateContent content for template
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating template
+   *  <br> statusCode 400 when there was a internal problem creating template
    */
   private async createTemplate(
     templateName: string,
     templateContent: string,
     path: string,
   ): Promise<requestStatus> {
+    const validTemplateName = this.validName('templates', templateName);
     if (
-      !this.validateName(templateName) ||
+      validTemplateName === '' ||
       !this.validateFolder(join(path, templateName))
     ) {
       return {
@@ -756,7 +798,7 @@ export class Commands {
       : Create.defaultTemplateContent();
     // Note that templateContent is validated in createTemplate()
     try {
-      await this.createCmd.createTemplate(path, templateName, content);
+      await this.createCmd.createTemplate(path, validTemplateName, content);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -765,20 +807,21 @@ export class Commands {
 
   /**
    * Creates a new workflow to a project.
-   * @param {string} workflowName Workflow name.
-   * @param {string} workflowContent Workflow content as JSON. Must conform to workflowSchema.json
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
+   * @param workflowName Workflow name.
+   * @param workflowContent Workflow content as JSON. Must conform to workflowSchema.json
+   * @param path Optional, path to the project. If omitted, project is set from current path.
+   * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating workflow
+   *  <br> statusCode 400 when there was a internal problem creating workflow
    */
   private async createWorkflow(
     workflowName: string,
     workflowContent: string,
     path: string,
   ): Promise<requestStatus> {
-    if (!this.validateName(workflowName)) {
+    const validWorkflowName = this.validName('workflows', workflowName);
+    if (validWorkflowName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid workflow name '${workflowName}'`,
@@ -786,8 +829,8 @@ export class Commands {
     }
     const content = workflowContent
       ? (JSON.parse(workflowContent) as WorkflowMetadata)
-      : Create.defaultWorkflowContent(workflowName);
-    // Note that workflowContent is validated in the createWorkflow function.
+      : Create.defaultWorkflowContent(validWorkflowName);
+    content.name = validWorkflowName;
     try {
       await this.createCmd.createWorkflow(path, content);
       return { statusCode: 200 };
@@ -817,7 +860,9 @@ export class Commands {
       };
     }
 
-    if (!this.validateName(name)) {
+    const validReportName = this.validName('reports', name);
+
+    if (validReportName === '') {
       return {
         statusCode: 400,
         message: `Input validation error: invalid report name '${name}'`,
