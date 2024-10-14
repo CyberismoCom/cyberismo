@@ -6,7 +6,7 @@ import { describe, it } from 'mocha';
 import {
   createAdmonition,
   createHtmlPlaceholder,
-  handleMacros,
+  evaluateMacros,
   registerMacros,
   validateMacroContent,
   validateMacros,
@@ -14,7 +14,7 @@ import {
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/BaseMacro.js';
-import { MacroGenerationContext } from '../../src/macros/common.js';
+import { MacroGenerationContext } from '../../src/interfaces/macros.js';
 
 class TestMacro extends BaseMacro {
   constructor(schema: string) {
@@ -94,7 +94,7 @@ describe('macros', () => {
   describe('handleMacros', () => {
     describe('createCards', () => {
       it('createCards inject (success)', async () => {
-        const result = await handleMacros(validAdoc, {
+        const result = await evaluateMacros(validAdoc, {
           mode: 'inject',
           projectPath: '',
           cardKey: '',
@@ -102,7 +102,7 @@ describe('macros', () => {
         expect(result).to.contain('<create-cards');
       });
       it('createCards static (success)', async () => {
-        const result = await handleMacros(validAdoc, {
+        const result = await evaluateMacros(validAdoc, {
           mode: 'static',
           projectPath: '',
           cardKey: '',

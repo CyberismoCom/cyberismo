@@ -17,7 +17,7 @@ import { validateJson } from '../utils/validate.js';
 import { DHValidationError } from '../exceptions/index.js';
 import { AdmonitionType } from '../interfaces/adoc.js';
 import { Validator } from 'jsonschema';
-import { MacroGenerationContext, MacroMetadata, MacroName } from './common.js';
+import { MacroGenerationContext, MacroMetadata, MacroName } from '../interfaces/macros.js';
 import BaseMacro from './BaseMacro.js';
 
 export interface MacroConstructor {
@@ -61,7 +61,7 @@ export function registerMacros(
     const MacroClass = macros[macro];
     const macroInstance = new MacroClass();
     instance.registerHelper(macro, (data: string) =>
-      macroInstance.handleMacro(context, data),
+      macroInstance.invokeMacro(context, data),
     );
     macroInstances.push(macroInstance);
   }
@@ -71,7 +71,7 @@ export function registerMacros(
  * Calculate amount of handlebars templates inside a string
  * @param input
  */
-export function getMacroCount(input: string): number {
+export function macroCount(input: string): number {
   const regex = /{{{.+}}}/g;
   const match = input.match(regex);
   return match ? match.length : 0;
@@ -101,7 +101,7 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
  * @param content - The content to handle the macros in
  * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc
  */
-export async function handleMacros(
+export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
   maxTries: number = 10,
@@ -117,16 +117,16 @@ export async function handleMacros(
       result = compiled({});
 
       for (const macro of macroInstances) {
-        result = await macro.handleResult(result);
+        result = await macro.applyMacroResults(result);
       }
-      if (getMacroCount(result) === 0) {
+      if (macroCount(result) === 0) {
         break;
       }
     } catch (err) {
       return handleMacroError(err, emptyMacro);
     }
   }
-  if (getMacroCount(result) !== 0) {
+  if (macroCount(result) !== 0) {
     return handleMacroError(
       new Error(`Too many recursive macro evaluations.`),
       emptyMacro,

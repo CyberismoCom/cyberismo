@@ -25,7 +25,7 @@ import {
   FetchCardDetails,
   MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { handleMacros } from '@cyberismocom/data-handler/macros';
+import { evaluateMacros } from '@cyberismocom/data-handler/macros';
 
 export const dynamic = 'force-dynamic';
 
@@ -248,7 +248,7 @@ async function getCardDetails(
     );
     let asciidocContent = '';
     try {
-      asciidocContent = await handleMacros(cardDetailsResponse.content || '', {
+      asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
         mode: 'inject',
         projectPath,
         cardKey: key,
@@ -257,7 +257,7 @@ async function getCardDetails(
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
     }
 
-    let htmlContent = Processor()
+    const htmlContent = Processor()
       .convert(asciidocContent, {
         safe: 'safe',
         attributes: {

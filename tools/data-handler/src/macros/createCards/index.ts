@@ -12,7 +12,7 @@
 
 import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
-import { MacroGenerationContext } from '../common.js';
+import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../BaseMacro.js';
 

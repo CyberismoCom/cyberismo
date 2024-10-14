@@ -33,7 +33,6 @@ test('/api/cards/decision_5 returns a card object', async () => {
   const response = await GET_CARD(request);
   expect(response).not.toBe(null);
 
-  console.log(response);
   const result: CardDetails = await response.json();
   expect(response.status).toBe(200);
   expect(result.metadata!.title).toBe('Decision Records');

@@ -105,9 +105,9 @@ export class Commands {
     'linkType',
     'module',
     'project',
+    'report',
     'template',
     'workflow',
-    'report',
   ];
 
   public static removableTypes = [
@@ -809,6 +809,14 @@ export class Commands {
     name: string,
     path: string,
   ): Promise<requestStatus> {
+    path = await this.setProjectPath(path)
+    if (!this.validateFolder(path)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: folder name is invalid '${path}'`,
+      };
+    }
+
     if (!this.validateName(name)) {
       return {
         statusCode: 400,
@@ -819,7 +827,7 @@ export class Commands {
       await this.createCmd.createReport(path, name);
       return { statusCode: 200 };
     } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
+      return { statusCode: 500, message: errorFunction(e) };
     }
   }
 

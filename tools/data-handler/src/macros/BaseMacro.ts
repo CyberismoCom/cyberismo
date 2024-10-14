@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroGenerationContext, MacroMetadata } from './common.js';
+import { MacroGenerationContext, MacroMetadata, MacroTaskState } from '../interfaces/macros.js';
 import { handleMacroError } from './index.js';
 
 abstract class BaseMacro {
@@ -21,12 +21,7 @@ abstract class BaseMacro {
   private static globalCounter = 0;
 
   private globalId: string;
-  private promiseList: {
-    localId: number;
-    promise: Promise<void>;
-    placeholder: string;
-    promiseResult: string | null;
-  }[] = [];
+  private tasks: MacroTaskState[] = [];
 
   constructor(protected macroMetadata: MacroMetadata) {
     // Set a unique global id for each instance of the macro, based on the macro name
@@ -50,31 +45,35 @@ abstract class BaseMacro {
   /**
    * Function responsible for starting the promise and storing it along with its localId.
    */
-  public handleMacro = (context: MacroGenerationContext, input: string) => {
+  public invokeMacro = (context: MacroGenerationContext, input: string) => {
     // Create a unique localId for each invocation
-    const localId = this.promiseList.length;
+    const localId = this.tasks.length;
     const placeholder = `${this.globalId}-${localId}`;
 
-    const func =
+    const functionToCall =
       context.mode === 'inject' ? this.handleInject : this.handleStatic;
 
     // Create the promise for this particular invocation and store it
-    const promise = func(context, input)
+    const promise = functionToCall(context, input)
       .then((res) => {
-        const item = this.promiseList.find((p) => p.localId === localId);
+        const item = this.tasks.find((p) => p.localId === localId);
         if (item) {
           item.promiseResult = res;
+        } else {
+          console.error(`After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`)
         }
       })
       .catch((err) => {
-        const item = this.promiseList.find((p) => p.localId === localId);
+        const item = this.tasks.find((p) => p.localId === localId);
         if (item) {
           item.promiseResult = handleMacroError(err, this.metadata);
+        } else {
+          console.error(`After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`)
         }
       });
 
     // Add this invocation to the promise list
-    this.promiseList.push({
+    this.tasks.push({
       localId,
       promise,
       placeholder,
@@ -89,13 +88,13 @@ abstract class BaseMacro {
    * This method is responsible for resolving all the promises and replacing
    * each corresponding placeholder with the actual resolved value.
    */
-  public handleResult = async (input: string) => {
+  public applyMacroResults = async (input: string) => {
     // Wait for all promises to resolve
-    await Promise.all(this.promiseList.map((p) => p.promise));
+    await Promise.all(this.tasks.map((p) => p.promise));
 
     // Replace placeholders with their corresponding results
     let result = input;
-    for (const item of this.promiseList) {
+    for (const item of this.tasks) {
       if (item.promiseResult === null) {
         result = handleMacroError(
           new Error(
@@ -109,7 +108,7 @@ abstract class BaseMacro {
     }
 
     // Reset the promise list for future invocations
-    this.promiseList = [];
+    this.tasks = [];
 
     return result;
   };

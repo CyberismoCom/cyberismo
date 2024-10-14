@@ -469,7 +469,7 @@ export class Calculate {
     );
 
     if (!data.file && !data.query) {
-      throw new Error('Must provide either query or file to run func');
+      throw new Error('Must provide either query or file to run a clingo program');
     }
 
     const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
