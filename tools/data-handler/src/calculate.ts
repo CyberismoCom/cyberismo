@@ -34,10 +34,12 @@ import {
   QueryName,
   QueryResult,
 } from './types/queries.js';
+import { Mutex } from 'async-mutex';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   static project: Project;
+  private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
   private static importFileName: string = 'imports.lp';
@@ -319,26 +321,28 @@ export class Calculate {
   public async generate(projectPath: string, cardKey?: string) {
     Calculate.project = new Project(projectPath);
 
-    // Cleanup old calculations before starting new ones.
-    await deleteDir(Calculate.project.calculationFolder);
+    await Calculate.mutex.runExclusive(async () => {
+      // Cleanup old calculations before starting new ones.
+      await deleteDir(Calculate.project.calculationFolder);
 
-    let card: Card | undefined;
-    if (cardKey) {
-      card = await Calculate.project.findSpecificCard(cardKey);
-      if (!card) {
-        throw new Error(`Card '${cardKey}' not found`);
+      let card: Card | undefined;
+      if (cardKey) {
+        card = await Calculate.project.findSpecificCard(cardKey);
+        if (!card) {
+          throw new Error(`Card '${cardKey}' not found`);
+        }
       }
-    }
 
-    const promiseContainer = [
-      this.generateCommonFiles(),
-      this.generateCardTreeContent(card),
-      this.generateModules(card),
-      this.generateWorkFlows(),
-      this.generateCardTypes(),
-    ];
+      const promiseContainer = [
+        this.generateCommonFiles(),
+        this.generateCardTreeContent(card),
+        this.generateModules(card),
+        this.generateWorkFlows(),
+        this.generateCardTypes(),
+      ];
 
-    await Promise.all(promiseContainer).then(this.generateImports.bind(this));
+      await Promise.all(promiseContainer).then(this.generateImports.bind(this));
+    });
   }
 
   /**
@@ -449,6 +453,7 @@ export class Calculate {
    *
    * @param projectPath Path to a project
    * @param filePath Path to a query file to be run in relation to current working directory
+   * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
   public async run(
@@ -457,6 +462,7 @@ export class Calculate {
       query?: string;
       file?: string;
     },
+    timeout: number = 5000,
   ): Promise<ParseResult<BaseResult>> {
     Calculate.project = new Project(projectPath);
     const main = join(
@@ -469,64 +475,70 @@ export class Calculate {
     );
 
     if (!data.file && !data.query) {
-      throw new Error('Must provide either query or file to run a clingo program');
+      throw new Error(
+        'Must provide either query or file to run a clingo program',
+      );
     }
 
     const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
     if (data.file) {
       args.push(data.file);
     }
-    const clingo = spawnSync(this.logicBinaryName, args, {
-      encoding: 'utf8',
-      input: data.query,
-    });
-    // print the command
-    console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
 
-    if (clingo.stdout) {
-      console.log(`Clingo output: \n${clingo.stdout}`);
-      return this.parseClingoResult(clingo.stdout);
-    }
+    return Calculate.mutex.runExclusive(async () => {
+      const clingo = spawnSync(this.logicBinaryName, args, {
+        encoding: 'utf8',
+        input: data.query,
+        timeout,
+      });
+      // print the command
+      console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
 
-    if (clingo.stderr && clingo.status) {
-      const code = clingo.status;
-      // clingo's exit codes are bitfields. todo: move these somewhere
-      const clingo_process_exit = {
-        E_UNKNOWN: 0,
-        E_INTERRUPT: 1,
-        E_SAT: 10,
-        E_EXHAUST: 20,
-        E_MEMORY: 33,
-        E_ERROR: 65,
-        E_NO_RUN: 128,
-      };
-      // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
-      if (
-        !(
-          code & clingo_process_exit.E_SAT &&
-          code & clingo_process_exit.E_EXHAUST
-        )
-      ) {
-        if (code & clingo_process_exit.E_ERROR) {
-          console.error('Error');
-        }
-        if (code & clingo_process_exit.E_INTERRUPT) {
-          console.error('Interrupted');
-        }
-        if (code & clingo_process_exit.E_MEMORY) {
-          console.error('Out of memory');
-        }
-        if (code & clingo_process_exit.E_NO_RUN) {
-          console.error('Not run');
-        }
-        if (code & clingo_process_exit.E_UNKNOWN) {
-          console.error('Unknown error');
-        }
+      if (clingo.stdout) {
+        console.log(`Clingo output: \n${clingo.stdout}`);
+        return this.parseClingoResult(clingo.stdout);
       }
-      throw new Error(clingo.stderr);
-    }
-    throw new Error(
-      'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
-    );
+
+      if (clingo.stderr && clingo.status) {
+        const code = clingo.status;
+        // clingo's exit codes are bitfields. todo: move these somewhere
+        const clingo_process_exit = {
+          E_UNKNOWN: 0,
+          E_INTERRUPT: 1,
+          E_SAT: 10,
+          E_EXHAUST: 20,
+          E_MEMORY: 33,
+          E_ERROR: 65,
+          E_NO_RUN: 128,
+        };
+        // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
+        if (
+          !(
+            code & clingo_process_exit.E_SAT &&
+            code & clingo_process_exit.E_EXHAUST
+          )
+        ) {
+          if (code & clingo_process_exit.E_ERROR) {
+            console.error('Error');
+          }
+          if (code & clingo_process_exit.E_INTERRUPT) {
+            console.error('Interrupted');
+          }
+          if (code & clingo_process_exit.E_MEMORY) {
+            console.error('Out of memory');
+          }
+          if (code & clingo_process_exit.E_NO_RUN) {
+            console.error('Not run');
+          }
+          if (code & clingo_process_exit.E_UNKNOWN) {
+            console.error('Unknown error');
+          }
+        }
+        throw new Error(clingo.stderr);
+      }
+      throw new Error(
+        'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
+      );
+    });
   }
 }
