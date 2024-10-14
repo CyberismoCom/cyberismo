@@ -11,7 +11,7 @@
 */
 'use server';
 
-import { handleMacros } from '@cyberismocom/data-handler/macros';
+import { evaluateMacros } from '@cyberismocom/data-handler/macros';
 import Processor from '@asciidoctor/core';
 
 export async function parseContent(key: string, content: string) {
@@ -19,7 +19,7 @@ export async function parseContent(key: string, content: string) {
 
   let asciidocContent = '';
   try {
-    asciidocContent = await handleMacros(content, {
+    asciidocContent = await evaluateMacros(content, {
       mode: 'inject',
       projectPath,
       cardKey: key,

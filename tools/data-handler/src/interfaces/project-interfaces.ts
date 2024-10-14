@@ -92,8 +92,6 @@ export type DataType =
   | 'dateTime'
   | 'person';
 
-// Content in project files is either .schema, or project setting file.
-// Interfaces are mainly symmetrical, optional members for values that are not needed.
 export interface DotSchemaItem {
   id: string;
   version: number;
@@ -162,9 +160,9 @@ export interface ModuleSettings extends ProjectSettings {
   cardTypes: string[];
   fieldTypes: string[];
   linkTypes: string[];
+  reports: string[];
   templates: string[];
   workflows: string[];
-  reports: string[];
 }
 
 // Files in project in addition to cards (.schema files and cardsConfig.json).

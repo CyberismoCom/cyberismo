@@ -12,7 +12,7 @@
 
 import { registerEmptyMacros, validateMacroContent } from '../index.js';
 
-import { MacroGenerationContext } from '../common.js';
+import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
 import { Calculate } from '../../calculate.js';
@@ -61,18 +61,18 @@ class ReportMacro extends BaseMacro {
       strict: true,
     });
 
-    const calc = new Calculate();
+    const calculate = new Calculate();
 
-    const res = await calc.run(context.projectPath, {
+    const result = await calculate.run(context.projectPath, {
       query: template(handlebarsContext),
     });
-    if (res.error) {
-      throw new Error(res.error);
+    if (result.error) {
+      throw new Error(result.error);
     }
     registerEmptyMacros(handlebars);
     return handlebars.compile(report.contentTemplate)({
       ...handlebarsContext,
-      ...res,
+      ...result,
     });
   };
 }
