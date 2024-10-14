@@ -10,7 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroGenerationContext, MacroMetadata, MacroTaskState } from '../interfaces/macros.js';
+import {
+  MacroGenerationContext,
+  MacroMetadata,
+  MacroTaskState,
+} from '../interfaces/macros.js';
 import { handleMacroError } from './index.js';
 
 abstract class BaseMacro {
@@ -60,7 +64,9 @@ abstract class BaseMacro {
         if (item) {
           item.promiseResult = res;
         } else {
-          console.error(`After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`)
+          console.error(
+            `After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`,
+          );
         }
       })
       .catch((err) => {
@@ -68,7 +74,9 @@ abstract class BaseMacro {
         if (item) {
           item.promiseResult = handleMacroError(err, this.metadata);
         } else {
-          console.error(`After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`)
+          console.error(
+            `After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`,
+          );
         }
       });
 

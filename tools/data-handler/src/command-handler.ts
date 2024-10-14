@@ -809,7 +809,7 @@ export class Commands {
     name: string,
     path: string,
   ): Promise<requestStatus> {
-    path = await this.setProjectPath(path)
+    path = await this.setProjectPath(path);
     if (!this.validateFolder(path)) {
       return {
         statusCode: 400,

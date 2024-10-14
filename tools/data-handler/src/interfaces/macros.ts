@@ -1,4 +1,4 @@
-import { macroMetadata } from "../macros/common.js";
+import { macroMetadata } from '../macros/common.js';
 
 type Mode = 'static' | 'inject';
 
@@ -25,10 +25,10 @@ export interface MacroMetadata {
 }
 
 export interface MacroTaskState {
-    localId: number;
-    promise: Promise<void>;
-    placeholder: string;
-    promiseResult: string | null;
-  }
+  localId: number;
+  promise: Promise<void>;
+  placeholder: string;
+  promiseResult: string | null;
+}
 
 export type MacroName = keyof typeof macroMetadata;

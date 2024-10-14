@@ -42,12 +42,8 @@ import { GenericConfirmModal } from './modals';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
-import {
-  MacroMetadata,
-} from '@cyberismocom/data-handler/interfaces/macros';
-import {
-  macroMetadata,
-} from '@cyberismocom/data-handler/macros/common'
+import { MacroMetadata } from '@cyberismocom/data-handler/interfaces/macros';
+import { macroMetadata } from '@cyberismocom/data-handler/macros/common';
 import { UIMacroName, macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 

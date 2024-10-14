@@ -248,11 +248,14 @@ async function getCardDetails(
     );
     let asciidocContent = '';
     try {
-      asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
-        mode: 'inject',
-        projectPath,
-        cardKey: key,
-      });
+      asciidocContent = await evaluateMacros(
+        cardDetailsResponse.content || '',
+        {
+          mode: 'inject',
+          projectPath,
+          cardKey: key,
+        },
+      );
     } catch (error) {
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
     }

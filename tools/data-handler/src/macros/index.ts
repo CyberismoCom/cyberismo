@@ -17,7 +17,11 @@ import { validateJson } from '../utils/validate.js';
 import { DHValidationError } from '../exceptions/index.js';
 import { AdmonitionType } from '../interfaces/adoc.js';
 import { Validator } from 'jsonschema';
-import { MacroGenerationContext, MacroMetadata, MacroName } from '../interfaces/macros.js';
+import {
+  MacroGenerationContext,
+  MacroMetadata,
+  MacroName,
+} from '../interfaces/macros.js';
 import BaseMacro from './BaseMacro.js';
 
 export interface MacroConstructor {

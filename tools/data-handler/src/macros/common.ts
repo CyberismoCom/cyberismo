@@ -14,10 +14,7 @@
 import createCards from './createCards/metadata.js';
 import report from './report/metadata.js';
 
-
-
 export const macroMetadata = {
   createCards,
   report,
 };
-
