@@ -182,18 +182,15 @@ export class CardContainer {
         (item) => item.isDirectory(),
       );
       for (const entry of entries) {
+        // Investigate the content of card folders' attachment folders, but do not continue to children cards.
+        // For each attachment folder, collect all files.
         if (CardNameRegEx.test(entry.name)) {
           currentPaths.push(join(entry.path, entry.name));
         } else if (entry.name === 'c') {
-          // If the entry would continue to children, stop.
           continue;
-        } else {
-          // Set paths.
+        } else if (entry.name === 'a') {
           const attachmentFolder = join(entry.path, entry.name);
-          const childrenFolder = join(entry.path, 'c');
           const cardItem = basename(entry.path) || '';
-
-          // Collect all attachments.
           const entryAttachments = await readdir(attachmentFolder, {
             withFileTypes: true,
           });
@@ -205,9 +202,6 @@ export class CardContainer {
               mimeType: mime.lookup(attachment.name) || null,
             }),
           );
-          if (pathExists(childrenFolder)) {
-            currentPaths.push(childrenFolder);
-          }
         }
       }
     }
