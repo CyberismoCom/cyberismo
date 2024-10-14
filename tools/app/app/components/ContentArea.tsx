@@ -15,7 +15,6 @@
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { CardDetails, ParsedLink, Project } from '../lib/definitions';
 
-import Processor from '@asciidoctor/core';
 import { parse } from 'node-html-parser';
 import {
   Box,
@@ -43,18 +42,16 @@ import { GenericConfirmModal } from './modals';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
-import {
-  handleMacros,
-  Macro,
-  MacroName,
-  macros,
-} from '@cyberismocom/data-handler/utils/macros';
-import { macros as UImacros } from './macros';
+import { MacroMetadata } from '@cyberismocom/data-handler/interfaces/macros';
+import { macroMetadata } from '@cyberismocom/data-handler/macros/common';
+import { UIMacroName, macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 
 type ContentAreaProps = {
   project: Project | null;
-  card: CardDetails;
+  card: CardDetails & {
+    parsed: string;
+  };
   linkTypes: LinkType[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
@@ -300,29 +297,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }))
     .concat(project ? getLinksForCard(project.cards, card.key) : []);
 
-  let asciidocContent = card.content ?? '';
-  try {
-    asciidocContent = handleMacros(asciidocContent, 'inject');
-  } catch (error) {
-    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
-  }
+  const htmlContent = card.parsed || '';
 
-  let htmlContent = Processor()
-    .convert(asciidocContent, {
-      safe: 'safe',
-      attributes: {
-        imagesdir: `/api/cards/${card.key}/a`,
-        icons: 'font',
-      },
-    })
-    .toString();
-
-  const combinedMacros = Object.entries(macros).reduce<
-    (Macro & { component: (props: any) => ReactElement })[]
+  const combinedMacros = Object.entries(macroMetadata).reduce<
+    (MacroMetadata & { component: (props: any) => ReactElement })[]
   >((acc, [key, value]) => {
     acc.push({
       ...value,
-      component: UImacros[key as MacroName] ?? (() => <>err</>),
+      component: UImacros[key as UIMacroName] ?? (() => <>err</>),
     });
     return acc;
   }, []);
@@ -331,7 +313,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     replace: (node) => {
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
-
         if (macro) {
           return macro.component({
             ...node.attribs,

@@ -105,6 +105,7 @@ export class Commands {
     'linkType',
     'module',
     'project',
+    'report',
     'template',
     'workflow',
   ];
@@ -308,6 +309,10 @@ export class Commands {
           const [name, content] = args;
           return this.createWorkflow(name, content, this.projectPath);
         }
+        if (target === 'report') {
+          const [name] = args;
+          return this.createReport(name, this.projectPath);
+        }
       }
       if (command === Cmd.edit) {
         const [cardKey] = args;
@@ -465,10 +470,9 @@ export class Commands {
     try {
       return {
         statusCode: 200,
-        payload: await this.calcCmd.run(
-          projectPath,
-          join(process.cwd(), filePath),
-        ),
+        payload: await this.calcCmd.run(projectPath, {
+          file: join(process.cwd(), filePath),
+        }),
       };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
@@ -793,6 +797,41 @@ export class Commands {
   }
 
   /**
+   * Creates a new report to a project.
+   * @param name Report name.
+   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
+   * @returns {requestStatus}
+   *       statusCode 200 when operation succeeded
+   *  <br> statusCode 400 when input validation failed
+   *  <br> statusCode 500 when there was a internal problem creating report
+   */
+  private async createReport(
+    name: string,
+    path: string,
+  ): Promise<requestStatus> {
+    path = await this.setProjectPath(path);
+    if (!this.validateFolder(path)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: folder name is invalid '${path}'`,
+      };
+    }
+
+    if (!this.validateName(name)) {
+      return {
+        statusCode: 400,
+        message: `Input validation error: invalid report name '${name}'`,
+      };
+    }
+    try {
+      await this.createCmd.createReport(path, name);
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
+  }
+
+  /**
    * Open a card (.json and .adoc) for editing
    *
    * @param cardKey Card key of a card
@@ -1100,9 +1139,14 @@ export class Commands {
         parameters.push(path);
         functionToCall = this.showCmd.showWorkflows.bind(this);
         break;
+      case 'reports':
+        parameters.push(path);
+        functionToCall = this.showCmd.showReports.bind(this);
+        break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
       case 'links': // fallthrough - not implemented yet
+      case 'report': // fallthrough - not implemented yet
       case 'projects': // fallthrough - not possible */
       default:
         return {

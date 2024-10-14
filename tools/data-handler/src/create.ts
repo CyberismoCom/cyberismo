@@ -39,6 +39,8 @@ import { Template } from './containers/template.js';
 import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 import { resourceNameParts } from './utils/resource-utils.js';
+import { fileURLToPath } from 'node:url';
+import { copyDir } from './utils/file-utils.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -49,6 +51,10 @@ import { resourceNameParts } from './utils/resource-utils.js';
  */
 export class Create extends EventEmitter {
   private calculateCmd: Calculate;
+  private defaultReportLocation: string = join(
+    fileURLToPath(import.meta.url),
+    '../../../../content/defaultReport',
+  );
 
   constructor(calculateCmd: Calculate) {
     super();
@@ -63,7 +69,7 @@ export class Create extends EventEmitter {
   schemaFilesContent: ProjectFile[] = [
     {
       path: '.cards/local',
-      content: { id: 'cardsConfigSchema', version: 1 },
+      content: [{ id: 'cardsConfigSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
@@ -76,22 +82,22 @@ export class Create extends EventEmitter {
     },
     {
       path: '.cards/local/cardTypes',
-      content: { id: 'cardTypeSchema', version: 1 },
+      content: [{ id: 'cardTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/fieldTypes',
-      content: { id: 'fieldTypeSchema', version: 1 },
+      content: [{ id: 'fieldTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/linkTypes',
-      content: { id: 'linkTypeSchema', version: 1 },
+      content: [{ id: 'linkTypeSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
     {
       path: '.cards/local/workflows',
-      content: { id: 'workflowSchema', version: 1 },
+      content: [{ id: 'workflowSchema', version: 1 }],
       name: Project.schemaContentFile,
     },
   ];
@@ -566,6 +572,7 @@ export class Create extends EventEmitter {
         'linkTypes',
         'templates',
         'workflows',
+        'reports',
       ],
       [],
     ];
@@ -593,12 +600,15 @@ export class Create extends EventEmitter {
       });
 
     this.schemaFilesContent.forEach(async (entry) => {
-      if (entry.content.cardKeyPrefix?.includes('$PROJECT-PREFIX')) {
-        entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+      if ('cardKeyPrefix' in entry.content) {
+        if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
+          entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+        }
+        if (entry.content.name.includes('$PROJECT-NAME')) {
+          entry.content.name = projectName;
+        }
       }
-      if (entry.content.name?.includes('$PROJECT-NAME')) {
-        entry.content.name = projectName;
-      }
+
       await writeJsonFile(
         join(parentFolderToCreate, entry.path, entry.name),
         entry.content,
@@ -615,6 +625,10 @@ export class Create extends EventEmitter {
       );
       await writeFile(
         join(project.fieldTypesFolder, '.gitkeep'),
+        this.gitKeepContent,
+      );
+      await writeFile(
+        join(project.reportsFolder, '.gitkeep'),
         this.gitKeepContent,
       );
     } catch (error) {
@@ -689,6 +703,27 @@ export class Create extends EventEmitter {
     const content = JSON.parse(JSON.stringify(workflow)) as WorkflowMetadata;
     const destinationFile = join(projectPath, fullFileName);
     await writeJsonFile(destinationFile, content, { flag: 'wx' });
+  }
+
+  /**
+   * Creates a report
+   * @param projectPath path to the project
+   * @param name name of the report
+   */
+  public async createReport(projectPath: string, name: string) {
+    const project = new Project(projectPath);
+
+    const report = await project.report(
+      `${project.projectPrefix}/reports/${name}`,
+    );
+    if (report) {
+      throw new Error(`Report '${name}' already exists in the project`);
+    }
+
+    await copyDir(
+      this.defaultReportLocation,
+      join(project.reportsFolder, name),
+    );
   }
 
   /**

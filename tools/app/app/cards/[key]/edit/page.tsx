@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -71,6 +71,7 @@ import AsciiDoctor from '@asciidoctor/core';
 import { Icon } from '@mui/material';
 import { useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
+import { parseContent } from '@/app/lib/api/actions/card';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -256,19 +257,41 @@ export default function Page({ params }: { params: { key: string } }) {
   const { __content__, __title__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
-  const previewCard = (
-    card
-      ? {
-          ...card,
-          metadata: {
-            ...card.metadata,
-            title: __title__ ?? card.metadata?.title,
-            ...metadata,
-          },
-          content: __content__ ?? card.content,
-        }
-      : null
-  ) as CardDetails | null;
+
+  const [parsed, setParsed] = useState<string>('');
+
+  useEffect(() => {
+    if (!__content__) {
+      return;
+    }
+    setParsed('');
+    let mounted = true;
+    async function parse() {
+      const res = await parseContent(params.key, __content__);
+      if (mounted) {
+        setParsed(res);
+      }
+    }
+    parse();
+    return () => {
+      mounted = false;
+    };
+  }, [tab]);
+
+  const previewCard = card
+    ? ({
+        ...card,
+        metadata: {
+          ...card.metadata,
+          title: __title__ ?? card.metadata?.title,
+          ...metadata,
+        },
+        content: __content__ ?? card.content,
+        parsed,
+      } as CardDetails & {
+        parsed: string;
+      })
+    : null;
 
   useEffect(() => {
     if (!card || Object.keys(preview).length === 0) {

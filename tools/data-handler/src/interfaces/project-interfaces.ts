@@ -10,6 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Schema } from 'jsonschema';
+
 // @todo: consider splitting this to several smaller files.
 
 // Single card; either in project or in template.
@@ -90,14 +92,12 @@ export type DataType =
   | 'dateTime'
   | 'person';
 
-// Content in project files is either .schema, or project setting file.
-// Interfaces are mainly symmetrical, optional members for values that are not needed.
-export interface DotSchemaContent {
+export interface DotSchemaItem {
   id: string;
   version: number;
-  cardKeyPrefix?: never;
-  name?: never;
+  file?: string;
 }
+export type DotSchemaContent = DotSchemaItem[];
 
 // Custom field enum value
 export interface EnumDefinition {
@@ -160,6 +160,7 @@ export interface ModuleSettings extends ProjectSettings {
   cardTypes: string[];
   fieldTypes: string[];
   linkTypes: string[];
+  reports: string[];
   templates: string[];
   workflows: string[];
 }
@@ -173,8 +174,6 @@ export interface ProjectFile {
 
 // Project's settings (=cardsConfig.json).
 export interface ProjectSettings {
-  id?: never;
-  version?: never;
   cardKeyPrefix: string;
   name: string;
 }
@@ -234,6 +233,19 @@ export interface WorkflowTransition {
   fromState: string[];
   toState: string;
   requiredCardFields?: string[];
+}
+
+export interface ReportMetadata {
+  displayName: string;
+  description: string;
+  category: string;
+}
+
+export interface Report {
+  metadata: ReportMetadata;
+  contentTemplate: string;
+  queryTemplate: string;
+  schema?: Schema;
 }
 
 // Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')

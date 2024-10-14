@@ -523,4 +523,14 @@ export class Show {
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
   }
+
+  /**
+   * Shows all reports in a project
+   * @param projectPath  path to a project
+   * @returns reports by their name
+   */
+  public async showReports(projectPath: string): Promise<string[]> {
+    Show.project = new Project(projectPath);
+    return (await Show.project.reports()).map((item) => item.name).sort();
+  }
 }

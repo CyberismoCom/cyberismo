@@ -13,7 +13,7 @@
 // node
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { Dirent, readdirSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 
 // ismo
 import {
@@ -30,6 +30,8 @@ import {
   ModuleSettings,
   ProjectMetadata,
   ProjectSettings,
+  Report,
+  ReportMetadata,
   Resource,
   WorkflowMetadata,
 } from '../interfaces/project-interfaces.js';
@@ -56,6 +58,7 @@ export class Project extends CardContainer {
   private localLinkTypes: Resource[] = [];
   private localTemplates: Resource[] = [];
   private localWorkflows: Resource[] = [];
+  private localReports: Resource[] = [];
 
   constructor(path: string) {
     super(path, '');
@@ -71,6 +74,7 @@ export class Project extends CardContainer {
     this.localLinkTypes = this.resourcesSync('linkType', 'file');
     this.localTemplates = this.resourcesSync('template', 'folder');
     this.localWorkflows = this.resourcesSync('workflow', 'file');
+    this.localReports = this.resourcesSync('report', 'folder');
   }
 
   // Add resources to an array.
@@ -199,6 +203,8 @@ export class Project extends CardContainer {
       resourceFolder = this.templatesFolder;
     } else if (type === 'workflow') {
       resourceFolder = this.workflowsFolder;
+    } else if (type === 'report') {
+      resourceFolder = this.reportsFolder;
     } else {
       return [];
     }
@@ -796,6 +802,11 @@ export class Project extends CardContainer {
             (item) => item.name,
           ),
         ],
+        reports: [
+          ...(await this.collectResourcesFromModules('reports')).map(
+            (item) => item.name,
+          ),
+        ],
       };
     }
     return undefined;
@@ -1174,5 +1185,60 @@ export class Project extends CardContainer {
    */
   public get workflowsFolder(): string {
     return join(this.basePath, '.cards', 'local', 'workflows');
+  }
+
+  /**
+   * Returns path to 'reports' subfolder
+   * @returns path to 'workflows' subfolder.
+   */
+  public get reportsFolder(): string {
+    return join(this.basePath, '.cards', 'local', 'reports');
+  }
+
+  /**
+   * Array of reports in the project.
+   * @param {boolean} localOnly Return local reports, or all reports (includes module reports)
+   * @returns array of all reports in the project.
+   */
+  public async reports(localOnly: boolean = false): Promise<Resource[]> {
+    const moduleReports = await this.collectResourcesFromModules('reports');
+    return localOnly
+      ? this.localReports
+      : [...this.localReports, ...moduleReports];
+  }
+  /**
+   * Returns details of certain report.
+   * @param {string} reportName Name of the report (either filename (including .json extension), or report name).
+   * @returns report configuration, or undefined if report cannot be found.
+   */
+  public async report(reportName: string): Promise<Report | undefined> {
+    if (!reportName) {
+      return undefined;
+    }
+
+    const found = (await this.reports()).find(
+      (item) => item.name === reportName && item.path,
+    );
+
+    if (!found || !found.path) {
+      return undefined;
+    }
+    const folder = join(found.path, basename(found.name));
+    const metadata = (await readJsonFile(
+      join(folder, 'report.json'),
+    )) as ReportMetadata;
+
+    const schemaPath = join(folder, 'parameterSchema.json');
+
+    return {
+      metadata,
+      contentTemplate: (
+        await readFile(join(folder, 'index.adoc.hbs'))
+      ).toString(),
+      queryTemplate: (await readFile(join(folder, 'query.lp.hbs'))).toString(),
+      schema: pathExists(schemaPath)
+        ? JSON.parse((await readFile(schemaPath)).toString()) // Here we assume the file is actually a schema. Should be validated elsewhere
+        : undefined,
+    };
   }
 }
