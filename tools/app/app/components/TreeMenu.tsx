@@ -17,7 +17,7 @@ import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
-import { FiberManualRecord } from '@mui/icons-material';
+import { AirplanemodeActive, FiberManualRecord } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import Link from 'next/link';
 
@@ -52,10 +52,10 @@ const RenderTree = (
         alignContent="center"
         display="flex"
         paddingRight="4px"
-        paddingTop="2px"
-        paddingBottom="2px"
-        borderRadius="6px 0px 0px 6px"
-        bgcolor={node.isSelected ? 'primary.plainActiveBg' : 'transparent'}
+        height="100%"
+        marginRight={1}
+        borderRadius="6px 6px 6px 6px"
+        bgcolor={node.isSelected ? 'white' : 'transparent'}
       >
         <ExpandMoreIcon
           visibility={
@@ -72,21 +72,37 @@ const RenderTree = (
             cursor: 'pointer',
           }}
         />
-
-        {node.data.workflowStateCategory && (
-          // Status color circle
-          <Box
-            color={getStateColor(node.data.workflowStateCategory)}
-            display="flex"
-            alignItems="center"
-            alignSelf="center"
-            width={10}
-            height={10}
-            marginRight={1}
-          >
-            <FiberManualRecord fontSize="inherit" />
-          </Box>
+        {node.data.title === 'Vulnerability tracking' && (
+          <AirplanemodeActive
+            sx={{
+              alignSelf: 'center',
+              fontSize: 18,
+            }}
+          />
         )}
+        {node.data.workflowStateCategory &&
+          node.data.title !== 'Vulnerability tracking' && (
+            // Status color circle
+            <Box
+              color={
+                !progress
+                  ? getStateColor(node.data.workflowStateCategory)
+                  : 'rgb(240, 240, 240)'
+              }
+              display="flex"
+              alignItems="center"
+              alignSelf="center"
+              width={10}
+              height={10}
+              marginRight={1}
+            >
+              <FiberManualRecord
+                sx={{
+                  fontSize: 15,
+                }}
+              />
+            </Box>
+          )}
         <Typography
           level="title-sm"
           noWrap
@@ -97,6 +113,7 @@ const RenderTree = (
         >
           {node.data.title ?? node.data.key}
         </Typography>
+        <Box margin="auto"></Box>
         {progress && (
           // Optional progress chip
           <Chip
@@ -155,7 +172,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           indent={16}
           width={(width || 0) - 1}
           height={height}
-          rowHeight={26}
+          rowHeight={28}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
               onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
