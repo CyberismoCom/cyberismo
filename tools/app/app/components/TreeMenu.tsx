@@ -52,10 +52,10 @@ const RenderTree = (
         alignContent="center"
         display="flex"
         paddingRight="4px"
-        paddingTop="2px"
-        paddingBottom="2px"
-        borderRadius="6px 0px 0px 6px"
-        bgcolor={node.isSelected ? 'primary.plainActiveBg' : 'transparent'}
+        height="100%"
+        marginRight={1}
+        borderRadius="6px 6px 6px 6px"
+        bgcolor={node.isSelected ? 'white' : 'transparent'}
       >
         <ExpandMoreIcon
           visibility={
@@ -72,11 +72,11 @@ const RenderTree = (
             cursor: 'pointer',
           }}
         />
-
         {node.data.workflowStateCategory && (
           // Status color circle
           <Box
             color={getStateColor(node.data.workflowStateCategory)}
+            visibility={progress ? 'hidden' : 'visible'}
             display="flex"
             alignItems="center"
             alignSelf="center"
@@ -84,7 +84,11 @@ const RenderTree = (
             height={10}
             marginRight={1}
           >
-            <FiberManualRecord fontSize="inherit" />
+            <FiberManualRecord
+              sx={{
+                fontSize: 15,
+              }}
+            />
           </Box>
         )}
         <Typography
@@ -97,6 +101,7 @@ const RenderTree = (
         >
           {node.data.title ?? node.data.key}
         </Typography>
+        <Box margin="auto"></Box>
         {progress && (
           // Optional progress chip
           <Chip
@@ -155,7 +160,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           indent={16}
           width={(width || 0) - 1}
           height={height}
-          rowHeight={26}
+          rowHeight={28}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
               onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
