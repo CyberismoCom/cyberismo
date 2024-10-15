@@ -202,13 +202,13 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         ".schema": {},
+                                        ".gitkeep": {},
                                         "template.json": {
                                           "type": "object",
                                           "$comment": "Each file needs to be separately validated against 'contentSchema'",
                                           "contentSchema": "templateSchema.json"
                                         }
-                                      },
-                                      "required": [".schema", "template.json"]
+                                      }
                                     }
                                   }
                                 }
@@ -293,14 +293,7 @@
                             }
                           }
                         }
-                      },
-                      "required": [
-                        "cardTypes",
-                        "fieldTypes",
-                        "templates",
-                        "workflows",
-                        "reports"
-                      ]
+                      }
                     }
                   }
                 }
@@ -521,13 +514,13 @@
                                   "additionalProperties": false,
                                   "properties": {
                                     ".schema": {},
+                                    ".gitkeep": {},
                                     "template.json": {
                                       "type": "object",
                                       "$comment": "Each file needs to be separately validated against 'contentSchema'",
                                       "contentSchema": "templateSchema.json"
                                     }
-                                  },
-                                  "required": [".schema", "template.json"]
+                                  }
                                 }
                               }
                             }
@@ -548,13 +541,7 @@
                         }
                       }
                     }
-                  },
-                  "required": [
-                    "cardTypes",
-                    "fieldTypes",
-                    "templates",
-                    "workflows"
-                  ]
+                  }
                 },
                 "files": {
                   "type": "object",
