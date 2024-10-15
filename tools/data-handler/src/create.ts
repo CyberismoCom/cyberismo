@@ -361,7 +361,6 @@ export class Create extends EventEmitter {
       );
     }
 
-    const fullName = project.paths.resourceFullName('cardType', name); //todo: local <-> prefix
     const content: CardType = { name: name, workflow: workflow };
     await this.createResource(project, 'cardType', content);
   }
@@ -394,13 +393,10 @@ export class Create extends EventEmitter {
       );
     }
     const useDataType: DataType = dataType as DataType;
-
     const content: FieldType = {
       name: project.paths.resourceFullName('fieldType', fieldTypeName),
       dataType: useDataType,
     };
-
-    fieldTypeName = fieldTypeName.replace(project.projectPrefix, 'local');
     await this.createResource(project, 'fieldType', content);
   }
 
@@ -446,7 +442,6 @@ export class Create extends EventEmitter {
       throw new Error(`Invalid link type JSON: ${validJson}`);
     }
 
-    linkTypeName = linkTypeName.replace(project.projectPrefix, 'local');
     await this.createResource(project, 'linkType', linkTypeContent);
   }
 
@@ -670,9 +665,6 @@ export class Create extends EventEmitter {
         `Resource name must be in long format when calling 'createWorkflow()'`,
       );
     }
-
-    const pathName = workflow.name.replace(project.projectPrefix, 'local');
-    //const fullFileName = `.cards/${pathName}.json`;
 
     const validJson = validator.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {

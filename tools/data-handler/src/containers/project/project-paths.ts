@@ -32,6 +32,7 @@ export class ProjectPaths {
       ['fieldType', this.fieldTypesFolder],
       ['linkType', this.linkTypesFolder],
       ['module', this.modulesFolder],
+      ['report', this.reportsFolder],
       ['template', this.templatesFolder],
       ['workflow', this.workflowsFolder],
     ]);
@@ -57,6 +58,10 @@ export class ProjectPaths {
     return join(this.path, '.cards', 'modules');
   }
 
+  public get reportsFolder(): string {
+    return join(this.path, '.cards', 'reports');
+  }
+
   public get templatesFolder(): string {
     return join(this.path, '.cards', 'local', 'templates');
   }
@@ -65,11 +70,19 @@ export class ProjectPaths {
     return join(this.path, '.cards', 'local', 'workflows');
   }
 
+  /**
+   *
+   * @param resourceType
+   * @param resourceName
+   * @returns
+   */
   public resourceFullName(
     resourceType: ResourceFolderType,
     resourceName: string,
   ): string {
-    // todo: fix naive pluralization.
+    const nameParts = resourceName.split('/').length;
+    if (nameParts === 2 || nameParts > 3) throw new Error('Invalid name');
+    if (nameParts === 3) return resourceName;
     return `${this.prefix}/${resourceType}s/${resourceName}`;
   }
 
@@ -81,7 +94,7 @@ export class ProjectPaths {
   public resourcePath(resourceType: ResourceFolderType): string {
     const resourcePath = this.pathMap.get(resourceType);
     if (!resourcePath) {
-      throw new Error('unknown resourceType');
+      throw new Error(`unknown resourceType: ${resourceType}`);
     }
     return resourcePath;
   }

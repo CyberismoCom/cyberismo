@@ -75,9 +75,9 @@ export class Project extends CardContainer {
     this.localCardTypes = this.resourcesSync('cardType', 'file');
     this.localFieldTypes = this.resourcesSync('fieldType', 'file');
     this.localLinkTypes = this.resourcesSync('linkType', 'file');
+    this.localReports = this.resourcesSync('report', 'folder');
     this.localTemplates = this.resourcesSync('template', 'folder');
     this.localWorkflows = this.resourcesSync('workflow', 'file');
-    this.localReports = this.resourcesSync('report', 'folder');
   }
 
   // Add resources to an array.
@@ -86,7 +86,10 @@ export class Project extends CardContainer {
     requestedType: string,
   ): Promise<Resource[]> {
     const collectedResources: Resource[] = [];
-    const resourceIsADirectory = requestedType === 'templates' ? true : false;
+    const resourceIsADirectory =
+      (requestedType === 'templates'||requestedType === 'reports')
+      ? true
+      : false;
     for (const module of moduleFolders) {
       if (requestedType === 'modules') {
         collectedResources.push(...moduleFolders);
@@ -238,13 +241,14 @@ export class Project extends CardContainer {
     type: ResourceFolderType,
     localOnly: boolean = true,
   ): Promise<Resource[]> {
+    if (type === 'calculation') return this.calculations(localOnly);
     if (type === 'cardType') return this.cardTypes(localOnly);
     if (type === 'fieldType') return this.fieldTypes(localOnly);
     if (type === 'linkType') return this.linkTypes(localOnly);
+    if (type === 'module') return this.modules();
+    if (type === 'report') return this.reports(localOnly);
     if (type === 'template') return this.templates(localOnly);
     if (type === 'workflow') return this.workflows(localOnly);
-    if (type === 'module') return this.modules();
-    if (type === 'calculation') return this.calculations(localOnly);
     return [];
   }
 
