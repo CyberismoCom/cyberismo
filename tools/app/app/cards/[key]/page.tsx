@@ -93,6 +93,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   linkType.enableLinkDescription
                     ? data.linkDescription
                     : undefined,
+                  data.direction,
                 );
                 return true;
               } catch (error) {
