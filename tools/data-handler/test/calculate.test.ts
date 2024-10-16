@@ -63,7 +63,9 @@ describe('calculate', () => {
   });
 
   after(() => {
-    rmSync(testDir, { recursive: true, force: true });
+    setTimeout(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    }, 5000);
   });
   it('run named query successfully', async () => {
     const query = 'tree';

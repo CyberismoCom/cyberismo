@@ -64,6 +64,20 @@ export class Remove extends EventEmitter {
       throw new Error(`Cannot modify imported module`);
     }
 
+    // If card is destination of a link, remove the link.
+    const allCards = await Remove.project.cards(Remove.project.cardRootFolder, {
+      metadata: true,
+    });
+    const promiseContainer: Promise<void>[] = [];
+    allCards.filter((item) => {
+      item.metadata?.links?.forEach(async (link) => {
+        if (link.cardKey === cardKey) {
+          promiseContainer.push(this.removeLink(item.key, link.cardKey));
+        }
+      });
+    });
+    await Promise.all(promiseContainer);
+
     // Calculations need to be updated before card is removed.
     const card = await Remove.project.findSpecificCard(cardKey);
     if (card) {
@@ -80,13 +94,13 @@ export class Remove extends EventEmitter {
    * Removes link from project.
    * @param sourceCardKey Source card id
    * @param destinationCardKey Destination card id
-   * @param linkType Linktype name
-   * @param linkDescription Link description
+   * @param linkType Optional. Link type name. If missing, will remove all links between two cards.
+   * @param linkDescription Optional. Link description
    */
   private async removeLink(
     sourceCardKey: string,
     destinationCardKey: string,
-    linkType: string,
+    linkType?: string,
     linkDescription?: string,
   ) {
     const sourceCard = await Remove.project.findSpecificCard(sourceCardKey, {
@@ -99,20 +113,22 @@ export class Remove extends EventEmitter {
     const link = sourceCard.metadata?.links?.find(
       (l) =>
         l.cardKey === destinationCardKey &&
-        l.linkType === linkType &&
-        l.linkDescription === linkDescription,
+        (!linkType || l.linkType === linkType) &&
+        (!linkDescription || l.linkDescription === linkDescription),
     );
     if (!link) {
       throw new Error(
-        `Link from '${sourceCardKey}' to '${destinationCardKey}' with link type '${linkType}' not found`,
+        linkType
+          ? `Link from '${sourceCardKey}' to '${destinationCardKey}' with link type '${linkType}' not found`
+          : `Link from '${sourceCardKey}' to '${destinationCardKey}' not found`,
       );
     }
 
     const newLinks = sourceCard.metadata?.links?.filter(
       (l) =>
         l.cardKey !== destinationCardKey ||
-        l.linkType !== linkType ||
-        l.linkDescription !== linkDescription,
+        (linkType && l.linkType !== linkType) ||
+        (linkDescription && l.linkDescription !== linkDescription),
     );
 
     await Remove.project.updateCardMetadataKey(
@@ -126,7 +142,7 @@ export class Remove extends EventEmitter {
    * Removes link type from project.
    * @param linkTypeName Link type name
    */
-  private async removeLinktype(linkTypeName: string) {
+  private async removeLinkType(linkTypeName: string) {
     const path = await Remove.project.linkTypePath(linkTypeName);
     if (!path) {
       throw new Error(`Linktype '${linkTypeName}' not found`);
@@ -184,7 +200,7 @@ export class Remove extends EventEmitter {
       case 'link':
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
       case 'linkType':
-        return this.removeLinktype(targetName);
+        return this.removeLinkType(targetName);
       case 'module':
         return this.removeModule(targetName);
       case 'template':
