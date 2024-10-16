@@ -85,7 +85,8 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {}
+                                    ".schema": {},
+                                    ".gitkeep": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -118,7 +119,8 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {}
+                                    ".schema": {},
+                                    ".gitkeep": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -151,7 +153,8 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {}
+                                    ".schema": {},
+                                    ".gitkeep": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -216,6 +219,9 @@
                             },
                             "files": {
                               "type": "object",
+                              "properties": {
+                                ".gitkeep": {}
+                              },
                               "additionalProperties": false
                             }
                           }
@@ -245,7 +251,8 @@
                                 "files": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {}
+                                    ".schema": {},
+                                    ".gitkeep": {}
                                   },
                                   "required": [".schema"]
                                 }
@@ -438,7 +445,8 @@
                             "files": {
                               "type": "object",
                               "properties": {
-                                ".schema": {}
+                                ".schema": {},
+                                ".gitkeep": {}
                               },
                               "required": [".schema"]
                             }
@@ -466,7 +474,8 @@
                             "files": {
                               "type": "object",
                               "properties": {
-                                ".schema": {}
+                                ".schema": {},
+                                ".gitkeep": {}
                               },
                               "required": [".schema"]
                             }
@@ -535,6 +544,9 @@
                         },
                         "files": {
                           "type": "object",
+                          "properties": {
+                            ".gitkeep": {}
+                          },
                           "additionalProperties": false
                         }
                       }
