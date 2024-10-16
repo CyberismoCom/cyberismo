@@ -50,10 +50,12 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static DotSchemaContent: object = {
-    id: 'cardBaseSchema',
-    version: 1,
-  };
+  private static DotSchemaContent: object = [
+    {
+      id: 'cardBaseSchema',
+      version: 1,
+    },
+  ];
 
   constructor(path: string, template: Resource, project?: Project) {
     // Templates might come from modules. Remove module name from template name.
