@@ -124,6 +124,17 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('card and validate (success)', async () => {
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['card', 'decision/templates/simplepage'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], options);
+    console.log(result);
+    expect(result.message).to.equal('Project structure validated');
+  });
   it('card with parent (success)', async () => {
     const templateName = 'decision/templates/decision';
     const parentCard = 'decision_5';
