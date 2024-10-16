@@ -1274,6 +1274,9 @@ export class Commands {
       };
     }
 
+    console.log('Running Cyberismo app on http://localhost:3000/');
+    console.log('Press Control+C to stop.');
+
     // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
     const baseDir = dirname(fileURLToPath(import.meta.url));
     const appPath = resolve(baseDir, '../../app');
@@ -1281,33 +1284,8 @@ export class Commands {
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(path);
 
-    // Start trying from port 3000 and increase the port number if the port is already in use
-    let port = 3000;
-    let args = [
-      '-s',
-      `start`,
-      `--project_path="${projectPath}"`,
-      '--',
-      `--port ${port}`,
-    ];
-
-    while (port < 3099) {
-      try {
-        console.log(
-          `Starting Cyberismo on http://localhost:${port}. Enter CTRL+C to quit.`,
-        );
-        execFileSync(`npm`, args, { shell: true, cwd: `${appPath}` });
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
-        port++;
-        args = [
-          `start`,
-          `--project_path="${projectPath}"`,
-          '--',
-          `--port ${port}`,
-        ];
-      }
-    }
+    const args = [`start`, `--project_path="${projectPath}"`];
+    execFileSync(`npm`, args, { shell: true, cwd: `${appPath}` });
 
     return { statusCode: 200 };
   }
