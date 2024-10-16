@@ -24,7 +24,7 @@
     "@mui/material": "^6.0.1",
     "@mui/x-tree-view": "^7.14.0",
     "@reduxjs/toolkit": "^2.2.5",
-    "@uiw/react-codemirror": "^4.22.2",
+    "@uiw/react-codemirror": "^4.23.5",
     "asciidoctor": "^3.0.4",
     "codemirror-asciidoc": "^2.0.1",
     "html-react-parser": "^5.1.12",

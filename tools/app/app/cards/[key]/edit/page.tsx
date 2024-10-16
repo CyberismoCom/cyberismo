@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -33,7 +33,7 @@ import {
   Tooltip,
 } from '@mui/joy';
 
-import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { useCodeMirror } from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
@@ -240,11 +240,37 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const router = useAppRouter();
 
-  const [codemirror, setCodemirror] = React.useState<ReactCodeMirrorRef | null>(
-    null,
-  );
+  const [editor, setEditor] = useState<HTMLDivElement | null>(null);
+
+  const [content, setContent] = useState<string>();
+
+  const { setContainer, view, state } = useCodeMirror({
+    extensions,
+    value: content,
+    basicSetup: {
+      lineNumbers: false,
+    },
+    style: {
+      border: '1px solid',
+      borderColor: 'rgba(0,0,0,0.23)',
+      borderRadius: 4,
+    },
+  });
 
   const [tab, setTab] = React.useState(0);
+
+  const getContent = () => {
+    return view?.state.doc.toString() || '';
+  };
+  useEffect(() => {
+    setContent(getContent());
+  }, [tab]);
+
+  useEffect(() => {
+    if (editor) {
+      setContainer(editor);
+    }
+  }, [editor, setContainer]);
 
   const formMethods = useForm();
 
@@ -254,20 +280,25 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
 
-  const { __content__, __title__, ...metadata } = preview;
+  const { __title__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
 
   const [parsed, setParsed] = useState<string>('');
 
   useEffect(() => {
-    if (!__content__) {
+    setContent(card?.content || '');
+  }, [card]);
+
+  useEffect(() => {
+    const content = getContent();
+    if (!content) {
       return;
     }
     setParsed('');
     let mounted = true;
     async function parse() {
-      const res = await parseContent(params.key, __content__);
+      const res = await parseContent(params.key, content);
       if (mounted) {
         setParsed(res);
       }
@@ -286,7 +317,7 @@ export default function Page({ params }: { params: { key: string } }) {
           title: __title__ ?? card.metadata?.title,
           ...metadata,
         },
-        content: __content__ ?? card.content,
+        content: getContent() ?? card.content,
         parsed,
       } as CardDetails & {
         parsed: string;
@@ -297,10 +328,12 @@ export default function Page({ params }: { params: { key: string } }) {
     if (!card || Object.keys(preview).length === 0) {
       return;
     }
-    const { __content__, __title__, ...metadata } = preview;
+    const { __title__, ...metadata } = preview;
+
+    const content = getContent();
 
     if (
-      __content__ === card.content &&
+      content === card.content &&
       __title__ === card.metadata?.title &&
       Object.keys(metadata).every(
         (key) => card?.metadata?.[key] === metadata[key],
@@ -327,13 +360,7 @@ export default function Page({ params }: { params: { key: string } }) {
 
   // Scroll to the last title when the tab is switched
   useEffect(() => {
-    if (
-      !lastTitle ||
-      !codemirror?.editor ||
-      !codemirror.view ||
-      !codemirror.state ||
-      cardKey !== params.key
-    )
+    if (!lastTitle || !editor || !view || !state || cardKey !== params.key)
       return;
 
     let lineNum: number | null = null;
@@ -343,10 +370,10 @@ export default function Page({ params }: { params: { key: string } }) {
     const section = findSection(doc, lastTitle);
     if (!section) return;
 
-    const lines = codemirror.state.doc.lines;
+    const lines = state.doc.lines;
 
     for (let i = 1; i < lines + 1; i++) {
-      const line = codemirror.state.doc.line(i);
+      const line = state.doc.line(i);
 
       const title = section.getTitle();
 
@@ -358,33 +385,23 @@ export default function Page({ params }: { params: { key: string } }) {
     }
     if (!lineNum) return;
 
-    const pos = codemirror.state.doc.line(lineNum).from;
+    const pos = state.doc.line(lineNum).from;
 
-    codemirror.view.dispatch({
+    view.dispatch({
       effects: EditorView.scrollIntoView(pos, {
         y: 'start',
       }),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, card, codemirror]);
-
-  const setRef = useCallback((ref: ReactCodeMirrorRef) => {
-    setCodemirror(ref);
-  }, []);
-
-  const doc = useMemo(() => {
-    return asciiDoctor.load(preview.__content__ || '');
-  }, [preview]);
+  }, [card, editor, view]);
 
   // save the last title when user scrolls
   const handleScroll = () => {
-    if (!codemirror?.view || !codemirror.editor) return;
+    if (!view || !editor) return;
 
-    const title = findCurrentTitleFromADoc(
-      codemirror.view,
-      codemirror.editor,
-      doc,
-    );
+    const doc = asciiDoctor.load(getContent());
+
+    const title = findCurrentTitleFromADoc(view, editor, doc);
 
     // making sure the title actually changed to not spam redux
     if (!title || (title === lastTitle && cardKey === params.key)) {
@@ -398,6 +415,11 @@ export default function Page({ params }: { params: { key: string } }) {
       }),
     );
   };
+
+  const setRef = useCallback((ref: HTMLDivElement) => {
+    setEditor(ref);
+  }, []);
+
   // For now, simply show loading if any of the data is loading
   if (isLoadingCard || isLoadingProject || isLoadingLinkTypes) {
     return <Box>{t('loading')}</Box>;
@@ -418,11 +440,11 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
-      const { __content__, __title__, ...metadata } = data;
+      const { __title__, ...metadata } = data;
       const update: Record<string, MetadataValue> = metadata;
 
       await updateCard({
-        content: __content__ as string,
+        content: getContent(),
         metadata: {
           ...update,
           title: __title__,
@@ -462,22 +484,22 @@ export default function Page({ params }: { params: { key: string } }) {
       }
 
       // Find attachment with same filename and add link to editor
-      const attachment = card.attachments?.find((attachment) =>
+      const attachment = card?.attachments?.find((attachment) =>
         decodedURI.includes(attachment.fileName),
       );
-      if (attachment && codemirror && codemirror.view && card) {
+      if (attachment && view && card && editor) {
         // Move editor cursor to drop point
-        codemirror.editor?.focus();
+        editor.focus();
         const dropPosition =
-          codemirror.view?.posAtCoords({
+          view.posAtCoords({
             x: event.pageX,
             y: event.pageY,
           }) ?? 0;
-        codemirror.view?.dispatch({
+        view.dispatch({
           selection: { anchor: dropPosition, head: dropPosition },
         });
 
-        addAttachment(codemirror.view, attachment, card.key);
+        addAttachment(view, attachment, card.key);
       }
     });
   };
@@ -550,28 +572,7 @@ export default function Page({ params }: { params: { key: string } }) {
                         metadata={card?.metadata}
                       />
                     </Box>
-                    <Controller
-                      name="__content__"
-                      control={control}
-                      defaultValue={card.content}
-                      render={({ field: { value, onChange } }: any) => (
-                        <CodeMirror
-                          value={value}
-                          onChange={onChange}
-                          ref={setRef}
-                          extensions={extensions}
-                          basicSetup={{
-                            lineNumbers: false,
-                          }}
-                          onDrop={handleDragDrop}
-                          style={{
-                            border: '1px solid',
-                            borderColor: 'rgba(0,0,0,0.23)',
-                            borderRadius: 4,
-                          }}
-                        />
-                      )}
-                    />
+                    <div ref={setRef} onDrop={handleDragDrop} />
                   </Box>
                   <Box
                     flexGrow={1}
@@ -633,12 +634,8 @@ export default function Page({ params }: { params: { key: string } }) {
                             name={attachment.fileName}
                             cardKey={params.key}
                             onInsert={() => {
-                              if (codemirror && codemirror.view && card) {
-                                addAttachment(
-                                  codemirror.view,
-                                  attachment,
-                                  card.key,
-                                );
+                              if (view && card) {
+                                addAttachment(view, attachment, card.key);
                               }
                             }}
                           >
@@ -668,7 +665,7 @@ export default function Page({ params }: { params: { key: string } }) {
                 }}
               >
                 <Box height="100%">
-                  <LoadingGate values={[linkTypes]}>
+                  <LoadingGate values={[linkTypes, previewCard.parsed || null]}>
                     <ContentArea
                       card={previewCard}
                       linkTypes={linkTypes!}
