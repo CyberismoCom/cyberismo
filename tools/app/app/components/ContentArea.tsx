@@ -394,6 +394,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             initialExpanded={false}
             metadata={card?.metadata}
             onClick={onMetadataClick}
+            cardKey={card.key}
           />
           {(links.length > 0 || linksVisible) && (
             <Stack
