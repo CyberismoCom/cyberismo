@@ -32,7 +32,7 @@ import EditableField, { EditableFieldProps } from './EditableField';
 
 interface FieldItemProps {
   expanded?: boolean;
-  control: Control;
+  control?: Control;
   defaultValue: MetadataValue | null;
   editableFieldProps: Omit<Omit<EditableFieldProps, 'onChange'>, 'value'>;
   name: string;
@@ -54,23 +54,27 @@ function FieldItem({
   return (
     <Accordion expanded={expanded}>
       <AccordionDetails>
-        <Controller
-          name={name}
-          control={control}
-          defaultValue={defaultValue}
-          render={({ field: { value, onChange } }: any) => {
-            return (
-              <EditableField
-                value={value}
-                onChange={(e) => {
-                  if (handleChange)
-                    handleChange(e, onChange, editableFieldProps.dataType);
-                }}
-                {...editableFieldProps}
-              />
-            );
-          }}
-        />
+        {control ? (
+          <Controller
+            name={name}
+            control={control}
+            defaultValue={defaultValue}
+            render={({ field: { value, onChange } }: any) => {
+              return (
+                <EditableField
+                  value={value}
+                  onChange={(e) => {
+                    if (handleChange)
+                      handleChange(e, onChange, editableFieldProps.dataType);
+                  }}
+                  {...editableFieldProps}
+                />
+              );
+            }}
+          />
+        ) : (
+          <EditableField value={defaultValue} {...editableFieldProps} />
+        )}
       </AccordionDetails>
     </Accordion>
   );
@@ -183,7 +187,6 @@ function MetadataView({
           name="__key__"
           defaultValue={cardKey}
           expanded={true}
-          control={context.control}
           editableFieldProps={{
             label: t('cardKey'),
             dataType: 'shortText',
@@ -194,7 +197,6 @@ function MetadataView({
           name="__cardtype__"
           defaultValue={metadata?.cardType || ''}
           expanded={true}
-          control={context.control}
           editableFieldProps={{
             label: t('cardType'),
             dataType: 'shortText',
