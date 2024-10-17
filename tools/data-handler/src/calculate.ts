@@ -494,6 +494,7 @@ export class Calculate {
         encoding: 'utf8',
         input: data.query,
         timeout,
+        maxBuffer: 1024 * 1024 * 100,
       });
       // print the command
       console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
