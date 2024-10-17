@@ -1285,7 +1285,11 @@ export class Commands {
     const projectPath = resolve(path);
 
     const args = [`start`, `--project_path="${projectPath}"`];
-    execFileSync(`npm`, args, { shell: true, cwd: `${appPath}` });
+    execFileSync(`npm`, args, {
+      shell: true,
+      cwd: `${appPath}`,
+      stdio: 'inherit',
+    });
 
     return { statusCode: 200 };
   }
