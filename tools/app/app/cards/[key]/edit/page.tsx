@@ -570,6 +570,7 @@ export default function Page({ params }: { params: { key: string } }) {
                         initialExpanded={searchParams.get('expand') === 'true'}
                         editMode={true}
                         metadata={card?.metadata}
+                        cardKey={params.key}
                       />
                     </Box>
                     <div ref={setRef} onDrop={handleDragDrop} />

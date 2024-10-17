@@ -17,7 +17,7 @@ import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 
-type EditableFieldProps = {
+export type EditableFieldProps = {
   value: MetadataValue;
   dataType: DataType;
   label: string;

@@ -42,6 +42,7 @@
   },
   "deleteCard": "Delete Card",
   "delete": "Delete",
+  "cardKey": "Card key",
   "cardType": "Card Type",
   "value": "Value",
   "name": "Name",
