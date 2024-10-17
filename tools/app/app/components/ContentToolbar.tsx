@@ -77,16 +77,18 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
 
       <CardContextMenu cardKey={cardKey} />
 
-      <Tooltip title={t('linkTooltip')}>
-        <IconButton
-          onClick={onInsertLink}
-          size="sm"
-          variant="plain"
-          style={{ marginRight: 8, minWidth: 40 }}
-        >
-          <InsertLink />
-        </IconButton>
-      </Tooltip>
+      {mode === CardMode.VIEW && (
+        <Tooltip title={t('linkTooltip')}>
+          <IconButton
+            onClick={onInsertLink}
+            size="sm"
+            variant="plain"
+            style={{ marginRight: 8, minWidth: 40 }}
+          >
+            <InsertLink />
+          </IconButton>
+        </Tooltip>
+      )}
 
       <StatusSelector
         currentState={currentState}
