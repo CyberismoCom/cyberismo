@@ -12,6 +12,7 @@ import { Calculate } from '../src/calculate.js';
 import { Remove } from '../src/remove.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import { Card } from '../src/interfaces/project-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -51,7 +52,6 @@ describe('remove command', () => {
 
     // @todo: Test case commented out for now;
     // the event emitter from create is creating the files after the content should have been destroyed.
-    /*
     it('remove card', async () => {
       const card = await createCard();
       const cardId = card.affectsCards![0];
@@ -62,7 +62,6 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    */
     it('remove linkType', async () => {
       const name = 'test';
       await createLinkType(name);
@@ -92,6 +91,57 @@ describe('remove command', () => {
         options,
       );
       expect(result.statusCode).to.equal(200);
+    });
+    // Create two cards, link them together. Remove the other card.
+    // Check that link has disappeared from the first card as well.
+    it('removing card removes links (success)', async () => {
+      const linkName = 'test';
+      const linkFullName = 'decision/linkTypes/' + linkName;
+      await createLinkType(linkName);
+      const card = await createCard();
+      const card2 = await createCard();
+      const cardId = card.affectsCards![0];
+      const cardId2 = card2.affectsCards![0];
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['link', cardId2, cardId, linkFullName],
+        options,
+      );
+      result = await commandHandler.command(
+        Cmd.show,
+        ['card', cardId2],
+        options,
+      );
+      console.log(1);
+      expect(result.statusCode).to.equal(200);
+
+      // Link should exist between cardId and cardId2
+      let shownCard = result.payload as Card;
+      let found = shownCard.metadata?.links?.filter(
+        (item) => item.cardKey === cardId,
+      );
+      expect(found?.length).to.equal(1);
+
+      // Remove the first card
+      result = await commandHandler.command(
+        Cmd.remove,
+        ['card', cardId],
+        options,
+      );
+      console.log(result);
+      expect(result.statusCode).to.equal(200);
+
+      // cardId2 should no longer have link to the other card
+      result = await commandHandler.command(
+        Cmd.show,
+        ['card', cardId2],
+        options,
+      );
+      shownCard = result.payload as Card;
+      found = shownCard.metadata?.links?.filter(
+        (item) => item.cardKey === cardId,
+      );
+      expect(found?.length).to.equal(0);
     });
     it('remove attachment (success)', async () => {
       const attachment = 'the-needle.heic';
