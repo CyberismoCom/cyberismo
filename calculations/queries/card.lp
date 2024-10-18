@@ -1,0 +1,2 @@
+selectAll.
+result({{cardKey}}).
