@@ -16,6 +16,7 @@ import ContentToolbar from '@/app/components/ContentToolbar';
 import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
 import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
+import { useCardQuery } from '@/app/lib/api/cardQuery';
 import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
@@ -26,7 +27,15 @@ import { useTranslation } from 'react-i18next';
 export const dynamic = 'force-dynamic';
 
 export default function Page({ params }: { params: { key: string } }) {
-  const { card, error, createLink, deleteLink } = useCard(params.key);
+  const { card, error, createLink, deleteLink, isLoading } = useCard(
+    params.key,
+  );
+
+  const {
+    cardQuery,
+    error: errorCardQuery,
+    isLoading: isLoadingQuery,
+  } = useCardQuery(params.key);
 
   const listCard = useListCard(params.key);
 
@@ -43,6 +52,10 @@ export default function Page({ params }: { params: { key: string } }) {
   const [linksVisible, setLinksVisible] = useState(false);
 
   useEffect(() => {
+    console.log(cardQuery);
+  }, [cardQuery]);
+
+  useEffect(() => {
     if (listCard) {
       dispatch(
         cardViewed({
@@ -54,80 +67,86 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }, [listCard, dispatch]);
 
-  if (error) {
+  if (error || errorCardQuery) {
     let errorMessage = t('unknownError');
     if (error instanceof Error) {
-      errorMessage = (error as Error).message;
+      errorMessage = error.message;
+    }
+    if (errorCardQuery instanceof Error) {
+      errorMessage = errorCardQuery.message;
     }
     return <Typography level="title-md">{errorMessage}</Typography>;
   }
 
   return (
-    <Stack height="100%">
-      <ContentToolbar
-        cardKey={params.key}
-        mode={CardMode.VIEW}
-        onUpdate={() => {}}
-        onInsertLink={() => setLinksVisible(true)}
-      />
-      <Box flexGrow={1} minHeight={0}>
-        <LoadingGate values={[card, linkTypes]}>
-          <ContentArea
-            card={card!}
-            onMetadataClick={() =>
-              router.push(`/cards/${params.key}/edit?expand=true`)
-            }
-            linkTypes={linkTypes!}
-            project={project}
-            onLinkFormSubmit={async (data) => {
-              try {
-                const linkType = linkTypes?.find(
-                  (lt) => lt.name === data.linkType,
-                );
-                if (!linkType) {
-                  throw new Error('Link type not found');
+    <LoadingGate isLoading={isLoading || isLoadingQuery}>
+      <Stack height="100%">
+        <ContentToolbar
+          cardKey={params.key}
+          mode={CardMode.VIEW}
+          onUpdate={() => {}}
+          onInsertLink={() => setLinksVisible(true)}
+        />
+        <Box flexGrow={1} minHeight={0}>
+          <LoadingGate values={[card, linkTypes]}>
+            <ContentArea
+              card={card!}
+              cardQuery={cardQuery!}
+              onMetadataClick={() =>
+                router.push(`/cards/${params.key}/edit?expand=true`)
+              }
+              linkTypes={linkTypes!}
+              project={project}
+              onLinkFormSubmit={async (data) => {
+                try {
+                  const linkType = linkTypes?.find(
+                    (lt) => lt.name === data.linkType,
+                  );
+                  if (!linkType) {
+                    throw new Error('Link type not found');
+                  }
+                  await createLink(
+                    data.cardKey,
+                    data.linkType,
+                    linkType.enableLinkDescription
+                      ? data.linkDescription
+                      : undefined,
+                    data.direction,
+                  );
+                  return true;
+                } catch (error) {
+                  dispatch(
+                    addNotification({
+                      message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      type: 'error',
+                    }),
+                  );
+                  return false;
                 }
-                await createLink(
-                  data.cardKey,
-                  data.linkType,
-                  linkType.enableLinkDescription
-                    ? data.linkDescription
-                    : undefined,
-                  data.direction,
-                );
-                return true;
-              } catch (error) {
-                dispatch(
-                  addNotification({
-                    message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error',
-                  }),
-                );
-                return false;
-              }
-            }}
-            linksVisible={linksVisible}
-            onLinkToggle={() => setLinksVisible(!linksVisible)}
-            onDeleteLink={async (data) => {
-              try {
-                await deleteLink(
-                  data.fromCard,
-                  data.cardKey,
-                  data.linkType,
-                  data.linkDescription,
-                );
-              } catch (error) {
-                dispatch(
-                  addNotification({
-                    message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                    type: 'error',
-                  }),
-                );
-              }
-            }}
-          />
-        </LoadingGate>
-      </Box>
-    </Stack>
+              }}
+              linksVisible={linksVisible}
+              onLinkToggle={() => setLinksVisible(!linksVisible)}
+              onDeleteLink={async (data) => {
+                try {
+                  await deleteLink(
+                    data.fromCard,
+                    data.cardKey,
+                    data.linkType,
+                    data.linkDescription,
+                  );
+                } catch (error) {
+                  dispatch(
+                    addNotification({
+                      message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      type: 'error',
+                    }),
+                  );
+                }
+              }}
+            />
+          </LoadingGate>
+        </Box>
+      </Stack>
+    </LoadingGate>
   );
 }
