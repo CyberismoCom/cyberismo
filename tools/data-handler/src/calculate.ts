@@ -34,6 +34,7 @@ import {
   QueryResult,
 } from './types/queries.js';
 import { Mutex } from 'async-mutex';
+import Handlebars from 'handlebars';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -427,19 +428,30 @@ export class Calculate {
    * Runs a pre-defined query.
    * @param projectPath Path to a project
    * @param queryName Name of the query file without extension
+   * @param options Any object that contains state for handlebars
    * @returns parsed program output
    */
   public async runQuery<T extends QueryName>(
     projectPath: string,
     queryName: T,
+    options?: unknown,
   ): Promise<ParseResult<QueryResult<T>>> {
     const query = await this.getQuery(queryName);
     if (!query) {
       throw new Error(`Query file ${queryName} not found`);
     }
-    // We assume named queries are correct and produce the specified result
+
+    // load file and
+    let content = (await readFile(query)).toString();
+
+    if (options && typeof options === 'object') {
+      const handlebars = Handlebars.create();
+      const compiled = handlebars.compile(content);
+      content = compiled(options);
+    }
+
     return this.run(projectPath, {
-      file: query,
+      query: content,
     }) as Promise<ParseResult<QueryResult<T>>>;
   }
 
@@ -488,7 +500,9 @@ export class Calculate {
         maxBuffer: 1024 * 1024 * 100,
       });
       // print the command
-      console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
+      console.log(
+        `Ran command: ${this.logicBinaryName} ${args.join(' ')} with query ${data.query}`,
+      );
 
       if (clingo.stdout) {
         console.log(`Clingo output: \n${clingo.stdout}`);

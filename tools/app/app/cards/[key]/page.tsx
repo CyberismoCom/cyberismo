@@ -16,6 +16,7 @@ import ContentToolbar from '@/app/components/ContentToolbar';
 import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
 import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
+import { useCardQuery } from '@/app/lib/api/cardQuery';
 import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
@@ -27,7 +28,15 @@ import { useTranslation } from 'react-i18next';
 export const dynamic = 'force-dynamic';
 
 export default function Page({ params }: { params: { key: string } }) {
-  const { card, error, createLink, deleteLink } = useCard(params.key);
+  const { card, error, createLink, deleteLink, isLoading } = useCard(
+    params.key,
+  );
+
+  const {
+    cardQuery,
+    error: errorCardQuery,
+    isLoading: isLoadingQuery,
+  } = useCardQuery(params.key);
 
   const listCard = useListCard(params.key);
 
@@ -44,6 +53,10 @@ export default function Page({ params }: { params: { key: string } }) {
   const [linksVisible, setLinksVisible] = useState(false);
 
   useEffect(() => {
+    console.log(cardQuery);
+  }, [cardQuery]);
+
+  useEffect(() => {
     if (listCard) {
       dispatch(
         cardViewed({
@@ -55,10 +68,13 @@ export default function Page({ params }: { params: { key: string } }) {
     }
   }, [listCard, dispatch]);
 
-  if (error) {
+  if (error || errorCardQuery) {
     let errorMessage = t('unknownError');
     if (error instanceof Error) {
-      errorMessage = (error as Error).message;
+      errorMessage = error.message;
+    }
+    if (errorCardQuery instanceof Error) {
+      errorMessage = errorCardQuery.message;
     }
     return <Typography level="title-md">{errorMessage}</Typography>;
   }
@@ -78,9 +94,10 @@ export default function Page({ params }: { params: { key: string } }) {
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
-        <LoadingGate values={[card, linkTypes]}>
+        <LoadingGate isLoading={isLoading || isLoadingQuery}>
           <ContentArea
             card={card!}
+            cardQuery={cardQuery!}
             onMetadataClick={() =>
               router.push(`/cards/${params.key}/edit?expand=true`)
             }
