@@ -1,4 +1,7 @@
-{
-  "version": 1,
-  "id": "reportSchema"
-}
+[
+  {
+    "version": 1,
+    "id": "reportSchema",
+    "file": "report.json"
+  }
+]
