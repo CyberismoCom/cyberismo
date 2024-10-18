@@ -11,6 +11,7 @@
     "run": "^1.5.0"
   },
   "devDependencies": {
+    "@4tw/cypress-drag-drop": "^2.2.5",
     "@types/mocha": "^10.0.6",
     "@typescript-eslint/eslint-plugin": "^8.2.0",
     "c8": "^9.1.0",
