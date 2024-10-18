@@ -168,6 +168,7 @@ function MetadataView({
 
   return (
     <Box
+      data-cy="metadataView"
       bgcolor="neutral.softBg"
       borderRadius={16}
       paddingY={1}

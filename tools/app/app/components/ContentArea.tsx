@@ -510,12 +510,19 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   >
                     <Stack>
                       <Stack direction="row" alignItems="center">
-                        <Typography level="body-sm" paddingRight={2}>
+                        <Typography
+                          data-cy="cardLinkType"
+                          level="body-sm"
+                          paddingRight={2}
+                        >
                           {link.cardKey === card.key
                             ? linkType.inboundDisplayName
                             : linkType.outboundDisplayName}
                         </Typography>
-                        <NextLink href={`/cards/${otherCard?.key}`}>
+                        <NextLink
+                          data-cy="cardLink"
+                          href={`/cards/${otherCard?.key}`}
+                        >
                           <Link component={'div'}>{otherCard?.key}</Link>
                         </NextLink>
                         <Divider
@@ -524,7 +531,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             marginX: 1,
                           }}
                         />
-                        <Typography level="title-sm">
+                        <Typography data-cy="cardLinkTitle" level="title-sm">
                           {otherCard?.metadata?.title}
                         </Typography>
                       </Stack>
