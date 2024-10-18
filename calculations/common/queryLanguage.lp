@@ -103,12 +103,12 @@ showField(Key, Field) :-
     policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage),
     showAll(Key).
 
-#show policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage) :
-    policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage),
+#show policyCheckSuccess(Key, TestSuite, TestCase) :
+    policyCheckSuccess(Key, TestSuite, TestCase),
     showField(Key, "policyChecks").
 
-#show policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage) :
-    policyCheckSuccess(Key, TestSuite, TestCase, ErrorMessage),
+#show policyCheckSuccess(Key, TestSuite, TestCase) :
+    policyCheckSuccess(Key, TestSuite, TestCase),
     showAll(Key).
 
 % denied operations
