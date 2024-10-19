@@ -517,6 +517,37 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
 
+  // report
+  it('report (success)', async () => {
+    const reportName = 'report-name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('report and validate', async () => {
+    const reportName = 'report-name-second';
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], optionsMini);
+    console.log(result);
+    expect(result.statusCode).to.equal(200);
+  });
+  it('try to create report with same name', async () => {
+    const reportName = 'report-name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(500);
+  });
   // template
   it('template (success)', async () => {
     const templateName = 'template-name_first';
