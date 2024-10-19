@@ -10,7 +10,7 @@
     "success": "Card moved successfully"
   },
   "deleteCardModal": {
-    "title": "Delete Card",
+    "title": "Delete card",
     "success": "Card deleted successfully",
     "warning": "I acknowledge I want to delete {{cardAmount}} cards",
     "delete": "Delete",
@@ -18,7 +18,7 @@
     "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
   },
   "addAttachmentModal": {
-    "title": "Add Attachment",
+    "title": "Add attachment",
     "dragNdrop": "Drag and drop your files here",
     "browseFiles": "Browse files",
     "error": "Error uploading file: {{error}}",
@@ -40,14 +40,14 @@
       "preview": "Creating cards with this macro is not supported in the preview mode"
     }
   },
-  "deleteCard": "Delete Card",
+  "deleteCard": "Delete card",
   "delete": "Delete",
   "cardKey": "Card key",
-  "cardType": "Card Type",
+  "cardType": "Card type",
   "value": "Value",
   "name": "Name",
   "title": "Title",
-  "workflowState": "Workflow State",
+  "workflowState": "Workflow state",
   "metadata": "Metadata",
   "close": "Close",
   "cardNotFound": "Could not find card",
@@ -59,8 +59,8 @@
   "preview": "Preview",
   "cancel": "Cancel",
   "moreTooltip": "More actions",
-  "showMore": "Show More",
-  "showLess": "Show Less",
+  "showMore": "Show more",
+  "showLess": "Show less",
   "true": "True",
   "false": "False",
   "create": "Create",
@@ -69,7 +69,7 @@
   "or": "or",
   "createUnder": "Create under \"{{parent}}\"",
   "viewedAgo": "Viewed {{time}} ago",
-  "lastTransitioned": "Last Transitioned",
+  "lastTransitioned": "Last transitioned",
   "metadataNotFound": "Metadata not found",
   "recents": "Recents",
   "all": "All",
@@ -86,12 +86,12 @@
   "linkTooltip": "Link to another card",
   "linkedCards": "Linked cards",
   "linkForm": {
-    "selectLinkType": "Select Link Type",
+    "selectLinkType": "Select link type",
     "searchCard": "Search card",
     "writeDescription": "Write a link description",
     "button": "Add link"
   },
-  "deleteLink": "Delete Link",
+  "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
   "failedToLoad": "Failed to load",
   "unknownError": "An unknown error occurred",
