@@ -20,6 +20,7 @@ import {
   Card,
   CardAttachment,
   CardNameRegEx,
+  DotSchemaItem,
   FetchCardDetails,
   Resource,
   Template as TemplateInterface,
@@ -50,9 +51,16 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static DotSchemaContent: object = [
+  private static DotSchemaContentForCard: DotSchemaItem[] = [
     {
       id: 'cardBaseSchema',
+      version: 1,
+    },
+  ];
+
+  private static DotSchemaContentForTemplate: DotSchemaItem[] = [
+    {
+      id: 'templateSchema',
       version: 1,
     },
   ];
@@ -154,7 +162,7 @@ export class Template extends CardContainer {
       await mkdir(tempDestination, { recursive: true });
       await writeJsonFile(
         join(tempDestination, Project.schemaContentFile),
-        Template.DotSchemaContent,
+        Template.DotSchemaContentForCard,
       );
 
       // Create cards to the temp-folder.
@@ -452,13 +460,13 @@ export class Template extends CardContainer {
               this.templateConfigurationFilePath(),
               templateContent,
             ),
-            writeJsonFile(join(this.templatePath, Project.schemaContentFile), {
-              id: 'templateSchema',
-              version: 1,
-            }),
+            writeJsonFile(
+              join(this.templatePath, Project.schemaContentFile),
+              Template.DotSchemaContentForTemplate,
+            ),
             writeJsonFile(
               join(this.templateCardsPath, Project.schemaContentFile),
-              Template.DotSchemaContent,
+              Template.DotSchemaContentForCard,
             ),
           ]);
 

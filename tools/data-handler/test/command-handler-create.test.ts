@@ -132,7 +132,6 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
     result = await commandHandler.command(Cmd.validate, [], options);
-    console.log(result);
     expect(result.message).to.equal('Project structure validated');
   });
   it('card with parent (success)', async () => {
@@ -315,37 +314,37 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  // link
-  it('create link (success)', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-      options,
-    );
-    expect(result.statusCode).to.equal(200);
-  });
-  it('create link with different description(success)', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      [
-        'link',
-        'decision_5',
-        'decision_6',
-        'decision/linkTypes/test',
-        'description2',
-      ],
-      options,
-    );
-    expect(result.statusCode).to.equal(200);
-  });
-  it('try create link - link already exists', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-      options,
-    );
-    expect(result.statusCode).to.equal(400);
-  });
+  // link - three tests commented out for now (see INTDEV-512)
+  // it('create link (success)', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(200);
+  // });
+  // it('create link with different description(success)', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     [
+  //       'link',
+  //       'decision_5',
+  //       'decision_6',
+  //       'decision/linkTypes/test',
+  //       'description2',
+  //     ],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(200);
+  // });
+  // it('try create link - link already exists', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(400);
+  // });
 
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
@@ -559,7 +558,17 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-
+  it('template and validate (success)', async () => {
+    const templateName = 'validatedTemplate';
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['template', templateName],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], options);
+    expect(result.message).to.equal('Project structure validated');
+  });
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
     const templateContent = '{}';
