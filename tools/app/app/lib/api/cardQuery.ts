@@ -21,11 +21,14 @@ import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
 
-export const useCard = (key: string | null, options?: SWRConfiguration) => {
+export const useCardQuery = (
+  key: string | null,
+  options?: SWRConfiguration,
+) => {
   const dispatch = useAppDispatch();
   const { callUpdate, ...rest } = useSWRHook(
-    key ? apiPaths.card(key) : null,
-    'card',
+    key ? apiPaths.cardQuery(key) : null,
+    'cardQuery',
     options,
   );
 
