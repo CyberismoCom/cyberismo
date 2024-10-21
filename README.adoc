@@ -1,135 +1,24 @@
-= Cyberismo: a tool for smooth adoption of cybersecurity management in software projects
+= Cyberismo: a tool for making a difference in cybersecurity
 
-== You found us!
+Visit link:https://cyberismo.com/solution[Cyberismo solution] for an overview and link:https://docs.cyberismo.com[Cyberismo documentation] for instructions and tutorials.
 
-We are busy making Cyberismo ready for your use.  Right now, the project is running in stealth mode as we're adding some remaining essentials such as certain important features, documentation and examples.  It won't take long, so stay tuned!
+== Copyright
 
-== Building and running Cyberismo from source
+Copyright © Cyberismo Ltd and contributors 2024
 
-=== Prerequisites
+== License and trademark policy
 
-. Install Clingo. The currently supported Clingo version is 5.7.1. We recommend installing a Python-enabled build using Anaconda, as instructed in https://github.com/potassco/clingo/releases/.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
-. Install Node.js. The currently supported Node.js version is the latest LTS, v20.10.0. You can install it using nvm with
+The use of Cyberismo trademark is governed by the Cyberismo open source trademark policy. See separate file TRADEMARK.adoc.
 
-[source,console]
-----
-nvm install --lts
-nvm use --lts
-----
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-=== Building
-
-Take the following steps:
-
-. Clone the source repository
-. Change to the source directory. If you have already cloned the repository earlier, remember to pull the latest changes.
-. Execute the following commands:
-
-[source,console]
-----
-npm install
-npm run build
-npm install -g
-----
-
-=== Running
-
-After building and installing, run `cyberismo --help` to see the command line help.
-
-For a quick look around, see the decision-records Cyberismo project in the examples folder of the source code repository.
-
-== Using the Cyberismo command line interface
-
-=== Creating a project
-
-All Cyberismo content belongs to a Cyberismo project. You can create a new project "Example project" in the example-project directory and with the card key prefix "example" as follows:
-
-[source,console]
-----
-cyberismo create project "Example project" example example-project
-----
-
-=== Adding a new type
-
-A new type requires a new or existing workflow and the actual card type. For instance:
-
-[source,console]
-----
-cyberismo create workflow risk-workflow
-cyberismo create cardType risk risk-workflow
-----
-
-=== Adding a new template
-
-[source,console]
-----
-cyberismo create template risk-template
-----
-
-=== Adding a card to a new template
-
-In this example, we add a card of type risk to the risk template:
-
-[source,console]
-----
-cyberismo add risk-template risk
-----
-
-Templates are containers that can contain entire hierarchies of cards of different type.
-
-=== Instantiating cards
-
-To create a new card from the risk template, enter:
-
-[source,console]
-----
-cyberismo create card risk-template
-----
-
-To create a new card as a child of an existing card (e.g. example_7), enter:
-
-[source,console]
-----
-cyberismo create card risk-template example_7
-----
-
-== Running the Cyberismo app
-
-The Cyberismo app is a local web browser based user interface for working on the Cyberismo content.
-
-To launch the app, enter the following command in the Cyberismo project directory:
-
-[source,console]
-----
-cyberismo app
-----
-
-Then point your browser to http://localhost:3000/.
-
-== Generating a documentation site
-
-You can export a Cyberismo project as a static documentation site by entering the following command in the Cyberismo project directory:
-
-[source,console]
-----
-cyberismo export -f site -o /path/to/target/directory
-----
-
-When complete, the script will output:
-[source,console]
-----
-Site generation complete!
-Open file:///tmp/site/index.html in a browser to view your site.
-Done
-----
-
-== License and contributions
-
-See separate files LICENSE and CONTRIBUTING.
+See separate file LICENSE for more information.
 
 Notice that while Cyberismo Ltd enforces the license of this software, the license does not affect the content produced by Cyberismo tool users. Users can be confident that the resulting documents and resources produced with Cyberismo tools and software are not affected by the licenses that Cyberismo Ltd uses to distribute the software.
 
-== Cyberismo Open Source Trademark Policy
+== Contributing
 
-See separate file TRADEMARK.adoc.
+See separate file CONTRIBUTING.
+
