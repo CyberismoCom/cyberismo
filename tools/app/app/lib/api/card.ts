@@ -87,7 +87,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
 };
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
   const swrKey = apiPaths.card(key);
-  const result = await callApi<CardDetails>(swrKey, 'PUT', cardUpdate);
+  const result = await callApi<CardDetails>(swrKey, 'PATCH', cardUpdate);
 
   // update swr cache for the card and project
   // revalidation not needed since api returns the updated card
