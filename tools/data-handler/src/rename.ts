@@ -16,7 +16,6 @@ import { EventEmitter } from 'node:events';
 import { basename, join } from 'node:path';
 import { rename, readFile, writeFile } from 'node:fs/promises';
 
-// ismo
 import { Calculate } from './calculate.js';
 import { Card, Resource } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
@@ -187,7 +186,7 @@ export class Rename extends EventEmitter {
         this.updateResourceName(item),
       );
       const filename = join(
-        Rename.project.cardTypesFolder,
+        Rename.project.paths.cardTypesFolder,
         basename(cardTypeName),
       );
       await writeJsonFile(filename, cardType);
@@ -202,7 +201,7 @@ export class Rename extends EventEmitter {
       fieldType.name = this.updateResourceName(fieldTypeName);
       // Write file
       const filename = join(
-        Rename.project.fieldTypesFolder,
+        Rename.project.paths.fieldTypesFolder,
         basename(fieldTypeName),
       );
       await writeJsonFile(filename, fieldType);
@@ -223,7 +222,7 @@ export class Rename extends EventEmitter {
       );
       // Write file
       const filename = join(
-        Rename.project.linkTypesFolder,
+        Rename.project.paths.linkTypesFolder,
         basename(linkTypeName),
       );
       await writeJsonFile(filename, linkType);
@@ -238,7 +237,7 @@ export class Rename extends EventEmitter {
       workflow.name = this.updateResourceName(workflowName);
       // Write file
       const filename = join(
-        Rename.project.workflowsFolder,
+        Rename.project.paths.workflowsFolder,
         basename(workflowName),
       );
       await writeJsonFile(filename, workflow);
@@ -316,7 +315,10 @@ export class Rename extends EventEmitter {
 
     // Rename all project cards.
     await this.renameCards(
-      await Rename.project.cards(Rename.project.cardRootFolder, cardContent),
+      await Rename.project.cards(
+        Rename.project.paths.cardRootFolder,
+        cardContent,
+      ),
     );
 
     this.emit('renamed', Rename.project.basePath);

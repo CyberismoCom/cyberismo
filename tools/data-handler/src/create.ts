@@ -20,7 +20,6 @@ import {
 } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 
-// ismo
 import { Calculate } from './calculate.js';
 import {
   CardType,
@@ -589,7 +588,7 @@ export class Create extends EventEmitter {
       ],
       [],
     ];
-    const parentFolderToCreate = join(projectPath);
+    const parentFolderToCreate = join(projectPath); // todo: could be removed
 
     if (Project.isCreated(projectPath)) {
       throw new Error('Project already exists');
@@ -633,15 +632,15 @@ export class Create extends EventEmitter {
     try {
       const project = new Project(projectPath);
       await writeFile(
-        join(project.calculationProjectFolder, '.gitkeep'),
+        join(project.paths.calculationProjectFolder, '.gitkeep'),
         this.gitKeepContent,
       );
       await writeFile(
-        join(project.fieldTypesFolder, '.gitkeep'),
+        join(project.paths.fieldTypesFolder, '.gitkeep'),
         this.gitKeepContent,
       );
       await writeFile(
-        join(project.reportsFolder, '.gitkeep'),
+        join(project.paths.reportsFolder, '.gitkeep'),
         this.gitKeepContent,
       );
     } catch (error) {
@@ -739,7 +738,7 @@ export class Create extends EventEmitter {
 
     await copyDir(
       this.defaultReportLocation,
-      join(project.reportsFolder, name),
+      join(project.paths.reportsFolder, name),
     );
   }
 

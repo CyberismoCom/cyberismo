@@ -16,7 +16,6 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-// ismo
 import { Card, Link } from './interfaces/project-interfaces.js';
 import {
   copyDir,
@@ -62,10 +61,6 @@ export class Calculate {
     return pathExists(location) ? location : null;
   }
 
-  private getResourceFolder() {
-    return join(Calculate.project.calculationFolder, 'resources');
-  }
-
   private async generateCardTypes() {
     const cardTypes = await Calculate.project.cardTypes();
     const promises = [];
@@ -83,7 +78,7 @@ export class Calculate {
         content += `customField("${cardType.name}", "${encodeClingoValue(customField.name)}", "${encodeClingoValue(customField.displayName || '')}", "${customField.isEditable ? 'true' : 'false'}").\n`;
       }
       const cardTypeFile = join(
-        this.getResourceFolder(),
+        Calculate.project.paths.calculationResourcesFolder,
         `${cardType.name}.lp`,
       );
       promises.push(
@@ -128,7 +123,7 @@ export class Calculate {
       }
 
       const workFlowFile = join(
-        this.getResourceFolder(),
+        Calculate.project.paths.calculationResourcesFolder,
         `${workflow.name}.lp`,
       );
 
@@ -143,10 +138,7 @@ export class Calculate {
   }
   // Write the cardTree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: Card | undefined) {
-    const destinationFileBase = join(
-      Calculate.project.calculationFolder,
-      'cards',
-    );
+    const destinationFileBase = Calculate.project.paths.calculationCardsFolder;
     const promiseContainer = [];
     if (!pathExists(destinationFileBase)) {
       await mkdir(destinationFileBase, { recursive: true });
@@ -202,13 +194,13 @@ export class Calculate {
   // Once card specific files have been done, write the the imports
   private async generateImports() {
     const destinationFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
 
     const folders = [
-      this.getResourceFolder(),
-      join(Calculate.project.calculationFolder, 'cards'),
+      Calculate.project.paths.calculationResourcesFolder,
+      Calculate.project.paths.calculationCardsFolder,
     ];
 
     let importsContent: string = '';
@@ -236,7 +228,7 @@ export class Calculate {
   private async generateCommonFiles() {
     await copyDir(
       Calculate.commonFolderLocation,
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
     );
   }
 
@@ -247,7 +239,7 @@ export class Calculate {
       return;
     }
     const destinationFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.modulesFileName,
     );
     let modulesContent: string = '';
@@ -327,7 +319,7 @@ export class Calculate {
 
     await Calculate.mutex.runExclusive(async () => {
       // Cleanup old calculations before starting new ones.
-      await deleteDir(Calculate.project.calculationFolder);
+      await deleteDir(Calculate.project.paths.calculationFolder);
 
       let card: Card | undefined;
       if (cardKey) {
@@ -371,12 +363,12 @@ export class Calculate {
     await this.setCalculateProject(deletedCard); // can throw
     const affectedCards = await this.getCards(deletedCard);
     const cardTreeFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
-      pathExists(Calculate.project.calculationFolder);
+      pathExists(Calculate.project.paths.calculationFolder);
 
     let cardTreeContent = calculationsForTreeExist
       ? await readFile(cardTreeFile, 'utf-8')
@@ -384,8 +376,7 @@ export class Calculate {
     for (const card of affectedCards) {
       // First, delete card specific files.
       const cardCalculationsFile = join(
-        Calculate.project.calculationFolder,
-        'cards',
+        Calculate.project.paths.calculationCardsFolder,
         `${card.key}.lp`,
       );
       if (pathExists(cardCalculationsFile)) {
@@ -415,12 +406,12 @@ export class Calculate {
     const firstCard = cards[0];
     await this.setCalculateProject(firstCard); // can throw
     const cardTreeFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
-      pathExists(Calculate.project.calculationFolder);
+      pathExists(Calculate.project.paths.calculationFolder);
     if (!calculationsForTreeExist) {
       // No calculations done, ignore update.
       return;
@@ -470,11 +461,11 @@ export class Calculate {
   ): Promise<ParseResult<BaseResult>> {
     Calculate.project = new Project(projectPath);
     const main = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.mainLogicFileName,
     );
     const queryLanguage = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.queryLanguageFileName,
     );
 
