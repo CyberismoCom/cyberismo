@@ -9,6 +9,10 @@
 
 import { parse } from 'node:path';
 
+// Resource name parts are:
+// - prefix; name of the project this resource is part of
+// - type; type of resource; in plural
+// - name; actual name for the resource
 interface ResourceName {
   prefix: string;
   type: string;
@@ -18,6 +22,7 @@ interface ResourceName {
 /**
  * Returns resource name parts (project prefix, type in plural, name of the resource).
  * @param resourceName Full name of the resource (e.g. <prefix>/<type>/<name>)
+ * @throws if 'resourceName' is not valid resource name.
  * @returns resource name parts: project or module prefix, resource type (plural) and actual name of the resource.
  */
 export function resourceNameParts(resourceName: string): ResourceName {

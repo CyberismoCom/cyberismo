@@ -20,7 +20,6 @@ import {
 } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
-// ismo
 import {
   Card,
   CardNameRegEx,
@@ -242,7 +241,7 @@ export class Export {
     cardKey?: string,
   ) {
     Export.project = new Project(source);
-    const sourcePath: string = Export.project.cardRootFolder;
+    const sourcePath: string = Export.project.paths.cardRootFolder;
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.

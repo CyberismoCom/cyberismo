@@ -32,7 +32,7 @@ describe('export-site', () => {
     const project = new Project(decisionRecordsPath);
 
     const exportSite = new ExportSite();
-    const projectRoot = join(project.cardRootFolder, '..');
+    const projectRoot = join(project.paths.cardRootFolder, '..');
     await exportSite.exportToSite(projectRoot, '/tmp/foo');
     expect(true).to.equal(true);
   });

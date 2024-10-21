@@ -13,7 +13,6 @@
 // node
 import { join, sep } from 'node:path';
 
-// ismo
 import { copyDir, deleteDir } from './utils/file-utils.js';
 import { Card } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
@@ -45,7 +44,7 @@ export class Move {
     } else {
       const returnObject: Card = {
         key: '',
-        path: Move.project.cardRootFolder,
+        path: Move.project.paths.cardRootFolder,
       };
       promiseContainer.push(Promise.resolve(returnObject));
     }
@@ -80,7 +79,7 @@ export class Move {
 
     const destinationPath =
       destination === 'root'
-        ? join(Move.project.cardRootFolder, sourceCard.key)
+        ? join(Move.project.paths.cardRootFolder, sourceCard.key)
         : join(destinationCard.path, 'c', sourceCard.key);
 
     // if the card is already in the destination, do nothing

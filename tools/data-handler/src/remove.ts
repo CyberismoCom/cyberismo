@@ -14,7 +14,6 @@
 import { EventEmitter } from 'node:events';
 import { basename, join, sep } from 'node:path';
 
-// ismo
 import { Calculate } from './calculate.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
@@ -65,9 +64,12 @@ export class Remove extends EventEmitter {
     }
 
     // If card is destination of a link, remove the link.
-    const allCards = await Remove.project.cards(Remove.project.cardRootFolder, {
-      metadata: true,
-    });
+    const allCards = await Remove.project.cards(
+      Remove.project.paths.cardRootFolder,
+      {
+        metadata: true,
+      },
+    );
     const promiseContainer: Promise<void>[] = [];
     allCards.filter((item) => {
       item.metadata?.links?.forEach(async (link) => {

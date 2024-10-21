@@ -22,7 +22,6 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-// ismo
 import { Card } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { Export } from './export.js';
@@ -251,8 +250,11 @@ export class ExportSite extends Export {
   ) {
     Export.project = new Project(source);
     const sourcePath: string = cardKey
-      ? join(Export.project.cardRootFolder, Export.project.pathToCard(cardKey))
-      : Export.project.cardRootFolder;
+      ? join(
+          Export.project.paths.cardRootFolder,
+          Export.project.pathToCard(cardKey),
+        )
+      : Export.project.paths.cardRootFolder;
     const cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.

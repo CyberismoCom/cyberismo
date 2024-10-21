@@ -192,6 +192,17 @@ export interface Resource {
   path?: string;
 }
 
+// Resources that have own folders.
+export type ResourceFolderType =
+  | 'calculation'
+  | 'cardType'
+  | 'fieldType'
+  | 'linkType'
+  | 'module'
+  | 'report'
+  | 'template'
+  | 'workflow';
+
 // Template configuration details.
 export interface Template {
   name: string;

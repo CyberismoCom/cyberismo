@@ -13,10 +13,8 @@
 // node
 import { join } from 'node:path';
 
-// ismo
 import { copyDir } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-
 import { readCsvFile } from './utils/csv.js';
 import { Validate } from './validate.js';
 import { Create } from './create.js';
@@ -123,10 +121,10 @@ export class Import {
     const sourceProject = new Project(source);
     const modulePrefix = sourceProject.projectPrefix;
     const destinationPath = join(
-      destinationProject.modulesFolder,
+      destinationProject.paths.modulesFolder,
       modulePrefix,
     );
-    const sourcePath = sourceProject.resourcesFolder;
+    const sourcePath = sourceProject.paths.resourcesFolder;
 
     // Do not allow modules with same prefixes.
     const currentlyUsedPrefixes = await destinationProject.projectPrefixes();

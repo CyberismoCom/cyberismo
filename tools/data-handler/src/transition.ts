@@ -14,7 +14,6 @@
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 
-// ismo
 import { Calculate } from './calculate.js';
 import { Card, WorkflowState } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';

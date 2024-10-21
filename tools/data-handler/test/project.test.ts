@@ -6,7 +6,6 @@ import { after, before, describe, it } from 'mocha';
 import { mkdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
-// ismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
@@ -31,12 +30,12 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const cardRootFolder = project.cardRootFolder;
-    const cardTypesFolder = project.cardTypesFolder;
-    const templatesFolder = project.templatesFolder;
-    const workflowsFolder = project.workflowsFolder;
-    const resourcesFolder = project.resourcesFolder;
-    const modulesFolder = project.modulesFolder;
+    const cardRootFolder = project.paths.cardRootFolder;
+    const cardTypesFolder = project.paths.cardTypesFolder;
+    const templatesFolder = project.paths.templatesFolder;
+    const workflowsFolder = project.paths.workflowsFolder;
+    const resourcesFolder = project.paths.resourcesFolder;
+    const modulesFolder = project.paths.modulesFolder;
 
     expect(cardRootFolder).to.include('cardRoot');
     expect(cardTypesFolder).to.include('cardTypes');
@@ -112,7 +111,9 @@ describe('project', () => {
     const projectDetails = await project.show();
     expect(projectDetails.name).to.equal(project.projectName);
     expect(projectDetails.prefix).to.equal(project.projectPrefix);
-    expect(projectDetails.path).to.equal(resolve(project.cardRootFolder, '..'));
+    expect(projectDetails.path).to.equal(
+      resolve(project.paths.cardRootFolder, '..'),
+    );
     expect(projectDetails.numberOfCards).to.equal(2);
   });
 
