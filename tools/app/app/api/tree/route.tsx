@@ -38,10 +38,7 @@ export async function GET() {
     const calculate = new Calculate();
     await calculate.generate(projectPath);
     const tree = await calculate.runQuery(projectPath, 'tree');
-    if (tree.error) {
-      throw new Error(tree.error);
-    }
-    return NextResponse.json(tree.results);
+    return NextResponse.json(tree);
   } catch (e) {
     return new NextResponse((e instanceof Error && e.message) || '', {
       status: 500,

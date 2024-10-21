@@ -72,7 +72,6 @@ describe('calculate', () => {
 
     const res = await calculate.runQuery(decisionRecordsPath, query);
 
-    expect(res.results).to.deep.equal(expectedTree);
-    expect(res.error).to.eq(null);
+    expect(res).to.deep.equal(expectedTree);
   });
 });
