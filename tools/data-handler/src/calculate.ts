@@ -435,7 +435,7 @@ export class Calculate {
     projectPath: string,
     queryName: T,
     options?: unknown,
-  ): Promise<ParseResult<QueryResult<T>>> {
+  ): Promise<QueryResult<T>[]> {
     const query = await this.getQuery(queryName);
     if (!query) {
       throw new Error(`Query file ${queryName} not found`);
@@ -450,9 +450,14 @@ export class Calculate {
       content = compiled(options);
     }
 
-    return this.run(projectPath, {
+    const result = await this.run(projectPath, {
       query: content,
-    }) as Promise<ParseResult<QueryResult<T>>>;
+    });
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result.results as QueryResult<T>[];
   }
 
   /**
