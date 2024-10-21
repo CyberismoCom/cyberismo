@@ -274,19 +274,6 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove() - try to remove unknown type', async () => {
-      const cardId = 'decision_5';
-      const calculateCmd = new Calculate();
-      const removeCmd = new Remove(calculateCmd);
-      await removeCmd
-        .remove(decisionRecordsPath, 'i-dont-exist', cardId)
-        .then(() => {
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
-    });
     it('remove() - try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
       const calculateCmd = new Calculate();

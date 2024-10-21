@@ -17,6 +17,7 @@ import { basename, join, sep } from 'node:path';
 import { Calculate } from './calculate.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
+import { RemovableResourceTypes } from './interfaces/project-interfaces.js';
 
 export class Remove extends EventEmitter {
   static project: Project;
@@ -147,7 +148,7 @@ export class Remove extends EventEmitter {
   private async removeLinkType(linkTypeName: string) {
     const path = await Remove.project.linkTypePath(linkTypeName);
     if (!path) {
-      throw new Error(`Linktype '${linkTypeName}' not found`);
+      throw new Error(`Link type '${linkTypeName}' not found`);
     }
     await deleteFile(path);
   }
@@ -184,12 +185,13 @@ export class Remove extends EventEmitter {
   /**
    * Removes either attachment, card or template from project.
    * @param {string} projectPath Path to a project
+   * @param {RemovableResourceTypes} type Type of resource
    * @param {string} targetName Card id, or template name
    * @param {string} args Additional arguments, such as attachment filename
    */
   public async remove(
     projectPath: string,
-    type: string,
+    type: RemovableResourceTypes,
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {

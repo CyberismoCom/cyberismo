@@ -30,6 +30,8 @@ import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from './utils/log-utils.js';
 import {
+  RemovableResourceTypes,
+  ResourceTypes,
   TemplateMetadata,
   WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
@@ -291,7 +293,7 @@ export class Commands {
         }
       }
       if (command === Cmd.create) {
-        const target = args.splice(0, 1)[0];
+        const target: ResourceTypes = args.splice(0, 1)[0] as ResourceTypes;
         if (target === 'attachment') {
           const [cardKey, attachment] = args;
           return this.createAttachment(cardKey, attachment, this.projectPath);
@@ -399,7 +401,9 @@ export class Commands {
       }
       if (command === Cmd.remove) {
         const [type, target, ...rest] = args;
-        return this.remove(type, target, rest, this.projectPath);
+        const removedType: RemovableResourceTypes =
+          type as RemovableResourceTypes;
+        return this.remove(removedType, target, rest, this.projectPath);
       }
       if (command === Cmd.rename) {
         const [to] = args;
@@ -407,8 +411,9 @@ export class Commands {
       }
       if (command === Cmd.show) {
         const [type, detail] = args;
+        const shownTypes: ResourceTypes = type as ResourceTypes;
         options.projectPath = this.projectPath;
-        return this.show(type, detail, options);
+        return this.show(shownTypes, detail, options);
       }
       if (command === Cmd.start) {
         return this.startApp(this.projectPath);
@@ -1007,7 +1012,7 @@ export class Commands {
 
   /**
    * Removes a card (single card, or parent card and children), or an attachment.
-   * @param {string} type Type of resource to remove (attachment, card, template)
+   * @param {RemovableResourceTypes} type Type of resource to remove (attachment, card, template)
    * @param {string} targetName What will be removed. Either card-id or templateName
    * @param {string} args Additional detail of removal, such as attachment name
    * @param {string} path Path to the project. If omitted, project is set from current path.
@@ -1016,7 +1021,7 @@ export class Commands {
    *  <br> statusCode 400 when target was not removed.
    */
   private async remove(
-    type: string,
+    type: RemovableResourceTypes,
     targetName: string,
     args: string[],
     path: string,
@@ -1075,7 +1080,7 @@ export class Commands {
 
   /**
    * Shows wanted resources from a project / template.
-   * @param {string} type type of resources to list
+   * @param {ResourceTypes} type type of resources to list
    * @param {string} typeDetail additional information about the resource (for example a card key for 'show card <cardKey>')
    * @param {CardsOptions} options Optional parameters. If options.path is omitted, project path is assumed to be current path (or it one of its parents).
    * @returns {requestStatus}
@@ -1083,7 +1088,7 @@ export class Commands {
    *  <br> statusCode 400 when input validation failed
    */
   private async show(
-    type: string,
+    type: ResourceTypes,
     typeDetail: string,
     options: CardsOptions,
   ): Promise<requestStatus> {
