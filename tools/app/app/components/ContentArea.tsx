@@ -22,21 +22,21 @@ import {
 
 import { parse } from 'node-html-parser';
 import {
-  Box,
-  Divider,
-  Stack,
-  Typography,
-  Link,
-  IconButton,
-  Select,
-  Input,
-  Button,
-  Option,
+  Alert,
   Autocomplete,
+  Box,
+  Button,
   ChipDelete,
+  Divider,
+  IconButton,
+  Input,
+  Link,
   List,
   ListItem,
-  Alert,
+  Option,
+  Select,
+  Stack,
+  Typography,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
