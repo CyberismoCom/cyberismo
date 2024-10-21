@@ -52,10 +52,6 @@ export default function Page({ params }: { params: { key: string } }) {
   const [linksVisible, setLinksVisible] = useState(false);
 
   useEffect(() => {
-    console.log(cardQuery);
-  }, [cardQuery]);
-
-  useEffect(() => {
     if (listCard) {
       dispatch(
         cardViewed({
