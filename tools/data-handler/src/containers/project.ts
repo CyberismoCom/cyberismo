@@ -32,6 +32,7 @@ import {
   Report,
   ReportMetadata,
   Resource,
+  ResourceFolderType,
   WorkflowMetadata,
 } from '../interfaces/project-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
@@ -189,7 +190,10 @@ export class Project extends CardContainer {
   }
 
   // Collects certain kinds of resources.
-  private resourcesSync(type: string, requirement: string): Resource[] {
+  private resourcesSync(
+    type: ResourceFolderType,
+    requirement: string,
+  ): Resource[] {
     let resourceFolder: string;
     if (type === 'calculation') {
       resourceFolder = this.paths.calculationProjectFolder;

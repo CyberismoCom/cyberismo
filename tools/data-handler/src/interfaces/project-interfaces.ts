@@ -203,6 +203,38 @@ export type ResourceFolderType =
   | 'template'
   | 'workflow';
 
+// Resources that are possible to remove.
+// todo: add possibility to remove calculations, card types, field types, workflows and reports
+export type RemovableResourceTypes =
+  | 'attachment'
+  | 'card'
+  | 'link'
+  | 'linkType'
+  | 'module'
+  | 'template';
+
+// All resource types; both singular and plural.
+export type ResourceTypes =
+  | RemovableResourceTypes
+  | 'attachments'
+  | 'calculation'
+  | 'calculations'
+  | 'cards'
+  | 'cardType'
+  | 'cardTypes'
+  | 'fieldType'
+  | 'fieldTypes'
+  | 'links'
+  | 'linkTypes'
+  | 'modules'
+  | 'project'
+  | 'projects'
+  | 'report'
+  | 'reports'
+  | 'templates'
+  | 'workflow'
+  | 'workflows';
+
 // Template configuration details.
 export interface Template {
   name: string;
