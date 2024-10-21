@@ -11,8 +11,7 @@
 */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Calculate } from '@cyberismocom/data-handler/calculate';
-
+import { executeCardQuery } from '../../../lib/server/query';
 export const dynamic = 'force-dynamic';
 
 /**
@@ -44,21 +43,7 @@ export async function GET(
     });
   }
   try {
-    const calculate = new Calculate();
-    await calculate.generate(projectPath);
-    const card = await calculate.runQuery(projectPath, 'card', {
-      cardKey: params.key,
-    });
-    if (card.error) {
-      throw new Error(card.error);
-    }
-    if (card.results.length === 0) {
-      throw new Error("Card query didn't return results");
-    }
-    if (card.results.length !== 1) {
-      throw new Error('Card query returned multiple cards');
-    }
-    return NextResponse.json(card.results[0]);
+    return NextResponse.json(await executeCardQuery(projectPath, params.key));
   } catch (e) {
     return new NextResponse((e instanceof Error && e.message) || '', {
       status: 500,

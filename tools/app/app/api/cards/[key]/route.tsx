@@ -26,6 +26,7 @@ import {
   MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { evaluateMacros } from '@cyberismocom/data-handler/macros';
+import { executeCardQuery } from '../../../lib/server/query';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
   return await getCardDetails(projectPath, key, contentType);
 }
 
-export async function PUT(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
@@ -128,10 +129,26 @@ export async function PUT(request: NextRequest) {
     return new NextResponse('No search key', { status: 400 });
   }
 
+  const cardQueryResult = await executeCardQuery(projectPath, key);
+
   const res = await request.json();
 
   let successes = 0;
   const errors = [];
+
+  if (
+    res.content != null &&
+    cardQueryResult.deniedOperations.editContent.length > 0
+  ) {
+    return new NextResponse(
+      cardQueryResult.deniedOperations.editContent
+        .map((v) => v.errorMessage)
+        .join(' '),
+      {
+        status: 403,
+      },
+    );
+  }
 
   if (res.state) {
     const calculateCommand = new Calculate();
@@ -298,6 +315,19 @@ export async function DELETE(request: NextRequest) {
 
   if (key == null) {
     return new NextResponse('No search key', { status: 400 });
+  }
+
+  const cardQueryResult = await executeCardQuery(projectPath, key);
+
+  if (cardQueryResult.deniedOperations.delete.length > 0) {
+    return new NextResponse(
+      cardQueryResult.deniedOperations.delete
+        .map((v) => v.errorMessage)
+        .join(' '),
+      {
+        status: 403,
+      },
+    );
   }
 
   const removeCommand = new Remove(new Calculate());
