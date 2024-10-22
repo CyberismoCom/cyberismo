@@ -243,8 +243,8 @@ export class Calculate {
       Calculate.modulesFileName,
     );
     let modulesContent: string = '';
-    // Collect and return all available calculations
-    const calculations = await Calculate.project.calculations(false);
+    // Collect all available calculations
+    const calculations = await Calculate.project.calculations();
 
     // write the modules.lp
     for (const calculationFile of calculations) {

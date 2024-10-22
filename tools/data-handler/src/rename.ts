@@ -18,7 +18,7 @@ import { rename, readFile, writeFile } from 'node:fs/promises';
 
 import { Calculate } from './calculate.js';
 import { Card, Resource } from './interfaces/project-interfaces.js';
-import { Project } from './containers/project.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 import { resourceNameParts } from './utils/resource-utils.js';
 import { Template } from './containers/template.js';
 import { writeJsonFile } from './utils/json.js';
@@ -271,39 +271,40 @@ export class Rename extends EventEmitter {
 
     // Rename resources - module content shall not be modified.
     // It is better to rename the resources in this order: card types, field types
-    const localResourcesOnly = true;
 
     // Rename all card types and custom fields in them.
-    const cardTypes = await Rename.project.cardTypes(localResourcesOnly);
+    const cardTypes = await Rename.project.cardTypes(ResourcesFrom.localOnly);
     for (const cardType of cardTypes) {
       await this.updateCardTypeMetadata(cardType.name);
     }
 
-    const workflows = await Rename.project.workflows(localResourcesOnly);
+    const workflows = await Rename.project.workflows(ResourcesFrom.localOnly);
     for (const workflow of workflows) {
       await this.updateWorkflowMetadata(workflow.name);
     }
 
     // Rename all field types.
-    const fieldTypes = await Rename.project.fieldTypes(localResourcesOnly);
+    const fieldTypes = await Rename.project.fieldTypes(ResourcesFrom.localOnly);
     for (const fieldType of fieldTypes) {
       await this.updateFieldTypeMetadata(fieldType.name);
     }
 
     // Rename all the link types.
-    const linkTypes = await Rename.project.linkTypes(localResourcesOnly);
+    const linkTypes = await Rename.project.linkTypes(ResourcesFrom.localOnly);
     for (const linkType of linkTypes) {
       await this.updateLinkTypeMetadata(linkType.name);
     }
 
     // Rename resource usage in all calculation files.
-    const calculations = await Rename.project.calculations(localResourcesOnly);
+    const calculations = await Rename.project.calculations(
+      ResourcesFrom.localOnly,
+    );
     for (const calculation of calculations) {
       await this.updateCalculationFile(calculation);
     }
 
     // Rename all local template cards.
-    const templates = await Rename.project.templates(localResourcesOnly);
+    const templates = await Rename.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
       const templateObject = new Template(
         projectPath,
