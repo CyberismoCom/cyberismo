@@ -29,6 +29,7 @@ export type Resources = {
   templates: Template[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
+  cardQuery: QueryResult<'card'>;
 };
 
 export type ResourceName = keyof Resources;

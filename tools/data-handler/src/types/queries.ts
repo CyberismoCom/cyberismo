@@ -54,12 +54,13 @@ export interface ParseResult<T extends BaseResult> {
  * Generic types for named queries
  */
 
-export const queries = ['tree'] as const;
+export const queries = ['tree', 'card'] as const;
 
 export type QueryName = (typeof queries)[number];
 
 export type QueryMap = {
   tree: TreeQueryResult;
+  card: CardQueryResult;
 };
 export type QueryResult<T extends QueryName> = QueryMap[T];
 
@@ -72,4 +73,13 @@ interface TreeQueryResult extends BaseResult {
   title: string;
   workflowStateCategory?: WorkflowCategory;
   results: TreeQueryResult[];
+}
+
+interface CardQueryResult extends BaseResult {
+  'base/fieldTypes/progress'?: string;
+  rank: string;
+  title: string;
+  workflowState: string;
+  lastUpdated: string;
+  results: [];
 }
