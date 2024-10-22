@@ -7,7 +7,18 @@ import { GET as GET_PROJECT } from '../app/api/cards/route';
 import { GET as GET_CARD } from '../app/api/cards/[key]/route';
 import { GET as GET_ATTACHMENT } from '../app/api/cards/[key]/a/[attachment]/route';
 import { GET as GET_CARD_TYPE } from '../app/api/cardTypes/route';
+import { GET as GET_FIELD_TYPES } from '../app/api/fieldTypes/route';
+import { GET as GET_LINK_TYPES } from '../app/api/linkTypes/route';
+import { GET as GET_TEMPLATES } from '../app/api/templates/route';
+import { GET as GET_TREE } from '../app/api/tree/route';
 import { NextRequest } from 'next/server';
+import {
+  CardType,
+  FieldTypeDefinition,
+  LinkType,
+  Template,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
@@ -84,8 +95,66 @@ test('cardTypes endpoint returns card type object', async () => {
   const response = await GET_CARD_TYPE(request);
   expect(response).not.toBe(null);
 
-  const result: cardType = await response.json();
+  const result: CardType = await response.json();
   expect(response.status).toBe(200);
   expect(result.name).toBe('decision/cardTypes/decision');
   expect(result.workflow).toBe('decision/workflows/decision');
+});
+
+test('fieldTypes endpoint returns proper data', async () => {
+  const response = await GET_FIELD_TYPES();
+  expect(response).not.toBe(null);
+
+  const result: FieldTypeDefinition[] = await response.json();
+  expect(response.status).toBe(200);
+  expect(result.length).toBe(9);
+  expect(result[0].name).toBe('decision/fieldTypes/admins');
+  expect(result[0].displayName).toBe('Administrators');
+  expect(result[0].fieldDescription).toBe('List of admin persons');
+  expect(result[0].dataType).toBe('list');
+});
+
+test('linkTypes endpoint returns proper data', async () => {
+  const response = await GET_LINK_TYPES();
+  expect(response).not.toBe(null);
+
+  const result: LinkType[] = await response.json();
+  expect(response.status).toBe(200);
+  expect(result.length).toBe(2);
+  expect(result[1].name).toBe('decision/linkTypes/testTypes');
+  expect(result[1].sourceCardTypes[0]).toBe('decision/cardTypes/decision');
+  expect(result[1].destinationCardTypes[0]).toBe(
+    'decision/cardTypes/simplepage',
+  );
+});
+
+test('templates endpoint returns proper data', async () => {
+  const response = await GET_TEMPLATES();
+  expect(response).not.toBe(null);
+
+  const result: Template[] = await response.json();
+  expect(response.status).toBe(200);
+  expect(result.length).toBe(3);
+  expect(result[0].name).toBe('decision/templates/decision');
+  expect(result[0].metadata.description).toBe('description');
+  expect(result[0].metadata.displayName).toBe('Decision');
+  expect(result[0].metadata.category).toBe('category');
+});
+
+test('tree endpoint returns proper data', async () => {
+  const response = await GET_TREE();
+  expect(response).not.toBe(null);
+
+  const result: QueryResult<'tree'>[] = await response.json();
+  expect(response.status).toBe(200);
+  expect(result[0].key).toBe('decision_5');
+  expect(result[0].title).toBe('Decision Records');
+  expect(result[0].rank).toBe('0|a');
+  expect(result[0].workflowStateCategory).toBe('initial');
+  expect(result[0].results[0].key).toBe('decision_6');
+  expect(result[0].results[0].title).toBe(
+    'Document Decisions with Decision Records',
+  );
+  expect(result[0].results[0].rank).toBe('0|a');
+  expect(result[0].results[0].workflowStateCategory).toBe('closed');
 });
