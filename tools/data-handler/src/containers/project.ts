@@ -47,6 +47,18 @@ import { generateRandomString } from '../utils/random.js';
 import { CardContainer } from './card-container.js';
 
 /**
+ * Defines where resources are collected from.
+ * all - everywhere
+ * importOnly - only from imported modules
+ * localOnly - only from the project itself; excluding imported modules
+ */
+export enum ResourcesFrom {
+  all = 'all',
+  importedOnly = 'imported',
+  localOnly = 'local',
+}
+
+/**
  * Represents project folder.
  */
 export class Project extends CardContainer {
@@ -115,6 +127,21 @@ export class Project extends CardContainer {
       }
     }
     return collectedResources;
+  }
+
+  // Returns resources from certain location(s).
+  private collectedResources(
+    from: ResourcesFrom,
+    localCollection: Resource[],
+    moduleCollection: Resource[],
+  ) {
+    if (from === ResourcesFrom.localOnly) {
+      return localCollection;
+    }
+    if (from === ResourcesFrom.importedOnly) {
+      return moduleCollection;
+    }
+    return [...localCollection, ...moduleCollection];
   }
 
   // Collect resources from modules
@@ -304,15 +331,20 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the calculation files (*.lp) in the project.
-   * @param {boolean} localOnly Return local calculations, or all calculations (includes module calculations)
+   * @param from Defines where resources are collected from.
    * @returns array of all calculation files in the project.
+   * todo: make just one function
    */
-  public async calculations(localOnly: boolean = true): Promise<Resource[]> {
+  public async calculations(
+    from: ResourcesFrom = ResourcesFrom.localOnly,
+  ): Promise<Resource[]> {
     const moduleCalculations =
       await this.collectResourcesFromModules('calculations');
-    return localOnly
-      ? this.localCalculations
-      : [...this.localCalculations, ...moduleCalculations];
+    return this.collectedResources(
+      from,
+      this.localCalculations,
+      moduleCalculations,
+    );
   }
 
   /**
@@ -441,14 +473,14 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the card types in the project.
-   * @param {boolean} localOnly Return local card types, or all card types (includes module card types)
+   * @param from Defines where resources are collected from.
    * @returns array of all card types in the project.
    */
-  public async cardTypes(localOnly: boolean = false): Promise<Resource[]> {
+  public async cardTypes(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
     const moduleCardTypes = await this.collectResourcesFromModules('cardTypes');
-    return localOnly
-      ? this.localCardTypes
-      : [...this.localCardTypes, ...moduleCardTypes];
+    return this.collectedResources(from, this.localCardTypes, moduleCardTypes);
   }
 
   /**
@@ -518,15 +550,19 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the field types in the project.
-   * @param {boolean} localOnly Return local field types, or all field types (includes module field types)
+   * @param from Defines where resources are collected from.
    * @returns array of all field types in the project.
    */
-  public async fieldTypes(localOnly: boolean = false): Promise<Resource[]> {
+  public async fieldTypes(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
     const moduleFieldTypes =
       await this.collectResourcesFromModules('fieldTypes');
-    return localOnly
-      ? this.localFieldTypes
-      : [...this.localFieldTypes, ...moduleFieldTypes];
+    return this.collectedResources(
+      from,
+      this.localFieldTypes,
+      moduleFieldTypes,
+    );
   }
 
   /**
@@ -667,14 +703,14 @@ export class Project extends CardContainer {
   }
   /**
    * Returns an array of all the link types in the project.
-   * @param {boolean} localOnly Return local link types, or all link types (includes module link types)
+   * @param from Defines where resources are collected from.
    * @returns array of all link types in the project.
    */
-  public async linkTypes(localOnly: boolean = false): Promise<Resource[]> {
+  public async linkTypes(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
     const moduleLinkTypes = await this.collectResourcesFromModules('linkTypes');
-    return localOnly
-      ? this.localLinkTypes
-      : [...this.localLinkTypes, ...moduleLinkTypes];
+    return this.collectedResources(from, this.localLinkTypes, moduleLinkTypes);
   }
 
   /**
@@ -889,6 +925,18 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Array of reports in the project.
+   * @param from Defines where resources are collected from.
+   * @returns array of all reports in the project.
+   */
+  public async reports(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
+    const moduleReports = await this.collectResourcesFromModules('reports');
+    return this.collectedResources(from, this.localReports, moduleReports);
+  }
+
+  /**
    * Shows details of a project.
    * @returns details of a project.
    */
@@ -975,14 +1023,14 @@ export class Project extends CardContainer {
 
   /**
    * Array of templates in the project.
-   * @param {boolean} localOnly Return local templates, or all templates (includes module templates)
+   * @param from Defines where resources are collected from.
    * @returns array of all templates in the project.
    */
-  public async templates(localOnly: boolean = false): Promise<Resource[]> {
+  public async templates(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
     const moduleTemplates = await this.collectResourcesFromModules('templates');
-    return localOnly
-      ? this.localTemplates
-      : [...this.localTemplates, ...moduleTemplates];
+    return this.collectedResources(from, this.localTemplates, moduleTemplates);
   }
 
   /**
@@ -1115,27 +1163,16 @@ export class Project extends CardContainer {
 
   /**
    * Array of workflows in the project.
-   * @param {boolean} localOnly Return local workflows, or all workflows (includes module workflows)
+   * @param from Defines where resources are collected from.
    * @returns array of all workflows in the project.
    */
-  public async workflows(localOnly: boolean = false): Promise<Resource[]> {
+  public async workflows(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
     const moduleWorkflows = await this.collectResourcesFromModules('workflows');
-    return localOnly
-      ? this.localWorkflows
-      : [...this.localWorkflows, ...moduleWorkflows];
+    return this.collectedResources(from, this.localWorkflows, moduleWorkflows);
   }
 
-  /**
-   * Array of reports in the project.
-   * @param {boolean} localOnly Return local reports, or all reports (includes module reports)
-   * @returns array of all reports in the project.
-   */
-  public async reports(localOnly: boolean = false): Promise<Resource[]> {
-    const moduleReports = await this.collectResourcesFromModules('reports');
-    return localOnly
-      ? this.localReports
-      : [...this.localReports, ...moduleReports];
-  }
   /**
    * Returns details of certain report.
    * @param {string} reportName Name of the report (either filename (including .json extension), or report name).

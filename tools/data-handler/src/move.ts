@@ -15,7 +15,7 @@ import { join, sep } from 'node:path';
 
 import { copyDir, deleteDir } from './utils/file-utils.js';
 import { Card } from './interfaces/project-interfaces.js';
-import { Project } from './containers/project.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -290,7 +290,7 @@ export class Move {
     await this.rebalanceProjectRecursively(cards);
 
     // rebalance templates
-    const templates = await Move.project.templates(true);
+    const templates = await Move.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
       const templateObject = await Move.project.createTemplateObject(template);
 
