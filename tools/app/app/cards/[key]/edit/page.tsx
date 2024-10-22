@@ -124,9 +124,13 @@ function AttachmentPreviewCard({
               loading={isUpdating}
               sx={{ marginRight: '3px' }}
               onClick={async () => {
-                setIsUpdating(true);
-                await removeAttachment(name);
-                setIsUpdating(false);
+                const confirmed = confirm(t('confirmDeleteAttachment'));
+
+                if (confirmed) {
+                  setIsUpdating(true);
+                  await removeAttachment(name);
+                  setIsUpdating(false);
+                }
               }}
             >
               <Delete />
@@ -264,6 +268,7 @@ export default function Page({ params }: { params: { key: string } }) {
   };
   useEffect(() => {
     setContent(getContent());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   useEffect(() => {
@@ -307,6 +312,7 @@ export default function Page({ params }: { params: { key: string } }) {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const previewCard = card
@@ -343,6 +349,7 @@ export default function Page({ params }: { params: { key: string } }) {
       return;
     }
     setHasUnsavedChanges(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview, card, setHasUnsavedChanges]);
 
   useEffect(() => {
