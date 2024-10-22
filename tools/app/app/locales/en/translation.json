@@ -81,6 +81,7 @@
   "attachment": "Attachment",
   "attachments": "Attachments",
   "addAttachment": "Add attachment",
+  "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
   "add": "Add",
   "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
   "linkTooltip": "Link to another card",

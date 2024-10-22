@@ -124,9 +124,13 @@ function AttachmentPreviewCard({
               loading={isUpdating}
               sx={{ marginRight: '3px' }}
               onClick={async () => {
-                setIsUpdating(true);
-                await removeAttachment(name);
-                setIsUpdating(false);
+                const confirmed = confirm(t('confirmDeleteAttachment'));
+
+                if (confirmed) {
+                  setIsUpdating(true);
+                  await removeAttachment(name);
+                  setIsUpdating(false);
+                }
               }}
             >
               <Delete />
