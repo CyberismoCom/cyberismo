@@ -16,7 +16,7 @@
     "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
     "lint": "npx eslint .",
     "posttest": "npm run lint",
-    "test": "mocha --require mocha-suppress-logs --forbid-only \"./test/**/*.test.ts\"",
+    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
     "test-coverage": "c8 npm run test"
   },
   "exports": {
