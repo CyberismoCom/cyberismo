@@ -314,7 +314,7 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  // link - three tests commented out for now (see INTDEV-512)
+  // link - three tests commented out for now (see INTDEV-512). When doing INTDEV-512, also add a test which makes sure createLink fails if source and destination cards are the same
   // it('create link (success)', async () => {
   //   const result = await commandHandler.command(
   //     Cmd.create,
