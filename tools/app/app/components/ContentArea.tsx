@@ -79,6 +79,7 @@ interface LinkFormProps {
   cards: Project['cards'];
   cardType: string | undefined;
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
+  cardKey: string;
 }
 
 const NO_LINK_TYPE = -1;
@@ -88,6 +89,7 @@ export function LinkForm({
   linkTypes,
   onSubmit,
   cardType,
+  cardKey,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: { linkType: NO_LINK_TYPE, cardKey: '', linkDescription: '' },
@@ -130,7 +132,7 @@ export function LinkForm({
   const selectedLinkType = handledLinkTypes.find((t) => t.id === linkType);
 
   const usableCards = flattenTree(cards).filter((card) => {
-    if (!selectedLinkType) return false;
+    if (!selectedLinkType || card.key === cardKey) return false;
     if (selectedLinkType.direction === 'outbound') {
       return (
         selectedLinkType.destinationCardTypes.includes(
@@ -419,6 +421,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
               cardType={card.metadata?.cardType}
+              cardKey={card.key}
             />
           )}
           {links.length > 0 && (

@@ -483,6 +483,10 @@ export class Create extends EventEmitter {
   ) {
     const project = new Project(projectPath);
 
+    if (cardKey === destinationCardKey) {
+      throw new Error('Cannot link card to itself');
+    }
+
     // Determine the card path
     const card = await project.findSpecificCard(cardKey, {
       metadata: true,
