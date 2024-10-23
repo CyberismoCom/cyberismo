@@ -16,6 +16,7 @@ import {
   CardType,
   FieldTypeDefinition,
   Link,
+  LinkType,
   WorkflowMetadata as Workflow,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
@@ -100,3 +101,8 @@ export interface Project {
   workflows: Workflow[];
   cardTypes: CardType[];
 }
+
+export type ExpandedLinkType = LinkType & {
+  id: number;
+  direction: 'inbound' | 'outbound';
+};
