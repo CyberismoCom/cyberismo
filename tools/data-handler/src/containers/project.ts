@@ -1241,4 +1241,12 @@ export class Project extends CardContainer {
         : undefined,
     };
   }
+
+  /**
+   * Returns whether card is a template card or not
+   */
+  public async isTemplateCard(cardKey: string) {
+    const templateCards = await this.templateCards();
+    return templateCards.find((card) => card.key === cardKey) != null;
+  }
 }

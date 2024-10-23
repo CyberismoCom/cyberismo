@@ -18,6 +18,8 @@ import { spawnSync } from 'node:child_process';
 import type { MetadataContent } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { UserPreferences } from './utils/user-preferences.js';
+import { ActionGuard } from './permissions/action-guard.js';
+import { Calculate } from './calculate.js';
 
 export class Edit {
   private static project: Project;
@@ -94,6 +96,9 @@ export class Edit {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
+    const actionGuard = new ActionGuard(new Calculate(), Edit.project);
+    await actionGuard.checkPermission('editContent', cardKey);
+
     await Edit.project.updateCardContent(cardKey, changedContent);
   }
 
@@ -120,6 +125,10 @@ export class Edit {
     if (!changedKey) {
       throw new Error(`Changed key cannot be empty`);
     }
+
+    // check for editing rights
+    const actionGuard = new ActionGuard(new Calculate(), Edit.project);
+    await actionGuard.checkPermission('editField', cardKey, changedKey);
     await Edit.project.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 }
