@@ -26,7 +26,6 @@ import {
   MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { evaluateMacros } from '@cyberismocom/data-handler/macros';
-import { executeCardQuery } from '../../../lib/server/query';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,26 +128,10 @@ export async function PATCH(request: NextRequest) {
     return new NextResponse('No search key', { status: 400 });
   }
 
-  const cardQueryResult = await executeCardQuery(projectPath, key);
-
   const res = await request.json();
 
   let successes = 0;
   const errors = [];
-
-  if (
-    res.content != null &&
-    cardQueryResult.deniedOperations.editContent.length > 0
-  ) {
-    return new NextResponse(
-      cardQueryResult.deniedOperations.editContent
-        .map((v) => v.errorMessage)
-        .join(' '),
-      {
-        status: 403,
-      },
-    );
-  }
 
   if (res.state) {
     const calculateCommand = new Calculate();
@@ -214,24 +197,12 @@ export async function PATCH(request: NextRequest) {
 
   // contentType defaults to adoc if not set
   const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
-  if (errors.length > 0 && successes == 0) {
+  if (errors.length > 0) {
     // All updates failed
     return new NextResponse(errors.join('\n'), { status: 400 });
   }
 
   const details = await getCardDetails(projectPath, key, contentType);
-
-  if (errors.length > 0) {
-    // Some of the updates failed
-    if (details.status == 200) {
-      return new NextResponse(details.body, {
-        status: 207,
-        statusText: errors.join('\n'),
-      });
-    } else {
-      return details;
-    }
-  }
 
   return details;
 }
@@ -315,19 +286,6 @@ export async function DELETE(request: NextRequest) {
 
   if (key == null) {
     return new NextResponse('No search key', { status: 400 });
-  }
-
-  const cardQueryResult = await executeCardQuery(projectPath, key);
-
-  if (cardQueryResult.deniedOperations.delete.length > 0) {
-    return new NextResponse(
-      cardQueryResult.deniedOperations.delete
-        .map((v) => v.errorMessage)
-        .join(' '),
-      {
-        status: 403,
-      },
-    );
   }
 
   const removeCommand = new Remove(new Calculate());

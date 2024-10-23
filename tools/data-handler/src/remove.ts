@@ -18,6 +18,7 @@ import { Calculate } from './calculate.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import { RemovableResourceTypes } from './interfaces/project-interfaces.js';
+import { ActionGuard } from './permissions/action-guard.js';
 
 export class Remove extends EventEmitter {
   static project: Project;
@@ -62,6 +63,12 @@ export class Remove extends EventEmitter {
     // Imported templates cannot be modified.
     if (cardFolder.includes(`${sep}modules${sep}`)) {
       throw new Error(`Cannot modify imported module`);
+    }
+
+    // Make sure card can be removed if it's a project card
+    if (!(await Remove.project.isTemplateCard(cardKey))) {
+      const actionGuard = new ActionGuard(new Calculate(), Remove.project);
+      await actionGuard.checkPermission('delete', cardKey);
     }
 
     // If card is destination of a link, remove the link.
