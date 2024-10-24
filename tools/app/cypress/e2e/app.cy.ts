@@ -7,27 +7,15 @@
 
 describe('Navigation', () => {
   Cypress.config('defaultCommandTimeout', 10000);
-
-  //before(() => {
-    //cy.wait(5000); // short wait to avoid random failures
-    //cy.task('createBaseModule');
-  //});
-
   beforeEach(() => {
     cy.visit('http://localhost:3000');
   });
-
   after(() => {
-    //cy.exec('cd ../../&&rmdir /Q /s cyberismo-bat&&rmdir /Q /s module-base');
     cy.task('deleteBaseModule');
   });
-
   it('Create new base module', () => {
     // Creates a new base module with name Basic Acceptance Test
     cy.task('createBaseModule');
-    //cy.exec('cd ../../&&git clone git@github.com:CyberismoCom/module-base.git&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat');
-    //cy.wait(1000); // short wait to avoid random failures
-    //cy.exec('cd ../../cyberismo-bat&&cyberismo import module ../module-base&&cyberismo create card base/templates/page');
     cy.get('h4').contains('Basic Acceptance Test'); // Verify project name
     cy.get('p').contains('Please select a card'); // Verify text on cards page
   });
