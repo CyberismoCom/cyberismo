@@ -10,11 +10,14 @@ describe('Navigation', () => {
   beforeEach(() => {
     cy.visit('http://localhost:3000');
   });
+  after(() => {
+    cy.exec('cd ../../&&rmdir /Q /s cyberismo-bat&&rmdir /Q /s module-base');
+  });
   it('Create new base module', () => {
     // Creates a new base module with name Basic Acceptance Test
-    cy.exec('cd ../../../&&git clone git@github.com:CyberismoCom/module-base.git&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat');
+    cy.exec('cd ../../&&git clone git@github.com:CyberismoCom/module-base.git&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat');
     cy.wait(1000); // short wait to avoid random failures
-    cy.exec('cd ../../../cyberismo-bat&&cyberismo import module ../module-base&&cyberismo create card base/templates/page');
+    cy.exec('cd ../../cyberismo-bat&&cyberismo import module ../module-base&&cyberismo create card base/templates/page');
     cy.get('h4').contains('Basic Acceptance Test'); // Verify project name
     cy.get('p').contains('Please select a card'); // Verify text on cards page
   });
@@ -63,10 +66,10 @@ describe('Navigation', () => {
     cy.get('h2').contains('Consequences');
     cy.get('p').contains('Describe the benefits and drawbacks of the decision. Describe what happens next.');
     // Verify table of contents
-    cy.get('.contentSidebar > .toc-menu > h3').contains('TABLE OF CONTENTS');
-    cy.get('.contentSidebar >>>> a').contains('Context');
-    cy.get('.contentSidebar >>>> a').contains('Decision');
-    cy.get('.contentSidebar >>>> a').contains('Consequences');
+    cy.get('.toc-menu > h3').contains('TABLE OF CONTENTS');
+    cy.get('.toc-menu >>> a').contains('Context');
+    cy.get('.toc-menu >>> a').contains('Decision');
+    cy.get('.toc-menu >>> a').contains('Consequences');
   });
 
   it('view and edit metadata', () => {
@@ -187,17 +190,18 @@ describe('Navigation', () => {
     cy.get('.MuiAutocomplete-option').contains('Untitled page').click(); // Select Untitled page
     cy.get('button').contains('Add link').click(); // Click add link button
 
-    cy.get('.css-qmy8nh-JoyStack-root > .MuiStack-root > .MuiTypography-body-sm').contains('blocks');
-    cy.get('.css-qmy8nh-JoyStack-root > .MuiStack-root > .MuiTypography-title-sm').contains('Untitled page');
-    
+    cy.get('[data-cy="cardLinkType"]').contains('blocks');
+    cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
+
     cy.get(':nth-child(5) > :nth-child(2)').should('not.exist'); // checks 2nd link was not created
 
-    cy.get('a > .MuiLink-root').click(); // Click created card link
+    cy.get('[data-cy="cardLink"]').click(); // Click created card link
 
     // Verifies link exists in Untitled page
     cy.get('h1').contains('Untitled page');
-    cy.get('.css-qmy8nh-JoyStack-root > .MuiStack-root > .MuiTypography-body-sm').contains('is blocked by');
-    cy.get('.css-qmy8nh-JoyStack-root > .MuiStack-root > .MuiTypography-title-sm').contains('Updated title');
+    cy.get('[data-cy="cardLinkType"]').contains('is blocked by');
+    cy.get('[data-cy="cardLinkTitle"]').contains('Updated title');
+    cy.get('[data-cy="cardLink"]');
 
     cy.get('[data-testid="DeleteIcon"]').click();  // Delete link
     // Verify delete link dialog contents and click delete
