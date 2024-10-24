@@ -11,11 +11,11 @@
 */
 
 'use client';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';
-import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
+import { Tree, NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
@@ -131,6 +131,15 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   tree,
 }) => {
   const { ref, width, height } = useResizeObserver();
+  const treeRef = useRef();
+
+  useEffect(() => {
+    // unfortunately react arborist does not provide a type for the ref
+    const tree = treeRef.current as unknown as TreeApi<QueryResult<'tree'>>;
+    if (tree) {
+      tree.select(selectedCardKey);
+    }
+  }, [selectedCardKey, tree]);
 
   return (
     <Stack
@@ -152,10 +161,10 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
         ref={ref}
       >
         <Tree
+          ref={treeRef}
           data={tree}
           openByDefault={false}
           idAccessor={(node) => node.key}
-          selection={selectedCardKey || undefined}
           childrenAccessor="results"
           indent={16}
           width={(width || 0) - 1}

@@ -30,11 +30,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useCard, useProject } from '../../lib/api';
-import {
-  useAppRouter,
-  useAppSelector,
-  useMoveableCards,
-} from '../../lib/hooks';
+import { useAppSelector, useMoveableCards } from '../../lib/hooks';
 import {
   deepCopy,
   filterCards,
@@ -72,7 +68,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
 
   const { updateCard } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
-  const router = useAppRouter();
 
   const dispatch = useDispatch();
 
@@ -91,8 +86,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
           }),
         );
         onClose();
-        // this line refreshes the tree menu
-        router.push(`/cards/${selected}`);
       } catch (error) {
         dispatch(
           addNotification({
@@ -102,7 +95,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
         );
       }
     }
-  }, [selected, updateCard, t, onClose, dispatch, router]);
+  }, [selected, updateCard, t, onClose, dispatch]);
 
   const moveableCards = useMoveableCards(cardKey);
 
