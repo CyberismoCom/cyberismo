@@ -11,7 +11,7 @@
     "test": "npm run unit && npm run e2e:headless",
     "unit": "jest",
     "unit:watch": "jest --watch",
-    "test-env-dev": "cross-env NODE_ENV=test next dev",
+    "test-env-dev": "cross-env NODE_ENV=test npm_config_project_path=../../cyberismo-bat next dev",
     "e2e": "start-server-and-test test-env-dev http://localhost:3000 \"cypress open --e2e\"",
     "e2e:headless": "start-server-and-test test-env-dev http://localhost:3000 \"cypress run --e2e\""
   },
