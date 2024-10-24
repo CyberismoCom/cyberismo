@@ -13,7 +13,12 @@
 'use client';
 
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
-import { CardDetails, ParsedLink, Project } from '../lib/definitions';
+import {
+  CardDetails,
+  ExpandedLinkType,
+  ParsedLink,
+  Project,
+} from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
 import {
@@ -52,7 +57,7 @@ type ContentAreaProps = {
   card: CardDetails & {
     parsed: string;
   };
-  linkTypes: LinkType[];
+  linkTypes: ExpandedLinkType[];
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
@@ -75,9 +80,8 @@ interface LinkFormData {
 }
 
 interface LinkFormProps {
-  linkTypes: LinkType[];
+  linkTypes: ExpandedLinkType[];
   cards: Project['cards'];
-  cardType: string | undefined;
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   cardKey: string;
 }
@@ -88,7 +92,6 @@ export function LinkForm({
   cards,
   linkTypes,
   onSubmit,
-  cardType,
   cardKey,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
@@ -96,40 +99,9 @@ export function LinkForm({
   });
   const { t } = useTranslation();
 
-  const handledLinkTypes: (LinkType & {
-    direction: 'inbound' | 'outbound';
-    id: number;
-  })[] = [];
-
-  let id = 0;
-  for (const type of linkTypes) {
-    if (!cardType) continue;
-    // Check if this card is in from or to list
-    if (
-      type.sourceCardTypes.includes(cardType) ||
-      type.sourceCardTypes.length === 0
-    ) {
-      handledLinkTypes.push({
-        ...type,
-        direction: 'outbound',
-        id: id++,
-      });
-    }
-    if (
-      type.destinationCardTypes.includes(cardType) ||
-      type.destinationCardTypes.length === 0
-    ) {
-      handledLinkTypes.push({
-        ...type,
-        direction: 'inbound',
-        id: id++,
-      });
-    }
-  }
-
   // find chosen link type
   const linkType = watch('linkType');
-  const selectedLinkType = handledLinkTypes.find((t) => t.id === linkType);
+  const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
   const usableCards = flattenTree(cards).filter((card) => {
     if (!selectedLinkType || card.key === cardKey) return false;
@@ -151,7 +123,7 @@ export function LinkForm({
   return (
     <form
       onSubmit={handleSubmit(async (data) => {
-        const linkType = handledLinkTypes.find((t) => t.id === data.linkType);
+        const linkType = linkTypes.find((t) => t.id === data.linkType);
         if (!linkType) return;
         const success = await onSubmit?.({
           linkType: linkType.name,
@@ -178,7 +150,7 @@ export function LinkForm({
                 }}
                 required={true}
               >
-                {handledLinkTypes.map((linkType) => (
+                {linkTypes.map((linkType) => (
                   <Option key={linkType.id} value={linkType.id}>
                     {linkType.direction === 'outbound'
                       ? linkType.outboundDisplayName
@@ -420,7 +392,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
               cards={project?.cards ?? []}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
-              cardType={card.metadata?.cardType}
               cardKey={card.key}
             />
           )}

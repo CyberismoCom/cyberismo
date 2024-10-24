@@ -69,7 +69,7 @@ import { openAttachment } from '@/app/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
 import { Icon } from '@mui/material';
-import { useModals } from '@/app/lib/utils';
+import { expandLinkTypes, useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
 import { parseContent } from '@/app/lib/api/actions/card';
 
@@ -511,6 +511,11 @@ export default function Page({ params }: { params: { key: string } }) {
     });
   };
 
+  const expandedLinkTypes =
+    linkTypes && card?.metadata?.cardType
+      ? expandLinkTypes(linkTypes, card?.metadata?.cardType || '')
+      : [];
+
   return (
     <>
       <Stack height="100%">
@@ -519,6 +524,7 @@ export default function Page({ params }: { params: { key: string } }) {
             cardKey={params.key}
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
+            linkButtonDisabled={true}
           />
           <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
             <Tabs
@@ -676,7 +682,7 @@ export default function Page({ params }: { params: { key: string } }) {
                   <LoadingGate values={[linkTypes, previewCard.parsed || null]}>
                     <ContentArea
                       card={previewCard}
-                      linkTypes={linkTypes!}
+                      linkTypes={expandedLinkTypes}
                       project={project}
                       preview={true}
                     />
