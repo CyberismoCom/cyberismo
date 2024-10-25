@@ -12,7 +12,7 @@
 
 // node
 import { Dirent, readdirSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { dirname, extname, join, parse } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
@@ -24,8 +24,20 @@ import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
+import { resourceNameParts } from './utils/resource-utils.js';
 import { Project } from './containers/project.js';
-import { Card, FieldTypeDefinition } from './interfaces/project-interfaces.js';
+import {
+  Card,
+  FieldTypeDefinition,
+  TemplateMetadata,
+  CardType,
+  CustomField,
+  DotSchemaContent,
+  LinkType,
+  ProjectSettings,
+  WorkflowMetadata,
+  ReportMetadata,
+} from './interfaces/project-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -47,16 +59,22 @@ export class Validate {
   static jsonFileExtension = '.json';
   static parentSchemaFile: string;
   static schemaConfigurationFile = '.schema';
+  static projectConfigurationFile = 'cardsConfig.json';
+  static templateMetadataFile = 'template.json';
+  static cardMetadataFile = 'index.json';
+  static dotSchemaSchemaId = 'dotSchema';
+  static parameterSchemaFile = 'parameterSchema.json';
+  static reportMetadataFile = 'report.json';
 
   constructor() {
     Validate.baseFolder = pathExists(
-      join(process.cwd(), '../schema', 'cardtree-directory-schema.json'),
+      join(process.cwd(), '../schema', 'cardTreeDirectorySchema.json'),
     )
       ? join(process.cwd(), '../schema')
       : join(baseDir, '../../schema');
     Validate.parentSchemaFile = join(
       Validate.baseFolder,
-      'cardtree-directory-schema.json',
+      'cardTreeDirectorySchema.json',
     );
     this.validator = new JSONValidator();
     this.directoryValidator = new DirectoryValidator();
@@ -81,55 +99,118 @@ export class Validate {
 
   // Return full path and filename.
   private fullPath(file: Dirent): string {
-    return join(file.path, file.name);
+    return join(file.parentPath, file.name);
   }
 
   // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(path: string): Promise<string[]> {
+  private async readAndValidateContentFiles(
+    project: Project,
+    path: string,
+  ): Promise<string[]> {
     const message: string[] = [];
     try {
       const files = await readdir(path, {
         withFileTypes: true,
         recursive: true,
       });
-      // Filter out directories and non-JSON files. Include special '.schema' files.
-      const fileNames = files
-        .filter((dirent) => dirent.isFile())
-        .filter(
-          (dirent) =>
-            dirent.name === Validate.schemaConfigurationFile ||
-            extname(dirent.name) === Validate.jsonFileExtension,
+
+      const schemaFiles = files.filter(
+        (dirent) =>
+          dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
+      );
+
+      message.push(...(await this.validateSchemaFiles(schemaFiles)));
+
+      // no point in validating contents if .schema files are not valid
+      if (message.length !== 0) {
+        return message;
+      }
+
+      const schemaConfigs = (
+        await Promise.all(
+          schemaFiles.map(async (dirent) => ({
+            dirent,
+            content: await readJsonFile(this.fullPath(dirent)),
+          })),
+        )
+      ).reduce<Record<string, DotSchemaContent>>((acc, { dirent, content }) => {
+        acc[dirent.parentPath] = content;
+        return acc;
+      }, {});
+
+      const prefixes = await project.projectPrefixes();
+      // Go through every file
+      for (const file of files.filter(
+        (dirent) =>
+          dirent.isFile() &&
+          dirent.name !== Validate.schemaConfigurationFile &&
+          extname(dirent.name) === Validate.jsonFileExtension,
+      )) {
+        const fullPath = this.fullPath(file);
+        const content = await readJsonFile(fullPath);
+        const nameErrors = this.validateResourceName(
+          fullPath,
+          file,
+          content,
+          prefixes,
         );
 
-      let activeJsonSchema: Schema = {};
-      for (const file of fileNames) {
-        const fullFileNameWithPath = this.fullPath(file);
-        if (file.name === Validate.schemaConfigurationFile) {
-          const jsonSchema = (await readJsonFile(
-            fullFileNameWithPath,
-          )) as Schema;
-          if (jsonSchema) {
-            activeJsonSchema = this.validator.schemas[jsonSchema.id as string];
-            if (activeJsonSchema === undefined) {
-              throw new Error(
-                `Unknown schema name ${jsonSchema.id}, aborting.`,
-              );
-            }
-          }
-        } else {
-          // console.log(`FILE ${fullFileNameWithPath} ACTIVE SCHEMA : ${activeJsonSchema.$id}`);
-          const result = this.validator.validate(
-            await readJsonFile(fullFileNameWithPath),
-            activeJsonSchema,
-          );
-          for (const error of result.errors) {
-            const msg = `Validation error from '${fullFileNameWithPath}': ${error.message}.`;
-            message.push(msg);
-          }
+        if (nameErrors) {
+          message.push(...nameErrors);
+        }
+        const schemas = schemaConfigs[file.parentPath];
+        // if schema is not defined for the directory, skip it
+        if (!schemas) {
+          continue;
+        }
+        const fileSchema = schemas.find(
+          (schema) =>
+            schema.file === file.name || (schemas.length === 1 && !schema.file),
+        );
+
+        if (!fileSchema) {
+          continue;
+        }
+
+        const schema = this.validator.schemas[fileSchema.id];
+
+        if (!schema) {
+          throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
+        }
+
+        const result = this.validator.validate(content, schema);
+        for (const error of result.errors) {
+          const msg = `Validation error from '${fullPath}': ${error.message}.`;
+          message.push(msg);
         }
       }
     } catch (error) {
       throw new Error(errorFunction(error));
+    }
+    return message;
+  }
+
+  // Handles validating .schema files
+  private async validateSchemaFiles(files: Dirent[]) {
+    const schema = this.validator.schemas[Validate.dotSchemaSchemaId];
+
+    if (!schema) {
+      throw new Error(`.schema schema not found`);
+    }
+
+    const message: string[] = [];
+
+    for (const file of files) {
+      const fullPath = this.fullPath(file);
+
+      const result = this.validator.validate(
+        await readJsonFile(fullPath),
+        schema,
+      );
+      for (const error of result.errors) {
+        const msg = `Validation error from '${fullPath}': ${error.message}.`;
+        message.push(msg);
+      }
     }
     return message;
   }
@@ -177,6 +258,90 @@ export class Validate {
     return parsedErrorMessage;
   }
 
+  // Removes same items from an array.
+  private removeDuplicateEntries(
+    value: string,
+    index: number,
+    array: string[],
+  ) {
+    return array.indexOf(value) === index;
+  }
+
+  private async validateArrayOfFields(
+    project: Project,
+    cardType: CardType,
+    fieldArray: string[],
+    nameOfArray: string,
+  ) {
+    const errors: string[] = [];
+    if (cardType && fieldArray) {
+      for (const field of fieldArray) {
+        const fieldType = await project.fieldType(field);
+        if (!fieldType) {
+          errors.push(
+            `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`,
+          );
+        }
+      }
+    }
+    return errors;
+  }
+
+  // Validates that 'name' in resources matches filename, location and project prefix.
+  // @todo: Can be removed when INTDEV-463 is implemented.
+  private validateResourceName(
+    fullFileNameWithPath: string,
+    file: Dirent,
+    content:
+      | TemplateMetadata
+      | CardType
+      | CustomField
+      | DotSchemaContent
+      | FieldTypeDefinition
+      | LinkType
+      | ProjectSettings
+      | WorkflowMetadata
+      | ReportMetadata,
+    projectPrefixes: string[],
+  ): string[] {
+    const errors: string[] = [];
+    // Exclude cardsConfig.json, .schemas and template.json.
+    if (
+      file.name !== Validate.projectConfigurationFile &&
+      file.name !== Validate.templateMetadataFile &&
+      file.name !== Validate.cardMetadataFile &&
+      file.name !== Validate.dotSchemaSchemaId &&
+      file.name !== Validate.parameterSchemaFile &&
+      file.name !== Validate.reportMetadataFile
+    ) {
+      const namedContent = content as
+        | CardType
+        | CustomField
+        | FieldTypeDefinition
+        | LinkType
+        | WorkflowMetadata;
+      const { name, type, prefix } = resourceNameParts(namedContent.name);
+      const filenameWithoutExtension = parse(file.name).name;
+
+      if (!projectPrefixes.includes(prefix)) {
+        errors.push(
+          `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
+        );
+      }
+      if (name !== filenameWithoutExtension) {
+        errors.push(
+          `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
+        );
+      }
+      if (!fullFileNameWithPath.includes(type)) {
+        errors.push(
+          `Wrong type name in resource '${namedContent.name}'. Should match filename path: '${fullFileNameWithPath}'`,
+        );
+      }
+    }
+    return errors;
+  }
+
   // Validates that card's dataType can be used with JS types.
   private validType<T>(value: T, fieldType: FieldTypeDefinition): boolean {
     const field = fieldType.dataType;
@@ -187,7 +352,7 @@ export class Validate {
       return true;
     }
 
-    if (field === 'date' || field === 'datetime') {
+    if (field === 'date' || field === 'dateTime') {
       return !isNaN(Date.parse(<string>value));
     }
     if (field === 'list') {
@@ -196,10 +361,10 @@ export class Validate {
     if (field === 'boolean' || field === 'number') {
       return typeOfValue === field;
     }
-    if (field === 'shorttext') {
+    if (field === 'shortText') {
       return typeOfValue === 'string' && this.length(<string>value) <= 80;
     }
-    if (field === 'longtext') {
+    if (field === 'longText') {
       return typeOfValue === 'string';
     }
     if (field === 'integer') {
@@ -235,18 +400,6 @@ export class Validate {
   }
 
   /**
-   * Validates that 'prefix' is valid project prefix.
-   * @param prefix project prefix
-   * @returns true, if prefix can be used as project prefix, false otherwise.
-   */
-  public static validatePrefix(prefix: string): boolean {
-    const validPrefix = new RegExp('^[a-z]+$');
-    const contentValidated = validPrefix.test(prefix);
-    const lengthValidated = prefix.length > 2 && prefix.length < 11;
-    return contentValidated && lengthValidated;
-  }
-
-  /**
    * Validates that a given directory path (and its children) conform to a JSON schema.
    * @note Validates also content in the directory tree, if .schema file is found.
    * @param projectPath path to validate.
@@ -270,15 +423,18 @@ export class Validate {
         return validationErrors;
       } else {
         const errorMsg: string[] = [];
+        const project = new Project(projectPath);
 
         // Then, validate that each 'contentSchema' children as well.
-        const result = await this.readAndValidateContentFiles(projectPath);
+        const result = await this.readAndValidateContentFiles(
+          project,
+          projectPath,
+        );
         if (result.length > 0) {
           errorMsg.push(...result);
         }
 
         // Finally, validate that each card is correct
-        const project = new Project(projectPath);
         const cards = await project.cards();
         cards.push(...(await project.templateCards()));
 
@@ -305,7 +461,9 @@ export class Validate {
           }
         }
         if (errorMsg.length) {
-          validationErrors += errorMsg.join('\n');
+          validationErrors += errorMsg
+            .filter(this.removeDuplicateEntries)
+            .join('\n');
         }
       }
     } catch (error) {
@@ -335,6 +493,18 @@ export class Validate {
       }
     }
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates that 'prefix' is valid project prefix.
+   * @param prefix project prefix
+   * @returns true, if prefix can be used as project prefix, false otherwise.
+   */
+  public static validatePrefix(prefix: string): boolean {
+    const validPrefix = new RegExp('^[a-z]+$');
+    const contentValidated = validPrefix.test(prefix);
+    const lengthValidated = prefix.length > 2 && prefix.length < 11;
+    return contentValidated && lengthValidated;
   }
 
   /**
@@ -387,7 +557,27 @@ export class Validate {
     }
 
     const cardType = await project.cardType(card.metadata?.cardType);
-    if (!cardType) {
+    if (cardType) {
+      // Check that arrays of field types refer to existing fields.
+      let fieldErrors = await this.validateArrayOfFields(
+        project,
+        cardType,
+        cardType.optionallyVisibleFields
+          ? cardType.optionallyVisibleFields
+          : [],
+        'optionally visible fields',
+      );
+      validationErrors.push(...fieldErrors);
+      fieldErrors = await this.validateArrayOfFields(
+        project,
+        cardType,
+        cardType.optionallyVisibleFields
+          ? cardType.optionallyVisibleFields
+          : [],
+        'always visible fields',
+      );
+      validationErrors.push(...fieldErrors);
+    } else {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );

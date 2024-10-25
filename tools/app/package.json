@@ -16,7 +16,6 @@
     "e2e:headless": "start-server-and-test test-env-dev http://localhost:3000 \"cypress run --e2e\""
   },
   "dependencies": {
-    "@asciidoctor/core": "^3.0.4",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@fontsource/inter": "^5.0.18",
@@ -25,7 +24,8 @@
     "@mui/material": "^6.0.1",
     "@mui/x-tree-view": "^7.14.0",
     "@reduxjs/toolkit": "^2.2.5",
-    "@uiw/react-codemirror": "^4.22.2",
+    "@uiw/react-codemirror": "^4.23.5",
+    "asciidoctor": "^3.0.4",
     "codemirror-asciidoc": "^2.0.1",
     "html-react-parser": "^5.1.12",
     "i18next": "^23.11.5",
@@ -38,6 +38,7 @@
     "react-hook-form": "^7.51.5",
     "react-i18next": "^15.0.1",
     "react-redux": "^9.1.2",
+    "react-resizable-panels": "^2.1.4",
     "redux-persist": "^6.0.0",
     "swr": "^2.2.5",
     "use-resize-observer": "^9.1.0"
@@ -60,7 +61,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "next-swagger-doc": "^0.4.0",
     "start-server-and-test": "^2.0.5",
-    "swagger-ui-react": "^5.11.2",
+    "swagger-ui-react": "^5.17.14",
     "typescript": "^5"
   }
 }

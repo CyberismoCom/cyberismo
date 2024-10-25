@@ -272,7 +272,7 @@ create
   .argument('<name>', `Name for template. ${nameGuideline}`)
   .argument(
     '[content]',
-    'If empty, template is created with default values. \nTemplate content must conform to schema template-schema.json',
+    'If empty, template is created with default values. \nTemplate content must conform to schema templateSchema.json',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
@@ -291,13 +291,27 @@ create
   .argument('<name>', `Name for the workflow. ${nameGuideline}`)
   .argument(
     '[content]',
-    'If empty, workflow is created with default values. \nWorkflow content must conform to schema workflow-schema.json',
+    'If empty, workflow is created with default values. \nWorkflow content must conform to schema workflowSchema.json',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
       ['workflow', name, content],
+      options,
+    );
+    handleResponse(result);
+  });
+
+create
+  .command('report')
+  .description('Create a report')
+  .argument('<name>', `Name for the report. ${nameGuideline}`)
+  .option('-p, --project-path [path]', pathGuideline)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', name],
       options,
     );
     handleResponse(result);

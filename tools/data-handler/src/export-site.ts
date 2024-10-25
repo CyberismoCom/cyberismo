@@ -22,12 +22,15 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-// ismo
 import { Card } from './interfaces/project-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { Export } from './export.js';
 import { Project } from './containers/project.js';
 import { sortItems } from './utils/lexorank.js';
+
+interface ExportOptions {
+  silent: boolean;
+}
 
 export class ExportSite extends Export {
   private tmpDir: string = '';
@@ -37,6 +40,7 @@ export class ExportSite extends Export {
   private playbookDir: string = '';
   private playbookFile: string = '';
   private navFile: string = '';
+  private options: ExportOptions | undefined;
 
   // todo: change this so that split temp folder creation to its own method.
   // then parallelize this and export() as much as you can.
@@ -68,9 +72,13 @@ export class ExportSite extends Export {
 
   // Generate the site from the source files using Antora.
   private generate(outputPath: string) {
-    // Use spawnsync to npx execute the program "antora", with the argument this.playbookFile
+    const additionalArguments = ['--to-dir', outputPath, this.playbookFile];
+    if (this.options && this.options?.silent) {
+      additionalArguments.unshift('--silent');
+    }
+    // Use spawnsync to npx execute the program "antora"
     try {
-      spawnSync('npx', ['antora', '--to-dir', outputPath, this.playbookFile], {
+      spawnSync('npx', ['antora', ...additionalArguments], {
         stdio: 'inherit',
       });
     } catch (error) {
@@ -248,11 +256,16 @@ export class ExportSite extends Export {
     source: string,
     destination: string,
     cardKey?: string,
+    options?: ExportOptions,
   ) {
+    this.options = options;
     Export.project = new Project(source);
     const sourcePath: string = cardKey
-      ? join(Export.project.cardRootFolder, Export.project.pathToCard(cardKey))
-      : Export.project.cardRootFolder;
+      ? join(
+          Export.project.paths.cardRootFolder,
+          Export.project.pathToCard(cardKey),
+        )
+      : Export.project.paths.cardRootFolder;
     const cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.

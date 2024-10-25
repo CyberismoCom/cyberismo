@@ -28,12 +28,14 @@ describe('export-site', () => {
     rmSync(testDir, { recursive: true, force: true });
     rmSync(testDirForExport, { recursive: true, force: true });
   });
-  it('export site - initialise', async () => {
+  it('export site (success)', async () => {
     const project = new Project(decisionRecordsPath);
 
     const exportSite = new ExportSite();
-    const projectRoot = join(project.cardRootFolder, '..');
-    await exportSite.exportToSite(projectRoot, '/tmp/foo');
+    const projectRoot = join(project.paths.cardRootFolder, '..');
+    await exportSite.exportToSite(projectRoot, '/tmp/foo', undefined, {
+      silent: true,
+    });
     expect(true).to.equal(true);
   });
 });

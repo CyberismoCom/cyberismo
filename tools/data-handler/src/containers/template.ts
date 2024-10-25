@@ -15,11 +15,11 @@ import { basename, join, resolve, sep } from 'node:path';
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 
-// ismo
 import {
   Card,
   CardAttachment,
   CardNameRegEx,
+  DotSchemaItem,
   FetchCardDetails,
   Resource,
   Template as TemplateInterface,
@@ -50,10 +50,19 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static DotSchemaContent: object = {
-    id: 'card-base-schema',
-    version: 1,
-  };
+  private static DotSchemaContentForCard: DotSchemaItem[] = [
+    {
+      id: 'cardBaseSchema',
+      version: 1,
+    },
+  ];
+
+  private static DotSchemaContentForTemplate: DotSchemaItem[] = [
+    {
+      id: 'templateSchema',
+      version: 1,
+    },
+  ];
 
   constructor(path: string, template: Resource, project?: Project) {
     // Templates might come from modules. Remove module name from template name.
@@ -80,7 +89,7 @@ export class Template extends CardContainer {
     parentCard?: Card,
   ): Promise<Card[]> {
     const templateIDMap: mappingValue[] = [];
-    const tempDestination = join(this.project.cardRootFolder, 'temp');
+    const tempDestination = this.project.paths.tempCardFolder;
 
     // First, create a mapping table.
     for (const card of cards) {
@@ -152,7 +161,7 @@ export class Template extends CardContainer {
       await mkdir(tempDestination, { recursive: true });
       await writeJsonFile(
         join(tempDestination, Project.schemaContentFile),
-        Template.DotSchemaContent,
+        Template.DotSchemaContentForCard,
       );
 
       // Create cards to the temp-folder.
@@ -242,7 +251,7 @@ export class Template extends CardContainer {
         await mkdir(parentCard.path, { recursive: true });
         await copyDir(tempDestination, parentCard.path);
       } else {
-        await copyDir(tempDestination, this.project.cardRootFolder);
+        await copyDir(tempDestination, this.project.paths.cardRootFolder);
       }
       // Finally, delete temp folder.
       await rm(tempDestination, { recursive: true, force: true });
@@ -259,10 +268,10 @@ export class Template extends CardContainer {
 
   // fetches path to module.
   private moduleTemplatePath(templateName: string): string {
-    if (!pathExists(this.project.modulesFolder)) {
+    if (!pathExists(this.project.paths.modulesFolder)) {
       return '';
     }
-    const files = readdirSync(this.project.modulesFolder, {
+    const files = readdirSync(this.project.paths.modulesFolder, {
       withFileTypes: true,
     });
     const modules = files.filter((item) => item.isDirectory());
@@ -300,7 +309,7 @@ export class Template extends CardContainer {
 
     // Template can either be local ...
     const localTemplate = join(
-      this.project.templatesFolder,
+      this.project.paths.templatesFolder,
       normalizedTemplateName,
     );
     const createdLocalTemplate = pathExists(resolve(localTemplate));
@@ -450,13 +459,13 @@ export class Template extends CardContainer {
               this.templateConfigurationFilePath(),
               templateContent,
             ),
-            writeJsonFile(join(this.templatePath, Project.schemaContentFile), {
-              id: 'template-schema',
-              version: 1,
-            }),
+            writeJsonFile(
+              join(this.templatePath, Project.schemaContentFile),
+              Template.DotSchemaContentForTemplate,
+            ),
             writeJsonFile(
               join(this.templateCardsPath, Project.schemaContentFile),
-              Template.DotSchemaContent,
+              Template.DotSchemaContentForCard,
             ),
           ]);
 
@@ -566,7 +575,6 @@ export class Template extends CardContainer {
     return {
       name: `${name}/templates/${this.containerName}`,
       path: this.templateFolder(),
-      project: this.project.projectName,
       numberOfCards: (await super.cards(this.templateCardsPath)).length,
       metadata: (await readJsonFile(
         this.templateConfigurationFilePath(),

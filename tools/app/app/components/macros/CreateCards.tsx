@@ -62,7 +62,7 @@ export default function CreateCards({
           );
 
           if (cards && cards.length > 0) {
-            router.push(`/cards/${cards[0]}/edit`);
+            router.push(`/cards/${cards[0]}`);
           }
         } catch (e) {
           dispatch(

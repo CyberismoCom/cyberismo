@@ -14,11 +14,12 @@
 import React from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
-import { Box, Stack, Typography } from '@mui/joy';
+import { Box, Chip, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi } from 'react-arborist';
 import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import Link from 'next/link';
 
 type TreeMenuProps = {
   title: string;
@@ -36,45 +37,88 @@ const RenderTree = (
     style,
     dragHandle,
   }: NodeRendererProps<QueryResult<'tree'>>) {
+    const progress = node.data['base/fieldTypes/progress'];
+
     return (
       <Box
+        className="treenode"
         style={style}
         ref={dragHandle}
         onClick={(e) => {
           e.stopPropagation();
-          node.toggle();
+          if (node.isClosed) node.toggle();
           onCardSelect?.(node);
         }}
         alignContent="center"
         display="flex"
-        bgcolor={node.isSelected ? 'primary.softActiveBg' : 'transparent'}
+        paddingRight="4px"
+        height="100%"
+        marginRight={1}
+        borderRadius="6px 6px 6px 6px"
+        bgcolor={node.isSelected ? 'white' : 'transparent'}
       >
-        {node.children && node.children.length > 0 && (
-          <ExpandMoreIcon
-            sx={{
-              // direction is down if open, right if closed
-              transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-            }}
-          />
-        )}
-        <div>{node.data['base/fieldTypes/progress']}</div>
+        <ExpandMoreIcon
+          visibility={
+            node.children && node.children.length > 0 ? 'visible' : 'hidden'
+          }
+          onClick={(e) => {
+            e.stopPropagation();
+            node.toggle();
+          }}
+          sx={{
+            // direction is down if open, right if closed
+            maxWidth: '20px',
+            transform: node.isOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+            cursor: 'pointer',
+          }}
+        />
         {node.data.workflowStateCategory && (
+          // Status color circle
           <Box
             color={getStateColor(node.data.workflowStateCategory)}
+            visibility={progress ? 'hidden' : 'visible'}
             display="flex"
-            alignItems="center
-              "
+            alignItems="center"
             alignSelf="center"
             width={10}
             height={10}
             marginRight={1}
           >
-            <FiberManualRecord fontSize="inherit" />
+            <FiberManualRecord
+              sx={{
+                fontSize: 15,
+              }}
+            />
           </Box>
         )}
-        <Typography level="title-sm" noWrap alignSelf="center">
+        <Typography
+          level="title-sm"
+          noWrap
+          alignSelf="center"
+          sx={{
+            cursor: 'pointer',
+          }}
+        >
           {node.data.title ?? node.data.key}
         </Typography>
+        <Box margin="auto"></Box>
+        {progress && (
+          // Optional progress chip
+          <Chip
+            size="sm"
+            sx={{
+              backgroundColor: chipColor(progress),
+              fontSize: '0.8rem',
+              padding: '0px 6px 0px 6px',
+              height: '20px',
+              marginLeft: '4px',
+              textAlign: 'center',
+              alignSelf: 'center',
+            }}
+          >
+            {progress + '%'}
+          </Chip>
+        )}
       </Box>
     );
   };
@@ -96,7 +140,11 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       height="100%"
       width="100%"
     >
-      <Typography level="h4">{title}</Typography>
+      <Link href="/cards" style={{ textDecoration: 'none' }}>
+        <Typography level="h4" marginBottom={2}>
+          {title}
+        </Typography>
+      </Link>
       <Box
         sx={{
           flexGrow: 1,
@@ -109,9 +157,10 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           idAccessor={(node) => node.key}
           selection={selectedCardKey || undefined}
           childrenAccessor="results"
-          indent={24}
+          indent={16}
           width={(width || 0) - 1}
           height={height}
+          rowHeight={28}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
               onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
@@ -123,4 +172,12 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       </Box>
     </Stack>
   );
+};
+
+const chipColor = (value: string) => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return 'neutral';
+  if (parsed === 0) return 'neutral.300';
+  else if (parsed === 100) return 'success.400';
+  else return 'warning.300';
 };

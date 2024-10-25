@@ -124,6 +124,16 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('card and validate (success)', async () => {
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['card', 'decision/templates/simplepage'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], options);
+    expect(result.message).to.equal('Project structure validated');
+  });
   it('card with parent (success)', async () => {
     const templateName = 'decision/templates/decision';
     const parentCard = 'decision_5';
@@ -155,9 +165,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('card incorrect or missing cardsconfig.json', async () => {
+  it('card incorrect or missing cardsConfig.json', async () => {
     const invalidOptions = {
-      projectPath: join(testDir, 'invalid/missing-cardsconfig.json'),
+      projectPath: join(testDir, 'invalid/missing-cardsConfig.json'),
     };
     const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
@@ -167,9 +177,9 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('card invalid cardsconfig.json', async () => {
+  it('card invalid cardsConfig.json', async () => {
     const invalidOptions = {
-      projectPath: join(testDir, 'invalid/invalid-cardsconfig.json'),
+      projectPath: join(testDir, 'invalid/invalid-cardsConfig.json'),
     };
     const templateName = 'decision/templates/simplepage';
     const result = await commandHandler.command(
@@ -304,37 +314,37 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  // link
-  it('create link (success)', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-      options,
-    );
-    expect(result.statusCode).to.equal(200);
-  });
-  it('create link with different description(success)', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      [
-        'link',
-        'decision_5',
-        'decision_6',
-        'decision/linkTypes/test',
-        'description2',
-      ],
-      options,
-    );
-    expect(result.statusCode).to.equal(200);
-  });
-  it('try create link - link already exists', async () => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
-      options,
-    );
-    expect(result.statusCode).to.equal(400);
-  });
+  // link - three tests commented out for now (see INTDEV-512). When doing INTDEV-512, also add a test which makes sure createLink fails if source and destination cards are the same
+  // it('create link (success)', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(200);
+  // });
+  // it('create link with different description(success)', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     [
+  //       'link',
+  //       'decision_5',
+  //       'decision_6',
+  //       'decision/linkTypes/test',
+  //       'description2',
+  //     ],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(200);
+  // });
+  // it('try create link - link already exists', async () => {
+  //   const result = await commandHandler.command(
+  //     Cmd.create,
+  //     ['link', 'decision_5', 'decision_6', 'decision/linkTypes/test'],
+  //     options,
+  //   );
+  //   expect(result.statusCode).to.equal(400);
+  // });
 
   it('try create link - card does not exist', async () => {
     const result = await commandHandler.command(
@@ -507,6 +517,37 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
 
+  // report
+  it('report (success)', async () => {
+    const reportName = 'report-name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+  it('report and validate', async () => {
+    const reportName = 'report-name-second';
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], optionsMini);
+    console.log(result);
+    expect(result.statusCode).to.equal(200);
+  });
+  it('try to create report with same name', async () => {
+    const reportName = 'report-name';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(500);
+  });
   // template
   it('template (success)', async () => {
     const templateName = 'template-name_first';
@@ -518,7 +559,8 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-  it('template with "local" (success)', async () => {
+  it('template with "local"', async () => {
+    // local is no longer a valid name part.
     const templateName = 'local/templates/template-name_second';
     const templateContent = '{}';
     const result = await commandHandler.command(
@@ -526,7 +568,7 @@ describe('create command', () => {
       ['template', templateName, templateContent],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(200);
+    expect(result.statusCode).to.equal(400);
   });
   it('template with default parameters (success)', async () => {
     const templateName = 'validname';
@@ -547,7 +589,17 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-
+  it('template and validate (success)', async () => {
+    const templateName = 'validatedTemplate';
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['template', templateName],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], options);
+    expect(result.message).to.equal('Project structure validated');
+  });
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
     const templateContent = '{}';

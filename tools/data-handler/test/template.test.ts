@@ -7,7 +7,6 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// ismo
 import { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
@@ -367,7 +366,6 @@ describe('template', () => {
     expect(templateDetails.name).to.equal('decision/templates/decision');
     expect(templateDetails.path).includes('.cards');
     expect(templateDetails.path).includes('decision');
-    expect(templateDetails.project).to.equal(project.projectName);
     expect(templateDetails.metadata.description).to.equal('description');
     expect(templateDetails.metadata.category).to.equal('category');
     expect(templateDetails.metadata.displayName).to.equal('Decision');

@@ -12,7 +12,7 @@
 
 'use client';
 import React, { useCallback } from 'react';
-import { Box, Button, IconButton } from '@mui/joy';
+import { Box, Button, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
 import { CardMode, WorkflowTransition } from '../lib/definitions';
@@ -70,29 +70,24 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   );
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }} height={45}>
+    <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs selectedCard={card} project={project} />
       </Box>
 
       <CardContextMenu cardKey={cardKey} />
 
-      <IconButton onClick={onInsertLink}>
-        <InsertLink />
-      </IconButton>
-
-      {mode === CardMode.EDIT && (
-        <Button
-          id="cancelButton"
-          variant="plain"
-          aria-label="cancel"
-          size="sm"
-          color="neutral"
-          style={{ marginLeft: 16, minWidth: 80 }}
-          onClick={() => router.safePush(`/cards/${cardKey}`)}
-        >
-          {t('cancel')}
-        </Button>
+      {mode === CardMode.VIEW && (
+        <Tooltip title={t('linkTooltip')}>
+          <IconButton
+            onClick={onInsertLink}
+            size="sm"
+            variant="plain"
+            style={{ marginRight: 8, minWidth: 40 }}
+          >
+            <InsertLink />
+          </IconButton>
+        </Tooltip>
       )}
 
       <StatusSelector
@@ -108,10 +103,24 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           data-cy="editButton"
           size="sm"
           startDecorator={<EditIcon />}
-          style={{ marginLeft: 16, minWidth: 80 }}
+          style={{ marginLeft: 8, minWidth: 80 }}
           onClick={() => router.push(`/cards/${card!.key}/edit`)}
         >
           {t('edit')}
+        </Button>
+      )}
+
+      {mode === CardMode.EDIT && (
+        <Button
+          id="cancelButton"
+          variant="plain"
+          aria-label="cancel"
+          size="sm"
+          color="neutral"
+          style={{ marginLeft: 8, minWidth: 80 }}
+          onClick={() => router.safePush(`/cards/${cardKey}`)}
+        >
+          {t('cancel')}
         </Button>
       )}
 
@@ -121,7 +130,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           size="sm"
           aria-label="update"
           data-cy="updateButton"
-          style={{ marginLeft: 16, minWidth: 80 }}
+          style={{ marginLeft: 8, minWidth: 80 }}
           onClick={onUpdate}
           disabled={isUpdating}
         >

@@ -279,7 +279,6 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @todo: missing tests
    * @param {string} projectPath path to a project
    * @returns array of card type details
    */
@@ -323,6 +322,11 @@ export class Show {
   ): Promise<LinkType | undefined> {
     Show.project = new Project(projectPath);
     const linkTypeDetails = await Show.project.linkType(linkTypeName);
+    if (linkTypeDetails === undefined) {
+      throw new Error(
+        `Link type '${linkTypeName}' not found from the project.`,
+      );
+    }
     return linkTypeDetails;
   }
 
@@ -333,6 +337,7 @@ export class Show {
    */
   public async showFieldTypes(projectPath: string): Promise<string[]> {
     Show.project = new Project(projectPath);
+    // todo: make a common function that strips away the extension. Or use basename().
     const fieldTypes = (await Show.project.fieldTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();
@@ -350,8 +355,13 @@ export class Show {
     fieldTypeName: string,
   ): Promise<FieldTypeDefinition | undefined> {
     Show.project = new Project(projectPath);
-    const filedTypeDetails = await Show.project.fieldType(fieldTypeName);
-    return filedTypeDetails;
+    const fieldTypeDetails = await Show.project.fieldType(fieldTypeName);
+    if (fieldTypeDetails === undefined) {
+      throw new Error(
+        `Field type '${fieldTypeName}' not found from the project.`,
+      );
+    }
+    return fieldTypeDetails;
   }
 
   /**
@@ -388,7 +398,6 @@ export class Show {
   /**
    * Shows all modules with full details in a project.
    * @param {string} projectPath path to a project
-   * @todo: add unit tests
    * @returns all modules in a project.
    */
   public async showModulesWithDetails(
@@ -422,7 +431,7 @@ export class Show {
   public async showTemplate(
     projectPath: string,
     templateName: string,
-  ): Promise<object> {
+  ): Promise<Template> {
     Show.project = new Project(projectPath);
     const templateObject =
       await Show.project.createTemplateObjectByName(templateName);
@@ -431,11 +440,7 @@ export class Show {
         `Template '${templateName}' does not exist in the project`,
       );
     }
-    // Remove 'project' from template data.
-    const { project: _, ...template } = await templateObject.show(); // eslint-disable-line @typescript-eslint/no-unused-vars
-
-    // todo: Define interface for template
-    return template;
+    return templateObject.show();
   }
 
   /**
@@ -454,7 +459,6 @@ export class Show {
   /**
    * Shows all templates with full details in a project.
    * @param {string} projectPath path to a project
-   * @todo: add unit tests
    * @returns all templates in a project.
    */
   public async showTemplatesWithDetails(
@@ -506,7 +510,6 @@ export class Show {
 
   /**
    * Shows all workflows with full details in a project.
-   * @todo: missing tests
    * @param {string} projectPath path to a project
    * @returns workflows with full details
    */
@@ -520,5 +523,15 @@ export class Show {
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
+  }
+
+  /**
+   * Shows all reports in a project
+   * @param projectPath  path to a project
+   * @returns reports by their name
+   */
+  public async showReports(projectPath: string): Promise<string[]> {
+    Show.project = new Project(projectPath);
+    return (await Show.project.reports()).map((item) => item.name).sort();
   }
 }

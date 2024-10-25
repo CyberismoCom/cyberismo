@@ -15,6 +15,7 @@ import { useCardType, useFieldTypes } from '../lib/api';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
+  Control,
   Controller,
   FormProvider,
   useForm,
@@ -27,19 +28,71 @@ import {
   FieldTypeDefinition,
   MetadataValue,
 } from '../lib/definitions';
-import EditableField from './EditableField';
+import EditableField, { EditableFieldProps } from './EditableField';
+
+interface FieldItemProps {
+  expanded?: boolean;
+  control?: Control;
+  defaultValue: MetadataValue | null;
+  editableFieldProps: Omit<Omit<EditableFieldProps, 'onChange'>, 'value'>;
+  name: string;
+  handleChange?: (
+    e: any,
+    onChange: (arg0: MetadataValue) => void,
+    dataType: DataType,
+  ) => void;
+}
+
+function FieldItem({
+  expanded,
+  control,
+  name,
+  defaultValue,
+  editableFieldProps,
+  handleChange,
+}: FieldItemProps) {
+  return (
+    <Accordion expanded={expanded}>
+      <AccordionDetails>
+        {control ? (
+          <Controller
+            name={name}
+            control={control}
+            defaultValue={defaultValue}
+            render={({ field: { value, onChange } }: any) => {
+              return (
+                <EditableField
+                  value={value}
+                  onChange={(e) => {
+                    if (handleChange)
+                      handleChange(e, onChange, editableFieldProps.dataType);
+                  }}
+                  {...editableFieldProps}
+                />
+              );
+            }}
+          />
+        ) : (
+          <EditableField value={defaultValue} {...editableFieldProps} />
+        )}
+      </AccordionDetails>
+    </Accordion>
+  );
+}
 
 export interface MetadataViewProps {
   initialExpanded?: boolean;
   editMode?: boolean;
   metadata?: CardMetadata;
   onClick?: () => void;
+  cardKey: string;
 }
 
 function MetadataView({
   initialExpanded,
   editMode,
   metadata,
+  cardKey,
   onClick,
 }: MetadataViewProps) {
   const { t } = useTranslation();
@@ -69,10 +122,10 @@ function MetadataView({
         case 'list':
           onChange(value ? value.split(',').map((v) => v.trim()) : []);
           break;
-        case 'shorttext':
-        case 'longtext':
+        case 'shortText':
+        case 'longText':
         case 'date':
-        case 'datetime':
+        case 'dateTime':
         case 'person':
         case 'enum':
           onChange(value === '' ? null : value);
@@ -113,10 +166,6 @@ function MetadataView({
       .filter((f) => f != null) as FieldTypeDefinition[];
   }, [allFieldKeys, fieldTypes]);
 
-  if (allFieldKeys.length === 0) {
-    return null;
-  }
-
   return (
     <Box
       bgcolor="neutral.softBg"
@@ -134,56 +183,65 @@ function MetadataView({
       onClick={onClick}
     >
       <Stack flexGrow={1} spacing={1} paddingY={2}>
+        <FieldItem
+          name="__key__"
+          defaultValue={cardKey}
+          expanded={true}
+          editableFieldProps={{
+            label: t('cardKey'),
+            dataType: 'shortText',
+            edit: false,
+          }}
+        />
+        <FieldItem
+          name="__cardtype__"
+          defaultValue={metadata?.cardType || ''}
+          expanded={true}
+          editableFieldProps={{
+            label: t('cardType'),
+            dataType: 'shortText',
+            edit: false,
+          }}
+        />
         {allFields.map(({ name, dataType, enumValues, displayName }) => (
-          <Accordion
+          <FieldItem
+            name={name}
+            handleChange={handleChange}
+            defaultValue={metadata?.[name] ?? null}
             expanded={cardType?.alwaysVisibleFields?.includes(name) || expanded}
             key={name}
-          >
-            <AccordionDetails>
-              <Controller
-                name={name}
-                control={context?.control}
-                defaultValue={metadata?.[name] ?? null}
-                render={({ field: { value, onChange } }: any) => {
-                  return (
-                    <EditableField
-                      value={value}
-                      dataType={dataType}
-                      edit={
-                        (editMode && editableFields.includes(name)) ?? false
-                      }
-                      onChange={(e) => handleChange(e, onChange, dataType)}
-                      enumValues={enumValues}
-                      label={displayName || name}
-                    />
-                  );
-                }}
-              />
-            </AccordionDetails>
-          </Accordion>
+            control={context.control}
+            editableFieldProps={{
+              dataType,
+              label: displayName || name,
+              edit: (editMode && editableFields.includes(name)) ?? false,
+              enumValues,
+            }}
+          />
         ))}
       </Stack>
-      {!(allFieldKeys.length === cardType?.alwaysVisibleFields?.length) && (
-        <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
-          <Link
-            variant="soft"
-            color="primary"
-            underline="none"
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
-            bgcolor="inherit"
-            sx={{
-              '&:hover': {
-                bgcolor: 'inherit',
-              },
-            }}
-          >
-            {expanded ? t('showLess') : t('showMore')}
-          </Link>
-        </Box>
-      )}
+      {!(allFieldKeys.length === cardType?.alwaysVisibleFields?.length) &&
+        allFieldKeys.length !== 0 && (
+          <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
+            <Link
+              variant="soft"
+              color="primary"
+              underline="none"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              bgcolor="inherit"
+              sx={{
+                '&:hover': {
+                  bgcolor: 'inherit',
+                },
+              }}
+            >
+              {expanded ? t('showLess') : t('showMore')}
+            </Link>
+          </Box>
+        )}
     </Box>
   );
 }

@@ -1,0 +1,23 @@
+{
+  "title": "CardsConfig",
+  "$id": "cardsConfigSchema",
+  "description": "General configuration settings for the card tree.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "cardKeyPrefix": {
+      "type": "string",
+      "description": "The prefix or the fist component of the card key. For example, ABC",
+      "pattern": "^[a-z]+$",
+      "minLength": 3,
+      "maxLength": 10
+    },
+    "name": {
+      "description": "Name of the project",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z ._-]+$"
+    }
+  },
+  "required": ["cardKeyPrefix"]
+}

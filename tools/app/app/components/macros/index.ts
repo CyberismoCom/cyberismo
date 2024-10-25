@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroName } from '@cyberismocom/data-handler/utils/macros';
+import { MacroName } from '@cyberismocom/data-handler/interfaces/macros';
 import CreateCards from './CreateCards';
 import { ReactElement } from 'react';
 
@@ -25,6 +25,8 @@ export interface MacroContext {
   preview: boolean;
 }
 
-export const macros: Record<MacroName, (props: any) => ReactElement> = {
+export type UIMacroName = Exclude<MacroName, 'report'>;
+
+export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
 };

@@ -2,11 +2,12 @@ import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 
-import { copyDir } from '../src/utils/file-utils.js';
+import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
 import { Show } from '../src/show.js';
 import { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from '../src/utils/log-utils.js';
+import { writeJsonFile } from '../src/utils/json.js';
 
 describe('show', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -105,6 +106,65 @@ describe('show', () => {
         ),
       );
   });
+  it('showCardDetails - empty attachment folder', async () => {
+    const details: FetchCardDetails = {
+      content: false,
+      metadata: true,
+      attachments: true,
+    };
+    const cardRoot = join(decisionRecordsPath, 'cardRoot');
+    // First create a test setup where there is a parent and child cards.
+    // Parent has empty attachment folder, child has attachment in attachment folder.
+    // Use just filesystem operations to create the setup.
+    const cardMetadata = {
+      title: 'A title',
+      cardType: 'decision/cardTypes/decision',
+      workflowState: 'Approved',
+    };
+    // Parent
+    const cardIdParent = 'decision_mycard';
+    await writeFileSafe(join(cardRoot, cardIdParent, 'index.adoc'), '');
+    await writeJsonFile(
+      join(cardRoot, cardIdParent, 'index.json'),
+      cardMetadata,
+    );
+    mkdirSync(join(decisionRecordsPath, 'cardRoot', cardIdParent, 'a'));
+
+    // Child
+    const cardIChild = 'decision_child';
+    await writeFileSafe(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.adoc'),
+      '',
+    );
+    await writeJsonFile(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.json'),
+      cardMetadata,
+    );
+    await writeFileSafe(
+      join(cardRoot, cardIdParent, 'c', cardIChild, 'a', 'image.png'),
+      '',
+    );
+
+    // Expect that parent has no attachments.
+    const parentResult = await showCmd.showCardDetails(
+      decisionRecordsPath,
+      details,
+      cardIdParent,
+    );
+    expect(parentResult.attachments?.length).equals(0);
+
+    // Child must have one attachment that is owned by the child.
+    const childResult = await showCmd.showCardDetails(
+      decisionRecordsPath,
+      details,
+      cardIChild,
+    );
+    expect(childResult.attachments?.length).equals(1);
+    const childAttachment = childResult.attachments?.at(0);
+    expect(childAttachment?.card).equals(cardIChild);
+
+    rmSync(join(cardRoot, cardIdParent), { recursive: true, force: true });
+  });
   it('showCards (success)', async () => {
     const results = await showCmd.showCards(decisionRecordsPath);
     expect(results).to.not.equal(undefined);
@@ -130,7 +190,7 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-  it('showCardTypeDetails - empty card-type', async () => {
+  it('showCardTypeDetails - no cardType', async () => {
     const cardType = '';
     await showCmd
       .showCardTypeDetails(decisionRecordsPath, cardType)
@@ -170,7 +230,16 @@ describe('show', () => {
     );
     expect(results).to.not.equal(undefined);
   });
-
+  it('showFieldType (success)', async () => {
+    const fieldTypeName = 'i-do-not-exist';
+    await showCmd
+      .showFieldType(decisionRecordsPath, fieldTypeName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Field type 'i-do-not-exist' not found from the project.`,
+        ),
+      );
+  });
   it('showLinkTypes (success)', async () => {
     const results = await showCmd.showLinkTypes(decisionRecordsPath);
     expect(results).to.not.equal(undefined);
@@ -184,13 +253,14 @@ describe('show', () => {
     expect(results).to.not.equal(undefined);
   });
   it('try showLinkType', async () => {
-    const linkTypeName = 'test2';
-
-    const results = await showCmd.showLinkType(
-      decisionRecordsPath,
-      linkTypeName,
-    );
-    expect(results).to.equal(undefined);
+    const linkTypeName = 'i-do-not-exist';
+    await showCmd
+      .showLinkType(decisionRecordsPath, linkTypeName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Link type 'i-do-not-exist' not found from the project.`,
+        ),
+      );
   });
   it('showModule - no module name defined', async () => {
     const moduleName = '';
@@ -233,12 +303,12 @@ describe('show', () => {
       );
   });
   it('showTemplate - template does not exist in project', async () => {
-    const templateName = 'i-dont-exist';
+    const templateName = 'i-do-not-exist';
     await showCmd
       .showTemplate(decisionRecordsPath, templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Template 'i-dont-exist' does not exist in the project`,
+          `Template 'i-do-not-exist' does not exist in the project`,
         ),
       );
   });

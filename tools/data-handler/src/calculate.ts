@@ -12,14 +12,14 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-// ismo
 import { Card, Link } from './interfaces/project-interfaces.js';
 import {
   copyDir,
+  deleteDir,
   deleteFile,
   getFilesSync,
   pathExists,
@@ -33,10 +33,12 @@ import {
   QueryName,
   QueryResult,
 } from './types/queries.js';
+import { Mutex } from 'async-mutex';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   static project: Project;
+  private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
   private static importFileName: string = 'imports.lp';
@@ -59,10 +61,6 @@ export class Calculate {
     return pathExists(location) ? location : null;
   }
 
-  private getResourceFolder() {
-    return join(Calculate.project.calculationFolder, 'resources');
-  }
-
   private async generateCardTypes() {
     const cardTypes = await Calculate.project.cardTypes();
     const promises = [];
@@ -80,7 +78,7 @@ export class Calculate {
         content += `customField("${cardType.name}", "${encodeClingoValue(customField.name)}", "${encodeClingoValue(customField.displayName || '')}", "${customField.isEditable ? 'true' : 'false'}").\n`;
       }
       const cardTypeFile = join(
-        this.getResourceFolder(),
+        Calculate.project.paths.calculationResourcesFolder,
         `${cardType.name}.lp`,
       );
       promises.push(
@@ -125,7 +123,7 @@ export class Calculate {
       }
 
       const workFlowFile = join(
-        this.getResourceFolder(),
+        Calculate.project.paths.calculationResourcesFolder,
         `${workflow.name}.lp`,
       );
 
@@ -140,11 +138,11 @@ export class Calculate {
   }
   // Write the cardTree.lp that contain data from the selected card-tree.
   private async generateCardTreeContent(parentCard: Card | undefined) {
-    const destinationFileBase = join(
-      Calculate.project.calculationFolder,
-      'cards',
-    );
+    const destinationFileBase = Calculate.project.paths.calculationCardsFolder;
     const promiseContainer = [];
+    if (!pathExists(destinationFileBase)) {
+      await mkdir(destinationFileBase, { recursive: true });
+    }
 
     // Small helper to deduce parent path
     function parentPath(cardPath: string) {
@@ -196,13 +194,13 @@ export class Calculate {
   // Once card specific files have been done, write the the imports
   private async generateImports() {
     const destinationFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
 
     const folders = [
-      this.getResourceFolder(),
-      join(Calculate.project.calculationFolder, 'cards'),
+      Calculate.project.paths.calculationResourcesFolder,
+      Calculate.project.paths.calculationCardsFolder,
     ];
 
     let importsContent: string = '';
@@ -230,7 +228,7 @@ export class Calculate {
   private async generateCommonFiles() {
     await copyDir(
       Calculate.commonFolderLocation,
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
     );
   }
 
@@ -241,10 +239,11 @@ export class Calculate {
       return;
     }
     const destinationFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.modulesFileName,
     );
     let modulesContent: string = '';
+    // Collect all available calculations
     const calculations = await Calculate.project.calculations();
 
     // write the modules.lp
@@ -318,23 +317,28 @@ export class Calculate {
   public async generate(projectPath: string, cardKey?: string) {
     Calculate.project = new Project(projectPath);
 
-    let card: Card | undefined;
-    if (cardKey) {
-      card = await Calculate.project.findSpecificCard(cardKey);
-      if (!card) {
-        throw new Error(`Card '${cardKey}' not found`);
+    await Calculate.mutex.runExclusive(async () => {
+      // Cleanup old calculations before starting new ones.
+      await deleteDir(Calculate.project.paths.calculationFolder);
+
+      let card: Card | undefined;
+      if (cardKey) {
+        card = await Calculate.project.findSpecificCard(cardKey);
+        if (!card) {
+          throw new Error(`Card '${cardKey}' not found`);
+        }
       }
-    }
 
-    const promiseContainer = [
-      this.generateCommonFiles(),
-      this.generateCardTreeContent(card),
-      this.generateModules(card),
-      this.generateWorkFlows(),
-      this.generateCardTypes(),
-    ];
+      const promiseContainer = [
+        this.generateCommonFiles(),
+        this.generateCardTreeContent(card),
+        this.generateModules(card),
+        this.generateWorkFlows(),
+        this.generateCardTypes(),
+      ];
 
-    await Promise.all(promiseContainer).then(this.generateImports.bind(this));
+      await Promise.all(promiseContainer).then(this.generateImports.bind(this));
+    });
   }
 
   /**
@@ -359,12 +363,12 @@ export class Calculate {
     await this.setCalculateProject(deletedCard); // can throw
     const affectedCards = await this.getCards(deletedCard);
     const cardTreeFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
-      pathExists(Calculate.project.calculationFolder);
+      pathExists(Calculate.project.paths.calculationFolder);
 
     let cardTreeContent = calculationsForTreeExist
       ? await readFile(cardTreeFile, 'utf-8')
@@ -372,8 +376,7 @@ export class Calculate {
     for (const card of affectedCards) {
       // First, delete card specific files.
       const cardCalculationsFile = join(
-        Calculate.project.calculationFolder,
-        'cards',
+        Calculate.project.paths.calculationCardsFolder,
         `${card.key}.lp`,
       );
       if (pathExists(cardCalculationsFile)) {
@@ -403,12 +406,12 @@ export class Calculate {
     const firstCard = cards[0];
     await this.setCalculateProject(firstCard); // can throw
     const cardTreeFile = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.importFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
-      pathExists(Calculate.project.calculationFolder);
+      pathExists(Calculate.project.paths.calculationFolder);
     if (!calculationsForTreeExist) {
       // No calculations done, ignore update.
       return;
@@ -435,7 +438,9 @@ export class Calculate {
       throw new Error(`Query file ${queryName} not found`);
     }
     // We assume named queries are correct and produce the specified result
-    return this.run(projectPath, query) as Promise<ParseResult<QueryResult<T>>>;
+    return this.run(projectPath, {
+      file: query,
+    }) as Promise<ParseResult<QueryResult<T>>>;
   }
 
   /**
@@ -443,81 +448,93 @@ export class Calculate {
    *
    * @param projectPath Path to a project
    * @param filePath Path to a query file to be run in relation to current working directory
+   * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
   public async run(
     projectPath: string,
-    filePath: string,
+    data: {
+      query?: string;
+      file?: string;
+    },
+    timeout: number = 5000,
   ): Promise<ParseResult<BaseResult>> {
     Calculate.project = new Project(projectPath);
     const main = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.mainLogicFileName,
     );
     const queryLanguage = join(
-      Calculate.project.calculationFolder,
+      Calculate.project.paths.calculationFolder,
       Calculate.queryLanguageFileName,
     );
 
-    const args = [
-      '-',
-      '--outf=0',
-      '--out-ifs=\\n',
-      '-V0',
-      main,
-      queryLanguage,
-      filePath,
-    ];
-    const clingo = spawnSync(this.logicBinaryName, args, {
-      encoding: 'utf8',
-    });
-    // print the command
-    console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
-
-    if (clingo.stdout) {
-      console.log(`Clingo output: \n${clingo.stdout}`);
-      return this.parseClingoResult(clingo.stdout);
+    if (!data.file && !data.query) {
+      throw new Error(
+        'Must provide either query or file to run a clingo program',
+      );
     }
 
-    if (clingo.stderr && clingo.status) {
-      const code = clingo.status;
-      // clingo's exit codes are bitfields. todo: move these somewhere
-      const clingo_process_exit = {
-        E_UNKNOWN: 0,
-        E_INTERRUPT: 1,
-        E_SAT: 10,
-        E_EXHAUST: 20,
-        E_MEMORY: 33,
-        E_ERROR: 65,
-        E_NO_RUN: 128,
-      };
-      // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
-      if (
-        !(
-          code & clingo_process_exit.E_SAT &&
-          code & clingo_process_exit.E_EXHAUST
-        )
-      ) {
-        if (code & clingo_process_exit.E_ERROR) {
-          console.error('Error');
-        }
-        if (code & clingo_process_exit.E_INTERRUPT) {
-          console.error('Interrupted');
-        }
-        if (code & clingo_process_exit.E_MEMORY) {
-          console.error('Out of memory');
-        }
-        if (code & clingo_process_exit.E_NO_RUN) {
-          console.error('Not run');
-        }
-        if (code & clingo_process_exit.E_UNKNOWN) {
-          console.error('Unknown error');
-        }
+    const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
+    if (data.file) {
+      args.push(data.file);
+    }
+
+    return Calculate.mutex.runExclusive(async () => {
+      const clingo = spawnSync(this.logicBinaryName, args, {
+        encoding: 'utf8',
+        input: data.query,
+        timeout,
+        maxBuffer: 1024 * 1024 * 100,
+      });
+      // print the command
+      console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
+
+      if (clingo.stdout) {
+        console.log(`Clingo output: \n${clingo.stdout}`);
+        return this.parseClingoResult(clingo.stdout);
       }
-      throw new Error('Clingo error');
-    }
-    throw new Error(
-      'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
-    );
+
+      if (clingo.stderr && clingo.status) {
+        const code = clingo.status;
+        // clingo's exit codes are bitfields. todo: move these somewhere
+        const clingo_process_exit = {
+          E_UNKNOWN: 0,
+          E_INTERRUPT: 1,
+          E_SAT: 10,
+          E_EXHAUST: 20,
+          E_MEMORY: 33,
+          E_ERROR: 65,
+          E_NO_RUN: 128,
+        };
+        // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
+        if (
+          !(
+            code & clingo_process_exit.E_SAT &&
+            code & clingo_process_exit.E_EXHAUST
+          )
+        ) {
+          if (code & clingo_process_exit.E_ERROR) {
+            console.error('Error');
+          }
+          if (code & clingo_process_exit.E_INTERRUPT) {
+            console.error('Interrupted');
+          }
+          if (code & clingo_process_exit.E_MEMORY) {
+            console.error('Out of memory');
+          }
+          if (code & clingo_process_exit.E_NO_RUN) {
+            console.error('Not run');
+          }
+          if (code & clingo_process_exit.E_UNKNOWN) {
+            console.error('Unknown error');
+          }
+        }
+        throw new Error(clingo.stderr);
+      }
+      throw new Error(
+        'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
+      );
+    });
   }
 }

@@ -1,3 +1,35 @@
+@media (max-width: 800px) {
+  .breadcrumbs {
+    display: none;
+  }
+}
+
+[role='treeitem'][aria-selected='false']:hover {
+  .treenode {
+    background-color: #dedede;
+  }
+}
+
+.resizeHandle {
+  width: 2px;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background-color: #0b6bcb;
+}
+
+/* Add margin for inline macro buttons */
+.doc .MuiButton-root {
+  margin-top: 12px;
+}
+
+/* Tidy up tables */
+/* TODO: This should not be done here, I think there are table border controls in AsciiDoc */
+.doc table.tableblock {
+  border-collapse: collapse;
+}
+
 /* Antora default styles from https://gitlab.com/antora/antora-ui-default, only .doc scoped styles included */
 
 .doc {
@@ -1060,7 +1092,6 @@
 .toc .toc-menu a.is-active {
   border-left-color: #2a7ee4;
   color: #2a7ee4;
-  -webkit-text-stroke-width: 1px;
 }
 .sidebar.toc .toc-menu a:focus {
   background: #fafafa;

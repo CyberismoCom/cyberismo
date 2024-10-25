@@ -14,6 +14,7 @@
 import { ReactNode, useState } from 'react';
 import { TreeMenu } from '../components/TreeMenu';
 import AppToolbar from '../components/AppToolbar';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import {
   Stack,
@@ -83,29 +84,41 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
     );
   }
   return (
-    <Stack direction="row" height="100%">
-      <Box width="274px" flexShrink={0}>
-        <TreeMenu
-          title={project.name}
-          tree={tree}
-          selectedCardKey={params.key ?? null}
-          onMove={async (cardKey: string, newParent: string, index: number) => {
-            const parent = findParentCard(project.cards, cardKey);
-            await updateCard(cardKey, {
-              parent: newParent === parent?.key ? undefined : newParent,
-              index,
-            });
-          }}
-          onCardSelect={(node) => {
-            if (node.data.key) {
-              router.safePush(`/cards/${node.data.key}`);
-            }
-          }}
-        />
-      </Box>
-      <Box padding={2} flexGrow={1} overflow="hidden">
-        {children}
-      </Box>
+    <Box height="100%">
+      <PanelGroup direction="horizontal">
+        <Panel defaultSize={20} minSize={12} maxSize={40}>
+          <Box height="100%">
+            <TreeMenu
+              title={project.name}
+              tree={tree}
+              selectedCardKey={params.key ?? null}
+              onMove={async (
+                cardKey: string,
+                newParent: string,
+                index: number,
+              ) => {
+                const parent = findParentCard(project.cards, cardKey);
+                await updateCard(cardKey, {
+                  parent: newParent === parent?.key ? undefined : newParent,
+                  index,
+                });
+              }}
+              onCardSelect={(node) => {
+                if (node.data.key) {
+                  router.safePush(`/cards/${node.data.key}`);
+                }
+              }}
+            />
+          </Box>
+        </Panel>
+        <PanelResizeHandle className="resizeHandle" />
+        <Panel>
+          <Box padding={2} flexGrow={1} height="100%" overflow="hidden">
+            {children}
+          </Box>
+        </Panel>
+      </PanelGroup>
+
       {notifications.map((notification, index) => (
         <Snackbar
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
@@ -140,7 +153,7 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
           {notification.message}
         </Snackbar>
       ))}
-    </Stack>
+    </Box>
   );
 }
 

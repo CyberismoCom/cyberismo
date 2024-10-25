@@ -1,0 +1,81 @@
+{
+  "title": "Card",
+  "$id": "cardBaseSchema",
+  "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "cardType": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name of the card type",
+      "pattern": "^[A-Za-z]*/?[A-Za-z]*/?[A-Za-z-_]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A short title of the card"
+    },
+    "workflowState": {
+      "type": "string",
+      "description": "the name of the card's current state in the workflow"
+    },
+    "rank": {
+      "type": "string",
+      "description": "The rank of the card in relative to its siblings"
+    },
+    "lastTransitioned": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time of the last transition of the card"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The date and time of the last update of the card"
+    },
+    "labels": {
+      "type": "array",
+      "description": "Labels or tags that can be used for organising cards",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "links": {
+      "type": "array",
+      "description": "links to or from this card to other cards",
+      "items": {
+        "type": "object",
+        "properties": {
+          "cardKey": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 20,
+            "pattern": "^[a-z]+_[0-9a-z]+$"
+          },
+          "linkType": {
+            "description": "The link type is named according to the from-to direction. In user interfaces, the naming according to the link type is shown in the 'from' card.",
+            "$comment": "The same link type names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
+            "enum": [
+              "blocks",
+              "causes",
+              "created from template",
+              "duplicates",
+              "mitigates",
+              "relates to",
+              "tests"
+            ]
+          },
+          "linkDescription": {
+            "type": "string",
+            "description": "A description of the link"
+          }
+        },
+        "required": ["direction", "cardKey", "linkType"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["title", "cardType", "workflowState", "rank"]
+}

@@ -14,7 +14,6 @@
 import { basename, join, sep } from 'node:path';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
-// ismo
 import { writeJsonFile } from '../utils/json.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 
@@ -172,8 +171,7 @@ export class CardContainer {
     return foundCards;
   }
 
-  // Collects all attachments from container.
-  // Function collects attachments from one folder and recurses to valid, potential folders.
+  // Function collects attachments from all cards in one folder.
   private async doCollectAttachments(
     folder: string,
     attachments: CardAttachment[],
@@ -184,15 +182,15 @@ export class CardContainer {
         (item) => item.isDirectory(),
       );
       for (const entry of entries) {
-        if (CardNameRegEx.test(entry.name) || entry.name === 'c') {
+        // Investigate the content of card folders' attachment folders, but do not continue to children cards.
+        // For each attachment folder, collect all files.
+        if (CardNameRegEx.test(entry.name)) {
           currentPaths.push(join(entry.path, entry.name));
-        } else {
-          // Set paths.
+        } else if (entry.name === 'c') {
+          continue;
+        } else if (entry.name === 'a') {
           const attachmentFolder = join(entry.path, entry.name);
-          const childrenFolder = join(entry.path, 'c');
           const cardItem = basename(entry.path) || '';
-
-          // Collect all attachments.
           const entryAttachments = await readdir(attachmentFolder, {
             withFileTypes: true,
           });
@@ -204,9 +202,6 @@ export class CardContainer {
               mimeType: mime.lookup(attachment.name) || null,
             }),
           );
-          if (pathExists(childrenFolder)) {
-            currentPaths.push(childrenFolder);
-          }
         }
       }
     }
@@ -215,7 +210,6 @@ export class CardContainer {
         this.doCollectAttachments(item, attachments),
       );
       await Promise.all(promises);
-      return attachments;
     }
     return attachments;
   }

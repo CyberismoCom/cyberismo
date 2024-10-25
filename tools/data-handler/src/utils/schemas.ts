@@ -10,25 +10,31 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import cardBaseSchema from '../../../schema/card-base-schema.json' with { type: 'json' };
-import cardsConfigSchema from '../../../schema/cardsconfig-schema.json' with { type: 'json' };
-import cardTypeSchema from '../../../schema/cardtype-schema.json' with { type: 'json' };
-import createCardsMacroSchema from '../../../schema/create-cards-macro-schema.json' with { type: 'json' };
-import csvSchema from '../../../schema/csv-schema.json' with { type: 'json' };
-import fieldTypeSchema from '../../../schema/field-type-schema.json' with { type: 'json' };
-import linkTypeSchema from '../../../schema/link-type-schema.json' with { type: 'json' };
-import templateSchema from '../../../schema/template-schema.json' with { type: 'json' };
-import workflowSchema from '../../../schema/workflow-schema.json' with { type: 'json' };
-import cardTreeDirectorySchema from '../../../schema/cardtree-directory-schema.json' with { type: 'json' };
+import cardBaseSchema from '../../../schema/cardBaseSchema.json' with { type: 'json' };
+import cardTypeSchema from '../../../schema/cardTypeSchema.json' with { type: 'json' };
+import cardsConfigSchema from '../../../schema/cardsConfigSchema.json' with { type: 'json' };
+import createCardsMacroSchema from '../../../schema/createCardsMacroSchema.json' with { type: 'json' };
+import csvSchema from '../../../schema/csvSchema.json' with { type: 'json' };
+import dotSchema from '../../../schema/dotSchema.json' with { type: 'json' };
+import fieldTypeSchema from '../../../schema/fieldTypeSchema.json' with { type: 'json' };
+import linkTypeSchema from '../../../schema/linkTypeSchema.json' with { type: 'json' };
+import reportMacroBaseSchema from '../../../schema/reportMacroBaseSchema.json' with { type: 'json' };
+import reportSchema from '../../../schema/reportSchema.json' with { type: 'json' };
+import templateSchema from '../../../schema/templateSchema.json' with { type: 'json' };
+import workflowSchema from '../../../schema/workflowSchema.json' with { type: 'json' };
+import cardTreeDirectorySchema from '../../../schema/cardTreeDirectorySchema.json' with { type: 'json' };
 
 export const schemas = [
   cardBaseSchema,
-  cardsConfigSchema,
   cardTypeSchema,
+  cardsConfigSchema,
   createCardsMacroSchema,
   csvSchema,
+  dotSchema,
   fieldTypeSchema,
   linkTypeSchema,
+  reportMacroBaseSchema,
+  reportSchema,
   templateSchema,
   workflowSchema,
 ];

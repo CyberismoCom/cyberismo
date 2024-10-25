@@ -13,10 +13,8 @@
 // node
 import { open } from 'node:fs/promises';
 
-// ismo
-import { writeJsonFile } from './utils/json.js';
 import { ProjectSettings } from './interfaces/project-interfaces.js';
-import { readJsonFileSync } from './utils/json.js';
+import { readJsonFileSync, writeJsonFile } from './utils/json.js';
 import { Validate } from './validate.js';
 
 /**

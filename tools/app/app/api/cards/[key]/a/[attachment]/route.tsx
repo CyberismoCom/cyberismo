@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': payload.mimeType,
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

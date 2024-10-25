@@ -107,9 +107,6 @@ export function AddAttachmentModal({
               </Stack>
             )}
           </DnDFile>
-          <Typography level="body-sm">
-            {t('addAttachmentModal.acceptedFormats')}
-          </Typography>
           <Box
             sx={{
               // make the box scrollable
@@ -149,10 +146,7 @@ export function AddAttachmentModal({
                   dispatch(
                     addNotification({
                       message: t('addAttachmentModal.error', {
-                        error:
-                          error instanceof ApiCallError
-                            ? error.reason
-                            : t('addAttachmentModal.errorDefault'),
+                        error: error,
                       }),
                       type: 'error',
                     }),
