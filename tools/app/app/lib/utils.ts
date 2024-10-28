@@ -498,7 +498,7 @@ export function getStateColor(category: string | undefined) {
 }
 
 /**
- * Returns linktypes for the card
+ * Returns link types for the card
  */
 export function expandLinkTypes(
   linkTypes: LinkType[],
