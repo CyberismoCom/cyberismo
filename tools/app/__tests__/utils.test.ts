@@ -1,5 +1,14 @@
-import { Card, Project } from '@/app/lib/definitions';
-import { findPathTo, findWorkflowForCard, flattenTree } from '@/app/lib/utils';
+import { CardDetails, Project } from '@/app/lib/definitions';
+import {
+  countChildren,
+  editCardDetails,
+  findCard,
+  findParentCard,
+  findPathTo,
+  findWorkflowForCard,
+  flattenTree,
+  getMoveableCards,
+} from '@/app/lib/utils';
 
 test('flattenTree works with test data', async () => {
   const result = flattenTree(testProject.cards);
@@ -41,6 +50,58 @@ test('findWorkflowForCard returns correct workflow', async () => {
   expect(card.metadata?.cardType).toBe('test/cardTypes/simplePage');
   const result = findWorkflowForCard(card, testProject);
   expect(result?.name).toBe('test/workflows/simple');
+});
+
+test('findCard returns a card', async () => {
+  const card = findCard(testProject.cards, 'usdl_46');
+  expect(card?.key).toBe('usdl_46');
+  expect(card?.metadata?.title).toBe('Demand phase');
+});
+
+test('findCard returns null if card not found', async () => {
+  const card = findCard(testProject.cards, 'not_found');
+  expect(card).toBeNull();
+});
+
+test('findParentCard returns a card', async () => {
+  const card = findParentCard(testProject.cards, 'usdl_46');
+  expect(card?.key).toBe('usdl_44');
+});
+
+test('findParentCard returns null for root card', async () => {
+  const card = findParentCard(testProject.cards, 'usdl_43');
+  expect(card).toBeNull();
+});
+
+test('editCard updates the data structure', async () => {
+  const newCardDetails: CardDetails = {
+    key: 'usdl_46',
+    path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_46',
+    metadata: {
+      cardType: 'test/cardTypes/simplePage',
+      title: 'New title',
+      workflowState: 'Created',
+      rank: '0|b',
+      links: [],
+    },
+  };
+  const result = editCardDetails(testProject.cards, newCardDetails);
+  const resultCard = findCard(result, newCardDetails.key);
+  expect(resultCard?.metadata?.title).toBe('New title');
+});
+
+test('countChildren returns correct count', async () => {
+  const count = countChildren(testProject.cards[0]);
+  expect(count).toBe(11);
+});
+
+test('getMovableCards returns correct cards', async () => {
+  const card = findCard(testProject.cards, 'usdl_45');
+  const result = getMoveableCards(flattenTree(testProject.cards), card!);
+  console.log(result);
+  expect(result.length).toBe(9);
+  expect(result.find((card) => card.key === 'usdl_45')).toBeUndefined();
+  expect(result.find((card) => card.key === 'usdl_44')).toBeUndefined();
 });
 
 const testProject: Project = {
