@@ -62,7 +62,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
       } catch (error) {
         dispatch(
           addNotification({
-            message: t('error.transition'),
+            message: error instanceof Error ? error.message : t('unknownError'),
             type: 'error',
           }),
         );

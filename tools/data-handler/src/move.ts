@@ -24,6 +24,8 @@ import {
   rebalanceRanks,
   sortItems,
 } from './utils/lexorank.js';
+import { ActionGuard } from './permissions/action-guard.js';
+import { Calculate } from './calculate.js';
 
 export class Move {
   static project: Project;
@@ -86,6 +88,10 @@ export class Move {
     if (sourceCard.path === destinationPath) {
       return;
     }
+
+    // if both are project cards, make sure source card can be moved
+    const actionGuard = new ActionGuard(new Calculate(), Move.project);
+    await actionGuard.checkPermission('move', source);
 
     // rerank the card in the new location
     // it will be the last one in the new location

@@ -98,5 +98,10 @@
   "unknownError": "An unknown error occurred",
   "insertToContent": "Insert to content",
   "openInEditor": "Open in editor",
-  "saveCopy": "Save copy"
+  "saveCopy": "Save copy",
+  "policyCheck": {
+    "successes": "Successes",
+    "failures": "Failures",
+    "title": "Policy checks"
+  }
 }

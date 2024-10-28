@@ -685,6 +685,27 @@ export default function Page({ params }: { params: { key: string } }) {
                       linkTypes={expandedLinkTypes}
                       project={project}
                       preview={true}
+                      cardQuery={{
+                        key: '',
+                        title: '', // for now we can just provide an empty result for the preview,
+                        rank: '',
+                        workflowState: '',
+                        lastUpdated: '',
+                        labels: [],
+                        links: [],
+                        deniedOperations: {
+                          transition: [],
+                          move: [],
+                          editContent: [],
+                          editField: [],
+                          delete: [],
+                        },
+                        policyChecks: {
+                          successes: [],
+                          failures: [],
+                        },
+                        results: [],
+                      }}
                     />
                   </LoadingGate>
                 </Box>

@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
   return await getCardDetails(projectPath, key, contentType);
 }
 
-export async function PUT(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
@@ -197,24 +197,12 @@ export async function PUT(request: NextRequest) {
 
   // contentType defaults to adoc if not set
   const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
-  if (errors.length > 0 && successes == 0) {
+  if (errors.length > 0) {
     // All updates failed
     return new NextResponse(errors.join('\n'), { status: 400 });
   }
 
   const details = await getCardDetails(projectPath, key, contentType);
-
-  if (errors.length > 0) {
-    // Some of the updates failed
-    if (details.status == 200) {
-      return new NextResponse(details.body, {
-        status: 207,
-        statusText: errors.join('\n'),
-      });
-    } else {
-      return details;
-    }
-  }
 
   return details;
 }

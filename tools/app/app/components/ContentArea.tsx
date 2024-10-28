@@ -22,18 +22,21 @@ import {
 
 import { parse } from 'node-html-parser';
 import {
+  Alert,
+  Autocomplete,
   Box,
+  Button,
+  ChipDelete,
   Divider,
+  IconButton,
+  Input,
+  Link,
+  List,
+  ListItem,
+  Option,
+  Select,
   Stack,
   Typography,
-  Link,
-  IconButton,
-  Select,
-  Input,
-  Button,
-  Option,
-  Autocomplete,
-  ChipDelete,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
@@ -51,6 +54,10 @@ import { MacroMetadata } from '@cyberismocom/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismocom/data-handler/macros/common';
 import { UIMacroName, macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
+import {
+  PolicyCheckCollection,
+  QueryResult,
+} from '@cyberismocom/data-handler/types/queries';
 
 type ContentAreaProps = {
   project: Project | null;
@@ -58,6 +65,7 @@ type ContentAreaProps = {
     parsed: string;
   };
   linkTypes: ExpandedLinkType[];
+  cardQuery: QueryResult<'card'>;
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
@@ -221,10 +229,76 @@ export function LinkForm({
   );
 }
 
+const PolicyChecks = ({
+  policyChecks,
+}: {
+  policyChecks: PolicyCheckCollection;
+}) => {
+  const { t } = useTranslation();
+
+  if (
+    policyChecks.successes.length === 0 &&
+    policyChecks.failures.length === 0
+  ) {
+    return null;
+  }
+  return (
+    <Box sx={{ marginTop: 4 }} flexGrow={1}>
+      <Typography level="title-md" sx={{ marginBottom: 2 }}>
+        {t('policyCheck.title')}
+      </Typography>
+
+      {policyChecks.successes.length > 0 && (
+        <Box>
+          <Typography level="title-sm">{t('policyCheck.successes')}</Typography>
+          <List>
+            {policyChecks.successes.map((success, index) => (
+              <ListItem key={index}>
+                <Alert color="success" variant="outlined" size="sm">
+                  <Typography level="title-sm" fontWeight="bold">
+                    {success.testSuite} - {success.testCase}
+                  </Typography>
+                </Alert>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+
+      {policyChecks.failures.length > 0 && (
+        <Box sx={{ marginTop: 2 }}>
+          <Typography level="title-sm">{t('policyCheck.failures')}</Typography>
+          <List>
+            {policyChecks.failures.map((failure, index) => (
+              <ListItem key={index}>
+                <Alert color="danger" variant="outlined" size="sm">
+                  <Stack>
+                    <Typography level="title-sm" fontWeight="bold">
+                      {failure.testSuite} - {failure.testCase}
+                    </Typography>
+                    <Typography
+                      level="body-xs"
+                      color="danger"
+                      fontWeight="bold"
+                    >
+                      {failure.errorMessage}
+                    </Typography>
+                  </Stack>
+                </Alert>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 export const ContentArea: React.FC<ContentAreaProps> = ({
   project,
   card,
   linkTypes,
+  cardQuery,
   onMetadataClick,
   onLinkFormSubmit,
   onDeleteLink,
@@ -479,7 +553,17 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           </Box>
         </Stack>
       </Box>
-      {renderTableOfContents(htmlContent, visibleHeaderIds)}
+      <Stack
+        m={2}
+        flexGrow={1}
+        sx={{
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+        }}
+      >
+        <Box>{renderTableOfContents(htmlContent, visibleHeaderIds)}</Box>
+        <PolicyChecks policyChecks={cardQuery.policyChecks} />
+      </Stack>
       {!preview && (
         <GenericConfirmModal
           open={isDeleteLinkModalVisible}

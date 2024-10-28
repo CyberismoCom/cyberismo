@@ -19,6 +19,7 @@ import { Card, WorkflowState } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import { writeJsonFile } from './utils/json.js';
 import { Edit } from './edit.js';
+import { ActionGuard } from './permissions/action-guard.js';
 
 export class Transition extends EventEmitter {
   static project: Project;
@@ -118,6 +119,9 @@ export class Transition extends EventEmitter {
         `Card's workflow '${cardType.workflow}' does not contain state transition from state '${details.metadata?.workflowState}' for '${transition.name}`,
       );
     }
+
+    const actionGuard = new ActionGuard(new Calculate(), Transition.project);
+    await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     // Write new state and re-calculate.
     await this.setCardState(details, found.toState);
