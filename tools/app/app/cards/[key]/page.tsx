@@ -19,6 +19,7 @@ import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
+import { expandLinkTypes } from '@/app/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -62,6 +63,11 @@ export default function Page({ params }: { params: { key: string } }) {
     return <Typography level="title-md">{errorMessage}</Typography>;
   }
 
+  const expandedLinkTypes =
+    linkTypes && card?.metadata?.cardType
+      ? expandLinkTypes(linkTypes, card?.metadata?.cardType || '')
+      : [];
+
   return (
     <Stack height="100%">
       <ContentToolbar
@@ -69,6 +75,7 @@ export default function Page({ params }: { params: { key: string } }) {
         mode={CardMode.VIEW}
         onUpdate={() => {}}
         onInsertLink={() => setLinksVisible(true)}
+        linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
         <LoadingGate values={[card, linkTypes]}>
@@ -77,7 +84,7 @@ export default function Page({ params }: { params: { key: string } }) {
             onMetadataClick={() =>
               router.push(`/cards/${params.key}/edit?expand=true`)
             }
-            linkTypes={linkTypes!}
+            linkTypes={expandedLinkTypes}
             project={project}
             onLinkFormSubmit={async (data) => {
               try {

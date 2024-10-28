@@ -29,6 +29,7 @@ import { InsertLink } from '@mui/icons-material';
 interface ContentToolbarProps {
   cardKey: string;
   mode: CardMode;
+  linkButtonDisabled?: boolean;
   onUpdate?: () => void;
   onInsertLink?: () => void;
 }
@@ -38,6 +39,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   mode,
   onUpdate,
   onInsertLink,
+  linkButtonDisabled,
 }) => {
   const router = useAppRouter();
   const { t } = useTranslation();
@@ -84,6 +86,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
             size="sm"
             variant="plain"
             style={{ marginRight: 8, minWidth: 40 }}
+            disabled={linkButtonDisabled}
           >
             <InsertLink />
           </IconButton>

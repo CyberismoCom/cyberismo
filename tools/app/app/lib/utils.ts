@@ -17,6 +17,7 @@ import {
   CardMetadata,
   DataType,
   EnumDefinition,
+  ExpandedLinkType,
   MetadataValue,
   ParsedLink,
   Project,
@@ -24,7 +25,10 @@ import {
   WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import { WorkflowCategory } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import {
+  LinkType,
+  WorkflowCategory,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 /**
@@ -491,4 +495,41 @@ export function getStateColor(category: string | undefined) {
     default:
       return 'black';
   }
+}
+
+/**
+ * Returns link types for the card
+ */
+export function expandLinkTypes(
+  linkTypes: LinkType[],
+  cardType: string,
+): ExpandedLinkType[] {
+  const result: ExpandedLinkType[] = [];
+
+  let id = 0;
+  for (const type of linkTypes) {
+    if (!cardType) continue;
+    // Check if this card is in from or to list
+    if (
+      type.sourceCardTypes.includes(cardType) ||
+      type.sourceCardTypes.length === 0
+    ) {
+      result.push({
+        ...type,
+        direction: 'outbound',
+        id: id++,
+      });
+    }
+    if (
+      type.destinationCardTypes.includes(cardType) ||
+      type.destinationCardTypes.length === 0
+    ) {
+      result.push({
+        ...type,
+        direction: 'inbound',
+        id: id++,
+      });
+    }
+  }
+  return result;
 }
