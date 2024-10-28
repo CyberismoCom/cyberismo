@@ -25,7 +25,7 @@ import {
   pathExists,
   writeFileSafe,
 } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 import ClingoParser, { encodeClingoValue } from './utils/clingo-parser.js';
 import {
   BaseResult,
@@ -245,7 +245,9 @@ export class Calculate {
     );
     let modulesContent: string = '';
     // Collect all available calculations
-    const calculations = await Calculate.project.calculations();
+    const calculations = await Calculate.project.calculations(
+      ResourcesFrom.all,
+    );
 
     // write the modules.lp
     for (const calculationFile of calculations) {
