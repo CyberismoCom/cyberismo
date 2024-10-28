@@ -557,7 +557,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         m={2}
         flexGrow={1}
         sx={{
-          overflowY: 'scroll',
+          overflowY: 'auto',
           scrollbarWidth: 'thin',
         }}
       >
