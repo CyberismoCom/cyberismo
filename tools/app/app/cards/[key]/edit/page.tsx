@@ -71,9 +71,7 @@ import AsciiDoctor from '@asciidoctor/core';
 import { Icon } from '@mui/material';
 import { useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
-import { parseContent } from '@/app/lib/api/actions/card';
-
-const asciiDoctor = AsciiDoctor();
+import { useRender } from '@/app/lib/api/render';
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
@@ -291,6 +289,8 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const [parsed, setParsed] = useState<string>('');
 
+  const { render } = useRender(params.key);
+
   useEffect(() => {
     setContent(card?.content || '');
   }, [card]);
@@ -303,9 +303,9 @@ export default function Page({ params }: { params: { key: string } }) {
     setParsed('');
     let mounted = true;
     async function parse() {
-      const res = await parseContent(params.key, content);
-      if (mounted) {
-        setParsed(res);
+      const res = await render(content);
+      if (mounted && res) {
+        setParsed(res.rendered);
       }
     }
     parse();
@@ -364,6 +364,7 @@ export default function Page({ params }: { params: { key: string } }) {
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
+  const asciiDoctor = AsciiDoctor();
 
   // Scroll to the last title when the tab is switched
   useEffect(() => {

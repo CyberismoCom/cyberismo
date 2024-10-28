@@ -18,7 +18,7 @@ import { Remove } from '@cyberismocom/data-handler/remove';
 import { Show } from '@cyberismocom/data-handler/show';
 import { Transition } from '@cyberismocom/data-handler/transition';
 
-import Processor from 'asciidoctor';
+import processor from '../../../lib/server/index';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -260,7 +260,7 @@ async function getCardDetails(
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
     }
 
-    const htmlContent = Processor()
+    const htmlContent = processor
       .convert(asciidocContent, {
         safe: 'safe',
         attributes: {

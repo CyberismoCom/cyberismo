@@ -86,4 +86,5 @@ export const apiPaths = {
     `/api/cards/${cardKey}/a/${attachment}`,
   linkTypes: () => '/api/linkTypes',
   tree: () => '/api/tree',
+  render: (cardKey: string) => `/api/render/${cardKey}`,
 };

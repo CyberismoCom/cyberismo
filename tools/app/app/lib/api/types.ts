@@ -56,3 +56,7 @@ export type FullCardUpdate = {
 };
 
 export type CardUpdate = Partial<FullCardUpdate>;
+
+export type RenderedContent = {
+  rendered: string;
+};

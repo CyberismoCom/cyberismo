@@ -491,7 +491,7 @@ export class Calculate {
       console.log(`Ran command: ${this.logicBinaryName} ${args.join(' ')}`);
 
       if (clingo.stdout) {
-        console.log(`Clingo output: \n${clingo.stdout}`);
+        // console.log(`Clingo output: \n${clingo.stdout}`);
         return this.parseClingoResult(clingo.stdout);
       }
 

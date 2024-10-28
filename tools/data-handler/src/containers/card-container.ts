@@ -26,7 +26,7 @@ import {
 } from '../interfaces/project-interfaces.js';
 
 // asciidoctor
-import asciidoctor from '@asciidoctor/core';
+import Processor from 'asciidoctor';
 
 import mime from 'mime-types';
 
@@ -122,7 +122,7 @@ export class CardContainer {
     let asciiDocProcessor;
     // optimization: do not create AsciiDoctor Processor, unless it is needed.
     if (details.contentType && details.contentType === 'html') {
-      asciiDocProcessor = asciidoctor();
+      asciiDocProcessor = Processor.default();
     }
 
     for (const entry of entries) {

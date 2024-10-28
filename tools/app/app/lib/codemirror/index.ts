@@ -13,7 +13,7 @@
 import { EditorView } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
 import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { Document, Section } from '@asciidoctor/core';
+import { Document, Section } from 'asciidoctor';
 
 /**
  * Counts the number of empty lines in the codemirror editor in the given direction

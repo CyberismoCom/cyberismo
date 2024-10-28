@@ -30,7 +30,7 @@ import { Project } from './containers/project.js';
 import { readADocFileSync, readJsonFileSync } from './utils/json.js';
 
 // asciidoctor
-import Processor from '@asciidoctor/core';
+import Processor from 'asciidoctor';
 
 import mime from 'mime-types';
 import { sortItems } from './utils/lexorank.js';
@@ -289,7 +289,7 @@ export class Export {
     cardKey?: string,
   ) {
     return this.exportToADoc(source, destination, cardKey).then(() => {
-      const asciiDocProcessor = Processor();
+      const asciiDocProcessor = Processor.default();
       const adocFile = join(destination, Project.cardContentFile);
       asciiDocProcessor.convertFile(adocFile, {
         safe: 'safe',
