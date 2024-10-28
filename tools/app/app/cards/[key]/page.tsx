@@ -90,7 +90,7 @@ export default function Page({ params }: { params: { key: string } }) {
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
-        <LoadingGate isLoading={isLoading || isLoadingQuery}>
+        <LoadingGate values={[card]} isLoading={isLoadingQuery}>
           <ContentArea
             card={card!}
             cardQuery={cardQuery!}
