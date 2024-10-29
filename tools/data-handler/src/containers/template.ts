@@ -277,10 +277,15 @@ export class Template extends CardContainer {
     const modules = files.filter((item) => item.isDirectory());
     for (const module of modules) {
       const exists = pathExists(
-        join(module?.path, module?.name, 'templates', templateName),
+        join(module?.parentPath, module?.name, 'templates', templateName),
       );
       if (exists) {
-        return join(module?.path, module?.name, 'templates', templateName);
+        return join(
+          module?.parentPath,
+          module?.name,
+          'templates',
+          templateName,
+        );
       }
     }
     return '';

@@ -122,7 +122,7 @@ export class Project extends CardContainer {
 
         filteredFiles.forEach((item) => {
           item.name = `${resource.name}/${requestedType}/${item.name}`;
-          collectedResources.push({ name: item.name, path: item.path });
+          collectedResources.push({ name: item.name, path: item.parentPath });
         });
       }
     }
@@ -191,25 +191,28 @@ export class Project extends CardContainer {
         // Card directory (e.g. 'decision_11')
         cards?.push({
           key: entry.name,
-          path: join(entry.path, entry.name),
+          path: join(entry.parentPath, entry.name),
           children: [],
         });
-        await this.readCardTreeToMemory(join(entry.path, entry.name), cards);
+        await this.readCardTreeToMemory(
+          join(entry.parentPath, entry.name),
+          cards,
+        );
       } else if (entry.isDirectory() && entry.name === 'c') {
         // Subdirectory 'c' of card directory.
-        const found = findCard(entry.path, cards);
+        const found = findCard(entry.parentPath, cards);
         if (found) {
           await this.readCardTreeToMemory(
-            join(entry.path, entry.name),
+            join(entry.parentPath, entry.name),
             found.children,
           );
         }
       } else if (entry.isFile() && entry.name === Project.cardMetadataFile) {
         // Metadata file in card directory.
-        const found = findCard(entry.path, cards);
+        const found = findCard(entry.parentPath, cards);
         if (found) {
           found.metadata = (await readJsonFile(
-            join(entry.path, entry.name),
+            join(entry.parentPath, entry.name),
           )) as CardMetadata;
         }
       }
@@ -266,7 +269,7 @@ export class Project extends CardContainer {
         .map((entry) => {
           return {
             name: `${this.projectPrefix}/${type}s/${entry.name}`,
-            path: entry.path,
+            path: entry.parentPath,
           };
         }),
     );
@@ -912,7 +915,7 @@ export class Project extends CardContainer {
 
       const configurationPromises = configurationFiles.map(async (file) => {
         const configuration = (await readJsonFile(
-          join(file.path, file.name),
+          join(file.parentPath, file.name),
         )) as ProjectSettings;
         return configuration.cardKeyPrefix;
       });
