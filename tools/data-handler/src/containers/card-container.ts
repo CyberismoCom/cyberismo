@@ -51,7 +51,11 @@ export class CardContainer {
   // Finds parent
   private parentCard(cardPath: string) {
     const pathParts = cardPath.split(sep);
-    if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
+    if (
+      pathParts.at(pathParts.length - 2) === 'cardRoot' ||
+      (pathParts.length > 3 &&
+        pathParts.at(pathParts.length - 4) === 'templates')
+    ) {
       return 'root';
     } else {
       return pathParts.at(pathParts.length - 3);

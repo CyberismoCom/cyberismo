@@ -219,7 +219,7 @@ describe('template', () => {
       );
       expect(additionalCardDetails.metadata?.workflowState).to.equal('Draft');
       expect(additionalCardDetails.children!.length > 0);
-      expect(additionalCardDetails.parent).to.equal('decision');
+      expect(additionalCardDetails.parent).to.equal('root');
       expect(additionalCardDetails.content).to.not.equal(undefined);
     }
   });
