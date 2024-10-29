@@ -1,5 +1,6 @@
 // testing
 import { assert, expect } from 'chai';
+import * as sinon from 'sinon';
 
 // node
 import { access } from 'node:fs/promises';
@@ -11,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Create } from '../src/create.js';
+import { Calculate } from '../src/calculate.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -19,7 +21,14 @@ const testDir = join(baseDir, 'tmp-command-handler-create-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
+const calculateStub = sinon.createStubInstance(Calculate);
+
 const commandHandler: Commands = new Commands();
+
+// would be better to use dependency injection
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(commandHandler as any).calcCmd = calculateStub;
+
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
