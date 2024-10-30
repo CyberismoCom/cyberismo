@@ -357,9 +357,7 @@ class ClingoParser {
       }
 
       if (char === ')' && !insideQuote) {
-        if (currentArg) {
-          args.push(currentArg);
-        }
+        args.push(currentArg);
         return {
           args,
           endPosition: i + 1,
