@@ -9,11 +9,11 @@ describe('Navigation', () => {
   Cypress.config('defaultCommandTimeout', 10000);
 
   before(() => {
-    cy.task('createBaseModule'); // Creates a new base module with name Basic Acceptance Test
+    cy.task('createTestProject'); // Creates a new cyberismo-bat project based on module-base
   });
 
   after(() => {
-    cy.task('deleteBaseModule'); // Deletes base module
+    cy.task('deleteTestProject'); // Deletes cyberismo-bat project
   });
 
   beforeEach(() => {
