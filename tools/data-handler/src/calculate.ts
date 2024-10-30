@@ -42,7 +42,8 @@ export class Calculate {
   private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
-  private static importFileName: string = 'imports.lp';
+  private static importResourcesFileName: string = 'resourceImports.lp';
+  private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
   private static queryLanguageFileName: string = 'queryLanguage.lp';
@@ -193,36 +194,42 @@ export class Calculate {
   }
 
   // Once card specific files have been done, write the the imports
-  private async generateImports() {
-    const destinationFile = join(
-      Calculate.project.paths.calculationFolder,
-      Calculate.importFileName,
-    );
-
-    const folders = [
-      Calculate.project.paths.calculationResourcesFolder,
-      Calculate.project.paths.calculationCardsFolder,
-    ];
-
+  private async generateImports(folder: string, destinationFile: string) {
     let importsContent: string = '';
+    const files: string[] = getFilesSync(folder);
 
-    for (const folder of folders) {
-      const files: string[] = getFilesSync(folder);
-
-      // Helper to remove extension from filename.
-      function removeExtension(file: string) {
-        const index = file.lastIndexOf('.');
-        return index === -1 ? file : file.substring(0, index);
-      }
-
-      importsContent += `% ${folder}\n`;
-      for (const file of files) {
-        importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp')).replace(/\\/g, '/')}".\n`;
-      }
-      importsContent += '\n';
+    // Helper to remove extension from filename.
+    function removeExtension(file: string) {
+      const index = file.lastIndexOf('.');
+      return index === -1 ? file : file.substring(0, index);
     }
 
+    importsContent += `% ${folder}\n`;
+    for (const file of files) {
+      importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp')).replace(/\\/g, '/')}".\n`;
+    }
+    importsContent += '\n';
     await writeFileSafe(destinationFile, importsContent);
+  }
+
+  private async generateResourceImports() {
+    return this.generateImports(
+      Calculate.project.paths.calculationResourcesFolder,
+      join(
+        Calculate.project.paths.calculationFolder,
+        Calculate.importResourcesFileName,
+      ),
+    );
+  }
+
+  private async generateCardTree() {
+    return this.generateImports(
+      Calculate.project.paths.calculationCardsFolder,
+      join(
+        Calculate.project.paths.calculationFolder,
+        Calculate.importCardsFileName,
+      ),
+    );
   }
 
   // Write all common files which are not card specific.
@@ -334,13 +341,17 @@ export class Calculate {
 
       const promiseContainer = [
         this.generateCommonFiles(),
-        this.generateCardTreeContent(card),
+        this.generateCardTreeContent(card).then(
+          this.generateCardTree.bind(this),
+        ),
         this.generateModules(card),
         this.generateWorkFlows(),
         this.generateCardTypes(),
       ];
 
-      await Promise.all(promiseContainer).then(this.generateImports.bind(this));
+      await Promise.all(promiseContainer).then(
+        this.generateResourceImports.bind(this),
+      );
     });
   }
 
@@ -367,7 +378,7 @@ export class Calculate {
     const affectedCards = await this.getCards(deletedCard);
     const cardTreeFile = join(
       Calculate.project.paths.calculationFolder,
-      Calculate.importFileName,
+      Calculate.importCardsFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
@@ -410,7 +421,7 @@ export class Calculate {
     await this.setCalculateProject(firstCard); // can throw
     const cardTreeFile = join(
       Calculate.project.paths.calculationFolder,
-      Calculate.importFileName,
+      Calculate.importCardsFileName,
     );
     const calculationsForTreeExist =
       pathExists(cardTreeFile) &&
@@ -423,7 +434,7 @@ export class Calculate {
     // @todo - should only generate card-tree for created cards' common ancestor (or root)
     //         this might in some cases (sub-tree created) improve performance
     await this.generateCardTreeContent(undefined);
-    await this.generateImports();
+    await this.generateCardTree();
   }
 
   /**
