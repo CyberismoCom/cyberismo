@@ -307,41 +307,6 @@ export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
 }
 
 /**
- * Moves a card in a tree of cards
- * Note: This function mutates the input array
- * @param cards: array of cards
- * @param cardKey: key of the card to move
- * @param newParentKey: key of the new parent card
- * @returns updated array of cards
- */
-export function moveCard(
-  cards: Card[],
-  cardKey: string,
-  newParentKey: string,
-): Card[] {
-  const card = findCard(cards, cardKey);
-  if (!card) {
-    return cards;
-  }
-  const parent = findParentCard(cards, cardKey);
-
-  const newParent = findCard(cards, newParentKey);
-  if (parent) {
-    parent.children =
-      parent.children?.filter((child) => child.key !== cardKey) || [];
-  } else {
-    cards = cards.filter((c) => c.key !== cardKey);
-  }
-  if (newParent) {
-    newParent.children = newParent.children || [];
-    newParent.children.push(card);
-  } else {
-    cards.push(card);
-  }
-  return cards;
-}
-
-/**
  * Counts the number of children of a card, including the card itself and children of children
  * @param card: card to count the children of
  * @returns number of children of the card including the card itself
