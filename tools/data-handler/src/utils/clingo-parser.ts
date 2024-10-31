@@ -107,9 +107,44 @@ class ClingoParser {
     childResult: (parentKey: string, childKey: string) => {
       this.childResultQueue.push({ parentKey, childKey });
     },
-    field: (key: string, fieldName: string, fieldValue: string) => {
+    field: async (key: string, fieldName: string, fieldValue: string) => {
+      const fieldType = await this.project.fieldType(fieldName);
+
       const res = this.getOrInitResult(key);
-      res[fieldName] = decodeClingoValue(fieldValue);
+      // Decoded is still a string
+      const decoded = decodeClingoValue(fieldValue);
+
+      if (!fieldType) {
+        res[fieldName] = decoded;
+        return;
+      }
+
+      switch (fieldType.dataType) {
+        case 'shortText':
+        case 'longText':
+        case 'enum':
+        case 'person':
+        case 'date':
+        case 'dateTime':
+          res[fieldName] = decoded;
+          break;
+        case 'number':
+          res[fieldName] = parseFloat(decoded);
+          break;
+        case 'integer':
+          res[fieldName] = parseInt(decoded);
+          break;
+        case 'boolean':
+          if (fieldValue === 'true') {
+            res[fieldName] = true;
+          } else {
+            res[fieldName] = false;
+          }
+          break;
+        case 'list':
+          res[fieldName] = decoded.split(',');
+          break;
+      }
     },
     label: (key: string, label: string) => {
       const res = this.getOrInitResult(key);
