@@ -76,7 +76,7 @@ describe('ClingoParser', () => {
     expect(result.results[0].fieldName).to.equal(fieldValue);
   });
 
-  it('should parser field correctly when last argument is an empty string', async () => {
+  it('should parse field correctly when last argument is an empty string', async () => {
     const fieldValue = '';
     const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;
     const result = await parser.parseInput(input);
