@@ -103,7 +103,7 @@ export class Template extends CardContainer {
     // here we want to insert the cards after the last card, but not after a card that has no rank
     // for clarity: These are the "root" template cards
     const parentCards = sortItems(
-      cards.filter((c) => c.parent === this.containerName),
+      cards.filter((c) => c.parent === 'root'),
       (c) => c?.metadata?.rank || '',
     );
 
