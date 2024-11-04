@@ -299,7 +299,7 @@ describe('validate cmd tests', () => {
       await readdir(pathToInvalidProject, { withFileTypes: true })
     )
       .filter((dirent) => dirent.isDirectory())
-      .map((dirent) => join(dirent.path, dirent.name));
+      .map((dirent) => join(dirent.parentPath, dirent.name));
     for (const projectPath of invalidProjects) {
       const result = await validateCmd.validate(projectPath);
       expect(result).to.not.equal(undefined); // all of the invalid projects have validation errors

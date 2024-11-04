@@ -131,7 +131,7 @@ export class CardContainer {
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const currentPath = join(entry.path, entry.name);
+        const currentPath = join(entry.parentPath, entry.name);
         if (CardNameRegEx.test(entry.name)) {
           // todo: from hereon, this could be shared with doCollect
           if (entry.name === cardKey) {
@@ -189,12 +189,12 @@ export class CardContainer {
         // Investigate the content of card folders' attachment folders, but do not continue to children cards.
         // For each attachment folder, collect all files.
         if (CardNameRegEx.test(entry.name)) {
-          currentPaths.push(join(entry.path, entry.name));
+          currentPaths.push(join(entry.parentPath, entry.name));
         } else if (entry.name === 'c') {
           continue;
         } else if (entry.name === 'a') {
-          const attachmentFolder = join(entry.path, entry.name);
-          const cardItem = basename(entry.path) || '';
+          const attachmentFolder = join(entry.parentPath, entry.name);
+          const cardItem = basename(entry.parentPath) || '';
           const entryAttachments = await readdir(attachmentFolder, {
             withFileTypes: true,
           });
@@ -202,7 +202,7 @@ export class CardContainer {
             attachments.push({
               card: cardItem,
               fileName: attachment.name,
-              path: attachment.path,
+              path: attachment.parentPath,
               mimeType: mime.lookup(attachment.name) || null,
             }),
           );
@@ -231,7 +231,7 @@ export class CardContainer {
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const currentPath = join(entry.path, entry.name);
+        const currentPath = join(entry.parentPath, entry.name);
         currentPaths.push(currentPath);
         if (CardNameRegEx.test(entry.name)) {
           if (directChildrenOnly) {

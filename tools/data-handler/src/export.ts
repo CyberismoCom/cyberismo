@@ -68,46 +68,53 @@ export class Export {
       if (entry.isDirectory() && CardNameRegEx.test(entry.name)) {
         cards?.push({
           key: entry.name,
-          path: entry.path,
+          path: entry.parentPath,
           children: [],
         });
-        await this.readCardTreeToMemory(join(entry.path, entry.name), cards);
+        await this.readCardTreeToMemory(
+          join(entry.parentPath, entry.name),
+          cards,
+        );
       } else if (entry.isDirectory() && entry.name === 'c') {
-        const found = this.findCard(entry.path, cards);
+        const found = this.findCard(entry.parentPath, cards);
         if (found) {
           await this.readCardTreeToMemory(
-            join(entry.path, entry.name),
+            join(entry.parentPath, entry.name),
             found.children,
           );
         } else {
           console.error(
-            `Cannot find card folder '${join(entry.path, entry.name)}'`,
+            `Cannot find card folder '${join(entry.parentPath, entry.name)}'`,
           );
         }
       } else if (entry.isDirectory() && entry.name === attachmentFolder) {
         unknownFileIsAttachment = true;
         await this.readCardTreeToMemory(
-          join(entry.path, entry.name),
+          join(entry.parentPath, entry.name),
           cards,
           unknownFileIsAttachment,
         );
       } else if (entry.isFile() && entry.name === Project.cardMetadataFile) {
-        const found = this.findCard(entry.path, cards);
+        const found = this.findCard(entry.parentPath, cards);
         if (found) {
-          found.metadata = readJsonFileSync(join(entry.path, entry.name));
+          found.metadata = readJsonFileSync(join(entry.parentPath, entry.name));
         } else {
-          console.error(`Cannot find file '${join(entry.path, entry.name)}'`);
+          console.error(
+            `Cannot find file '${join(entry.parentPath, entry.name)}'`,
+          );
         }
       } else if (entry.isFile() && entry.name === Project.cardContentFile) {
-        const found = this.findCard(entry.path, cards);
+        const found = this.findCard(entry.parentPath, cards);
         if (found) {
-          found.content = readADocFileSync(join(entry.path, entry.name));
+          found.content = readADocFileSync(join(entry.parentPath, entry.name));
         } else {
-          console.error(`Cannot find file '${join(entry.path, entry.name)}'`);
+          console.error(
+            `Cannot find file '${join(entry.parentPath, entry.name)}'`,
+          );
         }
       } else {
         if (unknownFileIsAttachment) {
-          const found = this.findAttachmentOwner(entry.path, cards);
+          const found = this.findAttachmentOwner(entry.parentPath, cards);
           if (found) {
             if (!found.attachments) {
               found.attachments = [];
@@ -115,12 +122,12 @@ export class Export {
             found.attachments?.push({
               card: found.key,
               fileName: entry.name,
-              path: entry.path,
+              path: entry.parentPath,
               mimeType: mime.lookup(entry.name) || null,
             });
           } else {
             console.error(
-              `Cannot find unknown file (likely attachment) ${join(entry.path, entry.name)}`,
+              `Cannot find unknown file (likely attachment) ${join(entry.parentPath, entry.name)}`,
             );
           }
         }
