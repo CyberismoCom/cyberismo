@@ -27,6 +27,7 @@ import { errorFunction } from './utils/log-utils.js';
 import { Export } from './export.js';
 import { Project } from './containers/project.js';
 import { sortItems } from './utils/lexorank.js';
+import { Calculate } from './calculate.js';
 
 interface ExportOptions {
   silent: boolean;
@@ -195,8 +196,16 @@ export class ExportSite extends Export {
       // Construct path for individual card file
       const cardPath = join(path, card.key + '.adoc');
       const cardXRef = cardPath.slice(this.pagesDir.length);
-      const navFileContent =
-        '*'.repeat(depth) + ` xref:${cardXRef}[${card.metadata?.title}]\n`;
+      let navFileContent = '';
+      if (card.metadata?.progress) {
+        navFileContent =
+          '*'.repeat(depth) +
+          ` xref:${cardXRef}[${card.metadata?.title} (${card.metadata?.progress}%)]\n`;
+      } else {
+        navFileContent =
+          '*'.repeat(depth) + ` xref:${cardXRef}[${card.metadata?.title}]\n`;
+      }
+
       await appendFile(this.navFile, navFileContent);
 
       let tempContent: string = '';
@@ -276,7 +285,13 @@ export class ExportSite extends Export {
       });
     }
 
-    await super.readCardTreeToMemory(sourcePath, cards);
+    const calculate = new Calculate();
+    await calculate.generate(source);
+    const tree = await calculate.runQuery(source, 'tree');
+    for (const treeQueryResult of tree) {
+      cards.push(await this.treeQueryResultToCard(treeQueryResult, source));
+    }
+
     if (!cards.length) {
       throw new Error('No cards found');
     }

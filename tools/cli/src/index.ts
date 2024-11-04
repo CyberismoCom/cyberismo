@@ -333,13 +333,7 @@ program
   .command('export')
   .description('Export a project or a card')
   .addArgument(
-    new Argument('<format>', 'Export format').choices([
-      'adoc',
-      'csv',
-      'html',
-      'pdf',
-      'site',
-    ]),
+    new Argument('<format>', 'Export format').choices(['adoc', 'html', 'site']),
   )
   .argument('<output>', 'Output path')
   .argument('[cardKey]', 'Path to card')

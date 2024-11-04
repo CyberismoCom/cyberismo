@@ -11,129 +11,29 @@
 */
 
 // node
-import {
-  appendFile,
-  copyFile,
-  mkdir,
-  readdir,
-  truncate,
-} from 'node:fs/promises';
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 
 import {
   Card,
-  CardNameRegEx,
   CardType,
+  FetchCardDetails,
 } from './interfaces/project-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { readADocFileSync, readJsonFileSync } from './utils/json.js';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
 
-import mime from 'mime-types';
 import { sortItems } from './utils/lexorank.js';
+import { QueryResult } from './types/queries.js';
+import { Show } from './show.js';
+import { Calculate } from './calculate.js';
 
 const attachmentFolder: string = 'a';
 
 export class Export {
   static project: Project;
-
-  // Finds card based on name.
-  private findCard(path: string, cards: Card[] | undefined) {
-    return cards?.find((card) => card.key === basename(path));
-  }
-
-  // Finds owner of attachment (card) based on name.
-  private findAttachmentOwner(path: string, cards: Card[] | undefined) {
-    const parts = path.split(sep);
-    const relatedCard = parts.at(parts.length - 2);
-    return cards?.find((card) => card.key === relatedCard);
-  }
-
-  // Creates memory-based representation of <project>/cardRoot
-  // todo: combine with function of same in Project
-  protected async readCardTreeToMemory(
-    cardRootPath: string,
-    cards?: Card[],
-    unknownFileIsAttachment: boolean = false,
-  ) {
-    let entries = await readdir(cardRootPath, { withFileTypes: true });
-    entries = entries.filter((entry) => {
-      return entry.name !== Project.schemaContentFile;
-    });
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && CardNameRegEx.test(entry.name)) {
-        cards?.push({
-          key: entry.name,
-          path: entry.parentPath,
-          children: [],
-        });
-        await this.readCardTreeToMemory(
-          join(entry.parentPath, entry.name),
-          cards,
-        );
-      } else if (entry.isDirectory() && entry.name === 'c') {
-        const found = this.findCard(entry.parentPath, cards);
-        if (found) {
-          await this.readCardTreeToMemory(
-            join(entry.parentPath, entry.name),
-            found.children,
-          );
-        } else {
-          console.error(
-            `Cannot find card folder '${join(entry.parentPath, entry.name)}'`,
-          );
-        }
-      } else if (entry.isDirectory() && entry.name === attachmentFolder) {
-        unknownFileIsAttachment = true;
-        await this.readCardTreeToMemory(
-          join(entry.parentPath, entry.name),
-          cards,
-          unknownFileIsAttachment,
-        );
-      } else if (entry.isFile() && entry.name === Project.cardMetadataFile) {
-        const found = this.findCard(entry.parentPath, cards);
-        if (found) {
-          found.metadata = readJsonFileSync(join(entry.parentPath, entry.name));
-        } else {
-          console.error(
-            `Cannot find file '${join(entry.parentPath, entry.name)}'`,
-          );
-        }
-      } else if (entry.isFile() && entry.name === Project.cardContentFile) {
-        const found = this.findCard(entry.parentPath, cards);
-        if (found) {
-          found.content = readADocFileSync(join(entry.parentPath, entry.name));
-        } else {
-          console.error(
-            `Cannot find file '${join(entry.parentPath, entry.name)}'`,
-          );
-        }
-      } else {
-        if (unknownFileIsAttachment) {
-          const found = this.findAttachmentOwner(entry.parentPath, cards);
-          if (found) {
-            if (!found.attachments) {
-              found.attachments = [];
-            }
-            found.attachments?.push({
-              card: found.key,
-              fileName: entry.name,
-              path: entry.parentPath,
-              mimeType: mime.lookup(entry.name) || null,
-            });
-          } else {
-            console.error(
-              `Cannot find unknown file (likely attachment) ${join(entry.parentPath, entry.name)}`,
-            );
-          }
-        }
-      }
-    }
-  }
 
   // This file should set the top level items to the adoc.
   private async toAdocFile(path: string, cards: Card[]) {
@@ -152,8 +52,9 @@ export class Export {
       content += '[frame=none]\n';
       content += '[grid=none]\n';
       content += '|===\n';
-      content += '|Field |Value\n\n';
-      content += `|Key|${card.key}\n`;
+      content += `|Card key|${card.key}\n`;
+      content += `|Status|${card.metadata.workflowState}\n`;
+      content += `|Card type|${card.metadata.cardType}\n`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
         if (
@@ -195,7 +96,6 @@ export class Export {
         const fullPath = resolve(
           process.cwd(),
           card.path,
-          card.key,
           Project.cardContentFile,
         );
         if (card.metadata?.title) {
@@ -237,6 +137,54 @@ export class Export {
   }
 
   /**
+   * Convert treeQueryResult object into a Card object and add content, metadata & attachments
+   * Handles card children recursively
+   * @param treeQueryResult tree query result object
+   * @param projectPath path of project under export
+   */
+  protected async treeQueryResultToCard(
+    treeQueryResult: QueryResult<'tree'>,
+    projectPath: string,
+  ): Promise<Card> {
+    const card: Card = {
+      key: treeQueryResult.key,
+      path: '',
+      children: [],
+    };
+
+    // Get content and attachments separately, not included in queries
+    const fetchCardDetails: FetchCardDetails = {
+      attachments: true,
+      children: false,
+      content: true,
+      contentType: 'adoc',
+      metadata: true,
+      parent: false,
+    };
+
+    const showCommand = new Show();
+    const cardDetailsResponse = await showCommand.showCardDetails(
+      projectPath,
+      fetchCardDetails,
+      card.key,
+    );
+
+    card.path = cardDetailsResponse.path;
+    card.metadata = cardDetailsResponse.metadata;
+    card.metadata!.progress = treeQueryResult['base/fieldTypes/progress'];
+    card.content = cardDetailsResponse.content;
+    card.attachments = cardDetailsResponse.attachments;
+
+    for (const result of treeQueryResult.results) {
+      card.children!.push(
+        await this.treeQueryResultToCard(result, projectPath),
+      );
+    }
+
+    return card;
+  }
+
+  /**
    * Exports the card(s) to ascii doc.
    * @param source Cardroot path.
    * @param destination Path to where the resulting file(s) will be created.
@@ -258,7 +206,13 @@ export class Export {
         path: sourcePath,
       });
     }
-    await this.readCardTreeToMemory(sourcePath, cards);
+
+    const calculate = new Calculate();
+    await calculate.generate(source);
+    const tree = await calculate.runQuery(source, 'tree');
+    for (const treeQueryResult of tree) {
+      cards.push(await this.treeQueryResultToCard(treeQueryResult, source));
+    }
 
     // Sort the cards by rank
     cards = sortItems(cards, function (card) {
