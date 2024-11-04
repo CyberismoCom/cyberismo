@@ -170,7 +170,6 @@ export class Create extends EventEmitter {
    * @returns non-empty string array with ids of added cards
    */
   public async addCards(
-    projectPath: string,
     cardTypeName: string,
     templateName: string,
     card?: string,
@@ -183,9 +182,8 @@ export class Create extends EventEmitter {
       throw Error(`Template '${origTemplateName}' is invalid template name`);
     }
     const templateObject = new Template(
-      projectPath,
-      { name: templateName },
       this.project,
+      { name: templateName }, // Template can deduce its own path
     );
 
     const specificCard = card
@@ -668,11 +666,7 @@ export class Create extends EventEmitter {
     // then remove the path handling from Template constructor
     // see INTDEV-533
 
-    const template = new Template(
-      this.project.basePath,
-      resource,
-      this.project,
-    );
+    const template = new Template(this.project, resource);
     await template.create(templateContent);
 
     this.project.addResource(resource);

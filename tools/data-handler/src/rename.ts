@@ -304,11 +304,7 @@ export class Rename extends EventEmitter {
     // Rename all local template cards.
     const templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
-      const templateObject = new Template(
-        this.project.basePath,
-        template,
-        this.project,
-      );
+      const templateObject = new Template(this.project, template);
       await this.renameCards(await templateObject.cards('', cardContent));
     }
 
