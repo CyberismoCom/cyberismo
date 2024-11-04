@@ -22,14 +22,12 @@ import { Edit } from './edit.js';
 import { ActionGuard } from './permissions/action-guard.js';
 
 export class Transition extends EventEmitter {
-  static project: Project;
-  private calculateCmd: Calculate;
-  private editCmd: Edit;
-
-  constructor(calculateCmd: Calculate) {
+  constructor(
+    private project: Project,
+    private calculateCmd: Calculate,
+    private editCmd: Edit,
+  ) {
     super();
-    this.calculateCmd = calculateCmd;
-    this.editCmd = new Edit();
     this.addListener(
       'transitioned',
       this.calculateCmd.handleCardChanged.bind(this.calculateCmd),
@@ -49,19 +47,12 @@ export class Transition extends EventEmitter {
 
   /**
    * Transitions a card from its current state to a new state.
-   * @param {string} projectPath path to a project
    * @param {string} cardKey card key
    * @param {string} transition which transition to do
    */
-  public async cardTransition(
-    projectPath: string,
-    cardKey: string,
-    transition: WorkflowState,
-  ) {
-    Transition.project = new Project(projectPath);
-
+  public async cardTransition(cardKey: string, transition: WorkflowState) {
     // Card details
-    const details = await Transition.project.cardDetailsById(cardKey, {
+    const details = await this.project.cardDetailsById(cardKey, {
       metadata: true,
     });
     if (!details || !details.metadata) {
@@ -69,9 +60,7 @@ export class Transition extends EventEmitter {
     }
 
     // Card type
-    const cardType = await Transition.project.cardType(
-      details.metadata?.cardType,
-    );
+    const cardType = await this.project.cardType(details.metadata?.cardType);
     if (cardType === undefined) {
       throw new Error(
         `Card's card type '${details.metadata?.cardType}' does not exist in the project`,
@@ -79,7 +68,7 @@ export class Transition extends EventEmitter {
     }
 
     // Workflow
-    const workflow = await Transition.project.workflow(cardType.workflow);
+    const workflow = await this.project.workflow(cardType.workflow);
     if (workflow === undefined) {
       throw new Error(
         `Card's workflow '${cardType.workflow}' does not exist in the project`,
@@ -120,13 +109,12 @@ export class Transition extends EventEmitter {
       );
     }
 
-    const actionGuard = new ActionGuard(new Calculate(), Transition.project);
+    const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     // Write new state and re-calculate.
     await this.setCardState(details, found.toState);
     await this.editCmd.editCardMetadata(
-      Transition.project.basePath,
       details.key,
       'lastTransitioned',
       new Date().toISOString(),

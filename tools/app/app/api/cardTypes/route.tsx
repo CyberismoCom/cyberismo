@@ -11,7 +11,7 @@
 */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Show } from '@cyberismocom/data-handler/show';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse('No card type', { status: 400 });
   }
 
-  const show = new Show();
-  const detailsResponse = await show.showCardTypeDetails(projectPath, cardType);
+  const commands = CommandManager.getInstance(projectPath);
+  const detailsResponse = await commands.showCmd.showCardTypeDetails(cardType);
 
   if (detailsResponse) {
     return NextResponse.json(detailsResponse);

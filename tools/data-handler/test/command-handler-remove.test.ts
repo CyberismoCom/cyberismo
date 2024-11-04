@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Calculate } from '../src/calculate.js';
+import { Project } from '../src/containers/project.js';
 import { Remove } from '../src/remove.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -21,15 +22,17 @@ const testDir = join(baseDir, 'tmp-command-handler-remove-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
-const commandHandler: Commands = new Commands();
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
-async function createLinkType(name: string): Promise<void> {
+async function createLinkType(
+  commandHandler: Commands,
+  name: string,
+): Promise<void> {
   await commandHandler.command(Cmd.create, ['linkType', name], options);
 }
 
-async function createCard(): Promise<requestStatus> {
+async function createCard(commandHandler: Commands): Promise<requestStatus> {
   const templateName = 'decision/templates/decision';
   const status = await commandHandler.command(
     Cmd.create,
@@ -40,6 +43,7 @@ async function createCard(): Promise<requestStatus> {
 }
 
 describe('remove command', () => {
+  const commandHandler: Commands = new Commands();
   describe('successful removals - test data is cleaned afterwards', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
@@ -53,7 +57,7 @@ describe('remove command', () => {
     // @todo: Test case commented out for now;
     // the event emitter from create is creating the files after the content should have been destroyed.
     it('remove card', async () => {
-      const card = await createCard();
+      const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       const result = await commandHandler.command(
         Cmd.remove,
@@ -64,7 +68,7 @@ describe('remove command', () => {
     });
     it('remove linkType', async () => {
       const name = 'test';
-      await createLinkType(name);
+      await createLinkType(commandHandler, name);
       const fullName = 'decision/linkTypes/' + name;
       const result = await commandHandler.command(
         Cmd.remove,
@@ -76,8 +80,8 @@ describe('remove command', () => {
     it('remove link (success)', async () => {
       const linkName = 'test';
       const linkFullName = 'decision/linkTypes/' + linkName;
-      await createLinkType(linkName);
-      const card = await createCard();
+      await createLinkType(commandHandler, linkName);
+      const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       await commandHandler.command(
         Cmd.create,
@@ -97,9 +101,9 @@ describe('remove command', () => {
     it('removing card removes links (success)', async () => {
       const linkName = 'test';
       const linkFullName = 'decision/linkTypes/' + linkName;
-      await createLinkType(linkName);
-      const card = await createCard();
-      const card2 = await createCard();
+      await createLinkType(commandHandler, linkName);
+      const card = await createCard(commandHandler);
+      const card2 = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       const cardId2 = card2.affectsCards![0];
       let result = await commandHandler.command(
@@ -112,7 +116,6 @@ describe('remove command', () => {
         ['card', cardId2],
         options,
       );
-      console.log(1);
       expect(result.statusCode).to.equal(200);
 
       // Link should exist between cardId and cardId2
@@ -128,7 +131,6 @@ describe('remove command', () => {
         ['card', cardId],
         options,
       );
-      console.log(result);
       expect(result.statusCode).to.equal(200);
 
       // cardId2 should no longer have link to the other card
@@ -146,7 +148,7 @@ describe('remove command', () => {
     it('remove attachment (success)', async () => {
       const attachment = 'the-needle.heic';
       const attachmentPath = join(testDir, 'attachments' + sep + attachment);
-      const card = await createCard();
+      const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       await commandHandler.command(
         Cmd.create,
@@ -174,10 +176,11 @@ describe('remove command', () => {
     // todo: at some point move to own test file
     it('Remove - remove card (success)', async () => {
       const cardId = 'decision_5';
-      const calculateCmd = new Calculate();
-      const removeCmd = new Remove(calculateCmd);
+      const project = new Project(decisionRecordsPath);
+      const calculateCmd = new Calculate(project);
+      const removeCmd = new Remove(project, calculateCmd);
       await removeCmd
-        .remove(decisionRecordsPath, 'card', cardId)
+        .remove('card', cardId)
         .then(() => {
           expect(true);
         })
@@ -276,10 +279,11 @@ describe('remove command', () => {
     });
     it('remove() - try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
-      const calculateCmd = new Calculate();
-      const removeCmd = new Remove(calculateCmd);
+      const project = new Project(decisionRecordsPath);
+      const calculateCmd = new Calculate(project);
+      const removeCmd = new Remove(project, calculateCmd);
       await removeCmd
-        .remove(decisionRecordsPath, 'attachment', cardId, '')
+        .remove('attachment', cardId, '')
         .then(() => {
           expect(false);
         })
@@ -289,10 +293,11 @@ describe('remove command', () => {
     });
     it('remove() - try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
-      const calculateCmd = new Calculate();
-      const removeCmd = new Remove(calculateCmd);
+      const project = new Project(decisionRecordsPath);
+      const calculateCmd = new Calculate(project);
+      const removeCmd = new Remove(project, calculateCmd);
       await removeCmd
-        .remove(decisionRecordsPath, 'attachment', cardId, 'the-needle.heic')
+        .remove('attachment', cardId, 'the-needle.heic')
         .then(() => {
           expect(false);
         })
@@ -301,10 +306,11 @@ describe('remove command', () => {
         });
     });
     it('remove() - try to remove non-existing module', async () => {
-      const calculateCmd = new Calculate();
-      const removeCmd = new Remove(calculateCmd);
+      const project = new Project(decisionRecordsPath);
+      const calculateCmd = new Calculate(project);
+      const removeCmd = new Remove(project, calculateCmd);
       await removeCmd
-        .remove(decisionRecordsPath, 'module', 'i-dont-exist')
+        .remove('module', 'i-dont-exist')
         .then(() => {
           expect(false);
         })

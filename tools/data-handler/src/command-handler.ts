@@ -13,30 +13,31 @@
 import { basename, dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-import { Calculate } from './calculate.js';
-import { Create } from './create.js';
-import { Edit } from './edit.js';
-import { ExportSite } from './export-site.js';
-import { Import } from './import.js';
-import { Move } from './move.js';
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { Remove } from './remove.js';
-import { Rename } from './rename.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { Show } from './show.js';
-import { Transition } from './transition.js';
 import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
 import { errorFunction } from './utils/log-utils.js';
 import {
+  Card,
+  CardAttachment,
+  CardListContainer,
+  CardType,
+  FieldTypeDefinition,
+  LinkType,
+  ModuleSettings,
+  ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
+  Template,
   TemplateMetadata,
   WorkflowMetadata,
 } from './interfaces/project-interfaces.js';
 import { resourceNameParts } from './utils/resource-utils.js';
-
+import { DefaultContent } from './create-defaults.js';
+import { CommandManager } from './command-manager.js';
+import { Create } from './create.js';
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
 );
@@ -67,37 +68,19 @@ export enum Cmd {
   rank = 'rank',
 }
 
+export { CommandManager } from './command-manager.js';
+
 /**
  * Class that handles all commands.
  */
 export class Commands {
-  private calcCmd: Calculate;
-  private createCmd: Create;
-  private editCmd: Edit;
-  private exportCmd: ExportSite;
-  private importCmd: Import;
-  private moveCmd: Move;
-  private removeCmd: Remove;
-  private renameCmd: Rename;
-  private showCmd: Show;
-  private transitionCmd: Transition;
+  private commands?: CommandManager;
+  private projectPath: string;
   private validateCmd: Validate;
 
-  private projectPath: string;
-
   constructor() {
-    this.calcCmd = new Calculate();
-    this.createCmd = new Create(this.calcCmd);
-    this.editCmd = new Edit();
-    this.exportCmd = new ExportSite();
-    this.importCmd = new Import();
-    this.moveCmd = new Move();
-    this.removeCmd = new Remove(this.calcCmd);
-    this.renameCmd = new Rename(this.calcCmd);
-    this.showCmd = new Show();
-    this.transitionCmd = new Transition(this.calcCmd);
-    this.validateCmd = Validate.getInstance();
     this.projectPath = '';
+    this.validateCmd = Validate.getInstance();
   }
 
   public static allowedTypes = [
@@ -128,10 +111,9 @@ export class Commands {
   }
 
   // Checks if card exists in project or template.
-  private async cardExists(path: string, cardKey?: string): Promise<boolean> {
+  private async cardExists(cardKey?: string): Promise<boolean> {
     if (cardKey) {
-      const project = new Project(path);
-      const card = await project.findSpecificCard(cardKey);
+      const card = await this.commands?.project.findSpecificCard(cardKey);
       return !!card;
     }
     return false;
@@ -256,18 +238,28 @@ export class Commands {
     if (!creatingNewProject) {
       this.projectPath = await this.setProjectPath(options.projectPath);
       this.projectPath = resolveTilde(this.projectPath);
+
       if (!this.validateFolder(this.projectPath)) {
         return {
           statusCode: 400,
           message: `Input validation error: folder name is invalid '${options.projectPath}'`,
         };
       }
+
       if (!pathExists(this.projectPath)) {
         return {
           statusCode: 400,
           message: `Input validation error: cannot find project '${options.projectPath}'`,
         };
       }
+
+      try {
+        this.commands = CommandManager.getInstance(this.projectPath);
+      } catch (e) {
+        return { statusCode: 400, message: errorFunction(e) };
+      }
+    } else {
+      this.projectPath = options.projectPath || '';
     }
     try {
       if (command === Cmd.add) {
@@ -286,38 +278,37 @@ export class Commands {
           if (!cardKey) {
             return { statusCode: 400, message: 'Card key is missing' };
           }
-          return this.runLogicProgram(this.projectPath, cardKey);
+          return this.runLogicProgram(cardKey);
         }
         if (command === 'generate') {
-          return this.generateLogicProgram(this.projectPath, cardKey);
+          return this.generateLogicProgram(cardKey);
         }
       }
       if (command === Cmd.create) {
         const target: ResourceTypes = args.splice(0, 1)[0] as ResourceTypes;
         if (target === 'attachment') {
           const [cardKey, attachment] = args;
-          return this.createAttachment(cardKey, attachment, this.projectPath);
+          return this.createAttachment(cardKey, attachment);
         }
         if (target === 'card') {
           const [template, parent] = args;
-          return this.createCard(template, parent, this.projectPath);
+          return this.createCard(template, parent);
         }
         if (target === 'cardType') {
           const [name, workflow] = args;
-          return this.createCardType(name, workflow, this.projectPath);
+          return this.createCardType(name, workflow);
         }
         if (target === 'project') {
           const [name, prefix] = args;
-          this.projectPath = options.projectPath || ''; // todo: validation
           return this.createProject(this.projectPath, prefix, name); // todo: order of parameters
         }
         if (target === 'template') {
           const [name, content] = args;
-          return this.createTemplate(name, content, this.projectPath);
+          return this.createTemplate(name, content);
         }
         if (target === 'fieldType') {
           const [name, datatype] = args;
-          return this.createFieldType(name, datatype, this.projectPath);
+          return this.createFieldType(name, datatype);
         }
         if (target === 'link') {
           const [cardKey, linkType, destinationCardKey, linkDescription] = args;
@@ -326,20 +317,19 @@ export class Commands {
             destinationCardKey,
             linkType,
             linkDescription,
-            this.projectPath,
           );
         }
         if (target === 'linkType') {
           const [name] = args;
-          return this.createLinkType(name, this.projectPath);
+          return this.createLinkType(name);
         }
         if (target === 'workflow') {
           const [name, content] = args;
-          return this.createWorkflow(name, content, this.projectPath);
+          return this.createWorkflow(name, content);
         }
         if (target === 'report') {
           const [name] = args;
-          return this.createReport(name, this.projectPath);
+          return this.createReport(name);
         }
       }
       if (command === Cmd.edit) {
@@ -348,7 +338,7 @@ export class Commands {
       }
       if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        return this.export(output, this.projectPath, cardKey, format);
+        return this.export(output, cardKey, format);
       }
       if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
@@ -358,13 +348,13 @@ export class Commands {
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
-          return this.importCsv(this.projectPath, csvFile, cardKey);
+          return this.importCsv(csvFile, cardKey);
         }
       }
       if (command === Cmd.move) {
         const [source, destination] = args;
         try {
-          await this.moveCmd.moveCard(this.projectPath, source, destination); //todo: order of parameters
+          await this.commands?.moveCmd.moveCard(source, destination);
           return { statusCode: 200 };
         } catch (error) {
           return { statusCode: 400, message: errorFunction(error) };
@@ -376,9 +366,9 @@ export class Commands {
           const [card, before] = args;
           try {
             if (before === 'first') {
-              await this.moveCmd.rankFirst(this.projectPath, card);
+              await this.commands?.moveCmd.rankFirst(card);
             } else {
-              await this.moveCmd.rankCard(this.projectPath, card, before);
+              await this.commands?.moveCmd.rankCard(card, before);
             }
             return { statusCode: 200 };
           } catch (e) {
@@ -389,9 +379,9 @@ export class Commands {
           const [cardKey] = args;
           try {
             if (cardKey) {
-              await this.moveCmd.rebalanceChildren(this.projectPath, cardKey);
+              await this.commands?.moveCmd.rebalanceChildren(cardKey);
             } else {
-              await this.moveCmd.rebalanceProject(this.projectPath);
+              await this.commands?.moveCmd.rebalanceProject();
             }
             return { statusCode: 200 };
           } catch (e) {
@@ -403,11 +393,11 @@ export class Commands {
         const [type, target, ...rest] = args;
         const removedType: RemovableResourceTypes =
           type as RemovableResourceTypes;
-        return this.remove(removedType, target, rest, this.projectPath);
+        return this.remove(removedType, target, rest);
       }
       if (command === Cmd.rename) {
         const [to] = args;
-        return this.rename(to, this.projectPath);
+        return this.rename(to);
       }
       if (command === Cmd.show) {
         const [type, detail] = args;
@@ -420,7 +410,7 @@ export class Commands {
       }
       if (command === Cmd.transition) {
         const [cardKey, state] = args;
-        return this.transition(cardKey, state, this.projectPath);
+        return this.transition(cardKey, state);
       }
       if (command === Cmd.validate) {
         return this.validate(this.projectPath);
@@ -463,13 +453,17 @@ export class Commands {
       };
     }
     try {
-      const addedCards = await this.createCmd.addCards(
+      const addedCards = await this.commands?.createCmd.addCards(
         path,
         cardTypeName,
         templateName,
         cardKey,
         repeat,
       );
+
+      if (!addedCards || addedCards.length === 0) {
+        throw new Error('error');
+      }
 
       const messageTxt =
         addedCards.length > 1
@@ -490,18 +484,14 @@ export class Commands {
   }
   /**
    * Runs a given logic program along with the query-language
-   * @param projectPath Path to the project
    * @param filePath Path to the file
    * @returns
    */
-  private async runLogicProgram(
-    projectPath: string,
-    filePath: string,
-  ): Promise<requestStatus> {
+  private async runLogicProgram(filePath: string): Promise<requestStatus> {
     try {
       return {
         statusCode: 200,
-        payload: await this.calcCmd.run(projectPath, {
+        payload: await this.commands?.calculateCmd.run({
           file: join(process.cwd(), filePath),
         }),
       };
@@ -512,17 +502,13 @@ export class Commands {
 
   /**
    * Generates logic program for a card.
-   * @param projectPath Optional, path to the project. If omitted, project is set from current path.
    * @param cardKey optional, if defined, logic program is generated for the subtree of the card
    * @returns statusCode 200 when operation succeeded
    * <br> statusCode 500 when there was a internal problem generating logic program
    */
-  private async generateLogicProgram(
-    projectPath?: string,
-    cardKey?: string,
-  ): Promise<requestStatus> {
+  private async generateLogicProgram(cardKey?: string): Promise<requestStatus> {
     try {
-      await this.calcCmd.generate(projectPath || '', cardKey);
+      await this.commands?.calculateCmd.generate(cardKey);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
@@ -533,7 +519,6 @@ export class Commands {
    * Adds attachment to a card.
    * @param {string} cardKey card key
    * @param {string} attachment path to attachment
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -542,7 +527,6 @@ export class Commands {
   private async createAttachment(
     cardKey: string,
     attachment: string,
-    path: string,
   ): Promise<requestStatus> {
     if (!pathExists(attachment)) {
       return {
@@ -551,7 +535,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createAttachment(cardKey, path, attachment);
+      await this.commands?.createCmd.createAttachment(cardKey, attachment);
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
     }
@@ -562,7 +546,6 @@ export class Commands {
    * Creates a new card to a project, or to a template.
    * @param {string} templateName which template to use
    * @param {string} parentCardKey parent for the new card
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -570,14 +553,12 @@ export class Commands {
   private async createCard(
     templateName: string,
     parentCardKey: string,
-    path: string,
   ): Promise<requestStatus> {
     if (parentCardKey === undefined) {
       parentCardKey = '';
     }
     try {
-      const createdCards = await this.createCmd.createCard(
-        path,
+      const createdCards = await this.commands?.createCmd.createCard(
         templateName,
         parentCardKey,
       );
@@ -595,7 +576,6 @@ export class Commands {
    * Creates a new card type.
    * @param cardTypeName Name of the card type.
    * @param workflowName Name of the workflow that the card type uses.
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -604,7 +584,6 @@ export class Commands {
   private async createCardType(
     cardTypeName: string,
     workflowName: string,
-    path: string,
   ): Promise<requestStatus> {
     const validCardTypeName = this.validName('cardTypes', cardTypeName);
     const validWorkflowName = this.validName('workflows', workflowName);
@@ -621,8 +600,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createCardType(
-        path,
+      await this.commands?.createCmd.createCardType(
         validCardTypeName,
         validWorkflowName,
       );
@@ -636,7 +614,6 @@ export class Commands {
    * Creates a new field type.
    * @param fieldTypeName Name of the field type.
    * @param dataType Name of the field type.
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -645,7 +622,6 @@ export class Commands {
   private async createFieldType(
     fieldTypeName: string,
     dataType: string,
-    path: string,
   ): Promise<requestStatus> {
     const validFieldTypeName = this.validName('fieldTypes', fieldTypeName);
     if (validFieldTypeName === '') {
@@ -655,7 +631,10 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createFieldType(path, validFieldTypeName, dataType);
+      await this.commands?.createCmd.createFieldType(
+        validFieldTypeName,
+        dataType,
+      );
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -668,7 +647,6 @@ export class Commands {
    * @param destinationCardKey Card key of the destination card
    * @param linkType Name of the link type
    * @param linkDescription Description of the link
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when there was a internal problem creating linkType
@@ -678,11 +656,9 @@ export class Commands {
     destinationCardKey: string,
     linkType: string,
     linkDescription: string,
-    path: string,
   ): Promise<requestStatus> {
     try {
-      await this.createCmd.createLink(
-        path,
+      await this.commands?.createCmd.createLink(
         cardKey,
         linkType,
         destinationCardKey,
@@ -697,16 +673,12 @@ export class Commands {
   /**
    * Creates a new link type.
    * @param name Name of the link type.
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    *  <br> statusCode 400 when there was a internal problem creating linkType
    */
-  private async createLinkType(
-    name: string,
-    path: string,
-  ): Promise<requestStatus> {
+  private async createLinkType(name: string): Promise<requestStatus> {
     const validLinkTypeName = this.validName('linkTypes', name);
     if (validLinkTypeName === '') {
       return {
@@ -715,7 +687,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createLinkType(path, validLinkTypeName);
+      await this.commands?.createCmd.createLinkType(validLinkTypeName);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -766,7 +738,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createProject(path, prefix, projectName);
+      await Create.createProject(path, prefix, projectName);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -777,7 +749,6 @@ export class Commands {
    * Creates a new template.
    * @param templateName template name to create
    * @param templateContent content for template
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -786,12 +757,11 @@ export class Commands {
   private async createTemplate(
     templateName: string,
     templateContent: string,
-    path: string,
   ): Promise<requestStatus> {
     const validTemplateName = this.validName('templates', templateName);
     if (
       validTemplateName === '' ||
-      !this.validateFolder(join(path, templateName))
+      !this.validateFolder(join(this.projectPath, templateName))
     ) {
       return {
         statusCode: 400,
@@ -800,10 +770,10 @@ export class Commands {
     }
     const content = templateContent
       ? (JSON.parse(templateContent) as TemplateMetadata)
-      : Create.defaultTemplateContent();
+      : DefaultContent.templateContent();
     // Note that templateContent is validated in createTemplate()
     try {
-      await this.createCmd.createTemplate(path, validTemplateName, content);
+      await this.commands?.createCmd.createTemplate(validTemplateName, content);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -814,7 +784,6 @@ export class Commands {
    * Creates a new workflow to a project.
    * @param workflowName Workflow name.
    * @param workflowContent Workflow content as JSON. Must conform to workflowSchema.json
-   * @param path Optional, path to the project. If omitted, project is set from current path.
    * @returns request status
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -823,7 +792,6 @@ export class Commands {
   private async createWorkflow(
     workflowName: string,
     workflowContent: string,
-    path: string,
   ): Promise<requestStatus> {
     const validWorkflowName = this.validName('workflows', workflowName);
     if (validWorkflowName === '') {
@@ -834,10 +802,10 @@ export class Commands {
     }
     const content = workflowContent
       ? (JSON.parse(workflowContent) as WorkflowMetadata)
-      : Create.defaultWorkflowContent(validWorkflowName);
+      : DefaultContent.workflowContent(validWorkflowName);
     content.name = validWorkflowName;
     try {
-      await this.createCmd.createWorkflow(path, content);
+      await this.commands?.createCmd.createWorkflow(content);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -847,24 +815,12 @@ export class Commands {
   /**
    * Creates a new report to a project.
    * @param name Report name.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    *  <br> statusCode 500 when there was a internal problem creating report
    */
-  private async createReport(
-    name: string,
-    path: string,
-  ): Promise<requestStatus> {
-    path = await this.setProjectPath(path);
-    if (!this.validateFolder(path)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: folder name is invalid '${path}'`,
-      };
-    }
-
+  private async createReport(name: string): Promise<requestStatus> {
     const validReportName = this.validName('reports', name);
 
     if (validReportName === '') {
@@ -874,7 +830,7 @@ export class Commands {
       };
     }
     try {
-      await this.createCmd.createReport(path, name);
+      await this.commands?.createCmd.createReport(name);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
@@ -902,14 +858,13 @@ export class Commands {
       };
     }
 
-    await this.editCmd.editCard(path, cardKey);
+    await this.commands?.editCmd.editCard(cardKey);
     return { statusCode: 200 };
   }
 
   /**
    * Exports whole or partial card tree to a given format.
    * @param {string} destination where cards are exported in the defined format
-   * @param {string} source from which directory card content is used
    * @param {string} parentCardKey parent card, if any. If undefined, whole project will be exported.
    * @param {string} mode export format (adoc, csv, html, pdf)
    * @returns {requestStatus}
@@ -919,11 +874,10 @@ export class Commands {
    */
   private async export(
     destination: string = 'output',
-    source: string,
     parentCardKey?: string,
     mode?: string,
   ): Promise<requestStatus> {
-    if (parentCardKey && !(await this.cardExists(source, parentCardKey))) {
+    if (parentCardKey && !(await this.cardExists(parentCardKey))) {
       return {
         statusCode: 400,
         message: `Input validation error: cannot find card '${parentCardKey}'`,
@@ -942,11 +896,14 @@ export class Commands {
       };
     }
     if (mode === 'adoc') {
-      await this.exportCmd.exportToADoc(source, destination, parentCardKey);
+      await this.commands?.exportCmd.exportToADoc(destination, parentCardKey);
     } else if (mode === 'html') {
-      await this.exportCmd.exportToHTML(source, destination, parentCardKey);
+      await this.commands?.exportCmd.exportToHTML(destination, parentCardKey);
     } else if (mode === 'site') {
-      await this.exportCmd.exportToSite(source, destination, parentCardKey);
+      await this.commands?.exportSiteCmd.exportToSite(
+        destination,
+        parentCardKey,
+      );
     } else {
       return {
         statusCode: 400,
@@ -957,14 +914,17 @@ export class Commands {
   }
 
   /**
-   * Imports another project to the 'path' project as a module.
+   * Imports another project to the 'destination' project as a module.
    * @param {string} source Path to project to import
-   * @param {string} path Optional. Destination project path. If omitted, destination project is set from current path.
+   * @param {string} path Destination project path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    */
-  private async import(source: string, path: string): Promise<requestStatus> {
+  private async import(
+    source: string,
+    destination: string,
+  ): Promise<requestStatus> {
     if (!this.validateFolder(source)) {
       return {
         statusCode: 400,
@@ -977,8 +937,9 @@ export class Commands {
         message: `Input validation error: cannot find project '${source}'`,
       };
     }
+    // todo: validate destination exists
     try {
-      await this.importCmd.importProject(source, path);
+      await this.commands?.importCmd.importProject(source, destination);
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
@@ -987,20 +948,21 @@ export class Commands {
 
   /**
    * Imports cards from a CSV file to a project.
-   * @param path path of the project
    * @param filePath path to the CSV file
    * @param parentCardKey parent card key, if any. If undefined, cards will be imported to root level.
    * @returns array of imported card keys wrapped in a requestStatus object or 400 if error
    */
   private async importCsv(
-    path: string,
     filePath: string,
     parentCardKey: string,
   ): Promise<requestStatus> {
     try {
       return {
         statusCode: 200,
-        payload: await this.importCmd.importCsv(path, filePath, parentCardKey),
+        payload: await this.commands?.importCmd.importCsv(
+          filePath,
+          parentCardKey,
+        ),
       };
     } catch (e) {
       return {
@@ -1015,7 +977,6 @@ export class Commands {
    * @param {RemovableResourceTypes} type Type of resource to remove (attachment, card, template)
    * @param {string} targetName What will be removed. Either card-id or templateName
    * @param {string} args Additional detail of removal, such as attachment name
-   * @param {string} path Path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when target was not removed.
@@ -1024,7 +985,6 @@ export class Commands {
     type: RemovableResourceTypes,
     targetName: string,
     args: string[],
-    path: string,
   ): Promise<requestStatus> {
     if (!Commands.removableTypes.includes(type)) {
       return {
@@ -1052,7 +1012,7 @@ export class Commands {
       };
     }
     try {
-      await this.removeCmd.remove(path, type, targetName, ...args);
+      await this.commands?.removeCmd.remove(type, targetName, ...args);
       return { statusCode: 200 };
     } catch (error) {
       return { statusCode: 400, message: errorFunction(error) };
@@ -1062,16 +1022,15 @@ export class Commands {
   /**
    * Changes project prefix, and renames all project cards.
    * @param {string} to New project prefix
-   * @param {string} path Optional. Path to the project. If omitted, project is set from current path.
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
    */
-  private async rename(to: string, path: string): Promise<requestStatus> {
+  private async rename(to: string): Promise<requestStatus> {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);
     }
     try {
-      await this.renameCmd.rename(path, to);
+      await this.commands?.renameCmd.rename(to);
       return { statusCode: 200 };
     } catch (error) {
       return { statusCode: 400, message: errorFunction(error) };
@@ -1092,7 +1051,6 @@ export class Commands {
     typeDetail: string,
     options: CardsOptions,
   ): Promise<requestStatus> {
-    const path = options.projectPath || this.projectPath;
     if (!this.allAllowedTypes().includes(type)) {
       return {
         statusCode: 400,
@@ -1110,14 +1068,27 @@ export class Commands {
       };
     }
     const detail = typeDetail || '';
-
-    let functionToCall: Function = async () => {}; // eslint-disable-line @typescript-eslint/no-unsafe-function-type
-    const parameters = [];
+    let promise: Promise<
+      | Card
+      | CardAttachment[]
+      | CardListContainer[]
+      | CardType
+      | FieldTypeDefinition
+      | LinkType
+      | ModuleSettings
+      | ProjectMetadata
+      | Template
+      | WorkflowMetadata
+      | string[]
+      | undefined
+    >;
+    if (!this.commands) {
+      throw new Error('No command manager');
+    }
 
     switch (type) {
       case 'attachments':
-        parameters.push(path);
-        functionToCall = this.showCmd.showAttachments.bind(this);
+        promise = this.commands?.showCmd.showAttachments();
         break;
       case 'card':
         {
@@ -1129,69 +1100,53 @@ export class Commands {
             parent: options?.details,
             attachments: true,
           };
-          parameters.push(path, cardDetails, detail);
-          functionToCall = this.showCmd.showCardDetails.bind(this);
+          promise = this.commands?.showCmd.showCardDetails(cardDetails, detail);
         }
         break;
       case 'cards':
-        parameters.push(path);
-        functionToCall = this.showCmd.showCards.bind(this);
+        promise = this.commands?.showCmd.showCards();
         break;
       case 'cardType':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showCardTypeDetails.bind(this);
+        promise = this.commands?.showCmd.showCardTypeDetails(detail);
         break;
       case 'cardTypes':
-        parameters.push(path);
-        functionToCall = this.showCmd.showCardTypes.bind(this);
+        promise = this.commands?.showCmd.showCardTypes();
         break;
       case 'fieldType':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showFieldType.bind(this);
+        promise = this.commands?.showCmd.showFieldType(detail);
         break;
       case 'fieldTypes':
-        parameters.push(path);
-        functionToCall = this.showCmd.showFieldTypes.bind(this);
+        promise = this.commands?.showCmd.showFieldTypes();
         break;
       case 'linkType':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showLinkType.bind(this);
+        promise = this.commands?.showCmd.showLinkType(detail);
         break;
       case 'linkTypes':
-        parameters.push(path);
-        functionToCall = this.showCmd.showLinkTypes.bind(this);
+        promise = this.commands?.showCmd.showLinkTypes();
         break;
       case 'module':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showModule.bind(this);
+        promise = this.commands?.showCmd.showModule(detail);
         break;
       case 'modules':
-        parameters.push(path);
-        functionToCall = this.showCmd.showModules.bind(this);
+        promise = this.commands?.showCmd.showModules();
         break;
       case 'project':
-        parameters.push(path);
-        functionToCall = this.showCmd.showProject.bind(this);
+        promise = this.commands?.showCmd.showProject();
         break;
       case 'template':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showTemplate.bind(this);
+        promise = this.commands?.showCmd.showTemplate(detail);
         break;
       case 'templates':
-        parameters.push(path);
-        functionToCall = this.showCmd.showTemplates.bind(this);
+        promise = this.commands?.showCmd.showTemplates();
         break;
       case 'workflow':
-        parameters.push(path, detail);
-        functionToCall = this.showCmd.showWorkflow.bind(this);
+        promise = this.commands?.showCmd.showWorkflow(detail);
         break;
       case 'workflows':
-        parameters.push(path);
-        functionToCall = this.showCmd.showWorkflows.bind(this);
+        promise = this.commands?.showCmd.showWorkflows();
         break;
       case 'reports':
-        parameters.push(path);
-        functionToCall = this.showCmd.showReports.bind(this);
+        promise = this.commands?.showCmd.showReports();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
@@ -1206,7 +1161,7 @@ export class Commands {
         };
     }
     try {
-      const result = await functionToCall(...parameters);
+      const result = await Promise.resolve(promise);
       return { statusCode: 200, payload: result };
     } catch (error) {
       return { statusCode: 400, message: errorFunction(error) };
@@ -1217,7 +1172,6 @@ export class Commands {
    * Sets new state to a card.
    * @param {string} cardKey Cardkey of a card.
    * @param {string} stateName State to which the card should be set.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
    * @returns {requestStatus}
    *       statusCode 200 when operation succeeded
    *  <br> statusCode 400 when input validation failed
@@ -1225,10 +1179,9 @@ export class Commands {
   private async transition(
     cardKey: string,
     stateName: string,
-    path: string,
   ): Promise<requestStatus> {
     try {
-      await this.transitionCmd.cardTransition(path, cardKey, {
+      await this.commands?.transitionCmd.cardTransition(cardKey, {
         name: stateName,
       });
       return { statusCode: 200 };

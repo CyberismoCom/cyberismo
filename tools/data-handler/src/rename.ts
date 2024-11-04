@@ -27,15 +27,15 @@ import { writeJsonFile } from './utils/json.js';
  * Class that handles 'rename' command.
  */
 export class Rename extends EventEmitter {
-  static project: Project;
-
-  private calculateCmd: Calculate;
   private from: string = '';
   private to: string = '';
 
-  constructor(calculateCmd: Calculate) {
+  constructor(
+    private project: Project,
+    private calculateCmd: Calculate,
+  ) {
     super();
-    this.calculateCmd = calculateCmd;
+
     this.addListener(
       'renamed',
       this.calculateCmd.generate.bind(this.calculateCmd),
@@ -105,7 +105,7 @@ export class Rename extends EventEmitter {
             `image::${newAttachmentFileName}`,
           );
           if (card.content) {
-            Rename.project.updateCardContent(card.key, card.content);
+            this.project.updateCardContent(card.key, card.content);
           }
         }),
       );
@@ -117,7 +117,7 @@ export class Rename extends EventEmitter {
     if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
       const { prefix, type, name } = resourceNameParts(card.metadata.cardType);
       if (prefix === this.from) {
-        card.metadata.cardType = `${Rename.project.configuration.cardKeyPrefix}/${type}/${name}`;
+        card.metadata.cardType = `${this.project.configuration.cardKeyPrefix}/${type}/${name}`;
         // Update card' custom fields
         const keys = Object.keys(card.metadata);
         for (const oldKey of keys) {
@@ -130,7 +130,7 @@ export class Rename extends EventEmitter {
           }
         }
         const skipValidation = true;
-        await Rename.project.updateCardMetadata(
+        await this.project.updateCardMetadata(
           card,
           card.metadata,
           skipValidation,
@@ -144,7 +144,7 @@ export class Rename extends EventEmitter {
     const { prefix, type, name } = resourceNameParts(resourceName);
     // do not rename module resources
     return this.from === prefix
-      ? `${Rename.project.configuration.cardKeyPrefix}/${type}/${name}`
+      ? `${this.project.configuration.cardKeyPrefix}/${type}/${name}`
       : resourceName;
   }
 
@@ -175,7 +175,7 @@ export class Rename extends EventEmitter {
   // Updates card type's metadata.
   // todo: once 'name' is dropped; can be simplified.
   private async updateCardTypeMetadata(cardTypeName: string) {
-    const cardType = await Rename.project.cardType(cardTypeName, true);
+    const cardType = await this.project.cardType(cardTypeName, true);
     if (cardType) {
       //cardType.name = this.updateResourceName(cardTypeName);
       cardType.workflow = this.updateResourceName(cardType.workflow);
@@ -186,7 +186,7 @@ export class Rename extends EventEmitter {
         this.updateResourceName(item),
       );
       const filename = join(
-        Rename.project.paths.cardTypesFolder,
+        this.project.paths.cardTypesFolder,
         basename(cardTypeName),
       );
       await writeJsonFile(filename, cardType);
@@ -196,12 +196,12 @@ export class Rename extends EventEmitter {
   // Updates field type's metadata.
   // todo: once 'name' is dropped; can be removed.
   private async updateFieldTypeMetadata(fieldTypeName: string) {
-    const fieldType = await Rename.project.fieldType(fieldTypeName);
+    const fieldType = await this.project.fieldType(fieldTypeName);
     if (fieldType) {
       fieldType.name = this.updateResourceName(fieldTypeName);
       // Write file
       const filename = join(
-        Rename.project.paths.fieldTypesFolder,
+        this.project.paths.fieldTypesFolder,
         basename(fieldTypeName),
       );
       await writeJsonFile(filename, fieldType);
@@ -211,7 +211,7 @@ export class Rename extends EventEmitter {
   // Updates field type's metadata.
   // todo: once 'name' is dropped; can be simplified.
   private async updateLinkTypeMetadata(linkTypeName: string) {
-    const linkType = await Rename.project.linkType(linkTypeName);
+    const linkType = await this.project.linkType(linkTypeName);
     if (linkType) {
       linkType.name = this.updateResourceName(linkTypeName);
       linkType.sourceCardTypes = linkType.sourceCardTypes.map((item) =>
@@ -222,7 +222,7 @@ export class Rename extends EventEmitter {
       );
       // Write file
       const filename = join(
-        Rename.project.paths.linkTypesFolder,
+        this.project.paths.linkTypesFolder,
         basename(linkTypeName),
       );
       await writeJsonFile(filename, linkType);
@@ -232,12 +232,12 @@ export class Rename extends EventEmitter {
   // Rename workflows.
   // todo: once 'name' is dropped; can be removed.
   private async updateWorkflowMetadata(workflowName: string) {
-    const workflow = await Rename.project.workflow(workflowName);
+    const workflow = await this.project.workflow(workflowName);
     if (workflow) {
       workflow.name = this.updateResourceName(workflowName);
       // Write file
       const filename = join(
-        Rename.project.paths.workflowsFolder,
+        this.project.paths.workflowsFolder,
         basename(workflowName),
       );
       await writeJsonFile(filename, workflow);
@@ -247,17 +247,15 @@ export class Rename extends EventEmitter {
   /**
    * Renames project prefix.
    * @throws if trying to rename with current name
-   * @param {string} projectPath Path to a project
    * @param {string} to Card id, or template name
    */
-  public async rename(projectPath: string, to: string) {
-    Rename.project = new Project(projectPath);
+  public async rename(to: string) {
     const cardContent = {
       metadata: true,
       attachments: true,
     };
 
-    this.from = Rename.project.configuration.cardKeyPrefix;
+    this.from = this.project.configuration.cardKeyPrefix;
     this.to = to;
     assert(this.from !== '');
     assert(this.to !== '');
@@ -267,36 +265,36 @@ export class Rename extends EventEmitter {
     }
 
     // Change project prefix to project settings.
-    await Rename.project.configuration.setCardPrefix(to);
+    await this.project.configuration.setCardPrefix(to);
 
     // Rename resources - module content shall not be modified.
     // It is better to rename the resources in this order: card types, field types
 
     // Rename all card types and custom fields in them.
-    const cardTypes = await Rename.project.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
     for (const cardType of cardTypes) {
       await this.updateCardTypeMetadata(cardType.name);
     }
 
-    const workflows = await Rename.project.workflows(ResourcesFrom.localOnly);
+    const workflows = await this.project.workflows(ResourcesFrom.localOnly);
     for (const workflow of workflows) {
       await this.updateWorkflowMetadata(workflow.name);
     }
 
     // Rename all field types.
-    const fieldTypes = await Rename.project.fieldTypes(ResourcesFrom.localOnly);
+    const fieldTypes = await this.project.fieldTypes(ResourcesFrom.localOnly);
     for (const fieldType of fieldTypes) {
       await this.updateFieldTypeMetadata(fieldType.name);
     }
 
     // Rename all the link types.
-    const linkTypes = await Rename.project.linkTypes(ResourcesFrom.localOnly);
+    const linkTypes = await this.project.linkTypes(ResourcesFrom.localOnly);
     for (const linkType of linkTypes) {
       await this.updateLinkTypeMetadata(linkType.name);
     }
 
     // Rename resource usage in all calculation files.
-    const calculations = await Rename.project.calculations(
+    const calculations = await this.project.calculations(
       ResourcesFrom.localOnly,
     );
     for (const calculation of calculations) {
@@ -304,24 +302,22 @@ export class Rename extends EventEmitter {
     }
 
     // Rename all local template cards.
-    const templates = await Rename.project.templates(ResourcesFrom.localOnly);
+    const templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
       const templateObject = new Template(
-        projectPath,
+        this.project.basePath,
         template,
-        Rename.project,
+        this.project,
       );
       await this.renameCards(await templateObject.cards('', cardContent));
     }
 
     // Rename all project cards.
     await this.renameCards(
-      await Rename.project.cards(
-        Rename.project.paths.cardRootFolder,
-        cardContent,
-      ),
+      await this.project.cards(this.project.paths.cardRootFolder, cardContent),
     );
 
-    this.emit('renamed', Rename.project.basePath);
+    this.project.collectLocalResources();
+    this.emit('renamed', this.project.basePath);
   }
 }

@@ -28,6 +28,7 @@ import { Export } from './export.js';
 import { Project } from './containers/project.js';
 import { sortItems } from './utils/lexorank.js';
 import { Calculate } from './calculate.js';
+import { Show } from './show.js';
 
 interface ExportOptions {
   silent: boolean;
@@ -42,6 +43,10 @@ export class ExportSite extends Export {
   private playbookFile: string = '';
   private navFile: string = '';
   private options: ExportOptions | undefined;
+
+  constructor(project: Project, calculateCmd: Calculate, showCmd: Show) {
+    super(project, calculateCmd, showCmd);
+  }
 
   // todo: change this so that split temp folder creation to its own method.
   // then parallelize this and export() as much as you can.
@@ -99,7 +104,7 @@ export class ExportSite extends Export {
 
     const playbook = {
       site: {
-        title: ExportSite.project.configuration.name,
+        title: this.project.configuration.name,
         start_page: `cards:ROOT:${startPage}`,
       },
       content: {
@@ -133,7 +138,7 @@ export class ExportSite extends Export {
 
   // Create the Antora site descriptor.
   private createDescriptor() {
-    const projectName = ExportSite.project.configuration.name;
+    const projectName = this.project.configuration.name;
     const descriptor = {
       name: 'cards',
       title: projectName,
@@ -210,7 +215,7 @@ export class ExportSite extends Export {
 
       let tempContent: string = '';
       if (card.metadata) {
-        const cardTypeForCard = await ExportSite.project.cardType(
+        const cardTypeForCard = await this.project.cardType(
           card.metadata?.cardType,
         );
         tempContent = '\n= ';
@@ -257,24 +262,21 @@ export class ExportSite extends Export {
 
   /**
    * Export the card tree as an Antora site
-   * @param source Cardroot path
    * @param destination Path where the site is generated
    * @param cardKey Optional; If defined exports the card tree from underneath this card.
    */
   public async exportToSite(
-    source: string,
     destination: string,
     cardKey?: string,
     options?: ExportOptions,
   ) {
     this.options = options;
-    Export.project = new Project(source);
     const sourcePath: string = cardKey
       ? join(
-          Export.project.paths.cardRootFolder,
-          Export.project.pathToCard(cardKey),
+          this.project.paths.cardRootFolder,
+          this.project.pathToCard(cardKey),
         )
-      : Export.project.paths.cardRootFolder;
+      : this.project.paths.cardRootFolder;
     const cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
@@ -285,11 +287,10 @@ export class ExportSite extends Export {
       });
     }
 
-    const calculate = new Calculate();
-    await calculate.generate(source);
-    const tree = await calculate.runQuery(source, 'tree');
+    await this.calculateCmd.generate();
+    const tree = await this.calculateCmd.runQuery('tree');
     for (const treeQueryResult of tree) {
-      cards.push(await this.treeQueryResultToCard(treeQueryResult, source));
+      cards.push(await this.treeQueryResultToCard(treeQueryResult));
     }
 
     if (!cards.length) {

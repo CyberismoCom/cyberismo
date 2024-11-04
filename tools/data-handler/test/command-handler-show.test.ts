@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Project } from '../src/containers/project.js';
 import { Show } from '../src/show.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import { ModuleSettings } from '../src/interfaces/project-interfaces.js';
@@ -21,7 +22,7 @@ const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
 const commandHandler: Commands = new Commands();
-const options: CardsOptions = { projectPath: decisionRecordsPath };
+const optionsDecision: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
@@ -39,15 +40,15 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['attachments'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
     });
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const showCommand = new Show();
+      const project = new Project(decisionRecordsPath);
+      const showCommand = new Show(project);
       const result = await showCommand.showAttachment(
-        decisionRecordsPath,
         'decision_1',
         'the-needle.heic',
       );
@@ -57,13 +58,10 @@ describe('shows command', () => {
     });
     it('show attachment file, card not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const showCommand = new Show();
+      const project = new Project(decisionRecordsPath);
+      const showCommand = new Show(project);
       await showCommand
-        .showAttachment(
-          decisionRecordsPath,
-          'invalid_key',
-          'does-not-exist.png',
-        )
+        .showAttachment('invalid_key', 'does-not-exist.png')
         .catch((error) =>
           expect(errorFunction(error)).to.equal(
             `Card 'invalid_key' does not exist in the project`,
@@ -72,9 +70,10 @@ describe('shows command', () => {
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
-      const showCommand = new Show();
+      const project = new Project(decisionRecordsPath);
+      const showCommand = new Show(project);
       await showCommand
-        .showAttachment(decisionRecordsPath, 'decision_1', 'does-not-exist.png')
+        .showAttachment('decision_1', 'does-not-exist.png')
         .catch((error) =>
           expect(errorFunction(error)).to.equal(
             `Attachment 'does-not-exist.png' not found for card decision_1`,
@@ -82,7 +81,11 @@ describe('shows command', () => {
         );
     });
     it('show cards - success()', async () => {
-      const result = await commandHandler.command(Cmd.show, ['cards'], options);
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['cards'],
+        optionsDecision,
+      );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
@@ -96,7 +99,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['card', 'decision_5'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -104,11 +107,11 @@ describe('shows command', () => {
       }
     });
     it('show particular card additional details - success()', async () => {
-      options.details = true;
+      optionsDecision.details = true;
       const result = await commandHandler.command(
         Cmd.show,
         ['card', 'decision_5'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -121,7 +124,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['cardTypes'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -139,7 +142,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['cardTypes', 'decision/cardTypes/decision'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -150,7 +153,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['modules'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -163,7 +166,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['project'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -174,7 +177,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['templates'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -189,7 +192,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['template', 'decision/templates/decision'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -197,7 +200,11 @@ describe('shows command', () => {
       }
     });
     it('show template cards - success()', async () => {
-      const result = await commandHandler.command(Cmd.show, ['cards'], options);
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['cards'],
+        optionsDecision,
+      );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
@@ -210,7 +217,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['workflows'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -226,7 +233,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['workflow', 'decision/workflows/decision'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
@@ -236,7 +243,11 @@ describe('shows command', () => {
     // @todo add test cases for error situations
   });
   it('show reports - success()', async () => {
-    const result = await commandHandler.command(Cmd.show, ['reports'], options);
+    const result = await commandHandler.command(
+      Cmd.show,
+      ['reports'],
+      optionsDecision,
+    );
     const payloadAsArray = Object.values(result.payload || []);
     expect(result.statusCode).to.equal(200);
     expect(payloadAsArray.length).to.equal(1);
@@ -249,7 +260,7 @@ describe('shows command', () => {
       await commandHandler.command(
         Cmd.import,
         ['module', minimalPath],
-        options,
+        optionsDecision,
       );
       await commandHandler.command(
         Cmd.import,
@@ -263,7 +274,7 @@ describe('shows command', () => {
       await commandHandler.command(
         Cmd.remove,
         ['module', minimalPath],
-        options,
+        optionsDecision,
       );
       await commandHandler.command(
         Cmd.remove,
@@ -273,7 +284,11 @@ describe('shows command', () => {
     });
 
     it('show modules - success', async () => {
-      let result = await commandHandler.command(Cmd.show, ['modules'], options);
+      let result = await commandHandler.command(
+        Cmd.show,
+        ['modules'],
+        optionsDecision,
+      );
       expect(result.statusCode).to.equal(200);
       expect(result.payload!).to.not.equal(undefined);
       let modules = Object.values(result.payload!);
@@ -287,7 +302,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['module', 'mini'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       expect(result.payload).to.not.equal(undefined);
@@ -307,7 +322,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['card', 'decision_1'],
-        options,
+        optionsDecision,
       );
       const resultFromModule = await commandHandler.command(
         Cmd.show,
@@ -320,7 +335,11 @@ describe('shows command', () => {
       expect(resultFromModule.payload).to.not.equal(undefined);
     });
     it('show cards', async () => {
-      const result = await commandHandler.command(Cmd.show, ['cards'], options);
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['cards'],
+        optionsDecision,
+      );
       const resultFromModule = await commandHandler.command(
         Cmd.show,
         ['cards'],
@@ -343,7 +362,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['cardTypes'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
@@ -371,7 +390,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['templates'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
@@ -397,7 +416,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['workflows'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
@@ -423,7 +442,7 @@ describe('shows command', () => {
       const result = await commandHandler.command(
         Cmd.show,
         ['attachments'],
-        options,
+        optionsDecision,
       );
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);

@@ -11,7 +11,7 @@
 */
 
 import { NextResponse } from 'next/server';
-import { Show } from '@cyberismocom/data-handler/show';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,26 +31,26 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   const projectPath = process.env.npm_config_project_path;
-  const show = new Show();
   if (!projectPath) {
     return new NextResponse('project_path environment variable not set.', {
       status: 500,
     });
   }
+  const commands = CommandManager.getInstance(projectPath);
 
   try {
-    show.showProject(projectPath);
+    commands.showCmd.showProject();
   } catch (error) {
     return new NextResponse(`No project found at path ${projectPath}`, {
       status: 500,
     });
   }
 
-  const response = await show.showFieldTypes(projectPath);
+  const response = await commands.showCmd.showFieldTypes();
   if (response) {
     const fieldTypes = await Promise.all(
       response.map((fieldType: string) =>
-        show.showFieldType(projectPath, fieldType),
+        commands.showCmd.showFieldType(fieldType),
       ),
     );
 

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Project } from '../src/containers/project.js';
 import { Show } from '../src/show.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
@@ -51,7 +52,8 @@ describe('move command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('move card to another card (success)', async () => {
-    const cards = await new Show().showProjectCards(options.projectPath!);
+    const project = new Project(options.projectPath!);
+    const cards = await new Show(project).showProjectCards();
     expect(cards.length).to.be.greaterThanOrEqual(2);
 
     const sourceId = cards[cards.length - 1].key;
@@ -65,7 +67,8 @@ describe('move command', () => {
   });
 
   it('move child card to another card (success)', async () => {
-    const cards = await new Show().showProjectCards(options.projectPath!);
+    const project = new Project(options.projectPath!);
+    const cards = await new Show(project).showProjectCards();
 
     const sourceId = 'decision_6';
     const destination = cards[cards.length - 1].key;

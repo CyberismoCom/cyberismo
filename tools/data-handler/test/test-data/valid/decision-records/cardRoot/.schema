@@ -1,4 +1,6 @@
-[{
-    "id": "cardBaseSchema",
-    "version": 1
-}]
+[
+    {
+        "id": "cardBaseSchema",
+        "version": 1
+    }
+]

@@ -28,25 +28,25 @@ import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 
 export class Move {
-  static project: Project;
+  constructor(
+    private project: Project,
+    private calculateCmd: Calculate,
+  ) {}
 
   /**
    * Moves card from 'destination' to 'source'.
-   * @param path Project path
    * @param source source card to move
    * @param destination destination card where source card will be moved to; or 'root'
    */
-  public async moveCard(path: string, source: string, destination: string) {
-    Move.project = new Project(path);
-
+  public async moveCard(source: string, destination: string) {
     const promiseContainer = [];
-    promiseContainer.push(Move.project.findSpecificCard(source));
+    promiseContainer.push(this.project.findSpecificCard(source));
     if (destination !== 'root') {
-      promiseContainer.push(Move.project.findSpecificCard(destination));
+      promiseContainer.push(this.project.findSpecificCard(destination));
     } else {
       const returnObject: Card = {
         key: '',
-        path: Move.project.paths.cardRootFolder,
+        path: this.project.paths.cardRootFolder,
       };
       promiseContainer.push(Promise.resolve(returnObject));
     }
@@ -71,8 +71,8 @@ export class Move {
       Project.isTemplateCard(sourceCard) &&
       Project.isTemplateCard(destinationCard);
     const bothProjectCards =
-      Move.project.hasCard(sourceCard.key) &&
-      Move.project.hasCard(destinationCard.key);
+      this.project.hasCard(sourceCard.key) &&
+      this.project.hasCard(destinationCard.key);
     if (!(bothTemplateCards || bothProjectCards)) {
       throw new Error(
         `Cards cannot be moved from project to template or vice versa`,
@@ -81,7 +81,7 @@ export class Move {
 
     const destinationPath =
       destination === 'root'
-        ? join(Move.project.paths.cardRootFolder, sourceCard.key)
+        ? join(this.project.paths.cardRootFolder, sourceCard.key)
         : join(destinationCard.path, 'c', sourceCard.key);
 
     // if the card is already in the destination, do nothing
@@ -90,14 +90,14 @@ export class Move {
     }
 
     // if both are project cards, make sure source card can be moved
-    const actionGuard = new ActionGuard(new Calculate(), Move.project);
+    const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('move', source);
 
     // rerank the card in the new location
     // it will be the last one in the new location
     let children;
     if (destination !== 'root') {
-      const parent = await Move.project.findSpecificCard(destination, {
+      const parent = await this.project.findSpecificCard(destination, {
         children: true,
         metadata: true,
       });
@@ -106,7 +106,7 @@ export class Move {
       }
       children = parent.children;
     } else {
-      children = await Move.project.showProjectCards();
+      children = await this.project.showProjectCards();
     }
 
     if (!children) {
@@ -120,21 +120,18 @@ export class Move {
       lastChild && lastChild.metadata
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
-    await Move.project.updateCardMetadataKey(sourceCard.key, 'rank', rank);
+    await this.project.updateCardMetadataKey(sourceCard.key, 'rank', rank);
     await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
   }
 
   /**
    * Sets the rank of a card to be after another card.
-   * @param path Project path
    * @param cardKey Card to rank
    * @param beforeCardKey Card key after which the card will be ranked
    */
-  public async rankCard(path: string, cardKey: string, beforeCardKey: string) {
-    Move.project = new Project(path);
-
-    const card = await Move.project.findSpecificCard(cardKey, {
+  public async rankCard(cardKey: string, beforeCardKey: string) {
+    const card = await this.project.findSpecificCard(cardKey, {
       metadata: true,
       parent: true,
     });
@@ -142,7 +139,7 @@ export class Move {
       throw new Error(`Card ${cardKey} not found from project`);
     }
 
-    const beforeCard = await Move.project.findSpecificCard(beforeCardKey, {
+    const beforeCard = await this.project.findSpecificCard(beforeCardKey, {
       metadata: true,
       parent: true,
     });
@@ -182,13 +179,13 @@ export class Move {
     }
 
     if (beforeCardIndex === children.length - 1) {
-      await Move.project.updateCardMetadataKey(
+      await this.project.updateCardMetadataKey(
         cardKey,
         'rank',
         getRankAfter(beforeCard.metadata?.rank as string),
       );
     } else {
-      await Move.project.updateCardMetadataKey(
+      await this.project.updateCardMetadataKey(
         cardKey,
         'rank',
         getRankBetween(
@@ -199,17 +196,16 @@ export class Move {
     }
   }
 
-  public async rankByIndex(path: string, cardKey: string, index: number) {
+  public async rankByIndex(cardKey: string, index: number) {
     if (index < 0) {
       throw new Error(`Index must be greater than 0`);
     }
     if (index === 0) {
-      await this.rankFirst(path, cardKey);
+      await this.rankFirst(cardKey);
       return;
     }
 
-    Move.project = new Project(path);
-    const card = await Move.project.findSpecificCard(cardKey, {
+    const card = await this.project.findSpecificCard(cardKey, {
       metadata: true,
       parent: true,
     });
@@ -230,13 +226,11 @@ export class Move {
     if (children.length < index) {
       throw new Error(`Index ${index} is out of bounds`);
     }
-    await this.rankCard(path, cardKey, children[index - 1].key);
+    await this.rankCard(cardKey, children[index - 1].key);
   }
 
-  public async rankFirst(path: string, cardKey: string) {
-    Move.project = new Project(path);
-
-    const card = await Move.project.findSpecificCard(cardKey, {
+  public async rankFirst(cardKey: string) {
+    const card = await this.project.findSpecificCard(cardKey, {
       metadata: true,
       parent: true,
     });
@@ -271,34 +265,31 @@ export class Move {
         throw new Error(`Second rank not found`);
       }
       const rankBetween = getRankBetween(firstRank, secondRank);
-      await Move.project.updateCardMetadataKey(
+      await this.project.updateCardMetadataKey(
         children[0].key,
         'rank',
         rankBetween,
       );
-      await Move.project.updateCardMetadataKey(cardKey, 'rank', firstRank);
+      await this.project.updateCardMetadataKey(cardKey, 'rank', firstRank);
     } else {
       // if the card is not at the first rank, we just use the first rank
-      await Move.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
+      await this.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
     }
   }
 
   /**
    * Rebalances the ranks of the cards in the whole project, including templates
    * Can be used even if the ranks do not exist
-   * @param path
    */
-  public async rebalanceProject(path: string) {
-    Move.project = new Project(path);
-
-    const cards = await Move.project.showProjectCards();
+  public async rebalanceProject() {
+    const cards = await this.project.showProjectCards();
 
     await this.rebalanceProjectRecursively(cards);
 
     // rebalance templates
-    const templates = await Move.project.templates(ResourcesFrom.localOnly);
+    const templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
-      const templateObject = await Move.project.createTemplateObject(template);
+      const templateObject = await this.project.createTemplateObject(template);
 
       if (!templateObject) {
         throw new Error(`Template '${template.name}' not found`);
@@ -333,12 +324,11 @@ export class Move {
   }
 
   /**
-   * Rebalances the ranks of the children of a card
+   *  Rebalances the ranks of the children of a card.
+   * @param parentCardKey
    */
-  public async rebalanceChildren(path: string, parentCardKey: string) {
-    Move.project = new Project(path);
-
-    const parentCard = await Move.project.findSpecificCard(parentCardKey, {
+  public async rebalanceChildren(parentCardKey: string) {
+    const parentCard = await this.project.findSpecificCard(parentCardKey, {
       children: true,
       metadata: true,
     });
@@ -355,10 +345,11 @@ export class Move {
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
-      await Move.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
+      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
     }
   }
 
+  //
   private async rebalanceProjectRecursively(cards: Card[]) {
     const ranks = rebalanceRanks(cards.length);
 
@@ -366,23 +357,19 @@ export class Move {
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];
-      await Move.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
+      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
       if (card.children && card.children.length > 0) {
         await this.rebalanceProjectRecursively(card.children);
       }
     }
   }
 
-  /**
-   * Returns children of a parent card or root cards
-   * @param parentCardKey parent card key or 'root' or template name
-   * @returns
-   */
+  // Returns children of a parent card or root cards
   private async getChildren(parentCardKey: string) {
     if (parentCardKey === 'root') {
-      return Move.project.showProjectCards();
+      return this.project.showProjectCards();
     } else {
-      const parentCard = await Move.project.findSpecificCard(parentCardKey, {
+      const parentCard = await this.project.findSpecificCard(parentCardKey, {
         children: true,
         metadata: true,
       });

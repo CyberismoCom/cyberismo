@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Show } from '@cyberismocom/data-handler/show';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 import { ProjectMetadata } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { NextResponse } from 'next/server';
 
@@ -38,34 +38,32 @@ export async function GET() {
     });
   }
 
-  const showCommand = new Show();
+  const commands = CommandManager.getInstance(projectPath);
 
   let projectResponse: ProjectMetadata;
   try {
-    projectResponse = await showCommand.showProject(projectPath);
+    projectResponse = await commands.showCmd.showProject();
   } catch (error) {
     return new NextResponse(`No project found from path ${projectPath}`, {
       status: 500,
     });
   }
 
-  const workflowsResponse =
-    await showCommand.showWorkflowsWithDetails(projectPath);
+  const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
   if (!workflowsResponse) {
     return new NextResponse(`No workflows found from path ${projectPath}`, {
       status: 500,
     });
   }
 
-  const cardTypesResponse =
-    await showCommand.showCardTypesWithDetails(projectPath);
+  const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
   if (!cardTypesResponse) {
     return new NextResponse(`No card types found from path ${projectPath}`, {
       status: 500,
     });
   }
 
-  const cardsResponse = await showCommand.showProjectCards(projectPath);
+  const cardsResponse = await commands.showCmd.showProjectCards();
   if (cardsResponse) {
     const response = {
       name: (projectResponse! as any).name,

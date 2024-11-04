@@ -98,7 +98,6 @@ test('countChildren returns correct count', async () => {
 test('getMovableCards returns correct cards', async () => {
   const card = findCard(testProject.cards, 'usdl_45');
   const result = getMoveableCards(flattenTree(testProject.cards), card!);
-  console.log(result);
   expect(result.length).toBe(9);
   expect(result.find((card) => card.key === 'usdl_45')).toBeUndefined();
   expect(result.find((card) => card.key === 'usdl_44')).toBeUndefined();
