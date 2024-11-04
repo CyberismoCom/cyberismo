@@ -1,4 +1,5 @@
 
 #include "base.lp".
-#include "imports.lp".
+#include "cardTree.lp".
+#include "resourceImports.lp".
 #include "modules.lp".
