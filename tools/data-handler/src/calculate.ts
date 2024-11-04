@@ -11,7 +11,7 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
+import path, { basename, join, resolve, sep } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -56,12 +56,6 @@ export class Calculate {
     fileURLToPath(import.meta.url),
     '../../../../calculations/queries',
   );
-
-  // Return path to query file if it exists, else return null.
-  private async getQuery(queryName: string) {
-    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
-    return pathExists(location) ? location : null;
-  }
 
   private async generateCardTypes() {
     const cardTypes = await Calculate.project.cardTypes();
@@ -193,35 +187,6 @@ export class Calculate {
     await Promise.all(promiseContainer);
   }
 
-  // Once card specific files have been done, write the the imports
-  private async generateImports(folder: string, destinationFile: string) {
-    let importsContent: string = '';
-    const files: string[] = getFilesSync(folder);
-
-    // Helper to remove extension from filename.
-    function removeExtension(file: string) {
-      const index = file.lastIndexOf('.');
-      return index === -1 ? file : file.substring(0, index);
-    }
-
-    importsContent += `% ${folder}\n`;
-    for (const file of files) {
-      importsContent += `#include "${resolve(join(folder, removeExtension(file) + '.lp')).replace(/\\/g, '/')}".\n`;
-    }
-    importsContent += '\n';
-    await writeFileSafe(destinationFile, importsContent);
-  }
-
-  private async generateResourceImports() {
-    return this.generateImports(
-      Calculate.project.paths.calculationResourcesFolder,
-      join(
-        Calculate.project.paths.calculationFolder,
-        Calculate.importResourcesFileName,
-      ),
-    );
-  }
-
   private async generateCardTree() {
     return this.generateImports(
       Calculate.project.paths.calculationCardsFolder,
@@ -238,6 +203,20 @@ export class Calculate {
       Calculate.commonFolderLocation,
       Calculate.project.paths.calculationFolder,
     );
+  }
+
+  // Once card specific files have been done, write the the imports
+  private async generateImports(folder: string, destinationFile: string) {
+    let importsContent: string = '';
+    const files: string[] = getFilesSync(folder);
+
+    importsContent += `% ${folder}\n`;
+    for (const file of files) {
+      const parsedFile = path.parse(file);
+      importsContent += `#include "${resolve(join(folder, parsedFile.dir, parsedFile.name + '.lp')).replace(/\\/g, '/')}".\n`;
+    }
+    importsContent += '\n';
+    await writeFileSafe(destinationFile, importsContent);
   }
 
   // Collects all logic calculation files from project (local and imported modules)
@@ -268,6 +247,15 @@ export class Calculate {
     }
     await writeFileSafe(destinationFile, modulesContent);
   }
+  private async generateResourceImports() {
+    return this.generateImports(
+      Calculate.project.paths.calculationResourcesFolder,
+      join(
+        Calculate.project.paths.calculationFolder,
+        Calculate.importResourcesFileName,
+      ),
+    );
+  }
 
   // Gets either all the cards (no parent), or a subtree.
   private async getCards(parentCard: Card | undefined): Promise<Card[]> {
@@ -290,6 +278,12 @@ export class Calculate {
       cards = await Calculate.project.cards();
     }
     return cards;
+  }
+
+  // Return path to query file if it exists, else return null.
+  private async getQuery(queryName: string) {
+    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
+    return pathExists(location) ? location : null;
   }
 
   // Checks that Clingo successfully returned result.
