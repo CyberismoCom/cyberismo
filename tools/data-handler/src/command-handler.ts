@@ -454,7 +454,6 @@ export class Commands {
     }
     try {
       const addedCards = await this.commands?.createCmd.addCards(
-        path,
         cardTypeName,
         templateName,
         cardKey,

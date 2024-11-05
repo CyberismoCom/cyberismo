@@ -554,7 +554,7 @@ export class Project extends CardContainer {
       return undefined;
     }
 
-    const templateObject = new Template(this.basePath, template, this);
+    const templateObject = new Template(this, template);
     await templateObject.create({});
     return templateObject;
   }

@@ -64,10 +64,10 @@ export class Template extends CardContainer {
     },
   ];
 
-  constructor(path: string, template: Resource, project: Project) {
+  constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
     const templateName = basename(template.name);
-    super(path, templateName);
+    super(template.path!, templateName);
 
     // prevent constructing a new project object, if one is passed to this class.
     this.project = project ? project : new Project(this.basePath);
