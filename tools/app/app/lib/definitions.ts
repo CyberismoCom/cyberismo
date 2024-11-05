@@ -12,25 +12,25 @@
 
 // These are used within this file for additional definitions.
 import {
-  CardAttachment,
   CardType,
-  FieldTypeDefinition,
+  FieldType,
   Link,
   LinkType,
-  WorkflowMetadata as Workflow,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+  Workflow,
+} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // These are exported as-is.
 export {
-  type CardAttachment,
   type CustomField,
   type DataType,
   type EnumDefinition,
-  type FieldTypeDefinition,
-  type WorkflowMetadata as Workflow,
+  type FieldType,
+  type Workflow,
   type WorkflowState,
   type WorkflowTransition,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+export { type CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // Single card with metadata and children, but no content.
 // Used in displaying the tree menu view.
@@ -74,7 +74,7 @@ export interface CardView {
 }
 
 // Array of field types.
-export type FieldTypes = Array<FieldTypeDefinition>;
+export type FieldTypes = Array<FieldType>;
 
 // Field type key.
 export type FieldTypeKey = string;

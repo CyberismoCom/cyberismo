@@ -41,7 +41,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
-import { LinkType } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';

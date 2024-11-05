@@ -7,7 +7,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Card } from '../src/interfaces/project-interfaces.js';
+import { Card, FileContentType } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Template } from '../src/containers/template.js';
@@ -152,10 +152,11 @@ describe('template', () => {
     expect(attachments.length).to.equal(0);
   });
   it('check that template does not exist, then create it', async () => {
-    const template = new Template(project, { name: 'idontexistyet' });
+    const templateName = 'idontexistyet';
+    const template = new Template(project, { name: templateName });
 
     expect(template.isCreated()).to.equal(false);
-    const success = await template.create({});
+    const success = await template.create({ name: templateName });
     expect(template.isCreated()).to.equal(true);
     expect(success).to.not.equal(undefined);
   });
@@ -210,7 +211,7 @@ describe('template', () => {
       expect(templatePath).to.not.equal('');
     }
     const details = {
-      contentType: 'adoc',
+      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,
@@ -297,7 +298,7 @@ describe('template', () => {
     expect(templateAttachments.length).to.equal(1);
 
     const details = {
-      contentType: 'adoc',
+      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,

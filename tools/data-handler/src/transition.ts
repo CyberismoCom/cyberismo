@@ -15,7 +15,8 @@ import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 
 import { Calculate } from './calculate.js';
-import { Card, WorkflowState } from './interfaces/project-interfaces.js';
+import { Card } from './interfaces/project-interfaces.js';
+import { WorkflowState } from './interfaces/resource-interfaces.js';
 import { Project } from './containers/project.js';
 import { writeJsonFile } from './utils/json.js';
 import { Edit } from './edit.js';

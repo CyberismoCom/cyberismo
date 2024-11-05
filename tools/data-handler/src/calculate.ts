@@ -16,7 +16,8 @@ import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { Card, Link } from './interfaces/project-interfaces.js';
+import { Card } from './interfaces/project-interfaces.js';
+import { Link } from './interfaces/resource-interfaces.js';
 import {
   copyDir,
   deleteDir,

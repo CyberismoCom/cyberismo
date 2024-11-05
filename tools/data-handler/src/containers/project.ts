@@ -21,20 +21,22 @@ import {
   CardListContainer,
   CardMetadata,
   CardNameRegEx,
-  CardType,
   FetchCardDetails,
-  FieldTypeDefinition,
-  LinkType,
   MetadataContent,
   ModuleSettings,
   ProjectMetadata,
   ProjectSettings,
-  Report,
-  ReportMetadata,
   Resource,
   ResourceFolderType,
-  WorkflowMetadata,
 } from '../interfaces/project-interfaces.js';
+import {
+  CardType,
+  FieldType,
+  LinkType,
+  Report,
+  ReportMetadata,
+  Workflow,
+} from '../interfaces/resource-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
@@ -169,7 +171,6 @@ export class Project extends CardContainer {
   }
 
   // Reads card tree to memory. This is with minimal information (e.g no attachments, no content).
-  // todo: combine with function of same in Export; add here booleans 'include content', 'include attachments'
   private async readCardTreeToMemory(cardRootPath: string, cards?: Card[]) {
     // Finds card from already collected cards using filename path.
     function findCard(path: string, cards: Card[] | undefined) {
@@ -242,9 +243,6 @@ export class Project extends CardContainer {
 
     const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
-      // for some reason, the specific resource folder does not exists
-      console.error(`Cannot find folder '${resourceFolder}'`);
-      // todo: automatically create resource folder with correct .schema file.
       return [];
     }
     const entries = readdirSync(resourceFolder, { withFileTypes: true });
@@ -284,6 +282,22 @@ export class Project extends CardContainer {
       'lastUpdated',
       new Date().toISOString(),
     );
+  }
+
+  // Returns (local or all) resources of a given type.
+  private async resourcesOfType(
+    type: ResourceFolderType,
+    from: ResourcesFrom = ResourcesFrom.localOnly,
+  ): Promise<Resource[]> {
+    if (type === 'calculation') return this.calculations(from);
+    if (type === 'cardType') return this.cardTypes(from);
+    if (type === 'fieldType') return this.fieldTypes(from);
+    if (type === 'linkType') return this.linkTypes(from);
+    if (type === 'module') return this.modules();
+    if (type === 'report') return this.reports(from);
+    if (type === 'template') return this.templates(from);
+    if (type === 'workflow') return this.workflows(from);
+    return [];
   }
 
   /**
@@ -555,7 +569,7 @@ export class Project extends CardContainer {
     }
 
     const templateObject = new Template(this, template);
-    await templateObject.create({});
+    await templateObject.create({ name: template.name });
     return templateObject;
   }
 
@@ -577,7 +591,7 @@ export class Project extends CardContainer {
    */
   public async fieldType(
     fieldTypeName: string,
-  ): Promise<FieldTypeDefinition | undefined> {
+  ): Promise<FieldType | undefined> {
     if (!fieldTypeName) {
       return undefined;
     }
@@ -593,7 +607,7 @@ export class Project extends CardContainer {
     }
     const file = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as FieldTypeDefinition;
+    )) as FieldType;
     return file;
   }
 
@@ -1032,6 +1046,23 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Checks if a given resource exists in the project already.
+   * @param resourceType Type of resource as a string.
+   * @param name Name of the resource in long format.
+   * @returns boolean, true if resource exists; false otherwise.
+   */
+  public async resourceExists(
+    resourceType: ResourceFolderType,
+    name: string,
+  ): Promise<boolean> {
+    const resources = await this.resourcesOfType(resourceType);
+    const resource = resources.find(
+      (item) => item.name === name + '.json' || item.name === name,
+    );
+    return resource !== undefined;
+  }
+
+  /**
    * Shows details of a project.
    * @returns details of a project.
    */
@@ -1215,9 +1246,7 @@ export class Project extends CardContainer {
    * @param {string} workflowName Name of the workflow (either filename (including .json extension), or workflow name).
    * @returns workflow configuration, or undefined if workflow cannot be found.
    */
-  public async workflow(
-    workflowName: string,
-  ): Promise<WorkflowMetadata | undefined> {
+  public async workflow(workflowName: string): Promise<Workflow | undefined> {
     if (!workflowName) {
       return undefined;
     }
@@ -1233,7 +1262,7 @@ export class Project extends CardContainer {
     }
     const file = (await readJsonFile(
       join(found.path, basename(found.name)),
-    )) as WorkflowMetadata;
+    )) as Workflow;
     return file;
   }
 
@@ -1300,6 +1329,7 @@ export class Project extends CardContainer {
     const schemaPath = join(folder, 'parameterSchema.json');
 
     return {
+      name: reportName,
       metadata,
       contentTemplate: (
         await readFile(join(folder, 'index.adoc.hbs'))

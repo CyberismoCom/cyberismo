@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "name": {},
     "displayName": {
       "description": "The name of the template as it should be displayed in the user interface. For example, 'Decision'.",
       "type": "string"

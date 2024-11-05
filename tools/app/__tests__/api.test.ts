@@ -14,11 +14,12 @@ import { GET as GET_TREE } from '../app/api/tree/route';
 import { NextRequest } from 'next/server';
 import {
   CardType,
-  FieldTypeDefinition,
+  FieldType,
   LinkType,
-  Template,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import { TemplateConfiguration } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
@@ -105,7 +106,7 @@ test('fieldTypes endpoint returns proper data', async () => {
   const response = await GET_FIELD_TYPES();
   expect(response).not.toBe(null);
 
-  const result: FieldTypeDefinition[] = await response.json();
+  const result: FieldType[] = await response.json();
   expect(response.status).toBe(200);
   expect(result.length).toBe(9);
   expect(result[0].name).toBe('decision/fieldTypes/admins');
@@ -132,7 +133,7 @@ test('templates endpoint returns proper data', async () => {
   const response = await GET_TEMPLATES();
   expect(response).not.toBe(null);
 
-  const result: Template[] = await response.json();
+  const result: TemplateConfiguration[] = await response.json();
   expect(response.status).toBe(200);
   expect(result.length).toBe(3);
   expect(result[0].name).toBe('decision/templates/decision');

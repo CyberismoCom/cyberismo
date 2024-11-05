@@ -25,7 +25,7 @@ import {
   CardMetadata,
   CustomField,
   DataType,
-  FieldTypeDefinition,
+  FieldType,
   MetadataValue,
 } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
@@ -161,9 +161,9 @@ function MetadataView({
     if (!fieldTypes) return [];
     return allFieldKeys
       .map((field: string) =>
-        fieldTypes?.find((f: FieldTypeDefinition) => f.name === field),
+        fieldTypes?.find((f: FieldType) => f.name === field),
       )
-      .filter((f) => f != null) as FieldTypeDefinition[];
+      .filter((f) => f != null) as FieldType[];
   }, [allFieldKeys, fieldTypes]);
 
   return (

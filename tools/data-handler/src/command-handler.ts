@@ -23,17 +23,20 @@ import {
   Card,
   CardAttachment,
   CardListContainer,
-  CardType,
-  FieldTypeDefinition,
-  LinkType,
+  FileContentType,
   ModuleSettings,
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
-  Template,
-  TemplateMetadata,
-  WorkflowMetadata,
+  TemplateConfiguration,
 } from './interfaces/project-interfaces.js';
+import {
+  CardType,
+  FieldType,
+  LinkType,
+  TemplateMetadata,
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 import { resourceNameParts } from './utils/resource-utils.js';
 import { DefaultContent } from './create-defaults.js';
 import { CommandManager } from './command-manager.js';
@@ -769,7 +772,7 @@ export class Commands {
     }
     const content = templateContent
       ? (JSON.parse(templateContent) as TemplateMetadata)
-      : DefaultContent.templateContent();
+      : DefaultContent.templateContent(templateName);
     // Note that templateContent is validated in createTemplate()
     try {
       await this.commands?.createCmd.createTemplate(validTemplateName, content);
@@ -800,7 +803,7 @@ export class Commands {
       };
     }
     const content = workflowContent
-      ? (JSON.parse(workflowContent) as WorkflowMetadata)
+      ? (JSON.parse(workflowContent) as Workflow)
       : DefaultContent.workflowContent(validWorkflowName);
     content.name = validWorkflowName;
     try {
@@ -1072,12 +1075,12 @@ export class Commands {
       | CardAttachment[]
       | CardListContainer[]
       | CardType
-      | FieldTypeDefinition
+      | FieldType
       | LinkType
       | ModuleSettings
       | ProjectMetadata
-      | Template
-      | WorkflowMetadata
+      | TemplateConfiguration
+      | Workflow
       | string[]
       | undefined
     >;
@@ -1092,7 +1095,7 @@ export class Commands {
       case 'card':
         {
           const cardDetails = {
-            contentType: 'adoc',
+            contentType: 'adoc' as FileContentType,
             content: options?.details,
             metadata: true,
             children: options?.details,

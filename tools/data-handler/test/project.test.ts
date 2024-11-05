@@ -10,6 +10,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { fileURLToPath } from 'node:url';
+import { FileContentType } from '../src/interfaces/project-interfaces.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -214,7 +215,7 @@ describe('project', () => {
       expect(templatePath).to.equal('');
     }
     const details = {
-      contentType: 'adoc',
+      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,
