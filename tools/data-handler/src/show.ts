@@ -36,20 +36,18 @@ import { UserPreferences } from './utils/user-preferences.js';
 import { homedir } from 'node:os';
 
 export class Show {
-  static project: Project;
+  constructor(private project: Project) {}
 
   /**
    * Shows all attachments (either template or project attachments) from a project.
-   * @param {string} projectPath path to a project
    * @returns array of card attachments
    */
-  public async showAttachments(projectPath: string): Promise<CardAttachment[]> {
-    Show.project = new Project(projectPath);
-    const attachments: CardAttachment[] = await Show.project.attachments();
+  public async showAttachments(): Promise<CardAttachment[]> {
+    const attachments: CardAttachment[] = await this.project.attachments();
     const templateAttachments: CardAttachment[] = [];
-    const templates = await Show.project.templates();
+    const templates = await this.project.templates();
     for (const template of templates) {
-      const templateObject = await Show.project.createTemplateObject(template);
+      const templateObject = await this.project.createTemplateObject(template);
       if (templateObject) {
         templateAttachments.push(...(await templateObject.attachments()));
       }
@@ -61,13 +59,11 @@ export class Show {
 
   /**
    * Returns file buffer and mime type of an attachment. Used by app UI to download attachments.
-   * @param {string} projectPath path to a project
    * @param {string} cardKey card key to find
    * @param {string} filename attachment filename
    * @returns attachment details
    */
   public async showAttachment(
-    projectPath: string,
     cardKey: string,
     filename: string,
   ): Promise<attachmentPayload> {
@@ -75,7 +71,7 @@ export class Show {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
 
-    const attachment = await this.getAttachment(projectPath, cardKey, filename);
+    const attachment = await this.getAttachment(cardKey, filename);
 
     let attachmentPath: string = '';
     if (attachment) {
@@ -97,18 +93,16 @@ export class Show {
 
   /**
    * Opens an attachment using a configured application or the operating system's default application.
-   * @param projectPath path to the project
    * @param cardKey card key of the attachment
    * @param filename attachment filename
    * @param waitDelay amount of time to wait for the application to open the attachment
    */
   public async openAttachment(
-    projectPath: string,
     cardKey: string,
     filename: string,
     waitDelay: number = 1000,
   ) {
-    const attachment = await this.getAttachment(projectPath, cardKey, filename);
+    const attachment = await this.getAttachment(cardKey, filename);
 
     if (!attachment) {
       throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
@@ -153,12 +147,8 @@ export class Show {
     }
   }
 
-  private async getAttachment(
-    projectPath: string,
-    cardKey: string,
-    filename: string,
-  ) {
-    Show.project = new Project(projectPath);
+  //
+  private async getAttachment(cardKey: string, filename: string) {
     const details = {
       content: false,
       metadata: true,
@@ -166,7 +156,7 @@ export class Show {
       parent: false,
       attachments: true,
     };
-    const card = await Show.project.cardDetailsById(cardKey, details);
+    const card = await this.project.cardDetailsById(cardKey, details);
     if (card === undefined) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -197,21 +187,18 @@ export class Show {
   /**
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
-   * @param {string} projectPath path to a project
    * @param {string} details card details to show
    * @param {string} cardKey card key to find
    * @returns card details object
    */
   public async showCardDetails(
-    projectPath: string,
     details: FetchCardDetails,
     cardKey?: string,
   ): Promise<Card> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
-    Show.project = new Project(projectPath);
-    const cardDetails = await Show.project.cardDetailsById(cardKey, details);
+    const cardDetails = await this.project.cardDetailsById(cardKey, details);
     if (cardDetails === undefined) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -220,42 +207,33 @@ export class Show {
 
   /**
    * Shows all cards (either template or project cards) from a project.
-   * @param {string} projectPath path to a project
    * @returns cards list array
    */
-  public async showCards(projectPath: string): Promise<CardListContainer[]> {
-    Show.project = new Project(projectPath);
-    const projectCards = await Show.project.listAllCards(true);
+  public async showCards(): Promise<CardListContainer[]> {
+    const projectCards = await this.project.listAllCards(true);
     return projectCards;
   }
 
   /**
    * Returns all project cards in the project. Cards don't have content and nor metadata.
-   * @param projectPath path to a project
    * @note AppUi uses this method.
    * @returns array of cards
    */
-  public async showProjectCards(projectPath: string): Promise<Card[]> {
-    Show.project = new Project(projectPath);
-    const projectCards = await Show.project.showProjectCards();
+  public async showProjectCards(): Promise<Card[]> {
+    const projectCards = await this.project.showProjectCards();
     return projectCards;
   }
 
   /**
    * Shows details of a particular card type.
-   * @param {string} projectPath path to a project
    * @param {string} cardTypeName card type name
    * @returns card type details
    */
-  public async showCardTypeDetails(
-    projectPath: string,
-    cardTypeName: string,
-  ): Promise<CardType> {
-    Show.project = new Project(projectPath);
+  public async showCardTypeDetails(cardTypeName: string): Promise<CardType> {
     if (cardTypeName === '') {
       throw new Error(`Must define card type name to query its details.`);
     }
-    const cardTypeDetails = await Show.project.cardType(cardTypeName);
+    const cardTypeDetails = await this.project.cardType(cardTypeName);
     if (cardTypeDetails === undefined) {
       throw new Error(
         `Card type '${cardTypeName}' not found from the project.`,
@@ -266,12 +244,10 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @param {string} projectPath path to a project
    * @returns array of card type names
    */
-  public async showCardTypes(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    const cardTypes = (await Show.project.cardTypes())
+  public async showCardTypes(): Promise<string[]> {
+    const cardTypes = (await this.project.cardTypes())
       .map((item) => item.name)
       .sort();
     return cardTypes;
@@ -279,16 +255,12 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @param {string} projectPath path to a project
    * @returns array of card type details
    */
-  public async showCardTypesWithDetails(
-    projectPath: string,
-  ): Promise<(CardType | undefined)[]> {
-    Show.project = new Project(projectPath);
+  public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
     const promiseContainer = [];
-    for (const cardType of await Show.project.cardTypes()) {
-      const cardTypeDetails = Show.project.cardType(cardType.name);
+    for (const cardType of await this.project.cardTypes()) {
+      const cardTypeDetails = this.project.cardType(cardType.name);
       if (cardTypeDetails) {
         promiseContainer.push(cardTypeDetails);
       }
@@ -299,12 +271,10 @@ export class Show {
 
   /**
    * Shows all available link types.
-   * @param {string} projectPath path to a project
    * @returns all available link types
    */
-  public async showLinkTypes(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    const linkTypes = (await Show.project.linkTypes())
+  public async showLinkTypes(): Promise<string[]> {
+    const linkTypes = (await this.project.linkTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();
     return linkTypes;
@@ -312,16 +282,13 @@ export class Show {
 
   /**
    * Shows details of a link type.
-   * @param {string} projectPath path to a project
    * @param {string} linkTypeName name of a link type
    * @returns details of a link type.
    */
   public async showLinkType(
-    projectPath: string,
     linkTypeName: string,
   ): Promise<LinkType | undefined> {
-    Show.project = new Project(projectPath);
-    const linkTypeDetails = await Show.project.linkType(linkTypeName);
+    const linkTypeDetails = await this.project.linkType(linkTypeName);
     if (linkTypeDetails === undefined) {
       throw new Error(
         `Link type '${linkTypeName}' not found from the project.`,
@@ -332,13 +299,11 @@ export class Show {
 
   /**
    * Shows all available field-types.
-   * @param {string} projectPath path to a project
    * @returns all available field-types
    */
-  public async showFieldTypes(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
+  public async showFieldTypes(): Promise<string[]> {
     // todo: make a common function that strips away the extension. Or use basename().
-    const fieldTypes = (await Show.project.fieldTypes())
+    const fieldTypes = (await this.project.fieldTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();
     return fieldTypes;
@@ -346,16 +311,13 @@ export class Show {
 
   /**
    * Shows details of a field type.
-   * @param {string} projectPath path to a project
    * @param {string} fieldTypeName name of a field type
    * @returns details of a field type.
    */
   public async showFieldType(
-    projectPath: string,
     fieldTypeName: string,
   ): Promise<FieldTypeDefinition | undefined> {
-    Show.project = new Project(projectPath);
-    const fieldTypeDetails = await Show.project.fieldType(fieldTypeName);
+    const fieldTypeDetails = await this.project.fieldType(fieldTypeName);
     if (fieldTypeDetails === undefined) {
       throw new Error(
         `Field type '${fieldTypeName}' not found from the project.`,
@@ -366,16 +328,11 @@ export class Show {
 
   /**
    * Shows details of a module.
-   * @param {string} projectPath path to a project
    * @param {string} moduleName name of a module
    * @returns details of a module.
    */
-  public async showModule(
-    projectPath: string,
-    moduleName: string,
-  ): Promise<ModuleSettings> {
-    Show.project = new Project(projectPath);
-    const moduleDetails = await Show.project.module(moduleName);
+  public async showModule(moduleName: string): Promise<ModuleSettings> {
+    const moduleDetails = await this.project.module(moduleName);
     if (!moduleDetails) {
       throw new Error(`Module '${moduleName}' does not exist in the project`);
     }
@@ -384,12 +341,10 @@ export class Show {
 
   /**
    * Shows all modules (if any) in a project.
-   * @param {string} projectPath path to a project
    * @returns all modules in a project.
    */
-  public async showModules(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    const modules = (await Show.project.modules())
+  public async showModules(): Promise<string[]> {
+    const modules = (await this.project.modules())
       .map((item) => item.name)
       .sort();
     return modules;
@@ -397,16 +352,14 @@ export class Show {
 
   /**
    * Shows all modules with full details in a project.
-   * @param {string} projectPath path to a project
    * @returns all modules in a project.
    */
-  public async showModulesWithDetails(
-    projectPath: string,
-  ): Promise<(ModuleSettings | undefined)[]> {
-    Show.project = new Project(projectPath);
+  public async showModulesWithDetails(): Promise<
+    (ModuleSettings | undefined)[]
+  > {
     const promiseContainer = [];
-    for (const module of await Show.project.modules()) {
-      promiseContainer.push(Show.project.module(module.name));
+    for (const module of await this.project.modules()) {
+      promiseContainer.push(this.project.module(module.name));
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
@@ -414,27 +367,28 @@ export class Show {
 
   /**
    * Shows details of a particular project.
-   * @param {string} projectPath path to a project
    * @returns project information
    */
-  public async showProject(projectPath: string): Promise<ProjectMetadata> {
-    Show.project = new Project(projectPath);
-    return Show.project.show();
+  public async showProject(): Promise<ProjectMetadata> {
+    return this.project.show();
+  }
+
+  /**
+   * Shows all reports in a project
+   * @returns reports by their name
+   */
+  public async showReports(): Promise<string[]> {
+    return (await this.project.reports()).map((item) => item.name).sort();
   }
 
   /**
    * Shows details of a particular template.
-   * @param {string} projectPath path to a project
    * @param {string} templateName template name
    * @returns template details
    */
-  public async showTemplate(
-    projectPath: string,
-    templateName: string,
-  ): Promise<Template> {
-    Show.project = new Project(projectPath);
+  public async showTemplate(templateName: string): Promise<Template> {
     const templateObject =
-      await Show.project.createTemplateObjectByName(templateName);
+      await this.project.createTemplateObjectByName(templateName);
     if (!templateObject) {
       throw new Error(
         `Template '${templateName}' does not exist in the project`,
@@ -445,12 +399,10 @@ export class Show {
 
   /**
    * Shows all templates in a project.
-   * @param {string} projectPath path to a project
    * @returns templates array
    */
-  public async showTemplates(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    const templates = (await Show.project.templates())
+  public async showTemplates(): Promise<string[]> {
+    const templates = (await this.project.templates())
       .map((item) => item.name)
       .sort();
     return templates;
@@ -461,12 +413,9 @@ export class Show {
    * @param {string} projectPath path to a project
    * @returns all templates in a project.
    */
-  public async showTemplatesWithDetails(
-    projectPath: string,
-  ): Promise<Template[]> {
-    Show.project = new Project(projectPath);
-    const promiseContainer = (await Show.project.templates()).map((template) =>
-      Show.project
+  public async showTemplatesWithDetails(): Promise<Template[]> {
+    const promiseContainer = (await this.project.templates()).map((template) =>
+      this.project
         .createTemplateObjectByName(template.name)
         .then((t) => t?.show()),
     );
@@ -476,19 +425,15 @@ export class Show {
 
   /**
    * Shows details of a particular workflow.
-   * @param {string} projectPath path to a project
    * @param {string} workflowName name of workflow
    * @returns workflow details
    */
-  public async showWorkflow(
-    projectPath: string,
-    workflowName: string,
-  ): Promise<WorkflowMetadata> {
-    Show.project = new Project(projectPath);
+  public async showWorkflow(workflowName: string): Promise<WorkflowMetadata> {
     if (workflowName === '') {
       throw new Error(`Must define workflow name to query its details.`);
     }
-    const workflowContent = await Show.project.workflow(workflowName);
+
+    const workflowContent = await this.project.workflow(workflowName);
     if (workflowContent === undefined) {
       throw new Error(`Workflow '${workflowName}' not found from the project.`);
     }
@@ -497,12 +442,10 @@ export class Show {
 
   /**
    * Shows all workflows in a project.
-   * @param {string} projectPath path to a project
    * @returns workflows
    */
-  public async showWorkflows(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    const workflows = (await Show.project.workflows())
+  public async showWorkflows(): Promise<string[]> {
+    const workflows = (await this.project.workflows())
       .map((item) => item.name)
       .sort();
     return workflows;
@@ -510,28 +453,16 @@ export class Show {
 
   /**
    * Shows all workflows with full details in a project.
-   * @param {string} projectPath path to a project
    * @returns workflows with full details
    */
-  public async showWorkflowsWithDetails(
-    projectPath: string,
-  ): Promise<(WorkflowMetadata | undefined)[]> {
+  public async showWorkflowsWithDetails(): Promise<
+    (WorkflowMetadata | undefined)[]
+  > {
     const promiseContainer = [];
-    Show.project = new Project(projectPath);
-    for (const workflow of await Show.project.workflows()) {
-      promiseContainer.push(Show.project.workflow(workflow.name));
+    for (const workflow of await this.project.workflows()) {
+      promiseContainer.push(this.project.workflow(workflow.name));
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
-  }
-
-  /**
-   * Shows all reports in a project
-   * @param projectPath  path to a project
-   * @returns reports by their name
-   */
-  public async showReports(projectPath: string): Promise<string[]> {
-    Show.project = new Project(projectPath);
-    return (await Show.project.reports()).map((item) => item.name).sort();
   }
 }

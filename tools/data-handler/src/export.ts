@@ -33,7 +33,11 @@ import { Calculate } from './calculate.js';
 const attachmentFolder: string = 'a';
 
 export class Export {
-  static project: Project;
+  constructor(
+    protected project: Project,
+    protected calculateCmd: Calculate,
+    protected showCmd: Show,
+  ) {}
 
   // This file should set the top level items to the adoc.
   private async toAdocFile(path: string, cards: Card[]) {
@@ -105,7 +109,7 @@ export class Export {
       }
 
       if (card.metadata) {
-        const cardTypeForCard = await Export.project.cardType(
+        const cardTypeForCard = await this.project.cardType(
           card.metadata?.cardType,
         );
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);
@@ -140,11 +144,9 @@ export class Export {
    * Convert treeQueryResult object into a Card object and add content, metadata & attachments
    * Handles card children recursively
    * @param treeQueryResult tree query result object
-   * @param projectPath path of project under export
    */
   protected async treeQueryResultToCard(
     treeQueryResult: QueryResult<'tree'>,
-    projectPath: string,
   ): Promise<Card> {
     const card: Card = {
       key: treeQueryResult.key,
@@ -162,9 +164,7 @@ export class Export {
       parent: false,
     };
 
-    const showCommand = new Show();
-    const cardDetailsResponse = await showCommand.showCardDetails(
-      projectPath,
+    const cardDetailsResponse = await this.showCmd.showCardDetails(
       fetchCardDetails,
       card.key,
     );
@@ -176,9 +176,7 @@ export class Export {
     card.attachments = cardDetailsResponse.attachments;
 
     for (const result of treeQueryResult.results) {
-      card.children!.push(
-        await this.treeQueryResultToCard(result, projectPath),
-      );
+      card.children!.push(await this.treeQueryResultToCard(result));
     }
 
     return card;
@@ -186,17 +184,11 @@ export class Export {
 
   /**
    * Exports the card(s) to ascii doc.
-   * @param source Cardroot path.
    * @param destination Path to where the resulting file(s) will be created.
    * @param cardKey If not exporting the whole card tree, card key of parent card.
    */
-  public async exportToADoc(
-    source: string,
-    destination: string,
-    cardKey?: string,
-  ) {
-    Export.project = new Project(source);
-    const sourcePath: string = Export.project.paths.cardRootFolder;
+  public async exportToADoc(destination: string, cardKey?: string) {
+    const sourcePath: string = this.project.paths.cardRootFolder;
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
@@ -207,11 +199,10 @@ export class Export {
       });
     }
 
-    const calculate = new Calculate();
-    await calculate.generate(source);
-    const tree = await calculate.runQuery(source, 'tree');
+    await this.calculateCmd.generate();
+    const tree = await this.calculateCmd.runQuery('tree');
     for (const treeQueryResult of tree) {
-      cards.push(await this.treeQueryResultToCard(treeQueryResult, source));
+      cards.push(await this.treeQueryResultToCard(treeQueryResult));
     }
 
     // Sort the cards by rank
@@ -240,16 +231,11 @@ export class Export {
 
   /**
    * Exports the card(s) to HTML and opens the browser.
-   * @param source Cardroot path.
    * @param destination Path to where the resulting file(s) will be created.
    * @param cardKey Optional; If not exporting the whole card tree, card key of parent card.
    */
-  public async exportToHTML(
-    source: string,
-    destination: string,
-    cardKey?: string,
-  ) {
-    return this.exportToADoc(source, destination, cardKey).then(() => {
+  public async exportToHTML(destination: string, cardKey?: string) {
+    return this.exportToADoc(destination, cardKey).then(() => {
       const asciiDocProcessor = Processor();
       const adocFile = join(destination, Project.cardContentFile);
       asciiDocProcessor.convertFile(adocFile, {

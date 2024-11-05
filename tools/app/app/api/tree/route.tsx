@@ -11,7 +11,7 @@
 */
 
 import { NextResponse } from 'next/server';
-import { Calculate } from '@cyberismocom/data-handler/calculate';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,9 +35,9 @@ export async function GET() {
     });
   }
   try {
-    const calculate = new Calculate();
-    await calculate.generate(projectPath);
-    const tree = await calculate.runQuery(projectPath, 'tree');
+    const commands = CommandManager.getInstance(projectPath);
+    await commands.calculateCmd.generate();
+    const tree = await commands.calculateCmd.runQuery('tree');
     return NextResponse.json(tree);
   } catch (e) {
     return new NextResponse((e instanceof Error && e.message) || '', {

@@ -1,10 +1,12 @@
 'use server';
 import { Calculate } from '@cyberismocom/data-handler/calculate';
+import { Project } from '@cyberismocom/data-handler/containers/project';
 
 export async function executeCardQuery(projectPath: string, key: string) {
-  const calculate = new Calculate();
-  await calculate.generate(projectPath);
-  const cards = await calculate.runQuery(projectPath, 'card', {
+  const project = new Project(projectPath);
+  const calculate = new Calculate(project);
+  await calculate.generate();
+  const cards = await calculate.runQuery('card', {
     cardKey: key,
   });
   if (cards.length === 0) {

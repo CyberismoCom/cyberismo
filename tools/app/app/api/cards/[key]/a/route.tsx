@@ -11,9 +11,7 @@
 */
 
 import { NextResponse } from 'next/server';
-import { Create } from '@cyberismocom/data-handler/create';
-import { Calculate } from '@cyberismocom/data-handler/calculate';
-import { Remove } from '@cyberismocom/data-handler/remove';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,17 +64,14 @@ export async function POST(
       })),
   );
 
-  const calc = new Calculate();
-  const createCommand = new Create(calc);
-  const removeCommand = new Remove(calc);
+  const commands = CommandManager.getInstance(projectPath);
 
   const succeeded = [];
   let error: Error | null = null;
   for (const file of files) {
     try {
-      await createCommand.createAttachment(
+      await commands.createCmd.createAttachment(
         params.key,
-        projectPath,
         file.name,
         file.buffer,
       );
@@ -91,7 +86,7 @@ export async function POST(
   if (error) {
     for (const file of succeeded) {
       try {
-        await removeCommand.remove(projectPath, 'attachment', params.key, file);
+        await commands.removeCmd.remove('attachment', params.key, file);
       } catch (error) {
         return new NextResponse('Failed to delete attachment.', {
           status: 500,

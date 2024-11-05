@@ -13,6 +13,7 @@ import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Create } from '../src/create.js';
 import { Calculate } from '../src/calculate.js';
+import { DefaultContent } from '../src/create-defaults.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -125,7 +126,7 @@ describe('create command', () => {
   });
 
   // card
-  it('card (success)', async () => {
+  it('create card (success)', async () => {
     const result = await commandHandler.command(
       Cmd.create,
       ['card', 'decision/templates/simplepage'],
@@ -153,12 +154,13 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+
   it('card incorrect template name', async () => {
     const templateName = 'i-dont-exist';
     const result = await commandHandler.command(
       Cmd.create,
       ['card', templateName],
-      optionsMini,
+      options,
     );
     expect(result.statusCode).to.equal(400);
   });
@@ -545,11 +547,15 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
     result = await commandHandler.command(Cmd.validate, [], optionsMini);
-    console.log(result);
     expect(result.statusCode).to.equal(200);
   });
   it('try to create report with same name', async () => {
     const reportName = 'report-name';
+    await commandHandler.command(
+      Cmd.create,
+      ['report', reportName],
+      optionsMini,
+    );
     const result = await commandHandler.command(
       Cmd.create,
       ['report', reportName],
@@ -646,7 +652,7 @@ describe('create command', () => {
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
-      optionsMini,
+      options,
     );
     expect(result.statusCode).to.equal(400);
   });
@@ -677,36 +683,36 @@ describe('create command', () => {
   it('workflow (success)', async () => {
     const workflowName = 'uniqueWorkflowName';
     const content = `
-          {
-            "name": "${workflowName}",
-            "states": [
-                { "name": "Open", "category": "initial" },
-                { "name": "In Progress", "category": "active" },
-                { "name": "Closed", "category": "closed" }
-            ],
-            "transitions": [
-                {
-                    "name": "Create",
-                    "fromState": [""],
-                    "toState": "Open"
-                },
-                {
-                    "name": "Working",
-                    "fromState": ["Open"],
-                    "toState": "In Progress"
-                },
-                {
-                    "name": "Done",
-                    "fromState": ["*"],
-                    "toState": "Closed"
-                },
-                {
-                    "name": "Reopen",
-                    "fromState": ["Closed"],
-                    "toState": "Open"
-                }
-            ]
-          }`;
+        {
+          "name": "${workflowName}",
+          "states": [
+              { "name": "Open", "category": "initial" },
+              { "name": "In Progress", "category": "active" },
+              { "name": "Closed", "category": "closed" }
+          ],
+          "transitions": [
+              {
+                  "name": "Create",
+                  "fromState": [""],
+                  "toState": "Open"
+              },
+              {
+                  "name": "Working",
+                  "fromState": ["Open"],
+                  "toState": "In Progress"
+              },
+              {
+                  "name": "Done",
+                  "fromState": ["*"],
+                  "toState": "Closed"
+              },
+              {
+                  "name": "Reopen",
+                  "fromState": ["Closed"],
+                  "toState": "Open"
+              }
+          ]
+        }`;
     const result = await commandHandler.command(
       Cmd.create,
       ['workflow', workflowName, content],
@@ -726,11 +732,11 @@ describe('create command', () => {
   it('workflow invalid workflow schema', async () => {
     const workflowName = 'default';
     const content = `
-          {
-            "name": "${workflowName}",
-            "wrongKey1": "dog",
-            "wrongKey2": "cat"
-          }`;
+        {
+          "name": "${workflowName}",
+          "wrongKey1": "dog",
+          "wrongKey2": "cat"
+        }`;
     const result = await commandHandler.command(
       Cmd.create,
       ['workflow', workflowName, content],
@@ -741,36 +747,36 @@ describe('create command', () => {
   it('workflow invalid project', async () => {
     const workflowName = 'default';
     const content = `
-          {
-            "name": "${workflowName}",
-            "states": [
-                { "name": "Open" },
-                { "name": "In Progress" },
-                { "name": "Closed" }
-            ],
-            "transitions": [
-                {
-                    "name": "Create",
-                    "fromState": [""],
-                    "toState": "Open"
-                },
-                {
-                    "name": "Working",
-                    "fromState": ["Open"],
-                    "toState": "In Progress"
-                },
-                {
-                    "name": "Done",
-                    "fromState": ["*"],
-                    "toState": "Closed"
-                },
-                {
-                    "name": "Reopen",
-                    "fromState": ["Closed"],
-                    "toState": "Open"
-                }
-            ]
-          }`;
+        {
+          "name": "${workflowName}",
+          "states": [
+              { "name": "Open" },
+              { "name": "In Progress" },
+              { "name": "Closed" }
+          ],
+          "transitions": [
+              {
+                  "name": "Create",
+                  "fromState": [""],
+                  "toState": "Open"
+              },
+              {
+                  "name": "Working",
+                  "fromState": ["Open"],
+                  "toState": "In Progress"
+              },
+              {
+                  "name": "Done",
+                  "fromState": ["*"],
+                  "toState": "Closed"
+              },
+              {
+                  "name": "Reopen",
+                  "fromState": ["Closed"],
+                  "toState": "Open"
+              }
+          ]
+        }`;
 
     const invalidOptions = {
       projectPath: join(testDir, 'valid/no-such-project'),
@@ -792,13 +798,13 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('access default parameters for template (success)', () => {
-    const defaultContent = Create.defaultTemplateContent();
+    const defaultContent = DefaultContent.templateContent();
     expect(defaultContent.displayName).to.equal(undefined);
     expect(defaultContent.category).to.equal(undefined);
     expect(defaultContent.description).to.equal(undefined);
   });
   it('access default parameters for workflow (success)', () => {
-    const defaultContent = Create.defaultWorkflowContent('test');
+    const defaultContent = DefaultContent.workflowContent('test');
     expect(defaultContent.name).to.equal('test');
     expect(defaultContent.states.length).to.equal(3);
     expect(defaultContent.transitions.length).to.equal(3);

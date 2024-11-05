@@ -39,6 +39,7 @@ import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
+import { resourceNameParts } from '../utils/resource-utils.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
 import { generateRandomString } from '../utils/random.js';
@@ -86,16 +87,11 @@ export class Project extends CardContainer {
     // todo: implement project validation
     this.validator = Validate.getInstance();
 
-    this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardTypes = this.resourcesSync('cardType', 'file');
-    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
-    this.localLinkTypes = this.resourcesSync('linkType', 'file');
-    this.localReports = this.resourcesSync('report', 'folder');
-    this.localTemplates = this.resourcesSync('template', 'folder');
-    this.localWorkflows = this.resourcesSync('workflow', 'file');
+    this.collectLocalResources();
   }
 
   // Add resources to an array.
+  // @todo: change the 'requestedType' to be ResourceFolder
   private async addResources(
     resources: Dirent[],
     requestedType: string,
@@ -145,6 +141,7 @@ export class Project extends CardContainer {
   }
 
   // Collect resources from modules
+  // @todo: change the 'type' to be ResourceFolder
   private async collectResourcesFromModules(type: string): Promise<Resource[]> {
     if (!pathExists(this.paths.modulesFolder)) {
       return [];
@@ -325,6 +322,37 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Add a given 'resource' to the local resource arrays.
+   * @param resource Resource to add.
+   */
+  public addResource(resource: Resource) {
+    const { type } = resourceNameParts(resource.name);
+    switch (type) {
+      case 'cardTypes':
+        this.localCardTypes.push(resource);
+        break;
+      case 'fieldTypes':
+        this.localFieldTypes.push(resource);
+        break;
+      case 'linkTypes':
+        this.localLinkTypes.push(resource);
+        break;
+      case 'reports':
+        this.localReports.push(resource);
+        break;
+      case 'templates':
+        this.localTemplates.push(resource);
+        break;
+      case 'workflows':
+        this.localWorkflows.push(resource);
+        break;
+      default: {
+        throw new Error(`Resource type '${type}' not handled in 'addResource'`);
+      }
+    }
+  }
+
+  /**
    * Returns an array of all the attachments in the project card's (excluding ones in templates).
    * @returns all attachments in the project.
    */
@@ -342,7 +370,9 @@ export class Project extends CardContainer {
     from: ResourcesFrom = ResourcesFrom.localOnly,
   ): Promise<Resource[]> {
     const moduleCalculations =
-      await this.collectResourcesFromModules('calculations');
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('calculations')
+        : [];
     return this.collectedResources(
       from,
       this.localCalculations,
@@ -482,8 +512,24 @@ export class Project extends CardContainer {
   public async cardTypes(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleCardTypes = await this.collectResourcesFromModules('cardTypes');
+    const moduleCardTypes =
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('cardTypes')
+        : [];
     return this.collectedResources(from, this.localCardTypes, moduleCardTypes);
+  }
+
+  /**
+   * Collects all local resource types.
+   */
+  public collectLocalResources() {
+    this.localCalculations = this.resourcesSync('calculation', 'file');
+    this.localCardTypes = this.resourcesSync('cardType', 'file');
+    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
+    this.localLinkTypes = this.resourcesSync('linkType', 'file');
+    this.localReports = this.resourcesSync('report', 'folder');
+    this.localTemplates = this.resourcesSync('template', 'folder');
+    this.localWorkflows = this.resourcesSync('workflow', 'file');
   }
 
   /**
@@ -560,7 +606,9 @@ export class Project extends CardContainer {
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     const moduleFieldTypes =
-      await this.collectResourcesFromModules('fieldTypes');
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('fieldTypes')
+        : [];
     return this.collectedResources(
       from,
       this.localFieldTypes,
@@ -712,7 +760,10 @@ export class Project extends CardContainer {
   public async linkTypes(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleLinkTypes = await this.collectResourcesFromModules('linkTypes');
+    const moduleLinkTypes =
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('linkTypes')
+        : [];
     return this.collectedResources(from, this.localLinkTypes, moduleLinkTypes);
   }
 
@@ -935,8 +986,49 @@ export class Project extends CardContainer {
   public async reports(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleReports = await this.collectResourcesFromModules('reports');
+    const moduleReports =
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('reports')
+        : [];
     return this.collectedResources(from, this.localReports, moduleReports);
+  }
+
+  /**
+   * Removes a resource from Project.
+   * @param resource Resource to remove.
+   */
+  public removeResource(resource: Resource) {
+    const { type } = resourceNameParts(resource.name);
+    let arrayToModify: Resource[];
+    switch (type) {
+      case 'cardTypes':
+        arrayToModify = this.localCardTypes;
+        break;
+      case 'fieldTypes':
+        arrayToModify = this.localFieldTypes;
+        break;
+      case 'linkTypes':
+        arrayToModify = this.localLinkTypes;
+        break;
+      case 'reports':
+        arrayToModify = this.localReports;
+        break;
+      case 'templates':
+        arrayToModify = this.localTemplates;
+        break;
+      case 'workflows':
+        arrayToModify = this.localWorkflows;
+        break;
+      default: {
+        throw new Error(
+          `Resource type '${type}' not handled in 'removeResource'`,
+        );
+      }
+    }
+    const index = arrayToModify.indexOf(resource, 0);
+    if (index > -1) {
+      arrayToModify.splice(index, 1);
+    }
   }
 
   /**
@@ -1032,7 +1124,10 @@ export class Project extends CardContainer {
   public async templates(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleTemplates = await this.collectResourcesFromModules('templates');
+    const moduleTemplates =
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('templates')
+        : [];
     return this.collectedResources(from, this.localTemplates, moduleTemplates);
   }
 
@@ -1172,7 +1267,10 @@ export class Project extends CardContainer {
   public async workflows(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleWorkflows = await this.collectResourcesFromModules('workflows');
+    const moduleWorkflows =
+      from !== ResourcesFrom.localOnly
+        ? await this.collectResourcesFromModules('workflows')
+        : [];
     return this.collectedResources(from, this.localWorkflows, moduleWorkflows);
   }
 
@@ -1193,6 +1291,7 @@ export class Project extends CardContainer {
     if (!found || !found.path) {
       return undefined;
     }
+
     const folder = join(found.path, basename(found.name));
     const metadata = (await readJsonFile(
       join(folder, 'report.json'),

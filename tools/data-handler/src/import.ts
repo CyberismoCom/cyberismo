@@ -18,23 +18,20 @@ import { Project } from './containers/project.js';
 import { readCsvFile } from './utils/csv.js';
 import { Validate } from './validate.js';
 import { Create } from './create.js';
-import { Calculate } from './calculate.js';
 
 export class Import {
-  createCmd: Create;
-  constructor() {
-    this.createCmd = new Create(new Calculate());
-  }
+  constructor(
+    private project: Project,
+    private createCmd: Create,
+  ) {}
 
   /**
    * Imports cards based on a csv file
-   * @param path path to the project
    * @param csvFilePath path to the csv file
    * @param parentCardKey the cards in the csv file will be created under this card
    * @returns card keys of the imported cards
    */
-  async importCsv(
-    path: string,
+  public async importCsv(
     csvFilePath: string,
     parentCardKey?: string,
   ): Promise<string[]> {
@@ -45,13 +42,12 @@ export class Import {
       throw new Error(isValid);
     }
 
-    const project = new Project(path);
-
     const importedCards = [];
 
     for (const row of csv) {
       const { title, template, description, labels, ...customFields } = row;
-      const templateObject = await project.createTemplateObjectByName(template);
+      const templateObject =
+        await this.project.createTemplateObjectByName(template);
       if (!templateObject) {
         throw new Error(`Template '${template}' not found`);
       }
@@ -65,42 +61,38 @@ export class Import {
       }
 
       // Create card
-      const cards = await this.createCmd.createCard(
-        path,
-        template,
-        parentCardKey,
-      );
+      const cards = await this.createCmd.createCard(template, parentCardKey);
 
       if (cards.length !== 1) {
         throw new Error('Card not created');
       }
       const cardKey = cards[0];
-      const card = await project.findSpecificCard(cardKey, {
+      const card = await this.project.findSpecificCard(cardKey, {
         metadata: true,
       });
-      const cardType = await project.cardType(card?.metadata?.cardType);
+      const cardType = await this.project.cardType(card?.metadata?.cardType);
 
       if (!cardType) {
-        throw new Error(`Cardtype not found for card ${cardKey}`);
+        throw new Error(`Card type not found for card ${cardKey}`);
       }
 
       if (description) {
-        await project.updateCardContent(cardKey, description);
+        await this.project.updateCardContent(cardKey, description);
       }
 
       // todo: could update all of the metadata values with single call to updateMetadataKey()
       if (labels) {
-        await project.updateCardMetadataKey(
+        await this.project.updateCardMetadataKey(
           cardKey,
           'labels',
           labels.split(' '),
         );
       }
 
-      await project.updateCardMetadataKey(cardKey, 'title', title);
+      await this.project.updateCardMetadataKey(cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
         if (cardType.customFields?.find((field) => field.name === key)) {
-          await project.updateCardMetadataKey(cardKey, key, value);
+          await this.project.updateCardMetadataKey(cardKey, key, value);
         }
       }
       console.log(`Successfully imported card ${title}`);
@@ -114,10 +106,10 @@ export class Import {
    * Resources will be added to a new directory under '.cards/modules'. The name of the
    * folder will be module prefix.
    * @param source Path to module that will be imported
-   * @param path Path to project that will receive the imported module
+   * @param destination Path to project that will receive the imported module
    */
-  async importProject(source: string, path: string) {
-    const destinationProject = new Project(path);
+  public async importProject(source: string, destination: string) {
+    const destinationProject = new Project(destination);
     const sourceProject = new Project(source);
     const modulePrefix = sourceProject.projectPrefix;
     const destinationPath = join(

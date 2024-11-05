@@ -10,7 +10,12 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardsOptions, Cmd, Commands } from './command-handler.js';
+import {
+  CardsOptions,
+  Cmd,
+  Commands,
+  CommandManager,
+} from './command-handler.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 
-export { CardsOptions, Cmd, Commands, requestStatus };
+export { CardsOptions, Cmd, CommandManager, Commands, requestStatus };

@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { attachmentPayload } from '@cyberismocom/data-handler/interfaces/request-status-interfaces';
-import { Show } from '@cyberismocom/data-handler/show';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,10 +55,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing cardKey or filename', { status: 400 });
   }
 
-  const showCommand = new Show();
+  const commands = CommandManager.getInstance(projectPath);
   try {
-    const attachmentResponse = await showCommand.showAttachment(
-      projectPath,
+    const attachmentResponse = await commands.showCmd.showAttachment(
       cardKey,
       filename,
     );

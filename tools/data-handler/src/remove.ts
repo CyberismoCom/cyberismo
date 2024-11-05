@@ -21,13 +21,11 @@ import { RemovableResourceTypes } from './interfaces/project-interfaces.js';
 import { ActionGuard } from './permissions/action-guard.js';
 
 export class Remove extends EventEmitter {
-  static project: Project;
-
-  private calculateCmd: Calculate;
-
-  constructor(calculateCmd: Calculate) {
+  constructor(
+    private project: Project,
+    private calculateCmd: Calculate,
+  ) {
     super();
-    this.calculateCmd = calculateCmd;
   }
 
   // Removes attachment from template or project card
@@ -36,7 +34,7 @@ export class Remove extends EventEmitter {
       throw new Error(`Attachment filename required`);
     }
 
-    const attachmentFolder = await Remove.project.cardAttachmentFolder(cardKey);
+    const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
     if (!attachmentFolder) {
       throw new Error(`Card '${cardKey}' not found`);
     }
@@ -55,7 +53,7 @@ export class Remove extends EventEmitter {
 
   // Removes card from project or template
   private async removeCard(cardKey: string) {
-    const cardFolder = await Remove.project.cardFolder(cardKey);
+    const cardFolder = await this.project.cardFolder(cardKey);
     if (!cardFolder) {
       throw new Error(`Card '${cardKey}' not found`);
     }
@@ -66,14 +64,14 @@ export class Remove extends EventEmitter {
     }
 
     // Make sure card can be removed if it's a project card
-    if (!(await Remove.project.isTemplateCard(cardKey))) {
-      const actionGuard = new ActionGuard(new Calculate(), Remove.project);
+    if (!(await this.project.isTemplateCard(cardKey))) {
+      const actionGuard = new ActionGuard(this.calculateCmd);
       await actionGuard.checkPermission('delete', cardKey);
     }
 
     // If card is destination of a link, remove the link.
-    const allCards = await Remove.project.cards(
-      Remove.project.paths.cardRootFolder,
+    const allCards = await this.project.cards(
+      this.project.paths.cardRootFolder,
       {
         metadata: true,
       },
@@ -89,7 +87,7 @@ export class Remove extends EventEmitter {
     await Promise.all(promiseContainer);
 
     // Calculations need to be updated before card is removed.
-    const card = await Remove.project.findSpecificCard(cardKey);
+    const card = await this.project.findSpecificCard(cardKey);
     if (card) {
       await this.calculateCmd.handleDeleteCard(card);
     }
@@ -113,7 +111,7 @@ export class Remove extends EventEmitter {
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = await Remove.project.findSpecificCard(sourceCardKey, {
+    const sourceCard = await this.project.findSpecificCard(sourceCardKey, {
       metadata: true,
     });
     if (!sourceCard) {
@@ -141,11 +139,7 @@ export class Remove extends EventEmitter {
         (linkDescription && l.linkDescription !== linkDescription),
     );
 
-    await Remove.project.updateCardMetadataKey(
-      sourceCardKey,
-      'links',
-      newLinks,
-    );
+    await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
   }
 
   /**
@@ -153,25 +147,27 @@ export class Remove extends EventEmitter {
    * @param linkTypeName Link type name
    */
   private async removeLinkType(linkTypeName: string) {
-    const path = await Remove.project.linkTypePath(linkTypeName);
+    const path = await this.project.linkTypePath(linkTypeName);
     if (!path) {
       throw new Error(`Link type '${linkTypeName}' not found`);
     }
     await deleteFile(path);
+    this.project.removeResource({ name: linkTypeName, path: path });
   }
 
   // Removes modules from project
   private async removeModule(moduleName: string) {
-    const module = await Remove.project.modulePath(moduleName);
+    const module = await this.project.modulePath(moduleName);
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
     await deleteDir(module);
+    // todo: update project
   }
 
   // Removes template from project
   private async removeTemplate(templateName: string) {
-    const template = await Remove.project.template(templateName);
+    const template = await this.project.template(templateName);
     if (!template || !template.path) {
       throw new Error(
         `Template '${templateName}' does not exist in the project`,
@@ -187,22 +183,20 @@ export class Remove extends EventEmitter {
     }
 
     await deleteDir(templatePath);
+    this.project.removeResource(template);
   }
 
   /**
    * Removes either attachment, card or template from project.
-   * @param {string} projectPath Path to a project
    * @param {RemovableResourceTypes} type Type of resource
    * @param {string} targetName Card id, or template name
    * @param {string} args Additional arguments, such as attachment filename
    */
   public async remove(
-    projectPath: string,
     type: RemovableResourceTypes,
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
-    Remove.project = new Project(projectPath);
     switch (type) {
       case 'attachment':
         return this.removeAttachment(targetName, rest[0]);

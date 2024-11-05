@@ -10,13 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from '@cyberismocom/data-handler/calculate';
-import { Create } from '@cyberismocom/data-handler/create';
-import { Edit } from '@cyberismocom/data-handler/edit';
-import { Move } from '@cyberismocom/data-handler/move';
-import { Remove } from '@cyberismocom/data-handler/remove';
-import { Show } from '@cyberismocom/data-handler/show';
-import { Transition } from '@cyberismocom/data-handler/transition';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 import Processor from 'asciidoctor';
 
@@ -121,6 +115,7 @@ export async function PATCH(request: NextRequest) {
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
   }
+  const commands = CommandManager.getInstance(projectPath);
 
   // Last URL segment is the search parameter
   const key = request.nextUrl.pathname.split('/')?.pop();
@@ -134,10 +129,8 @@ export async function PATCH(request: NextRequest) {
   const errors = [];
 
   if (res.state) {
-    const calculateCommand = new Calculate();
-    const transitionCommand = new Transition(calculateCommand);
     try {
-      await transitionCommand.cardTransition(projectPath, key, res.state);
+      await commands.transitionCmd.cardTransition(key, res.state);
       successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
@@ -145,9 +138,8 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (res.content != null) {
-    const editCommand = new Edit();
     try {
-      await editCommand.editCardContent(projectPath, key, res.content);
+      await commands.editCmd.editCardContent(key, res.content);
       successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
@@ -155,18 +147,11 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (res.metadata) {
-    const editCommand = new Edit();
-
     for (const [metadataKey, metadataValue] of Object.entries(res.metadata)) {
       const value = metadataValue as MetadataContent;
 
       try {
-        await editCommand.editCardMetadata(
-          projectPath,
-          key,
-          metadataKey,
-          value,
-        );
+        await commands.editCmd.editCardMetadata(key, metadataKey, value);
         successes++;
       } catch (error) {
         if (error instanceof Error) errors.push(error.message);
@@ -175,18 +160,16 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (res.parent) {
-    const moveCommand = new Move();
     try {
-      await moveCommand.moveCard(projectPath, key, res.parent);
+      await commands.moveCmd.moveCard(key, res.parent);
       successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
     }
   }
   if (res.index != null) {
-    const moveCommand = new Move();
     try {
-      await moveCommand.rankByIndex(projectPath, key, res.index);
+      await commands.moveCmd.rankByIndex(key, res.index);
       successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
@@ -227,10 +210,9 @@ async function getCardDetails(
     parent: false,
   };
 
-  const showCommand = new Show();
+  const commands = CommandManager.getInstance(projectPath);
   try {
-    const cardDetailsResponse = await showCommand.showCardDetails(
-      projectPath,
+    const cardDetailsResponse = await commands.showCmd.showCardDetails(
       fetchCardDetails,
       key,
     );
@@ -281,6 +263,7 @@ export async function DELETE(request: NextRequest) {
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
   }
+  const commands = CommandManager.getInstance(projectPath);
 
   const key = request.nextUrl.pathname.split('/')?.pop();
 
@@ -288,10 +271,8 @@ export async function DELETE(request: NextRequest) {
     return new NextResponse('No search key', { status: 400 });
   }
 
-  const removeCommand = new Remove(new Calculate());
-
   try {
-    await removeCommand.remove(projectPath, 'card', key);
+    await commands.removeCmd.remove('card', key);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (error instanceof Error) {
@@ -320,12 +301,11 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const createCommand = new Create(new Calculate());
+  const commands = CommandManager.getInstance(projectPath);
 
   try {
     return NextResponse.json(
-      await createCommand.createCard(
-        projectPath,
+      await commands.createCmd.createCard(
         res.template,
         key === 'root' ? undefined : key,
       ),

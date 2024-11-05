@@ -22,21 +22,21 @@ import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 
 export class Edit {
-  private static project: Project;
+  private project: Project;
+  private calculateCmd: Calculate;
 
-  constructor() {}
+  constructor(project: Project, calculateCmd: Calculate) {
+    this.project = project;
+    this.calculateCmd = calculateCmd;
+  }
 
   /**
    * Opens the content and metadata files for a card in the code editor
-   * @param projectPath - The path to the project containing the card
    * @param cardKey - The key of the card to open. Required.
    */
-  public async editCard(projectPath: string, cardKey: string) {
-    // Initialise the project
-    Edit.project = new Project(projectPath);
-
+  public async editCard(cardKey: string) {
     // Determine the card path
-    const cardPath = Edit.project.pathToCard(cardKey);
+    const cardPath = this.project.pathToCard(cardKey);
     if (!cardPath) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -47,7 +47,7 @@ export class Edit {
     ).getPreferences();
 
     // Construct paths for the card components (json and adoc)
-    const cardDirPath = join(Edit.project.paths.cardRootFolder, cardPath);
+    const cardDirPath = join(this.project.paths.cardRootFolder, cardPath);
     const cardContentPath = join(cardDirPath, Project.cardContentFile);
     const cardJsonPath = join(cardDirPath, Project.cardMetadataFile);
 
@@ -79,46 +79,35 @@ export class Edit {
 
   /**
    * Updates card content (index.adoc) with incoming content.
-   * @param projectPath The path to the project containing the card
    * @param cardKey The card to update.
    * @param changedContent New content for the card.
    */
-  public async editCardContent(
-    projectPath: string,
-    cardKey: string,
-    changedContent: string,
-  ) {
-    Edit.project = new Project(projectPath);
-
+  public async editCardContent(cardKey: string, changedContent: string) {
     // Determine the card path
-    const cardPath = Edit.project.pathToCard(cardKey);
+    const cardPath = this.project.pathToCard(cardKey);
     if (!cardPath) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const actionGuard = new ActionGuard(new Calculate(), Edit.project);
+    const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('editContent', cardKey);
 
-    await Edit.project.updateCardContent(cardKey, changedContent);
+    await this.project.updateCardContent(cardKey, changedContent);
   }
 
   /**
    * Updates card metadata.
-   * @param projectPath The path to the project containing the card
    * @param cardKey The card to update
    * @param changedKey Which metadata property was changed
    * @param newValue New value for the metadata property
    */
   public async editCardMetadata(
-    projectPath: string,
     cardKey: string,
     changedKey: string,
     newValue: MetadataContent,
   ) {
-    Edit.project = new Project(projectPath);
-
     // Determine the card path
-    const cardPath = Edit.project.pathToCard(cardKey);
+    const cardPath = this.project.pathToCard(cardKey);
     if (!cardPath) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -127,8 +116,8 @@ export class Edit {
     }
 
     // check for editing rights
-    const actionGuard = new ActionGuard(new Calculate(), Edit.project);
+    const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
-    await Edit.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 }

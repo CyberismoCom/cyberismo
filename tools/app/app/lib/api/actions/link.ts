@@ -11,9 +11,7 @@
 */
 'use server';
 
-import { Create } from '@cyberismocom/data-handler/create';
-import { Calculate } from '@cyberismocom/data-handler/calculate';
-import { Remove } from '@cyberismocom/data-handler/remove';
+import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
 export async function createLink(
   fromCard: string,
@@ -22,12 +20,11 @@ export async function createLink(
   linkDescription?: string,
 ) {
   const projectPath = process.env.npm_config_project_path || '';
-
-  const calc = new Calculate();
-  const createCommand = new Create(calc);
-
-  await createCommand.createLink(
-    projectPath,
+  if (!projectPath) {
+    return new Error('project_path environment variable not set.');
+  }
+  const commands = CommandManager.getInstance(projectPath);
+  await commands.createCmd.createLink(
     fromCard,
     toCard,
     linkType,
@@ -42,12 +39,11 @@ export async function removeLink(
   linkDescription?: string,
 ) {
   const projectPath = process.env.npm_config_project_path || '';
-
-  const calc = new Calculate();
-  const removeCommand = new Remove(calc);
-
-  await removeCommand.remove(
-    projectPath,
+  if (!projectPath) {
+    return new Error('project_path environment variable not set.');
+  }
+  const commands = CommandManager.getInstance(projectPath);
+  await commands.removeCmd.remove(
     'link',
     fromCard,
     toCard,

@@ -61,9 +61,8 @@ class ReportMacro extends BaseMacro {
       strict: true,
     });
 
-    const calculate = new Calculate();
-
-    const result = await calculate.run(context.projectPath, {
+    const calculate = new Calculate(project);
+    const result = await calculate.run({
       query: template(handlebarsContext),
     });
     if (result.error) {

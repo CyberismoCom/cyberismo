@@ -11,7 +11,7 @@
 */
 
 import { Calculate } from '../calculate.js';
-import { Project } from '../containers/project.js';
+
 import { DeniedOperationCollection } from '../types/queries.js';
 
 export type Action = keyof DeniedOperationCollection;
@@ -26,10 +26,7 @@ function checkOperation<T extends { errorMessage: string }>(data: Array<T>) {
  * This class is used to guard actions from being used without permissions
  */
 export class ActionGuard {
-  constructor(
-    private calculate: Calculate,
-    private project: Project, // only required for the path
-  ) {}
+  constructor(private calculate: Calculate) {}
 
   /**
    * Checks whether an action can be done
@@ -42,8 +39,8 @@ export class ActionGuard {
     cardKey: string,
     param?: string,
   ) {
-    await this.calculate.generate(this.project.basePath);
-    const cards = await this.calculate.runQuery(this.project.basePath, 'card', {
+    await this.calculate.generate();
+    const cards = await this.calculate.runQuery('card', {
       cardKey,
     });
     if (cards.length === 0) {

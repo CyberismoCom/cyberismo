@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Project } from '../src/containers/project.js';
 import { Show } from '../src/show.js';
 
 // Create test artifacts in a temp folder.
@@ -30,12 +31,9 @@ describe('transition command', () => {
   });
 
   it('transition to new state - success()', async () => {
-    const show = new Show();
-    const card = await show.showCardDetails(
-      decisionRecordsPath,
-      { metadata: true },
-      'decision_5',
-    );
+    const project = new Project(decisionRecordsPath);
+    const show = new Show(project);
+    const card = await show.showCardDetails({ metadata: true }, 'decision_5');
 
     const result = await commandHandler.command(
       Cmd.transition,
@@ -44,11 +42,7 @@ describe('transition command', () => {
     );
 
     expect(result.statusCode).to.equal(200);
-    const card2 = await show.showCardDetails(
-      decisionRecordsPath,
-      { metadata: true },
-      'decision_5',
-    );
+    const card2 = await show.showCardDetails({ metadata: true }, 'decision_5');
     expect(card2.metadata?.lastTransitioned).to.not.equal(
       card.metadata?.lastTransitioned,
     );

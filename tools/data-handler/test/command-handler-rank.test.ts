@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Project } from '../src/containers/project.js';
 import { Show } from '../src/show.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
@@ -56,6 +57,9 @@ describe('rank command', () => {
       ['card', template, 'decision_5'],
       options,
     );
+
+    await commandHandler.command(Cmd.show, ['templates'], options);
+
     childCardKey = childResult.affectsCards![0];
   });
 
@@ -71,8 +75,8 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const details = await new Show().showCardDetails(
-        options.projectPath!,
+      const project = new Project(options.projectPath!);
+      const details = await new Show(project).showCardDetails(
         { metadata: true },
         rankBefore,
       );
@@ -90,8 +94,8 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const details = await new Show().showCardDetails(
-        options.projectPath!,
+      const project = new Project(options.projectPath!);
+      const details = await new Show(project).showCardDetails(
         { metadata: true, content: true },
         rankBefore,
       );
@@ -107,8 +111,8 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
 
-      const details = await new Show().showCardDetails(
-        options.projectPath!,
+      const project = new Project(options.projectPath!);
+      const details = await new Show(project).showCardDetails(
         { metadata: true, content: true },
         key,
       );

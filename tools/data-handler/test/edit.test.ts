@@ -3,17 +3,22 @@ import { dirname, join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import { CommandManager } from '../src/command-manager.js';
 import { Edit } from '../src/edit.js';
 import { fileURLToPath } from 'node:url';
 
 describe('edit card', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
   const testDir = join(baseDir, 'tmp-edit-tests');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+  let editCmd: Edit;
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    commands = new CommandManager(decisionRecordsPath);
+    editCmd = commands.editCmd;
   });
 
   after(() => {
@@ -21,21 +26,21 @@ describe('edit card', () => {
   });
 
   it('edit card content (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
-    const cards = await project.cards();
+    const cards = await commands.project.cards();
     const firstCard = cards.at(0);
 
     // Modify content
     if (firstCard) {
-      await EditCmd.editCardContent(project.basePath, firstCard.key, 'whoopie');
+      await editCmd.editCardContent(firstCard.key, 'whoopie');
 
       // Fetch the changed card again
-      const changedCard = await project.findSpecificCard(firstCard.key, {
-        metadata: true,
-        content: true,
-      });
+      const changedCard = await commands.project.findSpecificCard(
+        firstCard.key,
+        {
+          metadata: true,
+          content: true,
+        },
+      );
       if (changedCard) {
         expect(changedCard.content).to.equal('whoopie');
         expect(changedCard.metadata?.lastUpdated).to.not.equal(
@@ -50,13 +55,11 @@ describe('edit card', () => {
   });
 
   it('edit card content - no content', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
-    const cards = await project.cards();
+    const cards = await commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      await EditCmd.editCardContent(project.basePath, firstCard.key, '')
+      await editCmd
+        .editCardContent(firstCard.key, '')
         .then(() => {
           expect(true);
         })
@@ -67,14 +70,8 @@ describe('edit card', () => {
   });
 
   it('try to edit card content - card is not in project', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
-    await EditCmd.editCardContent(
-      project.basePath,
-      'card-key-does-not-exist',
-      'whoopie',
-    )
+    await editCmd
+      .editCardContent('card-key-does-not-exist', 'whoopie')
       .then(() => {
         expect(false);
       })
@@ -84,14 +81,11 @@ describe('edit card', () => {
   });
 
   it('try to edit card from CLI - no project', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const cards = await project.cards();
+    const cards = await commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      const EditCmd = new Edit();
       try {
-        EditCmd.editCard(project.basePath, firstCard.key + 1);
+        editCmd.editCard(firstCard.key + 1);
         expect(false);
       } catch {
         expect(true);
@@ -112,20 +106,13 @@ describe('edit card', () => {
   // });
 
   it('edit card metadata (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
-    const cards = await project.cards();
+    const cards = await commands.project.cards();
     const firstCard = cards.at(0);
 
     // Modify metadata - title
     if (firstCard) {
-      await EditCmd.editCardMetadata(
-        project.basePath,
-        firstCard.key,
-        'title',
-        'new name',
-      )
+      await editCmd
+        .editCardMetadata(firstCard.key, 'title', 'new name')
         .then(() => {
           expect(true);
         })
@@ -134,10 +121,13 @@ describe('edit card', () => {
         });
 
       // Fetch the changed card again
-      const changedCard = await project.findSpecificCard(firstCard.key, {
-        metadata: true,
-        content: true,
-      });
+      const changedCard = await commands.project.findSpecificCard(
+        firstCard.key,
+        {
+          metadata: true,
+          content: true,
+        },
+      );
       if (changedCard) {
         if (changedCard.metadata) {
           expect(changedCard.metadata.title).to.equal('new name');
@@ -150,13 +140,11 @@ describe('edit card', () => {
     }
   });
   it('try to edit card metadata - incorrect field name', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
-    const cards = await project.cards();
+    const cards = await commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      await EditCmd.editCardMetadata(project.basePath, firstCard.key, '', '')
+      await editCmd
+        .editCardMetadata(firstCard.key, '', '')
         .then(() => {
           expect(false);
         })
@@ -167,11 +155,8 @@ describe('edit card', () => {
   });
 
   it('try to edit card metadata - card is not in project', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    const EditCmd = new Edit();
+    const EditCmd = commands.editCmd;
     await EditCmd.editCardMetadata(
-      project.basePath,
       'card-key-does-not-exist',
       'whoopie',
       'whoopie',

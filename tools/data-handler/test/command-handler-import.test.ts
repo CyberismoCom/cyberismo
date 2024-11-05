@@ -10,15 +10,18 @@ import { fileURLToPath } from 'node:url';
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Show } from '../src/show.js';
+import { Project } from '../src/containers/project.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-command-handler-import-tests');
+
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
+
+const commandHandler: Commands = new Commands();
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 const options: CardsOptions = { projectPath: decisionRecordsPath };
-const commandHandler: Commands = new Commands();
 
 describe('import csv command', () => {
   before(async () => {
@@ -40,14 +43,13 @@ describe('import csv command', () => {
 
     const [key1, key2] = result.payload as string[];
 
-    const show = new Show();
+    const project = new Project(decisionRecordsPath);
+    const show = new Show(project);
     const card1 = await show.showCardDetails(
-      options.projectPath || '',
       { metadata: true, content: true },
       key1,
     );
     const card2 = await show.showCardDetails(
-      options.projectPath || '',
       { metadata: true, content: true },
       key2,
     );
@@ -74,11 +76,10 @@ describe('import csv command', () => {
     expect(result.statusCode).to.equal(200);
 
     const createdKeys = result.payload as string[];
-
-    const show = new Show();
+    const project = new Project(decisionRecordsPath);
+    const show = new Show(project);
 
     const parentCard = await show.showCardDetails(
-      options.projectPath || '',
       { metadata: true, content: true, children: true },
       parent,
     );
