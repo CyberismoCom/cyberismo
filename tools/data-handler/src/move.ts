@@ -27,6 +27,9 @@ import {
 import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 
+// @todo - we should have project wide constants, so that if we need them, only the const value needs to be changed.
+const ROOT: string = 'root';
+
 export class Move {
   constructor(
     private project: Project,
@@ -36,12 +39,18 @@ export class Move {
   /**
    * Moves card from 'destination' to 'source'.
    * @param source source card to move
-   * @param destination destination card where source card will be moved to; or 'root'
+   * @param destination destination card where source card will be moved to; or to root
    */
   public async moveCard(source: string, destination: string) {
+    if (source === ROOT) {
+      throw new Error('Cannot move "root"');
+    }
+    if (source === destination) {
+      throw new Error(`Card cannot be moved to itself`);
+    }
     const promiseContainer = [];
     promiseContainer.push(this.project.findSpecificCard(source));
-    if (destination !== 'root') {
+    if (destination !== ROOT) {
       promiseContainer.push(this.project.findSpecificCard(destination));
     } else {
       const returnObject: Card = {
@@ -59,6 +68,10 @@ export class Move {
     }
     if (!destinationCard) {
       throw new Error(`Card ${destination} not found from project`);
+    }
+
+    if (destinationCard.path.includes(source)) {
+      throw new Error(`Card cannot be moved to inside itself`);
     }
 
     // Imported templates cannot be modified.
@@ -82,7 +95,7 @@ export class Move {
     }
 
     const destinationPath =
-      destination === 'root'
+      destination === ROOT
         ? join(this.project.paths.cardRootFolder, sourceCard.key)
         : join(destinationCard.path, 'c', sourceCard.key);
 
@@ -98,7 +111,7 @@ export class Move {
     // rerank the card in the new location
     // it will be the last one in the new location
     let children;
-    if (destination !== 'root') {
+    if (destination !== ROOT) {
       const parent = await this.project.findSpecificCard(destination, {
         children: true,
         metadata: true,
@@ -155,7 +168,7 @@ export class Move {
     }
 
     const children = sortItems(
-      await this.getChildren(beforeCard.parent || 'root'),
+      await this.getChildren(beforeCard.parent || ROOT),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -241,7 +254,7 @@ export class Move {
     }
 
     const children = sortItems(
-      await this.getChildren(card.parent || 'root'),
+      await this.getChildren(card.parent || ROOT),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -368,7 +381,7 @@ export class Move {
 
   // Returns children of a parent card or root cards
   private async getChildren(parentCardKey: string) {
-    if (parentCardKey === 'root') {
+    if (parentCardKey === ROOT) {
       return this.project.showProjectCards();
     } else {
       const parentCard = await this.project.findSpecificCard(parentCardKey, {
