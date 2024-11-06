@@ -248,8 +248,12 @@ export class Calculate {
         for (const enumValue of fieldType.enumValues) {
           content += `enumValue("${fieldType.name}", "${enumValue.enumValue}").\n`;
           content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "index", ${index++}).\n`;
-          content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDisplayValue", "${enumValue.enumDisplayValue}").\n`;
-          content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDescription", "${enumValue.enumDescription}").\n`;
+
+          if (enumValue.enumDisplayValue)
+            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDisplayValue", "${enumValue.enumDisplayValue}").\n`;
+
+          if (enumValue.enumDescription)
+            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDescription", "${enumValue.enumDescription}").\n`;
         }
       }
 

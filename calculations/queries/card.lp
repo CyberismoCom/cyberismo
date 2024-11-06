@@ -80,7 +80,6 @@ select(3, "enumDisplayValue").
 select(3, "enumDescription").
 
 childResult(Field, (Field, EnumValue)) :-
-    result(Field),
     enumValue(Field, EnumValue).
 
 order(2, 1, "visibility", "ASC").
