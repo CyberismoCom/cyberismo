@@ -285,6 +285,41 @@ export class Calculate {
     importsContent += '\n';
     await writeFileSafe(destinationFile, importsContent);
   }
+  // Collects all linkTypes from the project
+  private async generateLinkTypes() {
+    const linkTypes = await this.project.linkTypes();
+    const promises = [];
+
+    for (const linkType of await Promise.all(
+      linkTypes.map((c) => this.project.linkType(c.name)),
+    )) {
+      if (!linkType) continue;
+
+      let content = `linkType("${linkType.name}").\n`;
+      content += `field("${linkType.name}", "outboundDisplayName", "${linkType.outboundDisplayName}").\n`;
+      content += `field("${linkType.name}", "inboundDisplayName", "${linkType.inboundDisplayName}").\n`;
+      content += `field("${linkType.name}", "enableLinkDescription", "${linkType.enableLinkDescription}").\n`;
+
+      for (const sourceCardType of linkType.sourceCardTypes) {
+        content += `linkSourceCardType("${linkType.name}", "${sourceCardType}").\n`;
+      }
+
+      for (const destinationCardType of linkType.destinationCardTypes) {
+        content += `linkDestinationCardType("${linkType.name}", "${destinationCardType}").\n`;
+      }
+      const linkTypeFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${linkType.name}.lp`,
+      );
+      promises.push(
+        writeFileSafe(linkTypeFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
+  }
 
   // Collects all logic calculation files from project (local and imported modules)
   private async generateModules(parentCard: Card | undefined) {
@@ -392,6 +427,7 @@ export class Calculate {
         this.generateWorkFlows(),
         this.generateCardTypes(),
         this.generateFieldTypes(),
+        this.generateLinkTypes(),
       ];
 
       await Promise.all(promiseContainer).then(
