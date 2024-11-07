@@ -181,7 +181,7 @@ export class Template extends CardContainer {
         const cardType = await this.project.cardType(card.metadata?.cardType);
         if (!cardType) {
           throw new Error(
-            `Cardtype '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
+            `Card type '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
           );
         }
         const workflow = await this.project.workflow(cardType.workflow);
@@ -254,7 +254,6 @@ export class Template extends CardContainer {
       }
       // Finally, delete temp folder.
       await rm(tempDestination, { recursive: true, force: true });
-      await this.project.configuration.save();
     } catch (error) {
       if (error instanceof Error) {
         // If card creation causes an exception, remove 'temp'.
@@ -263,6 +262,27 @@ export class Template extends CardContainer {
       }
     }
     return cards;
+  }
+
+  // Returns the latest rank in the given array of cards.
+  private latestRank(cards: Card[]): string {
+    // Only use cards that have 'rank'.
+    const filteredCards = cards.filter(
+      (c) => c.metadata?.rank !== undefined || c.metadata?.rank !== '',
+    );
+
+    let latestRank = sortItems(
+      filteredCards,
+      (c) => c.metadata?.rank || '',
+    ).pop()?.metadata?.rank;
+
+    if (!latestRank) {
+      latestRank = FIRST_RANK;
+    }
+
+    const newRank = getRankAfter(latestRank as string);
+    latestRank = newRank;
+    return latestRank;
   }
 
   // fetches path to module.
@@ -344,6 +364,7 @@ export class Template extends CardContainer {
       title: 'Untitled',
       cardType: cardType,
       workflowState: '',
+      rank: '',
     };
     let newCardKey = '';
 
@@ -352,7 +373,7 @@ export class Template extends CardContainer {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
       if ((await this.project.cardType(cardType)) === undefined) {
-        throw new Error(`Cardtype '${cardType}' does not exist`);
+        throw new Error(`Card type '${cardType}' does not exist`);
       }
       if (parentCard && !this.hasCard(parentCard.key)) {
         throw new Error(
@@ -365,16 +386,19 @@ export class Template extends CardContainer {
         ? join(destinationCardPath, newCardKey)
         : join(this.templateCardsPath, newCardKey);
 
+      const templateCards = parentCard
+        ? parentCard.children || []
+        : await this.cards();
+      defaultContent.rank = this.latestRank(templateCards);
+
       await mkdir(templateCardToCreate, { recursive: true });
       await writeJsonFile(
         join(templateCardToCreate, Project.cardMetadataFile),
         defaultContent,
       );
       await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
-      await this.project.configuration.save();
     } catch (error) {
       if (error instanceof Error) {
-        // todo: does this ever really throw?
         // todo: use temp folder and destroy everything from there.
         throw new Error(error.message);
       }
