@@ -334,6 +334,9 @@ class ClingoParser {
     const args: string[] = [];
     let insideQuote = false;
 
+    // calculates how deep into parenthesis we are
+    let insideParanthesis = 0;
+
     for (let i = position; i < input.length; i++) {
       const char = input[i];
 
@@ -342,7 +345,7 @@ class ClingoParser {
           currentArg += '"';
           continue;
         }
-        if (!insideQuote) {
+        if (!insideQuote && insideParanthesis === 0) {
           // We can ignore the chars, which are before a quoted string
           currentArg = '';
         }
@@ -351,12 +354,27 @@ class ClingoParser {
       }
 
       if (char === ',' && !insideQuote) {
+        if (insideParanthesis > 0) {
+          currentArg += char;
+          continue;
+        }
         args.push(currentArg);
         currentArg = '';
+        insideParanthesis = 0;
         continue;
+      }
+      if (char === '(' && !insideQuote) {
+        if (insideParanthesis === 0) {
+          currentArg = '';
+        }
+        insideParanthesis++;
       }
 
       if (char === ')' && !insideQuote) {
+        if (insideParanthesis-- !== 0) {
+          currentArg += char;
+          continue;
+        }
         args.push(currentArg);
         return {
           args,

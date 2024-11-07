@@ -321,4 +321,19 @@ describe('ClingoParser', () => {
     expect(res.policyChecks.failures).to.have.lengthOf(1);
     expect(res.policyChecks.successes).to.have.lengthOf(1);
   });
+  it('should handle multiple parenthesis', async () => {
+    const input = `
+            result("key1")
+            field("key1", "test", ("test", "testing something"))
+            field("key1", "test2", (("test1", test2), "testing something"))
+        `;
+    const result = await parser.parseInput(input);
+    expect(result.results).to.have.lengthOf(1);
+
+    const res = result.results[0];
+
+    expect(res.key).to.equal('key1');
+    expect(res.test).to.equal('(test, testing something)');
+    expect(res.test2).to.equal('((test1, test2), testing something)');
+  });
 });

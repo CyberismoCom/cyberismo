@@ -67,12 +67,32 @@ export class Calculate {
     )) {
       if (!cardType) continue;
 
-      let content = '';
+      let content = `cardType("${cardType.name}").\n`;
 
       content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
 
+      let index = 1;
       for (const customField of cardType.customFields || []) {
-        content += `customField("${cardType.name}", "${encodeClingoValue(customField.name)}", "${encodeClingoValue(customField.displayName || '')}", "${customField.isEditable ? 'true' : 'false'}").\n`;
+        content += `customField("${cardType.name}", "${customField.name}").\n`;
+        if (customField.displayName)
+          content += `field(("${cardType.name}", "${customField.name}"), "displayName", "${encodeClingoValue(customField.displayName)}").\n`;
+        if (customField.isEditable)
+          content += `field(("${cardType.name}", "${customField.isEditable}"), "isEditable", "${customField.isEditable}").\n`;
+
+        let visible = false;
+        if ((cardType.alwaysVisibleFields || []).includes(customField.name)) {
+          content += `alwaysVisibleField("${cardType.name}", "${customField.name}").\n`;
+          visible = true;
+        }
+        if (
+          (cardType.optionallyVisibleFields || []).includes(customField.name)
+        ) {
+          content += `optionallyVisibleField("${cardType.name}", "${customField.name}").\n`;
+          visible = true;
+        }
+        if (visible) {
+          content += `field(("${cardType.name}", "${customField.name}"), "index", ${index++}).\n`;
+        }
       }
       const cardTypeFile = join(
         this.project.paths.calculationResourcesFolder,
@@ -88,7 +108,6 @@ export class Calculate {
     await Promise.all(promises);
   }
 
-  //
   private async generateWorkFlows() {
     const workflows = await this.project.workflows();
     const promises = [];
@@ -97,7 +116,7 @@ export class Calculate {
       workflows.map((m) => this.project.workflow(m.name)),
     )) {
       if (!workflow) continue;
-      let content = '';
+      let content = `workflow("${workflow.name}").\n`;
 
       // add states
       for (const state of workflow.states) {
@@ -204,6 +223,55 @@ export class Calculate {
     );
   }
 
+  private async generateFieldTypes() {
+    const fieldTypes = await this.project.fieldTypes();
+    const promises = [];
+
+    for (const fieldType of await Promise.all(
+      fieldTypes.map((m) => this.project.fieldType(m.name)),
+    )) {
+      if (!fieldType) continue;
+      let content = '';
+
+      content += `fieldType("${fieldType.name}").\n`;
+
+      if (fieldType.displayName)
+        content += `field("${fieldType.name}", "displayName", "${fieldType.displayName}").\n`;
+
+      if (fieldType.fieldDescription)
+        content += `field("${fieldType.name}", "fieldDescription", "${fieldType.fieldDescription}").\n`;
+
+      content += `field("${fieldType.name}", "dataType", "${fieldType.dataType}").\n`;
+
+      if (fieldType.enumValues) {
+        let index = 1;
+        for (const enumValue of fieldType.enumValues) {
+          content += `enumValue("${fieldType.name}", "${enumValue.enumValue}").\n`;
+          content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "index", ${index++}).\n`;
+
+          if (enumValue.enumDisplayValue)
+            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDisplayValue", "${enumValue.enumDisplayValue}").\n`;
+
+          if (enumValue.enumDescription)
+            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDescription", "${enumValue.enumDescription}").\n`;
+        }
+      }
+
+      const fieldTypeFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${fieldType.name}.lp`,
+      );
+
+      promises.push(
+        writeFileSafe(fieldTypeFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
+  }
+
   // Once card specific files have been done, write the the imports
   private async generateImports(folder: string, destinationFile: string) {
     let importsContent: string = '';
@@ -216,6 +284,41 @@ export class Calculate {
     }
     importsContent += '\n';
     await writeFileSafe(destinationFile, importsContent);
+  }
+  // Collects all linkTypes from the project
+  private async generateLinkTypes() {
+    const linkTypes = await this.project.linkTypes();
+    const promises = [];
+
+    for (const linkType of await Promise.all(
+      linkTypes.map((c) => this.project.linkType(c.name)),
+    )) {
+      if (!linkType) continue;
+
+      let content = `linkType("${linkType.name}").\n`;
+      content += `field("${linkType.name}", "outboundDisplayName", "${linkType.outboundDisplayName}").\n`;
+      content += `field("${linkType.name}", "inboundDisplayName", "${linkType.inboundDisplayName}").\n`;
+      content += `field("${linkType.name}", "enableLinkDescription", "${linkType.enableLinkDescription}").\n`;
+
+      for (const sourceCardType of linkType.sourceCardTypes) {
+        content += `linkSourceCardType("${linkType.name}", "${sourceCardType}").\n`;
+      }
+
+      for (const destinationCardType of linkType.destinationCardTypes) {
+        content += `linkDestinationCardType("${linkType.name}", "${destinationCardType}").\n`;
+      }
+      const linkTypeFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${linkType.name}.lp`,
+      );
+      promises.push(
+        writeFileSafe(linkTypeFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
   }
 
   // Collects all logic calculation files from project (local and imported modules)
@@ -323,6 +426,8 @@ export class Calculate {
         this.generateModules(card),
         this.generateWorkFlows(),
         this.generateCardTypes(),
+        this.generateFieldTypes(),
+        this.generateLinkTypes(),
       ];
 
       await Promise.all(promiseContainer).then(
