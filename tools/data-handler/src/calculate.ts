@@ -349,37 +349,39 @@ export class Calculate {
       return;
     }
 
-    const affectedCards = await this.getCards(deletedCard);
-    const cardTreeFile = join(
-      this.project.paths.calculationFolder,
-      Calculate.importCardsFileName,
-    );
-    const calculationsForTreeExist =
-      pathExists(cardTreeFile) &&
-      pathExists(this.project.paths.calculationFolder);
+    await Calculate.mutex.runExclusive(async () => {
+      const affectedCards = await this.getCards(deletedCard);
+      const cardTreeFile = join(
+        this.project.paths.calculationFolder,
+        Calculate.importCardsFileName,
+      );
+      const calculationsForTreeExist =
+        pathExists(cardTreeFile) &&
+        pathExists(this.project.paths.calculationFolder);
 
-    let cardTreeContent = calculationsForTreeExist
-      ? await readFile(cardTreeFile, 'utf-8')
-      : '';
-    for (const card of affectedCards) {
-      // First, delete card specific files.
-      const cardCalculationsFile = join(
-        this.project.paths.calculationCardsFolder,
-        `${card.key}.lp`,
-      );
-      if (pathExists(cardCalculationsFile)) {
-        await deleteFile(cardCalculationsFile);
+      let cardTreeContent = calculationsForTreeExist
+        ? await readFile(cardTreeFile, 'utf-8')
+        : '';
+      for (const card of affectedCards) {
+        // First, delete card specific files.
+        const cardCalculationsFile = join(
+          this.project.paths.calculationCardsFolder,
+          `${card.key}.lp`,
+        );
+        if (pathExists(cardCalculationsFile)) {
+          await deleteFile(cardCalculationsFile);
+        }
+        // Then, delete rows from cardTree.lp.
+        const removeRow = `#include "cards/${card.key}.lp".\n`.replace(
+          /\\/g,
+          '/',
+        );
+        cardTreeContent = cardTreeContent.replace(removeRow, '');
       }
-      // Then, delete rows from cardTree.lp.
-      const removeRow = `#include "cards/${card.key}.lp".\n`.replace(
-        /\\/g,
-        '/',
-      );
-      cardTreeContent = cardTreeContent.replace(removeRow, '');
-    }
-    if (calculationsForTreeExist) {
-      await writeFileSafe(cardTreeFile, cardTreeContent);
-    }
+      if (calculationsForTreeExist) {
+        await writeFileSafe(cardTreeFile, cardTreeContent);
+      }
+    });
   }
 
   /**
@@ -403,10 +405,12 @@ export class Calculate {
       return;
     }
 
-    // @todo - should only generate card-tree for created cards' common ancestor (or root)
-    //         this might in some cases (sub-tree created) improve performance
-    await this.generateCardTreeContent(undefined);
-    await this.generateCardTree();
+    await Calculate.mutex.runExclusive(async () => {
+      // @todo - should only generate card-tree for created cards' common ancestor (or root)
+      //         this might in some cases (sub-tree created) improve performance
+      await this.generateCardTreeContent(undefined);
+      await this.generateCardTree();
+    });
   }
 
   /**
