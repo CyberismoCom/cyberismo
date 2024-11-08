@@ -281,8 +281,9 @@ const PolicyChecks = ({
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={1}>
-                {policyChecks.successes.map((success) => (
+                {policyChecks.successes.map((success, index) => (
                   <Alert
+                    key={index}
                     color="success"
                     variant="soft"
                     sx={{
@@ -342,8 +343,9 @@ const PolicyChecks = ({
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={1}>
-                {policyChecks.failures.map((failure) => (
+                {policyChecks.failures.map((failure, index) => (
                   <Alert
+                    key={index}
                     color="danger"
                     variant="soft"
                     sx={{
