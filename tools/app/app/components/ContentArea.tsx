@@ -22,6 +22,9 @@ import {
 
 import { parse } from 'node-html-parser';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Autocomplete,
   Box,
@@ -31,8 +34,6 @@ import {
   IconButton,
   Input,
   Link,
-  List,
-  ListItem,
   Option,
   Select,
   Stack,
@@ -42,7 +43,7 @@ import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
 import { default as NextLink } from 'next/link';
-import { Add, Delete, Edit, Search } from '@mui/icons-material';
+import { Add, Delete, Edit, ExpandMore, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
 
@@ -234,6 +235,8 @@ const PolicyChecks = ({
   policyChecks: PolicyCheckCollection;
 }) => {
   const { t } = useTranslation();
+  const [successesExpanded, setSuccessesExpanded] = useState(false);
+  const [failuresExpanded, setFailuresExpanded] = useState(true);
 
   if (
     policyChecks.successes.length === 0 &&
@@ -242,51 +245,129 @@ const PolicyChecks = ({
     return null;
   }
   return (
-    <Box sx={{ marginTop: 4 }} flexGrow={1}>
-      <Typography level="title-md" sx={{ marginBottom: 2 }}>
-        {t('policyCheck.title')}
-      </Typography>
-
+    <Box sx={{ marginTop: 2, maxWidth: 400 }} flexGrow={1}>
       {policyChecks.successes.length > 0 && (
         <Box>
-          <Typography level="title-sm">{t('policyCheck.successes')}</Typography>
-          <List>
-            {policyChecks.successes.map((success, index) => (
-              <ListItem key={index}>
-                <Alert color="success" variant="outlined" size="sm">
-                  <Typography level="title-sm" fontWeight="bold">
-                    {success.testSuite} - {success.testCase}
-                  </Typography>
-                </Alert>
-              </ListItem>
-            ))}
-          </List>
+          <Accordion expanded={successesExpanded}>
+            <AccordionSummary
+              indicator={<ExpandMore />}
+              onClick={() => setSuccessesExpanded(!successesExpanded)}
+              sx={{
+                borderRadius: '4px',
+                marginTop: 1,
+                marginBottom: 1,
+              }}
+            >
+              <Typography
+                level="body-xs"
+                color="primary"
+                variant="soft"
+                width={24}
+                height={24}
+                alignContent="center"
+                borderRadius={40}
+                marginLeft={0}
+                paddingX={1.1}
+              >
+                {policyChecks.successes.length}
+              </Typography>
+              <Typography
+                level="title-sm"
+                fontWeight="bold"
+                sx={{ width: '100%' }}
+              >
+                {t('passedPolicyChecks')}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={1}>
+                {policyChecks.successes.map((success) => (
+                  <Alert
+                    color="success"
+                    variant="soft"
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Box>
+                      <Typography level="title-sm" fontWeight="bold">
+                        {success.testSuite} - {success.testCase}
+                      </Typography>
+                    </Box>
+                    <Typography level="title-sm" fontWeight="bold">
+                      {t('policyCheckPass')}
+                    </Typography>
+                  </Alert>
+                ))}
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </Box>
       )}
 
       {policyChecks.failures.length > 0 && (
-        <Box sx={{ marginTop: 2 }}>
-          <Typography level="title-sm">{t('policyCheck.failures')}</Typography>
-          <List>
-            {policyChecks.failures.map((failure, index) => (
-              <ListItem key={index}>
-                <Alert color="danger" variant="outlined" size="sm">
-                  <Stack>
+        <Box>
+          <Accordion expanded={failuresExpanded}>
+            <AccordionSummary
+              indicator={<ExpandMore />}
+              onClick={() => setFailuresExpanded(!failuresExpanded)}
+              sx={{
+                borderRadius: '4px',
+                marginTop: 1,
+                marginBottom: 1,
+              }}
+            >
+              <Typography
+                level="body-xs"
+                color="primary"
+                variant="soft"
+                width={24}
+                height={24}
+                alignContent="center"
+                borderRadius={40}
+                marginLeft={0}
+                paddingX={1.1}
+              >
+                {policyChecks.failures.length}
+              </Typography>
+              <Typography
+                level="title-sm"
+                fontWeight="bold"
+                sx={{ width: '100%' }}
+              >
+                {t('failedPolicyChecks')}
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={1}>
+                {policyChecks.failures.map((failure) => (
+                  <Alert
+                    color="danger"
+                    variant="soft"
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Box>
+                      <Typography level="title-sm" fontWeight="bold">
+                        {failure.testSuite} - {failure.testCase}
+                      </Typography>
+                      <Typography fontSize="xs">
+                        {failure.errorMessage}
+                      </Typography>
+                    </Box>
                     <Typography level="title-sm" fontWeight="bold">
-                      {failure.testSuite} - {failure.testCase}
+                      {t('policyCheckFail')}
                     </Typography>
-                    <Typography
-                      level="body-xs"
-                      color="danger"
-                      fontWeight="bold"
-                    >
-                      {failure.errorMessage}
-                    </Typography>
-                  </Stack>
-                </Alert>
-              </ListItem>
-            ))}
-          </List>
+                  </Alert>
+                ))}
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </Box>
       )}
     </Box>
@@ -567,7 +648,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           scrollbarWidth: 'thin',
         }}
       >
-        <Box>{renderTableOfContents(htmlContent, visibleHeaderIds)}</Box>
+        <Box>
+          {renderTableOfContents(
+            t('tableOfContents'),
+            htmlContent,
+            visibleHeaderIds,
+          )}
+        </Box>
         <PolicyChecks policyChecks={cardQuery.policyChecks} />
       </Stack>
       {!preview && (
@@ -593,6 +680,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 };
 
 function renderTableOfContents(
+  title: string,
   htmlContent: string,
   visibleHeaderIds: string[] | null = null,
 ) {
@@ -612,8 +700,12 @@ function renderTableOfContents(
 
   return (
     <aside className="contentSidebar toc sidebar">
-      <div className="toc-menu">
-        {headers.length > 0 && <h3>TABLE OF CONTENTS</h3>}
+      <div className="toc-menu" style={{ marginLeft: 2 }}>
+        {headers.length > 0 && (
+          <Typography level="title-sm" fontWeight="bold">
+            {title}
+          </Typography>
+        )}
         <ul>
           {headers.map((header, index) => (
             <li key={index} data-level={header.level - 1}>
