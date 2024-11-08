@@ -54,18 +54,14 @@
             "maxLength": 20,
             "pattern": "^[a-z]+_[0-9a-z]+$"
           },
+          "direction": {
+            "description": "Link direction; either towards this card, or outwards from this card.",
+            "type": "string",
+            "enum": ["outbound", "inbound"]
+          },
           "linkType": {
-            "description": "The link type is named according to the from-to direction. In user interfaces, the naming according to the link type is shown in the 'from' card.",
-            "$comment": "The same link type names are used when indicating links in the index.json of 'to' cards, but the following reverse names shown in user interfaces: is blocked by, is caused by, has been instantiated to, is duplicate of, is mitigated by, is related to, is tested by",
-            "enum": [
-              "blocks",
-              "causes",
-              "created from template",
-              "duplicates",
-              "mitigates",
-              "relates to",
-              "tests"
-            ]
+            "description": "The name of the link type. For example, 'base/linkTypes/causes'",
+            "type": "string"
           },
           "linkDescription": {
             "type": "string",
