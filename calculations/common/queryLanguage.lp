@@ -5,7 +5,7 @@
 % select(field): "field" should be returned on all levels of hierarchy
 % selectAll: all fields should be returned on all levels of hierarchy
 
-% select works similarly for "labels", "links", "policyChecks" and "deniedOperations" as it works for fields
+% select works similarly for "labels", "links", "notifications", "policyChecks" and "deniedOperations" as it works for fields
 
 select(N, Field) :- select(Field), resultLevel(_, N).
 selectAll(N) :- selectAll, resultLevel(_, N).
@@ -92,6 +92,16 @@ showField(Key, Field) :-
 #show link(Source, Destination, LinkType) :
     link(Source, Destination, LinkType),
     showAll(Destination).
+
+% notifications
+
+#show notification(Key, TestSuite, TestCase, Message) :
+    notification(Key, TestSuite, TestCase, Message),
+    showField(Key, "notifications").
+
+#show notification(Key, TestSuite, TestCase, Message) :
+    notification(Key, TestSuite, TestCase, Message),
+    showAll(Key).
 
 % policy checks
 
