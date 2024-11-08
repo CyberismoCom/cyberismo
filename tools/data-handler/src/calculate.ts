@@ -73,7 +73,7 @@ export class Calculate {
       content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
 
       let index = 1;
-      for (const customField of cardType.customFields || []) {
+      for (const customField of cardType.customFields) {
         content += `customField("${cardType.name}", "${customField.name}").\n`;
         if (customField.displayName)
           content += `field(("${cardType.name}", "${customField.name}"), "displayName", "${encodeClingoValue(customField.displayName)}").\n`;
@@ -81,13 +81,11 @@ export class Calculate {
           content += `field(("${cardType.name}", "${customField.isEditable}"), "isEditable", "${customField.isEditable}").\n`;
 
         let visible = false;
-        if ((cardType.alwaysVisibleFields || []).includes(customField.name)) {
+        if (cardType.alwaysVisibleFields.includes(customField.name)) {
           content += `alwaysVisibleField("${cardType.name}", "${customField.name}").\n`;
           visible = true;
         }
-        if (
-          (cardType.optionallyVisibleFields || []).includes(customField.name)
-        ) {
+        if (cardType.optionallyVisibleFields.includes(customField.name)) {
           content += `optionallyVisibleField("${cardType.name}", "${customField.name}").\n`;
           visible = true;
         }
@@ -372,7 +370,7 @@ export class Calculate {
         cards = Project.flattenCardArray(card.children);
       }
       if (card) {
-        delete card.children;
+        card.children = [];
         cards.unshift(card);
       }
     } else {

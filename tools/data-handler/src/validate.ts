@@ -564,18 +564,14 @@ export class Validate {
       let fieldErrors = await this.validateArrayOfFields(
         project,
         cardType,
-        cardType.optionallyVisibleFields
-          ? cardType.optionallyVisibleFields
-          : [],
+        cardType.optionallyVisibleFields,
         'optionally visible fields',
       );
       validationErrors.push(...fieldErrors);
       fieldErrors = await this.validateArrayOfFields(
         project,
         cardType,
-        cardType.optionallyVisibleFields
-          ? cardType.optionallyVisibleFields
-          : [],
+        cardType.alwaysVisibleFields,
         'always visible fields',
       );
       validationErrors.push(...fieldErrors);
@@ -585,7 +581,7 @@ export class Validate {
       );
     }
 
-    if (cardType && cardType.customFields) {
+    if (cardType) {
       for (const field of cardType.customFields) {
         if (card.metadata[field.name] === undefined) {
           validationErrors.push(

@@ -339,7 +339,10 @@ export class Create extends EventEmitter {
       );
     }
 
-    const content: CardType = { name: cardTypeName, workflow: workflowName };
+    const content: CardType = DefaultContent.cardType(
+      cardTypeName,
+      workflowName,
+    );
     await this.createResource('cardType', content);
   }
 
@@ -477,7 +480,7 @@ export class Create extends EventEmitter {
     }
 
     // if contains the same link, do not add it again
-    const existingLink = card.metadata?.links?.find(
+    const existingLink = card.metadata?.links.find(
       (l) =>
         l.linkType === linkType &&
         l.cardKey === destinationCardKey &&

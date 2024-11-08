@@ -78,7 +78,7 @@ export class Remove extends EventEmitter {
     );
     const promiseContainer: Promise<void>[] = [];
     allCards.filter((item) => {
-      item.metadata?.links?.forEach(async (link) => {
+      item.metadata?.links.forEach(async (link) => {
         if (link.cardKey === cardKey) {
           promiseContainer.push(this.removeLink(item.key, link.cardKey));
         }
@@ -118,7 +118,7 @@ export class Remove extends EventEmitter {
       throw new Error(`Card '${sourceCardKey}' not found`);
     }
 
-    const link = sourceCard.metadata?.links?.find(
+    const link = sourceCard.metadata?.links.find(
       (l) =>
         l.cardKey === destinationCardKey &&
         (!linkType || l.linkType === linkType) &&
@@ -132,7 +132,7 @@ export class Remove extends EventEmitter {
       );
     }
 
-    const newLinks = sourceCard.metadata?.links?.filter(
+    const newLinks = sourceCard.metadata?.links.filter(
       (l) =>
         l.cardKey !== destinationCardKey ||
         (linkType && l.linkType !== linkType) ||

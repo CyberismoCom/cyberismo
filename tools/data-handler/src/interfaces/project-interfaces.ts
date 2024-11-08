@@ -21,8 +21,8 @@ export interface Card {
   content?: string;
   metadata?: CardMetadata;
   parent?: string;
-  children?: Card[];
-  attachments?: CardAttachment[];
+  children: Card[];
+  attachments: CardAttachment[];
 }
 
 // Attachment details
@@ -48,7 +48,7 @@ export interface CardMetadata {
   rank: string;
   lastTransitioned?: string;
   lastUpdated?: string;
-  links?: Link[];
+  links: Link[];
   [key: string]: MetadataContent;
 }
 

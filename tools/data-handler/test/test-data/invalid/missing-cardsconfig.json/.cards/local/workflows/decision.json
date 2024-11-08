@@ -30,8 +30,7 @@
         {
             "name": "Deprecate",
             "fromState": "Approved",
-            "toState": "Deprecated",
-            "requiredCardFields": [ "obsoletedBy" ]
+            "toState": "Deprecated"
         }
     ]
 }

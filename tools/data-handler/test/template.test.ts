@@ -101,6 +101,8 @@ describe('template', () => {
       key: '1111',
       path: '',
       content: '',
+      children: [],
+      attachments: [],
     };
 
     await template
@@ -133,7 +135,6 @@ describe('template', () => {
       name: 'decision/templates/simplepage',
     });
     const attachments = await template.attachments();
-
     expect(attachments.length).to.equal(0);
   });
   it('list attachments from a template', async () => {
@@ -141,7 +142,6 @@ describe('template', () => {
       name: 'decision/templates/decision',
     });
     const attachments = await template.attachments();
-
     expect(attachments.length).to.equal(1);
   });
   it('list attachments from an empty template', async () => {
@@ -181,6 +181,8 @@ describe('template', () => {
     const parentCard: Card = {
       key: 'decision_1',
       path: join(template.templateCardsFolder(), 'decision_1'),
+      children: [],
+      attachments: [],
     };
     await template
       .addCard('decision/cardTypes/decision', parentCard)
@@ -267,6 +269,8 @@ describe('template', () => {
     const parentCard: Card = {
       key: 'i-dont-exist',
       path: join(template.templateCardsFolder(), 'decision_1'),
+      children: [],
+      attachments: [],
     };
 
     await template
@@ -308,7 +312,7 @@ describe('template', () => {
     const templateCard = await template.cardDetailsById('decision_1', details);
     if (templateCard) {
       const cardAttachments = templateCard.attachments;
-      if (cardAttachments && cardAttachments.length > 0) {
+      if (cardAttachments.length > 0) {
         expect(cardAttachments.at(0)?.card).to.equal('decision_1');
         expect(cardAttachments.at(0)?.fileName).to.equal('the-needle.heic');
         expect(cardAttachments.at(0)?.path).to.include('decision_1');

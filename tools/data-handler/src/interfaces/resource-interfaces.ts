@@ -24,9 +24,9 @@ export type CalculationMetadata = ResourceBaseMetadata;
 // Card type content.
 export interface CardType extends ResourceBaseMetadata {
   workflow: string;
-  customFields?: CustomField[];
-  alwaysVisibleFields?: string[];
-  optionallyVisibleFields?: string[];
+  customFields: CustomField[];
+  alwaysVisibleFields: string[];
+  optionallyVisibleFields: string[];
 }
 
 // Custom field
@@ -144,5 +144,4 @@ export interface WorkflowTransition {
   name: string;
   fromState: string[];
   toState: string;
-  requiredCardFields?: string[];
 }

@@ -191,6 +191,7 @@ export class Project extends CardContainer {
           key: entry.name,
           path: join(entry.parentPath, entry.name),
           children: [],
+          attachments: [],
         });
         await this.readCardTreeToMemory(
           join(entry.parentPath, entry.name),
@@ -468,6 +469,7 @@ export class Project extends CardContainer {
    * Returns the content of a specific card type.
    * @param {string} cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
    * @returns JSON content of card type, or undefined if the card type cannot be found.
+   * todo: fix the function interface -> make cardTypeName mandatory and remove the boolean
    */
   public async cardType(
     cardTypeName?: string,
@@ -514,6 +516,14 @@ export class Project extends CardContainer {
           return undefined;
         }
       }
+    } else {
+      content.customFields = [];
+    }
+    if (!content.alwaysVisibleFields) {
+      content.alwaysVisibleFields = [];
+    }
+    if (!content.optionallyVisibleFields) {
+      content.optionallyVisibleFields = [];
     }
     return content;
   }
@@ -693,8 +703,8 @@ export class Project extends CardContainer {
     const result: Card[] = [];
     array.forEach((item) => {
       //todo: for more generic utility, define details
-      const { key, path, children, metadata } = item;
-      result.push({ key, path, metadata });
+      const { key, path, children, attachments, metadata } = item;
+      result.push({ key, path, children, attachments, metadata });
       if (children) {
         result.push(...Project.flattenCardArray(children));
       }

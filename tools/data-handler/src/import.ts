@@ -91,7 +91,7 @@ export class Import {
 
       await this.project.updateCardMetadataKey(cardKey, 'title', title);
       for (const [key, value] of Object.entries(customFields)) {
-        if (cardType.customFields?.find((field) => field.name === key)) {
+        if (cardType.customFields.find((field) => field.name === key)) {
           await this.project.updateCardMetadataKey(cardKey, key, value);
         }
       }

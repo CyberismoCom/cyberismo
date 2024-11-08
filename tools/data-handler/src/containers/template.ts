@@ -203,15 +203,13 @@ export class Template extends CardContainer {
           card.metadata.cardType = cardType.name;
           card.metadata.rank =
             cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK;
-          if (cardType.customFields !== undefined) {
-            for (const customField of cardType.customFields) {
-              const defaultValue = null;
-              card.metadata = {
-                ...card.metadata,
-                [customField.name]:
-                  card.metadata[customField.name] || defaultValue,
-              };
-            }
+          for (const customField of cardType.customFields) {
+            const defaultValue = null;
+            card.metadata = {
+              ...card.metadata,
+              [customField.name]:
+                card.metadata[customField.name] || defaultValue,
+            };
           }
 
           await mkdir(card.path, { recursive: true });
@@ -221,7 +219,7 @@ export class Template extends CardContainer {
           );
         }
 
-        if (card.attachments?.length) {
+        if (card.attachments.length) {
           const attachmentsFolder = join(card.path, 'a');
           await mkdir(attachmentsFolder);
 
