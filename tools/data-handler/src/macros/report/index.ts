@@ -28,10 +28,9 @@ class ReportMacro extends BaseMacro {
   constructor() {
     super(macroMetadata);
   }
-  async handleStatic() {
-    // Buttons aren't supported in static mode
-    return '';
-  }
+  handleStatic = async (context: MacroGenerationContext, data: string) => {
+    return this.handleInject(context, data);
+  };
 
   handleInject = async (context: MacroGenerationContext, data: string) => {
     if (!data || typeof data !== 'string') {

@@ -12,7 +12,7 @@
 
 // node
 import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
@@ -26,6 +26,7 @@ import { sortItems } from './utils/lexorank.js';
 import { QueryResult } from './types/queries.js';
 import { Show } from './show.js';
 import { Calculate } from './calculate.js';
+import { evaluateMacros } from './macros/index.js';
 
 const attachmentFolder: string = 'a';
 
@@ -93,16 +94,11 @@ export class Export {
   private async toAdocFileAsContent(path: string, cards: Card[]) {
     for (const card of cards) {
       let fileContent = '';
-      if (card.content) {
-        const fullPath = resolve(
-          process.cwd(),
-          card.path,
-          Project.cardContentFile,
-        );
-        if (card.metadata?.title) {
-          fileContent += `\n== ${card.metadata?.title}\n`;
-        }
-        fileContent += `\ninclude::${fullPath}[]\n`;
+
+      if (card.metadata?.title) {
+        fileContent += `== ${card.metadata.title}\n\n`;
+      } else {
+        fileContent += `== ${card.key}\n\n`;
       }
 
       if (card.metadata) {
@@ -111,6 +107,10 @@ export class Export {
         );
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);
         fileContent += metaDataContent;
+      }
+
+      if (card.content) {
+        fileContent += card.content;
       }
 
       if (card.attachments) {
@@ -126,6 +126,9 @@ export class Export {
         }
         await Promise.all(promiseContainer);
       }
+
+      // Add separator between cards
+      fileContent += '\n\n';
 
       if (fileContent) {
         await appendFile(path, fileContent);
@@ -167,10 +170,25 @@ export class Export {
       card.key,
     );
 
+    let asciiDocContent = '';
+    const projectPath = this.project.basePath;
+    try {
+      asciiDocContent = await evaluateMacros(
+        cardDetailsResponse.content || '',
+        {
+          mode: 'static',
+          projectPath,
+          cardKey: card.key,
+        },
+      );
+    } catch (error) {
+      asciiDocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciiDocContent}`;
+    }
+
     card.path = cardDetailsResponse.path;
     card.metadata = cardDetailsResponse.metadata;
     card.metadata!.progress = treeQueryResult['base/fieldTypes/progress'];
-    card.content = cardDetailsResponse.content;
+    card.content = asciiDocContent;
     card.attachments = cardDetailsResponse.attachments;
 
     for (const result of treeQueryResult.results) {
