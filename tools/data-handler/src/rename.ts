@@ -179,10 +179,10 @@ export class Rename extends EventEmitter {
     if (cardType) {
       //cardType.name = this.updateResourceName(cardTypeName);
       cardType.workflow = this.updateResourceName(cardType.workflow);
-      cardType.customFields?.map(
+      cardType.customFields.map(
         (field) => (field.name = this.updateResourceName(field.name)),
       );
-      cardType.alwaysVisibleFields = cardType.alwaysVisibleFields?.map((item) =>
+      cardType.alwaysVisibleFields = cardType.alwaysVisibleFields.map((item) =>
         this.updateResourceName(item),
       );
       const filename = join(

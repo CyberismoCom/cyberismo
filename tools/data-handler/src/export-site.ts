@@ -284,6 +284,8 @@ export class ExportSite extends Export {
       cards.push({
         key: cardKey,
         path: sourcePath,
+        children: [],
+        attachments: [],
       });
     }
 

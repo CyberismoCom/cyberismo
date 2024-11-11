@@ -59,10 +59,10 @@ export class Export {
 
       for (const [key, value] of Object.entries(card.metadata)) {
         if (
-          cardType?.alwaysVisibleFields?.includes(key) ||
+          cardType?.alwaysVisibleFields.includes(key) ||
           cardType?.optionallyVisibleFields?.includes(key)
         ) {
-          const displayName = cardType?.customFields?.find(
+          const displayName = cardType?.customFields.find(
             (item) => item.name === key,
           )?.displayName;
           let nameToShow = displayName
@@ -149,6 +149,7 @@ export class Export {
       key: treeQueryResult.key,
       path: '',
       children: [],
+      attachments: [],
     };
 
     // Get content and attachments separately, not included in queries
@@ -193,6 +194,8 @@ export class Export {
       cards.push({
         key: cardKey,
         path: sourcePath,
+        children: [],
+        attachments: [],
       });
     }
 

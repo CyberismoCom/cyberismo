@@ -142,12 +142,12 @@ describe('show', () => {
 
     // Expect that parent has no attachments.
     const parentResult = await showCmd.showCardDetails(details, cardIdParent);
-    expect(parentResult.attachments?.length).equals(0);
+    expect(parentResult.attachments.length).equals(0);
 
     // Child must have one attachment that is owned by the child.
     const childResult = await showCmd.showCardDetails(details, cardIChild);
-    expect(childResult.attachments?.length).equals(1);
-    const childAttachment = childResult.attachments?.at(0);
+    expect(childResult.attachments.length).equals(1);
+    const childAttachment = childResult.attachments.at(0);
     expect(childAttachment?.card).equals(cardIChild);
 
     rmSync(join(cardRoot, cardIdParent), { recursive: true, force: true });

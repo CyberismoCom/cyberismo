@@ -120,7 +120,7 @@ describe('remove command', () => {
 
       // Link should exist between cardId and cardId2
       let shownCard = result.payload as Card;
-      let found = shownCard.metadata?.links?.filter(
+      let found = shownCard.metadata?.links.filter(
         (item) => item.cardKey === cardId,
       );
       expect(found?.length).to.equal(1);
@@ -140,7 +140,7 @@ describe('remove command', () => {
         options,
       );
       shownCard = result.payload as Card;
-      found = shownCard.metadata?.links?.filter(
+      found = shownCard.metadata?.links.filter(
         (item) => item.cardKey === cardId,
       );
       expect(found?.length).to.equal(0);

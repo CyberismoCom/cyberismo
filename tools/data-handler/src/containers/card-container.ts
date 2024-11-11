@@ -85,12 +85,14 @@ export class CardContainer {
   private async getMetadata(
     currentPath: string,
     include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include
-      ? readFile(join(currentPath, CardContainer.cardMetadataFile), {
+  ): Promise<string> {
+    let metadata = include
+      ? await readFile(join(currentPath, CardContainer.cardMetadataFile), {
           encoding: 'utf-8',
         })
       : '';
+    metadata = this.injectLinksIfMissing(metadata);
+    return metadata;
   }
 
   // Gets conditionally attachments
@@ -108,6 +110,15 @@ export class CardContainer {
     details: FetchCardDetails = {},
   ): Promise<string | CardAttachment[] | Card[]> {
     return details.children ? this.childrenCards(currentPath, details) : [];
+  }
+
+  // Injects 'links' member - if it is missing - to a string representation of a card.
+  private injectLinksIfMissing(metadata: string): string {
+    if (metadata !== '' && !metadata.includes('"links":')) {
+      const end = metadata.lastIndexOf('}');
+      metadata = metadata.slice(0, end - 1) + ',\n    "links": []\n' + '}';
+    }
+    return metadata;
   }
 
   // Find specific card
@@ -157,14 +168,14 @@ export class CardContainer {
             foundCards.push({
               key: entry.name,
               path: currentPath,
+              children: details.children ? (cardChildren as Card[]) : [],
+              attachments: details.attachments ? [...attachmentFiles] : [],
               ...(details.content && { content: content as string }),
               ...(details.metadata && {
                 metadata: JSON.parse(cardMetadata as string),
               }),
               ...(details.parent && { parent: this.parentCard(currentPath) }),
-              ...(details.children && { children: cardChildren as Card[] }),
               ...(details.calculations && { calculations: [] }),
-              ...(details.attachments && { attachments: [...attachmentFiles] }),
             });
             break; //optimization - there can only be one.
           }
@@ -256,13 +267,13 @@ export class CardContainer {
           cards.push({
             key: entry.name,
             path: currentPath,
+            children: details.children ? (cardChildren as Card[]) : [],
+            attachments: details.attachments ? [...attachmentFiles] : [],
             ...(details.content && { content: cardContent as string }),
             ...(details.metadata && {
               metadata: JSON.parse(cardMetadata as string),
             }),
             ...(details.parent && { parent: this.parentCard(currentPath) }),
-            ...(details.children && { children: cardChildren as Card[] }),
-            ...(details.attachments && { attachments: [...attachmentFiles] }),
           });
         }
       }

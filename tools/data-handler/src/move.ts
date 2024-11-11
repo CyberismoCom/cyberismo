@@ -47,6 +47,8 @@ export class Move {
       const returnObject: Card = {
         key: '',
         path: this.project.paths.cardRootFolder,
+        children: [],
+        attachments: [],
       };
       promiseContainer.push(Promise.resolve(returnObject));
     }
