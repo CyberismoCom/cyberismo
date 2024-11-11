@@ -12,7 +12,6 @@
 
 // node
 import { basename, dirname, join, resolve, sep } from 'node:path';
-import { Dirent, readdirSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 
 import {
@@ -41,41 +40,28 @@ import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import { resourceNameParts } from '../utils/resource-utils.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
 import { generateRandomString } from '../utils/random.js';
 
 // base class
 import { CardContainer } from './card-container.js';
+import {
+  ResourcesFrom,
+  ResourceCollector,
+} from './project/resource-collector.js';
 
-/**
- * Defines where resources are collected from.
- * all - everywhere
- * importOnly - only from imported modules
- * localOnly - only from the project itself; excluding imported modules
- */
-export enum ResourcesFrom {
-  all = 'all',
-  importedOnly = 'imported',
-  localOnly = 'local',
-}
+// Re-export this, so that classes that use Project do not need to have separate import.
+export { ResourcesFrom };
 
 /**
  * Represents project folder.
  */
 export class Project extends CardContainer {
+  private resources: ResourceCollector;
   private projectPaths: ProjectPaths;
   private settings: ProjectConfiguration;
   private validator: Validate;
-
-  private localCalculations: Resource[] = [];
-  private localCardTypes: Resource[] = [];
-  private localFieldTypes: Resource[] = [];
-  private localLinkTypes: Resource[] = [];
-  private localTemplates: Resource[] = [];
-  private localWorkflows: Resource[] = [];
-  private localReports: Resource[] = [];
 
   constructor(path: string) {
     super(path, '');
@@ -84,90 +70,22 @@ export class Project extends CardContainer {
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
     this.projectPaths = new ProjectPaths(path, this.projectPrefix);
+    this.resources = new ResourceCollector(
+      this.projectPrefix,
+      this.projectPaths,
+    );
 
     this.containerName = this.settings.name;
     // todo: implement project validation
     this.validator = Validate.getInstance();
-
-    this.collectLocalResources();
-  }
-
-  // Add resources to an array.
-  // @todo: change the 'requestedType' to be ResourceFolder
-  private async addResources(
-    resources: Dirent[],
-    requestedType: string,
-  ): Promise<Resource[]> {
-    const collectedResources: Resource[] = [];
-    const filteredDirectories = requestedType === 'templates' ? true : false;
-    for (const resource of resources) {
-      if (requestedType === 'modules') {
-        collectedResources.push(...resources);
-      } else {
-        const resourcePath = join(
-          this.paths.modulesFolder,
-          resource.name,
-          requestedType,
-        );
-        const files = await readdir(resourcePath, { withFileTypes: true });
-        const filteredFiles = filteredDirectories
-          ? files.filter((item) => item.isDirectory())
-          : files.filter(
-              (item) =>
-                item.name !== Project.schemaContentFile &&
-                item.name !== '.gitkeep',
-            );
-
-        filteredFiles.forEach((item) => {
-          item.name = `${resource.name}/${requestedType}/${item.name}`;
-          collectedResources.push({ name: item.name, path: item.parentPath });
-        });
-      }
-    }
-    return collectedResources;
-  }
-
-  // Returns resources from certain location(s).
-  private collectedResources(
-    from: ResourcesFrom,
-    localCollection: Resource[],
-    moduleCollection: Resource[],
-  ) {
-    if (from === ResourcesFrom.localOnly) {
-      return localCollection;
-    }
-    if (from === ResourcesFrom.importedOnly) {
-      return moduleCollection;
-    }
-    return [...localCollection, ...moduleCollection];
-  }
-
-  // Collect resources from modules
-  // @todo: change the 'type' to be ResourceFolder
-  private async collectResourcesFromModules(type: string): Promise<Resource[]> {
-    if (!pathExists(this.paths.modulesFolder)) {
-      return [];
-    }
-
-    const moduleDirectories = await readdir(this.paths.modulesFolder, {
-      withFileTypes: true,
-    });
-    const modules = moduleDirectories.filter((item) => item.isDirectory());
-
-    return [...(await this.addResources(modules, type))];
+    this.resources.collectLocalResources();
   }
 
   // Finds specific module.
-  private async findSpecificModule(
-    moduleName: string,
-  ): Promise<Resource | undefined> {
-    const found = (await this.collectResourcesFromModules('modules')).find(
-      (item) => item.name === moduleName,
+  private async findModule(moduleName: string): Promise<Resource | undefined> {
+    return (await this.resources.resources('modules')).find(
+      (item) => item.name === moduleName && item.path,
     );
-    if (!found || !found.path) {
-      return undefined;
-    }
-    return found;
   }
 
   // Reads card tree to memory. This is with minimal information (e.g no attachments, no content).
@@ -216,61 +134,6 @@ export class Project extends CardContainer {
         }
       }
     }
-  }
-
-  // Collects certain kinds of resources.
-  private resourcesSync(
-    type: ResourceFolderType,
-    requirement: string,
-  ): Resource[] {
-    let resourceFolder: string;
-    if (type === 'calculation') {
-      resourceFolder = this.paths.calculationProjectFolder;
-    } else if (type === 'cardType') {
-      resourceFolder = this.paths.cardTypesFolder;
-    } else if (type === 'fieldType') {
-      resourceFolder = this.paths.fieldTypesFolder;
-    } else if (type === 'linkType') {
-      resourceFolder = this.paths.linkTypesFolder;
-    } else if (type === 'template') {
-      resourceFolder = this.paths.templatesFolder;
-    } else if (type === 'workflow') {
-      resourceFolder = this.paths.workflowsFolder;
-    } else if (type === 'report') {
-      resourceFolder = this.paths.reportsFolder;
-    } else {
-      return [];
-    }
-
-    const resources: Resource[] = [];
-    if (!pathExists(resourceFolder)) {
-      return [];
-    }
-    const entries = readdirSync(resourceFolder, { withFileTypes: true });
-    resources.push(
-      ...entries
-        .filter((entry) => {
-          return !(entry.isFile() && entry.name === Project.schemaContentFile);
-        })
-        .filter((entry) => {
-          return !(entry.isFile() && entry.name === '.gitkeep');
-        })
-        .filter((entry) => {
-          return requirement === 'folder'
-            ? entry.isDirectory()
-            : requirement === 'file'
-              ? entry.isFile()
-              : false;
-        })
-        .map((entry) => {
-          return {
-            name: `${this.projectPrefix}/${type}s/${entry.name}`,
-            path: entry.parentPath,
-          };
-        }),
-    );
-
-    return resources;
   }
 
   /**
@@ -341,30 +204,7 @@ export class Project extends CardContainer {
    * @param resource Resource to add.
    */
   public addResource(resource: Resource) {
-    const { type } = resourceNameParts(resource.name);
-    switch (type) {
-      case 'cardTypes':
-        this.localCardTypes.push(resource);
-        break;
-      case 'fieldTypes':
-        this.localFieldTypes.push(resource);
-        break;
-      case 'linkTypes':
-        this.localLinkTypes.push(resource);
-        break;
-      case 'reports':
-        this.localReports.push(resource);
-        break;
-      case 'templates':
-        this.localTemplates.push(resource);
-        break;
-      case 'workflows':
-        this.localWorkflows.push(resource);
-        break;
-      default: {
-        throw new Error(`Resource type '${type}' not handled in 'addResource'`);
-      }
-    }
+    this.resources.add(resource);
   }
 
   /**
@@ -379,25 +219,16 @@ export class Project extends CardContainer {
    * Returns an array of all the calculation files (*.lp) in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all calculation files in the project.
-   * todo: make just one function
    */
   public async calculations(
     from: ResourcesFrom = ResourcesFrom.localOnly,
   ): Promise<Resource[]> {
-    const moduleCalculations =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('calculations')
-        : [];
-    return this.collectedResources(
-      from,
-      this.localCalculations,
-      moduleCalculations,
-    );
+    return this.resources.resources('calculations', from);
   }
 
   /**
    * Returns path to card's attachment folder.
-   * @param {string} cardKey card key
+   * @param cardKey card key
    * @returns path to card's attachment folder.
    */
   public async cardAttachmentFolder(cardKey: string): Promise<string> {
@@ -417,8 +248,8 @@ export class Project extends CardContainer {
 
   /**
    * Returns details (as defined by cardDetails) of a card.
-   * @param {string} cardKey card key (project prefix and a number, e.g. test_1)
-   * @param {FetchCardDetails} cardDetails which card details are returned.
+   * @param cardKey card key (project prefix and a number, e.g. test_1)
+   * @param cardDetails which card details are returned.
    * @returns Card details, or undefined if the card cannot be found.
    */
   public async cardDetailsById(
@@ -430,7 +261,7 @@ export class Project extends CardContainer {
 
   /**
    * Returns path to card's folder.
-   * @param {string} cardKey card key
+   * @param cardKey card key
    * @returns path to card's folder.
    */
   public async cardFolder(cardKey: string): Promise<string> {
@@ -454,8 +285,8 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the cards in the project. Cards have content and metadata
-   * @param {string} path Optional path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
-   * @param {string} details Which details to include in the cards; by default only "content" and "metadata" are included.
+   * @param path Optional path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
+   * @param details Which details to include in the cards; by default only "content" and "metadata" are included.
    * @returns all cards from the given path in the project.
    */
   public async cards(
@@ -467,46 +298,39 @@ export class Project extends CardContainer {
 
   /**
    * Returns the content of a specific card type.
-   * @param {string} cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
+   * @param cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
+   * @param from Defines where resources are collected from.
+   * @param skipSettingDefaultValues do not set default values to fields, if members are missing. This avoids doing unnecessary changes to card types.
    * @returns JSON content of card type, or undefined if the card type cannot be found.
-   * todo: fix the function interface -> make cardTypeName mandatory and remove the boolean
    */
   public async cardType(
-    cardTypeName?: string,
-    skipDefaults: boolean = false,
+    cardTypeName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
+    skipSettingDefaultValues: boolean = false,
   ): Promise<CardType | undefined> {
-    if (!cardTypeName) return undefined;
-    if (!cardTypeName.endsWith('.json')) {
-      cardTypeName += '.json';
-    }
-    const found = (await this.cardTypes()).find(
-      (item) => item.name === cardTypeName && item.path,
-    );
-    if (!found || !found.path) {
+    const content = (await this.resources.resource(
+      'cardTypes',
+      cardTypeName,
+      from,
+    )) as unknown as CardType;
+    if (!content) {
       return undefined;
     }
-    // todo: somehow should automatically fill-in 'default' values.
-    const content = (await readJsonFile(
-      join(found.path, basename(found.name)),
-    )) as CardType;
-    if (content.customFields && !skipDefaults) {
+    if (content && content.customFields) {
       for (const item of content.customFields) {
         // Set "isEditable" if it is missing; default = true
-        if (item.isEditable === undefined) {
+        if (item.isEditable === undefined && !skipSettingDefaultValues) {
           item.isEditable = true;
         }
         // Fetch displayName from field type
         if (item.name) {
           const fieldType = await this.fieldType(item.name);
           if (fieldType) {
-            if (item.displayName === undefined)
+            if (item.displayName === undefined && !skipSettingDefaultValues)
               item.displayName = fieldType.displayName;
-            if (item.description === undefined)
+            if (item.description === undefined && !skipSettingDefaultValues)
               item.description = fieldType.fieldDescription;
           } else {
-            console.error(
-              `Unknown field type '${item.name}' in card type '${cardTypeName}'`,
-            );
             continue;
           }
         } else {
@@ -536,24 +360,21 @@ export class Project extends CardContainer {
   public async cardTypes(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleCardTypes =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('cardTypes')
-        : [];
-    return this.collectedResources(from, this.localCardTypes, moduleCardTypes);
+    return this.resources.resources('cardTypes', from);
   }
 
   /**
-   * Collects all local resource types.
+   * Updates all local resources.
    */
   public collectLocalResources() {
-    this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardTypes = this.resourcesSync('cardType', 'file');
-    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
-    this.localLinkTypes = this.resourcesSync('linkType', 'file');
-    this.localReports = this.resourcesSync('report', 'folder');
-    this.localTemplates = this.resourcesSync('template', 'folder');
-    this.localWorkflows = this.resourcesSync('workflow', 'file');
+    this.resources.changed();
+  }
+
+  /**
+   * Updates all imported module resources.
+   */
+  public async collectModuleResources() {
+    await this.resources.moduleImported();
   }
 
   /**
@@ -566,7 +387,7 @@ export class Project extends CardContainer {
 
   /**
    * Creates a Template object. It is ensured that the template is part of project.
-   * @param {resource} template Template resource (name + path)
+   * @param template Template resource (name + path)
    * @returns Template object, or undefined if template does not exist in the project.
    */
   public async createTemplateObject(
@@ -585,7 +406,7 @@ export class Project extends CardContainer {
 
   /**
    * Creates a Template object. It is ensured that the template is part of project.
-   * @param {string} templateName Name of the template
+   * @param templateName Name of the template
    * @returns Template object, or undefined if templateName does not exist in the project.
    */
   public async createTemplateObjectByName(
@@ -596,29 +417,19 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific fieldType metadata.
-   * @param {string} fieldTypeName Name of the fileType
+   * @param fieldTypeName Name of the fileType
+   * @param from Defines where resources are collected from.
    * @returns fieldType metadata.
    */
   public async fieldType(
     fieldTypeName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<FieldType | undefined> {
-    if (!fieldTypeName) {
-      return undefined;
-    }
-    if (!fieldTypeName.endsWith('.json')) {
-      fieldTypeName += '.json';
-    }
-    const found = (await this.fieldTypes()).find(
-      (item) => item.name === fieldTypeName && item.path,
-    );
-
-    if (!found || !found.path) {
-      return undefined;
-    }
-    const file = (await readJsonFile(
-      join(found.path, basename(found.name)),
-    )) as FieldType;
-    return file;
+    return this.resources.resource(
+      'fieldTypes',
+      fieldTypeName,
+      from,
+    ) as unknown as FieldType;
   }
 
   /**
@@ -629,20 +440,12 @@ export class Project extends CardContainer {
   public async fieldTypes(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleFieldTypes =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('fieldTypes')
-        : [];
-    return this.collectedResources(
-      from,
-      this.localFieldTypes,
-      moduleFieldTypes,
-    );
+    return this.resources.resources('fieldTypes', from);
   }
 
   /**
    * Finds root of a project
-   * @param {string} path Path where to start looking for the project root.
+   * @param path Path where to start looking for the project root.
    * @returns path to a project root, or empty string.
    */
   public static async findProjectRoot(path: string): Promise<string> {
@@ -661,8 +464,8 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific card.
-   * @param {string} cardKey Cardkey to find
-   * @param {FetchCardDetails} details Defines which card details are included in the return values.
+   * @param cardKey Card key to find
+   * @param details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
   public async findSpecificCard(
@@ -696,10 +499,10 @@ export class Project extends CardContainer {
 
   /**
    * Flattens card tree so that children are shown on same level regardless of nesting level.
-   * @param {card[]} array card tree
+   * @param array card tree
    * @returns flattened card tree.
    */
-  public static flattenCardArray(array: Card[]) {
+  public static flattenCardArray(array: Card[]): Card[] {
     const result: Card[] = [];
     array.forEach((item) => {
       //todo: for more generic utility, define details
@@ -714,7 +517,7 @@ export class Project extends CardContainer {
 
   /**
    * Checks if a given card is part of this project.
-   * @param {string} cardKey card to check.
+   * @param cardKey card to check.
    * @returns true if a given card is found from project, false otherwise.
    */
   public hasCard(cardKey: string): boolean {
@@ -723,7 +526,7 @@ export class Project extends CardContainer {
 
   /**
    * Checks if given path is a project.
-   * @param {string} path Path to a project
+   * @param path Path to a project
    * @returns true, if in the given path there is a project; false otherwise
    */
   static isCreated(path: string): boolean {
@@ -732,7 +535,7 @@ export class Project extends CardContainer {
 
   /**
    * Checks if given card is in some template.
-   * @param {Card} card card object to check
+   * @param card card object to check
    * @returns true if card exists in a template; false otherwise
    */
   static isTemplateCard(card: Card): boolean {
@@ -743,8 +546,18 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns whether card is a template card or not
+   * @param cardKey card to check.
+   * @todo: This is only used from 'remove'. Could it use the static checker?
+   */
+  public async isTemplateCard(cardKey: string): Promise<boolean> {
+    const templateCards = await this.templateCards();
+    return templateCards.find((card) => card.key === cardKey) != null;
+  }
+
+  /**
    * Returns specific link type path
-   * @param {string} linkTypeName Name of the linkType
+   * @param linkTypeName Name of the linkType
    * @returns link type path.
    */
   public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
@@ -766,16 +579,21 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific link type metadata.
-   * @param {string} linkTypeName Name of the linkType
+   * @param linkTypeName Name of the linkType
+   * @param from Defines where resources are read from.
    * @returns link type metadata.
    */
-  public async linkType(linkTypeName: string): Promise<LinkType | undefined> {
-    const path = await this.linkTypePath(linkTypeName);
-    if (!path) {
-      return undefined;
-    }
-    return readJsonFile(path);
+  public async linkType(
+    linkTypeName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<LinkType | undefined> {
+    return this.resources.resource(
+      'linkTypes',
+      linkTypeName,
+      from,
+    ) as unknown as LinkType;
   }
+
   /**
    * Returns an array of all the link types in the project.
    * @param from Defines where resources are collected from.
@@ -784,11 +602,7 @@ export class Project extends CardContainer {
   public async linkTypes(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleLinkTypes =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('linkTypes')
-        : [];
-    return this.collectedResources(from, this.localLinkTypes, moduleLinkTypes);
+    return this.resources.resources('linkTypes', from);
   }
 
   /**
@@ -831,11 +645,11 @@ export class Project extends CardContainer {
 
   /**
    * Returns details of a certain module.
-   * @param {string} moduleName Name of the module.
+   * @param moduleName Name of the module.
    * @returns module details, or undefined if workflow cannot be found.
    */
   public async module(moduleName: string): Promise<ModuleSettings | undefined> {
-    const module = await this.findSpecificModule(moduleName);
+    const module = await this.findModule(moduleName);
     if (module && module.path) {
       const modulePath = join(module.path, module.name);
       const moduleConfig = (await readJsonFile(
@@ -845,41 +659,28 @@ export class Project extends CardContainer {
         name: moduleConfig.name,
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
+
         // resources:
         calculations: [
-          ...(await this.collectResourcesFromModules('calculations')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('calculations')),
         ],
         cardTypes: [
-          ...(await this.collectResourcesFromModules('cardTypes')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('cardTypes')),
         ],
         fieldTypes: [
-          ...(await this.collectResourcesFromModules('fieldTypes')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('fieldTypes')),
         ],
         linkTypes: [
-          ...(await this.collectResourcesFromModules('linkTypes')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('linkTypes')),
         ],
         templates: [
-          ...(await this.collectResourcesFromModules('templates')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('templates')),
         ],
         workflows: [
-          ...(await this.collectResourcesFromModules('workflows')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('workflows')),
         ],
         reports: [
-          ...(await this.collectResourcesFromModules('reports')).map(
-            (item) => item.name,
-          ),
+          ...(await this.resources.collectResourcesFromModules('reports')),
         ],
       };
     }
@@ -889,6 +690,7 @@ export class Project extends CardContainer {
   /**
    * Returns list of module names in the project.
    * @returns List of module names in the project.
+   * @todo: Is this needed --> could be just modules() call?
    */
   public async moduleNames(): Promise<string[]> {
     const moduleNames: string[] = [];
@@ -903,11 +705,12 @@ export class Project extends CardContainer {
 
   /**
    * Returns path to a module.
-   * @param {string} moduleName Name of the module.
+   * @param moduleName Name of the module.
    * @returns path to a module.
+   * @todo: Is this needed --> could be just module() call?
    */
   public async modulePath(moduleName: string): Promise<string | undefined> {
-    const module = await this.findSpecificModule(moduleName);
+    const module = await this.findModule(moduleName);
     return module && module.path ? join(module.path, module.name) : undefined;
   }
 
@@ -916,7 +719,7 @@ export class Project extends CardContainer {
    * @returns list of modules in the project.
    */
   public async modules(): Promise<Resource[]> {
-    return this.collectResourcesFromModules('modules');
+    return this.resources.resources('modules');
   }
 
   /**
@@ -949,7 +752,7 @@ export class Project extends CardContainer {
 
   /**
    * Returns full path to a given card.
-   * @param {string} cardKey card to check path for.
+   * @param cardKey card to check path for.
    * @returns path to a given card.
    */
   public pathToCard(cardKey: string): string {
@@ -1003,6 +806,44 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns details of certain report.
+   * @param reportName Name of the report (either filename (including .json extension), or report name).
+   * @param from Defines where resources are collected from.
+   * @returns report configuration, or undefined if report cannot be found.
+   */
+  public async report(
+    reportName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Report | undefined> {
+    const found = (await this.resources.resources('reports', from)).find(
+      (item) => item.name === reportName && item.path,
+    );
+    if (!found || !found.path) {
+      return undefined;
+    }
+    const folder = join(found.path, basename(found.name));
+    const metadata = (await this.resources.resource(
+      'reports',
+      reportName,
+      from,
+    )) as unknown as ReportMetadata;
+
+    const schemaPath = join(folder, 'parameterSchema.json');
+
+    return {
+      name: '', //todo: fill in name
+      metadata,
+      contentTemplate: (
+        await readFile(join(folder, 'index.adoc.hbs'))
+      ).toString(),
+      queryTemplate: (await readFile(join(folder, 'query.lp.hbs'))).toString(),
+      schema: pathExists(schemaPath)
+        ? JSON.parse((await readFile(schemaPath)).toString()) // Here we assume the file is actually a schema. Should be validated elsewhere
+        : undefined,
+    };
+  }
+
+  /**
    * Array of reports in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all reports in the project.
@@ -1010,11 +851,7 @@ export class Project extends CardContainer {
   public async reports(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleReports =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('reports')
-        : [];
-    return this.collectedResources(from, this.localReports, moduleReports);
+    return this.resources.resources('reports', from);
   }
 
   /**
@@ -1022,37 +859,7 @@ export class Project extends CardContainer {
    * @param resource Resource to remove.
    */
   public removeResource(resource: Resource) {
-    const { type } = resourceNameParts(resource.name);
-    let arrayToModify: Resource[];
-    switch (type) {
-      case 'cardTypes':
-        arrayToModify = this.localCardTypes;
-        break;
-      case 'fieldTypes':
-        arrayToModify = this.localFieldTypes;
-        break;
-      case 'linkTypes':
-        arrayToModify = this.localLinkTypes;
-        break;
-      case 'reports':
-        arrayToModify = this.localReports;
-        break;
-      case 'templates':
-        arrayToModify = this.localTemplates;
-        break;
-      case 'workflows':
-        arrayToModify = this.localWorkflows;
-        break;
-      default: {
-        throw new Error(
-          `Resource type '${type}' not handled in 'removeResource'`,
-        );
-      }
-    }
-    const index = arrayToModify.indexOf(resource, 0);
-    if (index > -1) {
-      arrayToModify.splice(index, 1);
-    }
+    this.resources.remove(resource);
   }
 
   /**
@@ -1101,11 +908,15 @@ export class Project extends CardContainer {
   /**
    * Returns details of certain template.
    * @param templateName Name of the template.
+   * @param from Defines where resources are collected from.
    * @returns template resource details.
    */
-  public async template(templateName: string): Promise<Resource | undefined> {
+  public async template(
+    templateName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource | undefined> {
     return (
-      (await this.templates()).find(
+      (await this.templates(from)).find(
         (item) => item.name === templateName && item.path,
       ) || undefined
     );
@@ -1132,19 +943,16 @@ export class Project extends CardContainer {
 
   /**
    * Indicates if a template exists in a project.
-   * @param {string} templateName Name of a template
+   * @param templateName Name of a template
    * @returns true, if template named 'templateName' exists in project; false otherwise.
    */
   public async templateExists(templateName: string): Promise<boolean> {
-    if (!templateName) {
-      return false;
-    }
-    return (await this.templates()).some((item) => item.name === templateName);
+    return this.resources.resourceExists('templates', templateName);
   }
 
   /**
    * Returns path from a template card
-   * @param {card} card template card item
+   * @param card template card item
    * @returns path of template card
    */
   public static templatePathFromCardPath(card: Card): string {
@@ -1168,17 +976,13 @@ export class Project extends CardContainer {
   public async templates(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleTemplates =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('templates')
-        : [];
-    return this.collectedResources(from, this.localTemplates, moduleTemplates);
+    return this.resources.resources('templates', from);
   }
 
   /**
    * Update card content.
-   * @param {string} cardKey card's ID that is updated.
-   * @param {string} content changed content
+   * @param cardKey card's ID that is updated.
+   * @param content changed content
    */
   public async updateCardContent(cardKey: string, content: string) {
     const card = await this.findCard(this.basePath, cardKey);
@@ -1192,9 +996,9 @@ export class Project extends CardContainer {
 
   /**
    * Updates card metadata's single key.
-   * @param {string} cardKey card that is updated.
-   * @param {string} changedKey changed metadata key
-   * @param {MetadataContent} newValue changed value for the key
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
    */
   public async updateCardMetadataKey(
     cardKey: string,
@@ -1208,9 +1012,9 @@ export class Project extends CardContainer {
 
   /**
    * Updates card metadata.
-   * @param {card} card affected card
-   * @param {CardMetadata} changedMetadata changed content for the card
-   * @param {boolean} skipValidation Optional, if set does not validate the card
+   * @param card affected card
+   * @param changedMetadata changed content for the card
+   * @param skipValidation Optional, if set does not validate the card
    */
   public async updateCardMetadata(
     card: Card,
@@ -1230,7 +1034,7 @@ export class Project extends CardContainer {
 
   /**
    * Validates that card's data is valid.
-   * @param {card} card Card to validate.
+   * @param card Card to validate.
    */
   public async validateCard(card: Card): Promise<string> {
     const invalidCustomData = await this.validator.validateCustomFields(
@@ -1256,39 +1060,30 @@ export class Project extends CardContainer {
 
   /**
    * Returns details of certain workflow.
-   * @param {string} workflowName Name of the workflow (either filename (including .json extension), or workflow name).
+   * @param workflowName Name of the workflow (either filename (including .json extension), or workflow name).
+   * @param from Defines where resources are collected from.
    * @returns workflow configuration, or undefined if workflow cannot be found.
    */
-  public async workflow(workflowName: string): Promise<Workflow | undefined> {
-    if (!workflowName) {
-      return undefined;
-    }
-    if (!workflowName.endsWith('.json')) {
-      workflowName += '.json';
-    }
-    const found = (await this.workflows()).find(
-      (item) => item.name === workflowName && item.path,
-    );
-
-    if (!found || !found.path) {
-      return undefined;
-    }
-    const file = (await readJsonFile(
-      join(found.path, basename(found.name)),
-    )) as Workflow;
-    return file;
+  public async workflow(
+    workflowName: string,
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Workflow | undefined> {
+    return this.resources.resource(
+      'workflows',
+      workflowName,
+      from,
+    ) as unknown as Workflow;
   }
 
   /**
    * Finds initial state of a workflow.
-   * @param {string} workflow Workflow name
-   * @returns {string} workflow's initial state
-   * <br>              undefined if either workflow cannot be found, or there is no initial state
+   * @param workflow Workflow name
+   * @returns workflow's initial state; undefined if either workflow cannot be found, or there is no initial state
    */
   public async workflowInitialState(
     workflow: string,
   ): Promise<string | undefined> {
-    const workflowMetaData = await this.workflow(workflow);
+    const workflowMetaData = await this.workflow(workflow, ResourcesFrom.all);
 
     if (!workflowMetaData) {
       return undefined;
@@ -1309,56 +1104,6 @@ export class Project extends CardContainer {
   public async workflows(
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
-    const moduleWorkflows =
-      from !== ResourcesFrom.localOnly
-        ? await this.collectResourcesFromModules('workflows')
-        : [];
-    return this.collectedResources(from, this.localWorkflows, moduleWorkflows);
-  }
-
-  /**
-   * Returns details of certain report.
-   * @param {string} reportName Name of the report (either filename (including .json extension), or report name).
-   * @returns report configuration, or undefined if report cannot be found.
-   */
-  public async report(reportName: string): Promise<Report | undefined> {
-    if (!reportName) {
-      return undefined;
-    }
-
-    const found = (await this.reports()).find(
-      (item) => item.name === reportName && item.path,
-    );
-
-    if (!found || !found.path) {
-      return undefined;
-    }
-
-    const folder = join(found.path, basename(found.name));
-    const metadata = (await readJsonFile(
-      join(folder, 'report.json'),
-    )) as ReportMetadata;
-
-    const schemaPath = join(folder, 'parameterSchema.json');
-
-    return {
-      name: reportName,
-      metadata,
-      contentTemplate: (
-        await readFile(join(folder, 'index.adoc.hbs'))
-      ).toString(),
-      queryTemplate: (await readFile(join(folder, 'query.lp.hbs'))).toString(),
-      schema: pathExists(schemaPath)
-        ? JSON.parse((await readFile(schemaPath)).toString()) // Here we assume the file is actually a schema. Should be validated elsewhere
-        : undefined,
-    };
-  }
-
-  /**
-   * Returns whether card is a template card or not
-   */
-  public async isTemplateCard(cardKey: string) {
-    const templateCards = await this.templateCards();
-    return templateCards.find((card) => card.key === cardKey) != null;
+    return this.resources.resources('workflows', from);
   }
 }

@@ -70,7 +70,9 @@ export class Import {
       const card = await this.project.findSpecificCard(cardKey, {
         metadata: true,
       });
-      const cardType = await this.project.cardType(card?.metadata?.cardType);
+      const cardType = await this.project.cardType(
+        card?.metadata?.cardType || '',
+      );
 
       if (!cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);
@@ -129,5 +131,8 @@ export class Import {
 
     // Copy files.
     await copyDir(sourcePath, destinationPath);
+
+    // Update the resources.
+    await this.project.collectModuleResources();
   }
 }

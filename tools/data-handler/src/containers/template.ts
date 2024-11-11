@@ -179,7 +179,9 @@ export class Template extends CardContainer {
           card.path = card.path.replace(templatesFolder, tempDestination);
         }
         // @todo: could just fetch initial state based on card
-        const cardType = await this.project.cardType(card.metadata?.cardType);
+        const cardType = await this.project.cardType(
+          card.metadata?.cardType || '',
+        );
         if (!cardType) {
           throw new Error(
             `Card type '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
@@ -353,8 +355,8 @@ export class Template extends CardContainer {
 
   /**
    * Adds a new card to template.
-   * @param {string} cardType card type
-   * @param {string} parentCard parent card; optional - if missing will create a top-level card
+   * @param cardType card type
+   * @param parentCard parent card; optional - if missing will create a top-level card
    * @returns next available card key ID
    */
   public async addCard(cardType: string, parentCard?: Card): Promise<string> {
@@ -430,8 +432,8 @@ export class Template extends CardContainer {
 
   /**
    * Returns details (as defined by cardDetails) of a card.
-   * @param {string} cardKey card key (project prefix and a number, e.g. test_1)
-   * @param {FetchCardDetails} cardDetails which card details are returned.
+   * @param cardKey card key (project prefix and a number, e.g. test_1)
+   * @param cardDetails which card details are returned.
    * @returns Card details, or undefined if the card cannot be found.
    */
   public async cardDetailsById(
@@ -543,7 +545,7 @@ export class Template extends CardContainer {
   /**
    * Returns specific card.
    * @param cardKey Card key to find from template.
-   * @param cardDetails Card details to include in return value.
+   * @param details Card details to include in return value.
    * @returns specific card details
    */
   public async findSpecificCard(
@@ -641,7 +643,7 @@ export class Template extends CardContainer {
 
   /**
    * Returns template's project.
-   * @returns {Project} Template's project.
+   * @returns Template's project.
    */
   public get templateProject(): Project {
     return this.project;
