@@ -577,7 +577,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             setDeleteLinkModalVisible(false);
           }}
           onConfirm={async () => {
-            console.log(deleteLinkData, onDeleteLink);
             if (deleteLinkData) {
               await onDeleteLink?.(deleteLinkData);
             }

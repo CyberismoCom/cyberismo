@@ -68,6 +68,9 @@ export class ProjectPaths {
   public get linkTypesFolder(): string {
     return join(this.resourcesFolder, 'linkTypes');
   }
+  public get logPath(): string {
+    return join(this.path, '.cards', 'local', 'dh.log');
+  }
 
   public get modulesFolder(): string {
     return join(this.path, '.cards', 'modules');

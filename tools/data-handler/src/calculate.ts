@@ -36,6 +36,7 @@ import {
 } from './types/queries.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
+import { logger } from './utils/log-utils.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -592,13 +593,19 @@ export class Calculate {
         timeout,
         maxBuffer: 1024 * 1024 * 100,
       });
-      // print the command
-      console.log(
-        `Ran command: ${this.logicBinaryName} ${args.join(' ')} with query ${data.query}`,
+      logger.trace(
+        {
+          args,
+          query: data.query,
+        },
+        `Ran command`,
       );
 
       if (clingo.stdout) {
-        console.log(`Clingo output: \n${clingo.stdout}`);
+        logger.trace({
+          stdout: clingo.stdout,
+          stderr: clingo.stderr,
+        });
         return this.parseClingoResult(clingo.stdout);
       }
 

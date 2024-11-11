@@ -38,6 +38,7 @@ import {
   getRankAfter,
   sortItems,
 } from '../utils/lexorank.js';
+import { logger } from '../utils/log-utils.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -461,7 +462,7 @@ export class Template extends CardContainer {
     details?: FetchCardDetails,
   ): Promise<Card[]> {
     if (placeHolderPath) {
-      console.log('Variable is not used');
+      logger.warn('A non-used variable was used in the cards method');
     }
     const cardDetails = details
       ? details

@@ -95,6 +95,7 @@ export class Import {
           await this.project.updateCardMetadataKey(cardKey, key, value);
         }
       }
+      // NOTE: this is for the cli
       console.log(`Successfully imported card ${title}`);
       importedCards.push(cardKey);
     }

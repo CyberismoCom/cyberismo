@@ -10,6 +10,53 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { join } from 'path';
+import pino, { destination, TransportTargetOptions } from 'pino';
+import { fileURLToPath } from 'url';
+const LOG_FILE_LOCATION: string = join(
+  fileURLToPath(import.meta.url),
+  '../../../../../logs/data-handler.trace',
+);
+
+function getLogger() {
+  const all: TransportTargetOptions[] = [
+    {
+      target: 'pino/file',
+      options: { destination: LOG_FILE_LOCATION, mkdir: true }, // trace file
+      level: 'trace',
+    },
+    {
+      target: 'pino-pretty',
+      level: process.env.LOG_LEVEL || 'debug',
+    },
+  ];
+
+  const [file, stdout] = all;
+
+  if (process.env.NODE_ENV === 'test') {
+    // While testing, we simply use stdout and info level by default
+    return pino.default({
+      level: process.env.LOG_LEVEL || 'info',
+      transport: stdout,
+    });
+  }
+  if (process.env.NODE_ENV === 'development') {
+    // In dev mode, only stdout and debug logs by default
+    return pino.default({
+      level: 'trace',
+      transport: {
+        targets: all,
+      },
+    });
+  }
+  return pino.default({
+    level: 'trace',
+    transport: file,
+  });
+}
+
+export const logger = getLogger();
+
 /**
  * Returns error message string from an Error object.
  * @param error Error object
