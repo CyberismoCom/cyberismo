@@ -2,10 +2,10 @@
 
 To create a new decision, click this button:
 
-cards:create_from_template[decision]
+{{{ createCards '{"template": "decision/templates/simplepage", "buttonLabel": "Create a new page"}'}}}
 
 == Decisions
 
 The following decisions have been made:
 
-cards::list_cards[query TBD]
+{{{ report '{"name": "decision/reports/testReport", "key3": "key"}'}}}
