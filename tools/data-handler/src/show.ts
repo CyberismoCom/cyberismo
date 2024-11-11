@@ -20,15 +20,17 @@ import {
   CardAttachment,
   Card,
   CardListContainer,
-  CardType,
   FetchCardDetails,
-  FieldTypeDefinition,
-  LinkType,
   ModuleSettings,
   ProjectMetadata,
-  Template,
-  WorkflowMetadata,
+  TemplateConfiguration,
 } from './interfaces/project-interfaces.js';
+import {
+  CardType,
+  FieldType,
+  LinkType,
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 import { Project } from './containers/project.js';
 import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -316,7 +318,7 @@ export class Show {
    */
   public async showFieldType(
     fieldTypeName: string,
-  ): Promise<FieldTypeDefinition | undefined> {
+  ): Promise<FieldType | undefined> {
     const fieldTypeDetails = await this.project.fieldType(fieldTypeName);
     if (fieldTypeDetails === undefined) {
       throw new Error(
@@ -386,7 +388,9 @@ export class Show {
    * @param {string} templateName template name
    * @returns template details
    */
-  public async showTemplate(templateName: string): Promise<Template> {
+  public async showTemplate(
+    templateName: string,
+  ): Promise<TemplateConfiguration> {
     const templateObject =
       await this.project.createTemplateObjectByName(templateName);
     if (!templateObject) {
@@ -413,14 +417,14 @@ export class Show {
    * @param {string} projectPath path to a project
    * @returns all templates in a project.
    */
-  public async showTemplatesWithDetails(): Promise<Template[]> {
+  public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const promiseContainer = (await this.project.templates()).map((template) =>
       this.project
         .createTemplateObjectByName(template.name)
         .then((t) => t?.show()),
     );
     const result = await Promise.all(promiseContainer);
-    return result.filter(Boolean) as Template[];
+    return result.filter(Boolean) as TemplateConfiguration[];
   }
 
   /**
@@ -428,7 +432,7 @@ export class Show {
    * @param {string} workflowName name of workflow
    * @returns workflow details
    */
-  public async showWorkflow(workflowName: string): Promise<WorkflowMetadata> {
+  public async showWorkflow(workflowName: string): Promise<Workflow> {
     if (workflowName === '') {
       throw new Error(`Must define workflow name to query its details.`);
     }
@@ -455,9 +459,7 @@ export class Show {
    * Shows all workflows with full details in a project.
    * @returns workflows with full details
    */
-  public async showWorkflowsWithDetails(): Promise<
-    (WorkflowMetadata | undefined)[]
-  > {
+  public async showWorkflowsWithDetails(): Promise<(Workflow | undefined)[]> {
     const promiseContainer = [];
     for (const workflow of await this.project.workflows()) {
       promiseContainer.push(this.project.workflow(workflow.name));

@@ -21,10 +21,11 @@ import {
   CardNameRegEx,
   DotSchemaItem,
   FetchCardDetails,
+  FileContentType,
   Resource,
-  Template as TemplateInterface,
-  TemplateMetadata,
+  TemplateConfiguration as TemplateInterface,
 } from '../interfaces/project-interfaces.js';
+import { TemplateMetadata } from '../interfaces/resource-interfaces.js';
 import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
@@ -442,7 +443,11 @@ export class Template extends CardContainer {
     }
     const cardDetails = details
       ? details
-      : { content: true, contentType: 'adoc', metadata: true };
+      : {
+          content: true,
+          contentType: 'adoc' as FileContentType,
+          metadata: true,
+        };
     return super.cards(this.templateCardsPath, cardDetails);
   }
 

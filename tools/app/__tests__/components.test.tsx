@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { TreeMenu } from '../app/components/TreeMenu';
 import { Project } from '@/app/lib/definitions';
 import StateSelector from '@/app/components/StateSelector';
-import { WorkflowCategory } from '../../data-handler/src/interfaces/project-interfaces';
+import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-interfaces';
 import { useTranslation } from 'react-i18next';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 

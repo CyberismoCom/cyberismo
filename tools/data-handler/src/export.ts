@@ -14,16 +14,13 @@
 import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-import {
-  Card,
-  CardType,
-  FetchCardDetails,
-} from './interfaces/project-interfaces.js';
-import { pathExists } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
-
 // asciidoctor
 import Processor from '@asciidoctor/core';
+
+import { Card, FetchCardDetails } from './interfaces/project-interfaces.js';
+import { CardType } from './interfaces/resource-interfaces.js';
+import { pathExists } from './utils/file-utils.js';
+import { Project } from './containers/project.js';
 
 import { sortItems } from './utils/lexorank.js';
 import { QueryResult } from './types/queries.js';

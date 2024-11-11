@@ -798,7 +798,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('access default parameters for template (success)', () => {
-    const defaultContent = DefaultContent.templateContent();
+    const defaultContent = DefaultContent.templateContent('testName');
     expect(defaultContent.displayName).to.equal(undefined);
     expect(defaultContent.category).to.equal(undefined);
     expect(defaultContent.description).to.equal(undefined);

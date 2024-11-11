@@ -13,14 +13,14 @@
 import {
   CardType,
   DataType,
-  FieldTypeDefinition,
+  FieldType,
   Link,
   LinkType,
   ReportMetadata,
   TemplateMetadata,
   WorkflowCategory,
-  WorkflowMetadata,
-} from './interfaces/project-interfaces.js';
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 
 export abstract class DefaultContent {
   /**
@@ -45,10 +45,7 @@ export abstract class DefaultContent {
    * @param dataType data type for the field type
    * @returns Default content for field type.
    */
-  static fieldType(
-    fieldTypeName: string,
-    dataType: DataType,
-  ): FieldTypeDefinition {
+  static fieldType(fieldTypeName: string, dataType: DataType): FieldType {
     return {
       name: fieldTypeName,
       dataType: dataType,
@@ -100,8 +97,8 @@ export abstract class DefaultContent {
    * Default template content
    * @returns Default template content
    */
-  public static templateContent(): TemplateMetadata {
-    return {};
+  public static templateContent(templateName: string): TemplateMetadata {
+    return { name: templateName };
   }
 
   /**
@@ -109,7 +106,7 @@ export abstract class DefaultContent {
    * @param {string} workflowName workflow name
    * @returns Default content for workflow JSON values.
    */
-  public static workflowContent(workflowName: string): WorkflowMetadata {
+  public static workflowContent(workflowName: string): Workflow {
     return {
       name: workflowName,
       states: [

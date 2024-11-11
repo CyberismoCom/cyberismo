@@ -28,16 +28,18 @@ import { resourceNameParts } from './utils/resource-utils.js';
 import { Project } from './containers/project.js';
 import {
   Card,
-  FieldTypeDefinition,
-  TemplateMetadata,
+  DotSchemaContent,
+  ProjectSettings,
+} from './interfaces/project-interfaces.js';
+import {
   CardType,
   CustomField,
-  DotSchemaContent,
+  FieldType,
   LinkType,
-  ProjectSettings,
-  WorkflowMetadata,
   ReportMetadata,
-} from './interfaces/project-interfaces.js';
+  TemplateMetadata,
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 
 import * as EmailValidator from 'email-validator';
 
@@ -297,10 +299,10 @@ export class Validate {
       | CardType
       | CustomField
       | DotSchemaContent
-      | FieldTypeDefinition
+      | FieldType
       | LinkType
       | ProjectSettings
-      | WorkflowMetadata
+      | Workflow
       | ReportMetadata,
     projectPrefixes: string[],
   ): string[] {
@@ -317,9 +319,9 @@ export class Validate {
       const namedContent = content as
         | CardType
         | CustomField
-        | FieldTypeDefinition
+        | FieldType
         | LinkType
-        | WorkflowMetadata;
+        | Workflow;
       const { name, type, prefix } = resourceNameParts(namedContent.name);
       const filenameWithoutExtension = parse(file.name).name;
 
@@ -343,7 +345,7 @@ export class Validate {
   }
 
   // Validates that card's dataType can be used with JS types.
-  private validType<T>(value: T, fieldType: FieldTypeDefinition): boolean {
+  private validType<T>(value: T, fieldType: FieldType): boolean {
     const field = fieldType.dataType;
     const typeOfValue = typeof value;
 

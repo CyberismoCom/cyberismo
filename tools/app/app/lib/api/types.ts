@@ -14,8 +14,8 @@ import { Project, CardDetails, FieldTypes } from '../definitions';
 import {
   CardType,
   LinkType,
-  Template,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+import { TemplateConfiguration } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { SWRResponse } from 'swr';
 
@@ -26,7 +26,7 @@ export type Resources = {
   };
   fieldTypes: FieldTypes;
   cardType: CardType;
-  templates: Template[];
+  templates: TemplateConfiguration[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
   cardQuery: QueryResult<'card'>;

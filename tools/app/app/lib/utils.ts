@@ -22,13 +22,12 @@ import {
   ParsedLink,
   Project,
   Workflow,
-  WorkflowState,
 } from './definitions';
 import { useForm } from 'react-hook-form';
 import {
   LinkType,
   WorkflowCategory,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
+} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 /**

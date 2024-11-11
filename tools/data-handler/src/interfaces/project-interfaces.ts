@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Schema } from 'jsonschema';
+import { Link, TemplateMetadata } from './resource-interfaces.js';
 
 // @todo: consider splitting this to several smaller files.
 
@@ -40,15 +40,6 @@ export interface CardListContainer {
   cards: string[];
 }
 
-// Card type content.
-export interface CardType {
-  name: string;
-  workflow: string;
-  customFields?: CustomField[];
-  alwaysVisibleFields?: string[];
-  optionallyVisibleFields?: string[];
-}
-
 // Card's index.json file content.
 export interface CardMetadata {
   title: string;
@@ -69,29 +60,6 @@ export type CSVRowRaw = {
   [key: string]: string;
 };
 
-// Custom field
-export interface CustomField {
-  name: string;
-  description?: string;
-  displayName?: string;
-  isEditable: boolean;
-}
-
-// Supported data types.
-export type DataType =
-  | 'shortText'
-  | 'longText'
-  | 'enum'
-  | 'date'
-  | 'number'
-  | 'integer'
-  | 'boolean'
-  | 'enum'
-  | 'list'
-  | 'date'
-  | 'dateTime'
-  | 'person';
-
 export interface DotSchemaItem {
   id: string;
   version: number;
@@ -99,49 +67,18 @@ export interface DotSchemaItem {
 }
 export type DotSchemaContent = DotSchemaItem[];
 
-// Custom field enum value
-export interface EnumDefinition {
-  enumValue: string;
-  enumDisplayValue: string;
-  enumDescription: string;
-}
-
 // Defines which details of a card are fetched.
 export interface FetchCardDetails {
   attachments?: boolean;
   calculations?: true;
   children?: boolean;
   content?: boolean;
-  contentType?: string; // 'adoc', 'html'
+  contentType?: FileContentType;
   metadata?: boolean;
   parent?: boolean;
 }
 
-// FieldType content.
-export interface FieldTypeDefinition {
-  name: string;
-  displayName?: string;
-  fieldDescription?: string;
-  dataType: DataType;
-  enumValues?: Array<EnumDefinition>;
-}
-
-// Link content.
-export interface Link {
-  linkType: string;
-  cardKey: string;
-  linkDescription?: string;
-}
-
-// Link type content.
-export interface LinkType {
-  name: string;
-  outboundDisplayName: string;
-  inboundDisplayName: string;
-  sourceCardTypes: string[];
-  destinationCardTypes: string[];
-  enableLinkDescription: boolean;
-}
+export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.
 export type MetadataContent =
@@ -172,12 +109,6 @@ export interface ProjectFile {
   name: string;
 }
 
-// Project's settings (=cardsConfig.json).
-export interface ProjectSettings {
-  cardKeyPrefix: string;
-  name: string;
-}
-
 // Project metadata details. @todo - this overlaps the above; check & merge
 export interface ProjectMetadata {
   name: string;
@@ -185,6 +116,22 @@ export interface ProjectMetadata {
   prefix: string;
   numberOfCards: number;
 }
+
+// Project's settings (=cardsConfig.json).
+export interface ProjectSettings {
+  cardKeyPrefix: string;
+  name: string;
+}
+
+// Resources that are possible to remove.
+// todo: add possibility to remove calculations, card types, field types, workflows and reports
+export type RemovableResourceTypes =
+  | 'attachment'
+  | 'card'
+  | 'link'
+  | 'linkType'
+  | 'module'
+  | 'template';
 
 // Project resource, such as workflow, template or card type as file system object.
 export interface Resource {
@@ -202,16 +149,6 @@ export type ResourceFolderType =
   | 'report'
   | 'template'
   | 'workflow';
-
-// Resources that are possible to remove.
-// todo: add possibility to remove calculations, card types, field types, workflows and reports
-export type RemovableResourceTypes =
-  | 'attachment'
-  | 'card'
-  | 'link'
-  | 'linkType'
-  | 'module'
-  | 'template';
 
 // All resource types; both singular and plural.
 export type ResourceTypes =
@@ -236,59 +173,11 @@ export type ResourceTypes =
   | 'workflows';
 
 // Template configuration details.
-export interface Template {
+export interface TemplateConfiguration {
   name: string;
   path: string;
   numberOfCards: number;
   metadata: TemplateMetadata;
-}
-
-// Template configuration content details.
-export interface TemplateMetadata {
-  displayName?: string;
-  description?: string;
-  category?: string;
-}
-
-// Workflow state categories.
-export enum WorkflowCategory {
-  initial = 'initial',
-  active = 'active',
-  closed = 'closed',
-}
-
-// Workflow's json file content.
-export interface WorkflowMetadata {
-  name: string;
-  states: WorkflowState[];
-  transitions: WorkflowTransition[];
-}
-
-// Workflow state.
-export interface WorkflowState {
-  name: string;
-  category?: WorkflowCategory;
-}
-
-// Workflow transition.
-export interface WorkflowTransition {
-  name: string;
-  fromState: string[];
-  toState: string;
-  requiredCardFields?: string[];
-}
-
-export interface ReportMetadata {
-  displayName: string;
-  description: string;
-  category: string;
-}
-
-export interface Report {
-  metadata: ReportMetadata;
-  contentTemplate: string;
-  queryTemplate: string;
-  schema?: Schema;
 }
 
 // Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')

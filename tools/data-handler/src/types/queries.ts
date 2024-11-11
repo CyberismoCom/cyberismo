@@ -14,7 +14,7 @@
  * Types for query result
  */
 
-import { WorkflowCategory } from '../interfaces/project-interfaces.js';
+import { WorkflowCategory } from '../interfaces/resource-interfaces.js';
 
 export interface CalculationLink {
   key: string;
