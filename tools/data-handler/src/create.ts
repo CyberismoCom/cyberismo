@@ -125,13 +125,13 @@ export class Create extends EventEmitter {
   ) {
     const resourceFolder = this.project.paths.resourcePath(resourceType);
     const resource = { name: resourceContent.name, path: resourceFolder };
-    let contentSchema: DotSchemaContent | undefined;
+    const contentSchema: DotSchemaContent | undefined =
+      this.contentSchemaMap.get(resourceType);
 
     if (!pathExists(resourceFolder)) {
       await mkdir(resourceFolder);
 
       // Newly created folders should have content schema ('.schema') file.
-      contentSchema = this.contentSchemaMap.get(resourceType);
       if (contentSchema) {
         await writeJsonFile(join(resourceFolder, '.schema'), contentSchema, {
           flag: 'wx',

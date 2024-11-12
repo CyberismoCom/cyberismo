@@ -179,20 +179,26 @@ export class Commands {
     return contentValidated && lengthValidated;
   }
 
-  // Validate that long and shoer resource names are valid.
+  // Validate that long and short resource names are valid.
   // Returns resource name as valid resource name (long format); in error case return empty string.
   // @todo: replace 'resourceType: string' with `resourceTypes: ResourceTypes` once INTDEV-463 has been merged.
-  private validName(resourceType: string, resourceName: string): string {
+  private async validName(
+    resourceType: string,
+    resourceName: string,
+  ): Promise<string> {
     try {
       const project = new Project(this.projectPath);
-      const { prefix, type, name } = resourceNameParts(resourceName);
+      let { prefix, type } = resourceNameParts(resourceName);
+      const { name } = resourceNameParts(resourceName);
+      prefix = prefix ? prefix : project.projectPrefix;
+      type = type ? type : resourceType;
       const validatePrefix = prefix !== '';
       const validateType = type !== '';
       if (validatePrefix) {
-        const projectPrefix = project.projectPrefix;
-        if (prefix !== projectPrefix) {
+        const projectPrefixes = await project.projectPrefixes();
+        if (!projectPrefixes.includes(prefix)) {
           console.error(
-            `Resource name can only refer to project that it is part of. Prefix '${prefix}' does not match '${projectPrefix}'`,
+            `Resource name can only refer to project that it is part of. Prefix '${prefix}' is not included in '[${projectPrefixes.join(',')}]'`,
           );
           return '';
         }
@@ -207,7 +213,7 @@ export class Commands {
         console.error(`Resource name must follow naming rules`);
         return '';
       }
-      return `${project.projectPrefix}/${resourceType}/${name}`;
+      return `${prefix}/${resourceType}/${name}`;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       return '';
@@ -587,8 +593,8 @@ export class Commands {
     cardTypeName: string,
     workflowName: string,
   ): Promise<requestStatus> {
-    const validCardTypeName = this.validName('cardTypes', cardTypeName);
-    const validWorkflowName = this.validName('workflows', workflowName);
+    const validCardTypeName = await this.validName('cardTypes', cardTypeName);
+    const validWorkflowName = await this.validName('workflows', workflowName);
     if (validCardTypeName === '') {
       return {
         statusCode: 400,
@@ -625,7 +631,10 @@ export class Commands {
     fieldTypeName: string,
     dataType: string,
   ): Promise<requestStatus> {
-    const validFieldTypeName = this.validName('fieldTypes', fieldTypeName);
+    const validFieldTypeName = await this.validName(
+      'fieldTypes',
+      fieldTypeName,
+    );
     if (validFieldTypeName === '') {
       return {
         statusCode: 400,
@@ -681,7 +690,7 @@ export class Commands {
    *  <br> statusCode 400 when there was a internal problem creating linkType
    */
   private async createLinkType(name: string): Promise<requestStatus> {
-    const validLinkTypeName = this.validName('linkTypes', name);
+    const validLinkTypeName = await this.validName('linkTypes', name);
     if (validLinkTypeName === '') {
       return {
         statusCode: 400,
@@ -760,7 +769,7 @@ export class Commands {
     templateName: string,
     templateContent: string,
   ): Promise<requestStatus> {
-    const validTemplateName = this.validName('templates', templateName);
+    const validTemplateName = await this.validName('templates', templateName);
     if (
       validTemplateName === '' ||
       !this.validateFolder(join(this.projectPath, templateName))
@@ -795,7 +804,7 @@ export class Commands {
     workflowName: string,
     workflowContent: string,
   ): Promise<requestStatus> {
-    const validWorkflowName = this.validName('workflows', workflowName);
+    const validWorkflowName = await this.validName('workflows', workflowName);
     if (validWorkflowName === '') {
       return {
         statusCode: 400,
@@ -823,7 +832,7 @@ export class Commands {
    *  <br> statusCode 500 when there was a internal problem creating report
    */
   private async createReport(name: string): Promise<requestStatus> {
-    const validReportName = this.validName('reports', name);
+    const validReportName = await this.validName('reports', name);
 
     if (validReportName === '') {
       return {
