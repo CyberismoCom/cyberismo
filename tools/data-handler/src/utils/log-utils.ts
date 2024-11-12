@@ -11,7 +11,7 @@
 */
 
 import { join } from 'path';
-import pino, { destination, TransportTargetOptions } from 'pino';
+import pino, { TransportTargetOptions } from 'pino';
 import { fileURLToPath } from 'url';
 const LOG_FILE_LOCATION: string = join(
   fileURLToPath(import.meta.url),
