@@ -37,6 +37,7 @@
     "eslint-config-prettier": "^9.1.0",
     "mocha": "^10.2.0",
     "mocha-suppress-logs": "^0.5.1",
+    "pino-pretty": "^13.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.11.0"
@@ -53,6 +54,7 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
     "mime-types": "^2.1.35",
+    "pino": "^9.5.0",
     "sinon": "^19.0.2",
     "tslib": "^2.6.2"
   },

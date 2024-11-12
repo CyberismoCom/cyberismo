@@ -237,9 +237,11 @@ export class Export {
       if (pathExists(resultDocumentPath)) {
         await truncate(resultDocumentPath, 0);
       }
+      // NOTE: this is for the cli
       console.log(`Using existing output file '${resultDocumentPath}'`);
     } catch (error) {
       if (error instanceof Error) {
+        // NOTE: this is for the cli
         console.log(`Creating output file '${resultDocumentPath}'`);
       }
     }
