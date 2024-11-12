@@ -36,6 +36,21 @@ describe('add command', () => {
       options,
     );
     expect(result.statusCode).to.equal(200);
+
+    // Check that the added card received a rank.
+    if (result.affectsCards?.at(0)) {
+      const addedCard = result.affectsCards?.at(0) || '';
+      const showResult = await commandHandler.command(
+        Cmd.show,
+        ['card', addedCard],
+        options,
+      );
+      if (showResult.statusCode === 200) {
+        const newRank = Object(showResult.payload)['metadata']['rank'];
+        expect(newRank).not.to.equal('');
+        expect(newRank).not.to.equal(undefined);
+      }
+    }
   });
   it('add template card to under a parent (success)', async () => {
     const result = await commandHandler.command(
