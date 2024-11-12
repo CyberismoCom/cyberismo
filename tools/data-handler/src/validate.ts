@@ -12,7 +12,7 @@
 
 // node
 import { Dirent, readdirSync } from 'node:fs';
-import { dirname, extname, join, parse } from 'node:path';
+import { dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
@@ -140,6 +140,23 @@ export class Validate {
         return acc;
       }, {});
 
+      // Fetches nearest parent's .schema file.
+      function schemaConfigFile(
+        path: string,
+        schemaConfigs: Record<string, DotSchemaContent>,
+      ) {
+        let schemas = schemaConfigs[path];
+        let parentPath = path;
+        while (!schemas) {
+          parentPath = resolve(parentPath, '..');
+          if (dirname(parentPath) === parentPath) {
+            break;
+          }
+          schemas = schemaConfigs[parentPath];
+        }
+        return schemas;
+      }
+
       const prefixes = await project.projectPrefixes();
       // Go through every file
       for (const file of files.filter(
@@ -160,7 +177,7 @@ export class Validate {
         if (nameErrors) {
           message.push(...nameErrors);
         }
-        const schemas = schemaConfigs[file.parentPath];
+        const schemas = schemaConfigFile(file.parentPath, schemaConfigs);
         // if schema is not defined for the directory, skip it
         if (!schemas) {
           continue;
