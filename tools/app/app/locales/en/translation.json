@@ -78,6 +78,11 @@
     "status": "Status: {{state}}"
   },
   "none": "None",
+  "tableOfContents": "Table of contents",
+  "passedPolicyChecks": "Passed policy checks",
+  "failedPolicyChecks": "Failed policy checks",
+  "policyCheckPass": "PASS",
+  "policyCheckFail": "FAIL",
   "attachment": "Attachment",
   "attachments": "Attachments",
   "addAttachment": "Add attachment",

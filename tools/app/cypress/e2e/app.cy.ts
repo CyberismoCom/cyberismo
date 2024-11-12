@@ -67,7 +67,7 @@ describe('Navigation', () => {
       'Describe the benefits and drawbacks of the decision. Describe what happens next.',
     );
     // Verify table of contents
-    cy.get('.toc-menu > h3').contains('TABLE OF CONTENTS');
+    cy.get('.toc-menu > p').contains('Table of contents');
     cy.get('.toc-menu >>> a').contains('Context');
     cy.get('.toc-menu >>> a').contains('Decision');
     cy.get('.toc-menu >>> a').contains('Consequences');
