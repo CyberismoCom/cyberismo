@@ -65,7 +65,6 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-
   it('move child card to another card (success)', async () => {
     const project = new Project(options.projectPath!);
     const cards = await new Show(project).showProjectCards();
@@ -79,7 +78,50 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-  it('move card - project missing', async () => {
+  it('try to move card to itself', async () => {
+    const sourceId = 'decision_6';
+    const destination = 'decision_6';
+    const result = await commandHandler.command(
+      Cmd.move,
+      [sourceId, destination],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+  it('try to move card to inside itself', async () => {
+    // create two root-level cards
+    const template = 'decision/templates/decision';
+    const parent = '';
+    let done = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const card1 = done.affectsCards?.at(0);
+    done = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent],
+      options,
+    );
+    const card2 = done.affectsCards?.at(0);
+
+    if (card1 && card2) {
+      // Move card2 to be under card1
+      let result = await commandHandler.command(
+        Cmd.move,
+        [card1, card2],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+
+      // Try to move card1 under card2
+      result = await commandHandler.command(Cmd.move, [card2, card1], options);
+      expect(result.statusCode).to.equal(400);
+    } else {
+      expect(false);
+    }
+  });
+  it('try to move card - project missing', async () => {
     const sourceId = 'decision_11';
     const destination = 'decision_12';
     const invalidProject = { projectPath: 'idontexist' };
@@ -90,7 +132,7 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('move card - source card not found', async () => {
+  it('try to move card - source card not found', async () => {
     const sourceId = 'decision_999';
     const destination = 'decision_11';
     const result = await commandHandler.command(
@@ -100,7 +142,7 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('move card - destination card not found', async () => {
+  it('try to move card - destination card not found', async () => {
     const sourceId = 'decision_11';
     const destination = 'decision_999';
     const result = await commandHandler.command(
