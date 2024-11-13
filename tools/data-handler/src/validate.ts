@@ -460,6 +460,43 @@ export class Validate {
         for (const card of cards) {
           if (card.metadata) {
             // validate card's workflow
+            const cardType = card.metadata.cardType;
+            const cardWorkflow =
+              (await project.cardType(cardType))?.workflow || '';
+            const workflow = await project.workflow(cardWorkflow);
+            const transitions = workflow?.transitions;
+            const states = workflow?.states;
+            if (transitions) {
+              for (const transition of transitions) {
+                if (
+                  transition.fromState.includes('*') ||
+                  transition.fromState.includes('') ||
+                  transition.fromState.length === 0
+                ) {
+                  continue;
+                }
+
+                const foundFrom = states?.find((item) =>
+                  transition.fromState.includes(item.name),
+                );
+                if (!foundFrom) {
+                  console.log(
+                    `In workflow '${workflow}' state '${transition.name}' is not used as 'from'`,
+                  );
+                }
+              }
+              for (const transition of transitions) {
+                const foundTo = states?.find((item) =>
+                  transition.toState.includes(item.name),
+                );
+                if (!foundTo) {
+                  console.log(
+                    `In workflow '${workflow}' state '${transition.name}' is not used as 'to'`,
+                  );
+                }
+              }
+            }
+
             if (!Project.isTemplateCard(card)) {
               const validWorkflow = await this.validateWorkflowState(
                 project,
