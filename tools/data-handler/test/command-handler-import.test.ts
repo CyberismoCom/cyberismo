@@ -133,10 +133,18 @@ describe('import module', () => {
   });
 
   describe('import module command', () => {
-    it('import module (success)', async () => {
-      const result = await commandHandler.command(
+    it('import module and use it (success)', async () => {
+      let result = await commandHandler.command(
         Cmd.import,
         ['module', decisionRecordsPath],
+        optionsMini,
+      );
+      expect(result.statusCode).to.equal(200);
+
+      // Verify that module content can be used to create data.
+      result = await commandHandler.command(
+        Cmd.create,
+        ['cardType', 'newCardType', 'decision/workflows/decision'],
         optionsMini,
       );
       expect(result.statusCode).to.equal(200);

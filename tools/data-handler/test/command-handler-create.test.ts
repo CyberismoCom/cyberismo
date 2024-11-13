@@ -14,6 +14,7 @@ import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Create } from '../src/create.js';
 import { Calculate } from '../src/calculate.js';
 import { DefaultContent } from '../src/create-defaults.js';
+import { CardListContainer } from '../src/interfaces/project-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,35 @@ const commandHandler: Commands = new Commands();
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
+// Helper to get current resource count.
+async function countOfResources(
+  parameters: string[],
+  opts: CardsOptions = options,
+): Promise<number> {
+  const resources = await commandHandler.command(
+    Cmd.show,
+    [...parameters],
+    opts,
+  );
+  if (
+    parameters.at(0) === 'attachments' ||
+    parameters.at(0) === 'cardTypes' ||
+    parameters.at(0) === 'fieldTypes' ||
+    parameters.at(0) === 'linkTypes' ||
+    parameters.at(0) === 'reports' ||
+    parameters.at(0) === 'templates'
+  ) {
+    return resources.payload ? (resources.payload as object[]).length : 0;
+  }
+  if (parameters.at(0) === 'cards') {
+    if (resources && resources.payload) {
+      const payload = resources.payload as CardListContainer[];
+      return payload.at(0)?.cards.length || 0;
+    }
+  }
+  return 0;
+}
+
 describe('create command', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
@@ -48,6 +78,7 @@ describe('create command', () => {
   });
   // attachment
   it('attachment (success)', async () => {
+    const attachmentCountBefore = await countOfResources(['attachments']);
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
     const cardId = 'decision_5';
     const result = await commandHandler.command(
@@ -56,8 +87,11 @@ describe('create command', () => {
       options,
     );
     expect(result.statusCode).to.equal(200);
+    const attachmentCountAfter = await countOfResources(['attachments']);
+    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
   });
   it('attachment to template card (success)', async () => {
+    const attachmentCountBefore = await countOfResources(['attachments']);
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
     const cardId = 'decision_2';
     const result = await commandHandler.command(
@@ -66,8 +100,11 @@ describe('create command', () => {
       options,
     );
     expect(result.statusCode).to.equal(200);
+    const attachmentCountAfter = await countOfResources(['attachments']);
+    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
   });
   it('attachment to child card (success)', async () => {
+    const attachmentCountBefore = await countOfResources(['attachments']);
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
     const cardId = 'decision_6';
     const result = await commandHandler.command(
@@ -76,6 +113,8 @@ describe('create command', () => {
       options,
     );
     expect(result.statusCode).to.equal(200);
+    const attachmentCountAfter = await countOfResources(['attachments']);
+    expect(attachmentCountBefore + 1).to.equal(attachmentCountAfter);
   });
   it('attachment missing project', async () => {
     const projectPath = join(testDir, 'invalid/i-dont-exist');
@@ -127,22 +166,30 @@ describe('create command', () => {
 
   // card
   it('create card (success)', async () => {
+    const cardsCountBefore = await countOfResources(['cards']);
     const result = await commandHandler.command(
       Cmd.create,
       ['card', 'decision/templates/simplepage'],
       options,
     );
     expect(result.statusCode).to.equal(200);
+    const cardsCountAfter = await countOfResources(['cards']);
+    // There are three cards in the template
+    expect(cardsCountBefore + 3).to.equal(cardsCountAfter);
   });
   it('card and validate (success)', async () => {
+    const cardsCountBefore = await countOfResources(['cards']);
     let result = await commandHandler.command(
       Cmd.create,
       ['card', 'decision/templates/simplepage'],
       options,
     );
     expect(result.statusCode).to.equal(200);
+    const cardsCountAfter = await countOfResources(['cards']);
     result = await commandHandler.command(Cmd.validate, [], options);
     expect(result.message).to.equal('Project structure validated');
+    // There are three cards in the template
+    expect(cardsCountBefore + 3).to.equal(cardsCountAfter);
   });
   it('card with parent (success)', async () => {
     const templateName = 'decision/templates/decision';
@@ -214,6 +261,10 @@ describe('create command', () => {
 
   // card type
   it('cardType (success)', async () => {
+    const cardTypesCountBefore = await countOfResources(
+      ['cardTypes'],
+      optionsMini,
+    );
     const cardType = 'test';
     const workflow = 'mini/workflows/default';
     const result = await commandHandler.command(
@@ -222,6 +273,11 @@ describe('create command', () => {
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
+    const cardTypesCountAfter = await countOfResources(
+      ['cardTypes'],
+      optionsMini,
+    );
+    expect(cardTypesCountBefore + 1).equals(cardTypesCountAfter);
   });
   it('cardType invalid project', async () => {
     const cardType = 'test';
@@ -264,6 +320,10 @@ describe('create command', () => {
 
   // field type
   it('fieldType all supported types (success)', async () => {
+    const fieldTypesCountBefore = await countOfResources(
+      ['fieldTypes'],
+      optionsMini,
+    );
     const fieldTypes = Create.supportedFieldTypes();
     for (const fieldType of fieldTypes) {
       const name = `ft_${fieldType}`;
@@ -274,6 +334,13 @@ describe('create command', () => {
       );
       expect(result.statusCode).to.equal(200);
     }
+    const fieldTypesCountAfter = await countOfResources(
+      ['fieldTypes'],
+      optionsMini,
+    );
+    expect(fieldTypesCountBefore + fieldTypes.length).equals(
+      fieldTypesCountAfter,
+    );
   });
   it('fieldType invalid project', async () => {
     const name = `name`;
@@ -399,6 +466,10 @@ describe('create command', () => {
 
   // link type
   it('linkType (success)', async () => {
+    const linkTypeCountBefore = await countOfResources(
+      ['linkTypes'],
+      optionsMini,
+    );
     const name = 'lt_name';
     const result = await commandHandler.command(
       Cmd.create,
@@ -406,6 +477,11 @@ describe('create command', () => {
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
+    const linkTypeCountAfter = await countOfResources(
+      ['linkTypes'],
+      optionsMini,
+    );
+    expect(linkTypeCountBefore + 1).equals(linkTypeCountAfter);
   });
 
   it('linkType invalid project', async () => {
@@ -530,6 +606,7 @@ describe('create command', () => {
 
   // report
   it('report (success)', async () => {
+    const reportsCountBefore = await countOfResources(['reports'], optionsMini);
     const reportName = 'report-name';
     const result = await commandHandler.command(
       Cmd.create,
@@ -537,6 +614,8 @@ describe('create command', () => {
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
+    const reportsCountAfter = await countOfResources(['reports'], optionsMini);
+    expect(reportsCountBefore + 1).equals(reportsCountAfter);
   });
   it('report and validate', async () => {
     const reportName = 'report-name-second';
@@ -565,6 +644,10 @@ describe('create command', () => {
   });
   // template
   it('template (success)', async () => {
+    const templatesCountBefore = await countOfResources(
+      ['templates'],
+      optionsMini,
+    );
     const templateName = 'template-name_first';
     const templateContent = '{}';
     const result = await commandHandler.command(
@@ -573,6 +656,11 @@ describe('create command', () => {
       optionsMini,
     );
     expect(result.statusCode).to.equal(200);
+    const templatesCountAfter = await countOfResources(
+      ['templates'],
+      optionsMini,
+    );
+    expect(templatesCountBefore + 1).equals(templatesCountAfter);
   });
   it('template with "local"', async () => {
     // local is no longer a valid name part.
@@ -681,6 +769,7 @@ describe('create command', () => {
 
   // workflow
   it('workflow (success)', async () => {
+    // todo: SME
     const workflowName = 'uniqueWorkflowName';
     const content = `
         {
