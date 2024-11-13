@@ -26,7 +26,6 @@ import { sortItems } from './utils/lexorank.js';
 import { QueryResult } from './types/queries.js';
 import { Show } from './show.js';
 import { Calculate } from './calculate.js';
-import { evaluateMacros } from './macros/index.js';
 
 const attachmentFolder: string = 'a';
 
@@ -173,6 +172,7 @@ export class Export {
     let asciiDocContent = '';
     const projectPath = this.project.basePath;
     try {
+      const { evaluateMacros } = await import('./macros/index.js');
       asciiDocContent = await evaluateMacros(
         cardDetailsResponse.content || '',
         {
