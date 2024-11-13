@@ -505,13 +505,13 @@ export class Project extends CardContainer {
               item.description = fieldType.fieldDescription;
           } else {
             console.error(
-              `Missing fieldType '${item.name}' in cardType '${cardTypeName}'`,
+              `Unknown field type '${item.name}' in card type '${cardTypeName}'`,
             );
             continue;
           }
         } else {
           console.error(
-            `Custom field '${item.name}' is missing mandatory 'name' in cardType '${cardTypeName}'`,
+            `Custom field '${item.name}' is missing mandatory 'name' in card type '${cardTypeName}'`,
           );
           return undefined;
         }
@@ -1065,7 +1065,10 @@ export class Project extends CardContainer {
     resourceType: ResourceFolderType,
     name: string,
   ): Promise<boolean> {
-    const resources = await this.resourcesOfType(resourceType);
+    const resources = await this.resourcesOfType(
+      resourceType,
+      ResourcesFrom.all,
+    );
     const resource = resources.find(
       (item) => item.name === name + '.json' || item.name === name,
     );
