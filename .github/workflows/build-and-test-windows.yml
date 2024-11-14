@@ -8,6 +8,7 @@ on:
     branches:
       - main
       - temp-main
+      - feature/sebastian/large-runner
   pull_request:
     branches: [ "main", "temp-main" ]
 
