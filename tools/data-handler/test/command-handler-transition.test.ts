@@ -1,5 +1,6 @@
 // testing
 import { assert, expect } from 'chai';
+import * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -67,6 +68,9 @@ describe('transition command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('missing project', async () => {
+    const stubProjectPath = sinon
+      .stub(commandHandler, 'setProjectPath')
+      .resolves('path');
     try {
       await commandHandler.command(
         Cmd.transition,
@@ -80,6 +84,7 @@ describe('transition command', () => {
         expect(true);
       }
     }
+    stubProjectPath.restore();
   });
   it('missing card', async () => {
     const result = await commandHandler.command(

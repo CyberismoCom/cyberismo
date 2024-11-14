@@ -23,7 +23,7 @@ export async function createLink(
   if (!projectPath) {
     return new Error('project_path environment variable not set.');
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   await commands.createCmd.createLink(
     fromCard,
     toCard,
@@ -42,7 +42,7 @@ export async function removeLink(
   if (!projectPath) {
     return new Error('project_path environment variable not set.');
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   await commands.removeCmd.remove(
     'link',
     fromCard,

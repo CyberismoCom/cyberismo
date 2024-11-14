@@ -1,5 +1,6 @@
 // testing
 import { assert, expect } from 'chai';
+import * as sinon from 'sinon';
 
 // node
 import { join } from 'node:path';
@@ -16,6 +17,9 @@ const testDir = join(baseDir, 'test/test-data');
 
 describe('command-handler: validate command', () => {
   it('missing path', async () => {
+    const stubProjectPath = sinon
+      .stub(commandHandler, 'setProjectPath')
+      .resolves('path');
     let result: requestStatus = { statusCode: 500 };
     try {
       result = await commandHandler.command(Cmd.validate, [], {});
@@ -25,7 +29,8 @@ describe('command-handler: validate command', () => {
         // this block is here for linter
       }
     }
-    expect(result.statusCode).to.equal(500);
+    expect(result.statusCode).to.equal(400);
+    stubProjectPath.restore();
   });
   it('valid schema', async () => {
     const result = await commandHandler.command(Cmd.validate, [], {

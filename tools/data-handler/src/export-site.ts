@@ -270,7 +270,7 @@ export class ExportSite extends Export {
     destination: string,
     cardKey?: string,
     options?: ExportOptions,
-  ) {
+  ): Promise<string> {
     this.options = options;
     const sourcePath: string = cardKey
       ? join(
@@ -282,6 +282,12 @@ export class ExportSite extends Export {
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
     if (cardKey) {
+      const card = await this.project.findSpecificCard(cardKey);
+      if (!card) {
+        throw new Error(
+          `Input validation error: cannot find card '${cardKey}'`,
+        );
+      }
       cards.push({
         key: cardKey,
         path: sourcePath,
@@ -311,5 +317,6 @@ export class ExportSite extends Export {
     }
 
     await this.export(destination, cards);
+    return '';
   }
 }

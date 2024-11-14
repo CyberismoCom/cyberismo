@@ -115,9 +115,11 @@ export class Rename extends EventEmitter {
   // Update card's metadata.
   private async updateCardMetadata(card: Card): Promise<void> {
     if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
-      const { prefix, type, name } = resourceNameParts(card.metadata.cardType);
+      const { identifier, prefix, type } = resourceNameParts(
+        card.metadata.cardType,
+      );
       if (prefix === this.from) {
-        card.metadata.cardType = `${this.project.configuration.cardKeyPrefix}/${type}/${name}`;
+        card.metadata.cardType = `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`;
         // Update card' custom fields
         const keys = Object.keys(card.metadata);
         for (const oldKey of keys) {
@@ -141,10 +143,10 @@ export class Rename extends EventEmitter {
 
   // Changes the name of a resource to match the new prefix.
   private updateResourceName(resourceName: string) {
-    const { prefix, type, name } = resourceNameParts(resourceName);
+    const { identifier, prefix, type } = resourceNameParts(resourceName);
     // do not rename module resources
     return this.from === prefix
-      ? `${this.project.configuration.cardKeyPrefix}/${type}/${name}`
+      ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
       : resourceName;
   }
 
@@ -253,10 +255,14 @@ export class Rename extends EventEmitter {
 
   /**
    * Renames project prefix.
+   * @throws if trying to use empty 'to'
    * @throws if trying to rename with current name
    * @param to Card id, or template name
    */
   public async rename(to: string) {
+    if (!to) {
+      throw new Error(`Input validation error: empty 'to' is not allowed`);
+    }
     const cardContent = {
       metadata: true,
       attachments: true,

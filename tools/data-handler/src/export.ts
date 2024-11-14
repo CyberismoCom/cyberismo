@@ -202,13 +202,24 @@ export class Export {
    * Exports the card(s) to ascii doc.
    * @param destination Path to where the resulting file(s) will be created.
    * @param cardKey If not exporting the whole card tree, card key of parent card.
+   * @returns status message
    */
-  public async exportToADoc(destination: string, cardKey?: string) {
+  public async exportToADoc(
+    destination: string,
+    cardKey?: string,
+  ): Promise<string> {
     const sourcePath: string = this.project.paths.cardRootFolder;
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
     if (cardKey) {
+      const card = await this.project.findSpecificCard(cardKey);
+      if (!card) {
+        console.log('should be here?');
+        throw new Error(
+          `Input validation error: cannot find card '${cardKey}'`,
+        );
+      }
       cards.push({
         key: cardKey,
         path: sourcePath,
@@ -233,20 +244,20 @@ export class Export {
       destination,
       Project.cardContentFile,
     );
+    let message = '';
     try {
       if (pathExists(resultDocumentPath)) {
         await truncate(resultDocumentPath, 0);
       }
-      // NOTE: this is for the cli
-      console.log(`Using existing output file '${resultDocumentPath}'`);
+      message = `Using existing output file '${resultDocumentPath}'`;
     } catch (error) {
       if (error instanceof Error) {
-        // NOTE: this is for the cli
-        console.log(`Creating output file '${resultDocumentPath}'`);
+        message = `Creating output file '${resultDocumentPath}'`;
       }
     }
 
     await this.toAdocFile(resultDocumentPath, cards);
+    return message;
   }
 
   /**
@@ -254,8 +265,13 @@ export class Export {
    * @param destination Path to where the resulting file(s) will be created.
    * @param cardKey Optional; If not exporting the whole card tree, card key of parent card.
    */
-  public async exportToHTML(destination: string, cardKey?: string) {
-    return this.exportToADoc(destination, cardKey).then(() => {
+  public async exportToHTML(
+    destination: string,
+    cardKey?: string,
+  ): Promise<string> {
+    let message = '';
+    await this.exportToADoc(destination, cardKey).then((msg) => {
+      message = msg;
       const asciiDocProcessor = Processor();
       const adocFile = join(destination, Project.cardContentFile);
       asciiDocProcessor.convertFile(adocFile, {
@@ -264,5 +280,6 @@ export class Export {
         standalone: true,
       });
     });
+    return message;
   }
 }

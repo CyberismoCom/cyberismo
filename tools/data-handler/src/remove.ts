@@ -162,7 +162,7 @@ export class Remove extends EventEmitter {
       throw new Error(`Module '${moduleName}' not found`);
     }
     await deleteDir(module);
-    // todo: update project
+    await this.project.collectModuleResources();
   }
 
   // Removes template from project
@@ -188,15 +188,31 @@ export class Remove extends EventEmitter {
 
   /**
    * Removes either attachment, card or template from project.
-   * @param {RemovableResourceTypes} type Type of resource
-   * @param {string} targetName Card id, or template name
-   * @param {string} args Additional arguments, such as attachment filename
+   * @param type Type of resource
+   * @param targetName Card id, or template name
+   * @param rest Additional arguments, such as attachment filename
    */
   public async remove(
     type: RemovableResourceTypes,
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
+    if (type === 'attachment' && rest.length !== 1 && !rest[0]) {
+      throw new Error(
+        `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
+      );
+    }
+
+    if (
+      type === 'link' &&
+      [2, 3].includes(rest.length) &&
+      !rest[0] &&
+      !rest[1]
+    ) {
+      throw new Error(
+        `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
+      );
+    }
     switch (type) {
       case 'attachment':
         return this.removeAttachment(targetName, rest[0]);

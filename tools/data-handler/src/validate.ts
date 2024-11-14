@@ -12,7 +12,7 @@
 
 // node
 import { Dirent, readdirSync } from 'node:fs';
-import { dirname, extname, join, parse, resolve } from 'node:path';
+import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
@@ -30,6 +30,7 @@ import {
   Card,
   DotSchemaContent,
   ProjectSettings,
+  ResourceTypes,
 } from './interfaces/project-interfaces.js';
 import {
   CardType,
@@ -41,6 +42,10 @@ import {
   Workflow,
 } from './interfaces/resource-interfaces.js';
 
+const invalidNames = new RegExp(
+  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
+);
+
 import * as EmailValidator from 'email-validator';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -49,6 +54,9 @@ export interface LengthProvider {
   length: number;
 }
 
+/**
+ * Validates content.
+ */
 export class Validate {
   private static instance: Validate;
 
@@ -167,7 +175,7 @@ export class Validate {
       )) {
         const fullPath = this.fullPath(file);
         const content = await readJsonFile(fullPath);
-        const nameErrors = this.validateResourceName(
+        const nameErrors = this.checkResourceName(
           fullPath,
           file,
           content,
@@ -308,7 +316,7 @@ export class Validate {
 
   // Validates that 'name' in resources matches filename, location and project prefix.
   // @todo: Can be removed when INTDEV-463 is implemented.
-  private validateResourceName(
+  private checkResourceName(
     fullFileNameWithPath: string,
     file: Dirent,
     content:
@@ -339,7 +347,7 @@ export class Validate {
         | FieldType
         | LinkType
         | Workflow;
-      const { name, type, prefix } = resourceNameParts(namedContent.name);
+      const { identifier, prefix, type } = resourceNameParts(namedContent.name);
       const filenameWithoutExtension = parse(file.name).name;
 
       if (!projectPrefixes.includes(prefix)) {
@@ -347,7 +355,7 @@ export class Validate {
           `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
         );
       }
-      if (name !== filenameWithoutExtension) {
+      if (identifier !== filenameWithoutExtension) {
         errors.push(
           `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
         );
@@ -359,6 +367,19 @@ export class Validate {
       }
     }
     return errors;
+  }
+
+  /**
+   * Validates that new name of a resource is according to naming convention.
+   * @param name: resource name
+   * returns true if name is valid, and false otherwise.
+   */
+  public static isValidResourceName(name: string): boolean {
+    const validName = new RegExp('^[A-Za-z ._-]+$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 256;
+    const notInvalidName = !invalidNames.test(name);
+    return contentValidated && lengthValidated && notInvalidName;
   }
 
   // Validates that card's dataType can be used with JS types.
@@ -492,6 +513,19 @@ export class Validate {
   }
 
   /**
+   * Validates folder name.
+   * @todo: This should check that the path is resolvable and can be used as a folder name in various operating systems.
+   * @param path path to a folder
+   * @returns true, if the path is valid and can be used; false otherwise.
+   */
+  public static validateFolder(path: string): boolean {
+    if (path === '' || path === '.' || path === '..') {
+      return false;
+    }
+    return !invalidNames.test(basename(path));
+  }
+
+  /**
    * Validates that 'object' conforms to JSON schema 'schemaId'.
    * @param content Object to validate.
    * @param schemaId Schema ID to identify a JSON schema.
@@ -512,6 +546,44 @@ export class Validate {
       }
     }
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validate that long and short resource names are valid.
+   * @param resourceType Type of resource
+   * @param resourceName Name of resource
+   * @param prefixes currently used project prefixes
+   * @returns resource name as valid resource name; throws in error cases.
+   */
+  public async validResourceName(
+    resourceType: ResourceTypes,
+    resourceName: string,
+    prefixes: string[],
+  ): Promise<string> {
+    let { prefix, type } = resourceNameParts(resourceName);
+    const { identifier } = resourceNameParts(resourceName);
+    type = type ? type : resourceType;
+    // a bit shaky way to ensure that prefix is set; first of the project prefixes should be the actual project prefix.
+    if (prefix === '') {
+      prefix = prefixes.length > 0 ? prefixes.at(0) || '' : '';
+      if (prefix === '') {
+        throw new Error(`Project prefix cannot be empty string`);
+      }
+    }
+    if (!prefixes.includes(prefix)) {
+      throw new Error(
+        `Resource name can only refer to project that it is part of. Prefix '${prefix}' is not included in '[${prefixes.join(',')}]'`,
+      );
+    }
+    if (resourceType !== type) {
+      throw new Error(
+        `Resource name must match the resource type. Type '${type}' does not match '${resourceType}'`,
+      );
+    }
+    if (!Validate.isValidResourceName(identifier)) {
+      throw new Error(`Resource name must follow naming rules`);
+    }
+    return `${prefix}/${resourceType}/${identifier}`;
   }
 
   /**

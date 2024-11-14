@@ -26,7 +26,7 @@ import {
   TemplateConfiguration as TemplateInterface,
 } from '../interfaces/project-interfaces.js';
 import { TemplateMetadata } from '../interfaces/resource-interfaces.js';
-import { copyDir, pathExists, sepRegex } from '../utils/file-utils.js';
+import { copyDir, pathExists } from '../utils/file-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 
@@ -39,6 +39,7 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
+import { identifierFromResourceName } from '../utils/resource-utils.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -328,8 +329,7 @@ export class Template extends CardContainer {
 
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
-    const normalizedTemplateName =
-      Template.normalizedTemplateName(templateName);
+    const normalizedTemplateName = identifierFromResourceName(templateName);
     if (normalizedTemplateName === '') {
       throw new Error(`Invalid template name: '${templateName}'`);
     }
@@ -578,24 +578,6 @@ export class Template extends CardContainer {
    */
   public async listCards(): Promise<Card[]> {
     return super.cards(this.templateCardsPath);
-  }
-
-  /**
-   * Returns template name without 'local'.
-   * @param templateName full template name.
-   * @returns template name without 'local' part, or empty string if name is invalid.
-   */
-  public static normalizedTemplateName(templateName: string): string {
-    const parts = templateName.split(sepRegex);
-    if (parts.length == 0 || parts.length > 3) {
-      return '';
-    }
-    if (parts.length === 3) {
-      if (parts[0] === 'local') {
-        return parts[2];
-      }
-    }
-    return templateName;
   }
 
   /**

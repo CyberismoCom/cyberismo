@@ -63,7 +63,7 @@ export async function POST(
       })),
   );
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   const succeeded = [];
   let error: Error | null = null;

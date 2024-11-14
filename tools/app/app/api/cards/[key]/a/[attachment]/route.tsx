@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing cardKey or filename', { status: 400 });
   }
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   try {
     const attachmentResponse = await commands.showCmd.showAttachment(
       cardKey,

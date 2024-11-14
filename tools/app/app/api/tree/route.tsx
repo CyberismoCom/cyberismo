@@ -35,7 +35,7 @@ export async function GET() {
     });
   }
   try {
-    const commands = CommandManager.getInstance(projectPath);
+    const commands = await CommandManager.getInstance(projectPath);
     await commands.calculateCmd.generate();
     const tree = await commands.calculateCmd.runQuery('tree');
     return NextResponse.json(tree);

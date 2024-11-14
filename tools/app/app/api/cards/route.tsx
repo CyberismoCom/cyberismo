@@ -38,7 +38,7 @@ export async function GET() {
     });
   }
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   let projectResponse: ProjectMetadata;
   try {

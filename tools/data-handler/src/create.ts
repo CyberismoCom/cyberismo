@@ -21,6 +21,7 @@ import {
 import { EventEmitter } from 'node:events';
 
 import { Calculate } from './calculate.js';
+import { Validate } from './validate.js';
 import {
   type DotSchemaContent,
   ProjectFile,
@@ -40,11 +41,14 @@ import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from './utils/json.js';
 import { Project } from './containers/project.js';
 import { Template } from './containers/template.js';
-import { Validate } from './validate.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 import { fileURLToPath } from 'node:url';
 import { copyDir, pathExists } from './utils/file-utils.js';
-import { resourceNameParts } from './utils/resource-utils.js';
+import {
+  identifierFromResourceName,
+  isResourceName,
+  resourceNameParts,
+} from './utils/resource-utils.js';
 import { DefaultContent } from './create-defaults.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
@@ -65,6 +69,8 @@ export class Create extends EventEmitter {
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
+    private validateCmd: Validate,
+    private projectPrefixes: string[],
   ) {
     super();
 
@@ -112,12 +118,6 @@ export class Create extends EventEmitter {
 
   static gitKeepContent: string = '';
 
-  // Checks if name is in long format (3 parts, separated by '/').
-  static isFullName(name: string): boolean {
-    const partsCount = name.split('/').length;
-    return partsCount === 3;
-  }
-
   // Creates a new resource (...). If the resource folder is missing, creates it.
   private async createResource(
     resourceType: ResourceFolderType,
@@ -151,9 +151,9 @@ export class Create extends EventEmitter {
       }
     }
     if (contentSchema) {
-      const { name } = resourceNameParts(resourceContent.name!);
+      const { identifier } = resourceNameParts(resourceContent.name!);
       await writeJsonFile(
-        join(resourceFolder, `${name}.json`),
+        join(resourceFolder, `${identifier}.json`),
         resourceContent,
         { flag: 'wx' },
       );
@@ -163,11 +163,10 @@ export class Create extends EventEmitter {
 
   /**
    * Adds new cards to a template.
-   * @param {string} projectPath Project path.
-   * @param {string} cardTypeName Card-type for new cards.
-   * @param {string} templateName Template name to add cards into.
-   * @param {string} card Optional, if defined adds a new child-card under the card.
-   * @param {number} count How many cards to add. By default one.
+   * @param cardTypeName Card type for new cards.
+   * @param templateName Template name to add cards into.
+   * @param card Optional, if defined adds a new child-card under the card.
+   * @param count How many cards to add. By default one.
    * @returns non-empty string array with ids of added cards
    */
   public async addCards(
@@ -176,9 +175,20 @@ export class Create extends EventEmitter {
     card?: string,
     count: number = 1,
   ): Promise<string[]> {
+    if (
+      !templateName ||
+      !Validate.validateFolder(join(this.project.basePath, templateName))
+    ) {
+      throw new Error(
+        `Input validation error: template name is invalid '${templateName}'`,
+      );
+    }
+    if (cardTypeName === undefined) {
+      throw new Error(`Input validation error: card type cannot be empty`);
+    }
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
-    templateName = Template.normalizedTemplateName(templateName);
+    templateName = identifierFromResourceName(templateName);
     if (templateName === '') {
       throw Error(`Template '${origTemplateName}' is invalid template name`);
     }
@@ -230,15 +240,20 @@ export class Create extends EventEmitter {
 
   /**
    * Adds an attachment to a card.
-   * @param {string} cardKey card ID
-   * @param {string} attachment path to an attachment file or attachment name if buffer is defined
-   * @param {Buffer} buffer (Optional) attachment buffer
+   * @param cardKey card ID
+   * @param attachment path to an attachment file or attachment name if buffer is defined
+   * @param buffer (Optional) attachment buffer
    */
   public async createAttachment(
     cardKey: string,
     attachment: string,
     buffer?: Buffer,
   ) {
+    if (!buffer && !pathExists(attachment)) {
+      throw new Error(
+        `Input validation error: cannot find attachment '${attachment}'`,
+      );
+    }
     const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
     if (!attachmentFolder) {
       throw new Error(`Attachment folder for '${cardKey}' not found`);
@@ -268,17 +283,22 @@ export class Create extends EventEmitter {
   }
 
   /**
+   * Call this before calling other 'create' functions. If importing new modules, should be called again.
+   */
+  public async setProjectPrefixes(): Promise<void> {
+    this.projectPrefixes = await this.project.projectPrefixes();
+  }
+
+  /**
    * Creates card(s) to a project. All cards from template are instantiated to the project.
-   * @param {string} templateName name of a template to use
-   * @param {string} parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
+   * @param templateName name of a template to use
+   * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
    * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
   public async createCard(
     templateName: string,
     parentCardKey?: string,
   ): Promise<string[]> {
-    // todo: should validator validate the whole schema before creating a new card to it?
-    //       this might keep the integrity and consistency of the project more easily valid.
     const templateObject =
       await this.project.createTemplateObjectByName(templateName);
     if (!templateObject || !templateObject.isCreated()) {
@@ -318,46 +338,60 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a card type.
-   * @param cardTypeName name for the card type. It is expected that name is always in long format.
+   * @param cardTypeName name for the card type.
    * @param workflowName workflow name to use in the card type.
    */
   public async createCardType(cardTypeName: string, workflowName: string) {
-    if (!Create.isFullName(cardTypeName)) {
+    const validCardTypeName = await this.validateCmd.validResourceName(
+      'cardTypes',
+      cardTypeName,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validCardTypeName)) {
       throw new Error(
-        `Resource name must be in long format when calling 'createCardType()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createCardType()'`,
       );
     }
-    if (!(await this.project.resourceExists('workflow', workflowName))) {
+    const validWorkflowName = await this.validateCmd.validResourceName(
+      'workflows',
+      workflowName,
+      this.projectPrefixes,
+    );
+    if (!(await this.project.resourceExists('workflow', validWorkflowName))) {
       throw new Error(
         `Input validation error: workflow '${workflowName}' does not exist in the project.`,
       );
     }
-
-    if (await this.project.resourceExists('cardType', cardTypeName)) {
+    if (await this.project.resourceExists('cardType', validCardTypeName)) {
       throw new Error(
         `Input validation error: card type '${cardTypeName}' already exists in the project.`,
       );
     }
 
     const content: CardType = DefaultContent.cardType(
-      cardTypeName,
-      workflowName,
+      validCardTypeName,
+      validWorkflowName,
     );
     await this.createResource('cardType', content);
   }
 
   /**
    * Creates a new field type.
-   * @param fieldTypeName name for the field type. It is expected that name is in long format.
+   * @param fieldTypeName name for the field type.
    * @param dataType data type for the field type
    */
   public async createFieldType(fieldTypeName: string, dataType: string) {
-    if (!Create.isFullName(fieldTypeName)) {
+    const validFieldTypeName = await this.validateCmd.validResourceName(
+      'fieldTypes',
+      fieldTypeName,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validFieldTypeName)) {
       throw new Error(
-        `Resource name must be in long format when calling 'createFieldType()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createFieldType()'`,
       );
     }
-    if (await this.project.resourceExists('fieldType', fieldTypeName)) {
+    if (await this.project.resourceExists('fieldType', validFieldTypeName)) {
       throw new Error(
         `Field type with name '${fieldTypeName}' already exists in the project`,
       );
@@ -370,7 +404,7 @@ export class Create extends EventEmitter {
     const useDataType: DataType = dataType as DataType;
 
     const content: FieldType = {
-      name: fieldTypeName,
+      name: validFieldTypeName,
       dataType: useDataType,
     };
     await this.createResource('fieldType', content);
@@ -378,21 +412,26 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new link type.
-   * @param linkTypeName name for the link type. It is expected that the name is in long format.
+   * @param linkTypeName name for the link type.
    */
   public async createLinkType(linkTypeName: string) {
-    if (!Create.isFullName(linkTypeName)) {
+    const validLinkTypeName = await this.validateCmd.validResourceName(
+      'linkTypes',
+      linkTypeName,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validLinkTypeName)) {
       throw new Error(
-        `Resource name must be in long format when calling 'createLinkType()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createLinkType()'`,
       );
     }
-    if (await this.project.resourceExists('linkType', linkTypeName)) {
+    if (await this.project.resourceExists('linkType', validLinkTypeName)) {
       throw new Error(
         `Link type with name '${linkTypeName}' already exists in the project`,
       );
     }
 
-    const content = DefaultContent.linkTypeContent(linkTypeName);
+    const content = DefaultContent.linkTypeContent(validLinkTypeName);
     // check if link type JSON is valid
     const validator = Validate.getInstance();
     const validJson = validator.validateJson(content, 'linkTypeSchema');
@@ -504,9 +543,10 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new project.
-   * @param {string} projectPath where to create the project.
-   * @param {string} projectPrefix prefix for the project.
-   * @param {string} projectName name for the project.
+   * @param projectPath where to create the project.
+   * @param projectPrefix prefix for the project.
+   * @param projectName name for the project.
+   * @param validateCmd validator
    */
   public static async createProject(
     projectPath: string,
@@ -515,16 +555,41 @@ export class Create extends EventEmitter {
   ) {
     projectPath = resolve(projectPath);
     const projectFolders: string[] = ['.cards/local', 'cardRoot'];
-    const parentFolderToCreate = join(projectPath); // todo: could be removed
+
+    if (
+      projectPrefix === undefined ||
+      projectPrefix.length < 3 ||
+      projectPrefix.length > 10
+    ) {
+      throw new Error(
+        `Input validation error: prefix must be from 3 to 10 characters long. '${projectPrefix}' does not fulfill the condition.`,
+      );
+    }
+    if (!Validate.isValidResourceName(projectName)) {
+      throw new Error(
+        `Input validation error: invalid project name '${projectName}'`,
+      );
+    }
+    if (!Validate.validatePrefix(projectPrefix)) {
+      throw new Error(
+        `Input validation error: invalid prefix '${projectPrefix}'`,
+      );
+    }
 
     if (Project.isCreated(projectPath)) {
       throw new Error('Project already exists');
     }
 
-    await mkdir(parentFolderToCreate, { recursive: true }).then(async () => {
+    if (!Validate.isValidResourceName(projectName)) {
+      throw new Error(
+        `Input validation error: invalid project name '${projectName}'`,
+      );
+    }
+
+    await mkdir(projectPath, { recursive: true }).then(async () => {
       return await Promise.all(
         projectFolders.map((folder) =>
-          mkdir(`${parentFolderToCreate}/${folder}`, { recursive: true }),
+          mkdir(`${projectPath}/${folder}`, { recursive: true }),
         ),
       );
     });
@@ -538,7 +603,7 @@ export class Create extends EventEmitter {
         }
       }
       await writeJsonFile(
-        join(parentFolderToCreate, entry.path, entry.name),
+        join(projectPath, entry.path, entry.name),
         entry.content,
       );
     });
@@ -554,68 +619,73 @@ export class Create extends EventEmitter {
 
   /**
    * Creates a new template to a project.
-   * @param templateName Name of the template. It is expected that the name is in long format.
+   * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.
    */
-  public async createTemplate(
-    templateName: string,
-    templateContent: TemplateMetadata,
-  ) {
-    if (!Create.isFullName(templateName)) {
+  public async createTemplate(templateName: string, templateContent: string) {
+    let validTemplateName = await this.validateCmd.validResourceName(
+      'templates',
+      templateName,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validTemplateName)) {
       throw new Error(
-        `Resource name must be in long format when calling 'createTemplate()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>)  when calling 'createTemplate()'`,
       );
     }
-
-    // Use slice to get a copy of a string.
-    const origTemplateName = templateName.slice(0);
-    templateName = Template.normalizedTemplateName(templateName);
-    if (templateName === '') {
+    if (!Validate.validateFolder(join(this.project.basePath, templateName))) {
       throw new Error(
-        `Template '${origTemplateName}' is invalid template name`,
+        `Input validation error: template name is invalid '${templateName}'`,
       );
     }
+    const content = templateContent
+      ? (JSON.parse(templateContent) as TemplateMetadata)
+      : DefaultContent.templateContent(templateName);
 
-    const validator = Validate.getInstance();
-    const validJson = validator.validateJson(templateContent, 'templateSchema');
+    validTemplateName = identifierFromResourceName(validTemplateName);
+
+    const validJson = this.validateCmd.validateJson(content, 'templateSchema');
     if (validJson.length !== 0) {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
 
-    if (await this.project.templateExists(templateName)) {
+    if (await this.project.templateExists(validTemplateName)) {
       throw new Error(
         `Template '${templateName}' already exists in the project`,
       );
     }
 
     const resource = {
-      name: templateName,
+      name: validTemplateName,
       path: join(this.project.paths.templatesFolder, ''),
     };
-    // @todo: fix the path:
-    // const { name } = resourceNameParts(templateName); append it to path
-    // then remove the path handling from Template constructor
-    // see INTDEV-533
 
     const template = new Template(this.project, resource);
-    await template.create(templateContent);
+    await template.create(content);
 
     this.project.addResource(resource);
   }
 
   /**
    * Creates a workflow.
-   * @param workflow workflow JSON
+   * @param workflowName workflow name
+   * @param workflowContent workflow content JSON
    */
-  public async createWorkflow(workflow: Workflow) {
-    const validator = Validate.getInstance();
-    const schemaId = 'workflowSchema';
-
-    if (!Create.isFullName(workflow.name)) {
+  public async createWorkflow(workflowName: string, workflowContent: string) {
+    const validWorkflowName = await this.validateCmd.validResourceName(
+      'workflows',
+      workflowName,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validWorkflowName)) {
       throw new Error(
-        `Resource name must be in long format when calling 'createWorkflow()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>)  when calling 'createWorkflow()'`,
       );
     }
+    const workflow = workflowContent
+      ? (JSON.parse(workflowContent) as Workflow)
+      : DefaultContent.workflowContent(validWorkflowName);
+    workflow.name = validWorkflowName;
 
     if (await this.project.resourceExists('workflow', workflow.name)) {
       throw new Error(
@@ -623,7 +693,8 @@ export class Create extends EventEmitter {
       );
     }
 
-    const validJson = validator.validateJson(workflow, schemaId);
+    const schemaId = 'workflowSchema';
+    const validJson = this.validateCmd.validateJson(workflow, schemaId);
     if (validJson.length !== 0) {
       throw new Error(`Invalid workflow JSON: ${validJson}`);
     }
@@ -636,8 +707,18 @@ export class Create extends EventEmitter {
    * @param name name of the report
    */
   public async createReport(name: string) {
-    const reportFullName = `${this.project.projectPrefix}/reports/${name}`;
-    const report = await this.project.report(reportFullName);
+    const validReportName = await this.validateCmd.validResourceName(
+      'reports',
+      name,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validReportName)) {
+      throw new Error(
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>)  when calling 'createWorkflow()'`,
+      );
+    }
+
+    const report = await this.project.report(validReportName);
     if (report) {
       throw new Error(`Report '${name}' already exists in the project`);
     }
@@ -645,7 +726,7 @@ export class Create extends EventEmitter {
     const destination = join(this.project.paths.reportsFolder, name);
     await copyDir(this.defaultReportLocation, destination);
 
-    const resource: Resource = { name: reportFullName, path: destination };
+    const resource: Resource = { name: validReportName, path: destination };
     this.project.addResource(resource);
   }
 

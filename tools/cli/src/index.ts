@@ -16,13 +16,18 @@ import {
   CardsOptions,
   Cmd,
   Commands,
+  ExportFormats,
   requestStatus,
+  ShowTypes,
 } from '@cyberismocom/data-handler';
 
 // Handle the response object from data-handler
 function handleResponse(response: requestStatus) {
   if (response.statusCode === 200) {
     if (response.payload) {
+      if (response.message) {
+        console.log(response.message);
+      }
       console.log(JSON.stringify(response.payload, null, 2));
     } else if (response.message) {
       console.log(response.message);
@@ -45,7 +50,7 @@ function parseTypes(types: string[], value: string): string {
 
 // Parse allowed types for show command.
 function parseSupportedTypes(value: string): string {
-  return parseTypes(commandHandler.allAllowedTypes(), value);
+  return parseTypes(ShowTypes.all(), value);
 }
 
 // Commander
@@ -333,7 +338,9 @@ program
   .command('export')
   .description('Export a project or a card')
   .addArgument(
-    new Argument('<format>', 'Export format').choices(['adoc', 'html', 'site']),
+    new Argument('<format>', 'Export format').choices(
+      Object.values(ExportFormats),
+    ),
   )
   .argument('<output>', 'Output path')
   .argument('[cardKey]', 'Path to card')
@@ -341,7 +348,7 @@ program
   .action(
     async (
       format: string,
-      output: string,
+      output: ExportFormats,
       cardKey: string,
       options: CardsOptions,
     ) => {
@@ -389,8 +396,6 @@ importCmd
     );
     handleResponse(result);
   });
-
-// todo: Link command
 
 // Move command
 program
@@ -558,7 +563,6 @@ program
   });
 
 // Show command
-// todo: add later support for more types: link
 program
   .command('show')
   .description('Shows resource types in a project')

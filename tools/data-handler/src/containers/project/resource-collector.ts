@@ -312,7 +312,7 @@ export class ResourceCollector {
   /**
    * Returns resource's metadata.
    * @param type Type of resource (e.g. 'templates').
-   * @param name Name of the resource, in long name format.
+   * @param name Name of the resource.
    * @param from Defines where resources are collected from.
    * @returns Resources metadata, or undefined if resource was not found.
    * @note that caller need to convert this to specific type (e.g "as unknown as Workflow")
@@ -341,7 +341,7 @@ export class ResourceCollector {
   /**
    * Checks if resource of 'type' with 'name' exists.
    * @param type Type of resource (e.g. 'templates').
-   * @param name Name of the resource, in long name format.
+   * @param name Name of the resource.
    * @returns true, if resource exits, false otherwise.
    */
   public async resourceExists(type: string, name: string): Promise<boolean> {

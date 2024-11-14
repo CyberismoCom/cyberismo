@@ -640,7 +640,7 @@ describe('create command', () => {
       ['report', reportName],
       optionsMini,
     );
-    expect(result.statusCode).to.equal(500);
+    expect(result.statusCode).to.equal(400);
   });
   // template
   it('template (success)', async () => {
@@ -754,22 +754,8 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
-  // todo: same as test on row 701?
-  it('template invalid template name (reserved Windows filename)', async () => {
-    const templateName = 'aux';
-    const templateContent = '{}';
-    const testOptions = { projectPath: join(testDir, 'test-template.json') };
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['template', templateName, templateContent],
-      testOptions,
-    );
-    expect(result.statusCode).to.equal(400);
-  });
-
   // workflow
   it('workflow (success)', async () => {
-    // todo: SME
     const workflowName = 'uniqueWorkflowName';
     const content = `
         {

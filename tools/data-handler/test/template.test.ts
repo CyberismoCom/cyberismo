@@ -358,21 +358,6 @@ describe('template', () => {
     expect(templateDetails.metadata.category).to.equal('category');
     expect(templateDetails.metadata.displayName).to.equal('Decision');
   });
-  it('normalize template name', () => {
-    const empty = Template.normalizedTemplateName('');
-    const localDecision = Template.normalizedTemplateName(
-      'local/templates/decision',
-    );
-    const decision = Template.normalizedTemplateName('decision');
-    const invalidName = Template.normalizedTemplateName(
-      'more/folders/than/allowed',
-    );
-
-    expect(empty).to.equal('');
-    expect(localDecision).to.equal('decision');
-    expect(decision).to.equal('decision');
-    expect(invalidName).to.equal('');
-  });
   it('list template cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
