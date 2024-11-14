@@ -51,6 +51,7 @@ class ClingoParser {
     'deletingCardDenied',
     'editingFieldDenied',
     'editingContentDenied',
+    'notification',
     'policyCheckFailure',
     'policyCheckSuccess',
     'order',
@@ -162,18 +163,27 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.deniedOperations.editContent.push({ errorMessage });
     },
+    notification: (
+      key: string,
+      category: string,
+      title: string,
+      message: string,
+    ) => {
+      const res = this.getOrInitResult(key);
+      res.notifications.push({ key, category, title, message });
+    },
     policyCheckFailure: (
       key: string,
-      testSuite: string,
-      testCase: string,
+      category: string,
+      title: string,
       errorMessage: string,
     ) => {
       const res = this.getOrInitResult(key);
-      res.policyChecks.failures.push({ testSuite, testCase, errorMessage });
+      res.policyChecks.failures.push({ category, title, errorMessage });
     },
-    policyCheckSuccess: (key: string, testSuite: string, testCase: string) => {
+    policyCheckSuccess: (key: string, category: string, title: string) => {
       const res = this.getOrInitResult(key);
-      res.policyChecks.successes.push({ testSuite, testCase });
+      res.policyChecks.successes.push({ category, title });
     },
     order: (
       level: string,
@@ -199,6 +209,7 @@ class ClingoParser {
         labels: [],
         links: [],
         results: [],
+        notifications: [],
         policyChecks: { successes: [], failures: [] },
         deniedOperations: {
           transition: [],

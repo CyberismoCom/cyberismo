@@ -54,6 +54,7 @@ select(1, "title").
 select(1, "key").
 select(1, "lastUpdated").
 select(1, "workflowState").
+select(1, "notifications").
 select(1, "policyChecks").
 select(1, "links").
 select(1, "deniedOperations").

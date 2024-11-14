@@ -5,7 +5,7 @@
 % select(field): "field" should be returned on all levels of hierarchy
 % selectAll: all fields should be returned on all levels of hierarchy
 
-% select works similarly for "labels", "links", "policyChecks" and "deniedOperations" as it works for fields
+% select works similarly for "labels", "links", "notifications", "policyChecks" and "deniedOperations" as it works for fields
 
 select(N, Field) :- select(Field), resultLevel(_, N).
 selectAll(N) :- selectAll, resultLevel(_, N).
@@ -93,22 +93,32 @@ showField(Key, Field) :-
     link(Source, Destination, LinkType),
     showAll(Destination).
 
-% policy checks
+% notifications
 
-#show policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage) :
-    policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage),
-    showField(Key, "policyChecks").
+#show notification(Key, Category, Title, Message) :
+    notification(Key, Category, Title, Message),
+    showField(Key, "notifications").
 
-#show policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage) :
-    policyCheckFailure(Key, TestSuite, TestCase, ErrorMessage),
+#show notification(Key, Category, Title, Message) :
+    notification(Key, Category, Title, Message),
     showAll(Key).
 
-#show policyCheckSuccess(Key, TestSuite, TestCase) :
-    policyCheckSuccess(Key, TestSuite, TestCase),
+% policy checks
+
+#show policyCheckFailure(Key, Category, Title, ErrorMessage) :
+    policyCheckFailure(Key, Category, Title, ErrorMessage),
     showField(Key, "policyChecks").
 
-#show policyCheckSuccess(Key, TestSuite, TestCase) :
-    policyCheckSuccess(Key, TestSuite, TestCase),
+#show policyCheckFailure(Key, Category, Title, ErrorMessage) :
+    policyCheckFailure(Key, Category, Title, ErrorMessage),
+    showAll(Key).
+
+#show policyCheckSuccess(Key, Category, Title) :
+    policyCheckSuccess(Key, Category, Title),
+    showField(Key, "policyChecks").
+
+#show policyCheckSuccess(Key, Category, Title) :
+    policyCheckSuccess(Key, Category, Title),
     showAll(Key).
 
 % denied operations

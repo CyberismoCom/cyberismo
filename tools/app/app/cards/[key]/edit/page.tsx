@@ -700,6 +700,7 @@ export default function Page({ params }: { params: { key: string } }) {
                           editField: [],
                           delete: [],
                         },
+                        notifications: [],
                         policyChecks: {
                           successes: [],
                           failures: [],

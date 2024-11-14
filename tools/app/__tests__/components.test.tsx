@@ -338,14 +338,23 @@ const testProject: Project = {
     {
       name: 'test/cardTypes/controlledDocument',
       workflow: 'test/workflows/controlledDocument',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
     {
       name: 'test/cardTypes/internalControl',
       workflow: 'test/workflows/internalControl',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
     {
       name: 'test/cardTypes/simplePage',
       workflow: 'test/workflows/simple',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
   ],
 };
@@ -365,6 +374,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|a',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -385,6 +395,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|b',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -409,6 +420,7 @@ const testTree: QueryResult<'tree'>[] = [
                 links: [],
 
                 labels: [],
+                notifications: [],
                 policyChecks: {
                   successes: [],
                   failures: [],
@@ -428,6 +440,7 @@ const testTree: QueryResult<'tree'>[] = [
             links: [],
 
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -448,6 +461,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|d',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -467,6 +481,7 @@ const testTree: QueryResult<'tree'>[] = [
             title: 'Some title',
             rank: '0|uio',
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -487,6 +502,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|e',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -507,6 +523,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|f',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -527,6 +544,7 @@ const testTree: QueryResult<'tree'>[] = [
             rank: '0|g',
             links: [],
             labels: [],
+            notifications: [],
             policyChecks: {
               successes: [],
               failures: [],
@@ -545,6 +563,7 @@ const testTree: QueryResult<'tree'>[] = [
         rank: '0|a',
         links: [],
         labels: [],
+        notifications: [],
         policyChecks: {
           successes: [],
           failures: [],
@@ -564,6 +583,7 @@ const testTree: QueryResult<'tree'>[] = [
     links: [],
     'base/fieldTypes/progress': 'progress',
     labels: [],
+    notifications: [],
     policyChecks: {
       successes: [],
       failures: [],

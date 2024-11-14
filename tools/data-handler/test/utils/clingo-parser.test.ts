@@ -166,12 +166,12 @@ describe('ClingoParser', () => {
 
   it('should parse policyCheckFailure correctly', async () => {
     const input =
-      'result("key1")\npolicyCheckFailure("key1", "testSuite", "testCase", "errorMessage")';
+      'result("key1")\npolicyCheckFailure("key1", "category", "title", "errorMessage")';
     const result = await parser.parseInput(input);
     expect(result.results[0].policyChecks.failures).to.have.lengthOf(1);
     expect(result.results[0].policyChecks.failures[0]).to.deep.equal({
-      testSuite: 'testSuite',
-      testCase: 'testCase',
+      category: 'category',
+      title: 'title',
       errorMessage: 'errorMessage',
     });
     expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
@@ -179,12 +179,12 @@ describe('ClingoParser', () => {
 
   it('should parse policyCheckSuccess correctly', async () => {
     const input =
-      'result("key1")\npolicyCheckSuccess("key1", "testSuite", "testCase")';
+      'result("key1")\npolicyCheckSuccess("key1", "category", "title")';
     const result = await parser.parseInput(input);
     expect(result.results[0].policyChecks.successes).to.have.lengthOf(1);
     expect(result.results[0].policyChecks.successes[0]).to.deep.equal({
-      testSuite: 'testSuite',
-      testCase: 'testCase',
+      category: 'category',
+      title: 'title',
     });
     expect(result.results[0].policyChecks.failures).to.have.lengthOf(0);
   });
@@ -303,8 +303,8 @@ describe('ClingoParser', () => {
             deletingCardDenied("key1", "errorMessage")
             editingFieldDenied("key1", "fieldName", "errorMessage")
             editingContentDenied("key1", "errorMessage")
-            policyCheckFailure("key1", "testSuite", "testCase", "errorMessage")
-            policyCheckSuccess("key1", "testSuite", "testCase")
+            policyCheckFailure("key1", "category", "title", "errorMessage")
+            policyCheckSuccess("key1", "category", "title")
             order("1", "0", "field", "ASC")
         `;
     const result = await parser.parseInput(input);
