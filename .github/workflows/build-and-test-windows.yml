@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: cyberismo_windows_x64
 
     strategy:
       matrix:
