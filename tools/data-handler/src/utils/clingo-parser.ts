@@ -126,9 +126,11 @@ class ClingoParser {
         case 'longText':
         case 'enum':
         case 'person':
+          res[fieldName] = decoded;
+          break;
         case 'date':
         case 'dateTime':
-          res[fieldName] = decoded;
+          res[fieldName] = new Date(parseInt(decoded)).toISOString();
           break;
         case 'number':
           res[fieldName] = parseFloat(decoded);

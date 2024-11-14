@@ -9,6 +9,7 @@ import {
 } from '../interfaces/resource-interfaces.js';
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { ClingoFactBuilder } from './clingo-fact-builder.js';
+import { Project } from '../containers/project.js';
 
 export const createWorkflowFacts = (workflow: Workflow) => {
   const builder = new ClingoProgramBuilder().addFact('workflow', workflow.name);
@@ -50,7 +51,7 @@ export const createWorkflowFacts = (workflow: Workflow) => {
   return builder.buildAll();
 };
 
-export const createCardFacts = (card: Card) => {
+export const createCardFacts = async (card: Card, project: Project) => {
   // Small helper to deduce parent path
   function parentPath(cardPath: string) {
     const pathParts = cardPath.split(sep);
@@ -84,8 +85,16 @@ export const createCardFacts = (card: Card) => {
         if (value == null) {
           continue;
         }
+        const fieldType = await project.fieldType(field);
         builder.addCustomFact('field', (b) =>
-          b.addLiteralArgument(card.key).addArguments(field, value.toString()),
+          b
+            .addLiteralArgument(card.key)
+            .addArguments(
+              field,
+              fieldType && ['datetime', 'date'].includes(fieldType.dataType)
+                ? new Date(value as string).getTime()
+                : value.toString(),
+            ),
         );
       }
     }

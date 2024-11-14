@@ -127,7 +127,7 @@ export class Calculate {
 
     const cards = await this.getCards(parentCard);
     for (const card of cards) {
-      const content = createCardFacts(card);
+      const content = await createCardFacts(card, this.project);
 
       // write card-specific logic program file
       const filename = join(destinationFileBase, card.key);
