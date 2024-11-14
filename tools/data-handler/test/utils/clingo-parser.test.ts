@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import ClingoParser, {
   decodeClingoValue,
-  encodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
+import { encodeClingoValue } from '../../src/utils/clingo-fact-builder.js';
 import { Project } from '../../src/containers/project.js';
 
 const encodingTests = [

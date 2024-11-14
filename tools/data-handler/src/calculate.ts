@@ -11,13 +11,12 @@
 */
 
 // node
-import path, { basename, join, resolve, sep } from 'node:path';
+import path, { basename, join, resolve } from 'node:path';
 import { mkdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { Card } from './interfaces/project-interfaces.js';
-import { Link } from './interfaces/resource-interfaces.js';
 import {
   copyDir,
   deleteDir,
@@ -27,7 +26,7 @@ import {
   writeFileSafe,
 } from './utils/file-utils.js';
 import { Project, ResourcesFrom } from './containers/project.js';
-import ClingoParser, { encodeClingoValue } from './utils/clingo-parser.js';
+import ClingoParser from './utils/clingo-parser.js';
 import {
   BaseResult,
   ParseResult,
@@ -37,6 +36,14 @@ import {
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
 import { logger } from './utils/log-utils.js';
+import {
+  createCardFacts,
+  createCardTypeFacts,
+  createFieldTypeFacts,
+  createLinkTypeFacts,
+  createWorkflowFacts,
+} from './utils/clingo-facts.js';
+import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -69,31 +76,8 @@ export class Calculate {
     )) {
       if (!cardType) continue;
 
-      let content = `cardType("${cardType.name}").\n`;
+      const content = createCardTypeFacts(cardType);
 
-      content += `field("${cardType.name}", "workflow", "${cardType.workflow}").\n`;
-
-      let index = 1;
-      for (const customField of cardType.customFields) {
-        content += `customField("${cardType.name}", "${customField.name}").\n`;
-        if (customField.displayName)
-          content += `field(("${cardType.name}", "${customField.name}"), "displayName", "${encodeClingoValue(customField.displayName)}").\n`;
-        if (customField.isEditable)
-          content += `field(("${cardType.name}", "${customField.isEditable}"), "isEditable", "${customField.isEditable}").\n`;
-
-        let visible = false;
-        if (cardType.alwaysVisibleFields.includes(customField.name)) {
-          content += `alwaysVisibleField("${cardType.name}", "${customField.name}").\n`;
-          visible = true;
-        }
-        if (cardType.optionallyVisibleFields.includes(customField.name)) {
-          content += `optionallyVisibleField("${cardType.name}", "${customField.name}").\n`;
-          visible = true;
-        }
-        if (visible) {
-          content += `field(("${cardType.name}", "${customField.name}"), "index", ${index++}).\n`;
-        }
-      }
       const cardTypeFile = join(
         this.project.paths.calculationResourcesFolder,
         `${cardType.name}.lp`,
@@ -116,28 +100,8 @@ export class Calculate {
       workflows.map((m) => this.project.workflow(m.name)),
     )) {
       if (!workflow) continue;
-      let content = `workflow("${workflow.name}").\n`;
 
-      // add states
-      for (const state of workflow.states) {
-        content += `workflowState("${workflow.name}", "${state.name}"`;
-        if (state.category) {
-          content += `, "${state.category}").`;
-        } else {
-          content += ').';
-        }
-        content += '\n';
-      }
-
-      // add transitions
-      for (const transition of workflow.transitions) {
-        for (const from of transition.fromState) {
-          content += `workflowTransition("${workflow.name}", "${transition.name}", "${from}", "${transition.toState}").\n`;
-        }
-        if (transition.fromState.length === 0) {
-          content += `workflowTransition("${workflow.name}", "${transition.name}", "", "${transition.toState}").\n`;
-        }
-      }
+      const content = createWorkflowFacts(workflow);
 
       const workFlowFile = join(
         this.project.paths.calculationResourcesFolder,
@@ -161,49 +125,14 @@ export class Calculate {
       await mkdir(destinationFileBase, { recursive: true });
     }
 
-    // Small helper to deduce parent path
-    function parentPath(cardPath: string) {
-      const pathParts = cardPath.split(sep);
-      if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
-        return '';
-      } else {
-        return pathParts.at(pathParts.length - 3);
-      }
-    }
-
     const cards = await this.getCards(parentCard);
     for (const card of cards) {
-      let logicProgram = `\n% ${card.key}\n`;
-      const parentsPath = parentPath(card.path);
-
-      if (card.metadata) {
-        for (const [field, value] of Object.entries(card.metadata)) {
-          if (field === 'labels') {
-            for (const label of value as Array<string>) {
-              logicProgram += `label(${card.key}, "${encodeClingoValue(label)}").\n`;
-            }
-          } else if (field === 'links') {
-            for (const link of value as Array<Link>) {
-              logicProgram += `link(${card.key}, ${link.cardKey}, "${encodeClingoValue(link.linkType)}"${link.linkDescription != null ? `, "${encodeClingoValue(link.linkDescription)}"` : ''}).\n`;
-            }
-          } else {
-            // Do not write null values
-            if (value === null) {
-              continue;
-            }
-            logicProgram += `field(${card.key}, "${encodeClingoValue(field)}", "${value !== undefined ? encodeClingoValue(value.toString()) : undefined}").\n`;
-          }
-        }
-      }
-
-      if (parentsPath !== undefined && parentsPath !== '') {
-        logicProgram += `parent(${card.key}, ${parentsPath}).\n`;
-      }
+      const content = createCardFacts(card);
 
       // write card-specific logic program file
       const filename = join(destinationFileBase, card.key);
       const cardLogicFile = `${filename}.lp`;
-      promiseContainer.push(writeFileSafe(cardLogicFile, logicProgram));
+      promiseContainer.push(writeFileSafe(cardLogicFile, content));
     }
     await Promise.all(promiseContainer);
   }
@@ -231,31 +160,8 @@ export class Calculate {
       fieldTypes.map((m) => this.project.fieldType(m.name)),
     )) {
       if (!fieldType) continue;
-      let content = '';
 
-      content += `fieldType("${fieldType.name}").\n`;
-
-      if (fieldType.displayName)
-        content += `field("${fieldType.name}", "displayName", "${fieldType.displayName}").\n`;
-
-      if (fieldType.fieldDescription)
-        content += `field("${fieldType.name}", "fieldDescription", "${fieldType.fieldDescription}").\n`;
-
-      content += `field("${fieldType.name}", "dataType", "${fieldType.dataType}").\n`;
-
-      if (fieldType.enumValues) {
-        let index = 1;
-        for (const enumValue of fieldType.enumValues) {
-          content += `enumValue("${fieldType.name}", "${enumValue.enumValue}").\n`;
-          content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "index", ${index++}).\n`;
-
-          if (enumValue.enumDisplayValue)
-            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDisplayValue", "${enumValue.enumDisplayValue}").\n`;
-
-          if (enumValue.enumDescription)
-            content += `field(("${fieldType.name}", "${enumValue.enumValue}"), "enumDescription", "${enumValue.enumDescription}").\n`;
-        }
-      }
+      const content = createFieldTypeFacts(fieldType);
 
       const fieldTypeFile = join(
         this.project.paths.calculationResourcesFolder,
@@ -274,16 +180,19 @@ export class Calculate {
 
   // Once card specific files have been done, write the the imports
   private async generateImports(folder: string, destinationFile: string) {
-    let importsContent: string = '';
     const files: string[] = getFilesSync(folder);
 
-    importsContent += `% ${folder}\n`;
+    const builder = new ClingoProgramBuilder().addComment(folder);
     for (const file of files) {
       const parsedFile = path.parse(file);
-      importsContent += `#include "${resolve(join(folder, parsedFile.dir, parsedFile.name + '.lp')).replace(/\\/g, '/')}".\n`;
+      builder.addImport(
+        resolve(join(folder, parsedFile.dir, parsedFile.name + '.lp')).replace(
+          /\\/g,
+          '/',
+        ),
+      );
     }
-    importsContent += '\n';
-    await writeFileSafe(destinationFile, importsContent);
+    await writeFileSafe(destinationFile, builder.buildAll());
   }
   // Collects all linkTypes from the project
   private async generateLinkTypes() {
@@ -295,22 +204,13 @@ export class Calculate {
     )) {
       if (!linkType) continue;
 
-      let content = `linkType("${linkType.name}").\n`;
-      content += `field("${linkType.name}", "outboundDisplayName", "${linkType.outboundDisplayName}").\n`;
-      content += `field("${linkType.name}", "inboundDisplayName", "${linkType.inboundDisplayName}").\n`;
-      content += `field("${linkType.name}", "enableLinkDescription", "${linkType.enableLinkDescription}").\n`;
-
-      for (const sourceCardType of linkType.sourceCardTypes) {
-        content += `linkSourceCardType("${linkType.name}", "${sourceCardType}").\n`;
-      }
-
-      for (const destinationCardType of linkType.destinationCardTypes) {
-        content += `linkDestinationCardType("${linkType.name}", "${destinationCardType}").\n`;
-      }
       const linkTypeFile = join(
         this.project.paths.calculationResourcesFolder,
         `${linkType.name}.lp`,
       );
+
+      const content = createLinkTypeFacts(linkType);
+
       promises.push(
         writeFileSafe(linkTypeFile, content, {
           encoding: 'utf-8',
@@ -331,9 +231,10 @@ export class Calculate {
       this.project.paths.calculationFolder,
       Calculate.modulesFileName,
     );
-    let modulesContent: string = '';
     // Collect all available calculations
     const calculations = await this.project.calculations(ResourcesFrom.all);
+
+    const builder = new ClingoProgramBuilder();
 
     // write the modules.lp
     for (const calculationFile of calculations) {
@@ -342,10 +243,10 @@ export class Calculate {
         const moduleLogicFile = resolve(
           join(calculationFile.path, basename(calculationFile.name)),
         );
-        modulesContent += `#include "${moduleLogicFile.replace(/\\/g, '/')}".\n`;
+        builder.addImport(moduleLogicFile.replace(/\\/g, '/'));
       }
     }
-    await writeFileSafe(destinationFile, modulesContent);
+    await writeFileSafe(destinationFile, builder.buildAll());
   }
   private async generateResourceImports() {
     return this.generateImports(

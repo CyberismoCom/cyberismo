@@ -46,7 +46,7 @@ field(Field, "isEditable", "true") :-
 
 % Add value
 field(Field, "value", Value) :-
-    field(Card, Field, Value).
+    field({{cardKey}}, Field, Value).
 
 % Add only non-custom fields
 select(1, "cardType").
