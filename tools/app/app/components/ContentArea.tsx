@@ -56,6 +56,7 @@ import { UIMacroName, macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 import {
   PolicyCheckCollection,
+  Notification,
   QueryResult,
 } from '@cyberismocom/data-handler/types/queries';
 
@@ -229,6 +230,82 @@ export function LinkForm({
   );
 }
 
+const Notifications = ({
+  notifications,
+}: {
+  notifications: Notification[];
+}) => {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(true);
+
+  if (notifications.length === 0) {
+    return null;
+  }
+  return (
+    <Box sx={{ marginTop: 2, maxWidth: 400 }}>
+      {notifications.length > 0 && (
+        <Accordion expanded={expanded}>
+          <AccordionSummary
+            indicator={<ExpandMore />}
+            onClick={() => setExpanded(!expanded)}
+            sx={{
+              borderRadius: '4px',
+              marginTop: 1,
+              marginBottom: 1,
+            }}
+          >
+            <Typography
+              level="body-xs"
+              color="primary"
+              variant="soft"
+              width={24}
+              height={24}
+              alignContent="center"
+              borderRadius={40}
+              marginLeft={0}
+              paddingX={1.1}
+            >
+              {notifications.length}
+            </Typography>
+            <Typography
+              level="title-sm"
+              fontWeight="bold"
+              sx={{ width: '100%' }}
+            >
+              {t('notifications')}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={1}>
+              {notifications.map((notification, index) => (
+                <Alert
+                  key={index}
+                  color="primary"
+                  variant="soft"
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box>
+                    <Typography level="title-sm" fontWeight="bold">
+                      {notification.category} - {notification.title}
+                    </Typography>
+                    <Typography fontSize="xs">
+                      {notification.message}
+                    </Typography>
+                  </Box>
+                </Alert>
+              ))}
+            </Stack>
+          </AccordionDetails>
+        </Accordion>
+      )}
+    </Box>
+  );
+};
+
 const PolicyChecks = ({
   policyChecks,
 }: {
@@ -245,7 +322,7 @@ const PolicyChecks = ({
     return null;
   }
   return (
-    <Box sx={{ marginTop: 2, maxWidth: 400 }} flexGrow={1}>
+    <Box sx={{ marginTop: 2, maxWidth: 400 }}>
       {policyChecks.successes.length > 0 && (
         <Box>
           <Accordion expanded={successesExpanded}>
@@ -294,7 +371,7 @@ const PolicyChecks = ({
                   >
                     <Box>
                       <Typography level="title-sm" fontWeight="bold">
-                        {success.testSuite} - {success.testCase}
+                        {success.category} - {success.title}
                       </Typography>
                     </Box>
                     <Typography level="title-sm" fontWeight="bold">
@@ -356,7 +433,7 @@ const PolicyChecks = ({
                   >
                     <Box>
                       <Typography level="title-sm" fontWeight="bold">
-                        {failure.testSuite} - {failure.testCase}
+                        {failure.category} - {failure.title}
                       </Typography>
                       <Typography fontSize="xs">
                         {failure.errorMessage}
@@ -650,13 +727,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           scrollbarWidth: 'thin',
         }}
       >
-        <Box>
+        <Box sx={{ marginBottom: 1 }}>
           {renderTableOfContents(
             t('tableOfContents'),
             htmlContent,
             visibleHeaderIds,
           )}
         </Box>
+        <Notifications notifications={cardQuery.notifications} />
         <PolicyChecks policyChecks={cardQuery.policyChecks} />
       </Stack>
       {!preview && (

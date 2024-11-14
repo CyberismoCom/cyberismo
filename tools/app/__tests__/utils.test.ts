@@ -337,14 +337,23 @@ const testProject: Project = {
     {
       name: 'test/cardTypes/controlledDocument',
       workflow: 'test/workflows/controlledDocument',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
     {
       name: 'test/cardTypes/internalControl',
       workflow: 'test/workflows/internalControl',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
     {
       name: 'test/cardTypes/simplePage',
       workflow: 'test/workflows/simple',
+      customFields: [],
+      alwaysVisibleFields: [],
+      optionallyVisibleFields: [],
     },
   ],
 };

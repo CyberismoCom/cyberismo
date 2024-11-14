@@ -23,9 +23,16 @@ export interface CalculationLink {
   linkDescription?: string;
 }
 
+export interface Notification {
+  key: string;
+  category: string;
+  title: string;
+  message: string;
+}
+
 export interface PolicyCheckCollection {
-  successes: { testSuite: string; testCase: string }[];
-  failures: { testSuite: string; testCase: string; errorMessage: string }[];
+  successes: { category: string; title: string }[];
+  failures: { category: string; title: string; errorMessage: string }[];
 }
 
 export interface DeniedOperationCollection {
@@ -40,6 +47,7 @@ export interface BaseResult extends Record<string, unknown> {
   key: string;
   labels: string[];
   links: CalculationLink[];
+  notifications: Notification[];
   policyChecks: PolicyCheckCollection;
   deniedOperations: DeniedOperationCollection;
   results: BaseResult[]; // Nested results

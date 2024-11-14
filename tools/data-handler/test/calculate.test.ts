@@ -26,6 +26,7 @@ const expectedTree: QueryResult<'tree'>[] = [
         links: [],
         results: [],
         rank: '0|a',
+        notifications: [],
         policyChecks: { successes: [], failures: [] },
         workflowStateCategory: WorkflowCategory.closed,
         deniedOperations: {
@@ -38,6 +39,7 @@ const expectedTree: QueryResult<'tree'>[] = [
         title: 'Document Decisions with Decision Records',
       },
     ],
+    notifications: [],
     policyChecks: { successes: [], failures: [] },
     deniedOperations: {
       transition: [],
