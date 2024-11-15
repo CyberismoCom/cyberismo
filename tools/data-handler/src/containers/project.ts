@@ -1065,14 +1065,15 @@ export class Project extends CardContainer {
 
   /**
    * Returns all template cards from the project. This includes all module templates' cards.
+   * @param cardDetails which details to fetch. Optional.
    * @returns all the template cards from the project
    */
-  public async templateCards(): Promise<Card[]> {
+  public async templateCards(cardDetails?: FetchCardDetails): Promise<Card[]> {
     const templates = await this.templates();
     const cards: Card[] = [];
     for (const template of templates) {
       const templateObject = await this.createTemplateObject(template);
-      const templateCards = await templateObject?.cards();
+      const templateCards = await templateObject?.cards('', cardDetails);
       if (templateCards) {
         for (const card of templateCards) {
           cards.push(card);

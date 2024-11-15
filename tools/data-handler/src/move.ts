@@ -14,7 +14,7 @@
 import { join, sep } from 'node:path';
 
 import { copyDir, deleteDir } from './utils/file-utils.js';
-import { Card } from './interfaces/project-interfaces.js';
+import { Card, FetchCardDetails } from './interfaces/project-interfaces.js';
 import { Project, ResourcesFrom } from './containers/project.js';
 import {
   EMPTY_RANK,
@@ -168,7 +168,7 @@ export class Move {
     }
 
     const children = sortItems(
-      await this.getChildren(beforeCard.parent || ROOT),
+      await this.getSiblings(beforeCard),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -211,6 +211,11 @@ export class Move {
     }
   }
 
+  /**
+   * Ranks card using position given as 'index'.
+   * @param cardKey card key
+   * @param index to which position should card be ranked to
+   */
   public async rankByIndex(cardKey: string, index: number) {
     if (index < 0) {
       throw new Error(`Index must be greater than 0`);
@@ -230,7 +235,7 @@ export class Move {
     }
 
     const children = sortItems(
-      await this.getChildren(card.parent),
+      await this.getSiblings(card),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -244,17 +249,18 @@ export class Move {
     await this.rankCard(cardKey, children[index - 1].key);
   }
 
+  /**
+   * Ranks card first.
+   * @param cardKey card key
+   */
   public async rankFirst(cardKey: string) {
-    const card = await this.project.findSpecificCard(cardKey, {
+    const card = await this.getCard(cardKey, {
       metadata: true,
       parent: true,
     });
-    if (!card) {
-      throw new Error(`Card ${cardKey} not found from project`);
-    }
 
     const children = sortItems(
-      await this.getChildren(card.parent || ROOT),
+      await this.getSiblings(card),
       (item) => item.metadata?.rank || EMPTY_RANK,
     );
 
@@ -262,14 +268,14 @@ export class Move {
       throw new Error(`Children not found from card ${card.parent}`);
     }
 
-    if (children[0].key === cardKey) {
+    if (children[0].key === cardKey && children[0].metadata?.rank) {
       return;
     }
 
     const firstRank = children[0].metadata?.rank;
-
     if (!firstRank) {
-      throw new Error(`First rank not found`);
+      await this.project.updateCardMetadataKey(cardKey, 'rank', FIRST_RANK);
+      return;
     }
 
     // Set the rank to be the first one
@@ -364,7 +370,7 @@ export class Move {
     }
   }
 
-  //
+  // Rebalances the project recursively.
   private async rebalanceProjectRecursively(cards: Card[]) {
     const ranks = rebalanceRanks(cards.length);
 
@@ -379,19 +385,58 @@ export class Move {
     }
   }
 
-  // Returns children of a parent card or root cards
-  private async getChildren(parentCardKey: string) {
-    if (parentCardKey === ROOT) {
-      return this.project.showProjectCards();
+  // Fetches a card (either template or project card).
+  private async getCard(cardKey: string, options: FetchCardDetails) {
+    let card: Card | undefined;
+    const templateCard = await this.project.isTemplateCard(cardKey);
+    if (templateCard) {
+      card = (await this.project.templateCards(options)).find(
+        (card) => card.key === cardKey,
+      );
     } else {
-      const parentCard = await this.project.findSpecificCard(parentCardKey, {
+      card = await this.project.findSpecificCard(cardKey, options);
+    }
+    if (!card) {
+      throw new Error('Card was not found from the project');
+    }
+    return card;
+  }
+
+  // Returns children of a parent card or root cards
+  private async getSiblings(card: Card) {
+    const parentCardKey = card.parent || ROOT;
+
+    // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
+    if (parentCardKey === ROOT) {
+      if (Project.isTemplateCard(card)) {
+        const template = await this.project.createTemplateObjectFromCard(card);
+        if (!template) {
+          throw new Error(
+            `Cannot find template for the template card '${card.key}'`,
+          );
+        }
+        if (card?.path.includes(`${sep}modules${sep}`)) {
+          throw new Error(`Cannot rank module cards`);
+        }
+        return template.cards();
+      }
+    }
+
+    let parentCard;
+    if (parentCardKey !== ROOT) {
+      parentCard = await this.project.findSpecificCard(parentCardKey, {
         children: true,
         metadata: true,
       });
       if (!parentCard) {
         throw new Error(`Card ${parentCardKey} not found from project`);
       }
+    }
+
+    if (parentCard) {
       return parentCard.children || [];
     }
+
+    return this.project.showProjectCards();
   }
 }
