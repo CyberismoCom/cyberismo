@@ -528,8 +528,8 @@ export class Validate {
 
   /**
    * Validate schema that matches schemaId from path.
-   * @param {string} projectPath path to schema
-   * @param {string} schemaId schema's id
+   * @param projectPath path to schema
+   * @param schemaId schema's id
    * @returns string containing all validation errors
    */
   public async validateSchema(
@@ -638,8 +638,8 @@ export class Validate {
   /**
    * Checks if card's current workflow state matches workflow that card's card type is using.
    * Template cards are expected to have empty workflow state.
-   * @param {Project} project Project object.
-   * @param {card} card Card object to validate
+   * @param project Project object.
+   * @param card Card object to validate
    * @returns string containing all validation errors
    */
   public async validateWorkflowState(
@@ -654,7 +654,7 @@ export class Validate {
       );
     }
 
-    const cardType = await project.cardType(card.metadata?.cardType);
+    const cardType = await project.cardType(card.metadata?.cardType || '');
     if (!cardType) {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,

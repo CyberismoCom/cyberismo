@@ -175,7 +175,11 @@ export class Rename extends EventEmitter {
   // Updates card type's metadata.
   // todo: once 'name' is dropped; can be simplified.
   private async updateCardTypeMetadata(cardTypeName: string) {
-    const cardType = await this.project.cardType(cardTypeName, true);
+    const cardType = await this.project.cardType(
+      cardTypeName,
+      ResourcesFrom.localOnly,
+      true,
+    );
     if (cardType) {
       //cardType.name = this.updateResourceName(cardTypeName);
       cardType.workflow = this.updateResourceName(cardType.workflow);
@@ -247,7 +251,7 @@ export class Rename extends EventEmitter {
   /**
    * Renames project prefix.
    * @throws if trying to rename with current name
-   * @param {string} to Card id, or template name
+   * @param to Card id, or template name
    */
   public async rename(to: string) {
     const cardContent = {
