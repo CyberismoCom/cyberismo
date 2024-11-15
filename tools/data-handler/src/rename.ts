@@ -181,13 +181,16 @@ export class Rename extends EventEmitter {
       true,
     );
     if (cardType) {
-      //cardType.name = this.updateResourceName(cardTypeName);
+      cardType.name = this.updateResourceName(cardTypeName);
       cardType.workflow = this.updateResourceName(cardType.workflow);
       cardType.customFields.map(
         (field) => (field.name = this.updateResourceName(field.name)),
       );
       cardType.alwaysVisibleFields = cardType.alwaysVisibleFields.map((item) =>
         this.updateResourceName(item),
+      );
+      cardType.optionallyVisibleFields = cardType.optionallyVisibleFields.map(
+        (item) => this.updateResourceName(item),
       );
       const filename = join(
         this.project.paths.cardTypesFolder,
@@ -318,6 +321,6 @@ export class Rename extends EventEmitter {
     );
 
     this.project.collectLocalResources();
-    this.emit('renamed', this.project.basePath);
+    this.emit('renamed');
   }
 }
