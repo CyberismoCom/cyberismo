@@ -164,8 +164,6 @@ export class ResourceCollector {
 
     const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
-      // for some reason, the specific resource folder does not exists
-      console.error(`Cannot find folder '${resourceFolder}'`);
       return [];
     }
     const entries = readdirSync(resourceFolder, { withFileTypes: true });
