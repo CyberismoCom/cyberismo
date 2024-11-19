@@ -1,4 +1,15 @@
-import { sep } from 'path';
+/**
+    Cyberismo
+    Copyright © Cyberismo Ltd and contributors 2024
+
+    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public
+    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+import { sep } from 'node:path';
 import { Card } from '../interfaces/project-interfaces.js';
 import {
   CardType,
@@ -10,20 +21,57 @@ import {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { ClingoFactBuilder } from './clingo-fact-builder.js';
 import { Project } from '../containers/project.js';
+export namespace Facts {
+  export enum Workflow {
+    WORKFLOW = 'workflow',
+    WORKFLOW_STATE = 'workflowState',
+    WORKFLOW_TRANSITION = 'workflowTransition',
+  }
+  export enum Card {
+    LINK = 'link',
+    LABEL = 'label',
+    PARENT = 'parent',
+  }
+
+  export enum FieldType {
+    FIELD_TYPE = 'fieldType',
+    ENUM_VALUE = 'enumValue',
+  }
+
+  export enum Common {
+    FIELD = 'field',
+  }
+
+  export enum CardType {
+    CARD_TYPE = 'cardType',
+    CUSTOM_FIELD = 'customField',
+    ALWAYS_VISIBLE_FIELD = 'alwaysVisibleField',
+    OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
+  }
+
+  export enum LinkType {
+    LINK_TYPE = 'linkType',
+    LINK_SOURCE_CARD_TYPE = 'linkSourceCardType',
+    LINK_DESTINATION_CARD_TYPE = 'linkDestinationCardType',
+  }
+}
 
 export const createWorkflowFacts = (workflow: Workflow) => {
-  const builder = new ClingoProgramBuilder().addFact('workflow', workflow.name);
+  const builder = new ClingoProgramBuilder().addFact(
+    Facts.Workflow.WORKFLOW,
+    workflow.name,
+  );
   // add states
   for (const state of workflow.states) {
     if (state.category) {
       builder.addFact(
-        'workflowState',
+        Facts.Workflow.WORKFLOW_STATE,
         workflow.name,
         state.name,
         state.category,
       );
     } else {
-      builder.addFact('workflowState', workflow.name, state.name);
+      builder.addFact(Facts.Workflow.WORKFLOW_STATE, workflow.name, state.name);
     }
   }
 
@@ -31,7 +79,7 @@ export const createWorkflowFacts = (workflow: Workflow) => {
   for (const transition of workflow.transitions) {
     for (const from of transition.fromState) {
       builder.addFact(
-        'workflowTransition',
+        Facts.Workflow.WORKFLOW_TRANSITION,
         workflow.name,
         transition.name,
         from,
@@ -40,7 +88,7 @@ export const createWorkflowFacts = (workflow: Workflow) => {
     }
     if (transition.fromState.length === 0) {
       builder.addFact(
-        'workflowTransition',
+        Facts.Workflow.WORKFLOW_TRANSITION,
         workflow.name,
         transition.name,
         '',
@@ -68,13 +116,13 @@ export const createCardFacts = async (card: Card, project: Project) => {
     for (const [field, value] of Object.entries(card.metadata)) {
       if (field === 'labels') {
         for (const label of value as Array<string>) {
-          builder.addCustomFact('label', (b) =>
+          builder.addCustomFact(Facts.Card.LABEL, (b) =>
             b.addLiteralArgument(card.key).addArgument(label),
           );
         }
       } else if (field === 'links') {
         for (const link of value as Link[]) {
-          builder.addCustomFact('link', (b) =>
+          builder.addCustomFact(Facts.Card.LINK, (b) =>
             b
               .addLiteralArguments(card.key, link.cardKey)
               .addArguments(link.linkType, link.linkDescription ?? null),
@@ -86,7 +134,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
           continue;
         }
         const fieldType = await project.fieldType(field);
-        builder.addCustomFact('field', (b) =>
+        builder.addCustomFact(Facts.Common.FIELD, (b) =>
           b
             .addLiteralArgument(card.key)
             .addArguments(
@@ -101,7 +149,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
   }
 
   if (parentsPath !== undefined && parentsPath !== '') {
-    builder.addCustomFact('parent', (b) =>
+    builder.addCustomFact(Facts.Card.PARENT, (b) =>
       b.addLiteralArguments(card.key, parentsPath),
     );
   }
@@ -111,11 +159,11 @@ export const createCardFacts = async (card: Card, project: Project) => {
 
 export const createFieldTypeFacts = (fieldType: FieldType) => {
   const builder = new ClingoProgramBuilder();
-  builder.addFact('fieldType', fieldType.name);
+  builder.addFact(Facts.FieldType.FIELD_TYPE, fieldType.name);
 
   if (fieldType.displayName)
     builder.addFact(
-      'field',
+      Facts.Common.FIELD,
       fieldType.name,
       'displayName',
       fieldType.displayName,
@@ -123,19 +171,28 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
 
   if (fieldType.fieldDescription)
     builder.addFact(
-      'field',
+      Facts.Common.FIELD,
       fieldType.name,
       'fieldDescription',
       fieldType.fieldDescription,
     );
 
-  builder.addFact('field', fieldType.name, 'dataType', fieldType.dataType);
+  builder.addFact(
+    Facts.Common.FIELD,
+    fieldType.name,
+    'dataType',
+    fieldType.dataType,
+  );
 
   if (fieldType.enumValues) {
     let index = 1;
     for (const enumValue of fieldType.enumValues) {
-      builder.addFact('enumValue', fieldType.name, enumValue.enumValue);
-      builder.addCustomFact('field', (b) =>
+      builder.addFact(
+        Facts.FieldType.ENUM_VALUE,
+        fieldType.name,
+        enumValue.enumValue,
+      );
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
         b
           .addArgument((key) =>
             key.addArguments(fieldType.name, enumValue.enumValue),
@@ -149,14 +206,14 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
       );
 
       if (enumValue.enumDisplayValue)
-        builder.addCustomFact('field', (b) =>
+        builder.addCustomFact(Facts.Common.FIELD, (b) =>
           b
             .addArgument(keyTuple)
             .addArguments('enumDisplayValue', enumValue.enumDisplayValue),
         );
 
       if (enumValue.enumDescription)
-        builder.addCustomFact('field', (b) =>
+        builder.addCustomFact(Facts.Common.FIELD, (b) =>
           b
             .addArgument(keyTuple)
             .addArguments('enumDescription', enumValue.enumDescription),
@@ -169,19 +226,28 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
 export const createCardTypeFacts = (cardType: CardType) => {
   const builder = new ClingoProgramBuilder();
 
-  builder.addFact('cardType', cardType.name);
+  builder.addFact(Facts.CardType.CARD_TYPE, cardType.name);
 
-  builder.addFact('field', cardType.name, 'workflow', cardType.workflow);
+  builder.addFact(
+    Facts.Common.FIELD,
+    cardType.name,
+    'workflow',
+    cardType.workflow,
+  );
 
   let index = 1;
   for (const customField of cardType.customFields) {
-    builder.addFact('customField', cardType.name, customField.name);
+    builder.addFact(
+      Facts.CardType.CUSTOM_FIELD,
+      cardType.name,
+      customField.name,
+    );
     const keyTuple = new ClingoFactBuilder('', '').addArguments(
       cardType.name,
       customField.name,
     );
     if (customField.displayName) {
-      builder.addCustomFact('field', (b) =>
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
         b.addArgument(keyTuple).addArguments(
           customField.name,
           'displayName',
@@ -190,7 +256,7 @@ export const createCardTypeFacts = (cardType: CardType) => {
       );
     }
 
-    builder.addCustomFact('field', (b) =>
+    builder.addCustomFact(Facts.Common.FIELD, (b) =>
       b
         .addArgument(keyTuple)
         .addArguments(customField.name, 'isEditable', customField.isEditable),
@@ -198,19 +264,23 @@ export const createCardTypeFacts = (cardType: CardType) => {
 
     let visible = false;
     if (cardType.alwaysVisibleFields.includes(customField.name)) {
-      builder.addFact('alwaysVisibleField', cardType.name, customField.name);
+      builder.addFact(
+        Facts.CardType.ALWAYS_VISIBLE_FIELD,
+        cardType.name,
+        customField.name,
+      );
       visible = true;
     }
     if (cardType.optionallyVisibleFields.includes(customField.name)) {
       builder.addFact(
-        'optionallyVisibleField',
+        Facts.CardType.OPTIONALLY_VISIBLE_FIELD,
         cardType.name,
         customField.name,
       );
       visible = true;
     }
     if (visible) {
-      builder.addCustomFact('field', (b) =>
+      builder.addCustomFact(Facts.Common.FIELD, (b) =>
         b
           .addArgument((key) =>
             key.addArguments(cardType.name, customField.name),
@@ -224,33 +294,37 @@ export const createCardTypeFacts = (cardType: CardType) => {
 
 export const createLinkTypeFacts = (linkType: LinkType) => {
   const builder = new ClingoProgramBuilder()
-    .addFact('linkType', linkType.name)
+    .addFact(Facts.LinkType.LINK_TYPE, linkType.name)
     .addFact(
-      'field',
+      Facts.Common.FIELD,
       linkType.name,
       'outboundDisplayName',
       linkType.outboundDisplayName,
     )
     .addFact(
-      'field',
+      Facts.Common.FIELD,
       linkType.name,
       'inboundDisplayName',
       linkType.inboundDisplayName,
     )
     .addFact(
-      'field',
+      Facts.Common.FIELD,
       linkType.name,
       'enableLinkDescription',
       linkType.enableLinkDescription,
     );
 
   for (const sourceCardType of linkType.sourceCardTypes) {
-    builder.addFact('linkSourceCardType', linkType.name, sourceCardType);
+    builder.addFact(
+      Facts.LinkType.LINK_SOURCE_CARD_TYPE,
+      linkType.name,
+      sourceCardType,
+    );
   }
 
   for (const destinationCardType of linkType.destinationCardTypes) {
     builder.addFact(
-      'linkDestinationCardType',
+      Facts.LinkType.LINK_DESTINATION_CARD_TYPE,
       linkType.name,
       destinationCardType,
     );
