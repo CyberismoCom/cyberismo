@@ -21,7 +21,7 @@
           "name": {
             "description": "The name of a workflow state",
             "type": "string",
-            "minLenght": 1,
+            "minLength": 1,
             "pattern": "^[A-Za-z ._-]+$"
           },
           "category": {
