@@ -42,7 +42,6 @@ export type DataType =
   | 'shortText'
   | 'longText'
   | 'enum'
-  | 'date'
   | 'number'
   | 'integer'
   | 'boolean'

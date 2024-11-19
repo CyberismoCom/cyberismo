@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import ClingoParser, {
   decodeClingoValue,
-  encodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
+import { encodeClingoValue } from '../../src/utils/clingo-fact-builder.js';
 import { Project } from '../../src/containers/project.js';
 
 const encodingTests = [
@@ -11,12 +11,36 @@ const encodingTests = [
   ['"', '\\"'],
 ];
 
+const fieldTypeTests = [
+  ['shortText', 'test', 'test'],
+  ['longText', 'test2', 'test2'],
+  ['enum', 'test3', 'test3'],
+  ['person', 'test3@cyberismo.com', 'test3@cyberismo.com'],
+  ['date', new Date(100).getTime(), new Date(100).toISOString()],
+  ['dateTime', new Date(100).getTime(), new Date(100).toISOString()],
+  ['number', '4324.432', 4324.432],
+  ['integer', '3242', 3242],
+  ['boolean', 'true', true],
+  ['boolean', 'false', false],
+  ['list', 'test,test2,test3', ['test', 'test2', 'test3']],
+] as const;
+
 describe('ClingoParser', () => {
-  const parser: ClingoParser = new ClingoParser({
-    linkType: () => ({
-      outboundDisplayName: 'testing',
-    }),
-  } as unknown as Project);
+  let parser: ClingoParser;
+  let project: Project;
+  beforeEach(() => {
+    project = {
+      linkType: () =>
+        Promise.resolve({
+          outboundDisplayName: 'testing',
+        }),
+      fieldType: () =>
+        Promise.resolve({
+          dataType: 'longText',
+        }),
+    } as unknown as Project;
+    parser = new ClingoParser(project);
+  });
 
   encodingTests.forEach(([input, expected]) => {
     it(`should encode special value ${input} to ${expected}`, () => {
@@ -69,6 +93,20 @@ describe('ClingoParser', () => {
     expect(result.results[0].fieldName).to.equal('fieldValue');
   });
 
+  fieldTypeTests.forEach((test) => {
+    const [type, value, expected] = test;
+    it(`should parse field with type ${type} correctly`, async () => {
+      project.fieldType = () =>
+        Promise.resolve({
+          name: '',
+          dataType: type,
+        });
+      const fieldValue = encodeClingoValue(value.toString());
+      const input = `result("key1")\nfield("key1", "fieldName", "${fieldValue}")`;
+      const result = await parser.parseInput(input);
+      expect(result.results[0].fieldName).to.deep.equal(expected);
+    });
+  });
   it('should parse field correctly which has special characters', async () => {
     const fieldValue = 'fieldValueä)"()="()()()=\n';
     const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;

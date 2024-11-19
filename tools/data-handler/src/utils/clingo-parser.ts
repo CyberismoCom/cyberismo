@@ -14,19 +14,6 @@ import { Project } from '../containers/project.js';
 import { BaseResult, ParseResult } from '../types/queries.js';
 
 /**
- * This function takes care of encoding chars, which might produce issues in clingo
- * This should be done for user provided values
- */
-export function encodeClingoValue(value: string) {
-  return value.replace(/[\n\\"]/g, (char) => {
-    if (char === '\n') {
-      return '\\n';
-    }
-    return `\\${char}`;
-  });
-}
-
-/**
  * This function reverses the encoding made by the "encodeClingoValue" function
  */
 export function decodeClingoValue(value: string) {
@@ -37,6 +24,11 @@ export function decodeClingoValue(value: string) {
     return char;
   });
 }
+
+const CONSTANT_FIELDS = {
+  index: Number,
+  isEditable: Boolean,
+} as const;
 
 class ClingoParser {
   private keywords = [
@@ -107,9 +99,52 @@ class ClingoParser {
     childResult: (parentKey: string, childKey: string) => {
       this.childResultQueue.push({ parentKey, childKey });
     },
-    field: (key: string, fieldName: string, fieldValue: string) => {
+    field: async (key: string, fieldName: string, fieldValue: string) => {
       const res = this.getOrInitResult(key);
-      res[fieldName] = decodeClingoValue(fieldValue);
+      // This is still a bit messy
+      // Decoded is still a string
+      const decoded = decodeClingoValue(fieldValue);
+      if (Object.keys(CONSTANT_FIELDS).includes(fieldName)) {
+        const fieldType =
+          CONSTANT_FIELDS[fieldName as keyof typeof CONSTANT_FIELDS];
+        if (fieldType === Number) {
+          return (res[fieldName] = parseFloat(fieldValue));
+        }
+        if (fieldType === Boolean) {
+          return;
+        }
+      }
+      const fieldType = await this.project.fieldType(
+        fieldName === 'value' ? key : fieldName,
+      );
+      if (!fieldType) {
+        res[fieldName] = decoded;
+        return;
+      }
+      switch (fieldType.dataType) {
+        case 'shortText':
+        case 'longText':
+        case 'enum':
+        case 'person':
+          res[fieldName] = decoded;
+          break;
+        case 'date':
+        case 'dateTime':
+          res[fieldName] = new Date(parseInt(decoded)).toISOString();
+          break;
+        case 'number':
+          res[fieldName] = parseFloat(decoded);
+          break;
+        case 'integer':
+          res[fieldName] = parseInt(decoded);
+          break;
+        case 'boolean':
+          res[fieldName] = fieldValue === 'true';
+          break;
+        case 'list':
+          res[fieldName] = decoded.split(',');
+          break;
+      }
     },
     label: (key: string, label: string) => {
       const res = this.getOrInitResult(key);
