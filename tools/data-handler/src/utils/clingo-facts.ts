@@ -21,6 +21,9 @@ import {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { ClingoFactBuilder } from './clingo-fact-builder.js';
 import { Project } from '../containers/project.js';
+
+// I think namespace syntax is valid for this purpose
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
   export enum Workflow {
     WORKFLOW = 'workflow',
