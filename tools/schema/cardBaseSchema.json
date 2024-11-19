@@ -54,11 +54,6 @@
             "maxLength": 20,
             "pattern": "^[a-z]+_[0-9a-z]+$"
           },
-          "direction": {
-            "description": "Link direction; either towards this card, or outwards from this card.",
-            "type": "string",
-            "enum": ["outbound", "inbound"]
-          },
           "linkType": {
             "description": "The name of the link type. For example, 'base/linkTypes/causes'",
             "type": "string"
@@ -68,7 +63,7 @@
             "description": "A description of the link"
           }
         },
-        "required": ["direction", "cardKey", "linkType"],
+        "required": ["cardKey", "linkType"],
         "additionalProperties": false
       }
     }
