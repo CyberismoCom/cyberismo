@@ -183,18 +183,19 @@ export class Project extends CardContainer {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const validCard = Project.isTemplateCard(card)
-      ? ''
-      : await this.validateCard(card);
-    if (validCard.length !== 0) {
-      throw new Error(`Card '${cardKey}' is not valid! ${validCard}`);
-    }
-
     if (!card.metadata || card.metadata[changedKey] === newValue) {
       return false;
     }
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     cardAsRecord[changedKey] = newValue;
+
+    const validCard = Project.isTemplateCard(card)
+      ? ''
+      : await this.validateCard(card);
+    if (validCard.length !== 0) {
+      throw new Error(validCard);
+    }
+
     await this.saveCardMetadata(card);
     return true;
   }
