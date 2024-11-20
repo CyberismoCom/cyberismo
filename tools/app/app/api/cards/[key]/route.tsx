@@ -12,7 +12,7 @@
 
 import { CommandManager } from '@cyberismocom/data-handler/command-manager';
 
-import Processor from 'asciidoctor';
+import Processor from '@asciidoctor/core';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
