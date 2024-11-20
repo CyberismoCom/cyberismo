@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 
-import { CardDetails, Project } from '@/app/lib/definitions';
+import { Project } from '@/app/lib/definitions';
 import { GET as GET_PROJECT } from '../app/api/cards/route';
 import { GET as GET_CARD } from '../app/api/cards/[key]/route';
 import { GET as GET_ATTACHMENT } from '../app/api/cards/[key]/a/[attachment]/route';
@@ -20,6 +20,7 @@ import {
 
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { TemplateConfiguration } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { CardResponse } from '@/app/lib/api/types';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
@@ -35,7 +36,6 @@ test('/api/cards returns a project with a list of cards', async () => {
   const result: Project = await response.json();
   expect(response.status).toBe(200);
   expect(result.name).toBe('decision');
-  expect(result.cards.length).toBeGreaterThan(0);
   expect(result.workflows.length).toBeGreaterThan(0);
   expect(result.cardTypes.length).toBeGreaterThan(0);
 });
@@ -45,9 +45,9 @@ test('/api/cards/decision_5 returns a card object', async () => {
   const response = await GET_CARD(request);
   expect(response).not.toBe(null);
 
-  const result: CardDetails = await response.json();
+  const result: CardResponse = await response.json();
   expect(response.status).toBe(200);
-  expect(result.metadata!.title).toBe('Decision Records');
+  expect(result.title).toBe('Decision Records');
   expect(result.content).not.toBe(null);
 });
 

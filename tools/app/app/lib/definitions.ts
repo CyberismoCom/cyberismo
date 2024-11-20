@@ -97,7 +97,6 @@ export type ParsedLink = Link & {
 // Project definition.
 export interface Project {
   name: string;
-  cards: Card[];
   workflows: Workflow[];
   cardTypes: CardType[];
 }

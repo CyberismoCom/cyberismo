@@ -16,12 +16,14 @@ const expectedTree: QueryResult<'tree'>[] = [
   {
     key: 'decision_5',
     labels: [],
+    cardType: 'decision/cardTypes/simplepage',
     links: [],
     rank: '0|a',
     workflowStateCategory: WorkflowCategory.initial,
     results: [
       {
         key: 'decision_6',
+        cardType: 'decision/cardTypes/decision',
         labels: [],
         links: [],
         results: [],

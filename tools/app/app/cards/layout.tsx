@@ -97,7 +97,7 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
                 newParent: string,
                 index: number,
               ) => {
-                const parent = findParentCard(project.cards, cardKey);
+                const parent = findParentCard(tree, cardKey);
                 await updateCard(cardKey, {
                   parent: newParent === parent?.key ? undefined : newParent,
                   index,

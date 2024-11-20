@@ -34,16 +34,6 @@ field(Field, "isEditable", IsEditable) :-
     field({{cardKey}}, "cardType", CardType),
     field((CardType, Field), "isEditable", IsEditable).
 
-field(Field, "isEditable", "true") :-
-   field({{cardKey}}, "cardType", CardType),
-   alwaysVisibleField(CardType, Field),
-   not field((CardType, Field), "isEditable", _).
-
-field(Field, "isEditable", "true") :-
-   field({{cardKey}}, "cardType", CardType),
-   optionallyVisibleField(CardType, Field),
-   not field((CardType, Field), "isEditable", _).
-
 % Add value
 field(Field, "value", Value) :-
     field({{cardKey}}, Field, Value).
@@ -83,8 +73,12 @@ childResult({{cardKey}}, Field) :-
 select(3, "index").
 select(3, "enumDisplayValue").
 select(3, "enumDescription").
+select(3, "enumValue").
 
 childResult(Field, (Field, EnumValue)) :-
+    enumValue(Field, EnumValue).
+
+field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
 
 order(2, 1, "visibility", "ASC").

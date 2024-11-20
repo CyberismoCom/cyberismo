@@ -19,7 +19,6 @@ import {
   EnumDefinition,
   ExpandedLinkType,
   MetadataValue,
-  ParsedLink,
   Project,
   Workflow,
 } from './definitions';
@@ -35,13 +34,13 @@ import { QueryResult } from '@cyberismocom/data-handler/types/queries';
  * @param tree: array of Cards with possible children Card arrays
  * @returns array of all cards
  */
-export function flattenTree(tree: Card[]): Card[] {
-  const result: Card[] = [];
+export function flattenTree(
+  tree: QueryResult<'tree'>[],
+): QueryResult<'tree'>[] {
+  const result: QueryResult<'tree'>[] = [];
   tree.forEach((node) => {
     result.push(node);
-    if (node.children != null) {
-      result.push(...flattenTree(node.children));
-    }
+    result.push(...flattenTree(node.results));
   });
   return result;
 }
@@ -52,7 +51,10 @@ export function flattenTree(tree: Card[]): Card[] {
  * @param tree: array of Cards with possible children Card arrays
  * @returns array of cards starting from the root and ending with the card
  */
-export function findPathTo(cardKey: string, tree: Card[]): Card[] | null {
+export function findPathTo(
+  cardKey: string,
+  tree: QueryResult<'tree'>[],
+): QueryResult<'tree'>[] | null {
   for (const card of tree) {
     const path = findPath(cardKey, card);
     if (path) {
@@ -69,17 +71,18 @@ export function findPathTo(cardKey: string, tree: Card[]): Card[] | null {
  * @param card: card with possible children Card arrays
  * @returns array of cards starting from the root and ending with the card
  */
-function findPath(cardKey: string, card: Card): Card[] | null {
+function findPath(
+  cardKey: string,
+  card: QueryResult<'tree'>,
+): QueryResult<'tree'>[] | null {
   if (card.key === cardKey) {
     return [card];
   }
 
-  if (card.children) {
-    for (const child of card.children) {
-      const leaf = findPath(cardKey, child);
-      if (leaf) {
-        return [card, ...leaf];
-      }
+  for (const child of card.results) {
+    const leaf = findPath(cardKey, child);
+    if (leaf) {
+      return [card, ...leaf];
     }
   }
 
@@ -88,18 +91,16 @@ function findPath(cardKey: string, card: Card): Card[] | null {
 
 /**
  * Finds the correct workflow for the card, if exists
- * @param card: card to search for
+ * @param cardType: cardType to search for
  * @param project: project object
  * @returns Workflow object if found, otherwise null
  */
-export function findWorkflowForCard(
-  card: CardDetails | Card | null,
-  project: Project | null,
+export function findWorkflowForCardType(
+  cardType: string,
+  project: Project,
 ): Workflow | null {
-  if (!card || !project) return null;
-
   let workflowName = project.cardTypes.find(
-    (cardType) => cardType.name === card.metadata?.cardType,
+    (cardTypeObject) => cardTypeObject.name === cardType,
   )?.workflow;
   if (workflowName == undefined) return null;
 
@@ -110,35 +111,6 @@ export function findWorkflowForCard(
   return (
     project.workflows.find((workflow) => workflow.name === workflowName) ?? null
   );
-}
-/**
- * Replaces the metadata of a card in a tree of cards
- * Note: This function mutates the input array
- * @param key The key of the card being edited
- * @param metadata The new metadata to replace the old metadata with
- * @param cards The tree of cards to search for the card to edit
- * @returns The updated tree of cards
- */
-export function replaceCardMetadata(
-  key: string,
-  metadata: CardMetadata | undefined,
-  cards: Card[],
-): Card[] {
-  if (!metadata) return cards;
-  let updatedCards = cards;
-  updateCard(updatedCards, key, metadata);
-  return updatedCards;
-}
-function updateCard(cards: Card[], key: string, metadata: CardMetadata) {
-  cards.forEach((card) => {
-    if (card.key === key) {
-      card.metadata = metadata;
-    } else {
-      if (card.children) {
-        updateCard(card.children, key, metadata);
-      }
-    }
-  });
 }
 
 /**
@@ -229,16 +201,17 @@ export function metadataValueToString(
  * @param key: key of the card to find
  * @returns card if found, otherwise null
  */
-export function findCard(cards: Card[], key: string): Card | null {
+export function findCard(
+  cards: QueryResult<'tree'>[],
+  key: string,
+): QueryResult<'tree'> | null {
   for (const card of cards) {
     if (card.key === key) {
       return card;
     }
-    if (card.children) {
-      const found = findCard(card.children, key);
-      if (found) {
-        return found;
-      }
+    const found = findCard(card.results, key);
+    if (found) {
+      return found;
     }
   }
   return null;
@@ -250,107 +223,32 @@ export function findCard(cards: Card[], key: string): Card | null {
  * @param key: key of the card to find the parent of
  * @returns parent card if found, otherwise null
  */
-export function findParentCard(cards: Card[], key: string): Card | null {
+export function findParentCard(
+  cards: QueryResult<'tree'>[],
+  key: string,
+): QueryResult<'tree'> | null {
   for (const card of cards) {
-    if (card.children) {
-      if (card.children.some((child) => child.key === key)) {
-        return card;
-      }
-      const found = findParentCard(card.children, key);
-      if (found) {
-        return found;
-      }
+    if (card.results.some((child) => child.key === key)) {
+      return card;
+    }
+    const found = findParentCard(card.results, key);
+    if (found) {
+      return found;
     }
   }
   return null;
 }
 
 /**
- * Edits a card in a tree of cards
- * Note: This function mutates the input array
- * @param cards array of cards
- * @param card updated version of the card
- * @returns updated array of cards
- */
-export function editCard(cards: Card[], card: Card): Card[] {
-  for (let i = 0; i < cards.length; i++) {
-    if (cards[i].key === card.key) {
-      cards[i] = card;
-      return cards;
-    }
-    if (cards[i].children) {
-      cards[i].children = editCard(cards[i].children || [], card);
-    }
-  }
-  return cards;
-}
-
-/**
- * Edits a card in a tree of cards based on card details
- * Note: This function mutates the input array
- * @param cards array of cards to edit, usually project.cards
- * @param card updated version of the card
- * @returns updated array of cards
- */
-export function editCardDetails(cards: Card[], card: CardDetails): Card[] {
-  const listCard = findCard(cards, card.key);
-  if (!listCard) {
-    return cards;
-  }
-  return editCard(cards, {
-    key: card.key,
-    path: card.path,
-    metadata: card.metadata,
-    children: listCard.children,
-  });
-}
-
-/**
  * Counts the number of children of a card, including the card itself and children of children
- * @param card: card to count the children of
+ * @param treeRoot root card of the search space
  * @returns number of children of the card including the card itself
  */
-export function countChildren(card: Card): number {
-  if (!card.children) {
+export function countChildren(treeRoot: QueryResult<'tree'>): number {
+  if (!treeRoot.results) {
     return 1;
   }
-  return card.children.reduce((acc, child) => acc + countChildren(child), 1);
-}
-
-/**
- * Return true if card is children of the other card
- * @param card parent card to check if the other card is a child of
- * @param key key of the card to check if it is a child of the parent card
- * @returns true if the card is a child of the parent card, otherwise false
- */
-export function isChildOf(card: Card, key: string): boolean {
-  if (card.children) {
-    for (const child of card.children) {
-      if (isChildOf(child, key)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * Deletes a card from a tree of cards
- * Note: This function mutates the input array
- * @param cards: array of cards
- * @param key: key of the card to delete
- * @returns updated array of cards
- */
-export function deleteCard(cards: Card[], key: string): Card[] {
-  for (const card of cards) {
-    if (card.key === key) {
-      return cards.filter((c) => c.key !== key);
-    }
-    if (card.children) {
-      card.children = deleteCard(card.children, key);
-    }
-  }
-  return cards;
+  return treeRoot.results.reduce((acc, child) => acc + countChildren(child), 1);
 }
 
 /**
@@ -364,22 +262,28 @@ export function deepCopy<T>(obj: T): T {
 
 /**
  * Returns all cards, to which it is possible to move the card
- * @param cards: array of cards, which the card might be moved to
+ * @param tree: tree of cards, which the card might be moved to
  * @param card: card to move
  * @returns array of cards, to which it is possible to move the card
  */
-export function getMoveableCards(cards: Card[], card: Card): Card[] {
-  const parent = findParentCard(cards, card.key);
-
-  return cards.filter((c) => {
-    if (c.key === card.key || parent?.key === c.key) {
-      return false;
+export function getMoveableCards(
+  tree: QueryResult<'tree'>[],
+  cardKey: string,
+): QueryResult<'tree'>[] {
+  const cards: QueryResult<'tree'>[] = [];
+  for (const card of tree) {
+    if (card.key === cardKey) {
+      // Skip the card itself and do not recurse into its children
+      continue;
     }
-    if (isChildOf(card, c.key)) {
-      return false;
+    const isParent = card.results.some((c) => c.key === cardKey);
+    // it's not the parent(or below it), so we can just return this + its children
+    cards.push(...getMoveableCards(card.results, cardKey));
+    if (!isParent) {
+      cards.push(card);
     }
-    return true;
-  });
+  }
+  return cards;
 }
 
 /**
@@ -402,28 +306,6 @@ export function filterCards(
     }
     return false;
   });
-}
-
-/**
- * Returns all links that are connected to a card key excluding the links that are defined in the card metadata
- * @param cardKey: key of the card to find links for
- * @param cards: array of cards to search for links
- * @returns array of cards that are linked to the card and the card it is linked from
- */
-export function getLinksForCard(cards: Card[], cardKey: string): ParsedLink[] {
-  const links: ParsedLink[] = [];
-  for (const card of cards) {
-    for (const link of card.metadata?.links || []) {
-      if (link.cardKey === cardKey) {
-        links.push({
-          ...link,
-          fromCard: card.key,
-        });
-      }
-    }
-    links.push(...getLinksForCard(card.children || [], cardKey));
-  }
-  return links;
 }
 
 /**

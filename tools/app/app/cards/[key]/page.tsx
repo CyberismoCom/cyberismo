@@ -15,8 +15,7 @@ import { ContentArea } from '@/app/components/ContentArea';
 import ContentToolbar from '@/app/components/ContentToolbar';
 import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
-import { useCard, useLinkTypes, useProject } from '@/app/lib/api';
-import { useCardQuery } from '@/app/lib/api/cardQuery';
+import { useCard, useLinkTypes, useTree } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
 import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
@@ -33,15 +32,9 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     params.key,
   );
 
-  const {
-    cardQuery,
-    error: errorCardQuery,
-    isLoading: isLoadingQuery,
-  } = useCardQuery(params.key);
+  const { tree } = useTree();
 
   const listCard = useListCard(params.key);
-
-  const { project } = useProject();
 
   const { linkTypes } = useLinkTypes();
 
@@ -58,27 +51,24 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
       dispatch(
         cardViewed({
           key: listCard.key,
-          children: listCard?.children?.map((c) => c.key) ?? [],
+          children: listCard?.results?.map((c) => c.key) ?? [],
           timestamp: new Date().toISOString(),
         }),
       );
     }
   }, [listCard, dispatch]);
 
-  if (error || errorCardQuery) {
+  if (error) {
     let errorMessage = t('unknownError');
     if (error instanceof Error) {
       errorMessage = error.message;
-    }
-    if (errorCardQuery instanceof Error) {
-      errorMessage = errorCardQuery.message;
     }
     return <Typography level="title-md">{errorMessage}</Typography>;
   }
 
   const expandedLinkTypes =
-    linkTypes && card?.metadata?.cardType
-      ? expandLinkTypes(linkTypes, card?.metadata?.cardType || '')
+    linkTypes && card?.cardType
+      ? expandLinkTypes(linkTypes, card?.cardType || '')
       : [];
 
   return (
@@ -91,15 +81,14 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
-        <LoadingGate values={[card]} isLoading={isLoadingQuery}>
+        <LoadingGate values={[card, tree]}>
           <ContentArea
+            cards={tree!}
             card={card!}
-            cardQuery={cardQuery!}
             onMetadataClick={() =>
               router.push(`/cards/${params.key}/edit?expand=true`)
             }
             linkTypes={expandedLinkTypes}
-            project={project}
             onLinkFormSubmit={async (data) => {
               try {
                 const linkType = linkTypes?.find(
@@ -132,8 +121,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
             onDeleteLink={async (data) => {
               try {
                 await deleteLink(
-                  data.fromCard,
-                  data.cardKey,
+                  data.direction === 'outbound' ? params.key : data.key,
+                  data.direction === 'outbound' ? data.key : params.key,
                   data.linkType,
                   data.linkDescription,
                 );

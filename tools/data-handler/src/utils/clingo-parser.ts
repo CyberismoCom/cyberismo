@@ -111,7 +111,7 @@ class ClingoParser {
           return (res[fieldName] = parseFloat(fieldValue));
         }
         if (fieldType === Boolean) {
-          return;
+          return (res[fieldName] = fieldValue === 'true');
         }
       }
       const fieldType = await this.project.fieldType(
@@ -150,24 +150,23 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.labels.push(label);
     },
-    link: async (
-      key: string,
-      cardKey: string,
+    link: (
+      key: string, // key is the card itself
+      cardKey: string, // cardKey is otherCard this is being linked to
+      title: string,
       linkType: string,
+      displayName: string,
+      direction: 'inbound' | 'outbound',
       linkDescription?: string,
     ) => {
       const res = this.getOrInitResult(key);
-
-      const linkTypeObj = await this.project.linkType(linkType);
-      if (!linkTypeObj) {
-        throw new Error(`Link type '${linkType}' not found`);
-      }
-      const displayName = linkTypeObj.outboundDisplayName;
       res.links.push({
         key: cardKey,
         linkType,
         displayName,
         linkDescription,
+        direction,
+        title,
       });
     },
     transitionDenied: (

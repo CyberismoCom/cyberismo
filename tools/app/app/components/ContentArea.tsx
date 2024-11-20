@@ -41,7 +41,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
-import { findCard, flattenTree, getLinksForCard } from '../lib/utils';
+import { findCard, flattenTree } from '../lib/utils';
 import { default as NextLink } from 'next/link';
 import { Add, Delete, Edit, ExpandMore, Search } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
@@ -58,18 +58,17 @@ import {
   PolicyCheckCollection,
   Notification,
   QueryResult,
+  CalculationLink,
 } from '@cyberismocom/data-handler/types/queries';
+import { CardResponse } from '../lib/api/types';
 
 type ContentAreaProps = {
-  project: Project | null;
-  card: CardDetails & {
-    parsed: string;
-  };
+  cards: QueryResult<'tree'>[];
+  card: CardResponse;
   linkTypes: ExpandedLinkType[];
-  cardQuery: QueryResult<'card'>;
   onMetadataClick?: () => void;
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
-  onDeleteLink?: (data: ParsedLink) => void | Promise<void>;
+  onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
   preview?: boolean;
   linksVisible?: boolean;
   onLinkToggle?: () => void;
@@ -90,7 +89,7 @@ interface LinkFormData {
 
 interface LinkFormProps {
   linkTypes: ExpandedLinkType[];
-  cards: Project['cards'];
+  cards: QueryResult<'tree'>[];
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   cardKey: string;
 }
@@ -116,15 +115,13 @@ export function LinkForm({
     if (!selectedLinkType || card.key === cardKey) return false;
     if (selectedLinkType.direction === 'outbound') {
       return (
-        selectedLinkType.destinationCardTypes.includes(
-          card.metadata?.cardType || '',
-        ) || selectedLinkType.destinationCardTypes.length === 0
+        selectedLinkType.destinationCardTypes.includes(card.cardType) ||
+        selectedLinkType.destinationCardTypes.length === 0
       );
     } else {
       return (
-        selectedLinkType.sourceCardTypes.includes(
-          card.metadata?.cardType || '',
-        ) || selectedLinkType.sourceCardTypes.length === 0
+        selectedLinkType.sourceCardTypes.includes(card.cardType || '') ||
+        selectedLinkType.sourceCardTypes.length === 0
       );
     }
   });
@@ -178,7 +175,7 @@ export function LinkForm({
                 required={true}
                 placeholder={t('linkForm.searchCard')}
                 options={usableCards.map((c) => ({
-                  label: `${c.metadata?.title} (${c.key})`,
+                  label: `${c.title} (${c.key})`,
                   value: c.key,
                 }))}
                 isOptionEqualToValue={(option, value) =>
@@ -188,7 +185,7 @@ export function LinkForm({
                 value={
                   value
                     ? {
-                        label: `${findCard(cards, value)?.metadata?.title}(${value})`,
+                        label: `${findCard(cards, value)?.title}(${value})`,
                         value,
                       }
                     : null
@@ -454,10 +451,9 @@ const PolicyChecks = ({
 };
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
-  project,
   card,
+  cards,
   linkTypes,
-  cardQuery,
   onMetadataClick,
   onLinkFormSubmit,
   onDeleteLink,
@@ -470,7 +466,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   );
 
   const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
-  const [deleteLinkData, setDeleteLinkData] = useState<ParsedLink | null>(null);
+  const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
+    null,
+  );
 
   const boxRef = React.createRef<HTMLDivElement>();
 
@@ -496,13 +494,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
   }, []);
-
-  const links: ParsedLink[] = (card.metadata?.links || [])
-    .map((l) => ({
-      ...l,
-      fromCard: card.key,
-    }))
-    .concat(project ? getLinksForCard(project.cards, card.key) : []);
 
   const htmlContent = card.parsed || '';
 
@@ -595,15 +586,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         ref={boxRef}
       >
         <Stack spacing={3} height="100%">
-          <Typography level="h1">{card.metadata?.title ?? card.key}</Typography>
+          <Typography level="h1">{card.title}</Typography>
           <MetadataView
             editMode={false}
             initialExpanded={false}
-            metadata={card?.metadata}
             onClick={onMetadataClick}
-            cardKey={card.key}
+            card={card}
           />
-          {(links.length > 0 || linksVisible) && (
+          {(card.links.length > 0 || linksVisible) && (
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -622,29 +612,15 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           )}
           {!preview && linksVisible && (
             <LinkForm
-              cards={project?.cards ?? []}
+              cards={cards}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
               cardKey={card.key}
             />
           )}
-          {links.length > 0 && (
+          {card.links.length > 0 && (
             <Stack>
-              {links.map((link, index) => {
-                const linkType = linkTypes.find(
-                  (linkType) => linkType.name === link.linkType,
-                );
-                if (!linkType || !project) return null;
-
-                const otherCard = findCard(
-                  project.cards,
-                  link.cardKey === card.key
-                    ? link.fromCard || ''
-                    : link.cardKey,
-                );
-
-                if (!otherCard) return null;
-
+              {card.links.map((link, index) => {
                 return (
                   <Box
                     bgcolor="neutral.softBg"
@@ -674,15 +650,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                           level="body-sm"
                           paddingRight={2}
                         >
-                          {link.cardKey === card.key
-                            ? linkType.inboundDisplayName
-                            : linkType.outboundDisplayName}
+                          {link.displayName}
                         </Typography>
                         <NextLink
                           data-cy="cardLink"
-                          href={`/cards/${otherCard?.key}`}
+                          href={`/cards/${link.key}`}
                         >
-                          <Link component={'div'}>{otherCard?.key}</Link>
+                          <Link component={'div'}>{link.key}</Link>
                         </NextLink>
                         <Divider
                           orientation="vertical"
@@ -691,7 +665,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                           }}
                         />
                         <Typography data-cy="cardLinkTitle" level="title-sm">
-                          {otherCard?.metadata?.title}
+                          {link.title}
                         </Typography>
                       </Stack>
                       <Typography level="body-sm">
@@ -734,8 +708,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             visibleHeaderIds,
           )}
         </Box>
-        <Notifications notifications={cardQuery.notifications} />
-        <PolicyChecks policyChecks={cardQuery.policyChecks} />
+        <Notifications notifications={card.notifications} />
+        <PolicyChecks policyChecks={card.policyChecks} />
       </Stack>
       {!preview && (
         <GenericConfirmModal

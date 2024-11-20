@@ -205,8 +205,8 @@ async function getCardDetails(
     attachments: true,
     children: false,
     content: true,
-    contentType: contentType,
-    metadata: true,
+    contentType,
+    metadata: false,
     parent: false,
   };
 
@@ -240,11 +240,25 @@ async function getCardDetails(
       })
       .toString();
 
+    // always parse for now
+    await commands.calculateCmd.generate();
+
+    const card = await commands.calculateCmd.runQuery('card', {
+      cardKey: key,
+    });
+
+    if (card.length !== 1) {
+      return new NextResponse(`Query failed. Check card-query syntax`, {
+        status: 500,
+      });
+    }
+
     if (cardDetailsResponse) {
       return NextResponse.json({
-        ...cardDetailsResponse,
+        ...card[0],
         content: cardDetailsResponse.content || '',
         parsed: htmlContent,
+        attachments: cardDetailsResponse.attachments,
       });
     } else {
       return new NextResponse(`Card ${key} not found from project`, {
