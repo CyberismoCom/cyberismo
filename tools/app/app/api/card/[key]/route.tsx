@@ -28,14 +28,13 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   _: NextRequest,
-  {
-    params,
-  }: {
-    params: {
+  props: {
+    params: Promise<{
       key: string;
-    };
+    }>;
   },
 ) {
+  const params = await props.params;
   const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
     return new NextResponse('project_path environment variable not set.', {
