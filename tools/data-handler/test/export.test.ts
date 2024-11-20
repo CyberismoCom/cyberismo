@@ -40,7 +40,7 @@ describe('export-site', () => {
       silent: true,
     });
     expect(true).to.equal(true);
-  });
+  }).timeout(20000);
 });
 
 describe('export command', () => {

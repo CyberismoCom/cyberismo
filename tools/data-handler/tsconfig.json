@@ -1,25 +1,16 @@
 {
   "compilerOptions": {
-    "declaration": true,
     "strict": true,
-    "allowJs": true,
     "alwaysStrict": true,
+    "allowJs": true,
     "sourceMap": true,
-
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-
-    "outDir": "./dist",
-    "rootDir": "src",
-
     "target": "es2022",
     "lib": ["es2020"],
     "types": ["node", "mocha"]
   },
-  "include": ["src/**/*"],
-  "ts-node": {
-    "esm": true
-  }
+  "include": ["src/**/*", "test/**/*.ts"]
 }

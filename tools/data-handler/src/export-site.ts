@@ -84,6 +84,7 @@ export class ExportSite extends Export {
     }
     // Use spawnsync to npx execute the program "antora"
     try {
+      // Allthough we use pnpm, only npm is available at runtime
       spawnSync('npx', ['antora', ...additionalArguments], {
         stdio: 'inherit',
       });

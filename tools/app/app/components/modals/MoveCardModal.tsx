@@ -27,6 +27,7 @@ import {
   Input,
   Box,
   CircularProgress,
+  Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useCard, useProject } from '../../lib/api';
@@ -37,7 +38,6 @@ import {
   findCard,
   findParentCard,
 } from '../../lib/utils';
-import { Stack } from '@mui/system';
 import { Card } from '../../lib/definitions';
 import moment from 'moment';
 import { TreeMenu } from '../TreeMenu';
