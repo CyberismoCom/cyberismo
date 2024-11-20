@@ -11,7 +11,7 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, use } from 'react';
 import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
@@ -209,7 +209,8 @@ function AttachmentPreviewCard({
   );
 }
 
-export default function Page({ params }: { params: { key: string } }) {
+export default function Page(props: { params: Promise<{ key: string }> }) {
+  const params = use(props.params);
   const { t } = useTranslation();
 
   const { modalOpen, openModal, closeModal } = useModals({

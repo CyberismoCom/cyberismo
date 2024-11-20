@@ -102,8 +102,7 @@ const RenderTree = (
           {node.data.title ?? node.data.key}
         </Typography>
         <Box margin="auto"></Box>
-        {progress && (
-          // Optional progress chip
+        {progress !== undefined && (
           <Chip
             size="sm"
             sx={{

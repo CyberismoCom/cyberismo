@@ -22,12 +22,13 @@ import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { expandLinkTypes } from '@/app/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export const dynamic = 'force-dynamic';
 
-export default function Page({ params }: { params: { key: string } }) {
+export default function Page(props: { params: Promise<{ key: string }> }) {
+  const params = use(props.params);
   const { card, error, createLink, deleteLink, isLoading } = useCard(
     params.key,
   );
