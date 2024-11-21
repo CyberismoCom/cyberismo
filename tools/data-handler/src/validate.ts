@@ -617,17 +617,24 @@ export class Validate {
               ? `"${card.metadata[field.name]}"`
               : '""';
           }
-          validationErrors.push(
-            `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
-          );
           if (fieldType.dataType === 'enum') {
             const listOfEnumValues = fieldType.enumValues?.map(
               (item) => item.enumValue,
             );
             validationErrors.push(
-              `Possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
+              `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
             );
+            continue;
           }
+          if (fieldType.dataType === 'person') {
+            validationErrors.push(
+              `In card ${card.key} field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
+            );
+            continue;
+          }
+          validationErrors.push(
+            `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+          );
         }
       }
     }
