@@ -32,11 +32,15 @@ jobs:
         auto-update-conda: true
     - name: Install Clingo from Potassco channel
       run: conda install -c potassco clingo
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+        cache: 'pnpm'
         registry-url: 'https://npm.pkg.github.com'
         scope: '@cyberismocom'
     - name: Checkout module-base repository for testing purposes
@@ -45,6 +49,8 @@ jobs:
         repository: CyberismoCom/module-base
         path: module-base
         ref: main
-    - run: npm ci
-    - run: npm run build
-    - run: npm test
+    - run: pnpm install
+    - run: pnpm --filter=app exec cypress install
+    - run: pnpm build
+    - run: pnpm link --global
+    - run: pnpm test

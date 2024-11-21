@@ -68,7 +68,6 @@ import LoadingGate from '@/app/components/LoadingGate';
 import { openAttachment } from '@/app/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
-import { Icon } from '@mui/material';
 import { expandLinkTypes, useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
 import { parseContent } from '@/app/lib/api/actions/card';
@@ -626,14 +625,12 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                       </Typography>
                       <Tooltip title={t('addAttachment')}>
                         <IconButton onClick={openModal('addAttachment')}>
-                          <Icon>
-                            <Image
-                              alt="Add attachment"
-                              width={24}
-                              height={24}
-                              src="/static/images/attach_file_add.svg"
-                            />
-                          </Icon>
+                          <Image
+                            alt="Add attachment"
+                            width={24}
+                            height={24}
+                            src="/static/images/attach_file_add.svg"
+                          />
                         </IconButton>
                       </Tooltip>
                     </Stack>

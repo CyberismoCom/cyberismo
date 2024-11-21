@@ -12,3 +12,4 @@ examples/
 .github/
 *.hbs
 resources/ui-bundle
+pnpm-lock.yaml

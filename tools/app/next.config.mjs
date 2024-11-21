@@ -4,7 +4,7 @@ import path from 'path';
 const nextConfig = {
   webpack: (config) => {
     config.resolve.alias.handlebars = path.resolve(
-      '../../node_modules/handlebars/dist/handlebars.js',
+      './node_modules/handlebars/dist/handlebars.js',
     );
     config.externals.push({
       'thread-stream': 'commonjs thread-stream',

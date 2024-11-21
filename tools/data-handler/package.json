@@ -10,14 +10,15 @@
     "url": "git+https://github.com/CyberismoCom/ismo.git"
   },
   "bugs": "https://github.com/CyberismoCom/ismo/issues",
-  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf node_modules && rm -f package-lock.json && npm cache clean --force",
-    "lint": "npx eslint .",
-    "posttest": "npm run lint",
+    "preinstall": "npx only-allow pnpm",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf node_modules",
+    "lint": "pnpm dlx eslint .",
+    "posttest": "pnpm lint",
     "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
-    "test-coverage": "c8 npm run test"
+    "test-coverage": "c8 pnpm test",
+    "watch": "tsc --watch -p tsconfig.build.json"
   },
   "exports": {
     ".": "./dist/index.js"
@@ -28,9 +29,10 @@
     "@types/js-yaml": "^4.0.9",
     "@types/json-schema": "^7.0.15",
     "@types/mime-types": "^2.1.4",
-    "@types/mocha": "^10.0.6",
+    "@types/mocha": "^10.0.9",
     "@types/node": "^22.4.1",
     "@typescript-eslint/parser": "^8.14.0",
+    "c8": "^10.1.2",
     "chai": "^5.1.2",
     "chai-as-promised": "^8.0.0",
     "eslint": "^9",
@@ -43,6 +45,7 @@
     "typescript-eslint": "^8.14.0"
   },
   "dependencies": {
+    "@asciidoctor/core": "^3.0.4",
     "@types/sinon": "^17.0.3",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.5.6",
