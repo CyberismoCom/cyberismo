@@ -12,10 +12,10 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "tsc --build --declaration",
+    "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
     "lint": "pnpm dlx eslint .",
-    "test": "pnpm run lint"
+    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\""
   },
   "keywords": [],
   "author": "",
@@ -24,13 +24,21 @@
     "commander": "^12.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.4.1",
     "@typescript-eslint/parser": "^8.14.0",
     "eslint": "^9",
     "eslint-config-prettier": "^9.1.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.14.0",
-    "@cyberismocom/data-handler": "workspace:*"
+    "@cyberismocom/data-handler": "workspace:*",
+    "@types/chai": "^5.0.0",
+    "@types/chai-as-promised": "^8.0.0",
+    "@types/mocha": "^10.0.9",
+    "@types/node": "^22.9.0",
+    "chai": "^5.1.2",
+    "chai-as-promised": "^8.0.0",
+    "mocha": "^10.8.2",
+    "mocha-suppress-logs": "^0.5.1",
+    "ts-node": "^10.9.1"
   },
   "types": "dist/index.d.ts",
   "type": "module",

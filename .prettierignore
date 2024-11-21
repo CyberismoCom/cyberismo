@@ -8,6 +8,7 @@ node_modules/
 target/
 compiled/
 examples/
+cyberismo-docs/
 **/test-data/
 .github/
 *.hbs

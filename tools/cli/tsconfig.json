@@ -16,9 +16,9 @@
 
     "target": "es2022",
     "lib": ["es2020"],
-    "types": ["node"]
+    "types": ["node", "mocha"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*.ts"],
   "ts-node": {
     "esm": true
   }
