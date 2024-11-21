@@ -463,7 +463,6 @@ rank
 
 // Remove command
 const remove = program.command('remove');
-
 remove
   .command('attachment')
   .argument('<cardKey>', 'cardKey of the owning card')
@@ -477,6 +476,7 @@ remove
     );
     handleResponse(result);
   });
+
 remove
   .command('card')
   .argument('<cardKey>', 'Card key of card to remove')
@@ -485,6 +485,32 @@ remove
     const result = await commandHandler.command(
       Cmd.remove,
       ['card', cardKey],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('cardType')
+  .argument('<name>', 'Name of the card type to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['cardType', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('fieldType')
+  .argument('<name>', 'Name of the field type to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['fieldType', name],
       options,
     );
     handleResponse(result);
@@ -514,7 +540,7 @@ remove
 
 remove
   .command('linkType')
-  .argument('<name>', 'Name of the linkType to remove')
+  .argument('<name>', 'Name of the link type to remove')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
@@ -539,6 +565,19 @@ remove
   });
 
 remove
+  .command('report')
+  .argument('<name>', 'Name of the report to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['report', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
   .command('template')
   .argument('<name>', 'Name of the template to remove')
   .option('-p, --project-path [path]', `${pathGuideline}`)
@@ -546,6 +585,19 @@ remove
     const result = await commandHandler.command(
       Cmd.remove,
       ['template', name],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
+  .command('workflow')
+  .argument('<name>', 'Name of the workflow to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['workflow', name],
       options,
     );
     handleResponse(result);

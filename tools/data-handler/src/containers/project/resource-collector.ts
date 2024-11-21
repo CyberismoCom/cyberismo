@@ -232,6 +232,7 @@ export class ResourceCollector {
         this.localFieldTypes.push(resource);
         break;
       case 'linkTypes':
+        resource.name = resource.name + '.json'; //todo: hack "fix", needs a proper fix.
         this.localLinkTypes.push(resource);
         break;
       case 'reports':

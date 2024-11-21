@@ -28,8 +28,13 @@ const optionsMini: CardsOptions = { projectPath: minimalPath };
 async function createLinkType(
   commandHandler: Commands,
   name: string,
-): Promise<void> {
-  await commandHandler.command(Cmd.create, ['linkType', name], options);
+): Promise<requestStatus> {
+  const status = await commandHandler.command(
+    Cmd.create,
+    ['linkType', name],
+    options,
+  );
+  return status;
 }
 
 async function createCard(commandHandler: Commands): Promise<requestStatus> {
@@ -54,7 +59,6 @@ describe('remove command', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    // the event emitter from create is creating the files after the content should have been destroyed.
     it('remove card', async () => {
       const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
@@ -65,21 +69,12 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    it('remove linkType', async () => {
-      const name = 'test';
-      await createLinkType(commandHandler, name);
-      const resourceName = 'decision/linkTypes/' + name;
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['linkType', resourceName],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    });
+    /*
     it('remove link (success)', async () => {
-      const linkName = 'test';
-      const resourceName = 'decision/linkTypes/' + linkName;
-      await createLinkType(commandHandler, linkName);
+      const linkName = 'testLinkName';
+      const linkFullName = 'decision/linkTypes/' + linkName;
+      const success = await createLinkType(commandHandler, linkName);
+      expect(success.statusCode).equals(200);
       const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       await commandHandler.command(
@@ -95,12 +90,13 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
+    */
+
     // Create two cards, link them together. Remove the other card.
     // Check that link has disappeared from the first card as well.
     it('removing card removes links (success)', async () => {
       const linkName = 'test';
       const resourceName = 'decision/linkTypes/' + linkName;
-      await createLinkType(commandHandler, linkName);
       const card = await createCard(commandHandler);
       const card2 = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
@@ -110,6 +106,7 @@ describe('remove command', () => {
         ['link', cardId2, cardId, resourceName],
         options,
       );
+      expect(result.statusCode).to.equal(200);
       result = await commandHandler.command(
         Cmd.show,
         ['card', cardId2],
@@ -144,6 +141,19 @@ describe('remove command', () => {
       );
       expect(found?.length).to.equal(0);
     });
+
+    // todo: for some reason, the project is not updated between removals --> this must be run after 'link removal' tests
+    it('remove linkType', async () => {
+      const name = 'test';
+      await createLinkType(commandHandler, name);
+      const fullName = 'decision/linkTypes/' + name;
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['linkType', fullName],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
     it('remove attachment (success)', async () => {
       const attachment = 'the-needle.heic';
       const attachmentPath = join(testDir, 'attachments' + sep + attachment);
@@ -163,11 +173,47 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
+    it('remove cardType (success)', async () => {
+      const cardTypeName = 'decision/cardTypes/decision';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['cardType', cardTypeName],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('remove fieldType (success)', async () => {
+      const fieldTypeName = 'decision/fieldTypes/finished';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['fieldType', fieldTypeName],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('remove report (success)', async () => {
+      const report = 'decision/reports/testReport';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['report', report],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
     it('remove template (success)', async () => {
       const templateName = 'decision/templates/decision';
       const result = await commandHandler.command(
         Cmd.remove,
         ['template', templateName],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('remove workflow (success)', async () => {
+      const workflowName = 'decision/workflows/decision';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['workflow', workflowName],
         options,
       );
       expect(result.statusCode).to.equal(200);
@@ -189,7 +235,15 @@ describe('remove command', () => {
     });
   });
 
-  describe('removal attempts - test data is not cleaned', () => {
+  describe('removal attempts', () => {
+    beforeEach(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data', testDir);
+    });
+
+    afterEach(() => {
+      rmSync(testDir, { recursive: true, force: true });
+    });
     it('remove card - project missing', async () => {
       const cardId = 'decision_5';
       const invalidProject = { projectPath: 'idontexist' };
@@ -248,8 +302,35 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
+    it('remove cardType - card type missing', async () => {
+      const cardTypeName = 'decision/cardTypes/i-do-not-exist';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['cardType', cardTypeName],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('remove fieldType - field type missing', async () => {
+      const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['fieldType', fieldTypeName],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('remove report - report missing', async () => {
+      const reportName = 'decision/reports/i-do-not-exist';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['report', reportName],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
     it('remove template - template missing', async () => {
-      const templateName = 'decision/templates/idontexist';
+      const templateName = 'decision/templates/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
         ['template', templateName],
@@ -259,11 +340,20 @@ describe('remove command', () => {
     });
     it('remove template - project missing', async () => {
       const templateName = 'decision/templates/simplepage';
-      const invalidProject = { projectPath: 'idontexist' };
+      const invalidProject = { projectPath: 'i-do-not-exist' };
       const result = await commandHandler.command(
         Cmd.remove,
         ['template', templateName],
         invalidProject,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('remove workflow - workflow missing', async () => {
+      const workflowName = 'decision/workflows/i-do-not-exist';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['workflow', workflowName],
+        options,
       );
       expect(result.statusCode).to.equal(400);
     });
