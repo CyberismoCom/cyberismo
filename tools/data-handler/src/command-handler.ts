@@ -1257,7 +1257,7 @@ export class Commands {
     execFileSync(`npm`, args, {
       shell: true,
       cwd: `${appPath}`,
-      stdio: 'inherit',
+      stdio: 'ignore',
     });
 
     return { statusCode: 200 };
