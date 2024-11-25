@@ -145,6 +145,7 @@ export class Create extends EventEmitter {
         if (resourceType === 'template') {
           const template = new Template(this.project, {
             name: resourceContent.name,
+            path: '',
           });
           await template.create(resourceContent);
         }
@@ -194,7 +195,7 @@ export class Create extends EventEmitter {
     }
     const templateObject = new Template(
       this.project,
-      { name: templateName }, // Template can deduce its own path
+      { name: templateName, path: '' }, // Template can deduce its own path
     );
 
     const specificCard = card

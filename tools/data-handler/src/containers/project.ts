@@ -414,7 +414,7 @@ export class Project extends CardContainer {
   public async createTemplateObjectByName(
     templateName: string,
   ): Promise<Template | undefined> {
-    return this.createTemplateObject({ name: templateName });
+    return this.createTemplateObject({ name: templateName, path: '' });
   }
 
   /**

@@ -134,7 +134,7 @@ export type RemovableResourceTypes =
 // Project resource, such as workflow, template or card type as file system object.
 export interface Resource {
   name: string;
-  path?: string;
+  path: string;
 }
 
 // Resources that have own folders.
