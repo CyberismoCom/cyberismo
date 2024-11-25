@@ -59,18 +59,16 @@ showField(Key, Field) :-
     displayName(Key, Field, DisplayName),
     showField(Key, Field).
 
-#show field(Key, Field, Value, DataType, DisplayName, Index) :
+#show field(Key, Field, Value, "enum", DisplayName, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "enum",
+    dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
     displayName(Key, Field, DisplayName),
     showField(Key, Field).
 
-#show field(Key, Field, Value, DataType, DisplayName, Index) :
+#show field(Key, Field, Value, "list", DisplayName, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "list",
+    dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
     displayName(Key, Field, DisplayName),
     showField(Key, Field).
@@ -83,18 +81,16 @@ showField(Key, Field) :-
     not displayName(Key, Field, _),
     showField(Key, Field).
 
-#show field(Key, Field, Value, DataType, Field, Index) :
+#show field(Key, Field, Value, "enum", Field, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "enum",
+    dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
     not displayName(Key, Field, _),
     showField(Key, Field).
 
-#show field(Key, Field, Value, DataType, Field, Index) :
+#show field(Key, Field, Value, "list", Field, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "list",
+    dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
     not displayName(Key, Field, _),
     showField(Key, Field).
@@ -107,18 +103,16 @@ showField(Key, Field) :-
     displayName(Key, Field, DisplayName),
     showAll(Key).
 
-#show field(Key, Field, Value, DataType, DisplayName, Index) :
+#show field(Key, Field, Value, "enum", DisplayName, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "enum",
+    dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
     displayName(Key, Field, DisplayName),
     showAll(Key).
 
-#show field(Key, Field, Value, DataType, DisplayName, Index) :
+#show field(Key, Field, Value, "list", DisplayName, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "list",
+    dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
     displayName(Key, Field, DisplayName),
     showAll(Key).
@@ -132,18 +126,16 @@ showField(Key, Field) :-
     not displayName(Key, Field, _),
     showAll(Key).
 
-#show field(Key, Field, Value, DataType, Field, Index) :
+#show field(Key, Field, Value, "enum", Field, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "enum",
+    dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
     not displayName(Key, Field, _),
     showAll(Key).
 
-#show field(Key, Field, Value, DataType, Field, Index) :
+#show field(Key, Field, Value, "list", Field, Index) :
     field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType = "list",
+    dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
     not displayName(Key, Field, _),
     showAll(Key).
