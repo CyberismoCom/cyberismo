@@ -1,5 +1,6 @@
 // testing
 import { assert, expect } from 'chai';
+import * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -171,14 +172,21 @@ describe('import module', () => {
     });
     */
     it('try to import module - no source', async () => {
+      const stubProjectPath = sinon
+        .stub(commandHandler, 'setProjectPath')
+        .resolves('path');
       const result = await commandHandler.command(
         Cmd.import,
         ['module', ''],
         optionsMini,
       );
       expect(result.statusCode).to.equal(400);
+      stubProjectPath.restore();
     });
     it('try to import module - no destination', async () => {
+      const stubProjectPath = sinon
+        .stub(commandHandler, 'setProjectPath')
+        .resolves('path');
       let result = { statusCode: 0 };
       const invalidOptions = { projectPath: '' };
       try {
@@ -193,7 +201,8 @@ describe('import module', () => {
           // this block is here for linter
         }
       }
-      expect(result.statusCode).to.equal(0);
+      expect(result.statusCode).to.equal(400);
+      stubProjectPath.restore();
     });
     it('try to import module - twice the same module', async () => {
       const result1 = await commandHandler.command(

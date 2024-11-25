@@ -97,19 +97,19 @@ export class ProjectPaths {
   }
 
   /**
-   * Returns full name of a resource.
+   * Returns valid name of a resource.
    * @param resourceType Type of resource
    * @param resourceName Resource name
-   * @returns full name of a resource (prefix/type/name)
+   * @returns name of a resource (prefix/type/name)
    */
   public resourceFullName(
     resourceType: ResourceFolderType,
     resourceName: string,
   ): string {
-    const { prefix, type, name } = resourceNameParts(resourceName);
+    const { identifier, prefix, type } = resourceNameParts(resourceName);
     const actualPrefix = prefix ? prefix : this.prefix;
     const actualType = type ? type : `${resourceType}s`;
-    return `${actualPrefix}/${actualType}s/${name}`;
+    return `${actualPrefix}/${actualType}s/${identifier}`;
   }
 
   /**

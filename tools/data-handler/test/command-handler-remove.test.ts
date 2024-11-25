@@ -54,7 +54,6 @@ describe('remove command', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
-    // @todo: Test case commented out for now;
     // the event emitter from create is creating the files after the content should have been destroyed.
     it('remove card', async () => {
       const card = await createCard(commandHandler);
@@ -69,29 +68,29 @@ describe('remove command', () => {
     it('remove linkType', async () => {
       const name = 'test';
       await createLinkType(commandHandler, name);
-      const fullName = 'decision/linkTypes/' + name;
+      const resourceName = 'decision/linkTypes/' + name;
       const result = await commandHandler.command(
         Cmd.remove,
-        ['linkType', fullName],
+        ['linkType', resourceName],
         options,
       );
       expect(result.statusCode).to.equal(200);
     });
     it('remove link (success)', async () => {
       const linkName = 'test';
-      const linkFullName = 'decision/linkTypes/' + linkName;
+      const resourceName = 'decision/linkTypes/' + linkName;
       await createLinkType(commandHandler, linkName);
       const card = await createCard(commandHandler);
       const cardId = card.affectsCards![0];
       await commandHandler.command(
         Cmd.create,
-        ['link', 'decision_5', cardId, linkFullName],
+        ['link', 'decision_5', cardId, resourceName],
         options,
       );
 
       const result = await commandHandler.command(
         Cmd.remove,
-        ['link', 'decision_5', cardId, linkFullName],
+        ['link', 'decision_5', cardId, resourceName],
         options,
       );
       expect(result.statusCode).to.equal(200);
@@ -100,7 +99,7 @@ describe('remove command', () => {
     // Check that link has disappeared from the first card as well.
     it('removing card removes links (success)', async () => {
       const linkName = 'test';
-      const linkFullName = 'decision/linkTypes/' + linkName;
+      const resourceName = 'decision/linkTypes/' + linkName;
       await createLinkType(commandHandler, linkName);
       const card = await createCard(commandHandler);
       const card2 = await createCard(commandHandler);
@@ -108,7 +107,7 @@ describe('remove command', () => {
       const cardId2 = card2.affectsCards![0];
       let result = await commandHandler.command(
         Cmd.create,
-        ['link', cardId2, cardId, linkFullName],
+        ['link', cardId2, cardId, resourceName],
         options,
       );
       result = await commandHandler.command(
@@ -155,11 +154,11 @@ describe('remove command', () => {
         ['attachment', attachmentPath],
         options,
       );
-      const attachmentFullName = `${cardId}-${attachment}`;
+      const attachmentNameWithCardId = `${cardId}-${attachment}`;
 
       const result = await commandHandler.command(
         Cmd.remove,
-        ['attachment', cardId, attachmentFullName],
+        ['attachment', cardId, attachmentNameWithCardId],
         options,
       );
       expect(result.statusCode).to.equal(200);

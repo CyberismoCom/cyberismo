@@ -18,6 +18,7 @@ import { Project } from './containers/project.js';
 import { readCsvFile } from './utils/csv.js';
 import { Validate } from './validate.js';
 import { Create } from './create.js';
+import { pathExists } from './utils/file-utils.js';
 
 export class Import {
   constructor(
@@ -97,8 +98,6 @@ export class Import {
           await this.project.updateCardMetadataKey(cardKey, key, value);
         }
       }
-      // NOTE: this is for the cli
-      console.log(`Successfully imported card ${title}`);
       importedCards.push(cardKey);
     }
     return importedCards;
@@ -112,6 +111,21 @@ export class Import {
    * @param destination Path to project that will receive the imported module
    */
   public async importProject(source: string, destination: string) {
+    if (!Validate.validateFolder(source)) {
+      throw new Error(
+        `Input validation error: folder name is invalid '${source}'`,
+      );
+    }
+    if (!pathExists(source)) {
+      throw new Error(
+        `Input validation error: cannot find project '${source}'`,
+      );
+    }
+    if (!pathExists(destination)) {
+      throw new Error(
+        `Input validation error: destination does not exist '${destination}'`,
+      );
+    }
     const destinationProject = new Project(destination);
     const sourceProject = new Project(source);
     const modulePrefix = sourceProject.projectPrefix;

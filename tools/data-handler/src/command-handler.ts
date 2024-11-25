@@ -10,15 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { basename, dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
-
-import { pathExists, resolveTilde } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { Validate } from './validate.js';
 import { fileURLToPath } from 'node:url';
-import { errorFunction } from './utils/log-utils.js';
+
 import {
   Card,
   CardAttachment,
@@ -34,16 +29,18 @@ import {
   CardType,
   FieldType,
   LinkType,
-  TemplateMetadata,
   Workflow,
 } from './interfaces/resource-interfaces.js';
-import { resourceNameParts } from './utils/resource-utils.js';
-import { DefaultContent } from './create-defaults.js';
-import { CommandManager } from './command-manager.js';
+
+import { requestStatus } from './interfaces/request-status-interfaces.js';
+
 import { Create } from './create.js';
-const invalidNames = new RegExp(
-  '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
-);
+import { CommandManager } from './command-manager.js';
+import { Project } from './containers/project.js';
+import { Validate } from './validate.js';
+
+import { pathExists, resolveTilde } from './utils/file-utils.js';
+import { errorFunction } from './utils/log-utils.js';
 
 // Generic options interface
 export interface CardsOptions {
@@ -54,6 +51,8 @@ export interface CardsOptions {
   repeat?: number;
 }
 
+// Commands that this class supports.
+// todo: Could be inside the `CommandHandler` ?
 export enum Cmd {
   add = 'add',
   calc = 'calc',
@@ -62,31 +61,28 @@ export enum Cmd {
   export = 'export',
   import = 'import',
   move = 'move',
+  rank = 'rank',
   remove = 'remove',
   rename = 'rename',
   show = 'show',
   start = 'start',
   transition = 'transition',
   validate = 'validate',
-  rank = 'rank',
+}
+
+// To what format the content can be exported to.
+export enum ExportFormats {
+  adoc = 'adoc',
+  html = 'html',
+  site = 'site',
 }
 
 export { CommandManager } from './command-manager.js';
 
-/**
- * Class that handles all commands.
- */
-export class Commands {
-  private commands?: CommandManager;
-  private projectPath: string;
-  private validateCmd: Validate;
-
-  constructor() {
-    this.projectPath = '';
-    this.validateCmd = Validate.getInstance();
-  }
-
-  public static allowedTypes = [
+// Helper class for allowed types.
+export abstract class ShowTypes {
+  // Show-able types
+  public static allowed = [
     'attachment',
     'card',
     'cardType',
@@ -99,137 +95,39 @@ export class Commands {
     'workflow',
   ];
 
-  public static removableTypes = [
-    'attachment',
-    'card',
-    'link',
-    'linkType',
-    'module',
-    'template',
-  ];
-
-  // Lists all allowed resource types.
-  public allAllowedTypes(): string[] {
-    return [...this.pluralizeTypes(), ...Commands.allowedTypes].sort();
+  // Lists all show-able resource types.
+  public static all(): string[] {
+    return [...ShowTypes.pluralizeTypes(), ...ShowTypes.allowed].sort();
   }
-
-  // Checks if card exists in project or template.
-  private async cardExists(cardKey?: string): Promise<boolean> {
-    if (cardKey) {
-      const card = await this.commands?.project.findSpecificCard(cardKey);
-      return !!card;
-    }
-    return false;
-  }
-
   // Pluralizes allowed target types.
-  // Note that this is english only and does not support exceptions (e.g. datum -> data).
-  private pluralizeTypes(): string[] {
+  // @note Supports English only and does not support exceptions (e.g. datum -> data).
+  public static pluralizeTypes(): string[] {
     const retArray = [];
-    retArray.push(...Commands.allowedTypes.map((item) => (item += 's')));
+    retArray.push(...ShowTypes.allowed.map((item) => (item += 's')));
     return retArray;
   }
+}
 
-  // Sets project path, if running operation within project folder.
-  private async setProjectPath(path?: string): Promise<string> {
-    if (!path) {
-      path = await Project.findProjectRoot(process.cwd());
-      if (path === '') {
-        throw new Error(
-          "If project path is not given, the command must be run inside a project's folder.",
-        );
-        /*
-                // when sinon is used for testing, use this instead. Otherwise, cannot have unit tests that cause process exit.
-                console.error('No path defined - exiting');
-                process.exit(1);
-                */
-      }
-    }
+/**
+ * Class that handles all CLI commands.
+ */
+export class Commands {
+  private commands?: CommandManager;
+  private projectPath: string;
+  private projectPrefixes: string[] = [];
+  private validateCmd: Validate;
 
-    if (this.isProjectPath(path)) {
-      return path;
-    } else {
-      console.error(
-        `Invalid path '${path}'. Project must have '.cards' and 'cardRoot' folders`,
-      );
-      return '';
-    }
-  }
-
-  // Check that path is a project path
-  private isProjectPath(path: string) {
-    const cardsPath = resolve(join(path, '.cards'));
-    const cardRootPath = resolve(join(path, 'cardRoot'));
-    return pathExists(cardsPath) && pathExists(cardRootPath);
-  }
-
-  // Validates folder name
-  private validateFolder(path: string): boolean {
-    if (path === '' || path === '.' || path === '..') {
-      return false;
-    }
-    return !invalidNames.test(basename(path));
-  }
-
-  // Validates that new name of a resource is according to naming convention.
-  private validateNameResourceName(name: string) {
-    const validName = new RegExp('^[A-Za-z ._-]+$');
-    const contentValidated = validName.test(name);
-    const lengthValidated = name.length > 0 && name.length < 256;
-    return contentValidated && lengthValidated;
-  }
-
-  // Validate that long and short resource names are valid.
-  // Returns resource name as valid resource name (long format); in error case return empty string.
-  // @todo: replace 'resourceType: string' with `resourceTypes: ResourceTypes` once INTDEV-463 has been merged.
-  private async validName(
-    resourceType: string,
-    resourceName: string,
-  ): Promise<string> {
-    try {
-      const project = new Project(this.projectPath);
-      let { prefix, type } = resourceNameParts(resourceName);
-      const { name } = resourceNameParts(resourceName);
-      prefix = prefix ? prefix : project.projectPrefix;
-      type = type ? type : resourceType;
-      const validatePrefix = prefix !== '';
-      const validateType = type !== '';
-      if (validatePrefix) {
-        const projectPrefixes = await project.projectPrefixes();
-        if (!projectPrefixes.includes(prefix)) {
-          console.error(
-            `Resource name can only refer to project that it is part of. Prefix '${prefix}' is not included in '[${projectPrefixes.join(',')}]'`,
-          );
-          return '';
-        }
-      }
-      if (validateType && resourceType !== type) {
-        console.error(
-          `Resource name must match the resource type. Type '${type}' does not match '${resourceType}'`,
-        );
-        return '';
-      }
-      if (!this.validateNameResourceName(name)) {
-        console.error(`Resource name must follow naming rules`);
-        return '';
-      }
-      return `${prefix}/${resourceType}/${name}`;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      return '';
-    }
-  }
-
-  // Validates project prefix.
-  private validatePrefix(prefix: string) {
-    const validPrefix = new RegExp('^[a-z]+$');
-    const contentValidated = validPrefix.test(prefix);
-    const lengthValidated = prefix.length > 2 && prefix.length < 11;
-    return contentValidated && lengthValidated;
+  constructor() {
+    this.projectPath = '';
+    this.validateCmd = Validate.getInstance();
   }
 
   /**
    * Executes one command for CLI.
+   *
+   * @note internal functions that this method calls, should return a Promise and throw on error.
+   * No internal trap harnesses; all exceptions from internal methods should be caught by this methods trap handler.
+   * If internal method has payload, the method should return requestStatus that can be directly returned from calling that function.
    *
    * @param command command to execute
    * @param args arguments for the command
@@ -241,87 +139,84 @@ export class Commands {
     args: string[],
     options: CardsOptions,
   ): Promise<requestStatus> {
-    this.projectPath = '';
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
     if (!creatingNewProject) {
-      this.projectPath = await this.setProjectPath(options.projectPath);
-      this.projectPath = resolveTilde(this.projectPath);
-
-      if (!this.validateFolder(this.projectPath)) {
-        return {
-          statusCode: 400,
-          message: `Input validation error: folder name is invalid '${options.projectPath}'`,
-        };
-      }
-
-      if (!pathExists(this.projectPath)) {
-        return {
-          statusCode: 400,
-          message: `Input validation error: cannot find project '${options.projectPath}'`,
-        };
-      }
-
       try {
-        this.commands = CommandManager.getInstance(this.projectPath);
-      } catch (e) {
-        return { statusCode: 400, message: errorFunction(e) };
+        await this.doSetProject(options.projectPath || '');
+      } catch (error) {
+        return { statusCode: 400, message: errorFunction(error) };
       }
     } else {
       this.projectPath = options.projectPath || '';
     }
+    return await this.doHandleCommand(command, args, options);
+  }
+
+  // Handles initializing the project so that it can be used in the class.
+  private async doSetProject(path: string) {
+    this.projectPath = resolveTilde(await this.setProjectPath(path));
+
+    if (!Validate.validateFolder(this.projectPath)) {
+      throw new Error(
+        `Input validation error: folder name '${path}' is invalid`,
+      );
+    }
+
+    if (!pathExists(this.projectPath)) {
+      throw new Error(`Input validation error: cannot find project '${path}'`);
+    }
+
+    this.commands = await CommandManager.getInstance(this.projectPath);
+    if (!this.commands) {
+      throw new Error('Cannot get instance of CommandManager');
+    }
+    await this.commands.initialize();
+    this.projectPrefixes = await this.commands.project.projectPrefixes();
+  }
+
+  // Handles actual command. Sets returns values correctly.
+  private async doHandleCommand(
+    command: Cmd,
+    args: string[],
+    options: CardsOptions,
+  ) {
     try {
       if (command === Cmd.add) {
         const [template, cardType, cardKey] = args;
-        return this.addCard(
-          template,
-          cardType,
-          cardKey,
-          this.projectPath,
-          options.repeat,
-        );
-      }
-      if (command === Cmd.calc) {
+        return await this.addCard(template, cardType, cardKey, options.repeat);
+      } else if (command === Cmd.calc) {
         const [command, cardKey] = args;
         if (command === 'run') {
           if (!cardKey) {
-            return { statusCode: 400, message: 'Card key is missing' };
+            return { statusCode: 400, message: 'File path is missing' };
           }
           return this.runLogicProgram(cardKey);
         }
         if (command === 'generate') {
           return this.generateLogicProgram(cardKey);
         }
-      }
-      if (command === Cmd.create) {
+      } else if (command === Cmd.create) {
         const target: ResourceTypes = args.splice(0, 1)[0] as ResourceTypes;
         if (target === 'attachment') {
           const [cardKey, attachment] = args;
-          return this.createAttachment(cardKey, attachment);
+          await this.createAttachment(cardKey, attachment);
         }
         if (target === 'card') {
           const [template, parent] = args;
-          return this.createCard(template, parent);
+          return await this.createCard(template, parent);
         }
         if (target === 'cardType') {
           const [name, workflow] = args;
-          return this.createCardType(name, workflow);
-        }
-        if (target === 'project') {
-          const [name, prefix] = args;
-          return this.createProject(this.projectPath, prefix, name); // todo: order of parameters
-        }
-        if (target === 'template') {
-          const [name, content] = args;
-          return this.createTemplate(name, content);
+          await this.createCardType(name, workflow);
         }
         if (target === 'fieldType') {
           const [name, datatype] = args;
-          return this.createFieldType(name, datatype);
+          await this.createFieldType(name, datatype);
         }
         if (target === 'link') {
-          const [cardKey, linkType, destinationCardKey, linkDescription] = args;
-          return this.createLink(
+          const [cardKey, destinationCardKey, linkType, linkDescription] = args;
+          await this.commands?.createCmd.createLink(
             cardKey,
             destinationCardKey,
             linkType,
@@ -330,171 +225,303 @@ export class Commands {
         }
         if (target === 'linkType') {
           const [name] = args;
-          return this.createLinkType(name);
+          await this.createLinkType(name);
         }
-        if (target === 'workflow') {
-          const [name, content] = args;
-          return this.createWorkflow(name, content);
+        if (target === 'project') {
+          const [name, prefix] = args;
+          await this.createProject(name, prefix);
         }
         if (target === 'report') {
           const [name] = args;
-          return this.createReport(name);
+          await this.createReport(name);
         }
-      }
-      if (command === Cmd.edit) {
+        if (target === 'template') {
+          const [name, content] = args;
+          await this.createTemplate(name, content);
+        }
+        if (target === 'workflow') {
+          const [name, content] = args;
+          await this.createWorkflow(name, content);
+        }
+      } else if (command === Cmd.edit) {
         const [cardKey] = args;
-        return this.edit(cardKey, options);
-      }
-      if (command === Cmd.export) {
+        await this.commands?.editCmd.editCard(cardKey);
+      } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        return this.export(output, cardKey, format);
-      }
-      if (command === Cmd.import) {
+        await this.export(output, format as ExportFormats, cardKey);
+      } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
           const [source] = args;
-          return this.import(source, this.projectPath);
+          await this.import(source);
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
-          return this.importCsv(csvFile, cardKey);
+          return await this.importCsv(csvFile, cardKey);
         }
-      }
-      if (command === Cmd.move) {
+      } else if (command === Cmd.move) {
         const [source, destination] = args;
-        try {
-          await this.commands?.moveCmd.moveCard(source, destination);
-          return { statusCode: 200 };
-        } catch (error) {
-          return { statusCode: 400, message: errorFunction(error) };
-        }
-      }
-      if (command === Cmd.rank) {
+        await this.commands?.moveCmd.moveCard(source, destination);
+      } else if (command === Cmd.rank) {
         const target = args.splice(0, 1)[0];
         if (target === 'card') {
           const [card, before] = args;
-          try {
-            if (before === 'first') {
-              await this.commands?.moveCmd.rankFirst(card);
-            } else {
-              await this.commands?.moveCmd.rankCard(card, before);
-            }
-            return { statusCode: 200 };
-          } catch (e) {
-            return { statusCode: 400, message: errorFunction(e) };
+          if (before === 'first') {
+            await this.commands?.moveCmd.rankFirst(card);
+          } else {
+            await this.commands?.moveCmd.rankCard(card, before);
           }
-        }
-        if (target === 'rebalance') {
+        } else if (target === 'rebalance') {
           const [cardKey] = args;
-          try {
-            if (cardKey) {
-              await this.commands?.moveCmd.rebalanceChildren(cardKey);
-            } else {
-              await this.commands?.moveCmd.rebalanceProject();
-            }
-            return { statusCode: 200 };
-          } catch (e) {
-            return { statusCode: 400, message: errorFunction(e) };
+          if (cardKey) {
+            await this.commands?.moveCmd.rebalanceChildren(cardKey);
+          } else {
+            await this.commands?.moveCmd.rebalanceProject();
           }
         }
-      }
-      if (command === Cmd.remove) {
+      } else if (command === Cmd.remove) {
         const [type, target, ...rest] = args;
         const removedType: RemovableResourceTypes =
           type as RemovableResourceTypes;
-        return this.remove(removedType, target, rest);
-      }
-      if (command === Cmd.rename) {
+        await this.remove(removedType, target, rest);
+      } else if (command === Cmd.rename) {
         const [to] = args;
-        return this.rename(to);
-      }
-      if (command === Cmd.show) {
+        await this.commands?.renameCmd.rename(to);
+      } else if (command === Cmd.show) {
         const [type, detail] = args;
         const shownTypes: ResourceTypes = type as ResourceTypes;
         options.projectPath = this.projectPath;
         return this.show(shownTypes, detail, options);
-      }
-      if (command === Cmd.start) {
-        return this.startApp(this.projectPath);
-      }
-      if (command === Cmd.transition) {
+      } else if (command === Cmd.start) {
+        await this.startApp();
+      } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
-        return this.transition(cardKey, state);
-      }
-      if (command === Cmd.validate) {
-        return this.validate(this.projectPath);
+        await this.commands?.transitionCmd.cardTransition(cardKey, {
+          name: state,
+        });
+      } else if (command === Cmd.validate) {
+        return this.validate();
+      } else {
+        return { statusCode: 500, message: 'Unknown command' };
       }
     } catch (e) {
       return { statusCode: 400, message: errorFunction(e) };
     }
-
-    return { statusCode: 500, message: 'Unknown command' };
+    return { statusCode: 200 };
   }
 
   /**
-   *  Adds a new card to a template.
-   * @param {string} templateName Name of a template.
-   * @param {string} cardTypeName Card-type for the new card.
-   * @param {string} cardKey Optional, parent cardKey, if any. If omitted, the new card will be created to root level.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
+   * Returns project path, if running operation within project folder.
+   * Implementation will automatically look for valid project path starting from 'path' and moving upwards in the
+   * path until 'root' is reached.
+   * @param path Initial path from where the project path search is started.
+   * Returns valid project path (contains both .cards and cardRoot subfolders).
    */
+  public async setProjectPath(path?: string): Promise<string> {
+    // Check that path is a project path; ie. contains both .cards and cardRoot subfolders.
+    function isProjectPath(path: string) {
+      const cardsPath = resolve(join(path, '.cards'));
+      const cardRootPath = resolve(join(path, 'cardRoot'));
+      return pathExists(cardsPath) && pathExists(cardRootPath);
+    }
+
+    if (!path) {
+      path = await Project.findProjectRoot(process.cwd());
+      if (path === '') {
+        console.error(
+          'No path defined with "-p" flag and could not find project. Sorry.',
+        );
+        process.exit(1);
+      }
+    }
+    path = resolveTilde(path);
+    return isProjectPath(path) ? path : '';
+  }
+
+  // Adds a new card to a template.
   private async addCard(
     templateName: string,
     cardTypeName: string,
     cardKey: string,
-    path: string,
     repeat?: number,
   ): Promise<requestStatus> {
-    const templateFolder = join(path, templateName);
-    if (!templateName || !this.validateFolder(templateFolder)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: template name is invalid '${templateName}'`,
-      };
+    const addedCards = await this.commands?.createCmd.addCards(
+      cardTypeName,
+      templateName,
+      cardKey,
+      repeat,
+    );
+
+    if (!addedCards || addedCards.length === 0) {
+      throw new Error('Failed to add cards');
     }
-    if (cardTypeName === undefined) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: card type cannot be empty`,
-      };
+
+    const messageTxt =
+      addedCards.length > 1
+        ? `${addedCards.length} cards were added to the template '${templateName} : ${JSON.stringify(addedCards)}'`
+        : `card '${addedCards[0]}' was added to the template '${templateName}'`;
+
+    return {
+      statusCode: 200,
+      affectsCards: addedCards,
+      message: messageTxt,
+    };
+  }
+
+  // Adds attachment to a card.
+  private async createAttachment(
+    cardKey: string,
+    attachmentFile: string,
+  ): Promise<void> {
+    return this.commands?.createCmd.createAttachment(cardKey, attachmentFile);
+  }
+
+  // Creates a new card to a project, or to a template.
+  private async createCard(
+    templateName: string,
+    parentCardKey: string,
+  ): Promise<requestStatus> {
+    const createdCards = await this.commands?.createCmd.createCard(
+      templateName,
+      parentCardKey,
+    );
+    return {
+      statusCode: 200,
+      affectsCards: createdCards,
+      message: `Created cards ${JSON.stringify(createdCards)}`,
+    };
+  }
+
+  // Creates a new card type.
+  private async createCardType(
+    cardTypeName: string,
+    workflowName: string,
+  ): Promise<void> {
+    return this.commands?.createCmd.createCardType(cardTypeName, workflowName);
+  }
+
+  // Creates a new field type.
+  private async createFieldType(
+    fieldTypeName: string,
+    dataType: string,
+  ): Promise<void> {
+    return this.commands?.createCmd.createFieldType(fieldTypeName, dataType);
+  }
+
+  // Creates a new link type.
+  private async createLinkType(name: string): Promise<void> {
+    return await this.commands?.createCmd.createLinkType(name);
+  }
+
+  // Creates a new project.
+  private async createProject(
+    projectName: string,
+    prefix: string,
+  ): Promise<void> {
+    await Create.createProject(
+      resolveTilde(this.projectPath),
+      prefix,
+      projectName,
+    );
+  }
+
+  // Creates a new report.
+  private async createReport(name: string): Promise<void> {
+    return await this.commands?.createCmd.createReport(name);
+  }
+
+  // Creates a new template.
+  private async createTemplate(
+    templateName: string,
+    templateContent: string,
+  ): Promise<void> {
+    return await this.commands?.createCmd.createTemplate(
+      templateName,
+      templateContent,
+    );
+  }
+
+  // Creates a new workflow.
+  private async createWorkflow(
+    workflowName: string,
+    workflowContent: string,
+  ): Promise<void> {
+    return await this.commands?.createCmd.createWorkflow(
+      workflowName,
+      workflowContent,
+    );
+  }
+
+  // Exports whole or partial card tree to a given format.
+  private async export(
+    destination: string = 'output',
+    format: ExportFormats,
+    parentCardKey?: string,
+  ): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500 };
     }
-    try {
-      const addedCards = await this.commands?.createCmd.addCards(
-        cardTypeName,
-        templateName,
-        cardKey,
-        repeat,
+    let message = '';
+    if (format === 'adoc') {
+      message = await this.commands?.exportCmd.exportToADoc(
+        destination,
+        parentCardKey,
       );
+    } else if (format === 'html') {
+      message = await this.commands?.exportCmd.exportToHTML(
+        destination,
+        parentCardKey,
+      );
+    } else if (format === 'site') {
+      message = await this.commands?.exportSiteCmd.exportToSite(
+        destination,
+        parentCardKey,
+      );
+    }
+    return { statusCode: 200, message: message };
+  }
 
-      if (!addedCards || addedCards.length === 0) {
-        throw new Error('error');
-      }
-
-      const messageTxt =
-        addedCards.length > 1
-          ? `${addedCards.length} cards were added to the template '${templateName} : ${JSON.stringify(addedCards)}'`
-          : `card '${addedCards[0]}' was added to the template '${templateName}'`;
-
-      return {
-        statusCode: 200,
-        affectsCards: addedCards,
-        message: messageTxt,
-      };
+  // Generates logic program for a card.
+  private async generateLogicProgram(cardKey?: string): Promise<requestStatus> {
+    try {
+      await this.commands?.calculateCmd.generate(cardKey);
+      return { statusCode: 200 };
     } catch (e) {
-      return {
-        statusCode: 400,
-        message: errorFunction(e),
-      };
+      return { statusCode: 500, message: errorFunction(e) };
     }
   }
-  /**
-   * Runs a given logic program along with the query-language
-   * @param filePath Path to the file
-   * @returns
-   */
+
+  // Imports another project to the 'destination' project as a module.
+  private async import(source: string): Promise<void> {
+    return this.commands?.importCmd.importProject(source, this.projectPath);
+  }
+
+  // Imports cards from a CSV file to a project.
+  private async importCsv(
+    filePath: string,
+    parentCardKey: string,
+  ): Promise<requestStatus> {
+    const cards = await this.commands?.importCmd.importCsv(
+      filePath,
+      parentCardKey,
+    );
+    return {
+      statusCode: 200,
+      message: `Imported cards:`,
+      payload: cards,
+    };
+  }
+
+  // Removes a card (single card, or parent card and children), or an attachment.
+  private async remove(
+    type: RemovableResourceTypes,
+    targetName: string,
+    args: string[],
+  ): Promise<void> {
+    return await this.commands?.removeCmd.remove(type, targetName, ...args);
+  }
+
+  // Runs a given logic program along with the query-language
   private async runLogicProgram(filePath: string): Promise<requestStatus> {
     try {
       return {
@@ -508,575 +535,23 @@ export class Commands {
     }
   }
 
-  /**
-   * Generates logic program for a card.
-   * @param cardKey optional, if defined, logic program is generated for the subtree of the card
-   * @returns statusCode 200 when operation succeeded
-   * <br> statusCode 500 when there was a internal problem generating logic program
-   */
-  private async generateLogicProgram(cardKey?: string): Promise<requestStatus> {
-    try {
-      await this.commands?.calculateCmd.generate(cardKey);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Adds attachment to a card.
-   * @param {string} cardKey card key
-   * @param {string} attachment path to attachment
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating attachment
-   */
-  private async createAttachment(
-    cardKey: string,
-    attachment: string,
-  ): Promise<requestStatus> {
-    if (!pathExists(attachment)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: cannot find attachment '${attachment}'`,
-      };
-    }
-    try {
-      await this.commands?.createCmd.createAttachment(cardKey, attachment);
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-    return { statusCode: 200 };
-  }
-
-  /**
-   * Creates a new card to a project, or to a template.
-   * @param {string} templateName which template to use
-   * @param {string} parentCardKey parent for the new card
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
-  private async createCard(
-    templateName: string,
-    parentCardKey: string,
-  ): Promise<requestStatus> {
-    if (parentCardKey === undefined) {
-      parentCardKey = '';
-    }
-    try {
-      const createdCards = await this.commands?.createCmd.createCard(
-        templateName,
-        parentCardKey,
-      );
-      return {
-        statusCode: 200,
-        affectsCards: createdCards,
-        message: `Created cards ${JSON.stringify(createdCards)}`,
-      };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new card type.
-   * @param cardTypeName Name of the card type.
-   * @param workflowName Name of the workflow that the card type uses.
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating card type
-   */
-  private async createCardType(
-    cardTypeName: string,
-    workflowName: string,
-  ): Promise<requestStatus> {
-    const validCardTypeName = await this.validName('cardTypes', cardTypeName);
-    const validWorkflowName = await this.validName('workflows', workflowName);
-    if (validCardTypeName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid card type name '${cardTypeName}'`,
-      };
-    }
-    if (validWorkflowName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid workflow name '${workflowName}'`,
-      };
-    }
-    try {
-      await this.commands?.createCmd.createCardType(
-        validCardTypeName,
-        validWorkflowName,
-      );
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new field type.
-   * @param fieldTypeName Name of the field type.
-   * @param dataType Name of the field type.
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 400 when there was a internal problem creating field type
-   */
-  private async createFieldType(
-    fieldTypeName: string,
-    dataType: string,
-  ): Promise<requestStatus> {
-    const validFieldTypeName = await this.validName(
-      'fieldTypes',
-      fieldTypeName,
-    );
-    if (validFieldTypeName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid field type name '${fieldTypeName}'`,
-      };
-    }
-    try {
-      await this.commands?.createCmd.createFieldType(
-        validFieldTypeName,
-        dataType,
-      );
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new link
-   * @param cardKey Card key of the card where the link is created
-   * @param destinationCardKey Card key of the destination card
-   * @param linkType Name of the link type
-   * @param linkDescription Description of the link
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when there was a internal problem creating linkType
-   */
-  private async createLink(
-    cardKey: string,
-    destinationCardKey: string,
-    linkType: string,
-    linkDescription: string,
-  ): Promise<requestStatus> {
-    try {
-      await this.commands?.createCmd.createLink(
-        cardKey,
-        linkType,
-        destinationCardKey,
-        linkDescription,
-      );
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new link type.
-   * @param name Name of the link type.
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 400 when there was a internal problem creating linkType
-   */
-  private async createLinkType(name: string): Promise<requestStatus> {
-    const validLinkTypeName = await this.validName('linkTypes', name);
-    if (validLinkTypeName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid link type name '${name}'`,
-      };
-    }
-    try {
-      await this.commands?.createCmd.createLinkType(validLinkTypeName);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new project.
-   * @param {string} path Project path
-   * @param {string} prefix Card prefix
-   * @param {string} projectName Project name
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating project
-   */
-  private async createProject(
-    path: string,
-    prefix: string,
-    projectName: string,
-  ): Promise<requestStatus> {
-    path = resolveTilde(path);
-    if (pathExists(path)) {
-      return { statusCode: 400, message: `Project already exists '${path}'` };
-    }
-    if (!this.validateFolder(path)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: folder name is invalid '${path}'`,
-      };
-    }
-    if (prefix === undefined || prefix.length < 3 || prefix.length > 10) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: prefix must be from 3 to 10 characters long. '${prefix}' does not fulfill the condition.`,
-      };
-    }
-    if (!this.validateNameResourceName(projectName)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid project name '${projectName}'`,
-      };
-    }
-    if (!this.validatePrefix(prefix)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid prefix '${prefix}'`,
-      };
-    }
-    try {
-      await Create.createProject(path, prefix, projectName);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new template.
-   * @param templateName template name to create
-   * @param templateContent content for template
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 400 when there was a internal problem creating template
-   */
-  private async createTemplate(
-    templateName: string,
-    templateContent: string,
-  ): Promise<requestStatus> {
-    const validTemplateName = await this.validName('templates', templateName);
-    if (
-      validTemplateName === '' ||
-      !this.validateFolder(join(this.projectPath, templateName))
-    ) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: template name is invalid '${templateName}'`,
-      };
-    }
-    const content = templateContent
-      ? (JSON.parse(templateContent) as TemplateMetadata)
-      : DefaultContent.templateContent(templateName);
-    // Note that templateContent is validated in createTemplate()
-    try {
-      await this.commands?.createCmd.createTemplate(validTemplateName, content);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new workflow to a project.
-   * @param workflowName Workflow name.
-   * @param workflowContent Workflow content as JSON. Must conform to workflowSchema.json
-   * @returns request status
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 400 when there was a internal problem creating workflow
-   */
-  private async createWorkflow(
-    workflowName: string,
-    workflowContent: string,
-  ): Promise<requestStatus> {
-    const validWorkflowName = await this.validName('workflows', workflowName);
-    if (validWorkflowName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid workflow name '${workflowName}'`,
-      };
-    }
-    const content = workflowContent
-      ? (JSON.parse(workflowContent) as Workflow)
-      : DefaultContent.workflowContent(validWorkflowName);
-    content.name = validWorkflowName;
-    try {
-      await this.commands?.createCmd.createWorkflow(content);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Creates a new report to a project.
-   * @param name Report name.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem creating report
-   */
-  private async createReport(name: string): Promise<requestStatus> {
-    const validReportName = await this.validName('reports', name);
-
-    if (validReportName === '') {
-      return {
-        statusCode: 400,
-        message: `Input validation error: invalid report name '${name}'`,
-      };
-    }
-    try {
-      await this.commands?.createCmd.createReport(name);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 500, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Open a card (.json and .adoc) for editing
-   *
-   * @param cardKey Card key of a card
-   * @param options Optional parameters. If options.path is omitted, project path is assumed to be current path (or it one of its parents).
-   * @returns
-   */
-  private async edit(
-    cardKey: string,
-    options?: CardsOptions,
-  ): Promise<requestStatus> {
-    let path = options?.projectPath;
-    path = await this.setProjectPath(path);
-
-    if (!this.validateFolder(path)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: folder name is invalid '${path}'`,
-      };
-    }
-
-    await this.commands?.editCmd.editCard(cardKey);
-    return { statusCode: 200 };
-  }
-
-  /**
-   * Exports whole or partial card tree to a given format.
-   * @param {string} destination where cards are exported in the defined format
-   * @param {string} parentCardKey parent card, if any. If undefined, whole project will be exported.
-   * @param {string} mode export format (adoc, csv, html, pdf)
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem exporting
-   */
-  private async export(
-    destination: string = 'output',
-    parentCardKey?: string,
-    mode?: string,
-  ): Promise<requestStatus> {
-    if (parentCardKey && !(await this.cardExists(parentCardKey))) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: cannot find card '${parentCardKey}'`,
-      };
-    }
-    if (
-      mode &&
-      mode !== 'html' &&
-      mode !== 'pdf' &&
-      mode !== 'adoc' &&
-      mode !== 'site'
-    ) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: incorrect mode '${mode}'`,
-      };
-    }
-    if (mode === 'adoc') {
-      await this.commands?.exportCmd.exportToADoc(destination, parentCardKey);
-    } else if (mode === 'html') {
-      await this.commands?.exportCmd.exportToHTML(destination, parentCardKey);
-    } else if (mode === 'site') {
-      await this.commands?.exportSiteCmd.exportToSite(
-        destination,
-        parentCardKey,
-      );
-    } else {
-      return {
-        statusCode: 400,
-        message: `Unknown mode '${mode}'`,
-      };
-    }
-    return { statusCode: 200 };
-  }
-
-  /**
-   * Imports another project to the 'destination' project as a module.
-   * @param {string} source Path to project to import
-   * @param {string} path Destination project path.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
-  private async import(
-    source: string,
-    destination: string,
-  ): Promise<requestStatus> {
-    if (!this.validateFolder(source)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: folder name is invalid '${source}'`,
-      };
-    }
-    if (!pathExists(source)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: cannot find project '${source}'`,
-      };
-    }
-    // todo: validate destination exists
-    try {
-      await this.commands?.importCmd.importProject(source, destination);
-      return { statusCode: 200 };
-    } catch (e) {
-      return { statusCode: 400, message: errorFunction(e) };
-    }
-  }
-
-  /**
-   * Imports cards from a CSV file to a project.
-   * @param filePath path to the CSV file
-   * @param parentCardKey parent card key, if any. If undefined, cards will be imported to root level.
-   * @returns array of imported card keys wrapped in a requestStatus object or 400 if error
-   */
-  private async importCsv(
-    filePath: string,
-    parentCardKey: string,
-  ): Promise<requestStatus> {
-    try {
-      return {
-        statusCode: 200,
-        payload: await this.commands?.importCmd.importCsv(
-          filePath,
-          parentCardKey,
-        ),
-      };
-    } catch (e) {
-      return {
-        statusCode: 400,
-        message: errorFunction(e),
-      };
-    }
-  }
-
-  /**
-   * Removes a card (single card, or parent card and children), or an attachment.
-   * @param {RemovableResourceTypes} type Type of resource to remove (attachment, card, template)
-   * @param {string} targetName What will be removed. Either card-id or templateName
-   * @param {string} args Additional detail of removal, such as attachment name
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when target was not removed.
-   */
-  private async remove(
-    type: RemovableResourceTypes,
-    targetName: string,
-    args: string[],
-  ): Promise<requestStatus> {
-    if (!Commands.removableTypes.includes(type)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: incorrect type '${type}'`,
-      };
-    }
-
-    if (type === 'attachment' && args.length !== 1 && !args[0]) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
-      };
-    }
-
-    if (
-      type === 'link' &&
-      [2, 3].includes(args.length) &&
-      !args[0] &&
-      !args[1]
-    ) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: must pass arguments 'cardKey' and 'linkType' if requesting to remove link`,
-      };
-    }
-    try {
-      await this.commands?.removeCmd.remove(type, targetName, ...args);
-      return { statusCode: 200 };
-    } catch (error) {
-      return { statusCode: 400, message: errorFunction(error) };
-    }
-  }
-
-  /**
-   * Changes project prefix, and renames all project cards.
-   * @param {string} to New project prefix
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
-  private async rename(to: string): Promise<requestStatus> {
-    if (!to) {
-      throw new Error(`Input validation error: empty 'to' is not allowed`);
-    }
-    try {
-      await this.commands?.renameCmd.rename(to);
-      return { statusCode: 200 };
-    } catch (error) {
-      return { statusCode: 400, message: errorFunction(error) };
-    }
-  }
-
-  /**
-   * Shows wanted resources from a project / template.
-   * @param {ResourceTypes} type type of resources to list
-   * @param {string} typeDetail additional information about the resource (for example a card key for 'show card <cardKey>')
-   * @param {CardsOptions} options Optional parameters. If options.path is omitted, project path is assumed to be current path (or it one of its parents).
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
+  // Shows wanted resources from a project / template.
   private async show(
     type: ResourceTypes,
     typeDetail: string,
     options: CardsOptions,
   ): Promise<requestStatus> {
-    if (!this.allAllowedTypes().includes(type)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: illegal type '${type}'`,
-      };
+    if (!ShowTypes.all().includes(type)) {
+      throw new Error(`Input validation error: illegal type '${type}'`);
     }
     if (
-      !this.pluralizeTypes().includes(type) &&
+      !ShowTypes.pluralizeTypes().includes(type) &&
       !typeDetail &&
       type !== 'project'
     ) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: must pass argument 'typeDetail' if requesting to show info on '${type}'`,
-      };
+      throw new Error(
+        `Input validation error: must pass argument 'typeDetail' if requesting to show info on '${type}'`,
+      );
     }
     const detail = typeDetail || '';
     let promise: Promise<
@@ -1093,13 +568,10 @@ export class Commands {
       | string[]
       | undefined
     >;
-    if (!this.commands) {
-      throw new Error('No command manager');
-    }
 
     switch (type) {
       case 'attachments':
-        promise = this.commands?.showCmd.showAttachments();
+        promise = this.commands!.showCmd.showAttachments();
         break;
       case 'card':
         {
@@ -1111,138 +583,67 @@ export class Commands {
             parent: options?.details,
             attachments: true,
           };
-          promise = this.commands?.showCmd.showCardDetails(cardDetails, detail);
+          promise = this.commands!.showCmd.showCardDetails(cardDetails, detail);
         }
         break;
       case 'cards':
-        promise = this.commands?.showCmd.showCards();
+        promise = this.commands!.showCmd.showCards();
         break;
       case 'cardType':
-        promise = this.commands?.showCmd.showCardTypeDetails(detail);
+        promise = this.commands!.showCmd.showCardTypeDetails(detail);
         break;
       case 'cardTypes':
-        promise = this.commands?.showCmd.showCardTypes();
+        promise = this.commands!.showCmd.showCardTypes();
         break;
       case 'fieldType':
-        promise = this.commands?.showCmd.showFieldType(detail);
+        promise = this.commands!.showCmd.showFieldType(detail);
         break;
       case 'fieldTypes':
-        promise = this.commands?.showCmd.showFieldTypes();
+        promise = this.commands!.showCmd.showFieldTypes();
         break;
       case 'linkType':
-        promise = this.commands?.showCmd.showLinkType(detail);
+        promise = this.commands!.showCmd.showLinkType(detail);
         break;
       case 'linkTypes':
-        promise = this.commands?.showCmd.showLinkTypes();
+        promise = this.commands!.showCmd.showLinkTypes();
         break;
       case 'module':
-        promise = this.commands?.showCmd.showModule(detail);
+        promise = this.commands!.showCmd.showModule(detail);
         break;
       case 'modules':
-        promise = this.commands?.showCmd.showModules();
+        promise = this.commands!.showCmd.showModules();
         break;
       case 'project':
-        promise = this.commands?.showCmd.showProject();
+        promise = this.commands!.showCmd.showProject();
         break;
       case 'template':
-        promise = this.commands?.showCmd.showTemplate(detail);
+        promise = this.commands!.showCmd.showTemplate(detail);
         break;
       case 'templates':
-        promise = this.commands?.showCmd.showTemplates();
+        promise = this.commands!.showCmd.showTemplates();
         break;
       case 'workflow':
-        promise = this.commands?.showCmd.showWorkflow(detail);
+        promise = this.commands!.showCmd.showWorkflow(detail);
         break;
       case 'workflows':
-        promise = this.commands?.showCmd.showWorkflows();
+        promise = this.commands!.showCmd.showWorkflows();
         break;
       case 'reports':
-        promise = this.commands?.showCmd.showReports();
+        promise = this.commands!.showCmd.showReports();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
       case 'links': // fallthrough - not implemented yet
       case 'report': // fallthrough - not implemented yet
-      case 'projects': // fallthrough - not possible */
+      case 'projects': // fallthrough - not possible
       default:
-        return {
-          statusCode: 400,
-          message: `Unknown or not yet handled type ${type}`,
-          payload: [],
-        };
+        throw new Error(`Unknown or not yet handled type ${type}`);
     }
-    try {
-      const result = await Promise.resolve(promise);
-      return { statusCode: 200, payload: result };
-    } catch (error) {
-      return { statusCode: 400, message: errorFunction(error) };
-    }
+    return { statusCode: 200, payload: await Promise.resolve(promise) };
   }
 
-  /**
-   * Sets new state to a card.
-   * @param {string} cardKey Cardkey of a card.
-   * @param {string} stateName State to which the card should be set.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
-  private async transition(
-    cardKey: string,
-    stateName: string,
-  ): Promise<requestStatus> {
-    try {
-      await this.commands?.transitionCmd.cardTransition(cardKey, {
-        name: stateName,
-      });
-      return { statusCode: 200 };
-    } catch (error) {
-      return { statusCode: 400, message: errorFunction(error) };
-    }
-  }
-
-  /**
-   * Validates that a given path conforms to schema. Validates both file/folder structure and file content.
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   */
-  private async validate(path: string): Promise<requestStatus> {
-    try {
-      const result = await this.validateCmd.validate(path);
-      return {
-        statusCode: 200,
-        message: result.length ? result : 'Project structure validated',
-      };
-    } catch (error) {
-      return { statusCode: 400, message: errorFunction(error) };
-    }
-  }
-
-  /**
-   * Starts the Cyberismo app by running npm start in the app project folder
-   * @param {string} path Optional, path to the project. If omitted, project is set from current path.
-   * @returns {requestStatus}
-   *       statusCode 200 when operation succeeded
-   *  <br> statusCode 400 when input validation failed
-   *  <br> statusCode 500 when there was a internal problem validating schema
-   */
-  private async startApp(path?: string): Promise<requestStatus> {
-    path = await this.setProjectPath(path);
-    if (!this.validateFolder(path)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: folder name is invalid '${path}'`,
-      };
-    }
-    if (!pathExists(path)) {
-      return {
-        statusCode: 400,
-        message: `Input validation error: cannot find project '${path}'`,
-      };
-    }
-
+  // Starts the Cyberismo app by running npm start in the app project folder
+  private async startApp(): Promise<void> {
     console.log('Running Cyberismo app on http://localhost:3000/');
     console.log('Press Control+C to stop.');
 
@@ -1251,7 +652,7 @@ export class Commands {
     const appPath = resolve(baseDir, '../../app');
 
     // since current working directory changes, we need to resolve the project path
-    const projectPath = resolve(path);
+    const projectPath = resolve(this.projectPath);
 
     const args = [`start`, `--project_path="${projectPath}"`];
     execFileSync(`npm`, args, {
@@ -1259,7 +660,14 @@ export class Commands {
       cwd: `${appPath}`,
       stdio: 'ignore',
     });
+  }
 
-    return { statusCode: 200 };
+  // Validates that a given path conforms to schema. Validates both file/folder structure and file content.
+  private async validate(): Promise<requestStatus> {
+    const result = await this.validateCmd.validate(this.projectPath);
+    return {
+      statusCode: 200,
+      message: result.length ? result : 'Project structure validated',
+    };
   }
 }

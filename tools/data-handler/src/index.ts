@@ -15,7 +15,17 @@ import {
   Cmd,
   Commands,
   CommandManager,
+  ExportFormats,
+  ShowTypes,
 } from './command-handler.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 
-export { CardsOptions, Cmd, CommandManager, Commands, requestStatus };
+export {
+  CardsOptions,
+  Cmd,
+  CommandManager,
+  Commands,
+  ExportFormats,
+  requestStatus,
+  ShowTypes,
+};

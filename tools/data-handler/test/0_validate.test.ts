@@ -12,6 +12,7 @@ import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/validate.js';
 import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/log-utils.js';
+import { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 
 describe('validate cmd tests', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -318,5 +319,105 @@ describe('validate cmd tests', () => {
     expect(separatedErrors[0]).to.equal(expectWrongPrefix);
     expect(separatedErrors[1]).to.equal(expectWrongName);
     expect(separatedErrors[2]).to.equal(expectWrongType);
+  });
+
+  it('validate that name follows naming rules', async () => {
+    const validNames: string[] = [
+      'test',
+      'test-too',
+      'test_too',
+      'test too',
+      'test.too',
+      'Test',
+      'TEST',
+      '_test',
+      '-test',
+      'very-long-but-still-marvelously-valid-resource-name.that_canBe-used-as-a-resource-name',
+    ];
+    const invalidNames: string[] = [
+      '',
+      'test2',
+      '2',
+      'test+too',
+      'test*',
+      'test$',
+      'lpt1',
+      'prn',
+      'aux',
+    ];
+    for (const name of validNames) {
+      const valid = Validate.isValidResourceName(name);
+      expect(valid).to.equal(true);
+    }
+    for (const name of invalidNames) {
+      const invalid = Validate.isValidResourceName(name);
+      expect(invalid).to.equal(false);
+    }
+  });
+  it('validate that folder name follows naming rules', async () => {
+    const validNames: string[] = [
+      'test',
+      'test_too',
+      'test.too',
+      'Test',
+      'TEST',
+      '~/test',
+      '../test',
+      '.test',
+      'very-long-but-still-marvelously-valid-folder-name.that_canBe-used',
+    ];
+    const invalidNames: string[] = ['', '.', '..', 'prn', 'aux'];
+    for (const name of validNames) {
+      const valid = Validate.validateFolder(name);
+      expect(valid).to.equal(true);
+    }
+    for (const name of invalidNames) {
+      const invalid = Validate.validateFolder(name);
+      expect(invalid).to.equal(false);
+    }
+  });
+  it('validate resource names', async () => {
+    const project = new Project('test/test-data/valid/decision-records');
+    const prefixes = await project.projectPrefixes();
+    const projectPrefix = project.projectPrefix;
+    const validResources: Map<ResourceTypes, string> = new Map([
+      ['cardTypes', `${projectPrefix}/cardTypes/test`],
+      ['fieldTypes', `${projectPrefix}/fieldTypes/test`],
+      ['linkTypes', `${projectPrefix}/linkTypes/test`],
+      ['reports', `${projectPrefix}/reports/test`],
+      ['templates', `${projectPrefix}/templates/test`],
+      ['workflows', `${projectPrefix}/workflows/test`],
+    ]);
+    const invalidResources: Map<ResourceTypes, string> = new Map([
+      ['cardTypes', `${projectPrefix}/fieldTypes/test`],
+      ['fieldTypes', `/fieldTypes/test`],
+      ['linkTypes', `${projectPrefix}/linkTypes/`],
+      ['reports', `invlid/reports/test`],
+      ['templates', `${projectPrefix}/reports/test`],
+      ['workflows', `${projectPrefix}/_/test`],
+    ]);
+
+    for (const resourceType of validResources) {
+      await validateCmd
+        .validResourceName(resourceType[0], resourceType[1], prefixes)
+        .then(() => {
+          expect(true);
+        })
+        .catch(() => {
+          // Valid names should not throw.
+          expect(false);
+        });
+    }
+    for (const resourceType of invalidResources) {
+      await validateCmd
+        .validResourceName(resourceType[0], resourceType[1], prefixes)
+        .then(() => {
+          // invalid names should throw; fail test if this does not happen.
+          expect(false);
+        })
+        .catch(() => {
+          expect(true);
+        });
+    }
   });
 });

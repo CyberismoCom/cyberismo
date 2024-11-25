@@ -115,7 +115,7 @@ export async function PATCH(request: NextRequest) {
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   // Last URL segment is the search parameter
   const key = request.nextUrl.pathname.split('/')?.pop();
@@ -210,7 +210,7 @@ async function getCardDetails(
     parent: false,
   };
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   try {
     const cardDetailsResponse = await commands.showCmd.showCardDetails(
       fetchCardDetails,
@@ -263,7 +263,7 @@ export async function DELETE(request: NextRequest) {
   if (!projectPath) {
     return new NextResponse('project_path not set', { status: 500 });
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   const key = request.nextUrl.pathname.split('/')?.pop();
 
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   try {
     return NextResponse.json(

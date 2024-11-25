@@ -19,7 +19,7 @@ export async function addAttachments(key: string, formData: FormData) {
     return new Error('project_path environment variable not set.');
   }
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   const createCommand = commands.createCmd;
   const removeCommand = commands.removeCmd;
 
@@ -70,7 +70,7 @@ export async function removeAttachment(key: string, filename: string) {
   if (!projectPath) {
     return new Error('project_path environment variable not set.');
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   await commands.removeCmd.remove('attachment', key, filename);
 }
 
@@ -85,6 +85,6 @@ export async function openAttachment(key: string, filename: string) {
   if (!projectPath) {
     return new Error('project_path environment variable not set.');
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   await commands.showCmd.openAttachment(key, filename);
 }

@@ -304,7 +304,7 @@ export class Show {
    * @returns all available field-types
    */
   public async showFieldTypes(): Promise<string[]> {
-    // todo: make a common function that strips away the extension. Or use basename().
+    // todo: make a common function that strips away the extension.
     const fieldTypes = (await this.project.fieldTypes())
       .map((item) => item.name.split('.').slice(0, -1).join('.'))
       .sort();

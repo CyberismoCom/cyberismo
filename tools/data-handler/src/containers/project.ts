@@ -43,6 +43,7 @@ import { readJsonFile } from '../utils/json.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
 import { generateRandomString } from '../utils/random.js';
+import { identifierFromResourceName } from '../utils/resource-utils.js';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -394,7 +395,7 @@ export class Project extends CardContainer {
   public async createTemplateObject(
     template: Resource,
   ): Promise<Template | undefined> {
-    template.name = Template.normalizedTemplateName(template.name);
+    template.name = identifierFromResourceName(template.name);
 
     if (template.name === '' || !(await this.templateExists(template.name))) {
       return undefined;
@@ -866,7 +867,7 @@ export class Project extends CardContainer {
   /**
    * Checks if a given resource exists in the project already.
    * @param resourceType Type of resource as a string.
-   * @param name Name of the resource in long format.
+   * @param name Valid name of resource.
    * @returns boolean, true if resource exists; false otherwise.
    */
   public async resourceExists(

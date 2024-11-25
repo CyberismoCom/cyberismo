@@ -36,7 +36,7 @@ export async function GET() {
       status: 500,
     });
   }
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
 
   try {
     commands.showCmd.showProject();

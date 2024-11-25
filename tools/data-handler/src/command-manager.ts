@@ -24,10 +24,7 @@ import { Show } from './show.js';
 import { Transition } from './transition.js';
 import { Validate } from './validate.js';
 
-// @todo: In the first phase, no validation of input parameters.
-//        Validation would make sense to happen in the commands themselves; then both
-//        CommandHandler and this class could use them.
-
+// Handles commands and ensures that no extra instances are created.
 export class CommandManager {
   private static instance: CommandManager;
 
@@ -47,10 +44,16 @@ export class CommandManager {
 
   constructor(path: string) {
     this.project = new Project(path);
+    this.validateCmd = Validate.getInstance();
 
     this.showCmd = new Show(this.project);
     this.calculateCmd = new Calculate(this.project);
-    this.createCmd = new Create(this.project, this.calculateCmd);
+    this.createCmd = new Create(
+      this.project,
+      this.calculateCmd,
+      this.validateCmd,
+      [],
+    );
     this.editCmd = new Edit(this.project, this.calculateCmd);
     this.exportCmd = new Export(this.project, this.calculateCmd, this.showCmd);
     this.exportSiteCmd = new ExportSite(
@@ -67,7 +70,15 @@ export class CommandManager {
       this.calculateCmd,
       this.editCmd,
     );
-    this.validateCmd = Validate.getInstance();
+  }
+
+  /**
+   * Some commands needs initialization that cannot be performed inside constructor.
+   * Add such calls here.
+   */
+  public async initialize() {
+    await this.createCmd.setProjectPrefixes();
+    await this.project.collectModuleResources();
   }
 
   /**
@@ -76,17 +87,17 @@ export class CommandManager {
    * @param path Project path.
    * @returns Instance of this class.
    */
-  public static getInstance(path: string): CommandManager {
+  public static async getInstance(path: string): Promise<CommandManager> {
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
     ) {
-      console.info(`Changing the CommandManager instance path to ${path}`);
-      console.info(CommandManager.instance.project.basePath);
       CommandManager.instance = new CommandManager(path);
+      await CommandManager.instance.initialize();
     }
     if (!CommandManager.instance) {
       CommandManager.instance = new CommandManager(path);
+      await CommandManager.instance.initialize();
     }
     return CommandManager.instance;
   }

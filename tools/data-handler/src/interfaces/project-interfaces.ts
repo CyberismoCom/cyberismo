@@ -12,8 +12,6 @@
 
 import { Link, TemplateMetadata } from './resource-interfaces.js';
 
-// @todo: consider splitting this to several smaller files.
-
 // Single card; either in project or in template.
 export interface Card {
   key: string;

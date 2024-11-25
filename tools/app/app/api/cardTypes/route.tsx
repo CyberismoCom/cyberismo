@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('No card type', { status: 400 });
   }
 
-  const commands = CommandManager.getInstance(projectPath);
+  const commands = await CommandManager.getInstance(projectPath);
   const detailsResponse = await commands.showCmd.showCardTypeDetails(cardType);
 
   if (detailsResponse) {

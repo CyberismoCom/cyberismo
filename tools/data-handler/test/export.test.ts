@@ -49,6 +49,7 @@ describe('export command', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    optionsMini.projectPath = minimalPath;
   });
 
   after(() => {
@@ -92,38 +93,32 @@ describe('export command', () => {
     expect(result.message).to.be.equal(undefined);
     expect(result.statusCode).to.equal(200);
   });
-  it('invalid format', async () => {
-    optionsMini.format = 'wrong';
-    optionsMini.output = join(testDirForExport, 'output');
-    const result = await commandHandler.command(Cmd.export, [], optionsMini);
-    expect(result.statusCode).to.equal(400);
-  });
   it('missing project', async () => {
-    optionsMini.format = 'html';
-    optionsMini.output = join(testDirForExport, 'test/output/');
-    optionsMini.projectPath = 'valid/i-do-not-exist';
-    const result = await commandHandler.command(Cmd.export, [], optionsMini);
+    optionsMini.projectPath = join(testDirForExport, 'valid/i-do-not-exist');
+    const output = 'test/output/';
+    const result = await commandHandler.command(
+      Cmd.export,
+      ['html', output],
+      optionsMini,
+    );
     expect(result.statusCode).to.equal(400);
   });
   it('missing parent card', async () => {
-    optionsMini.format = 'html';
-    optionsMini.output = join(testDirForExport, 'test/output/');
-    optionsMini.projectPath = minimalPath;
+    const output = join(testDirForExport, 'test/output/');
     const card = 'decision_999';
     const result = await commandHandler.command(
       Cmd.export,
-      [card],
+      ['html', output, card],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
   it('inaccessible destination', async () => {
-    optionsMini.format = 'html';
-    optionsMini.output = join(testDirForExport, '/i-do-not-exist/output');
+    const output = join(testDirForExport, '/i-do-not-exist/output');
     const card = 'decision_1';
     const result = await commandHandler.command(
       Cmd.export,
-      [card],
+      ['html', output, card],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
