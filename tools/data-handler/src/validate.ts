@@ -49,6 +49,7 @@ const invalidNames = new RegExp(
 import * as EmailValidator from 'email-validator';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
+const subFoldersToValidate = ['.cards', 'cardRoot', '.calc'];
 
 export interface LengthProvider {
   length: number;
@@ -112,6 +113,95 @@ export class Validate {
     return join(file.parentPath, file.name);
   }
 
+  // Validate one subfolder.
+  private async validateFolder(prefixes: string[], path: Dirent) {
+    const messages: string[] = [];
+    const files = await readdir(this.fullPath(path), {
+      withFileTypes: true,
+      recursive: true,
+    });
+    const schemaFiles = files.filter(
+      (dirent) =>
+        dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
+    );
+
+    messages.push(...(await this.validateSchemaFiles(schemaFiles)));
+
+    // no point in validating contents if .schema files are not valid
+    if (messages.length !== 0) {
+      return messages;
+    }
+
+    const schemaConfigs = (
+      await Promise.all(
+        schemaFiles.map(async (dirent) => ({
+          dirent,
+          content: await readJsonFile(this.fullPath(dirent)),
+        })),
+      )
+    ).reduce<Record<string, DotSchemaContent>>((acc, { dirent, content }) => {
+      acc[dirent.parentPath] = content;
+      return acc;
+    }, {});
+
+    // Fetches nearest parent's .schema file.
+    function schemaConfigFile(
+      path: string,
+      schemaConfigs: Record<string, DotSchemaContent>,
+    ) {
+      let schemas = schemaConfigs[path];
+      let parentPath = path;
+      while (!schemas) {
+        parentPath = resolve(parentPath, '..');
+        if (dirname(parentPath) === parentPath) {
+          break;
+        }
+        schemas = schemaConfigs[parentPath];
+      }
+      return schemas;
+    }
+
+    // Go through every file
+    for (const file of files.filter(
+      (dirent) =>
+        dirent.isFile() &&
+        dirent.name !== Validate.schemaConfigurationFile &&
+        extname(dirent.name) === Validate.jsonFileExtension,
+    )) {
+      const fullPath = this.fullPath(file);
+      const content = await readJsonFile(fullPath);
+      const nameErrors = this.checkResourceName(file, content, prefixes);
+
+      if (nameErrors) {
+        messages.push(...nameErrors);
+      }
+      const schemas = schemaConfigFile(file.parentPath, schemaConfigs);
+      // if schema is not defined for the directory, skip it
+      if (!schemas) {
+        continue;
+      }
+      const fileSchema = schemas.find(
+        (schema) =>
+          schema.file === file.name || (schemas.length === 1 && !schema.file),
+      );
+      if (!fileSchema) {
+        continue;
+      }
+
+      const schema = this.validator.schemas[fileSchema.id];
+      if (!schema) {
+        throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
+      }
+
+      const result = this.validator.validate(content, schema);
+      for (const error of result.errors) {
+        const msg = `Validation error from '${fullPath}': ${error.message}.`;
+        messages.push(msg);
+      }
+    }
+    return messages;
+  }
+
   // Handles reading and validating 'contentSchema' in a directory.
   private async readAndValidateContentFiles(
     project: Project,
@@ -119,98 +209,23 @@ export class Validate {
   ): Promise<string[]> {
     const message: string[] = [];
     try {
+      const prefixes = await project.projectPrefixes();
       const files = await readdir(path, {
         withFileTypes: true,
-        recursive: true,
       });
 
-      const schemaFiles = files.filter(
+      const foldersToValidate = files.filter(
         (dirent) =>
-          dirent.isFile() && dirent.name === Validate.schemaConfigurationFile,
+          dirent.isDirectory() && subFoldersToValidate.includes(dirent.name),
       );
 
-      message.push(...(await this.validateSchemaFiles(schemaFiles)));
-
-      // no point in validating contents if .schema files are not valid
-      if (message.length !== 0) {
-        return message;
-      }
-
-      const schemaConfigs = (
-        await Promise.all(
-          schemaFiles.map(async (dirent) => ({
-            dirent,
-            content: await readJsonFile(this.fullPath(dirent)),
-          })),
-        )
-      ).reduce<Record<string, DotSchemaContent>>((acc, { dirent, content }) => {
-        acc[dirent.parentPath] = content;
-        return acc;
-      }, {});
-
-      // Fetches nearest parent's .schema file.
-      function schemaConfigFile(
-        path: string,
-        schemaConfigs: Record<string, DotSchemaContent>,
-      ) {
-        let schemas = schemaConfigs[path];
-        let parentPath = path;
-        while (!schemas) {
-          parentPath = resolve(parentPath, '..');
-          if (dirname(parentPath) === parentPath) {
-            break;
-          }
-          schemas = schemaConfigs[parentPath];
-        }
-        return schemas;
-      }
-
-      const prefixes = await project.projectPrefixes();
-      // Go through every file
-      for (const file of files.filter(
-        (dirent) =>
-          dirent.isFile() &&
-          dirent.name !== Validate.schemaConfigurationFile &&
-          extname(dirent.name) === Validate.jsonFileExtension,
-      )) {
-        const fullPath = this.fullPath(file);
-        const content = await readJsonFile(fullPath);
-        const nameErrors = this.checkResourceName(
-          fullPath,
-          file,
-          content,
-          prefixes,
-        );
-
-        if (nameErrors) {
-          message.push(...nameErrors);
-        }
-        const schemas = schemaConfigFile(file.parentPath, schemaConfigs);
-        // if schema is not defined for the directory, skip it
-        if (!schemas) {
-          continue;
-        }
-        const fileSchema = schemas.find(
-          (schema) =>
-            schema.file === file.name || (schemas.length === 1 && !schema.file),
-        );
-
-        if (!fileSchema) {
-          continue;
-        }
-
-        const schema = this.validator.schemas[fileSchema.id];
-
-        if (!schema) {
-          throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
-        }
-
-        const result = this.validator.validate(content, schema);
-        for (const error of result.errors) {
-          const msg = `Validation error from '${fullPath}': ${error.message}.`;
-          message.push(msg);
-        }
-      }
+      // Validate subfolders parallel.
+      const promises: Promise<string[]>[] = [];
+      foldersToValidate.forEach((folder) => {
+        promises.push(this.validateFolder(prefixes, folder));
+      });
+      const result = await Promise.all(promises);
+      message.push(...result.flat(1));
     } catch (error) {
       throw new Error(errorFunction(error));
     }
@@ -317,7 +332,6 @@ export class Validate {
   // Validates that 'name' in resources matches filename, location and project prefix.
   // @todo: Can be removed when INTDEV-463 is implemented.
   private checkResourceName(
-    fullFileNameWithPath: string,
     file: Dirent,
     content:
       | TemplateMetadata
@@ -332,7 +346,8 @@ export class Validate {
     projectPrefixes: string[],
   ): string[] {
     const errors: string[] = [];
-    // Exclude cardsConfig.json, .schemas and template.json.
+    const fullFileNameWithPath = this.fullPath(file);
+    // Exclude cardsConfig.json, .schemas and resource specific JSON files.
     if (
       file.name !== Validate.projectConfigurationFile &&
       file.name !== Validate.templateMetadataFile &&
