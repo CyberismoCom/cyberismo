@@ -10,21 +10,24 @@
 select(N, Field) :- select(Field), resultLevel(_, N).
 selectAll(N) :- selectAll, resultLevel(_, N).
 
+% the default child result collection is "results"
+childResult(Key, Child, "results") :- childResult(Key, Child).
+
 % resultLevel(key, n): result "key" is on result level n
 resultLevel(Key, 1) :- result(Key).
-resultLevel(Child, N+1) :- childResult(Key, Child), resultLevel(Key, N).
+resultLevel(Child, N+1) :- childResult(Key, Child, _), resultLevel(Key, N).
 
 % result(key): key is a result of the query
 #show result(Key) : result(Key), not queryError.
 
 % childResult(key, child key): child key is a child result of key
-#show childResult(Key, Child) : childResult(Key, Child), not queryError.
+#show childResult(Key, Child, Collection) : childResult(Key, Child, Collection), not queryError.
 
 % helpers for simplifying some of the #show statements
 
 % resultOrChildResult(key): key is included in the results as a result or a child result
 resultOrChildResult(Key) :- result(Key).
-resultOrChildResult(Key) :- childResult(_, Key).
+resultOrChildResult(Key) :- childResult(_, Key, _).
 
 % showAll(key): whether all fields or field-like things of a key should be included in the results
 showAll(Key) :-
@@ -40,13 +43,109 @@ showField(Key, Field) :-
     select(Level, Field),
     not queryError.
 
-% field(key, field, value): "field" of result/child result "key" has value "value"
-#show field(Key, Field, Value) :
+% field(key, field, value, data type, display name):
+% "field" of result/child result "key" has value "value",
+% data type and display name for the field are included
+% a field term like this is returned for all other fields except enum and list
+%
+% field(key, field, value, data type, display name, index):
+% otherwise the same, but for enum and list fields, the enum value index is also returned for ordering
+
+#show field(Key, Field, Value, DataType, DisplayName) :
     field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType != "enum",
+    DataType != "list",
+    displayName(Key, Field, DisplayName),
     showField(Key, Field).
 
-#show field(Key, Field, Value) :
+#show field(Key, Field, Value, DataType, DisplayName, Index) :
     field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "enum",
+    field((Field, Value), "index", Index),
+    displayName(Key, Field, DisplayName),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, DataType, DisplayName, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "list",
+    field((Field, Value), "index", Index),
+    displayName(Key, Field, DisplayName),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, DataType, Field) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType != "enum",
+    DataType != "list",
+    not displayName(Key, Field, _),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, DataType, Field, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "enum",
+    field((Field, Value), "index", Index),
+    not displayName(Key, Field, _),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, DataType, Field, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "list",
+    field((Field, Value), "index", Index),
+    not displayName(Key, Field, _),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, DataType, DisplayName) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType != "enum",
+    DataType != "list",
+    displayName(Key, Field, DisplayName),
+    showAll(Key).
+
+#show field(Key, Field, Value, DataType, DisplayName, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "enum",
+    field((Field, Value), "index", Index),
+    displayName(Key, Field, DisplayName),
+    showAll(Key).
+
+#show field(Key, Field, Value, DataType, DisplayName, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "list",
+    field((Field, Value), "index", Index),
+    displayName(Key, Field, DisplayName),
+    showAll(Key).
+
+#show field(Key, Field, Value, DataType, Field) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType != "enum",
+    DataType != "list",
+    field((Field, Value), "index", Index),
+    not displayName(Key, Field, _),
+    showAll(Key).
+
+#show field(Key, Field, Value, DataType, Field, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "enum",
+    field((Field, Value), "index", Index),
+    not displayName(Key, Field, _),
+    showAll(Key).
+
+#show field(Key, Field, Value, DataType, Field, Index) :
+    field(Key, Field, Value),
+    dataType(Key, Field, DataType),
+    DataType = "list",
+    field((Field, Value), "index", Index),
+    not displayName(Key, Field, _),
     showAll(Key).
 
 % label(key, label): key is tagged with "label"
