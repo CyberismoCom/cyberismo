@@ -42,7 +42,7 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
   return (
     <>
       <Dropdown>
-        <Tooltip title={t('moreTooltip')}>
+        <Tooltip title={t('moreTooltip')} placement="top">
           <MenuButton
             data-cy="contextMenuButton"
             size="sm"

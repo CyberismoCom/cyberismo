@@ -10,6 +10,11 @@
   }
 }
 
+/* Removes selected item highlight which was bugged in Safari and to lesser extent in Chrome too  */
+[role='treeitem'][aria-selected='true'] {
+  outline: none;
+}
+
 .resizeHandle {
   width: 2px;
 }

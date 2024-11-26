@@ -80,7 +80,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
       <CardContextMenu cardKey={cardKey} />
 
       {mode === CardMode.VIEW && (
-        <Tooltip title={t('linkTooltip')}>
+        <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
             size="sm"
