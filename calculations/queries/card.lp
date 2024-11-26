@@ -1,4 +1,3 @@
-
 result({{cardKey}}).
 
 % the second level includes metadata for the always visible and optionally visible fields
@@ -61,6 +60,7 @@ dataType(Field, "value", DataType) :-
     dataType({{cardKey}}, Field, DataType).
 
 field(Field, "value", Value) :-
+    childResult(_, Field, "fields"),
     field({{cardKey}}, Field, Value).
 
 % select only non-custom fields
@@ -103,6 +103,6 @@ childResult(Field, (Field, EnumValue), "enumValues") :-
 field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
 
-order(2, 1, "visibility", "ASC").
-order(2, 2, "index", "ASC").
-order(3, 1, "index", "ASC").
+order(2, "fields", 1, "visibility", "ASC").
+order(2, "fields", 2, "index", "ASC").
+order(3, "enumValues", 1, "index", "ASC").

@@ -43,101 +43,86 @@ showField(Key, Field) :-
     select(Level, Field),
     not queryError.
 
-% field(key, field, value, data type, display name):
+% Fields
+%
+% field(key, field, value, data type):
 % "field" of result/child result "key" has value "value",
-% data type and display name for the field are included
+% data type of the field is included
 % a field term like this is returned for all other fields except enum and list
 %
-% field(key, field, value, data type, display name, index):
-% otherwise the same, but for enum and list fields, the enum value index is also returned for ordering
+% enumField(key, field, value, index, enum display value):
+% listField(key, field, value, index, enum display value):
+% otherwise the same as field, but for enum and list fields,
+% we also need the enum value index and enum display value
 
-#show field(Key, Field, Value, DataType, DisplayName) :
+#show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
     dataType(Key, Field, DataType),
     DataType != "enum",
     DataType != "list",
-    displayName(Key, Field, DisplayName),
     showField(Key, Field).
 
-#show field(Key, Field, Value, "enum", DisplayName, Index) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    field((Field, Value), "index", Index),
-    displayName(Key, Field, DisplayName),
-    showField(Key, Field).
-
-#show field(Key, Field, Value, "list", DisplayName, Index) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    displayName(Key, Field, DisplayName),
-    showField(Key, Field).
-
-#show field(Key, Field, Value, DataType, Field) :
+#show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
     dataType(Key, Field, DataType),
     DataType != "enum",
     DataType != "list",
-    not displayName(Key, Field, _),
-    showField(Key, Field).
+    showAll(Key).
 
-#show field(Key, Field, Value, "enum", Field, Index) :
+#show enumField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
-    not displayName(Key, Field, _),
+    field((Field, Value), "enumDisplayValue", DisplayValue),
     showField(Key, Field).
 
-#show field(Key, Field, Value, "list", Field, Index) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    not displayName(Key, Field, _),
-    showField(Key, Field).
-
-#show field(Key, Field, Value, DataType, DisplayName) :
-    field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType != "enum",
-    DataType != "list",
-    displayName(Key, Field, DisplayName),
-    showAll(Key).
-
-#show field(Key, Field, Value, "enum", DisplayName, Index) :
+#show enumField(Key, Field, Value, Index, Value) :
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
-    displayName(Key, Field, DisplayName),
-    showAll(Key).
+    not field((Field, Value), "enumDisplayValue", _),
+    showField(Key, Field).
 
-#show field(Key, Field, Value, "list", DisplayName, Index) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    displayName(Key, Field, DisplayName),
-    showAll(Key).
-
-#show field(Key, Field, Value, DataType, Field) :
-    field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType != "enum",
-    DataType != "list",
-    field((Field, Value), "index", Index),
-    not displayName(Key, Field, _),
-    showAll(Key).
-
-#show field(Key, Field, Value, "enum", Field, Index) :
+#show enumField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index),
-    not displayName(Key, Field, _),
+    field((Field, Value), "enumDisplayValue", DisplayValue),
     showAll(Key).
 
-#show field(Key, Field, Value, "list", Field, Index) :
+#show enumField(Key, Field, Value, Index, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "enum"),
+    field((Field, Value), "index", Index),
+    not field((Field, Value), "enumDisplayValue", _),
+    showAll(Key).
+
+#show listField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
-    not displayName(Key, Field, _),
+    field((Field, Value), "enumDisplayValue", DisplayValue),
+    showField(Key, Field).
+
+#show listField(Key, Field, Value, Index, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    field((Field, Value), "index", Index),
+    not field((Field, Value), "enumDisplayValue", _),
+    showField(Key, Field).
+
+#show listField(Key, Field, Value, Index, DisplayValue) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    field((Field, Value), "index", Index),
+    field((Field, Value), "enumDisplayValue", DisplayValue),
+    showAll(Key).
+
+#show listField(Key, Field, Value, Index, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    field((Field, Value), "index", Index),
+    not field((Field, Value), "enumDisplayValue", _),
     showAll(Key).
 
 % label(key, label): key is tagged with "label"
@@ -270,58 +255,50 @@ showField(Key, Field) :-
     editingContentDenied(Key, ErrorMessage),
     showAll(Key).
 
-% order(n, 1, field, direction): the results on level n should be first ordered by "field" in "direction"
-% order(n, 2, field, direction): the results on level n should be secondly ordered by "field" in "direction"
+% order(n, collection, 1, field, direction): the results in the collection on level n should be first ordered by "field" in "direction"
+% order(n, collection, 2, field, direction): the results in the collection on level n should be secondly ordered by "field" in "direction"
 % etc.
 % direction must be "ASC" or "DESC".
 
-% orderBy is syntactic sugar for order, as you can order by 1..3 fields with one predicate
+% orderBy is syntactic sugar for order, as you can order by 1..3 fields with one term when using the default collection "results"
 
 % orderBy with an even numer of parameters refers to results on all levels of hierarchy.
-order(N, 1, Field, Direction) :- orderBy(Field, Direction), resultLevel(_, N).
-order(N, 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _), resultLevel(_, N).
-order(N, 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2), resultLevel(_, N).
-order(N, 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _, _, _), resultLevel(_, N).
-order(N, 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2, _, _), resultLevel(_, N).
-order(N, 3, Field3, Direction3) :- orderBy(_, _, _, _, Field3, Direction3), resultLevel(_, N).
+order(N, "results", 1, Field, Direction) :- orderBy(Field, Direction), resultLevel(_, N).
+order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _), resultLevel(_, N).
+order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2), resultLevel(_, N).
+order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _, _, _), resultLevel(_, N).
+order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2, _, _), resultLevel(_, N).
+order(N, "results", 3, Field3, Direction3) :- orderBy(_, _, _, _, Field3, Direction3), resultLevel(_, N).
 
 % orderBy with an odd numer of parameters has the result level as the first parameter
-order(Level, 1, Field, Direction) :- orderBy(Level, Field, Direction).
-order(Level, 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _).
-order(Level, 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2).
-order(Level, 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _, _, _).
-order(Level, 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2, _, _).
-order(Level, 3, Field3, Direction3) :- orderBy(Level, _, _, _, _, Field3, Direction3).
+order(Level, "results", 1, Field, Direction) :- orderBy(Level, Field, Direction).
+order(Level, "results", 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _).
+order(Level, "results", 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2).
+order(Level, "results", 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _, _, _).
+order(Level, "results", 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2, _, _).
+order(Level, "results", 3, Field3, Direction3) :- orderBy(Level, _, _, _, _, Field3, Direction3).
 
-queryError("Invalid direction in ordering:", Level, Index, Field, Direction) :-
-    order(Level, Index, Field, Direction),
+queryError("Invalid direction in ordering:", (Level, Collection, Index, Field, Direction)) :-
+    order(Level, Collection, Index, Field, Direction),
     Direction != "ASC",
     Direction != "DESC".
 
-queryError("Ordering direction missing:", Field) :- orderBy(Field).
+queryError("Ordering direction missing:", (Field)) :- orderBy(Field).
 
-queryError("Conflicting ordering for fields: ", Field1, Field2) :-
-    order(Level, Index, Field1, _),
-    order(Level, Index, Field2, _),
+queryError("Conflicting ordering for fields: ", (Field1, Field2)) :-
+    order(Level, Collection, Index, Field1, _),
+    order(Level, Collection, Index, Field2, _),
     Field1 != Field2.
 
-queryError("Conflicting ordering direction", Field, Direction1, Direction2) :-
-    order(Level, Index, Field, Direction1),
-    order(Level, Index, Field, Direction2),
+queryError("Conflicting ordering direction", (Field, Collection, Direction1, Direction2)) :-
+    order(Level, Collection, Index, Field, Direction1),
+    order(Level, Collection, Index, Field, Direction2),
     Direction1 != Direction2.
 
-queryError :- queryError(_).
 queryError :- queryError(_, _).
-queryError :- queryError(_, _, _).
-queryError :- queryError(_, _, _, _).
-queryError :- queryError(_, _, _, _, _).
 
-#show order(Level, Index, Field, Direction) :
-    order(Level, Index, Field, Direction),
+#show order(Level, Collection, Index, Field, Direction) :
+    order(Level, Collection, Index, Field, Direction),
     not queryError.
 
-#show queryError/1.
 #show queryError/2.
-#show queryError/3.
-#show queryError/4.
-#show queryError/5.
