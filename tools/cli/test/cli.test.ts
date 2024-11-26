@@ -6,9 +6,14 @@ import { exec, execSync } from 'child_process';
 import { log } from 'console';
 import { existsSync, rmSync } from 'fs';
 
+// CI should clone the module-base and cyberismo-docs repositories to these paths
+// Locally run test clone the repositories to these paths in before hook
 const baseModulePath = '../../module-base';
 const docsPath = '../../cyberismo-docs';
+
+// Path for the test project that is created during tests
 const cliPath = '../../cyberismo-cli';
+
 let pageCardKey = '';
 let decisionCardKey = '';
 let newPageCardKey = '';
@@ -30,8 +35,6 @@ describe('Cli BAT test', function () {
     }
   });
   after(() => {
-    rmSync(baseModulePath, { recursive: true, force: true });
-    rmSync(docsPath, { recursive: true, force: true });
     rmSync(cliPath, { recursive: true, force: true });
     return true;
   });

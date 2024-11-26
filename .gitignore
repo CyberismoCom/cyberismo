@@ -9,6 +9,7 @@
 # testing
 **/coverage
 module-base/
+cyberismo-docs/
 
 # next.js
 **/.next/

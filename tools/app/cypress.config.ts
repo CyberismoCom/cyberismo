@@ -11,7 +11,6 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       on('task', {
         deleteTestProject() {
-          rmSync(baseModulePath, { recursive: true, force: true });
           rmSync(batPath, { recursive: true, force: true });
           return true;
         },
