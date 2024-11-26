@@ -74,9 +74,10 @@ export class Rename extends EventEmitter {
     const sortedCards = cards.sort((a, b) => sortCards(a, b));
 
     // Cannot do this parallel, since cards deeper in the hierarchy needs to be renamed first.
-    // First update all the attachments
+    // First update all the attachments and links.
     for (const card of sortedCards) {
       await this.updateCardAttachments(re, card);
+      await this.updateCardLinks(re, card);
     }
     // Then rename the cards
     for (const card of sortedCards) {
@@ -84,8 +85,27 @@ export class Rename extends EventEmitter {
     }
   }
 
+  // Rename card links.
+  private async updateCardLinks(re: RegExp, card: Card) {
+    if (!Project.isTemplateCard(card)) {
+      return;
+    }
+    const links = card.metadata?.links ?? [];
+    let changed = false;
+    links.forEach((link) => {
+      const copyCardKey = link.cardKey.slice(0);
+      const copyLinkType = link.linkType.slice(0);
+      link.cardKey = link.cardKey.replace(re, this.to);
+      link.linkType = link.linkType.replace(re, this.to);
+      changed = copyCardKey !== link.cardKey || copyLinkType !== link.linkType;
+    });
+    if (card.metadata && changed) {
+      this.project.updateCardMetadata(card, card.metadata, true);
+    }
+  }
+
   // Update card's attachments.
-  private async updateCardAttachments(re: RegExp, card: Card): Promise<void> {
+  private async updateCardAttachments(re: RegExp, card: Card) {
     if (!Project.isTemplateCard(card)) {
       const attachments = card.attachments ? card.attachments : [];
       await Promise.all(
@@ -113,7 +133,7 @@ export class Rename extends EventEmitter {
   }
 
   // Update card's metadata.
-  private async updateCardMetadata(card: Card): Promise<void> {
+  private async updateCardMetadata(card: Card) {
     if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
       const { identifier, prefix, type } = resourceNameParts(
         card.metadata.cardType,
