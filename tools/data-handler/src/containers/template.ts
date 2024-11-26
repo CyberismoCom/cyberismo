@@ -39,7 +39,7 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
-import { identifierFromResourceName } from '../utils/resource-utils.js';
+import { resourceNameParts } from '../utils/resource-utils.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -78,7 +78,7 @@ export class Template extends CardContainer {
     this.templatePath =
       template.path && template.path.length > 0
         ? join(template.path, templateName)
-        : this.setTemplatePath(this.containerName);
+        : this.setTemplatePath(template.name);
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
@@ -329,26 +329,27 @@ export class Template extends CardContainer {
 
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
-    const normalizedTemplateName = identifierFromResourceName(templateName);
-    if (normalizedTemplateName === '') {
-      throw new Error(`Invalid template name: '${templateName}'`);
-    }
+    const { prefix, identifier } = resourceNameParts(templateName);
+    const localTemplate = join(this.project.paths.templatesFolder, identifier);
 
     // Template can either be local ...
-    const localTemplate = join(
-      this.project.paths.templatesFolder,
-      normalizedTemplateName,
-    );
-    const createdLocalTemplate = pathExists(resolve(localTemplate));
-    if (createdLocalTemplate) {
-      return resolve(localTemplate);
+    if (prefix === this.project.projectPrefix) {
+      const localTemplate = join(
+        this.project.paths.templatesFolder,
+        identifier,
+      );
+      const createdLocalTemplate = pathExists(resolve(localTemplate));
+      if (createdLocalTemplate) {
+        return resolve(localTemplate);
+      }
     }
 
     // ... or from module ...
-    const createdModuleTemplatePath = this.moduleTemplatePath(templateName);
+    const createdModuleTemplatePath = this.moduleTemplatePath(identifier);
     if (createdModuleTemplatePath !== '') {
       return resolve(createdModuleTemplatePath);
     }
+
     // ... or not created yet; in case assume it will be 'local' (you cannot create templates to modules)
     return resolve(localTemplate);
   }
