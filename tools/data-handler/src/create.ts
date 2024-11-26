@@ -45,9 +45,9 @@ import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 import { fileURLToPath } from 'node:url';
 import { copyDir, pathExists } from './utils/file-utils.js';
 import {
-  identifierFromResourceName,
   isResourceName,
   resourceNameParts,
+  resourceNameToString,
 } from './utils/resource-utils.js';
 import { DefaultContent } from './create-defaults.js';
 
@@ -189,10 +189,7 @@ export class Create extends EventEmitter {
     }
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
-    templateName = identifierFromResourceName(templateName);
-    if (templateName === '') {
-      throw Error(`Template '${origTemplateName}' is invalid template name`);
-    }
+    templateName = resourceNameToString(resourceNameParts(templateName));
     const templateObject = new Template(
       this.project,
       { name: templateName, path: '' }, // Template can deduce its own path
@@ -643,7 +640,9 @@ export class Create extends EventEmitter {
       ? (JSON.parse(templateContent) as TemplateMetadata)
       : DefaultContent.templateContent(templateName);
 
-    validTemplateName = identifierFromResourceName(validTemplateName);
+    validTemplateName = resourceNameToString(
+      resourceNameParts(validTemplateName),
+    );
 
     const validJson = this.validateCmd.validateJson(content, 'templateSchema');
     if (validJson.length !== 0) {

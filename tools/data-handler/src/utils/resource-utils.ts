@@ -8,13 +8,12 @@
 */
 
 import { parse } from 'node:path';
-import { sepRegex } from './file-utils.js';
 
 // Resource name parts are:
 // - prefix; name of the project this resource is part of
 // - type; type of resource; in plural
 // - identifier; unique name (within a project/module) for the resource
-interface ResourceName {
+export interface ResourceName {
   prefix: string;
   type: string;
   identifier: string;
@@ -27,30 +26,10 @@ const IDENTIFIER_INDEX = 2;
 // Valid resource name has three parts
 const RESOURCE_NAME_PARTS = 3;
 
-const LOCAL_RESOURCE = 'local';
-
 // Checks if name is valid (3 parts, separated by '/').
 export function isResourceName(name: string): boolean {
   const partsCount = name.split('/').length;
   return partsCount === RESOURCE_NAME_PARTS;
-}
-
-/**
- * Returns resource name as identifier. In error cases, returns empty resource.
- * @param resourceName Name of the resource.
- * @returns resource name as identifier.
- */
-export function identifierFromResourceName(resourceName: string): string {
-  const parts = resourceName.split(sepRegex);
-  if (parts.length == 0 || parts.length > RESOURCE_NAME_PARTS) {
-    return '';
-  }
-  if (parts.length === RESOURCE_NAME_PARTS) {
-    if (parts[PREFIX_INDEX] === LOCAL_RESOURCE) {
-      return parts[IDENTIFIER_INDEX];
-    }
-  }
-  return resourceName;
 }
 
 /**
@@ -79,4 +58,36 @@ export function resourceNameParts(resourceName: string): ResourceName {
   }
   // other formats are not accepted
   throw new Error(`Name '${resourceName}' is not valid resource name`);
+}
+
+/**
+ * Returns ResourceName as a single string.
+ * @param resourceName ResourceName to convert.
+ * @returns resource name as a single string.
+ * @note that valid resource names are: empty string, identifier alone and prefix/type/identifier combination.
+ */
+export function resourceNameToString(resourceName: ResourceName): string {
+  if (!resourceName.prefix && !resourceName.type && !resourceName.identifier) {
+    return '';
+  }
+  if (resourceName.identifier === '') {
+    throw new Error(`Not a valid resource name. Identifier is missing.`);
+  }
+  if (
+    resourceName.prefix &&
+    resourceName.identifier &&
+    resourceName.type === ''
+  ) {
+    throw new Error(`Not a valid resource name. Type is missing.`);
+  }
+  if (
+    resourceName.prefix === '' &&
+    resourceName.identifier &&
+    resourceName.type
+  ) {
+    throw new Error(`Not a valid resource name. Prefix is missing.`);
+  }
+  return resourceName.prefix && resourceName.type && resourceName.prefix
+    ? `${resourceName.prefix}/${resourceName.type}/${resourceName.identifier}`
+    : `${resourceName.identifier}`;
 }
