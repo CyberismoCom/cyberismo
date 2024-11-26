@@ -122,14 +122,17 @@ export interface ProjectSettings {
 }
 
 // Resources that are possible to remove.
-// todo: add possibility to remove calculations, card types, field types, workflows and reports
 export type RemovableResourceTypes =
   | 'attachment'
   | 'card'
+  | 'cardType'
+  | 'fieldType'
   | 'link'
   | 'linkType'
   | 'module'
-  | 'template';
+  | 'report'
+  | 'template'
+  | 'workflow';
 
 // Project resource, such as workflow, template or card type as file system object.
 export interface Resource {
@@ -155,19 +158,15 @@ export type ResourceTypes =
   | 'calculation'
   | 'calculations'
   | 'cards'
-  | 'cardType'
   | 'cardTypes'
-  | 'fieldType'
   | 'fieldTypes'
   | 'links'
   | 'linkTypes'
   | 'modules'
   | 'project'
   | 'projects'
-  | 'report'
   | 'reports'
   | 'templates'
-  | 'workflow'
   | 'workflows';
 
 // Template configuration details.

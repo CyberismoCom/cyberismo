@@ -94,6 +94,40 @@
                             }
                           ]
                         },
+                        "fieldTypes": {
+                          "type": "object",
+                          "allOf": [
+                            {
+                              "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                                  "contentSchema": "cardTypeSchema.json"
+                                }
+                              }
+                            },
+                            {
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    ".schema": {},
+                                    ".gitkeep": {}
+                                  },
+                                  "required": [".schema"]
+                                }
+                              }
+                            }
+                          ]
+                        },
                         "linkTypes": {
                           "type": "object",
                           "allOf": [
@@ -128,39 +162,45 @@
                             }
                           ]
                         },
-                        "fieldTypes": {
+                        "reports": {
                           "type": "object",
-                          "allOf": [
-                            {
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "cardTypeSchema.json"
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
+                          "properties": {
+                            "additionalProperties": false,
+                            "directories": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                ".+": {
                                   "type": "object",
                                   "properties": {
-                                    ".schema": {},
-                                    ".gitkeep": {}
-                                  },
-                                  "required": [".schema"]
+                                    "files": {
+                                      "type": "object",
+                                      "properties": {
+                                        "index.adoc.hbs": {
+                                          "type": "object"
+                                        },
+                                        "query.lp.hbs": {
+                                          "type": "object"
+                                        },
+                                        "report.json": {
+                                          "type": "object",
+                                          "contentSchema": "reportSchema.json"
+                                        },
+                                        "parametersSchema.json": {
+                                          "type": "object"
+                                        }
+                                      },
+                                      "required": [
+                                        "index.adoc.hbs",
+                                        "query.lp.hbs",
+                                        "report.json"
+                                      ]
+                                    }
+                                  }
                                 }
                               }
                             }
-                          ]
+                          }
                         },
                         "templates": {
                           "type": "object",
@@ -259,46 +299,6 @@
                               }
                             }
                           ]
-                        },
-                        "reports": {
-                          "type": "object",
-                          "properties": {
-                            "additionalProperties": false,
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                ".+": {
-                                  "type": "object",
-                                  "properties": {
-                                    "files": {
-                                      "type": "object",
-                                      "properties": {
-                                        "index.adoc.hbs": {
-                                          "type": "object"
-                                        },
-                                        "query.lp.hbs": {
-                                          "type": "object"
-                                        },
-                                        "report.json": {
-                                          "type": "object",
-                                          "contentSchema": "reportSchema.json"
-                                        },
-                                        "parametersSchema.json": {
-                                          "type": "object"
-                                        }
-                                      },
-                                      "required": [
-                                        "index.adoc.hbs",
-                                        "query.lp.hbs",
-                                        "report.json"
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
                         }
                       }
                     }

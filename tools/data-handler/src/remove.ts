@@ -12,13 +12,19 @@
 
 // node
 import { EventEmitter } from 'node:events';
-import { basename, join, sep } from 'node:path';
+import { join, sep } from 'node:path';
 
+import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { RemovableResourceTypes } from './interfaces/project-interfaces.js';
-import { ActionGuard } from './permissions/action-guard.js';
+import {
+  RemovableResourceTypes,
+  Resource,
+} from './interfaces/project-interfaces.js';
+import { resourceNameParts } from './utils/resource-utils.js';
+
+const MODULES_PATH = `${sep}modules${sep}`;
 
 export class Remove extends EventEmitter {
   constructor(
@@ -26,6 +32,94 @@ export class Remove extends EventEmitter {
     private calculateCmd: Calculate,
   ) {
     super();
+  }
+
+  // True, if resource is based on a single JSON file.
+  private fileBasedResource(type: RemovableResourceTypes): boolean {
+    return (
+      type === 'cardType' ||
+      type === 'fieldType' ||
+      type === 'linkType' ||
+      type === 'workflow'
+    );
+  }
+  // True, if resource is based on a content of folder with multiple files.
+  private folderBasedResource(type: RemovableResourceTypes): boolean {
+    return type === 'report' || type === 'template';
+  }
+
+  // Remove file based resource (card type, field type, ...)
+  private async deleteFileResource(resourceName: string) {
+    if (!resourceName.endsWith('.json')) {
+      resourceName += '.json';
+    }
+    const { identifier, type } = resourceNameParts(resourceName);
+    let resources: Resource[];
+    let resourceFolder: string = '';
+    if (type === 'cardTypes') {
+      resourceFolder = this.project.paths.cardTypesFolder;
+      resources = await this.project.cardTypes();
+    } else if (type == 'fieldTypes') {
+      resourceFolder = this.project.paths.fieldTypesFolder;
+      resources = await this.project.fieldTypes();
+    } else if (type == 'linkTypes') {
+      resourceFolder = this.project.paths.linkTypesFolder;
+      resources = await this.project.linkTypes();
+    } else if (type == 'workflows') {
+      resourceFolder = this.project.paths.workflowsFolder;
+      resources = await this.project.workflows();
+    } else {
+      resources = [];
+    }
+    const resource = resources.filter((item) => item.name === resourceName)[0];
+    if (!resource || !resource.path) {
+      throw new Error(
+        `Resource '${resourceName}' does not exist in the project`,
+      );
+    }
+    if (resource.path?.includes(MODULES_PATH)) {
+      throw new Error(`Cannot modify imported module`);
+    }
+
+    const resourceFile = join(resourceFolder, identifier + '.json');
+    const deleted = await deleteFile(resourceFile);
+    if (!deleted) {
+      throw new Error(`Cannot delete file ${resourceFile}`);
+    }
+
+    this.project.removeResource(resource);
+  }
+
+  // Remove folder-based resource (template, report, ...).
+  private async deleteFolderResource(resourceName: string) {
+    const { type } = resourceNameParts(resourceName);
+    let resources: Resource[];
+    if (type === 'templates') {
+      resources = await this.project.templates();
+    } else if (type === 'reports') {
+      resources = await this.project.reports();
+    } else {
+      resources = [];
+    }
+    const resource = resources.filter((item) => item.name === resourceName)[0];
+
+    if (!resource || !resource.path) {
+      throw new Error(
+        `Resource '${resourceName}' does not exist in the project`,
+      );
+    }
+
+    const resourcePath = join(
+      resource.path,
+      resourceNameParts(resource.name).identifier,
+    );
+
+    if (resourcePath.includes(MODULES_PATH)) {
+      throw new Error(`Cannot modify imported module`);
+    }
+
+    await deleteDir(resourcePath);
+    this.project.removeResource(resource);
   }
 
   // Removes attachment from template or project card
@@ -40,7 +134,7 @@ export class Remove extends EventEmitter {
     }
 
     // Imported templates cannot be modified.
-    if (attachmentFolder.includes(`${sep}modules${sep}`)) {
+    if (attachmentFolder.includes(MODULES_PATH)) {
       throw new Error(`Cannot modify imported module`);
     }
 
@@ -59,7 +153,7 @@ export class Remove extends EventEmitter {
     }
 
     // Imported templates cannot be modified.
-    if (cardFolder.includes(`${sep}modules${sep}`)) {
+    if (cardFolder.includes(MODULES_PATH)) {
       throw new Error(`Cannot modify imported module`);
     }
 
@@ -98,13 +192,7 @@ export class Remove extends EventEmitter {
     }
   }
 
-  /**
-   * Removes link from project.
-   * @param sourceCardKey Source card id
-   * @param destinationCardKey Destination card id
-   * @param linkType Optional. Link type name. If missing, will remove all links between two cards.
-   * @param linkDescription Optional. Link description
-   */
+  // Removes link from project.
   private async removeLink(
     sourceCardKey: string,
     destinationCardKey: string,
@@ -142,19 +230,6 @@ export class Remove extends EventEmitter {
     await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
   }
 
-  /**
-   * Removes link type from project.
-   * @param linkTypeName Link type name
-   */
-  private async removeLinkType(linkTypeName: string) {
-    const path = await this.project.linkTypePath(linkTypeName);
-    if (!path) {
-      throw new Error(`Link type '${linkTypeName}' not found`);
-    }
-    await deleteFile(path);
-    this.project.removeResource({ name: linkTypeName, path: path });
-  }
-
   // Removes modules from project
   private async removeModule(moduleName: string) {
     const module = await this.project.modulePath(moduleName);
@@ -165,32 +240,14 @@ export class Remove extends EventEmitter {
     await this.project.collectModuleResources();
   }
 
-  // Removes template from project
-  private async removeTemplate(templateName: string) {
-    const template = await this.project.template(templateName);
-    if (!template || !template.path) {
-      throw new Error(
-        `Template '${templateName}' does not exist in the project`,
-      );
-    }
-
-    // Remove module|project from Template path
-    const templatePath = join(template.path, basename(template.name));
-
-    // Imported templates cannot be modified.
-    if (templatePath.includes(`${sep}modules${sep}`)) {
-      throw new Error(`Cannot modify imported module`);
-    }
-
-    await deleteDir(templatePath);
-    this.project.removeResource(template);
-  }
-
   /**
-   * Removes either attachment, card or template from project.
+   * Removes either attachment, card, imported module, link or resource from project.
    * @param type Type of resource
-   * @param targetName Card id, or template name
-   * @param rest Additional arguments, such as attachment filename
+   * @param targetName Card id, resource name, or other identifying item
+   * @param rest Additional arguments
+   * @note removing attachment requires card id and attachment filename
+   * @note removing link requires card ids of source card, and optionally link type and link description
+   *
    */
   public async remove(
     type: RemovableResourceTypes,
@@ -213,21 +270,19 @@ export class Remove extends EventEmitter {
         `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
       );
     }
-    switch (type) {
-      case 'attachment':
+    if (this.fileBasedResource(type)) {
+      return this.deleteFileResource(targetName);
+    } else if (this.folderBasedResource(type)) {
+      return this.deleteFolderResource(targetName);
+    } else {
+      // Something else than resources...
+      if (type == 'attachment')
         return this.removeAttachment(targetName, rest[0]);
-      case 'card':
-        return this.removeCard(targetName);
-      case 'link':
+      else if (type == 'card') return this.removeCard(targetName);
+      else if (type == 'link')
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
-      case 'linkType':
-        return this.removeLinkType(targetName);
-      case 'module':
-        return this.removeModule(targetName);
-      case 'template':
-        return this.removeTemplate(targetName);
-      default:
-        throw new Error(`Invalid type '${type}'`);
+      else if (type == 'module') return this.removeModule(targetName);
     }
+    throw new Error(`Unknown resource type '${type}'`);
   }
 }

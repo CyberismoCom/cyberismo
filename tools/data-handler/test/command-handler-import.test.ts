@@ -232,8 +232,20 @@ describe('import module', () => {
   });
 
   describe('modifying imported module content is forbidden', () => {
+    beforeEach(async () => {
+      await commandHandler.command(
+        Cmd.import,
+        ['module', minimalPath],
+        options,
+      );
+      await commandHandler.command(
+        Cmd.import,
+        ['module', decisionRecordsPath],
+        optionsMini,
+      );
+    });
     it('try to add card to module template', async () => {
-      const templateName = 'minimal';
+      const templateName = 'mini/templates/test-template';
       const cardType = 'decision/cardTypes/decision';
       const cardKey = '';
       const result = await commandHandler.command(
@@ -241,12 +253,10 @@ describe('import module', () => {
         [templateName, cardType, cardKey],
         options,
       );
-      // todo: the reason why this fails is due to a bug where templates with names without module
-      //       name are the same (one local, one imported)
       expect(result.statusCode).to.equal(400);
     });
     it('try to add child card to a module card', async () => {
-      const templateName = 'decision';
+      const templateName = 'decision/templates/decision';
       const cardType = 'decision/cardTypes/decision';
       const cardKey = 'decision_2';
       // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
@@ -255,11 +265,8 @@ describe('import module', () => {
         [templateName, cardType, cardKey],
         optionsMini,
       );
-      // todo: the reason why this fails is due to a bug where templates with names without module
-      //       name are the same (one local, one imported)
       expect(result.statusCode).to.equal(400);
     });
-
     it('try to create attachment to a module card', async () => {
       const attachmentPath = join(testDir, 'attachments/the-needle.heic');
       const cardKey = 'decision_2';
@@ -272,10 +279,11 @@ describe('import module', () => {
     });
 
     it('try to move a module card to another template', async () => {
-      const cardKey = 'decision_2';
+      const moduleCardKey = 'decision_2';
+      const templateCardKey = 'decision_1';
       const result = await commandHandler.command(
         Cmd.move,
-        ['attachment', cardKey, 'root'],
+        [templateCardKey, moduleCardKey, 'root'],
         optionsMini,
       );
       expect(result.statusCode).to.equal(400);
@@ -289,11 +297,47 @@ describe('import module', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
+    it('try to remove cardType from a module', async () => {
+      const cardType = 'decision/cardTypes/decision';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['cardType', cardType],
+        optionsMini,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try to remove fieldType from a module', async () => {
+      const fieldType = 'decision/fieldTypes/finished';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['fieldType', fieldType],
+        optionsMini,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try to remove report from a module', async () => {
+      const report = 'decision/reports/testReport';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['report', report],
+        optionsMini,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
     it('try to remove template from a module', async () => {
       const template = 'decision/templates/decision';
       const result = await commandHandler.command(
         Cmd.remove,
         ['template', template],
+        optionsMini,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try to remove workflow from a module', async () => {
+      const workflow = 'decision/workflows/decision';
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['workflow', workflow],
         optionsMini,
       );
       expect(result.statusCode).to.equal(400);
