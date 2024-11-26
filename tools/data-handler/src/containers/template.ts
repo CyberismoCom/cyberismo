@@ -480,7 +480,7 @@ export class Template extends CardContainer {
   /**
    * Creates a new template to a project.
    * todo: it would make more sense if Project would have this function
-   * @returns operation details
+   * @returns message text with details of creating; or empty string when template was already created.
    */
   public async create(templateContent: TemplateMetadata): Promise<string> {
     const isCreated = this.isCreated();
