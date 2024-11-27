@@ -41,7 +41,9 @@ describe('rename command', () => {
 
   it('rename project (success)', async () => {
     const newName = 'decrec';
-    const result = await commandHandler.command(Cmd.rename, [newName], options);
+    let result = await commandHandler.command(Cmd.rename, [newName], options);
+    expect(result.statusCode).to.equal(200);
+    result = await commandHandler.command(Cmd.validate, [], options);
     expect(result.statusCode).to.equal(200);
   });
   it('rename project - no cards at all (success)', async () => {
