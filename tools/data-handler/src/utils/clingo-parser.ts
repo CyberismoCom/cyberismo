@@ -130,7 +130,7 @@ class ClingoParser {
           break;
         case 'date':
         case 'dateTime':
-          res[fieldName] = new Date(parseInt(decoded)).toISOString();
+          res[fieldName] = new Date(parseInt(decoded) * 1000).toISOString();
           break;
         case 'number':
           res[fieldName] = parseFloat(decoded);

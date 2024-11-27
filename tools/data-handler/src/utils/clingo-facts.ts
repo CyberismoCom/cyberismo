@@ -143,7 +143,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
             .addArguments(
               field,
               fieldType && ['datetime', 'date'].includes(fieldType.dataType)
-                ? new Date(value as string).getTime()
+                ? Math.floor(new Date(value as string).getTime() / 1000)
                 : value.toString(),
             ),
         );
