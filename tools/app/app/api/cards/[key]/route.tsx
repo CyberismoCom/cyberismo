@@ -27,20 +27,16 @@ export const dynamic = 'force-dynamic';
  * @swagger
  * /api/cards/{key}:
  *   get:
- *     summary: Returns the full content of a specific card.
- *     description: The key parameter is the unique identifier ("cardKey") of the card. The response includes the metadata and the content of the card.
+ *     summary: Returns the full content of a specific card including calculations.
+ *     description: The key parameter is the unique identifier ("cardKey") of the card. The response includes the content as asciidoc(editable) and parsed html, which also has macros already injected
  *     parameters:
  *       - name: key
  *         in: path
  *         required: true
  *         description: Card key (string)
- *       - name: contentType
- *         in: query
- *         required: false
- *         description: Content type of the card. Must be adoc or html. Defaults to adoc if not included.
  *     responses:
  *       200:
- *         description: Object containing card details. See definitions.ts/CardDetails for the structure.
+ *         description: Object containing card details. See lib/api/types.ts/CardResponse for the structure.
  *       400:
  *        description: No search key or card not found with given key, or invalid contentType.
  *       500:
