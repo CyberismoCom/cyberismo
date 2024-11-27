@@ -137,15 +137,14 @@ export class Project extends CardContainer {
     }
   }
 
-  /**
-   * This function should be called after card is updated.
-   * Updates lastUpdated metadata key.
-   */
-  private async onCardUpdate(cardKey: string) {
+  // This function should be called after card is updated.
+  // Updates lastUpdated metadata key.
+  private async onCardUpdate(cardKey: string, skipValidation: boolean = false) {
     return this.updateMetadataKey(
       cardKey,
       'lastUpdated',
       new Date().toISOString(),
+      skipValidation,
     );
   }
 
@@ -170,12 +169,14 @@ export class Project extends CardContainer {
    * @param cardKey card that is updated.
    * @param changedKey changed metadata key
    * @param newValue changed value for the key
+   * @param skipValidation Optional, if set to true, new card content is not validated.
    * @returns true if metadata key was updated, false otherwise.
    */
   private async updateMetadataKey(
     cardKey: string,
     changedKey: string,
     newValue: MetadataContent,
+    skipValidation: boolean = false,
   ) {
     const card = await this.findCard(this.basePath, cardKey, {
       metadata: true,
@@ -190,11 +191,12 @@ export class Project extends CardContainer {
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     cardAsRecord[changedKey] = newValue;
 
-    const validCard = Project.isTemplateCard(card)
-      ? ''
-      : await this.validateCard(card);
-    if (validCard.length !== 0) {
-      throw new Error(validCard);
+    const invalidCard =
+      Project.isTemplateCard(card) || skipValidation
+        ? ''
+        : await this.validateCard(card);
+    if (invalidCard.length !== 0) {
+      throw new Error(invalidCard);
     }
 
     await this.saveCardMetadata(card);
@@ -1023,15 +1025,20 @@ export class Project extends CardContainer {
    * Update card content.
    * @param cardKey card's ID that is updated.
    * @param content changed content
+   * @param skipValidation Optional, if set to true, new card content is not validated.
    */
-  public async updateCardContent(cardKey: string, content: string) {
+  public async updateCardContent(
+    cardKey: string,
+    content: string,
+    skipValidation: boolean = false,
+  ) {
     const card = await this.findCard(this.basePath, cardKey);
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
     card.content = content;
     await this.saveCard(card);
-    await this.onCardUpdate(cardKey);
+    await this.onCardUpdate(cardKey, skipValidation);
   }
 
   /**
