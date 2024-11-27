@@ -206,14 +206,18 @@ describe('Navigation', () => {
     cy.get('.MuiAutocomplete-option').contains('Untitled page').click(); // Select Untitled page
     cy.get('button').contains('Add link').click(); // Click add link button
 
-    cy.wait(1000);
     cy.get('[data-cy="cardLinkType"]').contains('blocks');
     cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
 
     cy.get(':nth-child(5) > :nth-child(2)').should('not.exist'); // checks 2nd link was not created
 
-    cy.get('[data-cy="cardLink"]').click(); // Click created card link
-    cy.wait(1000);
+    // Navigate to Untitled page to check if link has appeared there
+    // Use cy.visit because otherwise timing issues with loading content can occur
+    cy.get('[data-cy="cardLink"]')
+      .invoke('attr', 'href')
+      .then((href) => {
+        cy.visit(href!);
+      });
 
     // Verifies link exists in Untitled page
     cy.get('h1').contains('Untitled page');
