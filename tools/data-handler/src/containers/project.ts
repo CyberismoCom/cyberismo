@@ -11,7 +11,7 @@
 */
 
 // node
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import {
@@ -854,6 +854,44 @@ export class Project extends CardContainer {
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     return this.resources.resources('reports', from);
+  }
+
+  /**
+   * Returns handlebar files from reports.
+   * @param from Defines where report handlebar files are collected from.
+   * @returns handlebar files from reports.
+   */
+  public async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
+    // Helper; fetch one location's all '.hbs'-files.
+    async function readReportFolder(path: string) {
+      return (
+        await readdir(path, {
+          withFileTypes: true,
+          recursive: true,
+        })
+      )
+        .filter((dirent) => {
+          return dirent.isFile() && extname(dirent.name) === '.hbs';
+        })
+        .map((item) => join(item.parentPath, item.name));
+    }
+
+    const reportHandleBarFiles: string[] = [];
+    if (from === ResourcesFrom.localOnly || from === ResourcesFrom.all) {
+      reportHandleBarFiles.push(
+        ...(await readReportFolder(this.paths.reportsFolder)),
+      );
+    }
+    if (from === ResourcesFrom.importedOnly || from === ResourcesFrom.all) {
+      const modules = await this.modules();
+      for (const module of modules) {
+        const moduleReportFolder = join(module.path, module.name, 'reports');
+        reportHandleBarFiles.push(
+          ...(await readReportFolder(moduleReportFolder)),
+        );
+      }
+    }
+    return reportHandleBarFiles;
   }
 
   /**

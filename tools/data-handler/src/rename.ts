@@ -100,9 +100,9 @@ export class Rename extends EventEmitter {
             join(attachment.path, newAttachmentFileName),
           );
 
-          const contentRe = new RegExp(`image::${attachment.fileName}`, 'g');
+          const attachmentRe = new RegExp(`image::${attachment.fileName}`, 'g');
           card.content = card.content?.replace(
-            contentRe,
+            attachmentRe,
             `image::${newAttachmentFileName}`,
           );
           if (card.content) {
@@ -259,6 +259,19 @@ export class Rename extends EventEmitter {
     }
   }
 
+  // Rename project prefix references in the handlebar .hbs files.
+  private async updateReports() {
+    const handleBarFiles = await this.project.reportHandlerBarFiles(
+      ResourcesFrom.localOnly,
+    );
+    const fromRe = new RegExp(`${this.from}/`, 'g');
+    for (const handleBarFile of handleBarFiles) {
+      let content = (await readFile(handleBarFile)).toString();
+      content = content.replace(fromRe, `${this.to}/`);
+      await writeFile(handleBarFile, content);
+    }
+  }
+
   // Rename workflows.
   // todo: once 'name' is dropped; can be removed.
   private async updateWorkflowMetadata(workflowName: string) {
@@ -326,6 +339,8 @@ export class Rename extends EventEmitter {
     for (const linkType of linkTypes) {
       await this.updateLinkTypeMetadata(linkType.name);
     }
+
+    await this.updateReports();
 
     // Rename resource usage in all calculation files.
     const calculations = await this.project.calculations(
