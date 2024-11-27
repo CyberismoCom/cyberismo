@@ -62,19 +62,8 @@ test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async
   expect(response.body).not.toBe(null);
 });
 
-test('invalid contentType returns error', async () => {
-  const request = new NextRequest(
-    'http://localhost:3000/api/cards/decision_5?contentType=bogus',
-  );
-  const response = await GET_CARD(request);
-  expect(response).not.toBe(null);
-  expect(response.status).toBe(400);
-});
-
 test('invalid card key returns error', async () => {
-  const request = new NextRequest(
-    'http://localhost:3000/api/cards/bogus?contentType=adoc',
-  );
+  const request = new NextRequest('http://localhost:3000/api/cards/bogus');
   const response = await GET_CARD(request);
   expect(response).not.toBe(null);
   expect(response.status).toBe(400);

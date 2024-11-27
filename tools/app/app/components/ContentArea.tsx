@@ -495,7 +495,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     setContentRef(node);
   }, []);
 
-  const htmlContent = card.parsed || '';
+  const htmlContent = card.parsedContent || '';
 
   const combinedMacros = Object.entries(macroMetadata).reduce<
     (MacroMetadata & { component: (props: any) => ReactElement })[]

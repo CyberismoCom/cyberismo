@@ -23,8 +23,8 @@ import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { SWRResponse } from 'swr';
 
 export type CardResponse = {
-  parsed: string;
-  content: string;
+  parsedContent: string;
+  rawContent: string;
   attachments: CardAttachment[];
 } & QueryResult<'card'>;
 
