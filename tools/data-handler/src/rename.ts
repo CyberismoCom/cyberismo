@@ -13,7 +13,7 @@
 // node
 import { assert } from 'node:console';
 import { EventEmitter } from 'node:events';
-import { basename, join } from 'node:path';
+import { basename, join, sep } from 'node:path';
 import { rename, readFile, writeFile } from 'node:fs/promises';
 
 import { Calculate } from './calculate.js';
@@ -85,25 +85,6 @@ export class Rename extends EventEmitter {
     }
   }
 
-  // Rename card links.
-  private async updateCardLinks(re: RegExp, card: Card) {
-    if (!Project.isTemplateCard(card)) {
-      return;
-    }
-    const links = card.metadata?.links ?? [];
-    let changed = false;
-    links.forEach((link) => {
-      const copyCardKey = link.cardKey.slice(0);
-      const copyLinkType = link.linkType.slice(0);
-      link.cardKey = link.cardKey.replace(re, this.to);
-      link.linkType = link.linkType.replace(re, this.to);
-      changed = copyCardKey !== link.cardKey || copyLinkType !== link.linkType;
-    });
-    if (card.metadata && changed) {
-      this.project.updateCardMetadata(card, card.metadata, true);
-    }
-  }
-
   // Update card's attachments.
   private async updateCardAttachments(re: RegExp, card: Card) {
     if (!Project.isTemplateCard(card)) {
@@ -129,6 +110,26 @@ export class Rename extends EventEmitter {
           }
         }),
       );
+    }
+  }
+
+  // Rename card links.
+  private async updateCardLinks(re: RegExp, card: Card) {
+    const links = card.metadata?.links ?? [];
+    let changed = false;
+    // Ensure that modules are not updated.
+    if (card.path.includes(`${sep}modules${sep}`)) {
+      return;
+    }
+    links.forEach((link) => {
+      const copyCardKey = link.cardKey.slice(0);
+      const copyLinkType = link.linkType.slice(0);
+      link.cardKey = link.cardKey.replace(re, this.to);
+      link.linkType = link.linkType.replace(re, this.to);
+      changed = copyCardKey !== link.cardKey || copyLinkType !== link.linkType;
+    });
+    if (card.metadata && changed) {
+      this.project.updateCardMetadata(card, card.metadata, true);
     }
   }
 
