@@ -47,13 +47,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: CyberismoCom/module-base
-        path: module-base
+        path: .tmp/module-base
         ref: main
     - name: Checkout cyberismo-docs repository for testing purposes
       uses: actions/checkout@v4
       with:
         repository: CyberismoCom/cyberismo-docs
-        path: cyberismo-docs
+        path: .tmp/cyberismo-docs
         ref: main
     - run: pnpm install
     - run: pnpm --filter=app exec cypress install

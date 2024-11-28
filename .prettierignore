@@ -1,6 +1,7 @@
 # Build artifacts
 .next/
 .turbo/
+.tmp/
 _next/
 __tmp__/
 dist/
@@ -8,7 +9,6 @@ node_modules/
 target/
 compiled/
 examples/
-cyberismo-docs/
 **/test-data/
 .github/
 *.hbs
