@@ -288,7 +288,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const [parsed, setParsed] = useState<string>('');
 
   useEffect(() => {
-    setContent(card?.content || '');
+    setContent(card?.rawContent || '');
   }, [card]);
 
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         ...card,
         ...metadata,
         title: __title__ ?? card.title,
-        content: getContent() ?? card.content,
+        content: getContent() ?? card.rawContent,
         parsed,
       }
     : null;
@@ -330,7 +330,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     const content = getContent();
 
     if (
-      content === card.content &&
+      content === card.rawContent &&
       __title__ === card.title &&
       Object.keys(metadata).every((key) => card?.[key] === metadata[key])
     ) {
@@ -361,7 +361,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
     let lineNum: number | null = null;
 
-    const doc = asciiDoctor.load(card?.content || '');
+    const doc = asciiDoctor.load(card?.rawContent || '');
 
     const section = findSection(doc, lastTitle);
     if (!section) return;

@@ -48,7 +48,7 @@ test('/api/cards/decision_5 returns a card object', async () => {
   const result: CardResponse = await response.json();
   expect(response.status).toBe(200);
   expect(result.title).toBe('Decision Records');
-  expect(result.content).not.toBe(null);
+  expect(result.rawContent).not.toBe(null);
 });
 
 test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
