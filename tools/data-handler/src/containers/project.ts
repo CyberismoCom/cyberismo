@@ -286,6 +286,67 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Splits card path to parts. Returns the parts.
+   * Returned parts are: prefix, card key, array of parents and template name. Template name is returned only for template cards.
+   * @param cardPath path to a card
+   * @returns card path logical parts
+   */
+  public cardPathParts(cardPath: string) {
+    const pathParts = cardPath.split(sep);
+    const cardKey = pathParts.at(pathParts.length - 1);
+    const parents = [];
+    let prefix = this.projectPrefix;
+    let template = '';
+    let startIndex = -1;
+    let templatesNameIndex = -1;
+
+    const cardRootIndex = pathParts.indexOf('cardRoot');
+    const projectInternalsIndex = pathParts.indexOf('.cards');
+
+    if (projectInternalsIndex === -1 && cardRootIndex >= 0) {
+      startIndex = projectInternalsIndex;
+    } else if (projectInternalsIndex >= 0 && cardRootIndex === -1) {
+      const templatesIndex = pathParts.indexOf('templates');
+      startIndex = templatesIndex;
+      if (templatesIndex === -1) {
+        throw new Error(
+          `Invalid card path. Template card must have 'templates' in path`,
+        );
+      }
+      const modulesIndex = pathParts.indexOf('modules');
+      if (modulesIndex !== -1) {
+        prefix = pathParts.at(modulesIndex + 1) || '';
+      }
+      templatesNameIndex = templatesIndex + 1;
+      template = `${prefix}/templates/${pathParts.at(templatesNameIndex)}`;
+    } else {
+      throw new Error(`Card must be either project card, or template card`);
+    }
+
+    // Look for parents in the path.
+    let previousWasParent = false;
+    for (let index = startIndex; index <= pathParts.length; index++) {
+      if (previousWasParent) {
+        previousWasParent = false;
+        parents.push(pathParts.at(index - 2));
+      }
+      const cardsSubFolder = pathParts.at(index) === 'c';
+      const ignoreOrNotTemplatesParent =
+        index - 1 !== templatesNameIndex || templatesNameIndex === -1;
+      if (cardsSubFolder && ignoreOrNotTemplatesParent) {
+        previousWasParent = true;
+      }
+    }
+
+    return {
+      cardKey: cardKey,
+      parents: parents,
+      prefix: prefix,
+      template: template,
+    };
+  }
+
+  /**
    * Returns an array of all the cards in the project. Cards have content and metadata
    * @param path Optional path from which to fetch the cards. Generally it is best to fetch from Project root, e.g. Project.cardRootFolder
    * @param details Which details to include in the cards; by default only "content" and "metadata" are included.
@@ -418,6 +479,21 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Creates a Template object from template Card. It is ensured that the template is part of project.
+   * @param card Card that is part of some template.
+   * @returns Template object, or undefined if card is not part of template.
+   */
+  public async createTemplateObjectFromCard(
+    card: Card,
+  ): Promise<Template | undefined> {
+    if (!card || !card.path || !Project.isTemplateCard(card)) {
+      return undefined;
+    }
+    const { template } = this.cardPathParts(card.path);
+    return this.createTemplateObjectByName(template);
+  }
+
+  /**
    * Returns specific fieldType metadata.
    * @param fieldTypeName Name of the fileType
    * @param from Defines where resources are collected from.
@@ -466,32 +542,47 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific card.
-   * @param cardKey Card key to find
+   * It is also possible to change current card details if you provide card and different details.
+   * @param cardToFind Card key to find, or Card object
    * @param details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
   public async findSpecificCard(
-    cardKey: string,
+    cardToFind: string | Card,
     details: FetchCardDetails = {},
   ): Promise<Card | undefined> {
     const projectCard = await super.findCard(
       this.paths.cardRootFolder,
-      cardKey,
+      cardToFind as string,
       details,
     );
     let templateCard;
     if (!projectCard) {
-      const templates = await this.templates();
-      for (const template of templates) {
-        const templateObject = await this.createTemplateObject(template);
-        // optimize: execute each find in template parallel
+      let templateObject;
+
+      if (typeof cardToFind == 'object') {
+        templateObject = await this.createTemplateObjectFromCard(
+          cardToFind as Card,
+        );
         if (templateObject) {
           templateCard = await templateObject.findSpecificCard(
-            cardKey,
+            cardToFind.key,
             details,
           );
-          if (templateCard) {
-            break;
+        }
+      } else {
+        const templates = await this.templates();
+        for (const template of templates) {
+          templateObject = await this.createTemplateObject(template);
+          // optimize: execute each find in template parallel
+          if (templateObject) {
+            templateCard = await templateObject.findSpecificCard(
+              cardToFind as string,
+              details,
+            );
+            if (templateCard) {
+              break;
+            }
           }
         }
       }
