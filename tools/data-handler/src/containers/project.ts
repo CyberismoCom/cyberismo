@@ -11,7 +11,7 @@
 */
 
 // node
-import { basename, dirname, join, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { readdir, readFile } from 'node:fs/promises';
 
 import {
@@ -137,15 +137,14 @@ export class Project extends CardContainer {
     }
   }
 
-  /**
-   * This function should be called after card is updated.
-   * Updates lastUpdated metadata key.
-   */
-  private async onCardUpdate(cardKey: string) {
+  // This function should be called after card is updated.
+  // Updates lastUpdated metadata key.
+  private async onCardUpdate(cardKey: string, skipValidation: boolean = false) {
     return this.updateMetadataKey(
       cardKey,
       'lastUpdated',
       new Date().toISOString(),
+      skipValidation,
     );
   }
 
@@ -170,12 +169,14 @@ export class Project extends CardContainer {
    * @param cardKey card that is updated.
    * @param changedKey changed metadata key
    * @param newValue changed value for the key
+   * @param skipValidation Optional, if set to true, new card content is not validated.
    * @returns true if metadata key was updated, false otherwise.
    */
   private async updateMetadataKey(
     cardKey: string,
     changedKey: string,
     newValue: MetadataContent,
+    skipValidation: boolean = false,
   ) {
     const card = await this.findCard(this.basePath, cardKey, {
       metadata: true,
@@ -190,11 +191,12 @@ export class Project extends CardContainer {
     const cardAsRecord: Record<string, MetadataContent> = card.metadata;
     cardAsRecord[changedKey] = newValue;
 
-    const validCard = Project.isTemplateCard(card)
-      ? ''
-      : await this.validateCard(card);
-    if (validCard.length !== 0) {
-      throw new Error(validCard);
+    const invalidCard =
+      Project.isTemplateCard(card) || skipValidation
+        ? ''
+        : await this.validateCard(card);
+    if (invalidCard.length !== 0) {
+      throw new Error(invalidCard);
     }
 
     await this.saveCardMetadata(card);
@@ -948,6 +950,47 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns handlebar files from reports.
+   * @param from Defines where report handlebar files are collected from.
+   * @returns handlebar files from reports.
+   */
+  public async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
+    // Helper; fetch one location's all '.hbs'-files.
+    async function readReportFolder(path: string) {
+      if (!pathExists(path)) {
+        return [];
+      }
+      return (
+        await readdir(path, {
+          withFileTypes: true,
+          recursive: true,
+        })
+      )
+        .filter((dirent) => {
+          return dirent.isFile() && extname(dirent.name) === '.hbs';
+        })
+        .map((item) => join(item.parentPath, item.name));
+    }
+
+    const reportHandleBarFiles: string[] = [];
+    if (from === ResourcesFrom.localOnly || from === ResourcesFrom.all) {
+      reportHandleBarFiles.push(
+        ...(await readReportFolder(this.paths.reportsFolder)),
+      );
+    }
+    if (from === ResourcesFrom.importedOnly || from === ResourcesFrom.all) {
+      const modules = await this.modules();
+      for (const module of modules) {
+        const moduleReportFolder = join(module.path, module.name, 'reports');
+        reportHandleBarFiles.push(
+          ...(await readReportFolder(moduleReportFolder)),
+        );
+      }
+    }
+    return reportHandleBarFiles;
+  }
+
+  /**
    * Removes a resource from Project.
    * @param resource Resource to remove.
    */
@@ -1076,15 +1119,20 @@ export class Project extends CardContainer {
    * Update card content.
    * @param cardKey card's ID that is updated.
    * @param content changed content
+   * @param skipValidation Optional, if set to true, new card content is not validated.
    */
-  public async updateCardContent(cardKey: string, content: string) {
+  public async updateCardContent(
+    cardKey: string,
+    content: string,
+    skipValidation: boolean = false,
+  ) {
     const card = await this.findCard(this.basePath, cardKey);
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
     card.content = content;
     await this.saveCard(card);
-    await this.onCardUpdate(cardKey);
+    await this.onCardUpdate(cardKey, skipValidation);
   }
 
   /**

@@ -279,7 +279,7 @@ describe('project', () => {
     const cardTypeDetails = await project.cardType('i-dont-exist');
     expect(cardTypeDetails).to.equal(undefined);
   });
-  it('update metadata (success)', async () => {
+  it('update card metadata (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
@@ -308,7 +308,7 @@ describe('project', () => {
       await project.updateCardMetadataKey(card?.key, 'title', previousTitle);
     }
   });
-  it('try to update metadata with same content again', async () => {
+  it('try to update card metadata with same content again', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
@@ -331,6 +331,61 @@ describe('project', () => {
       expect(previousTitle).to.equal(updatedCard?.metadata?.title);
       expect(previouslyUpdated).to.equal(updatedCard?.metadata?.lastUpdated);
       expect(updatedCard?.metadata?.title).to.equal(newTitle);
+    }
+  });
+  it('try to update card with invalid metadata', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = new Project(decisionRecordsPath);
+    const card = await project.cardDetailsById(cardToOperateOn, {
+      metadata: true,
+      content: true,
+    });
+    expect(card).to.not.equal(undefined);
+
+    if (card) {
+      // Trying to update wrong kind of data throws
+      await project
+        .updateCardMetadataKey(card?.key, 'workflowState', 'wrong-name')
+        .then(() => expect(false))
+        .catch(() => expect(true));
+    }
+  });
+  it('update card content (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = new Project(decisionRecordsPath);
+    const card = await project.cardDetailsById(cardToOperateOn, {
+      metadata: true,
+      content: true,
+    });
+    expect(card).to.not.equal(undefined);
+
+    if (card) {
+      const previousContent = card.content;
+      card.content += '\naddition';
+      await project.updateCardContent(card.key, card.content!);
+      expect(card.content).not.to.equal(previousContent);
+    }
+  });
+  it('update card content and validate (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = new Project(decisionRecordsPath);
+    const card = await project.cardDetailsById(cardToOperateOn, {
+      metadata: true,
+      content: true,
+    });
+    expect(card).to.not.equal(undefined);
+
+    if (card) {
+      const previousContent = card.content;
+      card.content += '\naddition';
+      await project.updateCardContent(card.key, card.content!, true);
+      expect(card.content).not.to.equal(previousContent);
     }
   });
 
@@ -611,6 +666,18 @@ describe('project', () => {
     } catch (error) {
       expect(true);
     }
+  });
+  it('collect all report handlebar files', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const miniRecordsPath = join(testDir, `valid${sep}minimal`);
+    const projectDecision = new Project(decisionRecordsPath);
+    const miniDecision = new Project(miniRecordsPath);
+    let files = await projectDecision.reportHandlerBarFiles();
+    // There are two handlebar files in the test project
+    expect(files.length).to.equal(2);
+    files = await miniDecision.reportHandlerBarFiles();
+    // There are no handlebar files in the minimal report
+    expect(files.length).to.equal(0);
   });
 
   // @todo: tests needed:
