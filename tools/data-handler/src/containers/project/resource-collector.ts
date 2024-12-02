@@ -68,6 +68,9 @@ export class ResourceCollector {
           resource.name,
           requestedType,
         );
+        if (!pathExists(resourcePath)) {
+          continue;
+        }
         const files = await readdir(resourcePath, { withFileTypes: true });
         const filteredFiles = filteredDirectories
           ? files.filter((item) => item.isDirectory())
