@@ -58,10 +58,14 @@ export class ResourceCollector {
     requestedType: string, // should be a type
   ): Promise<Resource[]> {
     const collectedResources: Resource[] = [];
-    const filteredDirectories = requestedType === 'templates' ? true : false;
+    const filteredDirectories =
+      requestedType === 'templates' || requestedType === 'reports'
+        ? true
+        : false;
     for (const resource of resources) {
       if (requestedType === 'modules') {
         collectedResources.push(...resources);
+        break;
       } else {
         const resourcePath = join(
           this.paths.modulesFolder,
