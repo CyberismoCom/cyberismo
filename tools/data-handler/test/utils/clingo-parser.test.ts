@@ -16,8 +16,8 @@ const fieldTypeTests = [
   ['longText', 'test2', 'test2'],
   ['enum', 'test3', 'test3'],
   ['person', 'test3@cyberismo.com', 'test3@cyberismo.com'],
-  ['date', new Date(100).getTime(), new Date(100).toISOString()],
-  ['dateTime', new Date(100).getTime(), new Date(100).toISOString()],
+  ['date', new Date(100).getTime(), new Date(100 * 1000).toISOString()],
+  ['dateTime', new Date(100).getTime(), new Date(100 * 1000).toISOString()],
   ['number', '4324.432', 4324.432],
   ['integer', '3242', 3242],
   ['boolean', 'true', true],
@@ -30,10 +30,6 @@ describe('ClingoParser', () => {
   let project: Project;
   beforeEach(() => {
     project = {
-      linkType: () =>
-        Promise.resolve({
-          outboundDisplayName: 'testing',
-        }),
       fieldType: () =>
         Promise.resolve({
           dataType: 'longText',
@@ -129,26 +125,31 @@ describe('ClingoParser', () => {
 
   it('should parse link correctly', async () => {
     const input =
-      'result("key1")\nlink("key1", "cardKey", "linkType", "linkDescription")';
+      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "linkDescription")';
     const result = await parser.parseInput(input);
     expect(result.results[0].links).to.have.lengthOf(1);
     expect(result.results[0].links[0]).to.deep.equal({
       key: 'cardKey',
       linkType: 'linkType',
-      displayName: 'testing',
+      title: 'title',
+      displayName: 'displayName',
       linkDescription: 'linkDescription',
+      direction: 'inbound',
     });
   });
 
   it('should parse link without linkDescription correctly', async () => {
-    const input = 'result("key1")\nlink("key1", "cardKey", "linkType")';
+    const input =
+      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound")';
     const result = await parser.parseInput(input);
     expect(result.results[0].links).to.have.lengthOf(1);
     expect(result.results[0].links[0]).to.deep.equal({
       key: 'cardKey',
       linkType: 'linkType',
-      displayName: 'testing',
+      title: 'title',
+      displayName: 'displayName',
       linkDescription: undefined,
+      direction: 'inbound',
     });
   });
 

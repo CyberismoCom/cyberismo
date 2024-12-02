@@ -222,7 +222,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             </Button>
             <Box flexGrow={1} />
             <Typography>
-              {t('createUnder', { parent: card?.metadata?.title || 'root' })}
+              {t('createUnder', { parent: card?.title || 'root' })}
             </Typography>
           </DialogActions>
         </DialogContent>

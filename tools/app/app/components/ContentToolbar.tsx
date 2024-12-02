@@ -18,10 +18,10 @@ import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
 import { CardMode, WorkflowTransition } from '../lib/definitions';
 import StatusSelector from './StateSelector';
 import CardContextMenu from './CardContextMenu';
-import { findWorkflowForCard } from '../lib/utils';
+import { findWorkflowForCardType } from '../lib/utils';
 import { useAppRouter } from '../lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { useCard, useProject } from '../lib/api';
+import { useCard, useProject, useTree } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
 import { addNotification } from '../lib/slices/notifications';
 import { InsertLink } from '@mui/icons-material';
@@ -45,15 +45,15 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   const { t } = useTranslation();
 
   const { project } = useProject();
+  const { tree } = useTree();
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
 
   const dispatch = useAppDispatch();
 
-  const workflow = findWorkflowForCard(card, project);
+  const workflow =
+    project && card ? findWorkflowForCardType(card.cardType, project) : null;
   const currentState =
-    workflow?.states.find(
-      (state) => state.name == card?.metadata?.workflowState,
-    ) ?? null;
+    workflow?.states.find((state) => state.name == card?.workflowState) ?? null;
 
   const onStateTransition = useCallback(
     async (transition: WorkflowTransition) => {
@@ -74,7 +74,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
-        <ProjectBreadcrumbs selectedCard={card} project={project} />
+        <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
       </Box>
 
       <CardContextMenu cardKey={cardKey} />

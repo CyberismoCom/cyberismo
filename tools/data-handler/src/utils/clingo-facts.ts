@@ -143,7 +143,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
             .addArguments(
               field,
               fieldType && ['datetime', 'date'].includes(fieldType.dataType)
-                ? new Date(value as string).getTime()
+                ? Math.floor(new Date(value as string).getTime() / 1000)
                 : value.toString(),
             ),
         );
@@ -252,7 +252,6 @@ export const createCardTypeFacts = (cardType: CardType) => {
     if (customField.displayName) {
       builder.addCustomFact(Facts.Common.FIELD, (b) =>
         b.addArgument(keyTuple).addArguments(
-          customField.name,
           'displayName',
           customField.displayName as string, // not sure why type check doesn't get this
         ),
@@ -262,7 +261,7 @@ export const createCardTypeFacts = (cardType: CardType) => {
     builder.addCustomFact(Facts.Common.FIELD, (b) =>
       b
         .addArgument(keyTuple)
-        .addArguments(customField.name, 'isEditable', customField.isEditable),
+        .addArguments('isEditable', customField.isEditable),
     );
 
     let visible = false;

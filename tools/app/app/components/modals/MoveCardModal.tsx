@@ -31,19 +31,19 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useCard, useProject } from '../../lib/api';
-import { useAppSelector, useMoveableCards } from '../../lib/hooks';
+import { useAppSelector } from '../../lib/hooks';
 import {
   deepCopy,
   filterCards,
-  findCard,
   findParentCard,
+  getMoveableCards,
 } from '../../lib/utils';
-import { Card } from '../../lib/definitions';
 import moment from 'moment';
 import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { useTree } from '@/app/lib/api/tree';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 export interface MoveCardModalProps {
   open: boolean;
@@ -97,38 +97,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     }
   }, [selected, updateCard, t, onClose, dispatch]);
 
-  const moveableCards = useMoveableCards(cardKey);
-
-  const moveableTree = useMemo(() => {
-    return filterCards(deepCopy(tree) || [], (card) => {
-      return moveableCards.some(
-        (moveableCard) => moveableCard.key === card.key,
-      );
-    });
-  }, [tree, moveableCards]);
-
-  const recentCards = useMemo(
-    () =>
-      recents
-        .filter((page) => moveableCards.some((card) => card.key === page.key))
-        .map((page) => ({
-          ...(findCard(moveableCards, page.key) as Card),
-          timestamp: page.timestamp,
-        })),
-    [recents, moveableCards],
-  );
-
   useEffect(() => {
     setSelected(null);
   }, [open, currentTab]);
-
-  const searchableCards = useMemo(() => {
-    if (currentTab === TabEnum.RECENTS) {
-      return recentCards;
-    } else {
-      return moveableCards;
-    }
-  }, [currentTab, recentCards, moveableCards]);
 
   if (isLoading || !tree || !project || isLoadingProject) {
     return (
@@ -137,6 +108,30 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
       </Box>
     );
   }
+
+  const moveableCards = getMoveableCards(tree, cardKey);
+
+  const moveableTree = filterCards(deepCopy(tree) || [], (card) => {
+    return moveableCards.some((moveableCard) => moveableCard.key === card.key);
+  });
+
+  const recentCards: (QueryResult<'tree'> & {
+    timestamp: string;
+  })[] = [];
+
+  recents.forEach((page) => {
+    const card = moveableCards.find((card) => card.key === page.key);
+    if (!card) return;
+
+    recentCards.push({
+      ...card,
+      timestamp: page.timestamp,
+    });
+  });
+
+  const searchableCards =
+    currentTab === TabEnum.RECENTS ? recentCards : moveableCards;
+
   return (
     <Modal open={open} onClose={onClose}>
       <ModalDialog
@@ -175,9 +170,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                     page, // if search gets any more complex, use a better solution
                   ) =>
                     page.key.startsWith(search.toLowerCase()) ||
-                    page.metadata?.title
-                      ?.toLowerCase()
-                      .startsWith(search.toLowerCase()),
+                    page.title.toLowerCase().startsWith(search.toLowerCase()),
                 )
                 .map((page) => {
                   return (
@@ -203,12 +196,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                     >
                       <Stack direction="row" justifyContent="space-between">
                         <Stack>
-                          <Typography level="title-sm">
-                            {page.metadata?.title}
-                          </Typography>
+                          <Typography level="title-sm">{page.title}</Typography>
                           <Typography level="body-sm">
-                            {findParentCard(project.cards || [], page.key)
-                              ?.metadata?.title ?? '-'}
+                            {findParentCard(tree || [], page.key)?.title ?? '-'}
                           </Typography>
                         </Stack>
                         <Typography
@@ -280,11 +270,11 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                         <Stack direction="row" justifyContent="space-between">
                           <Stack>
                             <Typography level="title-sm">
-                              {page.metadata?.title}
+                              {page.title}
                             </Typography>
                             <Typography level="body-sm">
-                              {findParentCard(project?.cards || [], page.key)
-                                ?.metadata?.title ?? '-'}
+                              {findParentCard(tree || [], page.key)?.title ??
+                                '-'}
                               {' • '}
                               {t('viewedAgo', {
                                 time: moment

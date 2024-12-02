@@ -16,7 +16,6 @@ import { callApi, apiPaths } from '../swr';
 import { SWRConfiguration, mutate } from 'swr';
 import { CardUpdate } from './types';
 import { CardDetails, Project } from '../definitions';
-import { deleteCard as deleteCardHelper, deepCopy } from '../utils';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
@@ -63,8 +62,6 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
             linkDescription,
           ).then(() => {
             mutate(apiPaths.card(key));
-            mutate(apiPaths.project());
-            mutate(apiPaths.tree());
           }),
         ))) ||
       null,
@@ -78,8 +75,6 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         (await callUpdate(() =>
           removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
             mutate(apiPaths.card(fromCard));
-            mutate(apiPaths.project());
-            mutate(apiPaths.tree());
           }),
         ))) ||
       null,
@@ -93,7 +88,6 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   // revalidation not needed since api returns the updated card
   mutate(swrKey, result, false);
 
-  mutate(apiPaths.project());
   mutate(apiPaths.tree());
 }
 
@@ -103,18 +97,6 @@ export async function deleteCard(key: string) {
 
   mutate(swrKey, undefined, false);
 
-  mutate(
-    apiPaths.project(),
-    (project: Project | undefined) => {
-      if (!project) return project;
-
-      return {
-        ...project,
-        cards: deleteCardHelper(deepCopy(project.cards), key),
-      };
-    },
-    false,
-  );
   mutate(apiPaths.tree());
 }
 
@@ -127,7 +109,6 @@ export async function createCard(
   });
 
   // revalidate whole project
-  mutate(apiPaths.project());
   mutate(apiPaths.tree());
 
   return result;

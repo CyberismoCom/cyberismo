@@ -12,14 +12,14 @@
 
 'use client';
 import React from 'react';
-import { CardDetails, Project } from '../lib/definitions';
 import { Breadcrumbs, Link, styled } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import { findPathTo } from '../lib/utils';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 type ProjectBreadcrumbsProps = {
-  selectedCard: CardDetails | null;
-  project: Project | null;
+  cardKey: string;
+  tree: QueryResult<'tree'>[] | null;
 };
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
@@ -29,13 +29,12 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
 `;
 
 export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
-  selectedCard,
-  project,
+  cardKey,
+  tree,
 }) => {
-  if (selectedCard == null || project == null || project.cards == null)
-    return <div></div>;
+  if (tree == null) return <div></div>;
 
-  const pathComponents = findPathTo(selectedCard.key, project.cards);
+  const pathComponents = findPathTo(cardKey, tree);
   if (pathComponents == null) return <div></div>;
 
   return (
@@ -53,7 +52,7 @@ export const ProjectBreadcrumbs: React.FC<ProjectBreadcrumbsProps> = ({
           }}
         >
           {index == 0 && <HomeIcon sx={{ mr: 0.7 }} fontSize="inherit" />}
-          {node.metadata?.title ?? node.key}
+          {node.title ?? node.key}
         </Link>
       ))}
     </StyledBreadcrumbs>

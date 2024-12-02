@@ -111,7 +111,7 @@ class ClingoParser {
           return (res[fieldName] = parseFloat(fieldValue));
         }
         if (fieldType === Boolean) {
-          return;
+          return (res[fieldName] = fieldValue === 'true');
         }
       }
       const fieldType = await this.project.fieldType(
@@ -130,13 +130,13 @@ class ClingoParser {
           break;
         case 'date':
         case 'dateTime':
-          res[fieldName] = new Date(parseInt(decoded)).toISOString();
+          res[fieldName] = new Date(parseInt(decoded, 10) * 1000).toISOString();
           break;
         case 'number':
           res[fieldName] = parseFloat(decoded);
           break;
         case 'integer':
-          res[fieldName] = parseInt(decoded);
+          res[fieldName] = parseInt(decoded, 10);
           break;
         case 'boolean':
           res[fieldName] = fieldValue === 'true';
@@ -150,24 +150,23 @@ class ClingoParser {
       const res = this.getOrInitResult(key);
       res.labels.push(label);
     },
-    link: async (
-      key: string,
-      cardKey: string,
+    link: (
+      key: string, // key is the card itself
+      cardKey: string, // cardKey is otherCard this is being linked to
+      title: string,
       linkType: string,
+      displayName: string,
+      direction: 'inbound' | 'outbound',
       linkDescription?: string,
     ) => {
       const res = this.getOrInitResult(key);
-
-      const linkTypeObj = await this.project.linkType(linkType);
-      if (!linkTypeObj) {
-        throw new Error(`Link type '${linkType}' not found`);
-      }
-      const displayName = linkTypeObj.outboundDisplayName;
       res.links.push({
         key: cardKey,
         linkType,
         displayName,
         linkDescription,
+        direction,
+        title,
       });
     },
     transitionDenied: (

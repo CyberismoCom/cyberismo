@@ -11,13 +11,8 @@
 */
 
 import { useMemo } from 'react';
-import { useProject } from '../api';
-import {
-  countChildren,
-  findCard,
-  flattenTree,
-  getMoveableCards,
-} from '../utils';
+import { useTree } from '../api';
+import { countChildren, findCard, getMoveableCards } from '../utils';
 
 /**
  * Helper for getting a list of cards from a project
@@ -25,11 +20,11 @@ import {
  *
  */
 export function useListCard(key: string) {
-  const { project } = useProject();
+  const { tree } = useTree();
 
   const listCard = useMemo(() => {
-    return project ? findCard(project.cards, key) : null;
-  }, [project, key]);
+    return tree ? findCard(tree, key) : null;
+  }, [tree, key]);
 
   return listCard;
 }
@@ -39,23 +34,18 @@ export function useListCard(key: string) {
  * @returns
  */
 export function useChildAmount(key: string) {
-  const listCard = useListCard(key);
+  const { tree } = useTree();
 
   const childAmount = useMemo(() => {
-    return listCard ? countChildren(listCard) : 0;
-  }, [listCard]);
+    if (!tree) {
+      return 0;
+    }
+    const card = findCard(tree, key);
+
+    return card ? countChildren(card) : 0;
+  }, [tree, key]);
 
   return childAmount;
-}
-
-export function useFlatCards() {
-  const { project } = useProject();
-
-  const flatCards = useMemo(() => {
-    return project ? flattenTree(project.cards) : [];
-  }, [project]);
-
-  return flatCards;
 }
 
 /**
@@ -64,12 +54,12 @@ export function useFlatCards() {
  * @returns A list of cards that the given card can be moved to
  */
 export function useMoveableCards(key: string) {
-  const flatCards = useFlatCards();
-  const listCard = useListCard(key);
+  const { tree } = useTree();
 
-  const moveableCards = useMemo(() => {
-    return listCard ? getMoveableCards(flatCards, listCard) : [];
-  }, [flatCards, listCard]);
+  const moveableCards = useMemo(
+    () => (tree ? getMoveableCards(tree, key) : null),
+    [tree, key],
+  );
 
   return moveableCards;
 }

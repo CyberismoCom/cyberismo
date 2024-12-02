@@ -12,10 +12,11 @@
 
 import { Stack, Typography } from '@mui/joy';
 import React from 'react';
-import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
+import { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
+import { EnumDefinition } from '@cyberismocom/data-handler/types/queries';
 
 export type EditableFieldProps = {
   value: MetadataValue;
@@ -23,7 +24,7 @@ export type EditableFieldProps = {
   label: string;
   onChange?: (value: string | null) => void;
   edit: boolean;
-  enumValues?: Array<EnumDefinition>;
+  enumValues?: EnumDefinition[];
 };
 
 const EditableField = ({

@@ -27,22 +27,18 @@ export const dynamic = 'force-dynamic';
  * @swagger
  * /api/cards/{key}:
  *   get:
- *     summary: Returns the full content of a specific card.
- *     description: The key parameter is the unique identifier ("cardKey") of the card. The response includes the metadata and the content of the card.
+ *     summary: Returns the full content of a specific card including calculations.
+ *     description: The key parameter is the unique identifier ("cardKey") of the card. The response includes the content as asciidoc(editable) and parsed html, which also has macros already injected
  *     parameters:
  *       - name: key
  *         in: path
  *         required: true
  *         description: Card key (string)
- *       - name: contentType
- *         in: query
- *         required: false
- *         description: Content type of the card. Must be adoc or html. Defaults to adoc if not included.
  *     responses:
  *       200:
- *         description: Object containing card details. See definitions.ts/CardDetails for the structure.
+ *         description: Object containing card details. See lib/api/types.ts/CardResponse for the structure.
  *       400:
- *        description: No search key or card not found with given key, or invalid contentType.
+ *        description: No search key or card not found with given key
  *       500:
  *         description: project_path not set.
  *   put:
@@ -53,10 +49,6 @@ export const dynamic = 'force-dynamic';
  *         in: path
  *         required: true
  *         description: Card key (string)
- *       - name: contentType
- *         in: query
- *         required: false
- *         description: Content type of the card. Must be adoc or html. Defaults to adoc if not included.
  *       - name: content
  *         in: body
  *         required: false
@@ -104,10 +96,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('No search key', { status: 400 });
   }
 
-  // contentType defaults to adoc if not set
-  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
-
-  return await getCardDetails(projectPath, key, contentType);
+  return await getCardDetails(projectPath, key);
 }
 
 export async function PATCH(request: NextRequest) {
@@ -177,15 +166,12 @@ export async function PATCH(request: NextRequest) {
   }
 
   // TODO add other update options here
-
-  // contentType defaults to adoc if not set
-  const contentType = request.nextUrl.searchParams.get('contentType') ?? 'adoc';
   if (errors.length > 0) {
     // All updates failed
     return new NextResponse(errors.join('\n'), { status: 400 });
   }
 
-  const details = await getCardDetails(projectPath, key, contentType);
+  const details = await getCardDetails(projectPath, key);
 
   return details;
 }
@@ -193,20 +179,13 @@ export async function PATCH(request: NextRequest) {
 async function getCardDetails(
   projectPath: string,
   key: string,
-  contentType: string,
 ): Promise<NextResponse> {
-  if (contentType !== 'adoc' && contentType !== 'html') {
-    return new NextResponse('contentType must be adoc or html', {
-      status: 400,
-    });
-  }
-
   const fetchCardDetails: FetchCardDetails = {
     attachments: true,
     children: false,
     content: true,
-    contentType: contentType,
-    metadata: true,
+    contentType: 'adoc',
+    metadata: false,
     parent: false,
   };
 
@@ -240,11 +219,25 @@ async function getCardDetails(
       })
       .toString();
 
+    // always parse for now
+    await commands.calculateCmd.generate();
+
+    const card = await commands.calculateCmd.runQuery('card', {
+      cardKey: key,
+    });
+
+    if (card.length !== 1) {
+      return new NextResponse(`Query failed. Check card-query syntax`, {
+        status: 500,
+      });
+    }
+
     if (cardDetailsResponse) {
       return NextResponse.json({
-        ...cardDetailsResponse,
-        content: cardDetailsResponse.content || '',
-        parsed: htmlContent,
+        ...card[0],
+        rawContent: cardDetailsResponse.content || '',
+        parsedContent: htmlContent,
+        attachments: cardDetailsResponse.attachments,
       });
     } else {
       return new NextResponse(`Card ${key} not found from project`, {

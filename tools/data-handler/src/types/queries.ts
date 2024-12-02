@@ -14,13 +14,19 @@
  * Types for query result
  */
 
-import { WorkflowCategory } from '../interfaces/resource-interfaces.js';
+import { MetadataContent } from '../interfaces/project-interfaces.js';
+import {
+  DataType,
+  WorkflowCategory,
+} from '../interfaces/resource-interfaces.js';
 
 export interface CalculationLink {
+  displayName: string;
   key: string;
   linkType: string;
-  displayName: string;
+  title: string; // title of the other card
   linkDescription?: string;
+  direction: 'inbound' | 'outbound';
 }
 
 export interface Notification {
@@ -79,6 +85,7 @@ interface TreeQueryResult extends BaseResult {
   'base/fieldTypes/progress'?: string;
   rank: string;
   title: string;
+  cardType: string;
   workflowStateCategory?: WorkflowCategory;
   results: TreeQueryResult[];
 }
@@ -87,7 +94,26 @@ interface CardQueryResult extends BaseResult {
   'base/fieldTypes/progress'?: string;
   rank: string;
   title: string;
+  cardType: string;
   workflowState: string;
   lastUpdated: string;
-  results: [];
+  results: CardQueryField[];
+}
+
+interface CardQueryField extends BaseResult {
+  visibility: 'always' | 'optional';
+  index: number;
+  fieldDisplayName: string;
+  fieldDescription: string;
+  dataType: DataType;
+  isEditable: boolean;
+  value: MetadataContent;
+  results: EnumDefinition[];
+}
+
+export interface EnumDefinition extends BaseResult {
+  index: number;
+  enumDisplayValue: string;
+  enumDescription: string;
+  enumValue: string;
 }

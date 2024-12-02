@@ -61,36 +61,52 @@ showField(Key, Field) :-
 
 % links
 
-#show link(Source, Destination, LinkType, LinkDescription) :
+#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
+    field(Destination, "title", DestinationTitle),
+    field(LinkType, "outboundDisplayName", OutboundDisplayName),
     showField(Source, "links").
 
-#show link(Source, Destination, LinkType, LinkDescription) :
+#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
+    field(Source, "title", SourceTitle),
+    field(LinkType, "inboundDisplayName", InboundDisplayName),
     showField(Destination, "links").
 
-#show link(Source, Destination, LinkType, LinkDescription) :
+#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
+    field(Destination, "title", DestinationTitle),
+    field(LinkType, "outboundDisplayName", OutboundDisplayName),
     showAll(Source).
 
-#show link(Source, Destination, LinkType, LinkDescription) :
+#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", LinkDescription) :
     link(Source, Destination, LinkType, LinkDescription),
+    field(Source, "title", SourceTitle),
+    field(LinkType, "inboundDisplayName", InboundDisplayName),
     showAll(Destination).
 
-#show link(Source, Destination, LinkType) :
+#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound") :
     link(Source, Destination, LinkType),
+    field(Destination, "title", DestinationTitle),
+    field(LinkType, "outboundDisplayName", OutboundDisplayName),
     showField(Source, "links").
 
-#show link(Source, Destination, LinkType) :
+#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound") :
     link(Source, Destination, LinkType),
+    field(Source, "title", SourceTitle),
+    field(LinkType, "inboundDisplayName", InboundDisplayName),
     showField(Destination, "links").
 
-#show link(Source, Destination, LinkType) :
+#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound") :
     link(Source, Destination, LinkType),
+    field(Destination, "title", DestinationTitle),
+    field(LinkType, "outboundDisplayName", OutboundDisplayName),
     showAll(Source).
 
-#show link(Source, Destination, LinkType) :
+#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound") :
     link(Source, Destination, LinkType),
+    field(Source, "title", SourceTitle),
+    field(LinkType, "inboundDisplayName", InboundDisplayName),
     showAll(Destination).
 
 % notifications

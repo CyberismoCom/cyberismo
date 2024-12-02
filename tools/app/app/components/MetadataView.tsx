@@ -10,8 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { useCardType, useFieldTypes } from '../lib/api';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
@@ -21,14 +20,9 @@ import {
   useForm,
   useFormContext,
 } from 'react-hook-form';
-import {
-  CardMetadata,
-  CustomField,
-  DataType,
-  FieldType,
-  MetadataValue,
-} from '../lib/definitions';
+import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
+import { CardResponse } from '../lib/api/types';
 
 interface FieldItemProps {
   expanded?: boolean;
@@ -83,24 +77,18 @@ function FieldItem({
 export interface MetadataViewProps {
   initialExpanded?: boolean;
   editMode?: boolean;
-  metadata?: CardMetadata;
+  card: CardResponse;
   onClick?: () => void;
-  cardKey: string;
 }
 
 function MetadataView({
   initialExpanded,
   editMode,
-  metadata,
-  cardKey,
+  card,
   onClick,
 }: MetadataViewProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(initialExpanded);
-
-  const { cardType } = useCardType(metadata?.cardType ?? null);
-
-  const { fieldTypes } = useFieldTypes();
 
   const context = useFormContext(); // must be inside a <FormProvider>
 
@@ -137,35 +125,6 @@ function MetadataView({
     [],
   );
 
-  const editableFields = useMemo(() => {
-    if (!cardType) {
-      return [];
-    }
-    return (
-      cardType.customFields
-        ?.filter((f: CustomField) => f.isEditable)
-        .map((f: CustomField) => f.name) ?? []
-    );
-  }, [cardType]);
-
-  const allFieldKeys = useMemo(() => {
-    if (!cardType) {
-      return [];
-    }
-    return (cardType.alwaysVisibleFields ?? []).concat(
-      cardType.optionallyVisibleFields ?? [],
-    );
-  }, [cardType]);
-
-  const allFields = useMemo(() => {
-    if (!fieldTypes) return [];
-    return allFieldKeys
-      .map((field: string) =>
-        fieldTypes?.find((f: FieldType) => f.name === field),
-      )
-      .filter((f) => f != null) as FieldType[];
-  }, [allFieldKeys, fieldTypes]);
-
   return (
     <Box
       data-cy="metadataView"
@@ -186,7 +145,7 @@ function MetadataView({
       <Stack flexGrow={1} spacing={1} paddingY={2}>
         <FieldItem
           name="__key__"
-          defaultValue={cardKey}
+          defaultValue={card.key}
           expanded={true}
           editableFieldProps={{
             label: t('cardKey'),
@@ -196,7 +155,7 @@ function MetadataView({
         />
         <FieldItem
           name="__cardtype__"
-          defaultValue={metadata?.cardType || ''}
+          defaultValue={card.cardType}
           expanded={true}
           editableFieldProps={{
             label: t('cardType'),
@@ -204,25 +163,36 @@ function MetadataView({
             edit: false,
           }}
         />
-        {allFields.map(({ name, dataType, enumValues, displayName }) => (
-          <FieldItem
-            name={name}
-            handleChange={handleChange}
-            defaultValue={metadata?.[name] ?? null}
-            expanded={cardType?.alwaysVisibleFields?.includes(name) || expanded}
-            key={name}
-            control={context.control}
-            editableFieldProps={{
-              dataType,
-              label: displayName || name,
-              edit: (editMode && editableFields.includes(name)) ?? false,
-              enumValues,
-            }}
-          />
-        ))}
+        {card.results.map(
+          ({
+            key,
+            dataType,
+            results,
+            fieldDisplayName,
+            visibility,
+            isEditable,
+            value,
+          }) => (
+            <FieldItem
+              key={key}
+              name={key}
+              handleChange={handleChange}
+              defaultValue={value as MetadataValue}
+              expanded={visibility === 'always' || expanded}
+              control={context.control}
+              editableFieldProps={{
+                dataType,
+                label: fieldDisplayName || key,
+                edit: (editMode && isEditable) ?? false,
+                enumValues: results,
+              }}
+            />
+          ),
+        )}
       </Stack>
-      {!(allFieldKeys.length === cardType?.alwaysVisibleFields?.length) &&
-        allFieldKeys.length !== 0 && (
+      {card.results.filter((field) => field.visibility === 'always').length !==
+        card.results.length &&
+        card.results.length !== 0 && (
           <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
             <Link
               variant="soft"

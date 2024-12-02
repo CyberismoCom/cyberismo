@@ -15,21 +15,27 @@ import {
   CardType,
   LinkType,
 } from '@cyberismocom/data-handler/interfaces/resource-interfaces';
-import { TemplateConfiguration } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import {
+  CardAttachment,
+  TemplateConfiguration,
+} from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { SWRResponse } from 'swr';
 
+export type CardResponse = {
+  parsedContent: string;
+  rawContent: string;
+  attachments: CardAttachment[];
+} & QueryResult<'card'>;
+
 export type Resources = {
   project: Project;
-  card: CardDetails & {
-    parsed: string;
-  };
+  card: CardResponse;
   fieldTypes: FieldTypes;
   cardType: CardType;
   templates: TemplateConfiguration[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
-  cardQuery: QueryResult<'card'>;
 };
 
 export type ResourceName = keyof Resources;

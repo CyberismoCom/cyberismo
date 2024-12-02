@@ -41,7 +41,7 @@ import { asciidoc } from 'codemirror-asciidoc';
 import ContentToolbar from '@/app/components/ContentToolbar';
 import { useSearchParams } from 'next/navigation';
 import { ContentArea } from '@/app/components/ContentArea';
-import { useCard, useProject, useLinkTypes } from '@/app/lib/api';
+import { useCard, useLinkTypes, useTree } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 
@@ -219,11 +219,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     addAttachment: false,
   });
 
-  const {
-    project,
-    isLoading: isLoadingProject,
-    error: errorProject,
-  } = useProject();
+  const { tree, isLoading: isLoadingTree, error: errorTree } = useTree();
 
   const {
     card,
@@ -292,7 +288,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const [parsed, setParsed] = useState<string>('');
 
   useEffect(() => {
-    setContent(card?.content || '');
+    setContent(card?.rawContent || '');
   }, [card]);
 
   useEffect(() => {
@@ -316,18 +312,13 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   }, [tab]);
 
   const previewCard = card
-    ? ({
+    ? {
         ...card,
-        metadata: {
-          ...card.metadata,
-          title: __title__ ?? card.metadata?.title,
-          ...metadata,
-        },
-        content: getContent() ?? card.content,
+        ...metadata,
+        title: __title__ ?? card.title,
+        content: getContent() ?? card.rawContent,
         parsed,
-      } as CardDetails & {
-        parsed: string;
-      })
+      }
     : null;
 
   useEffect(() => {
@@ -339,11 +330,9 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     const content = getContent();
 
     if (
-      content === card.content &&
-      __title__ === card.metadata?.title &&
-      Object.keys(metadata).every(
-        (key) => card?.metadata?.[key] === metadata[key],
-      )
+      content === card.rawContent &&
+      __title__ === card.title &&
+      Object.keys(metadata).every((key) => card?.[key] === metadata[key])
     ) {
       setHasUnsavedChanges(false);
       return;
@@ -372,7 +361,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
     let lineNum: number | null = null;
 
-    const doc = asciiDoctor.load(card?.content || '');
+    const doc = asciiDoctor.load(card?.rawContent || '');
 
     const section = findSection(doc, lastTitle);
     if (!section) return;
@@ -428,16 +417,16 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   }, []);
 
   // For now, simply show loading if any of the data is loading
-  if (isLoadingCard || isLoadingProject || isLoadingLinkTypes) {
+  if (isLoadingCard || isLoadingTree || isLoadingLinkTypes) {
     return <Box>{t('loading')}</Box>;
   }
   // If any of the data is missing, just show a message that the card was not found
-  if (!card || !card.metadata || !previewCard || !project || !linkTypes) {
+  if (!card || !previewCard || !tree || !linkTypes) {
     return (
       <Box>
         {t('failedToLoad')}
         {': '}
-        {[errorCard, errorProject, errorLinkTypes]
+        {[errorCard, errorTree, errorLinkTypes]
           .map((error) => (error instanceof Error ? error.message : ''))
           .filter(Boolean)
           .join(', ')}
@@ -512,9 +501,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   };
 
   const expandedLinkTypes =
-    linkTypes && card?.metadata?.cardType
-      ? expandLinkTypes(linkTypes, card?.metadata?.cardType || '')
-      : [];
+    linkTypes && card.cardType ? expandLinkTypes(linkTypes, card.cardType) : [];
 
   return (
     <>
@@ -565,7 +552,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                     <Controller
                       name="__title__"
                       control={control}
-                      defaultValue={card.metadata.title}
+                      defaultValue={card.title}
                       render={({ field: { value, onChange } }: any) => (
                         <Textarea
                           sx={{
@@ -582,8 +569,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                       <MetadataView
                         initialExpanded={searchParams.get('expand') === 'true'}
                         editMode={true}
-                        metadata={card?.metadata}
-                        cardKey={params.key}
+                        card={card}
                       />
                     </Box>
                     <div ref={setRef} onDrop={handleDragDrop} />
@@ -681,30 +667,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                     <ContentArea
                       card={previewCard}
                       linkTypes={expandedLinkTypes}
-                      project={project}
                       preview={true}
-                      cardQuery={{
-                        key: '',
-                        title: '', // for now we can just provide an empty result for the preview,
-                        rank: '',
-                        workflowState: '',
-                        lastUpdated: '',
-                        labels: [],
-                        links: [],
-                        deniedOperations: {
-                          transition: [],
-                          move: [],
-                          editContent: [],
-                          editField: [],
-                          delete: [],
-                        },
-                        notifications: [],
-                        policyChecks: {
-                          successes: [],
-                          failures: [],
-                        },
-                        results: [],
-                      }}
+                      cards={tree}
                     />
                   </LoadingGate>
                 </Box>

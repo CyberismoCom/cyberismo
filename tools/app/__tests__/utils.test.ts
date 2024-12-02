@@ -1,17 +1,17 @@
 import { CardDetails, Project } from '@/app/lib/definitions';
 import {
   countChildren,
-  editCardDetails,
   findCard,
   findParentCard,
   findPathTo,
-  findWorkflowForCard,
+  findWorkflowForCardType,
   flattenTree,
   getMoveableCards,
 } from '@/app/lib/utils';
+import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
 test('flattenTree works with test data', async () => {
-  const result = flattenTree(testProject.cards);
+  const result = flattenTree(treeQueryResult);
 
   expect(result.length).toBe(11);
   expect(result[0].key).toBe('usdl_43');
@@ -28,7 +28,7 @@ test('flattenTree works with test data', async () => {
 });
 
 test('findPathTo works with test data', async () => {
-  const result = findPathTo('usdl_53', testProject.cards);
+  const result = findPathTo('usdl_53', treeQueryResult);
 
   expect(result).not.toBeNull();
   expect(result!.length).toBe(4);
@@ -39,65 +39,48 @@ test('findPathTo works with test data', async () => {
 });
 
 test('findPathTo returns null when card not found', async () => {
-  const result = findPathTo('NOT_FOUND', testProject.cards);
+  const result = findPathTo('NOT_FOUND', treeQueryResult);
 
   expect(result).toBeNull();
 });
 
-test('findWorkflowForCard returns correct workflow', async () => {
-  const card = testProject.cards[0].children![0];
-  expect(card.key).toBe('usdl_44');
-  expect(card.metadata?.cardType).toBe('test/cardTypes/simplePage');
-  const result = findWorkflowForCard(card, testProject);
+test('findWorkflowForCardType returns correct workflow', async () => {
+  const result = findWorkflowForCardType(
+    'test/cardTypes/simplePage',
+    testProject,
+  );
   expect(result?.name).toBe('test/workflows/simple');
 });
 
 test('findCard returns a card', async () => {
-  const card = findCard(testProject.cards, 'usdl_46');
+  const card = findCard(treeQueryResult, 'usdl_46');
   expect(card?.key).toBe('usdl_46');
-  expect(card?.metadata?.title).toBe('Demand phase');
+  expect(card?.title).toBe('Demand phase');
 });
 
 test('findCard returns null if card not found', async () => {
-  const card = findCard(testProject.cards, 'not_found');
+  const card = findCard(treeQueryResult, 'not_found');
   expect(card).toBeNull();
 });
 
 test('findParentCard returns a card', async () => {
-  const card = findParentCard(testProject.cards, 'usdl_46');
+  const card = findParentCard(treeQueryResult, 'usdl_46');
   expect(card?.key).toBe('usdl_44');
 });
 
 test('findParentCard returns null for root card', async () => {
-  const card = findParentCard(testProject.cards, 'usdl_43');
+  const card = findParentCard(treeQueryResult, 'usdl_43');
   expect(card).toBeNull();
 });
 
-test('editCard updates the data structure', async () => {
-  const newCardDetails: CardDetails = {
-    key: 'usdl_46',
-    path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_46',
-    metadata: {
-      cardType: 'test/cardTypes/simplePage',
-      title: 'New title',
-      workflowState: 'Created',
-      rank: '0|b',
-      links: [],
-    },
-  };
-  const result = editCardDetails(testProject.cards, newCardDetails);
-  const resultCard = findCard(result, newCardDetails.key);
-  expect(resultCard?.metadata?.title).toBe('New title');
-});
-
 test('countChildren returns correct count', async () => {
-  const count = countChildren(testProject.cards[0]);
+  const count = countChildren(treeQueryResult[0]);
   expect(count).toBe(11);
 });
 
 test('getMovableCards returns correct cards', async () => {
-  const card = findCard(testProject.cards, 'usdl_45');
-  const result = getMoveableCards(flattenTree(testProject.cards), card!);
+  const result = getMoveableCards(treeQueryResult, 'usdl_45');
+  console.log(result);
   expect(result.length).toBe(9);
   expect(result.find((card) => card.key === 'usdl_45')).toBeUndefined();
   expect(result.find((card) => card.key === 'usdl_44')).toBeUndefined();
@@ -105,137 +88,6 @@ test('getMovableCards returns correct cards', async () => {
 
 const testProject: Project = {
   name: 'Test project',
-  cards: [
-    {
-      key: 'usdl_43',
-      path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43',
-      children: [
-        {
-          key: 'usdl_44',
-          path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44',
-          children: [
-            {
-              key: 'usdl_45',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_45',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/controlledDocument',
-                title: 'Untitled',
-                workflowState: 'Draft',
-                rank: '0|a',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_46',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_46',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Demand phase',
-                workflowState: 'Created',
-                rank: '0|b',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_47',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47',
-              children: [
-                {
-                  key: 'usdl_53',
-                  path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_47/c/usdl_53',
-                  children: [],
-                  metadata: {
-                    cardType: 'test/cardTypes/controlledDocument',
-                    title: 'Threat model',
-                    workflowState: 'Draft',
-                    rank: '0|c',
-                    links: [],
-                  },
-                },
-              ],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Design phase',
-                workflowState: 'Created',
-                rank: '0|d',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_48',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_48',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Implementation phase',
-                workflowState: 'Created',
-                rank: '0|e',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_49',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_49',
-              children: [],
-              // this card has no metadata
-            },
-            {
-              key: 'usdl_50',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_50',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Release phase',
-                workflowState: 'Created',
-                rank: '0|f',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_51',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_51',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Operations phase',
-                workflowState: 'Created',
-                rank: '0|g',
-                links: [],
-              },
-            },
-            {
-              key: 'usdl_52',
-              path: '/Users/jaakko/dev/cyberismo/unified-sdl/cardRoot/usdl_43/c/usdl_44/c/usdl_52',
-              children: [],
-              metadata: {
-                cardType: 'test/cardTypes/simplePage',
-                title: 'Meetings',
-                workflowState: 'Created',
-                rank: '0|h',
-                links: [],
-              },
-            },
-          ],
-          metadata: {
-            cardType: 'test/cardTypes/simplePage',
-            title: 'SDL Project',
-            workflowState: 'Created',
-            rank: '0|i',
-            links: [],
-          },
-        },
-      ],
-      metadata: {
-        cardType: 'test/cardTypes/decision',
-        title: 'SDL Decision',
-        workflowState: 'Draft',
-        rank: '0|i',
-        links: [],
-      },
-    },
-  ],
   workflows: [
     {
       name: 'test/workflows/controlledDocument',
@@ -357,3 +209,240 @@ const testProject: Project = {
     },
   ],
 };
+
+const treeQueryResult: QueryResult<'tree'>[] = [
+  {
+    key: 'usdl_43',
+    labels: [],
+    links: [],
+    notifications: [],
+    policyChecks: {
+      successes: [],
+      failures: [],
+    },
+    deniedOperations: {
+      transition: [],
+      move: [],
+      delete: [],
+      editField: [],
+      editContent: [],
+    },
+    rank: '0|i',
+    title: 'SDL Decision',
+    cardType: 'test/cardTypes/decision',
+    results: [
+      {
+        key: 'usdl_44',
+        labels: [],
+        links: [],
+        notifications: [],
+        policyChecks: {
+          successes: [],
+          failures: [],
+        },
+        deniedOperations: {
+          transition: [],
+          move: [],
+          delete: [],
+          editField: [],
+          editContent: [],
+        },
+        rank: '0|i',
+        title: 'SDL Project',
+        cardType: 'test/cardTypes/simplePage',
+        results: [
+          {
+            key: 'usdl_45',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|a',
+            title: 'Untitled',
+            cardType: 'test/cardTypes/controlledDocument',
+            results: [],
+          },
+          {
+            key: 'usdl_46',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|b',
+            title: 'Demand phase',
+            cardType: 'test/cardTypes/simplePage',
+            results: [],
+          },
+          {
+            key: 'usdl_47',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|d',
+            title: 'Design phase',
+            cardType: 'test/cardTypes/simplePage',
+            results: [
+              {
+                key: 'usdl_53',
+                labels: [],
+                links: [],
+                notifications: [],
+                policyChecks: {
+                  successes: [],
+                  failures: [],
+                },
+                deniedOperations: {
+                  transition: [],
+                  move: [],
+                  delete: [],
+                  editField: [],
+                  editContent: [],
+                },
+                rank: '0|c',
+                title: 'Threat model',
+                cardType: 'test/cardTypes/controlledDocument',
+                results: [],
+              },
+            ],
+          },
+          {
+            key: 'usdl_48',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|e',
+            title: 'Implementation phase',
+            cardType: 'test/cardTypes/simplePage',
+            results: [],
+          },
+          {
+            key: 'usdl_49',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '',
+            title: '',
+            cardType: '',
+            results: [],
+          },
+          {
+            key: 'usdl_50',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|f',
+            title: 'Release phase',
+            cardType: 'test/cardTypes/simplePage',
+            results: [],
+          },
+          {
+            key: 'usdl_51',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|g',
+            title: 'Operations phase',
+            cardType: 'test/cardTypes/simplePage',
+            results: [],
+          },
+          {
+            key: 'usdl_52',
+            labels: [],
+            links: [],
+            notifications: [],
+            policyChecks: {
+              successes: [],
+              failures: [],
+            },
+            deniedOperations: {
+              transition: [],
+              move: [],
+              delete: [],
+              editField: [],
+              editContent: [],
+            },
+            rank: '0|h',
+            title: 'Meetings',
+            cardType: 'test/cardTypes/simplePage',
+            results: [],
+          },
+        ],
+      },
+    ],
+  },
+];
