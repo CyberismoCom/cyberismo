@@ -262,7 +262,7 @@ export class Calculate {
   private async getCards(parentCard: Card | undefined): Promise<Card[]> {
     let cards: Card[] = [];
     if (parentCard) {
-      const card = await this.project.findSpecificCard(parentCard.key, {
+      const card = await this.project.findSpecificCard(parentCard, {
         metadata: true,
         children: true,
         content: false,

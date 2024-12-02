@@ -409,6 +409,19 @@ describe('project', () => {
     );
     expect(template).to.not.equal(undefined);
   });
+  it('create template object from project using card (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = new Project(decisionRecordsPath);
+    expect(project).to.not.equal(undefined);
+    const templateCards = await project.templateCards();
+    expect(templateCards.length).to.be.greaterThan(0);
+    if (templateCards && templateCards.at(0)) {
+      const template = await project.createTemplateObjectFromCard(
+        templateCards.at(0)!,
+      );
+      expect(template).to.not.equal(undefined);
+    }
+  });
   it('find certain card from project - content as adoc (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
@@ -436,6 +449,33 @@ describe('project', () => {
       contentType: 'html',
     });
     expect(existingCard).to.not.equal(undefined);
+  });
+  it('find certain card from project - card is from template (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = new Project(decisionRecordsPath);
+    expect(project).to.not.equal(undefined);
+    const existingCard = await project.findSpecificCard('decision_1', {
+      content: true,
+    });
+    expect(existingCard).to.not.equal(undefined);
+  });
+  it('find certain card from project - using template card object and different details (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = new Project(decisionRecordsPath);
+    expect(project).to.not.equal(undefined);
+
+    const existingCard = await project.findSpecificCard('decision_1', {
+      content: true,
+    });
+    expect(existingCard).to.not.equal(undefined);
+    if (existingCard) {
+      const sameReference = await project.findSpecificCard(existingCard, {
+        content: true,
+        metadata: true,
+        parent: true,
+      });
+      expect(sameReference).to.not.equal(undefined);
+    }
   });
   it('check if project is created (success)', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -479,6 +519,98 @@ describe('project', () => {
 
     const modules = await project.modules();
     expect(modules.length).to.equal(0);
+  });
+  it('parse card path - project root card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const cardId = 'decision_5';
+    const card = await project.findSpecificCard(cardId);
+    if (card) {
+      const { template, cardKey, prefix, parents } = project.cardPathParts(
+        card.path,
+      );
+      expect(prefix).to.equal('decision');
+      expect(cardKey).to.equal(cardId);
+      expect(template).to.equal(''); // not a template card
+      expect(parents.length).to.equal(0); // no parents; root card
+    } else {
+      expect(false);
+    }
+  });
+  it('parse card path - project non-root card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const cardId = 'decision_6';
+    const card = await project.findSpecificCard(cardId);
+    if (card) {
+      const { template, cardKey, prefix, parents } = project.cardPathParts(
+        card.path,
+      );
+      expect(prefix).to.equal('decision');
+      expect(cardKey).to.equal(cardId);
+      expect(template).to.equal(''); // not a template card
+      expect(parents.length).to.equal(1);
+    } else {
+      expect(false);
+    }
+  });
+  it('parse card path - template root card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const cardId = 'decision_1';
+    const card = await project.findSpecificCard(cardId);
+    if (card) {
+      const { template, cardKey, prefix, parents } = project.cardPathParts(
+        card.path,
+      );
+      expect(prefix).to.equal('decision');
+      expect(cardKey).to.equal(cardId);
+      expect(template).to.equal('decision/templates/decision');
+      expect(parents.length).to.equal(0); // no parents; root card
+    } else {
+      expect(false);
+    }
+  });
+  it('parse card path - template non-root card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const cardId = 'decision_4';
+    const card = await project.findSpecificCard(cardId);
+    if (card) {
+      const { template, cardKey, prefix, parents } = project.cardPathParts(
+        card.path,
+      );
+      expect(prefix).to.equal('decision');
+      expect(cardKey).to.equal(cardId);
+      expect(template).to.equal('decision/templates/simplepage');
+      expect(parents.length).to.equal(1);
+    } else {
+      expect(false);
+    }
+  });
+  /*
+  todo: put this kind of test to where module import is possible to do.
+  it('parse card path - module template card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const { template, cardKey, prefix, parents } =
+      project.cardPathParts('decision_1');
+    expect(prefix).to.equal('decision');
+    expect(cardKey).to.equal('decision_1');
+    expect(template).to.equal('decision');
+    expect(parents).to.equal([]); // no parents; root card
+  });
+  */
+  it('parse card path - invalid card', async () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    try {
+      project.cardPathParts('decision_99');
+      expect(false);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      expect(true);
+    }
   });
 
   // @todo: tests needed:
