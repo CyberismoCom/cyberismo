@@ -350,18 +350,20 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  //  INTDEV-601
-  //  it('Remove the link', function (done) {
-  //    exec(`cd ../../.tmp/cyberismo-cli&&cyberismo remove link ${pageCardKey} ${newPageCardKey} cli/linkTypes/linkTypeTest&&cyberismo validate`, (error, stdout, _stderr) => {
-  //    if (error != null) {log(error);}
-  //      log(error);
-  //      log(stdout);
-  //      expect(error).to.be.null;
-  //      expect(stdout).to.include('Done');
-  //      expect(stdout).to.include('Project structure validated');
-  //      done();
-  //    });
-  //  });
+  it('Remove the link', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo remove link ${pageCardKey} ${newPageCardKey} cli/linkTypes/linkTypeTest&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
   it('Remove all cards of the new cardtype', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove card ${newPageCardKey}&&cyberismo validate`,
@@ -369,7 +371,6 @@ describe('Cli BAT test', function () {
         if (error != null) {
           log(error);
         }
-
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
         expect(stdout).to.include('Project structure validated');
@@ -391,26 +392,34 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  //  INTDEV-602
-  //  it('Remove the cardtype', function (done) {
-  //    exec(`cd ../../.tmp/cyberismo-cli&&cyberismo remove cardtype cli/cardTypes/cardTypeTest&&cyberismo validate`, (error, stdout, _stderr) => {
-  //      if (error != null) {log(error);}
-  //      expect(error).to.be.null;
-  //      expect(stdout).to.include('Done');
-  //      expect(stdout).to.include('Project structure validated');
-  //      done();
-  //    });
-  //  });
-  //  INTDEV-602
-  //  it('Remove the workflow', function (done) {
-  //    exec(`cd ../../.tmp/cyberismo-cli&&cyberismo remove workflow workflowTest&&cyberismo validate`, (error, stdout, _stderr) => {
-  //      if (error != null) {log(error);}
-  //      expect(error).to.be.null;
-  //      expect(stdout).to.include('Done');
-  //      expect(stdout).to.include('Project structure validated');
-  //      done();
-  //    });
-  //  });
+  it('Remove the cardtype', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo remove cardType cli/cardTypes/cardTypeTest&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
+  it('Remove the workflow', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo remove workflow cli/workflows/workflowTest&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
   it('Remove the linktype', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove linkType cli/linkTypes/linkTypeTest&&cyberismo validate`,
