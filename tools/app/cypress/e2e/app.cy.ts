@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-
+import t from '../../app/locales/en/translation.json';
 // These e2e tests use a 'cyberismo-bat' project that is created
 // upon test run start based on the module-base repository content.
 // Run these tests with ´npm run e2e:headless´
@@ -23,16 +23,16 @@ describe('Navigation', () => {
   it('delete page and verify empty project', () => {
     // Creates a new base module with name Basic Acceptance Test
     cy.get('h4').contains('Basic Acceptance Test'); // Verify project name
-    cy.get('p').contains('Please select a card'); // Verify text on cards page
+    cy.get('p').contains(t['selectCard']); // Verify text on cards page
     cy.get('p').contains('Untitled page').click(); // Navigate to Untitled page in tree menu
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
 
     cy.get('[data-cy="contextMenuButton"]').click(); // Click dropdown menu with multiple options
     cy.get('[data-cy="deleteCardButton"]').click(); // Select Delete card option
     cy.get('[data-cy="confirmDeleteButton"]').click(); // confirm dialog
-    cy.get('[role="presentation"]').contains('Card deleted successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.deleteCardModal['success']); // Verify text in popup infobox
 
-    cy.get('p').contains('Project is empty'); // Verify text on cards page
+    cy.get('p').contains(t['emptyProject']); // Verify text on cards page
   });
 
   it('Create a page', () => {
@@ -40,7 +40,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="createNewCardButton"]').click(); // Click new card button in top right corner
     cy.get('.templateCard').contains('Page').click(); // Select page template
     cy.get('[data-cy="confirmCreateButton"]').click(); // confirm dialog
-    cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
     cy.get('p').contains('Untitled page'); // Verify text on cards page
   });
 
@@ -49,7 +49,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="createNewCardButton"]').click();
     cy.get('.templateCard').contains('Decision').click(); // Select Decision template
     cy.get('[data-cy="confirmCreateButton"]').click();
-    cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
 
     cy.get('p').contains('Untitled decision'); // Verify Title in tree menu
     // Verify all decision content
@@ -86,13 +86,15 @@ describe('Navigation', () => {
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 
-    cy.get('button').contains('All').click(); // Select All in Move dialog
+    cy.get('button').contains(t['all']).click(); // Select All in Move dialog
     cy.get('[role="dialog"] >>>>>>>>> [role="treeitem"]')
       .contains('Untitled page')
       .click(); // Select Untitled page
-    cy.get('[role="dialog"] >>> button').contains('Cancel');
-    cy.get('[role="dialog"] >>> button').contains('Move').click();
-    cy.get('[role="presentation"]').contains('Card moved successfully'); // Verify text in popup infobox
+    cy.get('[role="dialog"] >>> button').contains(t['cancel']);
+    cy.get('[role="dialog"] >>> button')
+      .contains(t.moveCardModal['title'])
+      .click();
+    cy.get('[role="presentation"]').contains(t.moveCardModal['success']); // Verify text in popup infobox
     cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
     cy.get('[data-testid="ExpandMoreIcon"]'); // Verifies expand more icon exists in tree menu
   });
@@ -106,12 +108,12 @@ describe('Navigation', () => {
     cy.get('h1').contains('Untitled decision');
 
     // Verify meatdata
-    cy.get('[data-cy="metadataView"]').contains('Card key');
-    cy.get('[data-cy="metadataView"]').contains('Card type');
+    cy.get('[data-cy="metadataView"]').contains(t['cardKey']);
+    cy.get('[data-cy="metadataView"]').contains(t['cardType']);
     cy.get('[data-cy="metadataView"]').contains('base/cardTypes/decision');
 
     // Check that edit element is visible and clicks it
-    cy.get('[data-cy="editButton"]').contains('Edit').click(); // Clicks Edit button
+    cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Clicks Edit button
 
     // Check that editor elements are visible
     cy.get('textarea').contains('Untitled decision'); // Verify textarea contains card title
@@ -131,7 +133,7 @@ describe('Navigation', () => {
       .type('Updated title');
     cy.get('[role="textbox"]').invoke('text', '== Updated content'); // Edit content
     cy.get('[data-cy="updateButton"]').click(); // Clicks update button
-    cy.get('[role="presentation"]').contains('Card saved successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
 
     cy.get('p').contains('Updated title'); // Title in tree menu
     cy.get('h1').contains('Updated title'); // Title in content area
@@ -148,18 +150,16 @@ describe('Navigation', () => {
     cy.get('[data-cy="contextMenuButton"]').click(); // Click dropdown menu with multiple options
     cy.get('[data-cy="addAttachmentButton"]').click(); // Select add attachment option
     // Verify add attachment dialog contents
-    cy.get('[role="dialog"] > h2').contains('Add attachment'); // Add attachment text
+    cy.get('[role="dialog"] > h2').contains(t['addAttachment']); // Add attachment text
     cy.get('[role="dialog"] > button'); // X button
-    cy.get('[role="dialog"] >>> button').contains('Cancel'); // Cancel button
-    cy.get('[role="dialog"] >>> button').contains('Add'); // Add button
+    cy.get('[role="dialog"] >>> button').contains(t['cancel']); // Cancel button
+    cy.get('[role="dialog"] >>> button').contains(t['add']); // Add button
     // Add cyberismo.png to page
     cy.get('[data-cy="fileUploadButton"]').selectFile(
       './cypress/fixtures/cyberismo.png',
     );
-    cy.get('[role="dialog"] >>> button').contains('Add').click(); // Click add button
-    cy.get('[role="presentation"]').contains(
-      'Attachment(s) added successfully',
-    ); // Verify text in popup infobox
+    cy.get('[role="dialog"] >>> button').contains(t['add']).click(); // Click add button
+    cy.get('[role="presentation"]').contains(t.addAttachmentModal['success']); // Verify text in popup infobox
 
     // Check that attachment side panel element exists and "hover" over it to show action buttons
     cy.get('span').contains('cyberismo.png').trigger('mouseover');
@@ -197,14 +197,14 @@ describe('Navigation', () => {
     cy.get('h1').contains('Updated title');
 
     cy.get('.MuiIconButton-root').click(); // Click link button
-    cy.get('p').contains('Linked cards'); // Verifies Linked cards text in page
-    cy.get('.MuiSelect-button').contains('Select link type').click(); // Click select link type button
+    cy.get('p').contains(t['linkedCards']); // Verifies Linked cards text in page
+    cy.get('.MuiSelect-button').contains(t.linkForm['selectLinkType']).click(); // Click select link type button
     cy.get('.Mui-expanded').contains('blocks').click(); // Select blocks
 
     cy.get('.MuiSelect-button').contains('blocks'); // checks Select Link Type text changed to previously selected blocks option
     cy.get('.MuiAutocomplete-root').get('[placeholder="Search card"]').click(); // click Search card field
     cy.get('.MuiAutocomplete-option').contains('Untitled page').click(); // Select Untitled page
-    cy.get('button').contains('Add link').click(); // Click add link button
+    cy.get('button').contains(t.linkForm['button']).click(); // Click add link button
 
     cy.get('[data-cy="cardLinkType"]').contains('blocks');
     cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
@@ -221,8 +221,8 @@ describe('Navigation', () => {
 
     cy.get('[data-testid="DeleteIcon"]').click(); // Delete link
     // Verify delete link dialog contents and click delete
-    cy.get('[role="dialog"] >>> button').contains('Cancel');
-    cy.get('[role="dialog"] >>> button').contains('Delete').click();
+    cy.get('[role="dialog"] >>> button').contains(t['cancel']);
+    cy.get('[role="dialog"] >>> button').contains(t['delete']).click();
   });
 
   it('Remove the attachment', () => {
@@ -232,7 +232,7 @@ describe('Navigation', () => {
     cy.get('p').contains('Updated title').click(); // Navigate to Updated title in tree menu
     cy.get('h1').contains('Updated title');
     // Check that edit element is visible and clicks it
-    cy.get('[data-cy="editButton"]').contains('Edit').click();
+    cy.get('[data-cy="editButton"]').contains(t['edit']).click();
 
     // Check that editor elements are visible
     cy.get('textarea').contains('Updated title');
@@ -245,7 +245,7 @@ describe('Navigation', () => {
     cy.get('.MuiTypography-colorWarning').contains('0'); //verifies there are 0 attachments
 
     cy.get('[data-cy="updateButton"]').click();
-    cy.get('[role="presentation"]').contains('Card saved successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
   });
 
   it('delete decision', () => {
@@ -259,6 +259,6 @@ describe('Navigation', () => {
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[data-cy="deleteCardButton"]').click();
     cy.get('[data-cy="confirmDeleteButton"]').click();
-    cy.get('[role="presentation"]').contains('Card deleted successfully'); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t.deleteCardModal['success']); // Verify text in popup infobox
   });
 });

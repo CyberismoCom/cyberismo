@@ -1,6 +1,7 @@
 # Build artifacts
 .next/
 .turbo/
+.tmp/
 _next/
 __tmp__/
 dist/

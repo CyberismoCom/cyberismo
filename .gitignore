@@ -8,7 +8,7 @@
 
 # testing
 **/coverage
-module-base/
+.tmp/
 
 # next.js
 **/.next/

@@ -181,18 +181,42 @@ importers:
       '@cyberismocom/data-handler':
         specifier: workspace:*
         version: link:../data-handler
+      '@types/chai':
+        specifier: ^5.0.0
+        version: 5.0.1
+      '@types/chai-as-promised':
+        specifier: ^8.0.0
+        version: 8.0.1
+      '@types/mocha':
+        specifier: ^10.0.9
+        version: 10.0.9
       '@types/node':
-        specifier: ^22.4.1
+        specifier: ^22.9.0
         version: 22.9.0
       '@typescript-eslint/parser':
         specifier: ^8.14.0
         version: 8.14.0(eslint@9.14.0)(typescript@5.6.3)
+      chai:
+        specifier: ^5.1.2
+        version: 5.1.2
+      chai-as-promised:
+        specifier: ^8.0.0
+        version: 8.0.0(chai@5.1.2)
       eslint:
         specifier: ^9
         version: 9.14.0
       eslint-config-prettier:
         specifier: ^9.1.0
         version: 9.1.0(eslint@9.14.0)
+      mocha:
+        specifier: ^10.8.2
+        version: 10.8.2
+      mocha-suppress-logs:
+        specifier: ^0.5.1
+        version: 0.5.1
+      ts-node:
+        specifier: ^10.9.1
+        version: 10.9.2(@types/node@22.9.0)(typescript@5.6.3)
       typescript:
         specifier: ^5.6.3
         version: 5.6.3
