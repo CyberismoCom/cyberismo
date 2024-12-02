@@ -150,10 +150,7 @@ describe('import module', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    /*
-    // Issues with Windows build slave make this fail rather often.
-    // Let's comment it for now.
-    it('create empty project and import module', async () => {
+    it('create empty project and import two modules', async () => {
       const prefix = 'proj';
       const name = 'test-project';
       const projectDir = join(testDir, name);
@@ -162,15 +159,33 @@ describe('import module', () => {
         .command(Cmd.create, ['project', name, prefix], testOptions)
         .then(async (data) => {
           expect(data.statusCode).to.equal(200);
-          const result = await commandHandler.command(
+          let result = await commandHandler.command(
             Cmd.import,
             ['module', decisionRecordsPath],
             testOptions,
           );
           expect(result.statusCode).to.equal(200);
+          result = await commandHandler.command(
+            Cmd.import,
+            ['module', minimalPath],
+            testOptions,
+          );
+
+          expect(result.statusCode).to.equal(200);
+          result = await commandHandler.command(
+            Cmd.show,
+            ['modules'],
+            testOptions,
+          );
+          expect(result.statusCode).to.equal(200);
+          if (result.payload) {
+            const modules = Object.values(result.payload);
+            expect(modules.length).to.equal(2);
+            expect(modules).to.contain('mini');
+            expect(modules).to.contain('decision');
+          }
         });
     });
-    */
     it('try to import module - no source', async () => {
       const stubProjectPath = sinon
         .stub(commandHandler, 'setProjectPath')
