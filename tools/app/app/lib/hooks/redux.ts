@@ -46,7 +46,7 @@ export const useAppRouter = (): AppRouter => {
     if (isEdited) {
       const handleUnload = (e: BeforeUnloadEvent) => {
         e.preventDefault();
-        e.returnValue = ''; // for legacy browsers
+        e.returnValue = t('beforeUnload'); // for legacy browsers
       };
       window.addEventListener('beforeunload', handleUnload);
       return () => {
