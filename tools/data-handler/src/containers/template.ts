@@ -294,6 +294,10 @@ export class Template extends CardContainer {
     if (!pathExists(this.project.paths.modulesFolder)) {
       return '';
     }
+    // If template path has already been deduced, return it.
+    if (pathExists(this.templatePath)) {
+      return this.templatePath;
+    }
     const files = readdirSync(this.project.paths.modulesFolder, {
       withFileTypes: true,
     });
@@ -320,7 +324,7 @@ export class Template extends CardContainer {
       const parts = modulePath.split(sep);
       const modulesIndex = parts.indexOf('modules');
       if (modulesIndex === -1) {
-        throw new Error(`incorrect module path: ${modulePath}`);
+        return '';
       }
       return parts.at(modulesIndex + 1) as string;
     }
@@ -586,12 +590,11 @@ export class Template extends CardContainer {
    * @returns details of template
    */
   public async show(): Promise<TemplateInterface> {
-    const name =
-      this.moduleTemplatePath(this.containerName) !== ''
-        ? this.moduleNameFromPath(this.containerName)
-        : this.project.projectPrefix;
+    const modulePrefix = this.moduleNameFromPath(this.containerName);
+    const prefix = modulePrefix ? modulePrefix : this.project.projectPrefix;
+
     return {
-      name: `${name}/templates/${this.containerName}`,
+      name: `${prefix}/templates/${this.containerName}`,
       path: this.templateFolder(),
       numberOfCards: (await super.cards(this.templateCardsPath)).length,
       metadata: (await readJsonFile(
