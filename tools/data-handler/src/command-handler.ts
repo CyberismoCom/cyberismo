@@ -653,11 +653,11 @@ export class Commands {
 
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(this.projectPath);
+    const projectPathArg = `--project_path=${projectPath}`;
 
-    const args = [`start`, `--project_path="${projectPath}"`];
+    const args = [`start`, projectPathArg];
     execFileSync(`npm`, args, {
-      shell: true,
-      cwd: `${appPath}`,
+      cwd: appPath,
       stdio: 'ignore',
     });
   }
