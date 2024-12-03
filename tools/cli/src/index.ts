@@ -21,6 +21,11 @@ import {
   ShowTypes,
 } from '@cyberismocom/data-handler';
 
+// To avoid duplication, fetch description and version from package.json file.
+// Importing dynamically allows filtering of warnings in cli/bin/run.
+const packageDef = (await import('../package.json', { with: { type: 'json' } }))
+  .default;
+
 // Handle the response object from data-handler
 function handleResponse(response: requestStatus) {
   if (response.statusCode === 200) {
@@ -56,7 +61,7 @@ function parseSupportedTypes(value: string): string {
 // Commander
 const program = new Command();
 
-// Cards command handler
+// CLI command handler
 const commandHandler = new Commands();
 
 // Ensure that all names have the same guideline.
@@ -65,7 +70,10 @@ const nameGuideline =
 const pathGuideline =
   'Path to the project root. Mandatory if not running inside a project tree.';
 
-program.name('cards').description('CLI tool to handle tasks.').version('1.0.0');
+program
+  .name('cyberismo')
+  .description(packageDef.description)
+  .version(packageDef.version);
 
 // Add card to a template
 program
@@ -136,7 +144,7 @@ const create = program.command('create');
 // Create attachment
 create
   .command('attachment')
-  .description('Create an attachment to a card key')
+  .description('Create an attachment to a card')
   .argument('<cardKey>', 'Card key of card')
   .argument('<attachment>', 'Full path to an attachment')
   .option('-p, --project-path [path]', `${pathGuideline}`)
@@ -161,7 +169,7 @@ create
   )
   .argument(
     '[cardKey]',
-    "Parent card's card key. If defined, new card will be created as a child card of that card.",
+    "Parent card's card key. If defined, new card will be created as a child card to that card.",
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (template: string, cardKey: string, options: CardsOptions) => {
@@ -180,7 +188,7 @@ create
   .argument('<name>', `Name for card type. ${nameGuideline}`)
   .argument(
     '<workflow>',
-    'Workflow for the card type. \nYou can list the workflows in a project with "show workflows" command.',
+    'Workflow for the card type. \nYou can list workflows in a project with "show workflows" command.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name, workflow, options: CardsOptions) => {
@@ -197,7 +205,10 @@ create
   .command('fieldType')
   .description('Create a field type')
   .argument('<name>', `Name for field type. ${nameGuideline}`)
-  .argument('<datatype>', 'Type of field')
+  .argument(
+    '<datatype>',
+    'Type of field. \nYou can list field types in a project with "show fieldTypes" command.',
+  )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name, datatype, options: CardsOptions) => {
     const result = await commandHandler.command(
@@ -213,7 +224,10 @@ create
   .description('Create a link')
   .argument('<source>', 'Source card key of the link')
   .argument('<destination>', 'Destination card key of the link')
-  .argument('<linkType>', 'Link type')
+  .argument(
+    '<linkType>',
+    'Link type. \nYou can list link types in a project with "show linkTypes" command.',
+  )
   .argument('[description]', 'Description of the link')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
@@ -254,7 +268,7 @@ create
   .argument('<name>', `Name for project. ${nameGuideline}`)
   .argument(
     '<prefix>',
-    "Prefix that will be part of each card's cardKey. Prefix can be 3-10 characters (A-Z)",
+    "Prefix that will be part of each card's card key. Prefix can be 3-10 characters (a-z)",
   )
   .argument(
     '<path>',
@@ -277,7 +291,7 @@ create
   .argument('<name>', `Name for template. ${nameGuideline}`)
   .argument(
     '[content]',
-    'If empty, template is created with default values. \nTemplate content must conform to schema templateSchema.json',
+    'If empty, template is created with default values. \nTemplate content must conform to schema "templateSchema.json"',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
@@ -296,7 +310,7 @@ create
   .argument('<name>', `Name for the workflow. ${nameGuideline}`)
   .argument(
     '[content]',
-    'If empty, workflow is created with default values. \nWorkflow content must conform to schema workflowSchema.json',
+    'If empty, workflow is created with default values. \nWorkflow content must conform to schema "workflowSchema.json"',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
@@ -343,7 +357,10 @@ program
     ),
   )
   .argument('<output>', 'Output path')
-  .argument('[cardKey]', 'Path to card')
+  .argument(
+    '[cardKey]',
+    'Path to a card. If defined will export only that card and its children instead of whole project.',
+  )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
@@ -366,7 +383,7 @@ const importCmd = program.command('import');
 // Import module
 importCmd
   .command('module')
-  .description('Imports another project to this project.')
+  .description('Imports another project to this project as a module.')
   .argument('<source>', 'Path to import from')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (source: string, options: CardsOptions) => {
@@ -385,7 +402,7 @@ importCmd
   .argument('<csvFile>', 'File to import from')
   .argument(
     '[cardKey]',
-    'Card key of the parent. If defined, cards are created as a child',
+    'Card key of the parent. If defined, cards are created as children of this card',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (csvFile: string, cardKey: string, options: CardsOptions) => {
@@ -403,10 +420,10 @@ program
   .description(
     'Moves a card from root to under another card, from under another card to root, or from under a one card to another.',
   )
-  .argument('[source]', 'Source Cardkey that needs to be moved')
+  .argument('[source]', 'Source Card key that needs to be moved')
   .argument(
     '[destination]',
-    'Destination Cardkey where "source" is moved to. If moving to root, use "root"',
+    'Destination Card key where "source" is moved to. If moving to root, use "root"',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
@@ -424,11 +441,13 @@ const rank = program.command('rank');
 
 rank
   .command('card')
-  .description('Set the rank of a card to be after another card')
-  .argument('<cardKey>', 'Cardkey of the card to be moved')
+  .description(
+    'Set the rank of a card. Ranks define the order in which cards are shown.',
+  )
+  .argument('<cardKey>', 'Card key of the card to be moved')
   .argument(
     '<afterCardKey>',
-    'Cardkey of the card that the card should be after',
+    'Card key of the card that the card should be after. Use "first" to rank the card first.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
@@ -465,7 +484,7 @@ rank
 const remove = program.command('remove');
 remove
   .command('attachment')
-  .argument('<cardKey>', 'cardKey of the owning card')
+  .argument('<cardKey>', 'Card key of the owning card')
   .argument('<filename>', 'attachment filename')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, filename: string, options: CardsOptions) => {
@@ -606,7 +625,9 @@ remove
 // Rename command
 program
   .command('rename')
-  .description('Change project prefix and rename all cards with the new prefix')
+  .description(
+    'Change project prefix and rename all the content with the new prefix',
+  )
   .argument('<to>', 'New project prefix')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (to: string, options: CardsOptions) => {
@@ -615,12 +636,13 @@ program
   });
 
 // Show command
+// todo: 'show report' missing
 program
   .command('show')
   .description('Shows resource types in a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardType, cardTypes, linkTypes, project, template, templates, workflow, workflows',
+    'resource types: attachments, card, cards, cardType, cardTypes, linkType, linkTypes, project, reports, template, templates, workflow, workflows',
     parseSupportedTypes,
   )
   .argument(
@@ -678,7 +700,7 @@ program
 program
   .command('app')
   .description(
-    'Starts the cards app, accessible with a web browser at http://localhost:3000',
+    'Starts the cyberismo app, accessible with a web browser at http://localhost:3000',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
