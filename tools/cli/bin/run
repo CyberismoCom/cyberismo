@@ -2,6 +2,9 @@
 
 import program from '@cyberismocom/cli';
 
+// Don't show any warnings when running CLI.
+process.removeAllListeners('warning');
+
 program.parseAsync(process.argv).catch((error) => {
   console.error(error.message);
   process.exit(1);
