@@ -12,6 +12,7 @@
 
 import Handlebars from 'handlebars';
 import createCards from './createCards/index.js';
+import scoreCard from './scoreCard/index.js';
 import report from './report/index.js';
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError } from '../exceptions/index.js';
@@ -30,6 +31,7 @@ export interface MacroConstructor {
 
 export const macros: { [K in MacroName]: MacroConstructor } = {
   createCards,
+  scoreCard,
   report,
 };
 
