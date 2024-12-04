@@ -162,10 +162,6 @@ export class Template extends CardContainer {
       // Create temp-folder and schema file.
       const templatesFolder = this.templateFolder();
       await mkdir(tempDestination, { recursive: true });
-      await writeJsonFile(
-        join(tempDestination, Project.schemaContentFile),
-        Template.DotSchemaContentForCard,
-      );
 
       // Create cards to the temp-folder.
       // @todo: new function - fetch the workflow of a card
