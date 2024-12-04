@@ -102,7 +102,7 @@ describe('rank command', () => {
       expect(details.metadata?.rank).to.equal('0|d');
     });
     // Note: this tests depends on the previous test
-    it('rank card first(success)', async () => {
+    it('rank card first (success)', async () => {
       const key = 'decision_5';
       const result = await commandHandler.command(
         Cmd.rank,
@@ -117,6 +117,40 @@ describe('rank command', () => {
         key,
       );
 
+      expect(details.metadata?.rank).to.equal('0|a');
+    });
+    it('rank template card in root (success)', async () => {
+      const project = new Project(options.projectPath!);
+      const rankBefore = 'decision_2';
+      rootCardKey = 'decision_3';
+
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', rankBefore, rootCardKey],
+        options,
+      );
+
+      expect(result.statusCode).to.equal(200);
+
+      const details = await new Show(project).showCardDetails(
+        { metadata: true },
+        rankBefore,
+      );
+      expect(details.metadata?.rank).to.equal('0|c');
+    });
+    it('rank template card first (success)', async () => {
+      const key = 'decision_2';
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['card', key, 'first'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+      const project = new Project(options.projectPath!);
+      const details = await new Show(project).showCardDetails(
+        { metadata: true, content: true },
+        key,
+      );
       expect(details.metadata?.rank).to.equal('0|a');
     });
   });
@@ -172,7 +206,7 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    it('rebalance root(success)', async () => {
+    it('rebalance root (success)', async () => {
       const result = await commandHandler.command(
         Cmd.rank,
         ['rebalance', ''],
@@ -180,10 +214,18 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    it('rebalance card(success)', async () => {
+    it('rebalance card (success)', async () => {
       const result = await commandHandler.command(
         Cmd.rank,
         ['rebalance', 'decision_5'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('rebalance template card (success)', async () => {
+      const result = await commandHandler.command(
+        Cmd.rank,
+        ['rebalance', 'decision_1'],
         options,
       );
       expect(result.statusCode).to.equal(200);
