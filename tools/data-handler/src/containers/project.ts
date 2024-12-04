@@ -43,7 +43,10 @@ import { readJsonFile } from '../utils/json.js';
 import { Template } from './template.js';
 import { Validate } from '../validate.js';
 import { generateRandomString } from '../utils/random.js';
-import { identifierFromResourceName } from '../utils/resource-utils.js';
+import {
+  resourceNameParts,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -458,9 +461,11 @@ export class Project extends CardContainer {
   public async createTemplateObject(
     template: Resource,
   ): Promise<Template | undefined> {
-    template.name = identifierFromResourceName(template.name);
-
-    if (template.name === '' || !(await this.templateExists(template.name))) {
+    if (!template.name) {
+      return undefined;
+    }
+    template.name = resourceNameToString(resourceNameParts(template.name));
+    if (!(await this.templateExists(template.name))) {
       return undefined;
     }
 
