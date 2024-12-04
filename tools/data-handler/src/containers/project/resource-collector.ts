@@ -15,7 +15,7 @@ import { basename, join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
 import { readJsonFile } from '../../utils/json.js';
-import { pathExists } from '../../utils/file-utils.js';
+import { pathExists, stripExtension } from '../../utils/file-utils.js';
 import { resourceNameParts } from '../../utils/resource-utils.js';
 import { ProjectPaths } from './project-paths.js';
 import {
@@ -221,7 +221,9 @@ export class ResourceCollector {
    * @returns array of collected items.
    */
   public async collectResourcesFromModules(type: string) {
-    return (await this.addResourcesFromModules(type)).map((item) => item.name);
+    return (await this.addResourcesFromModules(type)).map((item) =>
+      stripExtension(item.name),
+    );
   }
 
   /**
@@ -229,27 +231,32 @@ export class ResourceCollector {
    * @param resource Resource to add.
    */
   public add(resource: Resource) {
+    // Helper to avoid adding duplicate entries.
+    function addItem(array: Resource[], item: Resource) {
+      if (!array.includes(item)) {
+        array.push(item);
+      }
+    }
+
     const { type } = resourceNameParts(resource.name);
-    // todo: should prevent duplicates
     switch (type) {
       case 'cardTypes':
-        this.localCardTypes.push(resource);
+        addItem(this.localCardTypes, resource);
         break;
       case 'fieldTypes':
-        this.localFieldTypes.push(resource);
+        addItem(this.localFieldTypes, resource);
         break;
       case 'linkTypes':
-        resource.name = resource.name + '.json'; //todo: hack "fix", needs a proper fix.
-        this.localLinkTypes.push(resource);
+        addItem(this.localLinkTypes, resource);
         break;
       case 'reports':
-        this.localReports.push(resource);
+        addItem(this.localReports, resource);
         break;
       case 'templates':
-        this.localTemplates.push(resource);
+        addItem(this.localTemplates, resource);
         break;
       case 'workflows':
-        this.localWorkflows.push(resource);
+        addItem(this.localWorkflows, resource);
         break;
       default: {
         throw new Error(`Resource type '${type}' not handled in 'addResource'`);
@@ -342,8 +349,7 @@ export class ResourceCollector {
     if (!found || !found.path) {
       return undefined;
     }
-    const file = await readJsonFile(join(found.path, basename(found.name)));
-    return file;
+    return readJsonFile(join(found.path, basename(found.name)));
   }
 
   /**
