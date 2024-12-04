@@ -5,7 +5,7 @@ import { after, describe, it } from 'mocha';
 // node
 import { rmSync } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
@@ -138,24 +138,27 @@ describe('file utils', () => {
       ['myFile.withStrangeExtension', 'myFile'],
       ['myFile.with.multiple.dots', 'myFile.with.multiple'],
       ['myFile.with.trailing.dot.', 'myFile.with.trailing.dot'],
-      ['templates/myTemplate.json', 'templates/myTemplate'],
-      ['~/templates/myTemplate.json', '~/templates/myTemplate'],
+      [`templates${sep}myTemplate.json`, `templates${sep}myTemplate`],
       [
-        '.cards/local/templates/myTemplate.json',
-        '.cards/local/templates/myTemplate',
+        `~${sep}templates${sep}myTemplate.json`,
+        `~${sep}templates${sep}myTemplate`,
       ],
-      ['.cards/local/.sec.ret', '.cards/local/.sec'],
+      [
+        `.cards${sep}local${sep}templates${sep}myTemplate.json`,
+        `.cards${sep}local${sep}templates${sep}myTemplate`,
+      ],
+      [`.cards${sep}local${sep}.sec.ret`, `.cards${sep}local${sep}.sec`],
     ]);
     const filenamesWithoutExtensions = [
       'myFile',
-      '.cards/local/templates/myTemplate',
-      'files/.secretFile',
-      '.cards/local/.secret',
-      '../test',
-      'test/./test',
+      `.cards${sep}local${sep}templates${sep}myTemplate`,
+      `files${sep}.secretFile`,
+      `.cards${sep}local${sep}.secret`,
+      `..${sep}test`,
+      `test${sep}.${sep}test`,
       '.',
       '..',
-      '../..',
+      `..${sep}..`,
     ];
     for (const filename of filenamesWithExtensions) {
       expect(stripExtension(filename[0])).to.equal(filename[1]);
