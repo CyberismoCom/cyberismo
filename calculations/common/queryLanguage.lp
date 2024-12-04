@@ -1,21 +1,27 @@
 % Cyberismo query language
 
-% select(n, field): on result level n, "field" should be returned
-% selectAll(n): on result level n, all fields should be returned
-% select(field): "field" should be returned on all levels of hierarchy
-% selectAll: all fields should be returned on all levels of hierarchy
+% select(n, collection, field): on result level n and for "collection", "field" should be returned
+% selectCollectionField(collection, field): on all result levels for "collection", "field" should be returned
+% selectAll(n): on result level n, all fields should be returned for all collections
+% select(field): "field" should be returned on all levels of hierarchy for all collections
+% selectAll: all fields should be returned on all levels of hierarchy for all collections
 
 % select works similarly for "labels", "links", "notifications", "policyChecks" and "deniedOperations" as it works for fields
 
-select(N, Field) :- select(Field), resultLevel(_, N).
-selectAll(N) :- selectAll, resultLevel(_, N).
+select(N, Collection, Field) :- select(Field), resultLevel(_, N, Collection).
+
+selectAll(N) :- selectAll, resultLevel(_, N, _).
+
+select(N, Collection, Field) :-
+    selectCollectionField(Collection, Field),
+    resultLevel(_, N, Collection).
 
 % the default child result collection is "results"
 childResult(Key, Child, "results") :- childResult(Key, Child).
 
-% resultLevel(key, n): result "key" is on result level n
-resultLevel(Key, 1) :- result(Key).
-resultLevel(Child, N+1) :- childResult(Key, Child, _), resultLevel(Key, N).
+% resultLevel(key, n, collection): result "key" is on result level n in "collection"
+resultLevel(Key, 1, "results") :- result(Key).
+resultLevel(Child, N+1, Collection) :- childResult(Key, Child, Collection), resultLevel(Key, N, _).
 
 % result(key): key is a result of the query
 #show result(Key) : result(Key), not queryError.
@@ -32,14 +38,14 @@ resultOrChildResult(Key) :- childResult(_, Key, _).
 % showAll(key): whether all fields or field-like things of a key should be included in the results
 showAll(Key) :-
     resultOrChildResult(Key),
-    resultLevel(Key, Level),
+    resultLevel(Key, Level, _),
     selectAll(Level),
     not queryError.
 
 % showField: whether a certain field or field-like thing of a key should be included in the results
 showField(Key, Field) :-
     resultOrChildResult(Key),
-    resultLevel(Key, Level),
+    resultLevel(Key, Level, _),
     select(Level, Field),
     not queryError.
 
@@ -277,6 +283,9 @@ order(Level, "results", 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, D
 order(Level, "results", 1, Field1, Direction1) :- orderBy(Level, Field1, Direction1, _, _, _, _).
 order(Level, "results", 2, Field2, Direction2) :- orderBy(Level, _, _, Field2, Direction2, _, _).
 order(Level, "results", 3, Field3, Direction3) :- orderBy(Level, _, _, _, _, Field3, Direction3).
+
+% select the fields that are needed for sorting automatically
+select(Level, Collection, Field) :- order(Level, Collection, _, Field, _).
 
 queryError("Invalid direction in ordering:", (Level, Collection, Index, Field, Direction)) :-
     order(Level, Collection, Index, Field, Direction),

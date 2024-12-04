@@ -37,23 +37,11 @@ field(Card, "workflowStateCategory", Category) :-
 dataType(Card, "workflowStateCategory", "shortText") :-
     field(Card, "workflowStateCategory", _).
 
-% data types and display names of fields
+% data types of fields
 dataType(Key, Field, DataType) :-
     field(Key, Field, _),
     fieldType(Field),
     field(Field, "dataType", DataType).
-
-displayName(Card, Field, DisplayName) :-
-    field(Card, Field, _),
-    fieldType(Field),
-    field(Field, "displayName", DisplayName),
-    field(Card, "cardType", CardType),
-    not field((CardType, Field), "displayName", _).
-
-displayName(Card, Field, DisplayName) :-
-    field(Card, Field, _),
-    field(Card, "cardType", CardType),
-    field((CardType, Field), "displayName", _).
 
 % data types for enum values
 
@@ -65,3 +53,9 @@ dataType((FieldType, EnumValue), "enumDisplayValue", "shortText") :-
 
 dataType((FieldType, EnumValue), "enumDescription", "longText") :-
     enumValue(FieldType, EnumValue).
+
+% descendants of hidden cards are hidden
+
+hiddenInTreeView(Card) :-
+    ancestor(Card, Ancestor),
+    hiddenInTreeView(Ancestor).

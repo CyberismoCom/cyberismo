@@ -1,5 +1,19 @@
 result({{cardKey}}).
 
+% a helper term for display names
+
+displayName(Card, Field, DisplayName) :-
+    field(Card, Field, _),
+    fieldType(Field),
+    field(Field, "displayName", DisplayName),
+    field(Card, "cardType", CardType),
+    not field((CardType, Field), "displayName", _).
+
+displayName(Card, Field, DisplayName) :-
+    field(Card, Field, _),
+    field(Card, "cardType", CardType),
+    field((CardType, Field), "displayName", _).
+
 % the second level includes metadata for the always visible and optionally visible fields
 
 dataType(Field, "visibility", "shortText") :-
