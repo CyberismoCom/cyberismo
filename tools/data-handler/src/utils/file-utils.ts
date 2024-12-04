@@ -19,7 +19,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { existsSync, lstatSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
@@ -89,6 +89,37 @@ export async function deleteFile(path: string): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+/**
+ * Removes extension from filename.
+ * @param filename Filename
+ * @returns filename without extension. If there was no extension, returns the original filename.
+ */
+export function stripExtension(filename: string) {
+  // First handle special cases. Just return the filename in all of these cases.
+  // 1) If the filename ends to "."" or ".." (e.g. ".cards/local/..")
+  const parts = filename.split(sep);
+  if (
+    parts.at(parts.length - 1) === '..' ||
+    parts.at(parts.length - 1) === '.'
+  ) {
+    return filename;
+  }
+  const dotLocation = filename.lastIndexOf('.');
+  const sepLocation = filename.lastIndexOf(sep);
+  // 2) If there is a dot in the filename before sep (e.g. ".cards/local")
+  if (dotLocation < sepLocation) {
+    return filename;
+  }
+  // 3) If there is a dot in filename but it is not an actual extension (e.g. "test/.filename", or ".filename")
+  if (dotLocation === 0 || filename.at(dotLocation - 1) === sep) {
+    return filename;
+  }
+
+  const noExtension = filename.split('.').slice(0, -1).join('.');
+  // if there was no extension at all, return the original file name.
+  return noExtension ? noExtension : filename;
 }
 
 /**

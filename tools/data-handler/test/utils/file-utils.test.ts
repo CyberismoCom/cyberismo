@@ -8,7 +8,6 @@ import { access, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// ismo
 import {
   copyDir,
   deleteDir,
@@ -16,6 +15,7 @@ import {
   getFilesSync,
   pathExists,
   resolveTilde,
+  stripExtension,
 } from '../../src/utils/file-utils.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -131,5 +131,37 @@ describe('file utils', () => {
     const path = '~';
     const retVal = resolveTilde(path);
     expect(retVal).to.not.equal(path);
+  });
+  it('stripExtension, - various filenames', () => {
+    const filenamesWithExtensions: Map<string, string> = new Map([
+      ['myTemplate.json', 'myTemplate'],
+      ['myFile.withStrangeExtension', 'myFile'],
+      ['myFile.with.multiple.dots', 'myFile.with.multiple'],
+      ['myFile.with.trailing.dot.', 'myFile.with.trailing.dot'],
+      ['templates/myTemplate.json', 'templates/myTemplate'],
+      ['~/templates/myTemplate.json', '~/templates/myTemplate'],
+      [
+        '.cards/local/templates/myTemplate.json',
+        '.cards/local/templates/myTemplate',
+      ],
+      ['.cards/local/.sec.ret', '.cards/local/.sec'],
+    ]);
+    const filenamesWithoutExtensions = [
+      'myFile',
+      '.cards/local/templates/myTemplate',
+      'files/.secretFile',
+      '.cards/local/.secret',
+      '../test',
+      'test/./test',
+      '.',
+      '..',
+      '../..',
+    ];
+    for (const filename of filenamesWithExtensions) {
+      expect(stripExtension(filename[0])).to.equal(filename[1]);
+    }
+    for (const filename of filenamesWithoutExtensions) {
+      expect(stripExtension(filename)).to.equal(filename);
+    }
   });
 });
