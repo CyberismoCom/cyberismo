@@ -1,3 +1,6 @@
+import { INT32_MAX } from './constants.js';
+import { logger } from './log-utils.js';
+
 /**
     Cyberismo
     Copyright © Cyberismo Ltd and contributors 2024
@@ -115,7 +118,27 @@ export class ClingoFactBuilder {
       // Array case, call getValue on each item without quotes
       return value.map((item) => this.getValue(item)).join(',');
     } else if (typeof value === 'number') {
-      return value.toString();
+      let floored = Math.floor(value);
+      if (floored !== value) {
+        logger.warn(
+          {
+            value,
+          },
+          'Expected a whole number, when transforming a number value to a clingo equivalent. Decimal part removed.',
+        );
+      }
+
+      const exceedsInt32Max = floored > INT32_MAX;
+      if (exceedsInt32Max || floored < -INT32_MAX) {
+        logger.warn(
+          {
+            value,
+          },
+          `Value exceeds the 32-bit signed integer range. The value is too ${exceedsInt32Max ? 'large' : 'small'} to be represented as a 32-bit integer. Using ${exceedsInt32Max ? INT32_MAX : -INT32_MAX} instead.`,
+        );
+        floored = exceedsInt32Max ? INT32_MAX : -INT32_MAX;
+      }
+      return floored.toString();
     } else {
       return value;
     }
