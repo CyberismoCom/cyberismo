@@ -13,7 +13,7 @@ import {
 } from '../../src/utils/json.js';
 import { formatJson } from '../../src/utils/json.js';
 
-describe('read Json files', () => {
+describe('Json', () => {
   it('readJsonFile (success)', () => {
     const path = join(process.cwd(), 'test', 'test-data', 'test-template.json');
     const op = readJsonFileSync(path);
@@ -79,6 +79,16 @@ describe('read Json files', () => {
     const referenceJson =
       '{\n    "title": "Untitled",\n    "cardType": "page"\n}';
     const formattedJson = formatJson({ title: 'Untitled', cardType: 'page' });
+
+    expect(formattedJson).to.equal(referenceJson);
+  });
+  it('formatJson - trim', () => {
+    const referenceJson =
+      '{\n    "title": "Untitled",\n    "cardType": "page"\n}';
+    const formattedJson = formatJson({
+      title: ' Untitled ',
+      cardType: ' page ',
+    });
 
     expect(formattedJson).to.equal(referenceJson);
   });
