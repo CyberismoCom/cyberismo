@@ -21,7 +21,7 @@ import {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
 import { Project } from '../containers/project.js';
-import { PREDEFINED_FIELDS } from './constants.js';
+import { isPredefinedField } from './constants.js';
 
 // I think namespace syntax is valid for this purpose
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -141,7 +141,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
 
         let clingoValue: AllowedClingoType = value.toString();
 
-        if (!PREDEFINED_FIELDS.includes(field)) {
+        if (!isPredefinedField(field)) {
           // field is a custom field, find it
           const fieldType = await project.fieldType(field);
           if (!fieldType) {

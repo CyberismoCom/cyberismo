@@ -1,3 +1,5 @@
+import { PredefinedCardMetadata } from '../interfaces/project-interfaces.js';
+
 export const INT32_MAX = 2147483647; // 2^31-1
 /**
     Cyberismo
@@ -21,4 +23,10 @@ export const PREDEFINED_FIELDS = [
   'workflowState',
   'lastUpdated',
   'lastTransitioned',
-];
+] satisfies (keyof PredefinedCardMetadata)[];
+
+export function isPredefinedField(
+  value: string,
+): value is keyof PredefinedCardMetadata {
+  return (PREDEFINED_FIELDS as string[]).includes(value);
+}

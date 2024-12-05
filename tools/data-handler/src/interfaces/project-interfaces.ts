@@ -37,15 +37,18 @@ export interface CardListContainer {
   type: string;
   cards: string[];
 }
-
-// Card's index.json file content.
-export interface CardMetadata {
+// Remember to add all these keys to utils/constants.ts
+export interface PredefinedCardMetadata {
   title: string;
   cardType: string;
   workflowState: string;
   rank: string;
   lastTransitioned?: string;
   lastUpdated?: string;
+}
+
+// Card's index.json file content.
+export interface CardMetadata extends PredefinedCardMetadata {
   links: Link[];
   [key: string]: MetadataContent;
 }
