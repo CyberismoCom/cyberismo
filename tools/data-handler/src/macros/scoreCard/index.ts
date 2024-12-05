@@ -30,9 +30,12 @@ class ScoreCardMacro extends BaseMacro {
   }
 
   handleStatic = async (context: MacroGenerationContext, data: string) => {
-    // TODO: tässä ei voi laittaa placeholdereita, koska export site ei niitä tue!
-    // eli: joko tässä tuotetaan valmista html:ää tai sitten jotain muuta...
-    return this.handleInject(context, data);
+    if (!data || typeof data !== 'string') {
+      throw new Error('scoreCard macro requires a JSON object as data');
+    }
+    const options = validateMacroContent<ScoreCardOptions>(this.metadata, data);
+
+    return this.createAsciidocElement(options);
   };
 
   handleInject = async (_: MacroGenerationContext, data: string) => {
@@ -43,6 +46,10 @@ class ScoreCardMacro extends BaseMacro {
 
     return createHtmlPlaceholder(this.metadata, options);
   };
+
+  private createAsciidocElement(options: ScoreCardOptions) {
+    return `${options.title}: ${options.value} ${options.unit ?? ''} ${options.legend ?? ''}`;
+  }
 }
 
 export default ScoreCardMacro;
