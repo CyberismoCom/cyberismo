@@ -68,6 +68,20 @@ export function readADocFileSync(file: string) {
 }
 
 /**
+ * Removes leading or trailing whitespace
+ * Can be passed to JSON.stringify method
+ * @param _ First parameter is key of object, but it is not used
+ * @param value Value of the json object
+ * @returns JSON object with values trimmed for leading or trailing white space.
+ */
+export function trimReplacer(_: string, value: unknown) {
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return value;
+}
+
+/**
  * Format an object with JSON.stringify
  *
  * The purpose of this function is to format the JSON output in a centralised function
@@ -77,7 +91,7 @@ export function readADocFileSync(file: string) {
  * @returns Formatted JSON string
  */
 export function formatJson(json: object) {
-  return JSON.stringify(json, null, 4);
+  return JSON.stringify(json, trimReplacer, 4);
 }
 
 /**
