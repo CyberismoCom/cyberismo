@@ -3,6 +3,7 @@ import {
   ClingoFactBuilder,
   encodeClingoValue,
 } from '../../src/utils/clingo-fact-builder.js';
+import { INT32_MAX } from '../../src/utils/constants.js';
 
 describe('ClingoFactBuilder', () => {
   it('should generate fact with addArgument', () => {
@@ -40,7 +41,21 @@ describe('ClingoFactBuilder', () => {
     builder.addArgument(42);
     expect(builder.build()).to.equal('test(42).');
   });
-
+  it('should floor decimal numbers', () => {
+    const builder = new ClingoFactBuilder('test');
+    builder.addArgument(42.3);
+    expect(builder.build()).to.equal('test(42).');
+  });
+  it('should set numbers that are over int32_max to int32_max', () => {
+    const builder = new ClingoFactBuilder('test');
+    builder.addArgument(INT32_MAX + 1);
+    expect(builder.build()).to.equal(`test(${INT32_MAX}).`);
+  });
+  it('should set numbers that are less than -int32_max to -int32_max', () => {
+    const builder = new ClingoFactBuilder('test');
+    builder.addArgument(-INT32_MAX - 1);
+    expect(builder.build()).to.equal(`test(${-INT32_MAX}).`);
+  });
   it('should handle nested ClingoFactBuilder instances as arguments', () => {
     const nestedBuilder = new ClingoFactBuilder('nested', '').addArgument(
       'inner',

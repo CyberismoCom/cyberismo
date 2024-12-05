@@ -142,8 +142,8 @@ export const createCardFacts = async (card: Card, project: Project) => {
             .addLiteralArgument(card.key)
             .addArguments(
               field,
-              fieldType && ['datetime', 'date'].includes(fieldType.dataType)
-                ? Math.floor(new Date(value as string).getTime() / 1000)
+              fieldType?.dataType === 'number'
+                ? (value as number)
                 : value.toString(),
             ),
         );
