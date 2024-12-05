@@ -17,10 +17,11 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../BaseMacro.js';
 
 export interface ScoreCardOptions {
-  buttonLabel: string;
-  template: string;
-  cardKey?: string;
-  [key: string]: string | undefined;
+  title?: string;
+  value: number;
+  unit?: string;
+  legend?: string;
+  [key: string]: string | number | undefined;
 }
 
 class ScoreCardMacro extends BaseMacro {
