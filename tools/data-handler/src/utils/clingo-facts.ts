@@ -19,8 +19,9 @@ import {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
-import { ClingoFactBuilder } from './clingo-fact-builder.js';
+import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
 import { Project } from '../containers/project.js';
+import { isPredefinedField } from './constants.js';
 
 // I think namespace syntax is valid for this purpose
 // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -136,16 +137,24 @@ export const createCardFacts = async (card: Card, project: Project) => {
         if (value == null) {
           continue;
         }
-        const fieldType = await project.fieldType(field);
+        // field might be a non-custom field, which cannot use the fieldType method
+
+        let clingoValue: AllowedClingoType = value.toString();
+
+        if (!isPredefinedField(field)) {
+          // field is a custom field, find it
+          const fieldType = await project.fieldType(field);
+          if (!fieldType) {
+            continue;
+          }
+          clingoValue =
+            fieldType.dataType === 'number'
+              ? (value as number)
+              : value.toString();
+        }
+
         builder.addCustomFact(Facts.Common.FIELD, (b) =>
-          b
-            .addLiteralArgument(card.key)
-            .addArguments(
-              field,
-              fieldType?.dataType === 'number'
-                ? (value as number)
-                : value.toString(),
-            ),
+          b.addLiteralArgument(card.key).addArguments(field, clingoValue),
         );
       }
     }
