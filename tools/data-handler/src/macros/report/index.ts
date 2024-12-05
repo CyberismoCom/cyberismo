@@ -10,7 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { registerEmptyMacros, validateMacroContent } from '../index.js';
+import {
+  registerEmptyMacros,
+  registerMacroHelpers,
+  validateMacroContent,
+} from '../index.js';
 
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
@@ -68,6 +72,8 @@ class ReportMacro extends BaseMacro {
       throw new Error(result.error);
     }
     registerEmptyMacros(handlebars);
+    registerMacroHelpers(handlebars);
+
     return handlebars.compile(report.contentTemplate)({
       ...handlebarsContext,
       ...result,
