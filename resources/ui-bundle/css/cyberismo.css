@@ -37,3 +37,8 @@ footer a {
 .nav-panel-explore .context {
     display: none;
 }
+
+/* Table header row */
+.doc table.tableblock th {
+  background: #fbfcfe;
+}

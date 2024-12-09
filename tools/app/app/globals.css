@@ -273,6 +273,7 @@
 .doc table.tableblock td,
 .doc table.tableblock th {
   padding: 0.5rem;
+  background: #fbfcfe;
 }
 .doc table.tableblock,
 .doc table.tableblock > * > tr > * {
