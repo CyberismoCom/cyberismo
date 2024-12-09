@@ -124,7 +124,12 @@ export class Create extends EventEmitter {
     resourceContent: ResourceMetadataType,
   ) {
     const resourceFolder = this.project.paths.resourcePath(resourceType);
-    const resource = { name: resourceContent.name, path: resourceFolder };
+    const resource = {
+      name: resourceContent.name.endsWith('.json')
+        ? resourceContent.name
+        : resourceContent.name + '.json',
+      path: resourceFolder,
+    };
     const contentSchema: DotSchemaContent | undefined =
       this.contentSchemaMap.get(resourceType);
 

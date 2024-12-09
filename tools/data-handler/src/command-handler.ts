@@ -67,6 +67,7 @@ export enum Cmd {
   show = 'show',
   start = 'start',
   transition = 'transition',
+  update = 'update',
   validate = 'validate',
 }
 
@@ -299,6 +300,9 @@ export class Commands {
         await this.commands?.transitionCmd.cardTransition(cardKey, {
           name: state,
         });
+      } else if (command === Cmd.update) {
+        const [resource, key, value] = args;
+        await this.commands?.updateCmd.updateValue(resource, key, value);
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {

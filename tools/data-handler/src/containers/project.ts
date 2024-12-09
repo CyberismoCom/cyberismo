@@ -1180,6 +1180,24 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Updates any resource.
+   * @param resourceName Name of resource
+   * @param content New content.
+   * @param newResourceFileName Optional. A new name for the resource content file.
+   */
+  public async updateResource(
+    resourceName: string,
+    content: Workflow | CardType,
+    newResourceFileName?: string,
+  ) {
+    return this.resources.saveResource(
+      resourceName,
+      content as unknown as JSON,
+      newResourceFileName,
+    );
+  }
+
+  /**
    * Validates that card's data is valid.
    * @param card Card to validate.
    */
