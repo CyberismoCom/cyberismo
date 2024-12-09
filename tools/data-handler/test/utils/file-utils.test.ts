@@ -5,10 +5,9 @@ import { after, describe, it } from 'mocha';
 // node
 import { rmSync } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// ismo
 import {
   copyDir,
   deleteDir,
@@ -16,6 +15,7 @@ import {
   getFilesSync,
   pathExists,
   resolveTilde,
+  stripExtension,
 } from '../../src/utils/file-utils.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -131,5 +131,40 @@ describe('file utils', () => {
     const path = '~';
     const retVal = resolveTilde(path);
     expect(retVal).to.not.equal(path);
+  });
+  it('stripExtension, - various filenames', () => {
+    const filenamesWithExtensions: Map<string, string> = new Map([
+      ['myTemplate.json', 'myTemplate'],
+      ['myFile.withStrangeExtension', 'myFile'],
+      ['myFile.with.multiple.dots', 'myFile.with.multiple'],
+      ['myFile.with.trailing.dot.', 'myFile.with.trailing.dot'],
+      [`templates${sep}myTemplate.json`, `templates${sep}myTemplate`],
+      [
+        `~${sep}templates${sep}myTemplate.json`,
+        `~${sep}templates${sep}myTemplate`,
+      ],
+      [
+        `.cards${sep}local${sep}templates${sep}myTemplate.json`,
+        `.cards${sep}local${sep}templates${sep}myTemplate`,
+      ],
+      [`.cards${sep}local${sep}.sec.ret`, `.cards${sep}local${sep}.sec`],
+    ]);
+    const filenamesWithoutExtensions = [
+      'myFile',
+      `.cards${sep}local${sep}templates${sep}myTemplate`,
+      `files${sep}.secretFile`,
+      `.cards${sep}local${sep}.secret`,
+      `..${sep}test`,
+      `test${sep}.${sep}test`,
+      '.',
+      '..',
+      `..${sep}..`,
+    ];
+    for (const filename of filenamesWithExtensions) {
+      expect(stripExtension(filename[0])).to.equal(filename[1]);
+    }
+    for (const filename of filenamesWithoutExtensions) {
+      expect(stripExtension(filename)).to.equal(filename);
+    }
   });
 });

@@ -12,6 +12,10 @@
 
 // node
 import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+
 import mime from 'mime-types';
 
 // cyberismo
@@ -31,11 +35,9 @@ import {
   LinkType,
   Workflow,
 } from './interfaces/resource-interfaces.js';
+import { stripExtension } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import { spawn } from 'node:child_process';
-import { join, resolve } from 'node:path';
 import { UserPreferences } from './utils/user-preferences.js';
-import { homedir } from 'node:os';
 
 export class Show {
   constructor(private project: Project) {}
@@ -61,8 +63,8 @@ export class Show {
 
   /**
    * Returns file buffer and mime type of an attachment. Used by app UI to download attachments.
-   * @param {string} cardKey card key to find
-   * @param {string} filename attachment filename
+   * @param cardKey card key to find
+   * @param filename attachment filename
    * @returns attachment details
    */
   public async showAttachment(
@@ -98,6 +100,7 @@ export class Show {
    * @param cardKey card key of the attachment
    * @param filename attachment filename
    * @param waitDelay amount of time to wait for the application to open the attachment
+   * @todo: Move away from Show.
    */
   public async openAttachment(
     cardKey: string,
@@ -111,7 +114,6 @@ export class Show {
     }
 
     // Try to open the attachment using a configured application if one exists
-
     const prefs = new UserPreferences(
       join(homedir(), '.cyberismo', 'cards.prefs.json'),
     ).getPreferences();
@@ -149,7 +151,7 @@ export class Show {
     }
   }
 
-  //
+  // Returns attachment details
   private async getAttachment(cardKey: string, filename: string) {
     const details = {
       content: false,
@@ -168,11 +170,8 @@ export class Show {
     return attachment;
   }
 
-  /**
-   * Opens the given path using the operating system's default application.
-   * Doesn't block the main thread.
-   * @param path path to a file
-   */
+  // Opens the given path using the operating system's default application. Doesn't block the main thread.
+  // @todo: Move away from Show.
   private openUsingDefaultApplication(path: string) {
     if (process.platform === 'win32') {
       // This is a workaround to get windows to open the file in foreground
@@ -189,9 +188,9 @@ export class Show {
   /**
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
-   * @param {string} details card details to show
-   * @param {string} cardKey card key to find
-   * @returns card details object
+   * @param details card details to show
+   * @param cardKey card key to find
+   * @returns card details
    */
   public async showCardDetails(
     details: FetchCardDetails,
@@ -228,7 +227,7 @@ export class Show {
 
   /**
    * Shows details of a particular card type.
-   * @param {string} cardTypeName card type name
+   * @param cardTypeName card type name
    * @returns card type details
    */
   public async showCardTypeDetails(cardTypeName: string): Promise<CardType> {
@@ -246,13 +245,12 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @returns array of card type names
+   * @returns sorted array of card types
    */
   public async showCardTypes(): Promise<string[]> {
-    const cardTypes = (await this.project.cardTypes())
-      .map((item) => item.name)
+    return (await this.project.cardTypes())
+      .map((item) => stripExtension(item.name))
       .sort();
-    return cardTypes;
   }
 
   /**
@@ -273,18 +271,17 @@ export class Show {
 
   /**
    * Shows all available link types.
-   * @returns all available link types
+   * @returns sorted array of link types
    */
   public async showLinkTypes(): Promise<string[]> {
-    const linkTypes = (await this.project.linkTypes())
-      .map((item) => item.name.split('.').slice(0, -1).join('.'))
+    return (await this.project.linkTypes())
+      .map((item) => stripExtension(item.name))
       .sort();
-    return linkTypes;
   }
 
   /**
    * Shows details of a link type.
-   * @param {string} linkTypeName name of a link type
+   * @param linkTypeName name of a link type
    * @returns details of a link type.
    */
   public async showLinkType(
@@ -300,20 +297,18 @@ export class Show {
   }
 
   /**
-   * Shows all available field-types.
-   * @returns all available field-types
+   * Shows all available field types.
+   * @returns sorted array of field types
    */
   public async showFieldTypes(): Promise<string[]> {
-    // todo: make a common function that strips away the extension.
-    const fieldTypes = (await this.project.fieldTypes())
-      .map((item) => item.name.split('.').slice(0, -1).join('.'))
+    return (await this.project.fieldTypes())
+      .map((item) => stripExtension(item.name))
       .sort();
-    return fieldTypes;
   }
 
   /**
    * Shows details of a field type.
-   * @param {string} fieldTypeName name of a field type
+   * @param fieldTypeName name of a field type
    * @returns details of a field type.
    */
   public async showFieldType(
@@ -330,7 +325,7 @@ export class Show {
 
   /**
    * Shows details of a module.
-   * @param {string} moduleName name of a module
+   * @param moduleName name of a module
    * @returns details of a module.
    */
   public async showModule(moduleName: string): Promise<ModuleSettings> {
@@ -346,15 +341,12 @@ export class Show {
    * @returns all modules in a project.
    */
   public async showModules(): Promise<string[]> {
-    const modules = (await this.project.modules())
-      .map((item) => item.name)
-      .sort();
-    return modules;
+    return (await this.project.modules()).map((item) => item.name).sort();
   }
 
   /**
    * Shows all modules with full details in a project.
-   * @returns all modules in a project.
+   * @returns all modules with full details in a project.
    */
   public async showModulesWithDetails(): Promise<
     (ModuleSettings | undefined)[]
@@ -377,7 +369,7 @@ export class Show {
 
   /**
    * Shows all reports in a project
-   * @returns reports by their name
+   * @returns sorted array of reports
    */
   public async showReports(): Promise<string[]> {
     return (await this.project.reports()).map((item) => item.name).sort();
@@ -385,7 +377,7 @@ export class Show {
 
   /**
    * Shows details of a particular template.
-   * @param {string} templateName template name
+   * @param templateName template name
    * @returns template details
    */
   public async showTemplate(
@@ -403,18 +395,14 @@ export class Show {
 
   /**
    * Shows all templates in a project.
-   * @returns templates array
+   * @returns sorted array of templates
    */
   public async showTemplates(): Promise<string[]> {
-    const templates = (await this.project.templates())
-      .map((item) => item.name)
-      .sort();
-    return templates;
+    return (await this.project.templates()).map((item) => item.name).sort();
   }
 
   /**
    * Shows all templates with full details in a project.
-   * @param {string} projectPath path to a project
    * @returns all templates in a project.
    */
   public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
@@ -429,7 +417,7 @@ export class Show {
 
   /**
    * Shows details of a particular workflow.
-   * @param {string} workflowName name of workflow
+   * @param workflowName name of workflow
    * @returns workflow details
    */
   public async showWorkflow(workflowName: string): Promise<Workflow> {
@@ -446,13 +434,12 @@ export class Show {
 
   /**
    * Shows all workflows in a project.
-   * @returns workflows
+   * @returns sorted array of workflows
    */
   public async showWorkflows(): Promise<string[]> {
-    const workflows = (await this.project.workflows())
-      .map((item) => item.name)
+    return (await this.project.workflows())
+      .map((item) => stripExtension(item.name))
       .sort();
-    return workflows;
   }
 
   /**

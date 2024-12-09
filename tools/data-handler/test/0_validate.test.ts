@@ -187,7 +187,7 @@ describe('validate cmd tests', () => {
   });
   it('try to validateSchema() - invalid schemaId', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
+      'test/test-data/valid/decision-records/.cards/local/workflows/decision';
     const schemaId = 'i-do-not-exists';
     await validateCmd
       .validateSchema(path, schemaId)
