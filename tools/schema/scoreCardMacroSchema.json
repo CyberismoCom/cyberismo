@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "$id": "scoreCardMacroSchema",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title text on top of the card (optional)"
+    },
+    "value": {
+      "type": "number",
+      "description": "Value shown as content of the card"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit shown after the value (optional)"
+    },
+    "legend": {
+      "type": "string",
+      "description": "Description text shown below the value (optional)"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["value"]
+}

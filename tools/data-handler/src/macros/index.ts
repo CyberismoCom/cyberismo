@@ -12,6 +12,7 @@
 
 import Handlebars from 'handlebars';
 import createCards from './createCards/index.js';
+import scoreCard from './scoreCard/index.js';
 import report from './report/index.js';
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError } from '../exceptions/index.js';
@@ -30,6 +31,7 @@ export interface MacroConstructor {
 
 export const macros: { [K in MacroName]: MacroConstructor } = {
   createCards,
+  scoreCard,
   report,
 };
 
@@ -98,6 +100,50 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
       return `{{{${macro}${argString ? ` ${argString}` : ''}}}}`;
     });
   }
+}
+
+/**
+ * Registers any Handlebars helper functions that may be needed by sub-macros
+ * @param instance handlebars instance
+ */
+export function registerMacroHelpers(instance: typeof Handlebars) {
+  // Register a helper to create the parameters JSON string for the scoreCard macro
+  // Usage: (scoreCardParams title value unit legend)
+  instance.registerHelper('scoreCardParams', function (...args) {
+    // Remove the options object from the arguments
+    args.pop();
+
+    // value argument should be a number
+    const value = parseFloat(args[1]);
+
+    if (args.length === 2) {
+      return JSON.stringify({
+        title: args[0],
+        value: value,
+      });
+    }
+
+    if (args.length === 3) {
+      return JSON.stringify({
+        title: args[0],
+        value: value,
+        unit: args[2],
+      });
+    }
+
+    if (args.length === 4) {
+      return JSON.stringify({
+        title: args[0],
+        value: value,
+        unit: args[2],
+        legend: args[3],
+      });
+    }
+
+    throw new Error(
+      'scoreCardParams: invalid arguments, please specify title and value and optionally unit and legend',
+    );
+  });
 }
 
 /**
@@ -194,7 +240,7 @@ export function handleMacroError(error: unknown, macro: MacroMetadata): string {
  */
 export function createHtmlPlaceholder(
   macro: MacroMetadata,
-  options: Record<string, string | undefined>,
+  options: Record<string, string | number | undefined>,
 ) {
   // Key value pairs are shown using the key as the attribute name and the value as the attribute value
   // Values are wrapped in quotes to prevent issues with special characters
@@ -202,7 +248,8 @@ export function createHtmlPlaceholder(
     .map((key) => `${key}="${options[key]}"`)
     .join(' ');
 
-  return `++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''}></${macro.tagName}>\n++++`;
+  // start with a line change to ensure that passthrough ++++ is on its own line
+  return `\n++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''}></${macro.tagName}>\n++++`;
 }
 
 /**
