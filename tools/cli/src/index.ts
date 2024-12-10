@@ -686,6 +686,30 @@ program
     },
   );
 
+// Update command
+program
+  .command('update')
+  .description('Update resource details')
+  .argument('<resourceName>', 'Resource name')
+  .argument('<key>', 'Detail to be changed')
+  .argument('<value>', 'New value for a detail')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (
+      resourceName: string,
+      key: string,
+      value: string,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.update,
+        [resourceName, key, value],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
+
 // Validate command
 program
   .command('validate')

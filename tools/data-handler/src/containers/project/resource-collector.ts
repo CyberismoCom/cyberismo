@@ -10,13 +10,16 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { Dirent, readdirSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { readdir, rename } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
-import { readJsonFile } from '../../utils/json.js';
+import { readJsonFile, writeJsonFile } from '../../utils/json.js';
 import { pathExists, stripExtension } from '../../utils/file-utils.js';
-import { resourceNameParts } from '../../utils/resource-utils.js';
+import {
+  resourceNameParts,
+  resourceNameToString,
+} from '../../utils/resource-utils.js';
 import { ProjectPaths } from './project-paths.js';
 import {
   Resource,
@@ -203,30 +206,6 @@ export class ResourceCollector {
   }
 
   /**
-   * Collects all local resources.
-   */
-  public collectLocalResources() {
-    this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardTypes = this.resourcesSync('cardType', 'file');
-    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
-    this.localLinkTypes = this.resourcesSync('linkType', 'file');
-    this.localReports = this.resourcesSync('report', 'folder');
-    this.localTemplates = this.resourcesSync('template', 'folder');
-    this.localWorkflows = this.resourcesSync('workflow', 'file');
-  }
-
-  /**
-   * Collect specific resource from modules.
-   * @param type Type of resource (e.g. 'templates').
-   * @returns array of collected items.
-   */
-  public async collectResourcesFromModules(type: string) {
-    return (await this.addResourcesFromModules(type)).map((item) =>
-      stripExtension(item.name),
-    );
-  }
-
-  /**
    * Add a given 'resource' to the local resource arrays.
    * @param resource Resource to add.
    */
@@ -269,6 +248,30 @@ export class ResourceCollector {
    */
   public changed() {
     this.collectLocalResources();
+  }
+
+  /**
+   * Collects all local resources.
+   */
+  public collectLocalResources() {
+    this.localCalculations = this.resourcesSync('calculation', 'file');
+    this.localCardTypes = this.resourcesSync('cardType', 'file');
+    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
+    this.localLinkTypes = this.resourcesSync('linkType', 'file');
+    this.localReports = this.resourcesSync('report', 'folder');
+    this.localTemplates = this.resourcesSync('template', 'folder');
+    this.localWorkflows = this.resourcesSync('workflow', 'file');
+  }
+
+  /**
+   * Collect specific resource from modules.
+   * @param type Type of resource (e.g. 'templates').
+   * @returns array of collected items.
+   */
+  public async collectResourcesFromModules(type: string) {
+    return (await this.addResourcesFromModules(type)).map((item) =>
+      stripExtension(item.name),
+    );
   }
 
   /**
@@ -382,5 +385,43 @@ export class ResourceCollector {
 
     const localResourcesOfType = this.localResources(type);
     return this.joinResources(from, localResourcesOfType, moduleResources);
+  }
+
+  /**
+   * Saves a resource with new content. If newFileName is provided, renames the file.
+   * @param resourceName Name of the resource.
+   * @param newContent New content for the resource. todo: how to do folder based resources?
+   * @param newFileName new name for the resource file.
+   */
+  public async saveResource(
+    resourceName: string,
+    newContent: JSON,
+    newFileName?: string,
+  ) {
+    const resource = resourceNameParts(resourceName);
+    const fullName = resourceNameToString(resource);
+
+    const found = (await this.resources(resource.type)).find(
+      (item) => item.name === fullName + '.json',
+    );
+    if (!found) {
+      throw new Error(`Resource '${fullName}' not found from the project`);
+    }
+
+    let jsonContentFile = join(found.path, resource.identifier + '.json');
+    if (!pathExists(jsonContentFile)) {
+      throw new Error(`Resource '${fullName}'does not exists`);
+    }
+
+    // Either it is update, or update-and-rename operation.
+    if (newFileName) {
+      const newFilenamePath = join(
+        found.path,
+        resourceNameParts(newFileName).identifier + '.json',
+      );
+      await rename(jsonContentFile, newFilenamePath);
+      jsonContentFile = newFilenamePath;
+    }
+    await writeJsonFile(jsonContentFile, newContent, { flag: 'w' });
   }
 }

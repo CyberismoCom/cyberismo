@@ -1008,6 +1008,7 @@ export class Project extends CardContainer {
    * @param resourceType Type of resource as a string.
    * @param name Valid name of resource.
    * @returns boolean, true if resource exists; false otherwise.
+   * @todo: could directly use resourceCollector?
    */
   public async resourceExists(
     resourceType: ResourceFolderType,
@@ -1177,6 +1178,24 @@ export class Project extends CardContainer {
       await this.saveCardMetadata(card);
       return this.onCardUpdate(card.key);
     }
+  }
+
+  /**
+   * Updates any resource.
+   * @param resourceName Name of resource
+   * @param content New content.
+   * @param newResourceFileName Optional. A new name for the resource content file.
+   */
+  public async updateResource(
+    resourceName: string,
+    content: CardType | FieldType | LinkType | Workflow,
+    newResourceFileName?: string,
+  ) {
+    return this.resources.saveResource(
+      resourceName,
+      content as unknown as JSON,
+      newResourceFileName,
+    );
   }
 
   /**
