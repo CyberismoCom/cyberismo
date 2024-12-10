@@ -17,7 +17,12 @@ import {
   resourceNameToString,
   ResourceName,
 } from './utils/resource-utils.js';
-import { CardType, Workflow } from './interfaces/resource-interfaces.js';
+import {
+  CardType,
+  FieldType,
+  LinkType,
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 
 /**
  * Class that handles 'update' commands.
@@ -53,7 +58,7 @@ export class Update {
   // Fetches a resource object that matches the name.
   private async resource(
     resourceName: ResourceName,
-  ): Promise<Workflow | CardType | undefined> {
+  ): Promise<CardType | FieldType | LinkType | Workflow | undefined> {
     let resource;
     if (resourceName.type === 'workflows') {
       resource = await this.project.workflow(
@@ -62,6 +67,16 @@ export class Update {
     }
     if (resourceName.type === 'cardTypes') {
       resource = await this.project.cardType(
+        resourceNameToString(resourceName),
+      );
+    }
+    if (resourceName.type === 'fieldTypes') {
+      resource = await this.project.fieldType(
+        resourceNameToString(resourceName),
+      );
+    }
+    if (resourceName.type === 'linkTypes') {
+      resource = await this.project.linkType(
         resourceNameToString(resourceName),
       );
     }

@@ -1008,6 +1008,7 @@ export class Project extends CardContainer {
    * @param resourceType Type of resource as a string.
    * @param name Valid name of resource.
    * @returns boolean, true if resource exists; false otherwise.
+   * @todo: could directly use resourceCollector?
    */
   public async resourceExists(
     resourceType: ResourceFolderType,
@@ -1187,7 +1188,7 @@ export class Project extends CardContainer {
    */
   public async updateResource(
     resourceName: string,
-    content: Workflow | CardType,
+    content: CardType | FieldType | LinkType | Workflow,
     newResourceFileName?: string,
   ) {
     return this.resources.saveResource(
