@@ -96,13 +96,7 @@ class ClingoParser {
       this.childResultQueue.push({ parentKey, childKey, collection });
       this.collections.add(collection);
     },
-    enumField: async (
-      key: string,
-      fieldName: string,
-      fieldValue: string,
-      index: string,
-      displayName: string,
-    ) => {
+    enumField: async (key: string, fieldName: string, fieldValue: string) => {
       const res = this.getOrInitResult(key);
       const decoded = decodeClingoValue(fieldValue);
       res[fieldName] = decoded;
