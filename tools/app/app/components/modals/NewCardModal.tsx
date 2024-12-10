@@ -26,7 +26,10 @@ import {
   ModalClose,
   CardOverflow,
   Grid,
+  Input,
+  IconButton
 } from '@mui/joy';
+import ClearIcon from "@mui/icons-material/Clear";
 import { useTranslation } from 'react-i18next';
 import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
@@ -115,6 +118,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const [chosenTemplate, setChosenTemplate] = React.useState<string | null>(
     null,
   );
+  const [filter, setFilter] = React.useState<string>('');
 
   const router = useAppRouter();
 
@@ -136,7 +140,12 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     if (!acc[category]) {
       acc[category] = [];
     }
-    acc[category].push(template);
+    if(!filter ||
+      template.metadata.displayName?.toLowerCase().includes(filter.toLowerCase()) ||
+      category.toLowerCase().includes(filter.toLowerCase())
+    ) {
+      acc[category].push(template);
+    }
     return acc;
   }, {});
 
@@ -145,6 +154,25 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
       <ModalDialog>
         <ModalClose />
         <DialogTitle>{t('newCardDialog.title')}</DialogTitle>
+        <Input
+          type='text'
+          autoFocus
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder={t('newCardDialog.searchTemplates')}
+          endDecorator={
+            filter && (
+              <IconButton
+                variant="plain"
+                size="sm"
+                onClick={() => setFilter('')}
+                aria-label='Clear'
+              >
+                <ClearIcon/>
+              </IconButton>
+            )
+          }
+          />
         <DialogContent
           sx={{
             padding: 2,
@@ -155,7 +183,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               overflowY: 'scroll',
             }}
           >
-            {Object.entries(categories).map(([category, templates]) => (
+            {Object.entries(categories).map(([category, templates]) => (templates.length > 0 && (
               <Stack key={category}>
                 <Typography level="title-sm" color="neutral">
                   {category}
@@ -182,7 +210,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                   ))}
                 </Grid>
               </Stack>
-            ))}
+            )))}
           </Box>
           <DialogActions>
             <Button
