@@ -12,6 +12,7 @@
 
 import { MacroName } from '@cyberismocom/data-handler/interfaces/macros';
 import CreateCards from './CreateCards';
+import ScoreCard from './ScoreCard';
 import { ReactElement } from 'react';
 
 export interface MacroContext {
@@ -29,4 +30,5 @@ export type UIMacroName = Exclude<MacroName, 'report'>;
 
 export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
+  scoreCard: ScoreCard,
 };

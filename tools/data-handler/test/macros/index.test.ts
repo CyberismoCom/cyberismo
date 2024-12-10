@@ -110,6 +110,27 @@ describe('macros', () => {
         expect(result).to.not.contain('<create-cards>');
       });
     });
+
+    describe('scoreCard', () => {
+      it('scoreCard inject (success)', async () => {
+        const macro = `{{{ scoreCard '{"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete" }' }}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(result).to.contain('<score-card');
+      });
+      it('scoreCard static (success)', async () => {
+        const macro = `{{{ scoreCard '{"title": "Open issues", "value": 0 }}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(result).to.contain('----');
+      });
+    });
   });
   describe('validateMacros', () => {
     it('validateMacros (success)', () => {
@@ -130,6 +151,7 @@ describe('macros', () => {
         cardKey: '',
       });
       expect(handlebars.helpers).to.have.property('createCards');
+      expect(handlebars.helpers).to.have.property('scoreCard');
       expect(handlebars.helpers).to.have.property('report');
     });
   });
@@ -139,12 +161,12 @@ describe('macros', () => {
         test: 'test-data',
       });
       expect(result).to.equal(
-        '++++\n<test-tag-name test="test-data"></test-tag-name>\n++++',
+        '\n++++\n<test-tag-name test="test-data"></test-tag-name>\n++++',
       );
     });
     it('createHtmlPlaceholder (success) without data', () => {
       const result = createHtmlPlaceholder(macro.metadata, {});
-      expect(result).to.equal('++++\n<test-tag-name></test-tag-name>\n++++');
+      expect(result).to.equal('\n++++\n<test-tag-name></test-tag-name>\n++++');
     });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
