@@ -110,6 +110,27 @@ describe('macros', () => {
         expect(result).to.not.contain('<create-cards>');
       });
     });
+
+    describe('scoreCard', () => {
+      it('scoreCard inject (success)', async () => {
+        const macro = `{{{ scoreCard '{"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete" }' }}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(result).to.contain('<score-card');
+      });
+      it('scoreCard static (success)', async () => {
+        const macro = `{{{ scoreCard '{"title": "Open issues", "value": 0 }}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(result).to.contain('----');
+      });
+    });
   });
   describe('validateMacros', () => {
     it('validateMacros (success)', () => {
@@ -130,6 +151,7 @@ describe('macros', () => {
         cardKey: '',
       });
       expect(handlebars.helpers).to.have.property('createCards');
+      expect(handlebars.helpers).to.have.property('scoreCard');
       expect(handlebars.helpers).to.have.property('report');
     });
   });
