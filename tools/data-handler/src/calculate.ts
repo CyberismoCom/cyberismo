@@ -298,7 +298,7 @@ export class Calculate {
         error: null,
       };
     }
-    const parser = new ClingoParser(this.project);
+    const parser = new ClingoParser();
     return parser.parseInput(actual_result);
   }
 

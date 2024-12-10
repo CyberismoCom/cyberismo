@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Project } from '../containers/project.js';
+import { DataType } from '../interfaces/resource-interfaces.js';
 import { BaseResult, ParseResult } from '../types/queries.js';
 
 /**
@@ -25,17 +25,14 @@ export function decodeClingoValue(value: string) {
   });
 }
 
-const CONSTANT_FIELDS = {
-  index: Number,
-  isEditable: Boolean,
-} as const;
-
 class ClingoParser {
   private keywords = [
     'queryError',
     'result',
     'childResult',
     'field',
+    'enumField',
+    'listField',
     'label',
     'link',
     'transitionDenied',
@@ -56,22 +53,20 @@ class ClingoParser {
 
   // The queue now stores the parameters instead of functions
   private resultQueue: { key: string }[] = [];
-  private childResultQueue: { parentKey: string; childKey: string }[] = [];
+  private childResultQueue: {
+    parentKey: string;
+    childKey: string;
+    collection: string;
+  }[] = [];
   private tempResults: { [key: string]: BaseResult } = {};
   private orderQueue: {
     level: number;
+    collection: string;
     fieldIndex: number;
     field: string;
     direction: 'ASC' | 'DESC';
   }[] = [];
-
-  // For now we depend on the project to get link display names
-  private project: Project;
-
-  constructor(project: Project) {
-    this.project = project;
-  }
-
+  private collections: Set<string> = new Set();
   private reset() {
     this.result = {
       results: [],
@@ -81,6 +76,7 @@ class ClingoParser {
     this.childResultQueue = [];
     this.tempResults = {};
     this.orderQueue = [];
+    this.collections = new Set();
   }
 
   /**
@@ -96,38 +92,36 @@ class ClingoParser {
     result: (key: string) => {
       this.resultQueue.push({ key });
     },
-    childResult: (parentKey: string, childKey: string) => {
-      this.childResultQueue.push({ parentKey, childKey });
+    childResult: (parentKey: string, childKey: string, collection: string) => {
+      this.childResultQueue.push({ parentKey, childKey, collection });
+      this.collections.add(collection);
     },
-    field: async (key: string, fieldName: string, fieldValue: string) => {
+    enumField: async (
+      key: string,
+      fieldName: string,
+      fieldValue: string,
+      index: string,
+      displayName: string,
+    ) => {
       const res = this.getOrInitResult(key);
-      // This is still a bit messy
-      // Decoded is still a string
       const decoded = decodeClingoValue(fieldValue);
-      if (Object.keys(CONSTANT_FIELDS).includes(fieldName)) {
-        const fieldType =
-          CONSTANT_FIELDS[fieldName as keyof typeof CONSTANT_FIELDS];
-        if (fieldType === Number) {
-          return (res[fieldName] = parseFloat(fieldValue));
-        }
-        if (fieldType === Boolean) {
-          return (res[fieldName] = fieldValue === 'true');
-        }
-      }
-      const fieldType = await this.project.fieldType(
-        fieldName === 'value' ? key : fieldName,
-      );
-      if (!fieldType) {
-        res[fieldName] = decoded;
-        return;
-      }
-      switch (fieldType.dataType) {
+      res[fieldName] = decoded;
+    },
+    field: async (
+      key: string,
+      fieldName: string,
+      fieldValue: string,
+      dataType: DataType,
+    ) => {
+      const res = this.getOrInitResult(key);
+      const decoded = decodeClingoValue(fieldValue);
+      switch (dataType) {
         case 'shortText':
         case 'longText':
-        case 'enum':
         case 'person':
         case 'date':
         case 'dateTime':
+        case 'enum':
           res[fieldName] = decoded;
           break;
         case 'number':
@@ -219,6 +213,7 @@ class ClingoParser {
     },
     order: (
       level: string,
+      collection: string,
       fieldIndex: string,
       field: string,
       direction: 'ASC' | 'DESC',
@@ -227,6 +222,7 @@ class ClingoParser {
       const parsedFieldIndex = parseInt(fieldIndex, 10);
       this.orderQueue.push({
         level: parsedLevel,
+        collection,
         fieldIndex: parsedFieldIndex,
         field,
         direction,
@@ -240,7 +236,6 @@ class ClingoParser {
         key,
         labels: [],
         links: [],
-        results: [],
         notifications: [],
         policyChecks: { successes: [], failures: [] },
         deniedOperations: {
@@ -254,33 +249,52 @@ class ClingoParser {
     }
     return this.tempResults[key];
   }
-  private sortByLevel(results: BaseResult[], level: number = 1) {
-    // Get all the orders for the current hierarchy level
+  private sortByLevel(
+    results: BaseResult[],
+    level: number = 1,
+    currentCollection?: string,
+  ) {
     const levelOrders = this.orderQueue
-      .filter((order) => order.level === level)
-      .sort((a, b) => a.fieldIndex - b.fieldIndex); // Sort by field index (primary, secondary, etc.)
+      .filter(
+        (order) =>
+          order.level === level &&
+          (currentCollection ? order.collection === currentCollection : true), // if no collection specified at top-level, take all
+      )
+      .sort((a, b) => a.fieldIndex - b.fieldIndex);
 
-    // Apply the sorting based on all fields in the correct order
+    // Apply sorting instructions for this level/collection if any
     if (levelOrders.length > 0) {
       results.sort((a, b) => {
         for (const { field, direction } of levelOrders) {
           const sortOrder = direction === 'ASC' ? -1 : 1;
 
-          if (!a[field]) return sortOrder;
-          if (!b[field]) return -sortOrder;
-          const comparison = a[field] < b[field] ? sortOrder : -sortOrder;
-          if (comparison !== 0) return comparison; // If not equal, stop and return result
+          if (a[field] == null && b[field] == null) {
+            continue; // both are null, move on to next field
+          } else if (a[field] == null) {
+            return sortOrder; // 'a' is considered less
+          } else if (b[field] == null) {
+            return -sortOrder; // 'b' is considered less
+          }
+
+          // Regular comparison
+          if (a[field] < b[field]) return sortOrder;
+          if (a[field] > b[field]) return -sortOrder;
+          // if equal, try next field
         }
-        return 0; // If all fields are equal, leave order unchanged
+        // if all fields equal
+        return 0;
       });
     }
 
-    // Recursively sort child results (if any) by reducing the hierarchy level
-    results.forEach((result) => {
-      if (result.results) {
-        this.sortByLevel(result.results, level + 1); // Move to the next level
+    // Recursively sort all known child collections
+    for (const result of results) {
+      for (const childCollection of this.collections) {
+        const childResults = result[childCollection];
+        if (Array.isArray(childResults)) {
+          this.sortByLevel(childResults, level + 1, childCollection);
+        }
       }
-    });
+    }
   }
   private applyResultProcessing() {
     // Process results and parent-child relationships
@@ -289,10 +303,15 @@ class ClingoParser {
       this.result.results.push(res); // Here we assume the query is correct and returns the data specified by the query
     });
 
-    this.childResultQueue.forEach(({ parentKey, childKey }) => {
+    this.childResultQueue.forEach(({ parentKey, childKey, collection }) => {
       const parent = this.getOrInitResult(parentKey);
       const child = this.getOrInitResult(childKey);
-      parent.results.push(child);
+
+      if (!parent[collection] || !Array.isArray(parent[collection])) {
+        parent[collection] = [];
+      }
+
+      (parent[collection] as unknown[]).push(child);
     });
 
     this.sortByLevel(this.result.results);

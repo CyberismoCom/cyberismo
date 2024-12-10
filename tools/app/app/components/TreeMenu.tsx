@@ -164,7 +164,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           data={tree}
           openByDefault={false}
           idAccessor={(node) => node.key}
-          childrenAccessor="results"
+          childrenAccessor="children"
           indent={16}
           width={(width || 0) - 1}
           height={height}

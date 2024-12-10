@@ -230,7 +230,7 @@ const treeQueryResult: QueryResult<'tree'>[] = [
     rank: '0|i',
     title: 'SDL Decision',
     cardType: 'test/cardTypes/decision',
-    results: [
+    children: [
       {
         key: 'usdl_44',
         labels: [],
@@ -250,7 +250,7 @@ const treeQueryResult: QueryResult<'tree'>[] = [
         rank: '0|i',
         title: 'SDL Project',
         cardType: 'test/cardTypes/simplePage',
-        results: [
+        children: [
           {
             key: 'usdl_45',
             labels: [],
@@ -270,7 +270,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|a',
             title: 'Untitled',
             cardType: 'test/cardTypes/controlledDocument',
-            results: [],
           },
           {
             key: 'usdl_46',
@@ -291,7 +290,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|b',
             title: 'Demand phase',
             cardType: 'test/cardTypes/simplePage',
-            results: [],
           },
           {
             key: 'usdl_47',
@@ -312,7 +310,7 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|d',
             title: 'Design phase',
             cardType: 'test/cardTypes/simplePage',
-            results: [
+            children: [
               {
                 key: 'usdl_53',
                 labels: [],
@@ -332,7 +330,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
                 rank: '0|c',
                 title: 'Threat model',
                 cardType: 'test/cardTypes/controlledDocument',
-                results: [],
               },
             ],
           },
@@ -355,7 +352,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|e',
             title: 'Implementation phase',
             cardType: 'test/cardTypes/simplePage',
-            results: [],
           },
           {
             key: 'usdl_49',
@@ -376,7 +372,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '',
             title: '',
             cardType: '',
-            results: [],
           },
           {
             key: 'usdl_50',
@@ -397,7 +392,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|f',
             title: 'Release phase',
             cardType: 'test/cardTypes/simplePage',
-            results: [],
           },
           {
             key: 'usdl_51',
@@ -418,7 +412,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|g',
             title: 'Operations phase',
             cardType: 'test/cardTypes/simplePage',
-            results: [],
           },
           {
             key: 'usdl_52',
@@ -439,7 +432,6 @@ const treeQueryResult: QueryResult<'tree'>[] = [
             rank: '0|h',
             title: 'Meetings',
             cardType: 'test/cardTypes/simplePage',
-            results: [],
           },
         ],
       },

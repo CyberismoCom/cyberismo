@@ -191,7 +191,7 @@ export class Export {
     card.content = asciiDocContent;
     card.attachments = cardDetailsResponse.attachments;
 
-    for (const result of treeQueryResult.results) {
+    for (const result of treeQueryResult.children ?? []) {
       card.children!.push(await this.treeQueryResultToCard(result));
     }
 

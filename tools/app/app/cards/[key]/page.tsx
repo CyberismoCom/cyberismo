@@ -51,7 +51,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
       dispatch(
         cardViewed({
           key: listCard.key,
-          children: listCard?.results?.map((c) => c.key) ?? [],
+          children: listCard?.children?.map((c) => c.key) ?? [],
           timestamp: new Date().toISOString(),
         }),
       );
