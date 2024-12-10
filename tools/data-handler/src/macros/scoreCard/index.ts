@@ -48,7 +48,7 @@ class ScoreCardMacro extends BaseMacro {
   };
 
   private createAsciidocElement(options: ScoreCardOptions) {
-    return `${options.title}: ${options.value} ${options.unit ?? ''} ${options.legend ?? ''}`;
+    return `\n----\n${options.title}: ${options.value} ${options.unit ?? ''} ${options.legend ?? ''}\n----\n`;
   }
 }
 
