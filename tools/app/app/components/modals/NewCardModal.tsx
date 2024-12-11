@@ -27,9 +27,9 @@ import {
   CardOverflow,
   Grid,
   Input,
-  IconButton
+  IconButton,
 } from '@mui/joy';
-import ClearIcon from "@mui/icons-material/Clear";
+import ClearIcon from '@mui/icons-material/Clear';
 import { useTranslation } from 'react-i18next';
 import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
@@ -140,8 +140,11 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     if (!acc[category]) {
       acc[category] = [];
     }
-    if(!filter ||
-      template.metadata.displayName?.toLowerCase().includes(filter.toLowerCase()) ||
+    if (
+      !filter ||
+      template.metadata.displayName
+        ?.toLowerCase()
+        .includes(filter.toLowerCase()) ||
       category.toLowerCase().includes(filter.toLowerCase())
     ) {
       acc[category].push(template);
@@ -152,20 +155,20 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const handleClose = () => {
     setFilter('');
     onClose();
-  }
+  };
 
   return (
     <Modal open={open} onClose={handleClose}>
-      <ModalDialog 
+      <ModalDialog
         sx={{
           height: '90%',
-          width: '60%'
+          width: '60%',
         }}
       >
         <ModalClose />
         <DialogTitle>{t('newCardDialog.title')}</DialogTitle>
         <Input
-          type='text'
+          type="text"
           autoFocus
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -176,13 +179,13 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                 variant="plain"
                 size="sm"
                 onClick={() => setFilter('')}
-                aria-label='Clear'
+                aria-label="Clear"
               >
-                <ClearIcon/>
+                <ClearIcon />
               </IconButton>
             )
           }
-          />
+        />
         <DialogContent
           sx={{
             padding: 2,
@@ -191,7 +194,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
           <Box
             sx={{
               overflowY: 'scroll',
-              overflowX: 'hidden'
+              overflowX: 'hidden',
             }}
           >
             {Object.entries(categories).map(([category, templates]) => (
@@ -215,22 +218,23 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                       {t('newCardDialog.noTemplatesFoundMessage')}
                     </Typography>
                   ) : (
-                  templates.map((template) => (
-                    <TemplateCard
-                      key={template.name}
-                      isChosen={chosenTemplate === template.name}
-                      onClick={() => setChosenTemplate(template.name)}
-                      name={template.metadata.displayName ?? template.name}
-                      description={template.metadata.description ?? ''}
-                    />
-                  )))}
+                    templates.map((template) => (
+                      <TemplateCard
+                        key={template.name}
+                        isChosen={chosenTemplate === template.name}
+                        onClick={() => setChosenTemplate(template.name)}
+                        name={template.metadata.displayName ?? template.name}
+                        description={template.metadata.description ?? ''}
+                      />
+                    ))
+                  )}
                 </Grid>
               </Stack>
             ))}
           </Box>
           <DialogActions
             sx={{
-              marginTop:'auto'
+              marginTop: 'auto',
             }}
           >
             <Button
