@@ -29,7 +29,9 @@
     "success": "Card created successfully"
   },
   "newCardDialog": {
-    "title": "New card from template"
+    "title": "New card from template",
+    "searchTemplates": "Search templates...",
+    "noTemplatesFoundMessage": "No templates available"
   },
   "saveCard": {
     "success": "Card saved successfully"

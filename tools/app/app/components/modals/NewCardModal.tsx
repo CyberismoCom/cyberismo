@@ -26,7 +26,10 @@ import {
   ModalClose,
   CardOverflow,
   Grid,
+  Input,
+  IconButton,
 } from '@mui/joy';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useTranslation } from 'react-i18next';
 import { useCard, useTemplates } from '@/app/lib/api';
 import { useAppDispatch } from '@/app/lib/hooks';
@@ -115,6 +118,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const [chosenTemplate, setChosenTemplate] = React.useState<string | null>(
     null,
   );
+  const [filter, setFilter] = React.useState<string>('');
 
   const router = useAppRouter();
 
@@ -136,15 +140,65 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     if (!acc[category]) {
       acc[category] = [];
     }
-    acc[category].push(template);
+    if (
+      !filter ||
+      template.metadata.displayName
+        ?.toLowerCase()
+        .includes(filter.toLowerCase()) ||
+      category.toLowerCase().includes(filter.toLowerCase())
+    ) {
+      acc[category].push(template);
+    }
     return acc;
   }, {});
 
+  const noTemplatesInCategories = (
+    categories: Record<string, TemplateConfiguration[]>,
+  ) => {
+    return Object.values(categories).every((arr) => arr.length === 0);
+  };
+
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+    if (chosenTemplate) {
+      setChosenTemplate(null);
+    }
+  };
+
+  const handleClose = () => {
+    setFilter('');
+    onClose();
+  };
+
   return (
-    <Modal open={open} onClose={onClose}>
-      <ModalDialog>
+    <Modal open={open} onClose={handleClose}>
+      <ModalDialog
+        sx={{
+          height: '90%',
+          width: '60%',
+        }}
+      >
         <ModalClose />
         <DialogTitle>{t('newCardDialog.title')}</DialogTitle>
+        <Input
+          type="text"
+          autoFocus
+          value={filter}
+          onChange={(e) => handleFilterChange(e.target.value)}
+          placeholder={t('newCardDialog.searchTemplates')}
+          endDecorator={
+            filter && (
+              <IconButton
+                variant="plain"
+                size="sm"
+                onClick={() => handleFilterChange('')}
+                aria-label="Clear"
+              >
+                <ClearIcon />
+              </IconButton>
+            )
+          }
+        />
         <DialogContent
           sx={{
             padding: 2,
@@ -153,38 +207,54 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
           <Box
             sx={{
               overflowY: 'scroll',
+              overflowX: 'hidden',
             }}
           >
-            {Object.entries(categories).map(([category, templates]) => (
-              <Stack key={category}>
-                <Typography level="title-sm" color="neutral">
-                  {category}
-                </Typography>
-                <Grid
-                  container
-                  spacing={2}
-                  columnGap={2}
-                  rowGap={2}
-                  justifyContent="flex-start"
-                  marginTop={2}
-                  marginBottom={4}
-                  marginLeft={0}
-                  paddingRight={1}
-                >
-                  {templates.map((template) => (
-                    <TemplateCard
-                      key={template.name}
-                      isChosen={chosenTemplate === template.name}
-                      onClick={() => setChosenTemplate(template.name)}
-                      name={template.metadata.displayName ?? template.name}
-                      description={template.metadata.description ?? ''}
-                    />
-                  ))}
-                </Grid>
-              </Stack>
-            ))}
+            {noTemplatesInCategories(categories) ? (
+              <Typography level="body-xs" color="neutral">
+                {t('newCardDialog.noTemplatesFoundMessage')}
+              </Typography>
+            ) : (
+              Object.entries(categories).map(
+                ([category, templates]) =>
+                  templates.length > 0 && (
+                    <Stack key={category}>
+                      <Typography level="title-sm" color="neutral">
+                        {category}
+                      </Typography>
+                      <Grid
+                        container
+                        spacing={2}
+                        columnGap={2}
+                        rowGap={2}
+                        justifyContent="flex-start"
+                        marginTop={2}
+                        marginBottom={4}
+                        marginLeft={0}
+                        paddingRight={1}
+                      >
+                        {templates.map((template) => (
+                          <TemplateCard
+                            key={template.name}
+                            isChosen={chosenTemplate === template.name}
+                            onClick={() => setChosenTemplate(template.name)}
+                            name={
+                              template.metadata.displayName ?? template.name
+                            }
+                            description={template.metadata.description ?? ''}
+                          />
+                        ))}
+                      </Grid>
+                    </Stack>
+                  ),
+              )
+            )}
           </Box>
-          <DialogActions>
+          <DialogActions
+            sx={{
+              marginTop: 'auto',
+            }}
+          >
             <Button
               data-cy="confirmCreateButton"
               disabled={chosenTemplate === null}
