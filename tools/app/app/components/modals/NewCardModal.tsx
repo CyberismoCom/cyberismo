@@ -152,6 +152,19 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     return acc;
   }, {});
 
+  const noTemplatesInCategories = (
+    categories: Record<string, TemplateConfiguration[]>,
+  ) => {
+    return Object.values(categories).every((arr) => arr.length === 0);
+  };
+
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+    if (chosenTemplate) {
+      setChosenTemplate(null);
+    }
+  };
+
   const handleClose = () => {
     setFilter('');
     onClose();
@@ -171,14 +184,14 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
           type="text"
           autoFocus
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => handleFilterChange(e.target.value)}
           placeholder={t('newCardDialog.searchTemplates')}
           endDecorator={
             filter && (
               <IconButton
                 variant="plain"
                 size="sm"
-                onClick={() => setFilter('')}
+                onClick={() => handleFilterChange('')}
                 aria-label="Clear"
               >
                 <ClearIcon />
@@ -197,40 +210,45 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
               overflowX: 'hidden',
             }}
           >
-            {Object.entries(categories).map(([category, templates]) => (
-              <Stack key={category}>
-                <Typography level="title-sm" color="neutral">
-                  {category}
-                </Typography>
-                <Grid
-                  container
-                  spacing={2}
-                  columnGap={2}
-                  rowGap={2}
-                  justifyContent="flex-start"
-                  marginTop={2}
-                  marginBottom={4}
-                  marginLeft={0}
-                  paddingRight={1}
-                >
-                  {templates.length === 0 ? (
-                    <Typography level="body-xs" color="neutral">
-                      {t('newCardDialog.noTemplatesFoundMessage')}
-                    </Typography>
-                  ) : (
-                    templates.map((template) => (
-                      <TemplateCard
-                        key={template.name}
-                        isChosen={chosenTemplate === template.name}
-                        onClick={() => setChosenTemplate(template.name)}
-                        name={template.metadata.displayName ?? template.name}
-                        description={template.metadata.description ?? ''}
-                      />
-                    ))
-                  )}
-                </Grid>
-              </Stack>
-            ))}
+            {noTemplatesInCategories(categories) ? (
+              <Typography level="body-xs" color="neutral">
+                {t('newCardDialog.noTemplatesFoundMessage')}
+              </Typography>
+            ) : (
+              Object.entries(categories).map(
+                ([category, templates]) =>
+                  templates.length > 0 && (
+                    <Stack key={category}>
+                      <Typography level="title-sm" color="neutral">
+                        {category}
+                      </Typography>
+                      <Grid
+                        container
+                        spacing={2}
+                        columnGap={2}
+                        rowGap={2}
+                        justifyContent="flex-start"
+                        marginTop={2}
+                        marginBottom={4}
+                        marginLeft={0}
+                        paddingRight={1}
+                      >
+                        {templates.map((template) => (
+                          <TemplateCard
+                            key={template.name}
+                            isChosen={chosenTemplate === template.name}
+                            onClick={() => setChosenTemplate(template.name)}
+                            name={
+                              template.metadata.displayName ?? template.name
+                            }
+                            description={template.metadata.description ?? ''}
+                          />
+                        ))}
+                      </Grid>
+                    </Stack>
+                  ),
+              )
+            )}
           </Box>
           <DialogActions
             sx={{
