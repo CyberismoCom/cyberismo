@@ -49,6 +49,12 @@ showField(Key, Field) :-
     select(Level, Field),
     not queryError.
 
+showField(Key, Field) :-
+    resultOrChildResult(Key),
+    resultLevel(Key, Level, Collection),
+    select(Level, Collection, Field),
+    not queryError.
+
 % Fields
 %
 % field(key, field, value, data type):
@@ -64,15 +70,15 @@ showField(Key, Field) :-
 #show field(Key, Field, Value, "shortText") :
     field(Key, Field, Value),
     dataType(Key, Field, DataType),
-%    DataType != "enum",
-%    DataType != "list",
+    DataType != "enum",
+    DataType != "list",
     showField(Key, Field).
 
 #show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
     dataType(Key, Field, DataType),
-%    DataType != "enum",
-%    DataType != "list",
+    DataType != "enum",
+    DataType != "list",
     showAll(Key).
 
 #show enumField(Key, Field, Value, Index, DisplayValue) :
@@ -311,3 +317,8 @@ queryError :- queryError(_, _).
     not queryError.
 
 #show queryError/2.
+
+% helper terms
+
+level(Level) :-
+    resultLevel(_, Level, _).

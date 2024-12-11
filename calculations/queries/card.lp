@@ -69,8 +69,22 @@ field(Field, "isEditable", "true") :-
 % add value
 dataType(Field, "value", DataType) :-
     childResult(_, Field, "fields"),
+    DataType != "enum",
+    DataType != "list",
     field({{cardKey}}, Field, Value),
     dataType({{cardKey}}, Field, DataType).
+
+% use short text for enums
+dataType(Field, "value", "shortText") :-
+    childResult(_, Field, "fields"),
+    field({{cardKey}}, Field, Value),
+    dataType({{cardKey}}, Field, "enum").
+
+% use short text for lists
+dataType(Field, "value", "shortText") :-
+    childResult(_, Field, "fields"),
+    field({{cardKey}}, Field, Value),
+    dataType({{cardKey}}, Field, "list").
 
 
 % add value
@@ -93,6 +107,7 @@ select(1, "policyChecks").
 select(1, "links").
 select(1, "deniedOperations").
 select(1, "labels").
+selectAll.
 
 select(2, "visibility").
 select(2, "index").
