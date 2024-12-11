@@ -149,9 +149,19 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
     return acc;
   }, {});
 
+  const handleClose = () => {
+    setFilter('');
+    onClose();
+  }
+
   return (
-    <Modal open={open} onClose={onClose}>
-      <ModalDialog>
+    <Modal open={open} onClose={handleClose}>
+      <ModalDialog 
+        sx={{
+          height: '90%',
+          width: '60%'
+        }}
+      >
         <ModalClose />
         <DialogTitle>{t('newCardDialog.title')}</DialogTitle>
         <Input
@@ -181,9 +191,10 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
           <Box
             sx={{
               overflowY: 'scroll',
+              overflowX: 'hidden'
             }}
           >
-            {Object.entries(categories).map(([category, templates]) => (templates.length > 0 && (
+            {Object.entries(categories).map(([category, templates]) => (
               <Stack key={category}>
                 <Typography level="title-sm" color="neutral">
                   {category}
@@ -199,7 +210,12 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                   marginLeft={0}
                   paddingRight={1}
                 >
-                  {templates.map((template) => (
+                  {templates.length === 0 ? (
+                    <Typography level="body-xs" color="neutral">
+                      {t('newCardDialog.noTemplatesFoundMessage')}
+                    </Typography>
+                  ) : (
+                  templates.map((template) => (
                     <TemplateCard
                       key={template.name}
                       isChosen={chosenTemplate === template.name}
@@ -207,12 +223,16 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                       name={template.metadata.displayName ?? template.name}
                       description={template.metadata.description ?? ''}
                     />
-                  ))}
+                  )))}
                 </Grid>
               </Stack>
-            )))}
+            ))}
           </Box>
-          <DialogActions>
+          <DialogActions
+            sx={{
+              marginTop:'auto'
+            }}
+          >
             <Button
               data-cy="confirmCreateButton"
               disabled={chosenTemplate === null}

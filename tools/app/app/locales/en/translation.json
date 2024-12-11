@@ -30,7 +30,8 @@
   },
   "newCardDialog": {
     "title": "New card from template",
-    "searchTemplates": "Search templates..."
+    "searchTemplates": "Search templates...",
+    "noTemplatesFoundMessage": "No templates available"
   },
   "saveCard": {
     "success": "Card saved successfully"
