@@ -49,6 +49,7 @@ export interface PredefinedCardMetadata {
 
 // Card's index.json file content.
 export interface CardMetadata extends PredefinedCardMetadata {
+  labels?: string[];
   links: Link[];
   [key: string]: MetadataContent;
 }
@@ -135,7 +136,8 @@ export type RemovableResourceTypes =
   | 'module'
   | 'report'
   | 'template'
-  | 'workflow';
+  | 'workflow'
+  | 'label';
 
 // Project resource, such as workflow, template or card type as file system object.
 export interface Resource {
@@ -163,6 +165,8 @@ export type ResourceTypes =
   | 'cards'
   | 'cardTypes'
   | 'fieldTypes'
+  | 'label'
+  | 'labels'
   | 'links'
   | 'linkTypes'
   | 'modules'
