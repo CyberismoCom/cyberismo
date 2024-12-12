@@ -101,15 +101,34 @@ class ClingoParser {
       fieldName: string,
       fieldValue: string,
       index: number,
-      displayName: string,
+      displayValue: string,
     ) => {
       const res = this.getOrInitResult(key);
       const decoded = decodeClingoValue(fieldValue);
       res[fieldName] = {
         value: decoded,
         index,
-        displayName,
+        displayValue,
       };
+    },
+    // NOTE: Must be tested in INTDEV-623
+    listField: async (
+      key: string,
+      fieldName: string,
+      fieldValue: string,
+      index: number,
+      displayValue: string,
+    ) => {
+      const res = this.getOrInitResult(key);
+      const decoded = decodeClingoValue(fieldValue);
+      if (!res[fieldName] || !Array.isArray(res[fieldName])) {
+        res[fieldName] = [];
+      }
+      (res[fieldName] as unknown[]).push({
+        value: decoded,
+        index,
+        displayValue,
+      });
     },
     field: async (
       key: string,
@@ -272,17 +291,20 @@ class ClingoParser {
         for (const { field, direction } of levelOrders) {
           const sortOrder = direction === 'ASC' ? -1 : 1;
 
-          if (a[field] == null && b[field] == null) {
+          const firstValue = this.getComparableValue(a[field]);
+          const secondValue = this.getComparableValue(b[field]);
+
+          if (firstValue == null && secondValue == null) {
             continue; // both are null, move on to next field
-          } else if (a[field] == null) {
-            return sortOrder; // 'a' is considered less
-          } else if (b[field] == null) {
-            return -sortOrder; // 'b' is considered less
+          } else if (firstValue == null) {
+            return sortOrder; // first is considered less
+          } else if (secondValue == null) {
+            return -sortOrder; // second is considered less
           }
 
           // Regular comparison
-          if (a[field] < b[field]) return sortOrder;
-          if (a[field] > b[field]) return -sortOrder;
+          if (firstValue < secondValue) return sortOrder;
+          if (firstValue > secondValue) return -sortOrder;
           // if equal, try next field
         }
         // if all fields equal
@@ -300,6 +322,35 @@ class ClingoParser {
       }
     }
   }
+
+  private getComparableValue(value: unknown) {
+    if (value == null) {
+      return null;
+    }
+    if (
+      typeof value === 'object' &&
+      'index' in value &&
+      typeof value.index === 'number'
+    ) {
+      return value.index;
+    }
+    if (Array.isArray(value)) {
+      const indeces: number[] = [];
+      for (const item of value) {
+        if (
+          item != null &&
+          typeof item === 'object' &&
+          'index' in item &&
+          typeof item.index === 'number'
+        ) {
+          indeces.push(item.index);
+        }
+      }
+      return Math.min(...indeces);
+    }
+    return value;
+  }
+
   private applyResultProcessing() {
     // Process results and parent-child relationships
     this.resultQueue.forEach(({ key }) => {

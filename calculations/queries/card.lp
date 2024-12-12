@@ -107,7 +107,6 @@ select(1, "policyChecks").
 select(1, "links").
 select(1, "deniedOperations").
 select(1, "labels").
-selectAll.
 
 select(2, "visibility").
 select(2, "index").
