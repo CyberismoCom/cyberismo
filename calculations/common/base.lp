@@ -1,4 +1,3 @@
-
 %
 % Common definitions for all Cards projects
 %
@@ -10,4 +9,55 @@ ancestor(A, C) :- parent(A, B), ancestor (B, C), card(A), card(B), card(C).
 % if the card type is given, then it's a card
 card(C) :- field(C, "cardType", _).
 
+% data types for the default card fields
+dataType(Card, "cardType", "shortText") :-
+    field(Card, "cardType", _).
 
+dataType(Card, "title", "shortText") :-
+    field(Card, "title", _).
+
+dataType(Card, "lastUpdated", "dateTime") :-
+    field(Card, "lastUpdated", _).
+
+dataType(Card, "workflowState", "shortText") :-
+    field(Card, "workflowState", _).
+
+dataType(Card, "rank", "shortText") :-
+    field(Card, "rank", _).
+
+% add workflow state category as a calculated field for Cards
+field(Card, "workflowStateCategory", Category) :-
+    card(Card),
+    field(Card, "workflowState", State),
+    field(Card, "cardType", CardType),
+    field(CardType, "workflow", Workflow),
+    workflowState(Workflow, State, Category).
+
+dataType(Card, "workflowStateCategory", "shortText") :-
+    field(Card, "workflowStateCategory", _).
+
+% data types of fields
+dataType(Key, Field, DataType) :-
+    field(Key, Field, _),
+    fieldType(Field),
+    field(Field, "dataType", DataType).
+
+% data types for enum values
+
+dataType((FieldType, EnumValue), "index", "integer") :-
+    enumValue(FieldType, EnumValue).
+
+dataType((FieldType, EnumValue), "enumDisplayValue", "shortText") :-
+    enumValue(FieldType, EnumValue).
+
+dataType((FieldType, EnumValue), "enumDescription", "longText") :-
+    enumValue(FieldType, EnumValue).
+
+dataType((FieldType, EnumValue), "enumValue", "longText") :-
+    enumValue(FieldType, EnumValue).
+
+% descendants of hidden cards are hidden
+
+hiddenInTreeView(Card) :-
+    ancestor(Card, Ancestor),
+    hiddenInTreeView(Ancestor).

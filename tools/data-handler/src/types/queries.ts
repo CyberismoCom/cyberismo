@@ -56,7 +56,6 @@ export interface BaseResult extends Record<string, unknown> {
   notifications: Notification[];
   policyChecks: PolicyCheckCollection;
   deniedOperations: DeniedOperationCollection;
-  results: BaseResult[]; // Nested results
 }
 
 export interface ParseResult<T extends BaseResult> {
@@ -87,7 +86,7 @@ interface TreeQueryResult extends BaseResult {
   title: string;
   cardType: string;
   workflowStateCategory?: WorkflowCategory;
-  results: TreeQueryResult[];
+  children?: TreeQueryResult[];
 }
 
 interface CardQueryResult extends BaseResult {
@@ -97,7 +96,7 @@ interface CardQueryResult extends BaseResult {
   cardType: string;
   workflowState: string;
   lastUpdated: string;
-  results: CardQueryField[];
+  fields?: CardQueryField[];
 }
 
 interface CardQueryField extends BaseResult {
@@ -108,7 +107,7 @@ interface CardQueryField extends BaseResult {
   dataType: DataType;
   isEditable: boolean;
   value: MetadataContent;
-  results: EnumDefinition[];
+  enumValues: EnumDefinition[];
 }
 
 export interface EnumDefinition extends BaseResult {
