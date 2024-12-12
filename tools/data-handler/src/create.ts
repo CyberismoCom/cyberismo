@@ -408,6 +408,23 @@ export class Create extends EventEmitter {
     await this.createResource('fieldType', content);
   }
 
+  public async createLabel(cardKey: string, label: string) {
+    const card = await this.project.findSpecificCard(cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+    const labels = card.metadata?.labels ?? [];
+
+    if (labels.includes(label)) {
+      throw new Error('Label already exists');
+    }
+
+    labels.push(label);
+    return this.project.updateCardMetadataKey(cardKey, 'labels', labels);
+  }
+
   /**
    * Creates a new link type.
    * @param linkTypeName name for the link type.

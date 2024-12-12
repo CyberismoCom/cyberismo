@@ -392,6 +392,23 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+  it('create a label (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['label', 'decision_6', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
+
+  it('try create a label - label exists', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['label', 'decision_5', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
   // link - three tests commented out for now (see INTDEV-512). When doing INTDEV-512, also add a test which makes sure createLink fails if source and destination cards are the same
   // it('create link (success)', async () => {
   //   const result = await commandHandler.command(

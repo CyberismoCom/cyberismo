@@ -220,6 +220,20 @@ create
   });
 
 create
+  .command('label')
+  .description('Create a label')
+  .argument('<cardKey>')
+  .argument('<label>')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (cardKey: string, label: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['label', cardKey, label],
+      options,
+    );
+    handleResponse(result);
+  });
+create
   .command('link')
   .description('Create a link')
   .argument('<source>', 'Source card key of the link')
@@ -536,6 +550,20 @@ remove
   });
 
 remove
+  .command('label')
+  .argument('<cardKey>', 'Source card key of the link')
+  .argument('[label]', 'Label being removed')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (cardKey: string, label: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.remove,
+      ['label', cardKey, label],
+      options,
+    );
+    handleResponse(result);
+  });
+
+remove
   .command('link')
   .argument('<source>', 'Source card key of the link')
   .argument('<destination>', 'Destination card key of the link')
@@ -642,7 +670,7 @@ program
   .description('Shows resource types in a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardType, cardTypes, linkType, linkTypes, project, reports, template, templates, workflow, workflows',
+    'resource types: attachments, card, cards, cardType, cardTypes, labels, linkType, linkTypes, project, reports, template, templates, workflow, workflows',
     parseSupportedTypes,
   )
   .argument(

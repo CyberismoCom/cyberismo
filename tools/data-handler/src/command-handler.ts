@@ -87,6 +87,7 @@ export abstract class ShowTypes {
     'card',
     'cardType',
     'fieldType',
+    'label',
     'linkType',
     'module',
     'project',
@@ -213,6 +214,10 @@ export class Commands {
         if (target === 'fieldType') {
           const [name, datatype] = args;
           await this.createFieldType(name, datatype);
+        }
+        if (target == 'label') {
+          const [cardKey, label] = args;
+          await this.commands?.createCmd.createLabel(cardKey, label);
         }
         if (target === 'link') {
           const [cardKey, destinationCardKey, linkType, linkDescription] = args;
@@ -601,6 +606,9 @@ export class Commands {
       case 'fieldTypes':
         promise = this.commands!.showCmd.showFieldTypes();
         break;
+      case 'labels':
+        promise = this.commands!.showCmd.showLabels();
+        break;
       case 'linkType':
         promise = this.commands!.showCmd.showLinkType(detail);
         break;
@@ -636,6 +644,7 @@ export class Commands {
       case 'links': // fallthrough - not implemented yet
       case 'report': // fallthrough - not implemented yet
       case 'projects': // fallthrough - not possible
+      case 'label':
       default:
         throw new Error(`Unknown or not yet handled type ${type}`);
     }
