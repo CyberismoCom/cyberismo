@@ -10,13 +10,12 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// important that this file imports only the metadata
-import createCards from './createCards/metadata.js';
-import scoreCard from './scoreCard/metadata.js';
-import report from './report/metadata.js';
+import { MacroMetadata } from '../../interfaces/macros.js';
 
-export const macroMetadata = {
-  createCards,
-  scoreCard,
-  report,
+const macroMetadata: MacroMetadata = {
+  name: 'scoreCard',
+  tagName: 'score-card',
+  schema: 'scoreCardMacroSchema',
 };
+
+export default macroMetadata;
