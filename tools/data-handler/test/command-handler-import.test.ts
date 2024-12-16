@@ -56,7 +56,11 @@ describe('import csv command', () => {
     );
     expect(card1.metadata?.title).to.equal('Title1');
     expect(card1.content).to.equal('content1');
-    expect(card1.metadata?.labels).to.deep.equal(['label1', 'label2']);
+    expect(card1.metadata?.labels).to.deep.equal([
+      'template-test-label',
+      'label-first',
+      'label-second',
+    ]);
     expect(card1.metadata?.['decision/fieldTypes/responsible']).to.equal(
       'responsible@email.com',
     );

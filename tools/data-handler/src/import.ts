@@ -83,13 +83,16 @@ export class Import {
         await this.project.updateCardContent(cardKey, description);
       }
 
-      // todo: could update all of the metadata values with single call to updateMetadataKey()
       if (labels) {
-        await this.project.updateCardMetadataKey(
-          cardKey,
-          'labels',
-          labels.split(' '),
-        );
+        for (const label of labels.split(' ')) {
+          try {
+            await this.createCmd.createLabel(cardKey, label);
+          } catch (e) {
+            console.error(
+              `Failed to create label ${label}: ${e instanceof Error ? e.message : 'Unknown error'}`,
+            );
+          }
+        }
       }
 
       await this.project.updateCardMetadataKey(cardKey, 'title', title);
