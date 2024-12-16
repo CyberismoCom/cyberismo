@@ -400,6 +400,14 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('create a label in a template (success)', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['label', 'decision_1', 'test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+  });
 
   it('try create a label - label exists', async () => {
     const result = await commandHandler.command(

@@ -12,5 +12,6 @@
     "decision/fieldTypes/lastChangedTimestamp": null,
     "decision/fieldTypes/numberOfCommits": null,
     "decision/fieldTypes/percentageReady": null,
-    "decision/fieldTypes/responsible": null
+    "decision/fieldTypes/responsible": null,
+    "labels": ["template-test-label"]
 }

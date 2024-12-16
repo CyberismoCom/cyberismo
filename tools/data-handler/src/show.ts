@@ -289,9 +289,12 @@ export class Show {
    */
   public async showLabels(): Promise<string[]> {
     const cards = await this.project.showProjectCards();
+    const templateCards = await this.project.templateCards({
+      metadata: true,
+      children: true,
+    });
 
-    const labels = this.collectLabels(cards);
-
+    const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels));
   }
 

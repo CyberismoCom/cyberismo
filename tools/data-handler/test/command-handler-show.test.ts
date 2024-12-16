@@ -151,7 +151,11 @@ describe('shows command', () => {
         ['labels'],
         optionsDecision,
       );
-      expect(result.payload).to.deep.equal(['test', 'test2']);
+      expect(result.payload).to.deep.equal([
+        'test',
+        'test2',
+        'template-test-label',
+      ]);
     });
     it('show modules (none) - success()', async () => {
       const result = await commandHandler.command(
