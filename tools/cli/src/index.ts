@@ -222,8 +222,8 @@ create
 create
   .command('label')
   .description('Create a label')
-  .argument('<cardKey>')
-  .argument('<label>')
+  .argument('<cardKey>', 'Key of the card that the label will be added to')
+  .argument('<label>', `Name of the created label. ${nameGuideline}`)
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, label: string, options: CardsOptions) => {
     const result = await commandHandler.command(

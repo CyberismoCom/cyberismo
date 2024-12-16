@@ -408,7 +408,18 @@ export class Create extends EventEmitter {
     await this.createResource('fieldType', content);
   }
 
+  /**
+   * Creates  a label in the given card
+   * @param cardKey The card to which the label is added to
+   * @param label The label being added
+   */
   public async createLabel(cardKey: string, label: string) {
+    if (!Validate.isValidResourceName(label)) {
+      throw new Error(
+        `Labels must follow the same naming convention as resource names'`,
+      );
+    }
+
     const card = await this.project.findSpecificCard(cardKey, {
       metadata: true,
     });

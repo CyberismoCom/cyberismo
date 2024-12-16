@@ -283,6 +283,10 @@ export class Show {
     }, []);
   };
 
+  /**
+   * Returns all unique labels in a project
+   * @returns labels in a list
+   */
   public async showLabels(): Promise<string[]> {
     const cards = await this.project.showProjectCards();
 
