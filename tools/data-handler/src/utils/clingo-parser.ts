@@ -100,14 +100,15 @@ class ClingoParser {
       key: string,
       fieldName: string,
       fieldValue: string,
-      index: number,
+      index: string,
       displayValue: string,
     ) => {
       const res = this.getOrInitResult(key);
       const decoded = decodeClingoValue(fieldValue);
+      const parsedIndex = parseInt(index, 10);
       res[fieldName] = {
         value: decoded,
-        index,
+        index: parsedIndex,
         displayValue,
       };
     },

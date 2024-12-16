@@ -275,12 +275,12 @@ showField(Key, Field) :-
 % orderBy is syntactic sugar for order, as you can order by 1..3 fields with one term when using the default collection "results"
 
 % orderBy with an even numer of parameters refers to results on all levels of hierarchy.
-order(N, "results", 1, Field, Direction) :- orderBy(Field, Direction), resultLevel(_, N).
-order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _), resultLevel(_, N).
-order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2), resultLevel(_, N).
-order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _, _, _), resultLevel(_, N).
-order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2, _, _), resultLevel(_, N).
-order(N, "results", 3, Field3, Direction3) :- orderBy(_, _, _, _, Field3, Direction3), resultLevel(_, N).
+order(N, "results", 1, Field, Direction) :- orderBy(Field, Direction), resultLevel(_, N, "results").
+order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _), resultLevel(_, N, "results").
+order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2), resultLevel(_, N, "results").
+order(N, "results", 1, Field1, Direction1) :- orderBy(Field1, Direction1, _, _, _, _), resultLevel(_, N, "results").
+order(N, "results", 2, Field2, Direction2) :- orderBy(_, _, Field2, Direction2, _, _), resultLevel(_, N, "results").
+order(N, "results", 3, Field3, Direction3) :- orderBy(_, _, _, _, Field3, Direction3), resultLevel(_, N, "results").
 
 % orderBy with an odd numer of parameters has the result level as the first parameter
 order(Level, "results", 1, Field, Direction) :- orderBy(Level, Field, Direction).
