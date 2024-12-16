@@ -15,9 +15,6 @@ displayName(Card, Field, DisplayName) :-
 
 % the second level includes metadata for the always visible and optionally visible fields
 
-dataType(Field, "visibility", "shortText") :-
-    field(Field, "visibility", _).
-
 field(Field, "visibility", "always") :-
     alwaysVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
@@ -25,10 +22,6 @@ field(Field, "visibility", "always") :-
 field(Field, "visibility", "optional") :-
     optionallyVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
-
-dataType(Field, "index", "integer") :-
-    childResult(_, Field, "fields"),
-    field(Field, "index", _).
 
 field(Field, "index", Index) :-
     alwaysVisibleField(CardType, Field),
@@ -74,26 +67,11 @@ dataType(Field, "value", DataType) :-
     field({{cardKey}}, Field, Value),
     dataType({{cardKey}}, Field, DataType).
 
-% use short text for enums
-dataType(Field, "value", "shortText") :-
-    childResult(_, Field, "fields"),
-    field({{cardKey}}, Field, Value),
-    dataType({{cardKey}}, Field, "enum").
-
-% use short text for lists
-dataType(Field, "value", "shortText") :-
-    childResult(_, Field, "fields"),
-    field({{cardKey}}, Field, Value),
-    dataType({{cardKey}}, Field, "list").
-
 
 % add value
 field(Field, "value", Value) :-
     childResult({{cardKey}}, Field, "fields"),
     field({{cardKey}}, Field, Value).
-
-dataType(Field, "dataType", "shortText") :-
-    childResult(_, Field, "fields").
 
 
 % select only non-custom fields

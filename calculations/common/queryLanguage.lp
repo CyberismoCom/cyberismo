@@ -59,7 +59,7 @@ showField(Key, Field) :-
 %
 % field(key, field, value, data type):
 % "field" of result/child result "key" has value "value",
-% data type of the field is included
+% data type of the field is included, if not specified, it is shortText
 % a field term like this is returned for all other fields except enum and list
 %
 % enumField(key, field, value, index, enum display value):
@@ -67,7 +67,7 @@ showField(Key, Field) :-
 % otherwise the same as field, but for enum and list fields,
 % we also need the enum value index and enum display value
 
-#show field(Key, Field, Value, "shortText") :
+#show field(Key, Field, Value, DataType) :
     field(Key, Field, Value),
     dataType(Key, Field, DataType),
     DataType != "enum",
@@ -79,6 +79,16 @@ showField(Key, Field) :-
     dataType(Key, Field, DataType),
     DataType != "enum",
     DataType != "list",
+    showAll(Key).
+
+#show field(Key, Field, Value, "shortText") :
+    field(Key, Field, Value),
+    not dataType(Key, Field, _),
+    showField(Key, Field).
+
+#show field(Key, Field, Value, "shortText") :
+    field(Key, Field, Value),
+    not dataType(Key, Field, _),
     showAll(Key).
 
 #show enumField(Key, Field, Value, Index, DisplayValue) :
