@@ -53,7 +53,7 @@ export const useAppRouter = (): AppRouter => {
         window.removeEventListener('beforeunload', handleUnload);
       };
     }
-  }, [isEdited]);
+  }, [isEdited, t]);
 
   return {
     ...router,
