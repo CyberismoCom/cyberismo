@@ -409,6 +409,34 @@ export class Create extends EventEmitter {
   }
 
   /**
+   * Creates  a label in the given card
+   * @param cardKey The card to which the label is added to
+   * @param label The label being added
+   */
+  public async createLabel(cardKey: string, label: string) {
+    if (!Validate.isValidResourceName(label)) {
+      throw new Error(
+        `Labels must follow the same naming convention as resource names'`,
+      );
+    }
+
+    const card = await this.project.findSpecificCard(cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+    const labels = card.metadata?.labels ?? [];
+
+    if (labels.includes(label)) {
+      throw new Error('Label already exists');
+    }
+
+    labels.push(label);
+    return this.project.updateCardMetadataKey(cardKey, 'labels', labels);
+  }
+
+  /**
    * Creates a new link type.
    * @param linkTypeName name for the link type.
    */

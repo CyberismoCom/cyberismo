@@ -145,6 +145,18 @@ describe('shows command', () => {
         expect(result.payload).to.not.equal(undefined);
       }
     });
+    it('shows labels - success()', async () => {
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['labels'],
+        optionsDecision,
+      );
+      expect(result.payload).to.deep.equal([
+        'test',
+        'test2',
+        'template-test-label',
+      ]);
+    });
     it('show modules (none) - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,

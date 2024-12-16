@@ -192,6 +192,33 @@ export class Remove extends EventEmitter {
     }
   }
 
+  // removes label from project
+  private async removeLabel(cardKey: string, label: string) {
+    const card = await this.project.findSpecificCard(cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+    let labels = card.metadata?.labels ?? [];
+
+    if (!label && labels.length !== 1) {
+      throw new Error(
+        `No label given and ${labels.length === 0 ? 'there are no labels' : 'there are multiple labels'}`,
+      );
+    }
+
+    if (labels.length !== 1 && !labels.includes(label)) {
+      throw new Error(`Label '${label}' does not exist in card ${cardKey}`);
+    }
+    // remove all labels if there is only 1, otherwise remove all given labels
+    labels =
+      labels.length === 1
+        ? []
+        : labels.filter((labelItem) => labelItem !== label);
+    return this.project.updateCardMetadataKey(cardKey, 'labels', labels);
+  }
+
   // Removes link from project.
   private async removeLink(
     sourceCardKey: string,
@@ -282,6 +309,7 @@ export class Remove extends EventEmitter {
       else if (type == 'link')
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
       else if (type == 'module') return this.removeModule(targetName);
+      else if (type == 'label') return this.removeLabel(targetName, rest[0]);
     }
     throw new Error(`Unknown resource type '${type}'`);
   }

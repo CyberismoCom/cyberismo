@@ -69,6 +69,39 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
+    it('remove label (success)', async () => {
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_5', 'test'],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+      // should have 1 label now, so we can delete with
+      const result2 = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_5'],
+        options,
+      );
+      expect(result2.statusCode).to.equal(200);
+    });
+
+    it('try remove label - does not exist', async () => {
+      const result2 = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_6'],
+        options,
+      );
+      expect(result2.statusCode).to.equal(400);
+    });
+
+    it('try remove label - card does not exist', async () => {
+      const result2 = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_8', 'test'],
+        options,
+      );
+      expect(result2.statusCode).to.equal(400);
+    });
     /*
     it('remove link (success)', async () => {
       const linkName = 'testLinkName';

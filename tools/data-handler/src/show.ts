@@ -269,6 +269,35 @@ export class Show {
     return results.filter((item) => item);
   }
 
+  private collectLabels = (cards: Card[]): string[] => {
+    return cards.reduce<string[]>((labels, card) => {
+      // Add the labels from the current card
+      if (card.metadata?.labels) {
+        labels.push(...card.metadata.labels);
+      }
+      // Recursively collect labels from subcards, if they exist
+      if (card.children) {
+        labels.push(...this.collectLabels(card.children));
+      }
+      return labels;
+    }, []);
+  };
+
+  /**
+   * Returns all unique labels in a project
+   * @returns labels in a list
+   */
+  public async showLabels(): Promise<string[]> {
+    const cards = await this.project.showProjectCards();
+    const templateCards = await this.project.templateCards({
+      metadata: true,
+      children: true,
+    });
+
+    const labels = this.collectLabels([...cards, ...templateCards]);
+    return Array.from(new Set(labels));
+  }
+
   /**
    * Shows all available link types.
    * @returns sorted array of link types
