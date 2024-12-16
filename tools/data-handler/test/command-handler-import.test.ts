@@ -64,7 +64,7 @@ describe('import csv command', () => {
     expect(card2.metadata?.title).to.equal('Title2');
     expect(card2.content).to.equal('content2');
     // no labels specified, takes them from the template
-    expect(card2.metadata?.labels).to.equal(['template-test-label']);
+    expect(card2.metadata?.labels).to.deep.equal(['template-test-label']);
     expect(card2.metadata?.['decision/fieldTypes/responsible']).to.equal('');
     expect(card2.metadata?.doesnotexist).to.equal(undefined);
   });
