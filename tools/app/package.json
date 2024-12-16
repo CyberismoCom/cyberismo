@@ -19,7 +19,7 @@
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/language": "^6.10.3",
-    "@codemirror/view": "^6.34.2",
+    "@codemirror/view": "^6.35.3",
     "@cyberismocom/data-handler": "workspace:*",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
