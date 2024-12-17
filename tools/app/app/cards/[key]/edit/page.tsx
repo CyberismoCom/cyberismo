@@ -316,8 +316,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         ...card,
         ...metadata,
         title: __title__ ?? card.title,
-        content: getContent() ?? card.rawContent,
-        parsed,
+        rawContent: getContent() ?? card.rawContent,
+        parsedContent: parsed,
       }
     : null;
 
@@ -663,7 +663,9 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                 }}
               >
                 <Box height="100%">
-                  <LoadingGate values={[linkTypes, previewCard.parsed || null]}>
+                  <LoadingGate
+                    values={[linkTypes, previewCard.parsedContent || null]}
+                  >
                     <ContentArea
                       card={previewCard}
                       linkTypes={expandedLinkTypes}
