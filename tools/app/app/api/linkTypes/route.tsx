@@ -50,7 +50,7 @@ export async function GET() {
   if (response) {
     const linkTypes = await Promise.all(
       response.map((linkType: string) =>
-        commands.showCmd.showLinkType(linkType),
+        commands.showCmd.showResource(linkType),
       ),
     );
 

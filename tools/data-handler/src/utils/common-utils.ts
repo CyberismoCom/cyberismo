@@ -10,24 +10,24 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-  ShowTypes,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  UpdateOperations,
-  requestStatus,
-  ShowTypes,
-};
+/**
+ * Clones a given array and replaces 'oldValue' with 'newValue'
+ * @param array Array to update.
+ * @param oldValue old value to remove
+ * @param newValue new value to add in the index of 'oldValue'
+ * @returns cloned array with replaced value
+ * @todo - this could be in some util class?
+ */
+export function updateArray<Type>(
+  array: Array<Type>,
+  oldValue: Type,
+  newValue: Type,
+): Type[] {
+  const cloneArray = Object.assign([], array).map((item) => {
+    if (item && item === oldValue) {
+      return newValue;
+    }
+    return item;
+  });
+  return cloneArray;
+}
