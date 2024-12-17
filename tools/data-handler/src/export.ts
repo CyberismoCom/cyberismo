@@ -216,7 +216,6 @@ export class Export {
     if (cardKey) {
       const card = await this.project.findSpecificCard(cardKey);
       if (!card) {
-        console.log('should be here?');
         throw new Error(
           `Input validation error: cannot find card '${cardKey}'`,
         );

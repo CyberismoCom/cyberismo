@@ -35,7 +35,9 @@ describe('template', () => {
       new Template(project, { name: '', path: '' });
     } catch (error) {
       if (error instanceof Error) {
-        expect(error.message).to.contain("Name '' is not valid resource name");
+        expect(error.message).to.contain(
+          `Must define resource name to query its details`,
+        );
       }
     }
   });

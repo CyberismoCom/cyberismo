@@ -21,7 +21,7 @@ import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { Project } from '../../containers/project.js';
 import { readFile } from 'node:fs/promises';
-import { resourceNameParts } from '../../utils/resource-utils.js';
+import { resourceName } from '../../utils/resource-utils.js';
 import { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
 
@@ -48,7 +48,7 @@ class ReportMacro extends BaseMacro {
     const calculate = new Calculate(project);
 
     const resourceNameToPath = (name: string, fileName: string) => {
-      const { identifier, prefix, type } = resourceNameParts(name);
+      const { identifier, prefix, type } = resourceName(name);
       if (prefix === project.projectPrefix) {
         return join(project.paths.resourcesFolder, type, identifier, fileName);
       }

@@ -175,7 +175,6 @@ describe('remove command', () => {
       expect(found?.length).to.equal(0);
     });
 
-    // todo: for some reason, the project is not updated between removals --> this must be run after 'link removal' tests
     it('remove linkType', async () => {
       const name = 'test';
       await createLinkType(commandHandler, name);

@@ -22,6 +22,7 @@ import { Remove } from './remove.js';
 import { Rename } from './rename.js';
 import { Show } from './show.js';
 import { Transition } from './transition.js';
+import { Update } from './update.js';
 import { Validate } from './validate.js';
 
 // Handles commands and ensures that no extra instances are created.
@@ -40,6 +41,7 @@ export class CommandManager {
   public renameCmd: Rename;
   public showCmd: Show;
   public transitionCmd: Transition;
+  public updateCmd: Update;
   public validateCmd: Validate;
 
   constructor(path: string) {
@@ -70,6 +72,7 @@ export class CommandManager {
       this.calculateCmd,
       this.editCmd,
     );
+    this.updateCmd = new Update(this.project);
   }
 
   /**

@@ -19,7 +19,7 @@ import { rename, readFile, writeFile } from 'node:fs/promises';
 import { Calculate } from './calculate.js';
 import { Card, Resource } from './interfaces/project-interfaces.js';
 import { Project, ResourcesFrom } from './containers/project.js';
-import { resourceNameParts } from './utils/resource-utils.js';
+import { resourceName } from './utils/resource-utils.js';
 import { Template } from './containers/template.js';
 import { writeJsonFile } from './utils/json.js';
 
@@ -186,9 +186,7 @@ export class Rename extends EventEmitter {
   // Update card's metadata.
   private async updateCardMetadata(card: Card) {
     if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
-      const { identifier, prefix, type } = resourceNameParts(
-        card.metadata.cardType,
-      );
+      const { identifier, prefix, type } = resourceName(card.metadata.cardType);
       if (prefix === this.from) {
         card.metadata.cardType = `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`;
         // Update card' custom fields
@@ -219,12 +217,12 @@ export class Rename extends EventEmitter {
   }
 
   // Changes the name of a resource to match the new prefix.
-  private updateResourceName(resourceName: string) {
-    const { identifier, prefix, type } = resourceNameParts(resourceName);
+  private updateResourceName(name: string) {
+    const { identifier, prefix, type } = resourceName(name);
     // do not rename module resources
     return this.from === prefix
       ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
-      : resourceName;
+      : name;
   }
 
   // Updates single calculation file.
@@ -254,11 +252,7 @@ export class Rename extends EventEmitter {
   // Updates card type's metadata.
   // todo: once 'name' is dropped; can be simplified.
   private async updateCardTypeMetadata(cardTypeName: string) {
-    const cardType = await this.project.cardType(
-      cardTypeName,
-      ResourcesFrom.localOnly,
-      true,
-    );
+    const cardType = await this.project.cardType(cardTypeName, true);
     if (cardType) {
       cardType.name = this.updateResourceName(cardTypeName);
       cardType.workflow = this.updateResourceName(cardType.workflow);
@@ -371,6 +365,8 @@ export class Rename extends EventEmitter {
     // Change project prefix to project settings.
     await this.project.configuration.setCardPrefix(to);
     console.info(`Rename: New prefix: '${this.project.projectPrefix}'`);
+    // Update the resources collection, since project prefix has changed.
+    this.project.collectLocalResources();
 
     // Rename resources - module content shall not be modified.
     // It is better to rename the resources in this order: card types, field types

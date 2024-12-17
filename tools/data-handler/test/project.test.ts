@@ -7,10 +7,16 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
+import { FileContentType } from '../src/interfaces/project-interfaces.js';
+import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
-import { fileURLToPath } from 'node:url';
-import { FileContentType } from '../src/interfaces/project-interfaces.js';
+import { resourceName } from '../src/utils/resource-utils.js';
+
+import { WorkflowResource } from '../src/resources/workflow-resource.js';
+import { CardTypeResource } from '../src/resources/card-type-resource.js';
+import { FieldTypeResource } from '../src/resources/field-type-resource.js';
+import { LinkTypeResource } from '../src/resources/link-type-resource.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -680,7 +686,47 @@ describe('project', () => {
     expect(files.length).to.equal(0);
   });
 
+  it('create card type resource through resourceObject static API', () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const ct = Project.resourceObject(
+      project,
+      resourceName('decision/cardTypes/decision'),
+    );
+    expect((ct as CardTypeResource).data).not.to.equal(undefined);
+  });
+
+  it('create field type resource through resourceObject static API', () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const ft = Project.resourceObject(
+      project,
+      resourceName('decision/fieldTypes/finished'),
+    );
+    expect((ft as FieldTypeResource).data).not.to.equal(undefined);
+  });
+
+  it('create link type resource through resourceObject static API', () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const lt = Project.resourceObject(
+      project,
+      resourceName('decision/linkTypes/test'),
+    );
+    expect((lt as LinkTypeResource).data).not.to.equal(undefined);
+  });
+
+  it('create workflow resource through resourceObject static API', () => {
+    const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
+    const project = new Project(decisionRecordsPath);
+    const wf = Project.resourceObject(
+      project,
+      resourceName('decision/workflows/decision'),
+    );
+    expect((wf as WorkflowResource).data).not.to.equal(undefined);
+  });
+
   // @todo: tests needed:
   // it('cardAttachments()', async () => { }); - requires test data in which project cards have attachments
-  // modules in project: moduleNames, prefixes, ...
+  // modules in project: prefixes, ...
 });

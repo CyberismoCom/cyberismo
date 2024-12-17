@@ -19,6 +19,7 @@ import {
   ExportFormats,
   requestStatus,
   ShowTypes,
+  UpdateOperations,
 } from '@cyberismocom/data-handler';
 
 // To avoid duplication, fetch description and version from package.json file.
@@ -708,6 +709,37 @@ program
       const result = await commandHandler.command(
         Cmd.transition,
         [cardKey, transition],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
+
+// Update command
+program
+  .command('update')
+  .description('Update resource details')
+  .argument('<resourceName>', 'Resource name')
+  .argument(
+    '<operation>',
+    'Type of change, either "add", "change", "rank" or "remove" ',
+  )
+  .argument('<key>', 'Detail to be changed')
+  .argument('<value>', 'Value for a detail')
+  .argument('[newValue]', 'When using "change" define new value for detail')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(
+    async (
+      resourceName: string,
+      key: string,
+      operation: UpdateOperations,
+      value: string,
+      newValue: string,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.update,
+        [resourceName, key, operation, value, newValue],
         options,
       );
       handleResponse(result);

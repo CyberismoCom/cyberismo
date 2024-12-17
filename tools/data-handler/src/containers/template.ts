@@ -39,7 +39,7 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
-import { resourceNameParts } from '../utils/resource-utils.js';
+import { resourceName } from '../utils/resource-utils.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -164,7 +164,6 @@ export class Template extends CardContainer {
       await mkdir(tempDestination, { recursive: true });
 
       // Create cards to the temp-folder.
-      // @todo: new function - fetch the workflow of a card
       for (const card of cards) {
         // A bit of a hack to prevent duplicated '/c' in the path for child cards.
         if (card.path.includes(`${sep}c${sep}`) && !parentCard) {
@@ -175,7 +174,6 @@ export class Template extends CardContainer {
         } else {
           card.path = card.path.replace(templatesFolder, tempDestination);
         }
-        // @todo: could just fetch initial state based on card
         const cardType = await this.project.cardType(
           card.metadata?.cardType || '',
         );
@@ -329,7 +327,7 @@ export class Template extends CardContainer {
 
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
-    const { prefix, identifier } = resourceNameParts(templateName);
+    const { prefix, identifier } = resourceName(templateName);
     const localTemplate = join(this.project.paths.templatesFolder, identifier);
 
     // Template can either be local ...
