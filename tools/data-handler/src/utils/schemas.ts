@@ -14,6 +14,7 @@ import cardBaseSchema from '../../../schema/cardBaseSchema.json' with { type: 'j
 import cardTypeSchema from '../../../schema/cardTypeSchema.json' with { type: 'json' };
 import cardsConfigSchema from '../../../schema/cardsConfigSchema.json' with { type: 'json' };
 import createCardsMacroSchema from '../../../schema/createCardsMacroSchema.json' with { type: 'json' };
+import scoreCardMacroSchema from '../../../schema/scoreCardMacroSchema.json' with { type: 'json' };
 import csvSchema from '../../../schema/csvSchema.json' with { type: 'json' };
 import dotSchema from '../../../schema/dotSchema.json' with { type: 'json' };
 import fieldTypeSchema from '../../../schema/fieldTypeSchema.json' with { type: 'json' };
@@ -29,6 +30,7 @@ export const schemas = [
   cardTypeSchema,
   cardsConfigSchema,
   createCardsMacroSchema,
+  scoreCardMacroSchema,
   csvSchema,
   dotSchema,
   fieldTypeSchema,
