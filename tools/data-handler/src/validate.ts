@@ -24,7 +24,7 @@ import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, readJsonFileSync } from './utils/json.js';
 import { pathExists } from './utils/file-utils.js';
-import { resourceNameParts } from './utils/resource-utils.js';
+import { resourceName } from './utils/resource-utils.js';
 import { Project } from './containers/project.js';
 import {
   Card,
@@ -363,7 +363,7 @@ export class Validate {
         | FieldType
         | LinkType
         | Workflow;
-      const { identifier, prefix, type } = resourceNameParts(namedContent.name);
+      const { identifier, prefix, type } = resourceName(namedContent.name);
       const filenameWithoutExtension = parse(file.name).name;
 
       if (!projectPrefixes.includes(prefix)) {
@@ -581,39 +581,40 @@ export class Validate {
   /**
    * Validate that long and short resource names are valid.
    * @param resourceType Type of resource
-   * @param resourceName Name of resource
+   * @param name Name of resource
    * @param prefixes currently used project prefixes
    * @returns resource name as valid resource name; throws in error cases.
    */
   public async validResourceName(
     resourceType: ResourceTypes,
-    resourceName: string,
+    name: string,
     prefixes: string[],
   ): Promise<string> {
-    let { prefix, type } = resourceNameParts(resourceName);
-    const { identifier } = resourceNameParts(resourceName);
-    type = type ? type : resourceType;
+    const resource = resourceName(name);
+    resource.type = resource.type ? resource.type : resourceType;
     // a bit shaky way to ensure that prefix is set; first of the project prefixes should be the actual project prefix.
-    if (prefix === '') {
-      prefix = prefixes.length > 0 ? prefixes.at(0) || '' : '';
-      if (prefix === '') {
+    if (resource.prefix === '') {
+      resource.prefix = prefixes.length > 0 ? prefixes.at(0) || '' : '';
+      if (resource.prefix === '') {
         throw new Error(`Project prefix cannot be empty string`);
       }
     }
-    if (!prefixes.includes(prefix)) {
+    if (!prefixes.includes(resource.prefix)) {
       throw new Error(
-        `Resource name can only refer to project that it is part of. Prefix '${prefix}' is not included in '[${prefixes.join(',')}]'`,
+        `Resource name can only refer to project that it is part of. Prefix '${resource.prefix}' is not included in '[${prefixes.join(',')}]'`,
       );
     }
-    if (resourceType !== type) {
+    if (resourceType !== resource.type) {
       throw new Error(
-        `Resource name must match the resource type. Type '${type}' does not match '${resourceType}'`,
+        `Resource name must match the resource type. Type '${resource.type}' does not match '${resourceType}'`,
       );
     }
-    if (!Validate.isValidResourceName(identifier)) {
-      throw new Error(`Resource name must follow naming rules`);
+    if (!Validate.isValidResourceName(resource.identifier)) {
+      throw new Error(
+        `Resource identifier must follow naming rules. Identifier '${resource.identifier}' is invalid`,
+      );
     }
-    return `${prefix}/${resourceType}/${identifier}`;
+    return `${resource.prefix}/${resourceType}/${resource.identifier}`;
   }
 
   /**

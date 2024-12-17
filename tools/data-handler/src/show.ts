@@ -18,7 +18,6 @@ import { spawn } from 'node:child_process';
 
 import mime from 'mime-types';
 
-// cyberismo
 import { attachmentPayload } from './interfaces/request-status-interfaces.js';
 import {
   CardAttachment,
@@ -35,10 +34,14 @@ import {
   LinkType,
   Workflow,
 } from './interfaces/resource-interfaces.js';
-import { stripExtension } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
+import { resourceName } from './utils/resource-utils.js';
+import { stripExtension } from './utils/file-utils.js';
 import { UserPreferences } from './utils/user-preferences.js';
 
+/**
+ * Show command.
+ */
 export class Show {
   constructor(private project: Project) {}
 
@@ -226,24 +229,6 @@ export class Show {
   }
 
   /**
-   * Shows details of a particular card type.
-   * @param cardTypeName card type name
-   * @returns card type details
-   */
-  public async showCardTypeDetails(cardTypeName: string): Promise<CardType> {
-    if (cardTypeName === '') {
-      throw new Error(`Must define card type name to query its details.`);
-    }
-    const cardTypeDetails = await this.project.cardType(cardTypeName);
-    if (cardTypeDetails === undefined) {
-      throw new Error(
-        `Card type '${cardTypeName}' not found from the project.`,
-      );
-    }
-    return cardTypeDetails;
-  }
-
-  /**
    * Shows all card types in a project.
    * @returns sorted array of card types
    */
@@ -309,23 +294,6 @@ export class Show {
   }
 
   /**
-   * Shows details of a link type.
-   * @param linkTypeName name of a link type
-   * @returns details of a link type.
-   */
-  public async showLinkType(
-    linkTypeName: string,
-  ): Promise<LinkType | undefined> {
-    const linkTypeDetails = await this.project.linkType(linkTypeName);
-    if (linkTypeDetails === undefined) {
-      throw new Error(
-        `Link type '${linkTypeName}' not found from the project.`,
-      );
-    }
-    return linkTypeDetails;
-  }
-
-  /**
    * Shows all available field types.
    * @returns sorted array of field types
    */
@@ -333,23 +301,6 @@ export class Show {
     return (await this.project.fieldTypes())
       .map((item) => stripExtension(item.name))
       .sort();
-  }
-
-  /**
-   * Shows details of a field type.
-   * @param fieldTypeName name of a field type
-   * @returns details of a field type.
-   */
-  public async showFieldType(
-    fieldTypeName: string,
-  ): Promise<FieldType | undefined> {
-    const fieldTypeDetails = await this.project.fieldType(fieldTypeName);
-    if (fieldTypeDetails === undefined) {
-      throw new Error(
-        `Field type '${fieldTypeName}' not found from the project.`,
-      );
-    }
-    return fieldTypeDetails;
   }
 
   /**
@@ -405,6 +356,18 @@ export class Show {
   }
 
   /**
+   * Shows details of certain resource.
+   * @param name Name of resource.
+   * @returns resource metadata as JSON.
+   */
+  public async showResource(
+    name: string,
+  ): Promise<CardType | Workflow | LinkType | FieldType | undefined> {
+    const resource = Project.resourceObject(this.project, resourceName(name));
+    return resource?.show();
+  }
+
+  /**
    * Shows details of a particular template.
    * @param templateName template name
    * @returns template details
@@ -442,23 +405,6 @@ export class Show {
     );
     const result = await Promise.all(promiseContainer);
     return result.filter(Boolean) as TemplateConfiguration[];
-  }
-
-  /**
-   * Shows details of a particular workflow.
-   * @param workflowName name of workflow
-   * @returns workflow details
-   */
-  public async showWorkflow(workflowName: string): Promise<Workflow> {
-    if (workflowName === '') {
-      throw new Error(`Must define workflow name to query its details.`);
-    }
-
-    const workflowContent = await this.project.workflow(workflowName);
-    if (workflowContent === undefined) {
-      throw new Error(`Workflow '${workflowName}' not found from the project.`);
-    }
-    return workflowContent;
   }
 
   /**

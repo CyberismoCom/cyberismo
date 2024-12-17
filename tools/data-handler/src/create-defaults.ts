@@ -46,10 +46,14 @@ export abstract class DefaultContent {
    * @returns Default content for field type.
    */
   static fieldType(fieldTypeName: string, dataType: DataType): FieldType {
-    return {
+    const value = {
       name: fieldTypeName,
       dataType: dataType,
-    };
+    } as FieldType;
+    if (dataType === 'enum') {
+      value.enumValues = [{ enumValue: 'value1' }, { enumValue: 'value2' }];
+    }
+    return value;
   }
 
   /**
