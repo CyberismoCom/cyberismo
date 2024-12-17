@@ -84,6 +84,15 @@ describe('ClingoParser', () => {
     expect(result.results[0].results2).to.have.lengthOf(1);
     expect(result.results[0].results2[0].key).to.equal('childKey');
   });
+  it('should parse enumField correctly', async () => {
+    const input = `result("key1")\nenumField("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "1", "displayName")`;
+    const result = await parser.parseInput(input);
+    expect(result.results[0].fieldName).to.deep.equal({
+      value: 'fieldValue',
+      index: 1,
+      displayValue: 'displayName',
+    });
+  });
 
   it('should parse field correctly', async () => {
     const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "shortText")`;
