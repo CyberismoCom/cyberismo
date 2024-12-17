@@ -1,5 +1,17 @@
-
 result({{cardKey}}).
+
+% a helper term for display names
+
+displayName(Card, Field, DisplayName) :-
+    field(Card, Field, _),
+    fieldType(Field),
+    field(Field, "displayName", DisplayName),
+    field(Card, "cardType", CardType),
+    not field((CardType, Field), "displayName", _).
+
+displayName(Card, Field, DisplayName) :-
+    field(Card, "cardType", CardType),
+    field((CardType, Field), "displayName", DisplayName).
 
 % the second level includes metadata for the always visible and optionally visible fields
 
@@ -21,24 +33,48 @@ field(Field, "index", Index) :-
     field((CardType, Field), "index", Index),
     field({{cardKey}}, "cardType", CardType).
 
-field(Field, "fieldDisplayName", Name) :-
-    field({{cardKey}}, "cardType", CardType),
-    field((CardType, Field), "displayName", Name).
+dataType(Field, "fieldDisplayName", "shortText") :-
+    childResult(_, Field, "fields"),
+    field(Field, "fieldDisplayName", _).
 
-field(Field, "fieldDisplayName", Name) :-
-    field(Field, "displayName", Name),
-    field({{cardKey}}, "cardType", CardType),
-    not field((CardType, Field), "displayName", _).
+field(Field, "fieldDisplayName", DisplayName) :-
+    childResult(_, Field, "fields"),
+    displayName({{cardKey}}, Field, DisplayName).
+
+dataType(Field, "isEditable", "boolean") :-
+    childResult(_, Field, "fields"),
+    field(Field, "isEditable", _).
 
 field(Field, "isEditable", IsEditable) :-
     field({{cardKey}}, "cardType", CardType),
     field((CardType, Field), "isEditable", IsEditable).
 
-% Add value
+field(Field, "isEditable", "true") :-
+   field({{cardKey}}, "cardType", CardType),
+   alwaysVisibleField(CardType, Field),
+   not field((CardType, Field), "isEditable", _).
+
+field(Field, "isEditable", "true") :-
+   field({{cardKey}}, "cardType", CardType),
+   optionallyVisibleField(CardType, Field),
+   not field((CardType, Field), "isEditable", _).
+
+% add value
+dataType(Field, "value", DataType) :-
+    childResult(_, Field, "fields"),
+    DataType != "enum",
+    DataType != "list",
+    field({{cardKey}}, Field, Value),
+    dataType({{cardKey}}, Field, DataType).
+
+
+% add value
 field(Field, "value", Value) :-
+    childResult({{cardKey}}, Field, "fields"),
     field({{cardKey}}, Field, Value).
 
-% Add only non-custom fields
+
+% select only non-custom fields
 select(1, "cardType").
 select(1, "title").
 select(1, "key").
@@ -58,29 +94,26 @@ select(2, "dataType").
 select(2, "isEditable").
 select(2, "value").
 
-childResult({{cardKey}}, Field) :-
+childResult({{cardKey}}, Field, "fields") :-
     alwaysVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
 
-childResult({{cardKey}}, Field) :-
+childResult({{cardKey}}, Field, "fields") :-
     optionallyVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
 
-
-
-% For enum fields, add enum values as child results:
-
+% for enum fields, add enum values as child results:
 select(3, "index").
 select(3, "enumDisplayValue").
 select(3, "enumDescription").
 select(3, "enumValue").
 
-childResult(Field, (Field, EnumValue)) :-
+childResult(Field, (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue).
 
 field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
 
-order(2, 1, "visibility", "ASC").
-order(2, 2, "index", "ASC").
-order(3, 1, "index", "ASC").
+order(2, "fields", 1, "visibility", "ASC").
+order(2, "fields", 2, "index", "ASC").
+order(3, "enumValues", 1, "index", "ASC").

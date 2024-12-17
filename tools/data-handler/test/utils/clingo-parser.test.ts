@@ -3,7 +3,6 @@ import ClingoParser, {
   decodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
 import { encodeClingoValue } from '../../src/utils/clingo-fact-builder.js';
-import { Project } from '../../src/containers/project.js';
 
 const encodingTests = [
   ['\n', '\\n'],
@@ -25,18 +24,10 @@ const fieldTypeTests = [
   ['list', 'test,test2,test3', ['test', 'test2', 'test3']],
 ] as const;
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 describe('ClingoParser', () => {
-  let parser: ClingoParser;
-  let project: Project;
-  beforeEach(() => {
-    project = {
-      fieldType: () =>
-        Promise.resolve({
-          dataType: 'longText',
-        }),
-    } as unknown as Project;
-    parser = new ClingoParser(project);
-  });
+  const parser = new ClingoParser();
 
   encodingTests.forEach(([input, expected]) => {
     it(`should encode special value ${input} to ${expected}`, () => {
@@ -75,16 +66,36 @@ describe('ClingoParser', () => {
   });
 
   it('should parse childResult correctly', async () => {
-    const input = 'result("parentKey")\nchildResult("parentKey", "childKey")';
-    const result = await parser.parseInput(input);
+    const input =
+      'result("parentKey")\nchildResult("parentKey", "childKey", "results")';
+    const result: any = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     expect(result.results[0].key).to.equal('parentKey');
     expect(result.results[0].results).to.have.lengthOf(1);
     expect(result.results[0].results[0].key).to.equal('childKey');
   });
 
+  it('should parse childResult correctly with different collection', async () => {
+    const input =
+      'result("parentKey")\nchildResult("parentKey", "childKey", "results2")';
+    const result: any = await parser.parseInput(input);
+    expect(result.results).to.have.lengthOf(1);
+    expect(result.results[0].key).to.equal('parentKey');
+    expect(result.results[0].results2).to.have.lengthOf(1);
+    expect(result.results[0].results2[0].key).to.equal('childKey');
+  });
+  it('should parse enumField correctly', async () => {
+    const input = `result("key1")\nenumField("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "1", "displayName")`;
+    const result = await parser.parseInput(input);
+    expect(result.results[0].fieldName).to.deep.equal({
+      value: 'fieldValue',
+      index: 1,
+      displayValue: 'displayName',
+    });
+  });
+
   it('should parse field correctly', async () => {
-    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue('fieldValue')}")`;
+    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "shortText")`;
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal('fieldValue');
   });
@@ -92,27 +103,22 @@ describe('ClingoParser', () => {
   fieldTypeTests.forEach((test) => {
     const [type, value, expected] = test;
     it(`should parse field with type ${type} correctly`, async () => {
-      project.fieldType = () =>
-        Promise.resolve({
-          name: '',
-          dataType: type,
-        });
       const fieldValue = encodeClingoValue(value.toString());
-      const input = `result("key1")\nfield("key1", "fieldName", "${fieldValue}")`;
+      const input = `result("key1")\nfield("key1", "fieldName", "${fieldValue}", "${type}")`;
       const result = await parser.parseInput(input);
       expect(result.results[0].fieldName).to.deep.equal(expected);
     });
   });
   it('should parse field correctly which has special characters', async () => {
     const fieldValue = 'fieldValueä)"()="()()()=\n';
-    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;
+    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}", "shortText")`;
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal(fieldValue);
   });
 
   it('should parse field correctly when last argument is an empty string', async () => {
     const fieldValue = '';
-    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}")`;
+    const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue(fieldValue)}", "shortText")`;
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal(fieldValue);
   });
@@ -229,7 +235,7 @@ describe('ClingoParser', () => {
   });
 
   it('should parse order correctly', async () => {
-    const input = 'result("key1")\norder("1", "0", "field", "ASC")';
+    const input = 'result("key1")\norder("1", "results", "0", "field", "ASC")';
     const result = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
   });
@@ -238,9 +244,9 @@ describe('ClingoParser', () => {
     const input = `
             result("key1")
             result("key2")
-            field("key1", "field", "${encodeClingoValue('b')}")
-            field("key2", "field", "${encodeClingoValue('a')}")
-            order("1", "0", "field", "ASC")`;
+            field("key1", "field", "${encodeClingoValue('b')}", "shortText")
+            field("key2", "field", "${encodeClingoValue('a')}", "shortText")
+            order("1", "results", "0", "field", "ASC")`;
     const result = await parser.parseInput(input);
 
     expect(result.results).to.have.lengthOf(2);
@@ -252,9 +258,9 @@ describe('ClingoParser', () => {
     const input = `
             result("key1")
             result("key2")
-            field("key1", "field", "${encodeClingoValue('a')}")
-            field("key2", "field", "${encodeClingoValue('b')}")
-            order("1", "0", "field", "DESC")`;
+            field("key1", "field", "${encodeClingoValue('a')}", "shortText")
+            field("key2", "field", "${encodeClingoValue('b')}", "shortText")
+            order("1", "results", "0", "field", "DESC")`;
     const result = await parser.parseInput(input);
 
     expect(result.results).to.have.lengthOf(2);
@@ -265,16 +271,16 @@ describe('ClingoParser', () => {
   it('should handle order on multiple levels correctly', async () => {
     const input = `
         result("key1")
-        childResult("key1", "key2")
-        field("key2", "field", "${encodeClingoValue('b')}")
-        childResult("key1", "key3")
-        field("key3", "field", "${encodeClingoValue('a')}")
-        childResult("key1", "key4")
-        field("key4", "field", "${encodeClingoValue('c')}")
-        order(2, 1, "field", "ASC")
+        childResult("key1", "key2", "results")
+        field("key2", "field", "${encodeClingoValue('b')}", "shortText")
+        childResult("key1", "key3", "results")
+        field("key3", "field", "${encodeClingoValue('a')}", "shortText")
+        childResult("key1", "key4", "results")
+        field("key4", "field", "${encodeClingoValue('c')}", "shortText")
+        order(2, "results", 1, "field", "ASC")
     `;
 
-    const result = await parser.parseInput(input);
+    const result: any = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     expect(result.results[0].results).to.have.lengthOf(3);
     expect(result.results[0].results[0].field).to.equal('a');
@@ -284,16 +290,16 @@ describe('ClingoParser', () => {
   it('should handle order on multiple levels correctly in reverse', async () => {
     const input = `
         result("key1")
-        childResult("key1", "key2")
-        field("key2", "field", "${encodeClingoValue('b')}")
-        childResult("key1", "key3")
-        field("key3", "field", "${encodeClingoValue('a')}")
-        childResult("key1", "key4")
-        field("key4", "field", "${encodeClingoValue('c')}")
-        order(2, 1, "field", "DESC")
+        childResult("key1", "key2", "results")
+        field("key2", "field", "${encodeClingoValue('b')}", "shortText")
+        childResult("key1", "key3", "results")
+        field("key3", "field", "${encodeClingoValue('a')}", "shortText")
+        childResult("key1", "key4", "results")
+        field("key4", "field", "${encodeClingoValue('c')}", "shortText")
+        order(2, "results", 1, "field", "DESC")
     `;
 
-    const result = await parser.parseInput(input);
+    const result: any = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     expect(result.results[0].results).to.have.lengthOf(3);
     expect(result.results[0].results[0].field).to.equal('c');
@@ -304,18 +310,18 @@ describe('ClingoParser', () => {
   it('should handle oreder on 4th level correctly', async () => {
     const input = `
         result("key1")
-        childResult("key1", "key2")
-        childResult("key2", "key3")
-        childResult("key3", "key4")
-        field("key4", "field", "${encodeClingoValue('b')}")
-        childResult("key3", "key5")
-        field("key5", "field", "${encodeClingoValue('a')}")
-        childResult("key3", "key6")
-        field("key6", "field", "${encodeClingoValue('c')}")
-        order(4, 1, "field", "ASC")
+        childResult("key1", "key2", "results")
+        childResult("key2", "key3", "results")
+        childResult("key3", "key4", "results")
+        field("key4", "field", "${encodeClingoValue('b')}", "shortText")
+        childResult("key3", "key5", "results")
+        field("key5", "field", "${encodeClingoValue('a')}", "shortText")
+        childResult("key3", "key6", "results")
+        field("key6", "field", "${encodeClingoValue('c')}", "shortText")
+        order(4, "results", 1, "field", "ASC")
     `;
 
-    const result = await parser.parseInput(input);
+    const result: any = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     expect(result.results[0].results).to.have.lengthOf(1);
     expect(result.results[0].results[0].results).to.have.lengthOf(1);
@@ -334,7 +340,7 @@ describe('ClingoParser', () => {
   it('should handle multiple commands correctly', async () => {
     const input = `
             result("key1")
-            field("key1", "fieldName", "${encodeClingoValue('fieldValue')}")
+            field("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "shortText")
             label("key1", "label1")
             link("key1", "cardKey", "linkType", "linkDescription")
             transitionDenied("key1", "transitionName", "errorMessage")
@@ -344,7 +350,7 @@ describe('ClingoParser', () => {
             editingContentDenied("key1", "errorMessage")
             policyCheckFailure("key1", "category", "title", "errorMessage")
             policyCheckSuccess("key1", "category", "title")
-            order("1", "0", "field", "ASC")
+            order("1", "results", "0", "field", "ASC")
         `;
     const result = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
@@ -363,8 +369,8 @@ describe('ClingoParser', () => {
   it('should handle multiple parenthesis', async () => {
     const input = `
             result("key1")
-            field("key1", "test", ("test", "testing something"))
-            field("key1", "test2", (("test1", test2), "testing something"))
+            field("key1", "test", ("test", "testing something"), "shortText")
+            field("key1", "test2", (("test1", test2), "testing something"), "shortText")
         `;
     const result = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);

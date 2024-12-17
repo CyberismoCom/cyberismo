@@ -163,11 +163,11 @@ function MetadataView({
             edit: false,
           }}
         />
-        {card.results.map(
+        {(card.fields ?? []).map(
           ({
             key,
             dataType,
-            results,
+            enumValues,
             fieldDisplayName,
             visibility,
             isEditable,
@@ -184,15 +184,16 @@ function MetadataView({
                 dataType,
                 label: fieldDisplayName || key,
                 edit: (editMode && isEditable) ?? false,
-                enumValues: results,
+                enumValues,
               }}
             />
           ),
         )}
       </Stack>
-      {card.results.filter((field) => field.visibility === 'always').length !==
-        card.results.length &&
-        card.results.length !== 0 && (
+      {card.fields &&
+        card.fields.filter((field) => field.visibility === 'always').length !==
+          card.fields.length &&
+        card.fields.length !== 0 && (
           <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
             <Link
               variant="soft"

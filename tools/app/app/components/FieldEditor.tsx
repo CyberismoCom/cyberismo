@@ -60,7 +60,9 @@ export default function FieldEditor({
           onChange={(e, value) => onChange?.(value)}
           color="primary"
         >
-          <Option value="">{t('none')}</Option>
+          <Option value="" key="none">
+            {t('none')}
+          </Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}

@@ -12,9 +12,6 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  Card,
-  CardDetails,
-  CardMetadata,
   DataType,
   EnumDefinition,
   ExpandedLinkType,
@@ -40,7 +37,7 @@ export function flattenTree(
   const result: QueryResult<'tree'>[] = [];
   tree.forEach((node) => {
     result.push(node);
-    result.push(...flattenTree(node.results));
+    result.push(...flattenTree(node.children ?? []));
   });
   return result;
 }
@@ -79,7 +76,7 @@ function findPath(
     return [card];
   }
 
-  for (const child of card.results) {
+  for (const child of card.children ?? []) {
     const leaf = findPath(cardKey, child);
     if (leaf) {
       return [card, ...leaf];
@@ -209,7 +206,7 @@ export function findCard(
     if (card.key === key) {
       return card;
     }
-    const found = findCard(card.results, key);
+    const found = findCard(card.children ?? [], key);
     if (found) {
       return found;
     }
@@ -228,10 +225,10 @@ export function findParentCard(
   key: string,
 ): QueryResult<'tree'> | null {
   for (const card of cards) {
-    if (card.results.some((child) => child.key === key)) {
+    if (card.children?.some((child) => child.key === key)) {
       return card;
     }
-    const found = findParentCard(card.results, key);
+    const found = findParentCard(card.children ?? [], key);
     if (found) {
       return found;
     }
@@ -245,10 +242,13 @@ export function findParentCard(
  * @returns number of children of the card including the card itself
  */
 export function countChildren(treeRoot: QueryResult<'tree'>): number {
-  if (!treeRoot.results) {
+  if (!treeRoot.children) {
     return 1;
   }
-  return treeRoot.results.reduce((acc, child) => acc + countChildren(child), 1);
+  return treeRoot.children.reduce(
+    (acc, child) => acc + countChildren(child),
+    1,
+  );
 }
 
 /**
@@ -276,9 +276,9 @@ export function getMoveableCards(
       // Skip the card itself and do not recurse into its children
       continue;
     }
-    const isParent = card.results.some((c) => c.key === cardKey);
+    const isParent = card.children?.some((c) => c.key === cardKey);
     // it's not the parent(or below it), so we can just return this + its children
-    cards.push(...getMoveableCards(card.results, cardKey));
+    cards.push(...getMoveableCards(card.children ?? [], cardKey));
     if (!isParent) {
       cards.push(card);
     }
@@ -300,9 +300,9 @@ export function filterCards(
     if (filter(card)) {
       return true;
     }
-    if (card.results) {
-      card.results = filterCards(card.results, filter);
-      return card.results.length > 0;
+    if (card.children) {
+      card.children = filterCards(card.children, filter);
+      return card.children.length > 0;
     }
     return false;
   });
