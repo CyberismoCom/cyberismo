@@ -16,13 +16,14 @@ import { join, sep } from 'node:path';
 
 import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
+import { Create } from './create.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
 import {
   RemovableResourceTypes,
   Resource,
 } from './interfaces/project-interfaces.js';
-import { resourceNameParts } from './utils/resource-utils.js';
+import { resourceName } from './utils/resource-utils.js';
 
 const MODULES_PATH = `${sep}modules${sep}`;
 
@@ -48,51 +49,9 @@ export class Remove extends EventEmitter {
     return type === 'report' || type === 'template';
   }
 
-  // Remove file based resource (card type, field type, ...)
-  private async deleteFileResource(resourceName: string) {
-    if (!resourceName.endsWith('.json')) {
-      resourceName += '.json';
-    }
-    const { identifier, type } = resourceNameParts(resourceName);
-    let resources: Resource[];
-    let resourceFolder: string = '';
-    if (type === 'cardTypes') {
-      resourceFolder = this.project.paths.cardTypesFolder;
-      resources = await this.project.cardTypes();
-    } else if (type == 'fieldTypes') {
-      resourceFolder = this.project.paths.fieldTypesFolder;
-      resources = await this.project.fieldTypes();
-    } else if (type == 'linkTypes') {
-      resourceFolder = this.project.paths.linkTypesFolder;
-      resources = await this.project.linkTypes();
-    } else if (type == 'workflows') {
-      resourceFolder = this.project.paths.workflowsFolder;
-      resources = await this.project.workflows();
-    } else {
-      resources = [];
-    }
-    const resource = resources.filter((item) => item.name === resourceName)[0];
-    if (!resource || !resource.path) {
-      throw new Error(
-        `Resource '${resourceName}' does not exist in the project`,
-      );
-    }
-    if (resource.path?.includes(MODULES_PATH)) {
-      throw new Error(`Cannot modify imported module`);
-    }
-
-    const resourceFile = join(resourceFolder, identifier + '.json');
-    const deleted = await deleteFile(resourceFile);
-    if (!deleted) {
-      throw new Error(`Cannot delete file ${resourceFile}`);
-    }
-
-    this.project.removeResource(resource);
-  }
-
   // Remove folder-based resource (template, report, ...).
-  private async deleteFolderResource(resourceName: string) {
-    const { type } = resourceNameParts(resourceName);
+  private async deleteFolderResource(name: string) {
+    const { type } = resourceName(name);
     let resources: Resource[];
     if (type === 'templates') {
       resources = await this.project.templates();
@@ -101,7 +60,7 @@ export class Remove extends EventEmitter {
     } else {
       resources = [];
     }
-    const resource = resources.filter((item) => item.name === resourceName)[0];
+    const resource = resources.filter((item) => item.name === name)[0];
 
     if (!resource || !resource.path) {
       throw new Error(
@@ -111,7 +70,7 @@ export class Remove extends EventEmitter {
 
     const resourcePath = join(
       resource.path,
-      resourceNameParts(resource.name).identifier,
+      resourceName(resource.name).identifier,
     );
 
     if (resourcePath.includes(MODULES_PATH)) {
@@ -298,7 +257,11 @@ export class Remove extends EventEmitter {
       );
     }
     if (this.fileBasedResource(type)) {
-      return this.deleteFileResource(targetName);
+      const resource = Create.createResourceObject(
+        this.project,
+        resourceName(targetName),
+      );
+      return resource?.delete();
     } else if (this.folderBasedResource(type)) {
       return this.deleteFolderResource(targetName);
     } else {

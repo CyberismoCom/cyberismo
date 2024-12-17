@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 
   const commands = await CommandManager.getInstance(projectPath);
-  const detailsResponse = await commands.showCmd.showCardTypeDetails(cardType);
+  const detailsResponse = await commands.showCmd.showResource(cardType);
 
   if (detailsResponse) {
     return NextResponse.json(detailsResponse);
