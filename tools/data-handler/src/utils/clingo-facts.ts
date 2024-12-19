@@ -147,6 +147,22 @@ export const createCardFacts = async (card: Card, project: Project) => {
           if (!fieldType) {
             continue;
           }
+
+          // if it's a list, let's generate multiple values
+          if (fieldType.dataType === 'list') {
+            if (!Array.isArray(value)) {
+              continue;
+            }
+            for (const listValue of value) {
+              builder.addCustomFact(Facts.Common.FIELD, (b) =>
+                b
+                  .addLiteralArgument(card.key)
+                  .addArguments(field, listValue.toString()),
+              );
+            }
+            continue;
+          }
+
           clingoValue =
             fieldType.dataType === 'integer'
               ? (value as number)

@@ -24,7 +24,7 @@ export type EditableFieldProps = {
   dataType: DataType;
   description?: string;
   label: string;
-  onChange?: (value: string | null) => void;
+  onChange?: (value: string | string[] | null) => void;
   edit: boolean;
   disabled?: boolean;
   enumValues?: EnumDefinition[];

@@ -157,9 +157,6 @@ class ClingoParser {
         case 'boolean':
           res[fieldName] = fieldValue === 'true';
           break;
-        case 'list':
-          res[fieldName] = decoded.split(',');
-          break;
       }
     },
     label: (key: string, label: string) => {

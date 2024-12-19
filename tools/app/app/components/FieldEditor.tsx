@@ -18,7 +18,7 @@ import { Person } from '@mui/icons-material';
 export interface FieldEditorProps {
   value: MetadataValue;
   dataType?: DataType;
-  onChange?: (value: string | null) => void;
+  onChange?: (value: string | string[] | null) => void;
   enumValues?: Array<EnumDefinition>;
   disabled?: boolean;
 }
@@ -95,7 +95,8 @@ export default function FieldEditor({
     case 'list':
       return (
         <Select
-          value={(value as string | null) ?? ''}
+          value={(value as string[] | null) ?? []}
+          multiple
           onChange={(e, value) => onChange?.(value)}
           color="primary"
           sx={{
@@ -105,9 +106,6 @@ export default function FieldEditor({
           placeholder={t('placeholder.enum')}
           disabled={disabled}
         >
-          <Option value="" key="none">
-            {t('none')}
-          </Option>
           {enumValues?.map((enumDef) => (
             <Option key={enumDef.enumValue} value={enumDef.enumValue}>
               {enumDef.enumDisplayValue}

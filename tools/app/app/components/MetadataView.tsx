@@ -114,7 +114,7 @@ function MetadataView({
           onChange(value === 'true' ? true : value === 'false' ? false : null);
           break;
         case 'list':
-          onChange(value ? value.split(',').map((v) => v.trim()) : []);
+          onChange(Array.isArray(value) ? value : []);
           break;
         case 'shortText':
         case 'longText':
@@ -182,7 +182,7 @@ function MetadataView({
               key={key}
               name={key}
               handleChange={handleChange}
-              defaultValue={value as MetadataValue}
+              defaultValue={getDefaultValue(value)}
               expanded={visibility === 'always' || expanded}
               disabled={card.deniedOperations.editField
                 .map((field) => field.fieldName)

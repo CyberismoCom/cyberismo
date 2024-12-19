@@ -105,6 +105,13 @@ showField(Key, Field) :-
     not field((Field, Value), "enumDisplayValue", _),
     showField(Key, Field).
 
+#show enumField(Key, Field, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "enum"),
+    not field((Field, Value), "index", _),
+    not field((Field, Value), "enumDisplayValue", _),
+    showField(Key, Field).
+
 #show enumField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
@@ -119,6 +126,13 @@ showField(Key, Field) :-
     not field((Field, Value), "enumDisplayValue", _),
     showAll(Key).
 
+#show enumField(Key, Field, Value) :
+     field(Key, Field, Value),
+     dataType(Key, Field, "enum"),
+     not field((Field, Value), "index", _),
+     not field((Field, Value), "enumDisplayValue", _),
+     showAll(Key).
+
 #show listField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
@@ -133,6 +147,13 @@ showField(Key, Field) :-
     not field((Field, Value), "enumDisplayValue", _),
     showField(Key, Field).
 
+#show listField(Key, Field, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    not field((Field, Value), "index", _),
+    not field((Field, Value), "enumDisplayValue", _),
+    showField(Key, Field).
+
 #show listField(Key, Field, Value, Index, DisplayValue) :
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
@@ -144,6 +165,13 @@ showField(Key, Field) :-
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     field((Field, Value), "index", Index),
+    not field((Field, Value), "enumDisplayValue", _),
+    showAll(Key).
+
+#show listField(Key, Field, Value) :
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    not field((Field, Value), "index", _),
     not field((Field, Value), "enumDisplayValue", _),
     showAll(Key).
 
