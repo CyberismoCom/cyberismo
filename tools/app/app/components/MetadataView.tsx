@@ -23,6 +23,7 @@ import {
 import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
 import { CardResponse } from '../lib/api/types';
+import { getDefaultValue } from '../lib/utils';
 
 interface FieldItemProps {
   expanded?: boolean;

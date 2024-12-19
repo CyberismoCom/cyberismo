@@ -99,6 +99,18 @@ interface CardQueryResult extends BaseResult {
   fields?: CardQueryField[];
 }
 
+interface EnumValue {
+  index?: number;
+  displayValue?: string;
+  value: string;
+}
+
+interface ListValueItem {
+  index?: number;
+  displayValue?: string;
+  value: string;
+}
+
 interface CardQueryField extends BaseResult {
   visibility: 'always' | 'optional';
   index: number;
@@ -106,7 +118,7 @@ interface CardQueryField extends BaseResult {
   fieldDescription: string;
   dataType: DataType;
   isEditable: boolean;
-  value: MetadataContent;
+  value: string | number | boolean | null | EnumValue | ListValueItem[];
   enumValues: EnumDefinition[];
 }
 
