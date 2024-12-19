@@ -67,6 +67,7 @@ export enum Cmd {
   show = 'show',
   start = 'start',
   transition = 'transition',
+  update = 'update',
   validate = 'validate',
 }
 
@@ -304,6 +305,9 @@ export class Commands {
         await this.commands?.transitionCmd.cardTransition(cardKey, {
           name: state,
         });
+      } else if (command === Cmd.update) {
+        const [resource, key, value] = args;
+        await this.update(resource, key, value);
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -595,22 +599,19 @@ export class Commands {
         promise = this.commands!.showCmd.showCards();
         break;
       case 'cardType':
-        promise = this.commands!.showCmd.showCardTypeDetails(detail);
+      case 'fieldType':
+      case 'linkType':
+      case 'workflow':
+        promise = this.commands!.showCmd.showResource(detail);
         break;
       case 'cardTypes':
         promise = this.commands!.showCmd.showCardTypes();
-        break;
-      case 'fieldType':
-        promise = this.commands!.showCmd.showFieldType(detail);
         break;
       case 'fieldTypes':
         promise = this.commands!.showCmd.showFieldTypes();
         break;
       case 'labels':
         promise = this.commands!.showCmd.showLabels();
-        break;
-      case 'linkType':
-        promise = this.commands!.showCmd.showLinkType(detail);
         break;
       case 'linkTypes':
         promise = this.commands!.showCmd.showLinkTypes();
@@ -629,9 +630,6 @@ export class Commands {
         break;
       case 'templates':
         promise = this.commands!.showCmd.showTemplates();
-        break;
-      case 'workflow':
-        promise = this.commands!.showCmd.showWorkflow(detail);
         break;
       case 'workflows':
         promise = this.commands!.showCmd.showWorkflows();
@@ -679,5 +677,31 @@ export class Commands {
       statusCode: 200,
       message: result.length ? result : 'Project structure validated',
     };
+  }
+
+  // Updates single value of a resource
+  private async update(
+    resource: string,
+    key: string,
+    value: string,
+  ): Promise<void> {
+    // todo: make 'resource' based better if-statement. This current one is rather naive.
+    if (
+      key === 'optionallyVisibleFields' ||
+      key === 'alwaysVisibleFields' ||
+      key === 'customFields' ||
+      key === 'enumValues' ||
+      key === 'destinationCardTypes' ||
+      key === 'sourceCardTypes' ||
+      key === 'states' ||
+      key === 'transitions'
+    ) {
+      return this.commands?.updateCmd.updateValue(
+        resource,
+        key,
+        JSON.parse(value),
+      );
+    }
+    return this.commands?.updateCmd.updateValue(resource, key, value);
   }
 }
