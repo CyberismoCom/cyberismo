@@ -10,15 +10,17 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Select, Option, Input } from '@mui/joy';
+import { Select, Option, Input, Textarea } from '@mui/joy';
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
+import { Person } from '@mui/icons-material';
 
 export interface FieldEditorProps {
   value: MetadataValue;
   dataType?: DataType;
   onChange?: (value: string | null) => void;
   enumValues?: Array<EnumDefinition>;
+  disabled?: boolean;
 }
 
 export default function FieldEditor({
@@ -26,6 +28,7 @@ export default function FieldEditor({
   onChange,
   dataType,
   enumValues,
+  disabled,
 }: FieldEditorProps) {
   const { t } = useTranslation();
   switch (dataType) {
@@ -34,10 +37,17 @@ export default function FieldEditor({
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
+          disabled={disabled}
           value={(value as number | null) ?? ''}
           type="number"
           color="primary"
           size="sm"
+          fullWidth
+          placeholder={
+            dataType === 'integer'
+              ? t('placeholder.integer')
+              : t('placeholder.number')
+          }
         />
       );
 
@@ -45,8 +55,14 @@ export default function FieldEditor({
       return (
         <Select
           value={value?.toString() ?? ''}
+          disabled={disabled}
           onChange={(e, value) => onChange?.(value)}
           color="primary"
+          sx={{
+            width: '100%',
+          }}
+          size="sm"
+          placeholder={t('placeholder.boolean')}
         >
           <Option value="">{t('none')}</Option>
           <Option value="true">{t('true')}</Option>
@@ -57,8 +73,14 @@ export default function FieldEditor({
       return (
         <Select
           value={(value as string | null) ?? ''}
+          disabled={disabled}
           onChange={(e, value) => onChange?.(value)}
           color="primary"
+          sx={{
+            width: '100%',
+          }}
+          size="sm"
+          placeholder={t('placeholder.enum')}
         >
           <Option value="" key="none">
             {t('none')}
@@ -72,27 +94,89 @@ export default function FieldEditor({
       );
     case 'list':
       return (
+        <Select
+          value={(value as string | null) ?? ''}
+          onChange={(e, value) => onChange?.(value)}
+          color="primary"
+          sx={{
+            width: '100%',
+          }}
+          size="sm"
+          placeholder={t('placeholder.enum')}
+          disabled={disabled}
+        >
+          <Option value="" key="none">
+            {t('none')}
+          </Option>
+          {enumValues?.map((enumDef) => (
+            <Option key={enumDef.enumValue} value={enumDef.enumValue}>
+              {enumDef.enumDisplayValue}
+            </Option>
+          ))}
+        </Select>
+      );
+    case 'date':
+      return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
-          value={Array.isArray(value) ? value.join(',') : ''}
+          disabled={disabled}
+          value={(value as string | null) ?? ''}
+          type="date"
           color="primary"
           size="sm"
           fullWidth
         />
       );
-    case 'shortText':
-    case 'longText':
-    case 'person':
-    case 'date':
     case 'dateTime':
-    default:
       return (
         <Input
           onChange={(e) => onChange?.(e.target.value)}
+          disabled={disabled}
+          value={(value as string | null) ?? ''}
+          type="datetime-local"
+          color="primary"
+          size="sm"
+          fullWidth
+        />
+      );
+    case 'person':
+      return (
+        <Input
+          onChange={(e) => onChange?.(e.target.value)}
+          disabled={disabled}
           value={(value as string | null) ?? ''}
           color="primary"
           size="sm"
           fullWidth
+          endDecorator={<Person color="primary" fontSize="small" />}
+          placeholder={t('placeholder.person')}
+        />
+      );
+    case 'longText':
+      return (
+        <Textarea
+          onChange={(e) => onChange?.(e.target.value)}
+          disabled={disabled}
+          value={(value as string | null) ?? ''}
+          color="primary"
+          size="sm"
+          minRows={3}
+          sx={{
+            width: '100%',
+          }}
+        />
+      );
+    case 'shortText':
+    default:
+      return (
+        <Input
+          onChange={(e) => onChange?.(e.target.value)}
+          disabled={disabled}
+          value={(value as string | null) ?? ''}
+          color="primary"
+          size="sm"
+          fullWidth
+          placeholder={t('placeholder.shortText')}
         />
       );
   }

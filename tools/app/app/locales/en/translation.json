@@ -111,5 +111,14 @@
     "successes": "Successes",
     "failures": "Failures",
     "title": "Policy checks"
+  },
+  "placeholder": {
+    "integer": "Enter number(integer)",
+    "number": "Enter number(decimal)",
+    "enum": "Select",
+    "shortText": "Enter text",
+    "boolean": "Select",
+    "person": "firstname.lastname@email.com",
+    "list": "Select"
   }
 }

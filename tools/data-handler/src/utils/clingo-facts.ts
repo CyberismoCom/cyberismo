@@ -148,7 +148,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
             continue;
           }
           clingoValue =
-            fieldType.dataType === 'number'
+            fieldType.dataType === 'integer'
               ? (value as number)
               : value.toString();
         }

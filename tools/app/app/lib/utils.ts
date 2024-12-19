@@ -189,7 +189,7 @@ export function metadataValueToString(
   } else if (dataType === 'boolean') {
     return metadata ? t('yes') : t('no');
   } else {
-    return metadata ? metadata.toString() : '';
+    return metadata ? metadata.toLocaleString() : '';
   }
 }
 /**
