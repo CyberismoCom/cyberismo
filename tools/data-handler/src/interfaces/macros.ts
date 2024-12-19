@@ -12,7 +12,7 @@
 
 import { macroMetadata } from '../macros/common.js';
 
-type Mode = 'static' | 'inject';
+type Mode = 'validate' | 'static' | 'inject';
 
 export interface MacroGenerationContext {
   projectPath: string;

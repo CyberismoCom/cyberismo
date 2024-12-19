@@ -29,23 +29,27 @@ class ScoreCardMacro extends BaseMacro {
     super(macroMetadata);
   }
 
-  handleStatic = async (context: MacroGenerationContext, data: string) => {
-    if (!data || typeof data !== 'string') {
-      throw new Error('scoreCard macro requires a JSON object as data');
-    }
-    const options = validateMacroContent<ScoreCardOptions>(this.metadata, data);
+  handleValidate = (data: string) => {
+    this.validate(data);
+  };
 
+  handleStatic = async (context: MacroGenerationContext, data: string) => {
+    const options = this.validate(data);
     return this.createAsciidocElement(options);
   };
 
   handleInject = async (_: MacroGenerationContext, data: string) => {
+    const options = this.validate(data);
+    return createHtmlPlaceholder(this.metadata, options);
+  };
+
+  private validate(data: string): ScoreCardOptions {
     if (!data || typeof data !== 'string') {
       throw new Error('scoreCard macro requires a JSON object as data');
     }
-    const options = validateMacroContent<ScoreCardOptions>(this.metadata, data);
 
-    return createHtmlPlaceholder(this.metadata, options);
-  };
+    return validateMacroContent<ScoreCardOptions>(this.metadata, data);
+  }
 
   private createAsciidocElement(options: ScoreCardOptions) {
     return `\n----\n${options.title}: ${options.value} ${options.unit ?? ''} ${options.legend ?? ''}\n----\n`;

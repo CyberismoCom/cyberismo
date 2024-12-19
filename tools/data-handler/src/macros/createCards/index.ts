@@ -27,22 +27,28 @@ class CreateCardsMacro extends BaseMacro {
   constructor() {
     super(macroMetadata);
   }
+
+  handleValidate = (data: string) => {
+    this.validate(data);
+  };
+
   async handleStatic() {
     // Buttons aren't supported in static mode
     return '';
   }
 
   handleInject = async (_: MacroGenerationContext, data: string) => {
+    const options = this.validate(data);
+    return createHtmlPlaceholder(this.metadata, options);
+  };
+
+  private validate(data: string): CreateCardsOptions {
     if (!data || typeof data !== 'string') {
       throw new Error('createCards macro requires a JSON object as data');
     }
-    const options = validateMacroContent<CreateCardsOptions>(
-      this.metadata,
-      data,
-    );
 
-    return createHtmlPlaceholder(this.metadata, options);
-  };
+    return validateMacroContent<CreateCardsOptions>(this.metadata, data);
+  }
 }
 
 export default CreateCardsMacro;

@@ -47,6 +47,7 @@ const invalidNames = new RegExp(
 );
 
 import * as EmailValidator from 'email-validator';
+import { evaluateMacros } from './macros/index.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const subFoldersToValidate = ['.cards', 'cardRoot', '.calc'];
@@ -513,6 +514,15 @@ export class Validate {
           );
           if (validCustomFields.length !== 0) {
             errorMsg.push(validCustomFields);
+          }
+
+          // Validate macros in content
+          if (card.content) {
+            await evaluateMacros(card.content, {
+              mode: 'validate',
+              projectPath,
+              cardKey: card.key,
+            });
           }
         }
         if (errorMsg.length) {

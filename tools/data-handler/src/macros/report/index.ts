@@ -32,15 +32,17 @@ class ReportMacro extends BaseMacro {
   constructor() {
     super(macroMetadata);
   }
+
+  handleValidate = (data: string) => {
+    this.validate(data);
+  };
+
   handleStatic = async (context: MacroGenerationContext, data: string) => {
     return this.handleInject(context, data);
   };
 
   handleInject = async (context: MacroGenerationContext, data: string) => {
-    if (!data || typeof data !== 'string') {
-      throw new Error('report macro requires a JSON object as data');
-    }
-    const options = validateMacroContent<ReportOptions>(this.metadata, data);
+    const options = this.validate(data);
 
     const project = new Project(context.projectPath);
     const report = await project.report(options.name);
@@ -79,6 +81,14 @@ class ReportMacro extends BaseMacro {
       ...result,
     });
   };
+
+  private validate(data: string): ReportOptions {
+    if (!data || typeof data !== 'string') {
+      throw new Error('report macro requires a JSON object as data');
+    }
+
+    return validateMacroContent<ReportOptions>(this.metadata, data);
+  }
 }
 
 export default ReportMacro;
