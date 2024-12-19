@@ -162,6 +162,7 @@ export default function FieldEditor({
           sx={{
             width: '100%',
           }}
+          placeholder={t('placeholder.longText')}
         />
       );
     case 'shortText':

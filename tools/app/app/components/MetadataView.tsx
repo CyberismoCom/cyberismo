@@ -143,7 +143,7 @@ function MetadataView({
       flexDirection="row"
       display="flex"
       sx={{
-        cursor: editMode ? 'default' : 'grab',
+        cursor: editMode ? 'default' : 'pointer',
       }}
       onClick={onClick}
     >

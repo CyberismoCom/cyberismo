@@ -117,6 +117,7 @@
     "number": "Enter number(decimal)",
     "enum": "Select",
     "shortText": "Enter text",
+    "longText": "Enter text",
     "boolean": "Select",
     "person": "firstname.lastname@email.com",
     "list": "Select"
