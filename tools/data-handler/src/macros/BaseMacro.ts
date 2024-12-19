@@ -32,6 +32,8 @@ abstract class BaseMacro {
     this.globalId = `${this.macroMetadata.name}-${BaseMacro.globalCounter++}`;
   }
 
+  protected abstract handleValidate(input: string): void;
+
   protected abstract handleStatic(
     context: MacroGenerationContext,
     input: string,
@@ -54,6 +56,11 @@ abstract class BaseMacro {
     const localId = this.tasks.length;
     const placeholder = `${this.globalId}-${localId}`;
 
+    if (context.mode === 'validate') {
+      this.handleValidate(input);
+      return;
+    }
+
     const functionToCall =
       context.mode === 'inject' ? this.handleInject : this.handleStatic;
 
@@ -72,7 +79,7 @@ abstract class BaseMacro {
       .catch((err) => {
         const item = this.tasks.find((p) => p.localId === localId);
         if (item) {
-          item.promiseResult = handleMacroError(err, this.metadata);
+          item.promiseResult = handleMacroError(err, this.metadata, context);
         } else {
           console.error(
             `After finishing execution, macro ${this.metadata.name} with local id ${localId} couldn't find itself. This is likely an issue with the cyberismo data-handler itself.`,
@@ -96,7 +103,10 @@ abstract class BaseMacro {
    * This method is responsible for resolving all the promises and replacing
    * each corresponding placeholder with the actual resolved value.
    */
-  public applyMacroResults = async (input: string) => {
+  public applyMacroResults = async (
+    input: string,
+    context: MacroGenerationContext,
+  ) => {
     // Wait for all promises to resolve
     await Promise.all(this.tasks.map((p) => p.promise));
 
@@ -109,6 +119,7 @@ abstract class BaseMacro {
             `Tried to access result before it was resolved for ${item.placeholder}`,
           ),
           this.metadata,
+          context,
         );
       } else {
         result = result.replace(item.placeholder, item.promiseResult);

@@ -48,10 +48,19 @@ export function validateMacroContent<T>(
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
   }
-  return validateJson<T>(JSON.parse(data), {
-    schemaId: macro.schema,
-    validator,
-  });
+
+  try {
+    return validateJson<T>(JSON.parse(data), {
+      schemaId: macro.schema,
+      validator,
+    });
+  } catch (error) {
+    let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    if (error instanceof DHValidationError) {
+      message = `${error.errors?.map((e) => e.message).join(', ')}`;
+    }
+    throw new Error(`${macro.name} macro JSON validation error: ${message}`);
+  }
 }
 
 /**
@@ -149,7 +158,7 @@ export function registerMacroHelpers(instance: typeof Handlebars) {
 /**
  * Handle the macros in the content
  * @param content - The content to handle the macros in
- * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc
+ * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc. Validate mode will only validate the macros syntax and throw errors in case of issues.
  */
 export async function evaluateMacros(
   content: string,
@@ -167,48 +176,24 @@ export async function evaluateMacros(
       result = compiled({});
 
       for (const macro of macroInstances) {
-        result = await macro.applyMacroResults(result);
+        result = await macro.applyMacroResults(result, context);
       }
       if (macroCount(result) === 0) {
         break;
       }
     } catch (err) {
-      return handleMacroError(err, emptyMacro);
+      // This will produce a warning in the output in inject/static modes and throw an error in validate mode
+      return handleMacroError(err, emptyMacro, context);
     }
   }
   if (macroCount(result) !== 0) {
     return handleMacroError(
       new Error(`Too many recursive macro evaluations.`),
       emptyMacro,
+      context,
     );
   }
   return result;
-}
-
-/**
- * Validates macros and returns the cause of the error
- * @param content - The content to validate
- * @returns The error message or null if template is valid
- */
-export function validateMacros(content: string): string | null {
-  const handlebars = Handlebars.create();
-
-  registerMacros(handlebars, {
-    // other objects can be skipped, because macro is not run during validate
-    mode: 'static',
-    cardKey: '',
-    projectPath: '',
-  });
-
-  const template = handlebars.compile(content, {
-    strict: true,
-  });
-  try {
-    template({});
-    return null;
-  } catch (error) {
-    return error instanceof Error ? error.message : 'Unknown error';
-  }
 }
 
 /**
@@ -217,7 +202,11 @@ export function validateMacros(content: string): string | null {
  * @param macro - The macro that caused the error
  * @returns The error message that is valid adoc
  */
-export function handleMacroError(error: unknown, macro: MacroMetadata): string {
+export function handleMacroError(
+  error: unknown,
+  macro: MacroMetadata,
+  context: MacroGenerationContext,
+): string {
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
@@ -230,7 +219,11 @@ export function handleMacroError(error: unknown, macro: MacroMetadata): string {
   ) {
     message += ` at line ${error.lineNumber}`;
   }
-  return createAdmonition('WARNING', 'Macro Error', message);
+  if (context.mode === 'validate') {
+    throw new Error(message);
+  } else {
+    return createAdmonition('WARNING', 'Macro Error', message);
+  }
 }
 
 /**

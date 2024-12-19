@@ -9,7 +9,6 @@ import {
   evaluateMacros,
   registerMacros,
   validateMacroContent,
-  validateMacros,
 } from '../../src/macros/index.js';
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
@@ -24,6 +23,10 @@ class TestMacro extends BaseMacro {
       schema,
     });
   }
+
+  handleValidate = async (data: string) => {
+    return 'test-static: ' + data;
+  };
 
   handleStatic = async (_: MacroGenerationContext, data: string) => {
     return 'test-static: ' + data;
@@ -132,14 +135,28 @@ describe('macros', () => {
       });
     });
   });
-  describe('validateMacros', () => {
-    it('validateMacros (success)', () => {
-      const result = validateMacros(validAdoc);
-      expect(result).to.equal(null);
-    });
-    it('try validateMacros', () => {
-      const result = validateMacros(invalidAdoc);
+  describe('validate macros', () => {
+    it('validate macros (success)', async () => {
+      // this should not throw an error
+      const result = await evaluateMacros(validAdoc, {
+        mode: 'validate',
+        projectPath: '',
+        cardKey: '',
+      });
       expect(result).to.not.equal(null);
+    });
+    it('validate macros - failure', async () => {
+      try {
+        // this should throw an error
+        await evaluateMacros(invalidAdoc, {
+          mode: 'validate',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(true).to.equal(false);
+      } catch (error) {
+        expect(error).to.not.equal(null);
+      }
     });
   });
   describe('registerMacros', () => {
