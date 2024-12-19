@@ -9,14 +9,14 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
+import { Card } from '../interfaces/project-interfaces.js';
 import {
   CardType,
   CustomField,
   LinkType,
 } from '../interfaces/resource-interfaces.js';
 import { DefaultContent } from '../create-defaults.js';
-import { FileResource } from './file-resource.js';
+import { FileResource, Operation } from './file-resource.js';
 import { LinkTypeResource } from './link-type-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
@@ -24,6 +24,7 @@ import {
   resourceName,
   resourceNameToString,
 } from '../utils/resource-utils.js';
+import { Template } from '../containers/template.js';
 import { Validate } from '../validate.js';
 
 /**
@@ -67,6 +68,26 @@ export class CardTypeResource extends FileResource {
     }
   }
 
+  // Update changed custom fields to cards
+  private async updateCardMetadata(card: Card, from: string, to: string) {
+    if (card.metadata?.cardType && card.metadata?.cardType.length > 0) {
+      if (card.metadata && Object.keys(card.metadata).includes(from)) {
+        // console.error(`updateCardMetadata: ${card.key} ${from} --> ${to}`);
+
+        delete Object.assign(card.metadata, {
+          [to]: card.metadata[from],
+        })[from];
+
+        const skipValidation = true;
+        await this.project.updateCardMetadata(
+          card,
+          card.metadata,
+          skipValidation,
+        );
+      }
+    }
+  }
+
   /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
@@ -84,10 +105,17 @@ export class CardTypeResource extends FileResource {
     return super.create(content);
   }
 
+  /**
+   * Deletes file(s) from disk and clears out the memory resident object.
+   */
   public async delete() {
     return super.delete();
   }
 
+  /**
+   * Renames resource metadata file and renames memory resident object 'name'.
+   * @param newName New name for the resource.
+   */
   public async rename(newName: ResourceName) {
     const oldName = this.content.name;
     await super.rename(newName);
@@ -102,19 +130,24 @@ export class CardTypeResource extends FileResource {
     return super.show() as unknown as CardType;
   }
 
-  public async validate() {
-    return super.validate();
-  }
-
   /**
    * Updates card type resource.
    * @param key Key to modify
    * @param value New value.
    */
-  public async update<Type>(key: string, value: Type) {
-    const rename = key === 'name';
+  public async update<Type>(key: string, value: Type, op?: Operation) {
+    console.error(
+      `update: ${this.content.name}
+       key=${key}
+       value=${value}
+       op=${op?.operation}`,
+    );
+
+    const nameChange = key === 'name';
+    const fieldsChange = key === 'customFields';
     const existingName = this.content.name;
-    await super.update(key, value);
+    await super.update(key, value, op);
+
     const cardTypeContent = this.content as unknown as CardType;
     if (key === 'name') {
       cardTypeContent.name = value as string;
@@ -125,17 +158,94 @@ export class CardTypeResource extends FileResource {
     } else if (key === 'workflow') {
       cardTypeContent.workflow = value as string;
     } else if (key === 'customFields') {
-      cardTypeContent.customFields = value as CustomField[];
-      // todo: also change all cards that have this card type
+      if (!op) {
+        // @todo: if whole 'customFields' is given as new array without Operation?
+        //        it can be rather tedious to check the array for changes
+        cardTypeContent.customFields = value as CustomField[];
+      } else {
+        if (op.operation === 'rename') {
+          const from = op.from!;
+          const to = op.to!;
+          cardTypeContent.customFields = cardTypeContent.customFields.map(
+            (item) => {
+              if (item.name === from) {
+                item.name = to;
+              }
+              return item;
+            },
+          );
+          // Changed item can be in other two arrays.
+          cardTypeContent.optionallyVisibleFields =
+            cardTypeContent.optionallyVisibleFields?.map((item) =>
+              item === from ? to : item,
+            );
+          cardTypeContent.alwaysVisibleFields =
+            cardTypeContent.alwaysVisibleFields?.map((item) =>
+              item === from ? to : item,
+            );
+        }
+      }
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }
 
-    await super.postUpdate(cardTypeContent, key, value);
+    if (op) {
+      await super.postUpdate(cardTypeContent, key, cardTypeContent);
+    } else {
+      await super.postUpdate(cardTypeContent, key, value);
+    }
 
     // After this resource has been updated, update the dependents.
-    if (rename) {
+    if (nameChange) {
       await this.updateLinkTypes(existingName);
+      await super.updateHandleBars(existingName, this.content.name);
+      await super.updateCalculations(existingName, this.content.name);
+      return;
     }
+
+    // If custom fields change, cards need to be updated.
+    // Rename change changes key names in cards. (done)
+    // Deletion removes keys and values in cards. (todo)
+    // Addition adds key with default values in cards. (todo)
+    // Data type change indicates which cards need to be manually changed. (todo)
+
+    if (fieldsChange) {
+      const cardContent = {
+        metadata: true,
+        content: true,
+      };
+      const projectCards = await this.project.cards(
+        this.project.paths.cardRootFolder,
+        cardContent,
+      );
+
+      if (op && op.operation === 'rename') {
+        const from = op.from!;
+        const to = op.to!;
+
+        // console.error(`There are ${projectCards.length} project cards`);
+        for (const card of projectCards) {
+          await this.updateCardMetadata(card, from, to);
+        }
+        const templates = await this.project.templates(ResourcesFrom.localOnly);
+        for (const template of templates) {
+          const templateObject = new Template(this.project, template);
+          const templateCards = await templateObject.cards('', cardContent);
+          for (const card of templateCards) {
+            // console.error(
+            //   `There are ${templateCards.length} template cards in ${template.name}`,
+            // );
+            await this.updateCardMetadata(card, from, to);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Validates the resource. If object is invalid, throws.
+   */
+  public async validate() {
+    return super.validate();
   }
 }

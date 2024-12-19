@@ -19,7 +19,7 @@ import {
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
 import { DefaultContent } from '../create-defaults.js';
-import { FileResource } from './file-resource.js';
+import { FileResource, Operation } from './file-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   ResourceName,
@@ -99,10 +99,10 @@ export class WorkflowResource extends FileResource {
    * @param value New value.
    * @throws if key is unknown.
    */
-  public async update<Type>(key: string, value: Type) {
+  public async update<Type>(key: string, value: Type, _op?: Operation) {
     const nameChange = key === 'name';
     const existingName = this.content.name;
-    await super.update(key, value);
+    await super.update(key, value, _op);
 
     const workflowContent = this.data as unknown as Workflow;
     if (key === 'name') {
@@ -120,6 +120,8 @@ export class WorkflowResource extends FileResource {
     // After this resource has been updated, update the dependents.
     if (nameChange) {
       await this.updateCardTypes(existingName);
+      await super.updateHandleBars(existingName, this.content.name);
+      await super.updateCalculations(existingName, this.content.name);
     }
   }
 

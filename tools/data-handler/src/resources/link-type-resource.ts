@@ -11,15 +11,13 @@
 */
 
 import { DefaultContent } from '../create-defaults.js';
-import { FileResource } from './file-resource.js';
+import { FileResource, Operation } from './file-resource.js';
 import { FileResources, LinkType } from '../interfaces/resource-interfaces.js';
 import { Project } from '../containers/project.js';
 import { ResourceName, resourceNameToString } from '../utils/resource-utils.js';
 
 /**
  * Link Type resource class.
- * missing func:
- * - when renamed, update all affected cards
  */
 export class LinkTypeResource extends FileResource {
   constructor(project: Project, name: ResourceName) {
@@ -31,6 +29,10 @@ export class LinkTypeResource extends FileResource {
     this.initialize();
   }
 
+  /**
+   * Creates a new link type object. Base class writes the object to disk automatically.
+   * @param newContent Content for the link type.
+   */
   public async create(newContent?: FileResources) {
     if (!newContent) {
       newContent = DefaultContent.linkTypeContent(
@@ -40,10 +42,17 @@ export class LinkTypeResource extends FileResource {
     return super.create(newContent as unknown as LinkType);
   }
 
+  /**
+   * Deletes file(s) from disk and clears out the memory resident object.
+   */
   public async delete() {
     return super.delete();
   }
 
+  /**
+   * Renames resource metadata file and renames memory resident object 'name'.
+   * @param newName New name for the resource.
+   */
   public async rename(newName: ResourceName) {
     return super.rename(newName);
   }
@@ -56,12 +65,16 @@ export class LinkTypeResource extends FileResource {
     return super.show() as unknown as LinkType;
   }
 
-  public async validate() {
-    return super.validate();
-  }
+  /**
+   * Updates link type resource.
+   * @param key Key to modify
+   * @param value New value.
+   */
+  public async update<Type>(key: string, value: Type, _op?: Operation) {
+    const nameChange = key === 'name';
+    const existingName = this.content.name;
 
-  public async update<Type>(key: string, value: Type) {
-    await super.update(key, value);
+    await super.update(key, value, _op);
     const linkTypeContent = this.content as unknown as LinkType;
     if (key === 'name') {
       linkTypeContent.name = value as string;
@@ -79,6 +92,18 @@ export class LinkTypeResource extends FileResource {
       throw new Error(`Unknown property '${key}' for FieldType`);
     }
 
-    return super.postUpdate(linkTypeContent, key, value);
+    await super.postUpdate(linkTypeContent, key, value);
+
+    if (nameChange) {
+      await super.updateHandleBars(existingName, this.content.name);
+      await super.updateCalculations(existingName, this.content.name);
+    }
+  }
+
+  /**
+   * Validates the resource. If object is invalid, throws.
+   */
+  public async validate() {
+    return super.validate();
   }
 }

@@ -12,17 +12,50 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+import { readFile, writeFile } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+
 import {
+  DataType,
   FileResources,
   FolderResources,
 } from '../interfaces/resource-interfaces.js';
-import { Project } from '../containers/project.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';
 
+export type Operation =
+  | AddOperation
+  | ItemTypeChange
+  | RemoveOperation
+  | RenameOperation;
+
+interface ArrayOperation {
+  operation: string; // 'rename', 'delete', 'add', 'itemTypeChange'
+  from?: string;
+  to?: string;
+  target?: string;
+}
+
+interface AddOperation extends ArrayOperation {
+  data: JSON;
+}
+
+interface ItemTypeChange extends ArrayOperation {
+  toType: DataType;
+}
+
+interface RemoveOperation extends ArrayOperation {
+  target: string;
+}
+
+interface RenameOperation extends ArrayOperation {
+  from: string;
+  to: string;
+}
+
 /**
  * Abstract class for resources.
- *
  */
 export abstract class AbstractResource {
   protected abstract calculate(): Promise<void>; // update resource specific calculations
@@ -33,7 +66,11 @@ export abstract class AbstractResource {
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
   protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
   protected abstract show(): Promise<FileResources | FolderResources>; // return the content as JSON
-  protected abstract update<Type>(key: string, value: Type): Promise<void>; // change one key of resource
+  protected abstract update<Type>(
+    key: string,
+    value: Type,
+    operation?: Operation,
+  ): Promise<void>; // change one key of resource
   protected abstract validate(): Promise<void>; // validate the content
   protected abstract write(): Promise<void>; // write content to disk
 }
@@ -64,7 +101,7 @@ export class ResourceObject extends AbstractResource {
   protected async show(): Promise<FileResources | FolderResources> {
     return {} as FileResources;
   }
-  protected async update<Type>(_key: string, _value: Type) {}
+  protected async update<Type>(_key: string, _value: Type, _op?: Operation) {}
   protected async validate() {}
   protected async write() {}
 
@@ -80,10 +117,10 @@ export class ResourceObject extends AbstractResource {
 
   /**
    * Returns .schema content file.
-   * @param schemaId
-   * @returns
+   * @param schemaId schema id
+   * @returns .schema content.
    */
-  public contentSchemaContent(schemaId: string): JSON {
+  protected contentSchemaContent(schemaId: string): JSON {
     return [
       {
         id: schemaId,
@@ -92,10 +129,44 @@ export class ResourceObject extends AbstractResource {
     ] as unknown as JSON;
   }
 
+  // Update references in handlebars
+  // todo: this is 95% same as in 'rename.ts'. Combine and share?
+  protected async updateHandleBars(from: string, to: string) {
+    const handleBarFiles = await this.project.reportHandlerBarFiles(
+      ResourcesFrom.localOnly,
+    );
+    const fromRe = new RegExp(`${from}`, 'g');
+    for (const handleBarFile of handleBarFiles) {
+      let content = (await readFile(handleBarFile)).toString();
+      content = content.replace(fromRe, `${to}`);
+      await writeFile(handleBarFile, content);
+    }
+  }
+
+  // Update calculation files.
+  protected async updateCalculations(from: string, to: string) {
+    const calculations = await this.project.calculations(
+      ResourcesFrom.localOnly,
+    );
+    for (const calculation of calculations) {
+      if (!calculation.path) {
+        throw new Error(
+          `Calculation file's '${calculation.name}' path is not defined`,
+        );
+      }
+      const filename = join(calculation.path, basename(calculation.name));
+      let content = (await readFile(filename)).toString();
+      const fromRe = new RegExp(from, 'g');
+      content = content.replace(fromRe, to);
+      await writeFile(filename, content);
+    }
+  }
+
   /**
    * Converts plural type name to singular
    * @type Type name to change.
    * @returns singular format of type name
+   * @todo - this could be in some util class?
    */
   public singularType(type: string): ResourceFolderType {
     // note that this only works with certain nouns

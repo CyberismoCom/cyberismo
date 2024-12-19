@@ -12,14 +12,13 @@
 
 import {
   CardType,
-  CustomField,
   DataType,
   EnumDefinition,
   FieldType,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
 import { DefaultContent } from '../create-defaults.js';
-import { FileResource } from './file-resource.js';
+import { FileResource, Operation } from './file-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   ResourceName,
@@ -42,8 +41,13 @@ export class FieldTypeResource extends FileResource {
   }
 
   // Update dependant card types
-  private async updateLinkTypes(oldName: string) {
+  private async updateCardTypes(oldName: string) {
     const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
+    const operation: Operation = {
+      operation: 'rename',
+      from: oldName,
+      to: this.content.name,
+    };
     for (const cardType of cardTypes) {
       const object = new CardTypeResource(
         this.project,
@@ -52,37 +56,13 @@ export class FieldTypeResource extends FileResource {
       const data = object.data as CardType;
       const found = data.customFields.find((item) => item.name === oldName);
       if (found) {
-        const cloneArray = (
-          Object.assign([], data.customFields) as CustomField[]
-        ).map((item) => {
-          if (item && item.name === oldName) {
-            item.name = this.content.name;
-          }
-          return item;
-        });
-        await object.update('customFields', cloneArray);
-      }
-      if (data.alwaysVisibleFields?.includes(oldName)) {
-        const clonedArray = super.updateArray(
-          data.alwaysVisibleFields,
-          oldName,
-          this.content.name,
-        );
-        await object.update('alwaysVisibleFields', clonedArray);
-      }
-      if (data.optionallyVisibleFields?.includes(oldName)) {
-        const clonedArray = super.updateArray(
-          data.optionallyVisibleFields,
-          oldName,
-          this.content.name,
-        );
-        await object.update('optionallyVisibleFields', clonedArray);
+        await object.update('customFields', [], operation);
       }
     }
   }
 
   /**
-   *
+   * Returns all possible field types.
    * @returns
    */
   public static fieldTypes(): string[] {
@@ -100,6 +80,10 @@ export class FieldTypeResource extends FileResource {
     ];
   }
 
+  /**
+   * Creates a new field type object. Base class writes the object to disk automatically.
+   * @param dataType Type for the new field type.
+   */
   public async createFieldType(dataType: string) {
     if (!FieldTypeResource.fieldTypes().includes(dataType)) {
       throw new Error(
@@ -115,14 +99,21 @@ export class FieldTypeResource extends FileResource {
     return super.create(content);
   }
 
+  /**
+   * Deletes file(s) from disk and clears out the memory resident object.
+   */
   public async delete() {
     return super.delete();
   }
 
+  /**
+   * Renames resource metadata file and renames memory resident object 'name'.
+   * @param newName New name for the resource.
+   */
   public async rename(newName: ResourceName) {
     const oldName = this.content.name;
     await super.rename(newName);
-    return this.updateLinkTypes(oldName);
+    return this.updateCardTypes(oldName);
   }
 
   /**
@@ -133,19 +124,16 @@ export class FieldTypeResource extends FileResource {
     return super.show() as unknown as FieldType;
   }
 
-  public async validate() {
-    return super.validate();
-  }
-
   /**
    * Updates field type resource.
    * @param key Key to modify
    * @param value New value.
    */
-  public async update<Type>(key: string, value: Type) {
-    const rename = key === 'name';
+  public async update<Type>(key: string, value: Type, _op?: Operation) {
+    const nameChange = key === 'name';
     const existingName = this.content.name;
-    await super.update(key, value);
+    await super.update(key, value, _op);
+
     const fieldTypeContent = this.content as unknown as FieldType;
     if (key === 'name') {
       fieldTypeContent.name = value as string;
@@ -164,8 +152,17 @@ export class FieldTypeResource extends FileResource {
     await super.postUpdate(fieldTypeContent, key, value);
 
     // After this resource has been updated, update the dependents.
-    if (rename) {
-      await this.updateLinkTypes(existingName);
+    if (nameChange) {
+      await this.updateCardTypes(existingName);
+      await super.updateHandleBars(existingName, this.content.name);
+      await super.updateCalculations(existingName, this.content.name);
     }
+  }
+
+  /**
+   * Validates the resource. If object is invalid, throws.
+   */
+  public async validate() {
+    return super.validate();
   }
 }

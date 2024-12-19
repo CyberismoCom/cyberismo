@@ -22,7 +22,7 @@ import { TemplateMetadata } from '../interfaces/resource-interfaces.js';
 import { Validate } from '../validate.js';
 
 /**
- *
+ * Represents a template resource.
  */
 export class TemplateResource extends FolderResource {
   constructor(project: Project, name: ResourceName) {

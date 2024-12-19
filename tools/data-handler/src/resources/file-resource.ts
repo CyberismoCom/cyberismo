@@ -10,6 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 // node
 import { basename, join } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
@@ -32,9 +34,11 @@ import {
   resourceNameToString,
   resourceObjectToResource,
 } from '../utils/resource-utils.js';
-import { ResourceObject } from './resource-object.js';
+import { Operation, ResourceObject } from './resource-object.js';
 import { ResourceTypes } from '../interfaces/project-interfaces.js';
 import { Validate } from '../validate.js';
+
+export { type Operation };
 
 /**
  * Base class for file based resources (card types, field types, link types, workflows, ...)
@@ -152,7 +156,7 @@ export class FileResource extends ResourceObject {
       }
     }
 
-    this.content = content;
+    this.content = content; //todo: this is probably not needed, or validation at least uses the this.content
     await this.write();
   }
 
@@ -206,7 +210,11 @@ export class FileResource extends ResourceObject {
   }
 
   // Update resource; the base class makes some checks only.
-  protected async update<Type>(key: string, value: Type): Promise<void> {
+  protected async update<Type>(
+    key: string,
+    value: Type,
+    _op?: Operation,
+  ): Promise<void> {
     const content = this.data;
     if (!content) {
       throw new Error(`Resource '${this.fileName}' does not exist`);
