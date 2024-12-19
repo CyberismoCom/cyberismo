@@ -68,9 +68,10 @@ import LoadingGate from '@/app/components/LoadingGate';
 import { openAttachment } from '@/app/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
-import { expandLinkTypes, useModals } from '@/app/lib/utils';
+import { deepCopy, expandLinkTypes, useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
 import { parseContent } from '@/app/lib/api/actions/card';
+import { CardResponse } from '@/app/lib/api/types';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -314,12 +315,21 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const previewCard = card
     ? {
         ...card,
-        ...metadata,
         title: __title__ ?? card.title,
         rawContent: getContent() ?? card.rawContent,
         parsedContent: parsed,
+        fields: deepCopy(card.fields) ?? [],
       }
     : null;
+
+  if (previewCard) {
+    for (const [key, value] of Object.entries(metadata)) {
+      const field = previewCard.fields.find((card) => card.key === key);
+      if (field) {
+        field.value = value;
+      }
+    }
+  }
 
   useEffect(() => {
     if (!card || Object.keys(preview).length === 0) {
@@ -437,15 +447,32 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
       const { __title__, ...metadata } = data;
-      const update: Record<string, MetadataValue> = metadata;
+      const update: {
+        content?: string;
+        metadata: Record<string, MetadataValue>;
+      } = {
+        metadata: {},
+      };
 
-      await updateCard({
-        content: getContent(),
-        metadata: {
-          ...update,
-          title: __title__,
-        },
-      });
+      for (const key of Object.keys(metadata)) {
+        if (
+          metadata[key] !==
+          card?.fields?.find((field) => field.key === key)?.value
+        ) {
+          update.metadata[key] = metadata[key];
+        }
+      }
+      if (__title__ !== card.title) {
+        update.metadata.title = __title__;
+      }
+
+      const content = getContent();
+
+      if (content !== card.rawContent) {
+        update.content = content;
+      }
+
+      await updateCard(update);
       dispatch(
         addNotification({
           message: t('saveCard.success'),
@@ -664,7 +691,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
               >
                 <Box height="100%">
                   <LoadingGate
-                    values={[linkTypes, previewCard.parsedContent || null]}
+                    values={[linkTypes, previewCard.parsedContent ?? null]}
                   >
                     <ContentArea
                       card={previewCard}

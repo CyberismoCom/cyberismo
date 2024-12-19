@@ -13,7 +13,6 @@ const encodingTests = [
 const fieldTypeTests = [
   ['shortText', 'test', 'test'],
   ['longText', 'test2', 'test2'],
-  ['enum', 'test3', 'test3'],
   ['person', 'test3@cyberismo.com', 'test3@cyberismo.com'],
   ['date', new Date(100).toISOString(), new Date(100).toISOString()],
   ['dateTime', new Date(100).toISOString(), new Date(100).toISOString()],
@@ -21,7 +20,6 @@ const fieldTypeTests = [
   ['integer', '3242', 3242],
   ['boolean', 'true', true],
   ['boolean', 'false', false],
-  ['list', 'test,test2,test3', ['test', 'test2', 'test3']],
 ] as const;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -92,6 +90,23 @@ describe('ClingoParser', () => {
       index: 1,
       displayValue: 'displayName',
     });
+  });
+
+  it('should parse enumField correctly', async () => {
+    const input = `result("key1")\nlistField("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "1", "displayName")\nlistField("key1", "fieldName", "${encodeClingoValue('fieldValue2')}", "2", "displayName2")`;
+    const result = await parser.parseInput(input);
+    expect(result.results[0].fieldName).to.deep.equal([
+      {
+        value: 'fieldValue',
+        index: 1,
+        displayValue: 'displayName',
+      },
+      {
+        value: 'fieldValue2',
+        index: 2,
+        displayValue: 'displayName2',
+      },
+    ]);
   });
 
   it('should parse field correctly', async () => {

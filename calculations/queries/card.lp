@@ -62,8 +62,6 @@ field(Field, "isEditable", "true") :-
 % add value
 dataType(Field, "value", DataType) :-
     childResult(_, Field, "fields"),
-    DataType != "enum",
-    DataType != "list",
     field({{cardKey}}, Field, Value),
     dataType({{cardKey}}, Field, DataType).
 

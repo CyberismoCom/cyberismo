@@ -23,6 +23,7 @@ import {
 import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
 import { CardResponse } from '../lib/api/types';
+import { getDefaultValue } from '../lib/utils';
 
 interface FieldItemProps {
   expanded?: boolean;
@@ -35,6 +36,8 @@ interface FieldItemProps {
     onChange: (arg0: MetadataValue) => void,
     dataType: DataType,
   ) => void;
+  disabled?: boolean;
+  description?: string;
 }
 
 function FieldItem({
@@ -43,6 +46,8 @@ function FieldItem({
   name,
   defaultValue,
   editableFieldProps,
+  disabled,
+  description,
   handleChange,
 }: FieldItemProps) {
   return (
@@ -57,6 +62,8 @@ function FieldItem({
               return (
                 <EditableField
                   value={value}
+                  disabled={disabled}
+                  description={description}
                   onChange={(e) => {
                     if (handleChange)
                       handleChange(e, onChange, editableFieldProps.dataType);
@@ -108,7 +115,7 @@ function MetadataView({
           onChange(value === 'true' ? true : value === 'false' ? false : null);
           break;
         case 'list':
-          onChange(value ? value.split(',').map((v) => v.trim()) : []);
+          onChange(Array.isArray(value) ? value : []);
           break;
         case 'shortText':
         case 'longText':
@@ -136,9 +143,7 @@ function MetadataView({
       flexDirection="row"
       display="flex"
       sx={{
-        cursor: editMode
-          ? 'default'
-          : 'url("/static/images/cursor_pen_32x32.png") 16 32, default',
+        cursor: editMode ? 'default' : 'pointer',
       }}
       onClick={onClick}
     >
@@ -169,6 +174,7 @@ function MetadataView({
             dataType,
             enumValues,
             fieldDisplayName,
+            fieldDescription,
             visibility,
             isEditable,
             value,
@@ -177,9 +183,13 @@ function MetadataView({
               key={key}
               name={key}
               handleChange={handleChange}
-              defaultValue={value as MetadataValue}
+              defaultValue={getDefaultValue(value)}
               expanded={visibility === 'always' || expanded}
+              disabled={card.deniedOperations.editField
+                .map((field) => field.fieldName)
+                .includes(key)}
               control={context.control}
+              description={fieldDescription}
               editableFieldProps={{
                 dataType,
                 label: fieldDisplayName || key,

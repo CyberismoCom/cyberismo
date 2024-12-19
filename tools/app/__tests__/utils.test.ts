@@ -6,6 +6,7 @@ import {
   findPathTo,
   findWorkflowForCardType,
   flattenTree,
+  getDefaultValue,
   getMoveableCards,
 } from '@/app/lib/utils';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
@@ -80,10 +81,27 @@ test('countChildren returns correct count', async () => {
 
 test('getMovableCards returns correct cards', async () => {
   const result = getMoveableCards(treeQueryResult, 'usdl_45');
-  console.log(result);
   expect(result.length).toBe(9);
   expect(result.find((card) => card.key === 'usdl_45')).toBeUndefined();
   expect(result.find((card) => card.key === 'usdl_44')).toBeUndefined();
+});
+
+test('getDefaultValue returns a string for enums', () => {
+  const result = getDefaultValue({
+    value: 'test',
+  });
+  expect(result).toBe('test');
+});
+test('getDefaultValue returns a null for null', () => {
+  const result = getDefaultValue(null);
+  expect(result).toBe(null);
+});
+
+['3', 3, true].forEach((value) => {
+  test(`getDefaultValue returns the original value for ${value}`, () => {
+    const result = getDefaultValue(value);
+    expect(result).toBe(value);
+  });
 });
 
 const testProject: Project = {
