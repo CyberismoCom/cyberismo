@@ -14,7 +14,6 @@
  * Types for query result
  */
 
-import { MetadataContent } from '../interfaces/project-interfaces.js';
 import {
   DataType,
   WorkflowCategory,
