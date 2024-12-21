@@ -30,6 +30,7 @@ describe('export-site', () => {
     rmSync(testDir, { recursive: true, force: true });
     rmSync(testDirForExport, { recursive: true, force: true });
   });
+
   it('export site (success)', async () => {
     const exportSite = new ExportSite(
       commands.project,
@@ -40,6 +41,24 @@ describe('export-site', () => {
       silent: true,
     });
     expect(true).to.equal(true);
+  }).timeout(20000);
+
+  it('export site (invalid theme path)', async () => {
+    const exportSite = new ExportSite(
+      commands.project,
+      commands.calculateCmd,
+      commands.showCmd,
+    );
+    try {
+      await exportSite.exportToSite('/tmp/foo', undefined, {
+        themePath: '/tmp/i-do-not-exist',
+      });
+      // If we get here, the test failed
+      expect(true).to.equal(false);
+    } catch (err) {
+      // Check that the error is what we expect
+      expect(err).to.be.an.instanceof(Error);
+    }
   }).timeout(20000);
 });
 

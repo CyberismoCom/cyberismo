@@ -14,8 +14,9 @@
     "preinstall": "npx only-allow pnpm",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
-    "lint": "eslint .",
-    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\""
+    "lint": "pnpm dlx eslint .",
+    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
+    "watch": "tsc --watch -p tsconfig.build.json"
   },
   "keywords": [],
   "author": "",
