@@ -71,7 +71,6 @@ import AsciiDoctor from '@asciidoctor/core';
 import { deepCopy, expandLinkTypes, useModals } from '@/app/lib/utils';
 import { AddAttachmentModal } from '@/app/components/modals';
 import { parseContent } from '@/app/lib/api/actions/card';
-import { CardResponse } from '@/app/lib/api/types';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -446,7 +445,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   const handleSave = async (data: Record<string, MetadataValue>) => {
     try {
-      const { __title__, ...metadata } = data;
+      const { __title__, __labels__, ...metadata } = data;
       const update: {
         content?: string;
         metadata: Record<string, MetadataValue>;
@@ -470,6 +469,10 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
       if (content !== card.rawContent) {
         update.content = content;
+      }
+
+      if (JSON.stringify(card.labels) !== JSON.stringify(__labels__)) {
+        update.metadata.labels = __labels__;
       }
 
       await updateCard(update);

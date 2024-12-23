@@ -153,7 +153,7 @@ describe('shows command', () => {
       );
       expect(result.payload).to.deep.equal([
         'test',
-        'test2',
+        'test-two',
         'template-test-label',
       ]);
     });

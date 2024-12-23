@@ -56,6 +56,7 @@ export class Export {
       content += `|Card key|${card.key}\n`;
       content += `|Status|${card.metadata.workflowState}\n`;
       content += `|Card type|${card.metadata.cardType}\n`;
+      content += `|Labels|${card.metadata.labels?.join(', ') || ''}`;
 
       for (const [key, value] of Object.entries(card.metadata)) {
         if (

@@ -1192,7 +1192,13 @@ export class Project extends CardContainer {
       this,
       card,
     );
-    if (invalidCustomData.length === 0 && invalidWorkFlow.length === 0) {
+
+    const invalidLabels = await this.validator.validateCardLabels(card);
+    if (
+      invalidCustomData.length === 0 &&
+      invalidWorkFlow.length === 0 &&
+      invalidLabels.length === 0
+    ) {
       return '';
     }
     const errors: string[] = [];
@@ -1201,6 +1207,9 @@ export class Project extends CardContainer {
     }
     if (invalidWorkFlow.length > 0) {
       errors.push(invalidWorkFlow);
+    }
+    if (invalidLabels.length > 0) {
+      errors.push(invalidLabels);
     }
     return errors.join('\n');
   }

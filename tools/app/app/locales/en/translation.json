@@ -46,6 +46,7 @@
   "delete": "Delete",
   "cardKey": "Card key",
   "cardType": "Card type",
+  "labels": "Labels",
   "value": "Value",
   "name": "Name",
   "title": "Title",
@@ -120,6 +121,7 @@
     "longText": "Enter text",
     "boolean": "Select",
     "person": "firstname.lastname@example.com",
-    "list": "Select"
+    "list": "Select",
+    "label": "Add label"
   }
 }

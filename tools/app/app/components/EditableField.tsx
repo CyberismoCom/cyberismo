@@ -10,18 +10,18 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Stack, Tooltip, Typography } from '@mui/joy';
+import { Box, Chip, Stack, Tooltip, Typography } from '@mui/joy';
 import React from 'react';
 import { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 import { EnumDefinition } from '@cyberismocom/data-handler/types/queries';
-import { Description, InfoOutlined } from '@mui/icons-material';
+import { InfoOutlined } from '@mui/icons-material';
 
 export type EditableFieldProps = {
   value: MetadataValue;
-  dataType: DataType;
+  dataType: DataType | 'label';
   description?: string;
   label: string;
   onChange?: (value: string | string[] | null) => void;
@@ -66,6 +66,22 @@ const EditableField = ({
           enumValues={enumValues}
           disabled={disabled}
         />
+      ) : dataType === 'label' ? (
+        <Box>
+          {(value as string[] | null)?.map((label) => (
+            <Chip
+              key={label}
+              variant="soft"
+              color="primary"
+              sx={{
+                marginX: 0.2,
+                marginBottom: 0.4,
+              }}
+            >
+              {label}
+            </Chip>
+          ))}
+        </Box>
       ) : (
         <Typography
           level="body-sm"
