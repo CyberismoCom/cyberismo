@@ -109,6 +109,13 @@ export class ArrayHandler<T> {
     return array.filter((_, i) => i !== index);
   }
 
+  /**
+   * Handles operation to an array.
+   * @param operation Operation to perform on array.
+   * @param arrayName Name of the array, for error messages.
+   * @param array Array to operate on.
+   * @returns Changed array after the operation.
+   */
   public handleArray(
     operation: Operation<T>,
     arrayName: string,

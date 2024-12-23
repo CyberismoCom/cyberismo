@@ -245,15 +245,14 @@ export class CardTypeResource extends FileResource {
     } else if (key === 'workflow') {
       content.workflow = super.handleScalar(op) as string;
     } else if (key === 'customFields') {
+      content.customFields = super.handleArray(
+        op,
+        key,
+        content.customFields as Type[],
+      ) as CustomField[];
       if (op.name === 'change') {
         const from = (op as RenameOperation<string>).from;
         const to = (op as RenameOperation<string>).to;
-        content.customFields = content.customFields.map((item) => {
-          if (item.name === from) {
-            item.name = to;
-          }
-          return item;
-        });
         // Changed item can be in two other arrays.
         content.optionallyVisibleFields = content.optionallyVisibleFields?.map(
           (item) => (item === from ? to : item),
@@ -261,22 +260,6 @@ export class CardTypeResource extends FileResource {
         content.alwaysVisibleFields = content.alwaysVisibleFields?.map(
           (item) => (item === from ? to : item),
         );
-      } else if (op.name === 'add') {
-        const newItem = (op as AddOperation<Type>).item as CustomField;
-        const found = content.customFields.find(
-          (item) => item.name === newItem.name,
-        );
-        if (!found) {
-          content.customFields.push(newItem);
-        }
-      } else if (op.name === 'remove') {
-        const newItem = (op as RemoveOperation<Type>).item as CustomField;
-        const index = content.customFields.findIndex(
-          (item) => item.name === newItem.name,
-        );
-        if (index > -1) {
-          content.customFields.splice(index, 1);
-        }
       }
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);

@@ -18,7 +18,7 @@ import {
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
 import { DefaultContent } from '../create-defaults.js';
-import { FileResource, Operation } from './file-resource.js';
+import { FileResource, Operation, RenameOperation } from './file-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   ResourceName,
@@ -144,13 +144,35 @@ export class FieldTypeResource extends FileResource {
    */
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';
+    const typeChange = key === 'dataType';
     const existingName = this.content.name;
+    const existingType = (this.content as FieldType).dataType;
     await super.update(key, op);
 
     const content = this.content as FieldType;
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'dataType') {
+      const toType = op as RenameOperation<string>;
+      if (!FieldTypeResource.fieldTypes().includes(toType.to)) {
+        throw new Error(
+          `Cannot change '${key}' to unknown type '${toType.to}'`,
+        );
+      }
+      if (existingType === content.dataType) {
+        throw new Error(`'${key}' is already '${toType.to}'`);
+      }
+      // @todo: handle supported datatype changes:
+      // shortText/longText --> person (if valid email)
+      // shortText/longText --> integer/number (if can be parseNumber/parseInt'd)
+      // shortText/longText --> list, if text can be split with comma (we could potentially bring the separator character as additional detail)
+      // shortText/longText --> date / datetime (if it can be parsed as date)
+      // shortText/longText --> boolean ?  if string is "false" or "true"
+      // number --> integer (drop fractions)
+      // integer --> number
+      // any --> shortText (unless too long)
+      // any --> longText
+      // other cases are verboten
       content.dataType = super.handleScalar(op) as DataType;
     } else if (key === 'displayName') {
       content.displayName = super.handleScalar(op) as string;
@@ -172,6 +194,10 @@ export class FieldTypeResource extends FileResource {
     // After this resource has been updated, update the dependents.
     if (nameChange) {
       await this.doHandleNameChange(existingName);
+    }
+    if (typeChange) {
+      // @todo: fetch all cardTypes that use this FT, then fetch all cards that use those CTs and update ALL the values.
+      console.error('all affected card types cards should be updated');
     }
   }
 

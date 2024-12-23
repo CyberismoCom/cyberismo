@@ -31,7 +31,6 @@ import { LinkTypeResource } from '../src/resources/link-type-resource.js';
 // } from '../src/interfaces/resource-interfaces.js';
 
 // todo: add to its own test file
-import { updateArray } from '../src/utils/common-utils.js';
 import { RenameOperation } from '../src/resources/resource-object.js';
 
 describe('resource-collector', () => {
@@ -376,17 +375,6 @@ describe('resource-collector', () => {
         expect(expectedTypes[index]).to.equal(singular);
         ++index;
       }
-    });
-
-    it('replace value in array', async () => {
-      const originalArray = ['apples', 'oranges', 'pineapples'];
-      // const wf = new WorkflowResource(
-      //   project,
-      //   resourceName('decision/workflows/decision'),
-      // );
-      const newArray = updateArray(originalArray, 'oranges', 'mangos');
-      expect(newArray).to.include('mangos');
-      expect(newArray).not.to.include('oranges');
     });
   });
   describe('resource basic operations', () => {

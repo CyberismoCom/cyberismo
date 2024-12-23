@@ -24,7 +24,6 @@ import {
 import { Project, ResourcesFrom } from '../containers/project.js';
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';
-import { updateArray } from '../utils/common-utils.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -125,6 +124,22 @@ export class ResourceObject extends AbstractResource {
   }
 
   /**
+   * Handles operation to an array.
+   * @param operation Operation to perform on array.
+   * @param arrayName Name of the array, for error messages.
+   * @param array
+   * @returns Changed array after the operation.
+   */
+  protected handleArray<Type>(
+    operation: Operation<Type>,
+    arrayName: string,
+    array: Type[],
+  ): Type[] {
+    const handler = new ArrayHandler<Type>();
+    return handler.handleArray(operation, arrayName, array);
+  }
+
+  /**
    * Updates scalar value. The only accepted operation is 'change'
    * @param operation Operation to perform on scalar.
    * @returns What the scalar should be changed to.
@@ -141,22 +156,6 @@ export class ResourceObject extends AbstractResource {
       );
     }
     return actualOp.to;
-  }
-
-  /**
-   * Handles operation to an array.
-   * @param operation Operation to perform on array.
-   * @param arrayName Name of the array, for error messages.
-   * @param array
-   * @returns What the array should be changed to.
-   */
-  protected handleArray<Type>(
-    operation: Operation<Type>,
-    arrayName: string,
-    array: Type[],
-  ): Type[] {
-    const handler = new ArrayHandler<Type>();
-    return handler.handleArray(operation, arrayName, array);
   }
 
   /**
