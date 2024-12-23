@@ -25,6 +25,10 @@ import {
   WorkflowCategory,
 } from '@cyberismocom/data-handler/interfaces/resource-interfaces';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import { CardResponse } from './api/types';
+
+// Gets type of a child of an array
+type ItemType<T> = T extends (infer U)[] ? U : never;
 
 /**
  * Flattens the Card tree into a single array of Cards
@@ -178,7 +182,15 @@ export function metadataValueToString(
   if (metadata instanceof Date) {
     return metadata.toISOString();
   } else if (metadata instanceof Array) {
-    return metadata.join(', ');
+    return metadata
+      .map(
+        (value) =>
+          enumValues?.find((enumValue) => enumValue.enumValue === value)
+            ?.enumDisplayValue ??
+          value?.toString() ??
+          '',
+      )
+      .join(', ');
   } else if (dataType === 'enum') {
     return (
       enumValues?.find((enumValue) => enumValue.enumValue === metadata)
@@ -187,10 +199,33 @@ export function metadataValueToString(
       ''
     );
   } else if (dataType === 'boolean') {
+    if (metadata == null) {
+      return '';
+    }
     return metadata ? t('yes') : t('no');
   } else {
-    return metadata ? metadata.toString() : '';
+    return metadata ? metadata.toLocaleString() : '';
   }
+}
+
+/**
+ * Converts the card response value to a metadata value
+ * @param value the value of the field in the card query
+ * @returns a metadata value, which can be used in forms
+ */
+export function getDefaultValue(
+  value: ItemType<CardResponse['fields']>['value'],
+): MetadataValue {
+  if (typeof value !== 'object') {
+    return value;
+  }
+  if (value == null) {
+    return null;
+  }
+  if (Array.isArray(value)) {
+    return value.map((listValue) => listValue.value);
+  }
+  return value.value;
 }
 /**
  * Finds a card in a tree of cards

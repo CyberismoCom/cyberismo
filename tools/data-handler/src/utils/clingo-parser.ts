@@ -117,7 +117,7 @@ class ClingoParser {
       key: string,
       fieldName: string,
       fieldValue: string,
-      index: number,
+      index: string,
       displayValue: string,
     ) => {
       const res = this.getOrInitResult(key);
@@ -125,9 +125,10 @@ class ClingoParser {
       if (!res[fieldName] || !Array.isArray(res[fieldName])) {
         res[fieldName] = [];
       }
+      const parsedIndex = parseInt(index, 10);
       (res[fieldName] as unknown[]).push({
         value: decoded,
-        index,
+        index: parsedIndex,
         displayValue,
       });
     },
@@ -145,7 +146,6 @@ class ClingoParser {
         case 'person':
         case 'date':
         case 'dateTime':
-        case 'enum':
           res[fieldName] = decoded;
           break;
         case 'number':
@@ -156,9 +156,6 @@ class ClingoParser {
           break;
         case 'boolean':
           res[fieldName] = fieldValue === 'true';
-          break;
-        case 'list':
-          res[fieldName] = decoded.split(',');
           break;
       }
     },
