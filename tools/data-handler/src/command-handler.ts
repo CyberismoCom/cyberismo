@@ -36,6 +36,7 @@ import { requestStatus } from './interfaces/request-status-interfaces.js';
 
 import { Create } from './create.js';
 import { CommandManager } from './command-manager.js';
+import { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
 import { Validate } from './validate.js';
 
@@ -45,8 +46,8 @@ import { errorFunction } from './utils/log-utils.js';
 // Generic options interface
 export interface CardsOptions {
   details?: boolean;
-  format?: string;
-  output?: string;
+  format?: string; // todo: not used anymore?
+  output?: string; // todo: not used anymore?
   projectPath?: string;
   repeat?: number;
 }
@@ -67,6 +68,7 @@ export enum Cmd {
   show = 'show',
   start = 'start',
   transition = 'transition',
+  update = 'update',
   validate = 'validate',
 }
 
@@ -304,6 +306,15 @@ export class Commands {
         await this.commands?.transitionCmd.cardTransition(cardKey, {
           name: state,
         });
+      } else if (command === Cmd.update) {
+        const [resource, operation, key, value, newValue] = args;
+        await this.commands?.updateCmd.updateValue(
+          resource,
+          operation as UpdateOperations,
+          key,
+          value,
+          newValue,
+        );
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -595,22 +606,19 @@ export class Commands {
         promise = this.commands!.showCmd.showCards();
         break;
       case 'cardType':
-        promise = this.commands!.showCmd.showCardTypeDetails(detail);
+      case 'fieldType':
+      case 'linkType':
+      case 'workflow':
+        promise = this.commands!.showCmd.showResource(detail);
         break;
       case 'cardTypes':
         promise = this.commands!.showCmd.showCardTypes();
-        break;
-      case 'fieldType':
-        promise = this.commands!.showCmd.showFieldType(detail);
         break;
       case 'fieldTypes':
         promise = this.commands!.showCmd.showFieldTypes();
         break;
       case 'labels':
         promise = this.commands!.showCmd.showLabels();
-        break;
-      case 'linkType':
-        promise = this.commands!.showCmd.showLinkType(detail);
         break;
       case 'linkTypes':
         promise = this.commands!.showCmd.showLinkTypes();
@@ -629,9 +637,6 @@ export class Commands {
         break;
       case 'templates':
         promise = this.commands!.showCmd.showTemplates();
-        break;
-      case 'workflow':
-        promise = this.commands!.showCmd.showWorkflow(detail);
         break;
       case 'workflows':
         promise = this.commands!.showCmd.showWorkflows();

@@ -19,6 +19,7 @@ import {
   ShowTypes,
 } from './command-handler.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
+import { UpdateOperations } from './resources/resource-object.js';
 
 export {
   CardsOptions,
@@ -26,6 +27,7 @@ export {
   CommandManager,
   Commands,
   ExportFormats,
+  UpdateOperations,
   requestStatus,
   ShowTypes,
 };

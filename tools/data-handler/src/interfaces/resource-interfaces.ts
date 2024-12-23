@@ -58,13 +58,16 @@ export interface EnumDefinition {
   enumDescription: string;
 }
 
-// FieldType content.
+// Field type content.
 export interface FieldType extends ResourceBaseMetadata {
   displayName?: string;
   fieldDescription?: string;
   dataType: DataType;
   enumValues?: Array<EnumDefinition>;
 }
+
+// File-based resources metadata content.
+export type ResourceContent = CardType | FieldType | LinkType | Workflow;
 
 // Link content.
 export interface Link {
@@ -98,7 +101,7 @@ export interface ReportMetadata {
 }
 
 // Base interface for all resources.
-interface ResourceBaseMetadata {
+export interface ResourceBaseMetadata {
   name: string;
 }
 

@@ -39,7 +39,7 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
-import { resourceNameParts } from '../utils/resource-utils.js';
+import { resourceName } from '../utils/resource-utils.js';
 
 // Simple mapping table for card instantiation
 interface mappingValue {
@@ -329,7 +329,7 @@ export class Template extends CardContainer {
 
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
-    const { prefix, identifier } = resourceNameParts(templateName);
+    const { prefix, identifier } = resourceName(templateName);
     const localTemplate = join(this.project.paths.templatesFolder, identifier);
 
     // Template can either be local ...
