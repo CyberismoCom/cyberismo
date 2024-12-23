@@ -65,8 +65,8 @@ export default function FieldEditor({
           placeholder={t('placeholder.boolean')}
         >
           <Option value="">{t('none')}</Option>
-          <Option value="true">{t('true')}</Option>
-          <Option value="false">{t('false')}</Option>
+          <Option value="true">{t('yes')}</Option>
+          <Option value="false">{t('no')}</Option>
         </Select>
       );
     case 'enum':

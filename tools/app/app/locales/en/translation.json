@@ -113,13 +113,13 @@
     "title": "Policy checks"
   },
   "placeholder": {
-    "integer": "Enter number(integer)",
-    "number": "Enter number(decimal)",
+    "integer": "Enter number (integer)",
+    "number": "Enter number (decimal)",
     "enum": "Select",
     "shortText": "Enter text",
     "longText": "Enter text",
     "boolean": "Select",
-    "person": "firstname.lastname@email.com",
+    "person": "firstname.lastname@example.com",
     "list": "Select"
   }
 }

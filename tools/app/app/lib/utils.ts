@@ -199,6 +199,9 @@ export function metadataValueToString(
       ''
     );
   } else if (dataType === 'boolean') {
+    if (metadata == null) {
+      return '';
+    }
     return metadata ? t('yes') : t('no');
   } else {
     return metadata ? metadata.toLocaleString() : '';

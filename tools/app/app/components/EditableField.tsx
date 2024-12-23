@@ -42,7 +42,7 @@ const EditableField = ({
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
-    <Stack direction="row" spacing={0} alignItems="center">
+    <Stack direction="row" spacing={0} alignItems="top">
       <Typography
         level="title-sm"
         width="40%"
@@ -67,7 +67,10 @@ const EditableField = ({
           disabled={disabled}
         />
       ) : (
-        <Typography level="body-sm">
+        <Typography
+          level="body-sm"
+          whiteSpace={dataType === 'longText' ? 'pre-line' : 'normal'}
+        >
           {metadataValueToString(value, dataType, t, enumValues)}
         </Typography>
       )}
