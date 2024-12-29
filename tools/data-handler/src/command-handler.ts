@@ -38,7 +38,6 @@ import { Create } from './create.js';
 import { CommandManager } from './command-manager.js';
 import { Project } from './containers/project.js';
 import { Validate } from './validate.js';
-import { ExportOptions } from './export-site.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/log-utils.js';
@@ -52,7 +51,6 @@ export interface CardsOptions {
   repeat?: number;
   silent?: boolean;
   themePath?: string;
-  exportOptions?: ExportOptions;
 }
 
 // Commands that this class supports.
