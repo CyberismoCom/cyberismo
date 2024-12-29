@@ -38,6 +38,7 @@ import { Create } from './create.js';
 import { CommandManager } from './command-manager.js';
 import { Project } from './containers/project.js';
 import { Validate } from './validate.js';
+import { ExportOptions } from './export-site.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/log-utils.js';
@@ -49,6 +50,9 @@ export interface CardsOptions {
   output?: string;
   projectPath?: string;
   repeat?: number;
+  silent?: boolean;
+  themePath?: string;
+  exportOptions?: ExportOptions;
 }
 
 // Commands that this class supports.
@@ -253,7 +257,7 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(output, format as ExportFormats, cardKey);
+        await this.export(output, format as ExportFormats, cardKey, options);
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -462,6 +466,7 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
+    options?: CardsOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
@@ -478,9 +483,11 @@ export class Commands {
         parentCardKey,
       );
     } else if (format === 'site') {
+      console.log('export: ' + JSON.stringify(options));
       message = await this.commands?.exportSiteCmd.exportToSite(
         destination,
         parentCardKey,
+        options,
       );
     }
     return { statusCode: 200, message: message };

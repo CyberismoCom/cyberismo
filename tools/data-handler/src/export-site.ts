@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, isAbsolute } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -29,10 +29,7 @@ import { Project } from './containers/project.js';
 import { sortItems } from './utils/lexorank.js';
 import { Calculate } from './calculate.js';
 import { Show } from './show.js';
-
-interface ExportOptions {
-  silent: boolean;
-}
+import { CardsOptions } from './command-handler.js';
 
 export class ExportSite extends Export {
   private tmpDir: string = '';
@@ -42,7 +39,7 @@ export class ExportSite extends Export {
   private playbookDir: string = '';
   private playbookFile: string = '';
   private navFile: string = '';
-  private options: ExportOptions | undefined;
+  private options: CardsOptions | undefined;
 
   constructor(project: Project, calculateCmd: Calculate, showCmd: Show) {
     super(project, calculateCmd, showCmd);
@@ -103,6 +100,26 @@ export class ExportSite extends Export {
       throw new Error('Cannot create a playbook for an empty card set');
     }
 
+    let themePath;
+
+    // Use a custom theme if specified
+    if (this.options?.themePath) {
+      if (isAbsolute(this.options.themePath)) {
+        themePath = this.options.themePath;
+      } else {
+        themePath = join(process.cwd(), this.options.themePath);
+      }
+    } else {
+      // Use the default theme
+      themePath = join(
+        dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        '..',
+        'resources/ui-bundle',
+      )
+    }
+
     const playbook = {
       site: {
         title: this.project.configuration.name,
@@ -121,13 +138,7 @@ export class ExportSite extends Export {
       },
       ui: {
         bundle: {
-          url: join(
-            dirname(fileURLToPath(import.meta.url)),
-            '..',
-            '..',
-            '..',
-            'resources/ui-bundle',
-          ),
+          url: themePath,
           snapshot: true,
         },
       },
@@ -269,9 +280,10 @@ export class ExportSite extends Export {
   public async exportToSite(
     destination: string,
     cardKey?: string,
-    options?: ExportOptions,
+    options?: CardsOptions,
   ): Promise<string> {
     this.options = options;
+    console.log("exportToSite: " + JSON.stringify(options));
     const sourcePath: string = cardKey
       ? join(
           this.project.paths.cardRootFolder,
