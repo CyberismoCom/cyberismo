@@ -481,7 +481,6 @@ export class Commands {
         parentCardKey,
       );
     } else if (format === 'site') {
-      console.log('export: ' + JSON.stringify(options));
       message = await this.commands?.exportSiteCmd.exportToSite(
         destination,
         parentCardKey,

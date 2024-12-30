@@ -283,7 +283,6 @@ export class ExportSite extends Export {
     options?: CardsOptions,
   ): Promise<string> {
     this.options = options;
-    console.log('exportToSite: ' + JSON.stringify(options));
     const sourcePath: string = cardKey
       ? join(
           this.project.paths.cardRootFolder,
