@@ -251,6 +251,17 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
   return builder.buildAll();
 };
 
+function compareIndex(a: number, b: number): number {
+  if (a === -1 && b === -1) {
+    return 0;
+  } else if (a === -1) {
+    return 1;
+  } else if (b === -1) {
+    return -1;
+  }
+  return a - b;
+}
+
 export const createCardTypeFacts = (cardType: CardType) => {
   const builder = new ClingoProgramBuilder();
 
@@ -263,8 +274,19 @@ export const createCardTypeFacts = (cardType: CardType) => {
     cardType.workflow,
   );
 
+  const customFields = cardType.customFields.toSorted((a, b) => {
+    const aFirstIndex = cardType.alwaysVisibleFields.indexOf(a.name);
+    const bFirstIndex = cardType.alwaysVisibleFields.indexOf(b.name);
+
+    const aSecondIndex = cardType.optionallyVisibleFields.indexOf(a.name);
+    const bSecondIndex = cardType.optionallyVisibleFields.indexOf(b.name);
+
+    return compareIndex(aFirstIndex, bFirstIndex) === 0
+      ? compareIndex(aSecondIndex, bSecondIndex)
+      : compareIndex(aFirstIndex, bFirstIndex);
+  });
   let index = 1;
-  for (const customField of cardType.customFields) {
+  for (const customField of customFields) {
     builder.addFact(
       Facts.CardType.CUSTOM_FIELD,
       cardType.name,
