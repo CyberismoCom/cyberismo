@@ -34,7 +34,7 @@ interface FieldItemProps {
   handleChange?: (
     e: any,
     onChange: (arg0: MetadataValue) => void,
-    dataType: DataType,
+    dataType: DataType | 'label',
   ) => void;
   disabled?: boolean;
   description?: string;
@@ -104,7 +104,7 @@ function MetadataView({
     (
       value: string | null,
       onChange: (arg0: MetadataValue) => void,
-      dataType: DataType | undefined,
+      dataType: DataType | 'label',
     ) => {
       switch (dataType) {
         case 'number':
@@ -166,6 +166,18 @@ function MetadataView({
             label: t('cardType'),
             dataType: 'shortText',
             edit: false,
+          }}
+        />
+        <FieldItem
+          name="__labels__"
+          defaultValue={card.labels}
+          control={context.control}
+          handleChange={handleChange}
+          expanded={true}
+          editableFieldProps={{
+            label: t('labels'),
+            dataType: 'label',
+            edit: editMode ?? false,
           }}
         />
         {(card.fields ?? []).map(

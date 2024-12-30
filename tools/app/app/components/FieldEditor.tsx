@@ -10,14 +10,25 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Select, Option, Input, Textarea } from '@mui/joy';
+import {
+  Select,
+  Option,
+  Input,
+  Textarea,
+  Chip,
+  ChipDelete,
+  Box,
+  Stack,
+  IconButton,
+} from '@mui/joy';
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
-import { Person } from '@mui/icons-material';
+import { Add, Person } from '@mui/icons-material';
+import { useState } from 'react';
 
 export interface FieldEditorProps {
   value: MetadataValue;
-  dataType?: DataType;
+  dataType?: DataType | 'label';
   onChange?: (value: string | string[] | null) => void;
   enumValues?: Array<EnumDefinition>;
   disabled?: boolean;
@@ -31,6 +42,7 @@ export default function FieldEditor({
   disabled,
 }: FieldEditorProps) {
   const { t } = useTranslation();
+  const [label, setLabel] = useState('');
   switch (dataType) {
     case 'integer':
     case 'number':
@@ -164,6 +176,65 @@ export default function FieldEditor({
           }}
           placeholder={t('placeholder.longText')}
         />
+      );
+    case 'label':
+      return (
+        <Stack spacing={1} width="100%">
+          <Stack direction="row" spacing={1}>
+            <Input
+              onChange={(e) => setLabel(e.target.value)}
+              disabled={disabled}
+              value={label}
+              color="primary"
+              size="sm"
+              fullWidth
+              placeholder={t('placeholder.label')}
+            />
+            <IconButton
+              size="sm"
+              color="primary"
+              variant="soft"
+              onClick={() => {
+                if (!label) {
+                  return;
+                }
+                const copy = Array.isArray(value)
+                  ? [...value].filter((item) => item !== label)
+                  : [];
+                copy.push(label);
+
+                setLabel('');
+
+                onChange?.(copy as string[]);
+              }}
+            >
+              <Add />
+            </IconButton>
+          </Stack>
+          <Box>
+            {(value as string[] | null)?.map((label) => (
+              <Chip
+                key={label}
+                variant="soft"
+                color="primary"
+                endDecorator={
+                  <ChipDelete
+                    disabled={disabled}
+                    onDelete={() =>
+                      onChange?.(
+                        (value as string[] | null)?.filter(
+                          (l) => label !== l,
+                        ) ?? [],
+                      )
+                    }
+                  />
+                }
+              >
+                {label}
+              </Chip>
+            ))}
+          </Box>
+        </Stack>
       );
     case 'shortText':
     default:

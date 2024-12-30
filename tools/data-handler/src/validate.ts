@@ -516,6 +516,11 @@ export class Validate {
             errorMsg.push(validCustomFields);
           }
 
+          const validLabels = await this.validateCardLabels(card);
+          if (validLabels.length > 0) {
+            errorMsg.push(validLabels);
+          }
+
           // Validate macros in content
           if (card.content) {
             await evaluateMacros(card.content, {
@@ -737,6 +742,37 @@ export class Validate {
     }
 
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates the labels of a card
+   * @param card card to validate. Card must have metadata.
+   */
+  public async validateCardLabels(card: Card): Promise<string> {
+    const validationErrors: string[] = [];
+    if (!card.metadata) {
+      validationErrors.push(
+        `Card '${card.key}' has no metadata. Card object needs to be instantiated with '{metadata: true}'`,
+      );
+    }
+    // labels are not mandatory
+    if (card.metadata?.labels) {
+      if (!Array.isArray(card.metadata?.labels)) {
+        validationErrors.push(
+          `Expected labels to be an array of strings, but instead got ${card.metadata.labels}`,
+        );
+      } else {
+        for (const label of card.metadata.labels) {
+          // labels follow same name guidance as resource names
+          if (!Validate.isValidResourceName(label)) {
+            validationErrors.push(
+              `Label '${label}' does not follow naming rules`,
+            );
+          }
+        }
+      }
+    }
+    return validationErrors.join('/');
   }
 
   /**
