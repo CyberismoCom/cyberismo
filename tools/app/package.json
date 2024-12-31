@@ -22,7 +22,7 @@
     "@codemirror/view": "^6.34.2",
     "@cyberismocom/data-handler": "workspace:*",
     "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
+    "@emotion/styled": "^11.14.0",
     "@fontsource/inter": "^5.0.18",
     "@mui/icons-material": "^6.0.1",
     "@mui/joy": "5.0.0-beta.51",
