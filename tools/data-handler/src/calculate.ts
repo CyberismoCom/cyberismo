@@ -597,7 +597,7 @@ export class Calculate {
       '--format=png',
       '--type=digraph',
       `--name-format=${randomId}`,
-      `--dir=${this.project.paths.tempCardFolder}`,
+      `--dir=${this.project.paths.tempFolder}`,
     ];
     spawnSync(this.clingGraphBinary, clingGraphArgs, {
       encoding: 'utf8',
@@ -606,14 +606,24 @@ export class Calculate {
       maxBuffer: 1024 * 1024 * 100,
     });
 
-    const filePath = join(this.project.paths.tempCardFolder, randomId);
+    const filePath = join(this.project.paths.tempFolder, randomId);
 
-    const fileData = await readFile(filePath + '.png');
-
-    await rm(filePath + '.png');
+    let fileData;
+    try {
+      fileData = await readFile(filePath + '.png');
+      await rm(filePath + '.png');
+    } catch (e) {
+      throw new Error(
+        `Graph: Failed to read image file after generating grape: ${e}`,
+      );
+    }
 
     // Another file without the extension is also generated
-    await rm(filePath);
+    try {
+      if (pathExists(filePath)) await rm(filePath);
+    } catch (err) {
+      logger.debug(err, 'Failed to remove generated graph file');
+    }
 
     return fileData.toString('base64');
   }

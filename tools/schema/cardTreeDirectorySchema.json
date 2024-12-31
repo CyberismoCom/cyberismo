@@ -218,6 +218,9 @@
                                       "properties": {
                                         "view.lp.hbs": {
                                           "type": "object"
+                                        },
+                                        "parameterSchema.json": {
+                                          "type": "object"
                                         }
                                       },
                                       "required": ["view.lp.hbs"]
@@ -474,6 +477,61 @@
                 "directories": {
                   "type": "object",
                   "properties": {
+                    "graphViews": {
+                      "type": "object",
+                      "properties": {
+                        "additionalProperties": false,
+                        "directories": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "patternProperties": {
+                            ".+": {
+                              "type": "object",
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    "view.lp.hbs": {
+                                      "type": "object"
+                                    },
+                                    "parameterSchema.json": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": ["view.lp.hbs"]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "graphModels": {
+                      "type": "object",
+                      "properties": {
+                        "additionalProperties": false,
+                        "directories": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "patternProperties": {
+                            ".+": {
+                              "type": "object",
+                              "properties": {
+                                "files": {
+                                  "type": "object",
+                                  "properties": {
+                                    "model.lp": {
+                                      "type": "object"
+                                    }
+                                  },
+                                  "required": ["model.lp"]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "cardTypes": {
                       "type": "object",
                       "allOf": [
