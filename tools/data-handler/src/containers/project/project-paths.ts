@@ -85,7 +85,11 @@ export class ProjectPaths {
   }
 
   public get tempCardFolder(): string {
-    return join(this.cardRootFolder, 'temp');
+    return join(this.tempFolder, 'cards');
+  }
+
+  public get tempFolder(): string {
+    return join(this.path, '.temp');
   }
 
   public get templatesFolder(): string {

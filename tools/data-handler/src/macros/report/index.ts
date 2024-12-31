@@ -67,7 +67,7 @@ class ReportMacro extends BaseMacro {
     });
 
     const calculate = new Calculate(project);
-    const result = await calculate.run({
+    const result = await calculate.runLogicProgram({
       query: template(handlebarsContext),
     });
     if (result.error) {
