@@ -10,11 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  registerEmptyMacros,
-  registerMacroHelpers,
-  validateMacroContent,
-} from '../index.js';
+import { createImage, validateMacroContent } from '../index.js';
 
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
@@ -22,10 +18,17 @@ import { Project } from '../../containers/project.js';
 import { Calculate } from '../../calculate.js';
 import Handlebars from 'handlebars';
 import BaseMacro from '../BaseMacro.js';
-import { validateJson } from '../../utils/validate.js';
+import { ProjectPaths } from '../../containers/project/project-paths.js';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import {
+  resourceNameParts,
+  resourceNameToString,
+} from '../../utils/resource-utils.js';
 
-export interface ReportOptions extends Record<string, string> {
-  name: string;
+export interface GraphOptions extends Record<string, string> {
+  model: string;
+  view: string;
 }
 
 class ReportMacro extends BaseMacro {
@@ -45,49 +48,55 @@ class ReportMacro extends BaseMacro {
     const options = this.validate(data);
 
     const project = new Project(context.projectPath);
-    const report = await project.report(options.name);
 
-    if (!report) throw new Error(`Report ${options} does not exist`);
+    const projectPaths = new ProjectPaths(
+      context.projectPath,
+      project.projectPrefix,
+    );
 
-    if (report.schema) {
-      validateJson(options, {
-        schema: report.schema,
-      });
-    }
+    const calculate = new Calculate(project);
 
+    const resourceNameToPath = (name: string, ending: string) => {
+      const { identifier, prefix, type } = resourceNameParts(name);
+      if (prefix === project.projectPrefix) {
+        return join(projectPaths.resourcesFolder, type, identifier, ending);
+      }
+      return join(projectPaths.modulesFolder, prefix, type, identifier, ending);
+    };
+
+    const modelLocation = resourceNameToPath(options.model, 'model.lp');
+
+    const viewContent = await readFile(
+      resourceNameToPath(options.view, 'view.lp.hbs'),
+      { encoding: 'utf-8' },
+    );
     const handlebarsContext = {
       cardKey: context.cardKey,
       ...options,
     };
 
     const handlebars = Handlebars.create();
+    const view = handlebars.compile(viewContent)(handlebarsContext);
 
-    const template = handlebars.compile(report.queryTemplate, {
-      strict: true,
+    const result = await calculate.runGraph({
+      query: view,
+      file: modelLocation,
     });
 
-    const calculate = new Calculate(project);
-    const result = await calculate.runLogicProgram({
-      query: template(handlebarsContext),
-    });
-    if (result.error) {
-      throw new Error(result.error);
+    if (typeof result !== 'string') {
+      throw new Error(
+        'Graph macro expected a string from clingo, but received an object',
+      );
     }
-    registerEmptyMacros(handlebars);
-    registerMacroHelpers(handlebars);
-
-    return handlebars.compile(report.contentTemplate)({
-      ...handlebarsContext,
-      ...result,
-    });
+    return createImage(result);
   };
 
-  private validate(data: string): ReportOptions {
+  private validate(data: string): GraphOptions {
     if (!data || typeof data !== 'string') {
-      throw new Error('report macro requires a JSON object as data');
+      throw new Error('Graph macro requires a JSON object as data');
     }
 
-    return validateMacroContent<ReportOptions>(this.metadata, data);
+    return validateMacroContent<GraphOptions>(this.metadata, data);
   }
 }
 
