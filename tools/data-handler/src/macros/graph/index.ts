@@ -18,13 +18,9 @@ import { Project } from '../../containers/project.js';
 import { Calculate } from '../../calculate.js';
 import Handlebars from 'handlebars';
 import BaseMacro from '../BaseMacro.js';
-import { ProjectPaths } from '../../containers/project/project-paths.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import {
-  resourceNameParts,
-  resourceNameToString,
-} from '../../utils/resource-utils.js';
+import { resourceNameParts } from '../../utils/resource-utils.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;
@@ -48,20 +44,20 @@ class ReportMacro extends BaseMacro {
     const options = this.validate(data);
 
     const project = new Project(context.projectPath);
-
-    const projectPaths = new ProjectPaths(
-      context.projectPath,
-      project.projectPrefix,
-    );
-
     const calculate = new Calculate(project);
 
     const resourceNameToPath = (name: string, ending: string) => {
       const { identifier, prefix, type } = resourceNameParts(name);
       if (prefix === project.projectPrefix) {
-        return join(projectPaths.resourcesFolder, type, identifier, ending);
+        return join(project.paths.resourcesFolder, type, identifier, ending);
       }
-      return join(projectPaths.modulesFolder, prefix, type, identifier, ending);
+      return join(
+        project.paths.modulesFolder,
+        prefix,
+        type,
+        identifier,
+        ending,
+      );
     };
 
     const modelLocation = resourceNameToPath(options.model, 'model.lp');
