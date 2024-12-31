@@ -724,18 +724,18 @@ export class Validate {
               (item) => item.enumValue,
             );
             validationErrors.push(
-              `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
+              `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
             );
             continue;
           }
           if (fieldType.dataType === 'person') {
             validationErrors.push(
-              `In card ${card.key} field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
+              `In card '${card.key}' field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
             );
             continue;
           }
           validationErrors.push(
-            `In card ${card.key} field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+            `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
           );
         }
       }
@@ -759,20 +759,20 @@ export class Validate {
     if (card.metadata?.labels) {
       if (!Array.isArray(card.metadata?.labels)) {
         validationErrors.push(
-          `Expected labels to be an array of strings, but instead got ${card.metadata.labels}`,
+          `In card '${card.key}' expected labels to be an array of strings, but instead got ${card.metadata.labels}`,
         );
       } else {
         for (const label of card.metadata.labels) {
           // labels follow same name guidance as resource names
           if (!Validate.isValidResourceName(label)) {
             validationErrors.push(
-              `Label '${label}' does not follow naming rules`,
+              `In card '${card.key}' label '${label}' does not follow naming rules`,
             );
           }
         }
       }
     }
-    return validationErrors.join('/');
+    return validationErrors.join('\n');
   }
 
   /**
