@@ -532,11 +532,12 @@ export class Commands {
   // Runs a given logic program along with the query-language
   private async runLogicProgram(filePath: string): Promise<requestStatus> {
     try {
+      const res = await this.commands?.calculateCmd.runLogicProgram({
+        file: join(process.cwd(), filePath),
+      });
       return {
         statusCode: 200,
-        payload: await this.commands?.calculateCmd.run({
-          file: join(process.cwd(), filePath),
-        }),
+        payload: res,
       };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };

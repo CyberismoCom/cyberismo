@@ -12,7 +12,7 @@
 
 // node
 import path, { basename, join, resolve } from 'node:path';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -44,12 +44,14 @@ import {
   createWorkflowFacts,
 } from './utils/clingo-facts.js';
 import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
+import { generateRandomString } from './utils/random.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
+  private clingGraphBinary: string = 'clingraph';
   private static importResourcesFileName: string = 'resourceImports.lp';
   private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
@@ -446,30 +448,38 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const result = await this.run({
+    const clingoOutput = await this.run({
       query: content,
     });
+
+    const result = await this.parseClingoResult(clingoOutput);
 
     if (result.error) {
       throw new Error(result.error);
     }
     return result.results as QueryResult<T>[];
   }
-
   /**
-   * Runs a logic program.
+   * Runs a logic program using clingo.
    *
    * @param filePath Path to a query file to be run in relation to current working directory
    * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
-  public async run(
+  public async runLogicProgram(data: { query?: string; file?: string }) {
+    const clingoOutput = await this.run(data);
+
+    return this.parseClingoResult(clingoOutput);
+  }
+
+  private async run(
     data: {
       query?: string;
       file?: string;
     },
+    argMode: 'graph' | 'query' = 'query',
     timeout: number = 5000,
-  ): Promise<ParseResult<BaseResult>> {
+  ): Promise<string> {
     const main = join(
       this.project.paths.calculationFolder,
       Calculate.mainLogicFileName,
@@ -485,12 +495,21 @@ export class Calculate {
       );
     }
 
-    const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
-    if (data.file) {
-      args.push(data.file);
-    }
-
     return Calculate.mutex.runExclusive(async () => {
+      const args = ['-', '--outf=0', '-V0', '--warn=none'];
+
+      if (argMode === 'graph') {
+        args.push('--out-atomf=%s.');
+      } else {
+        args.push('--out-ifs=\\n');
+        args.push(queryLanguage);
+      }
+      args.push(main);
+
+      if (data.file) {
+        args.push(data.file);
+      }
+
       const clingo = spawnSync(this.logicBinaryName, args, {
         encoding: 'utf8',
         input: data.query,
@@ -510,7 +529,7 @@ export class Calculate {
           stdout: clingo.stdout,
           stderr: clingo.stderr,
         });
-        return this.parseClingoResult(clingo.stdout);
+        return clingo.stdout;
       }
 
       if (clingo.stderr && clingo.status) {
@@ -554,5 +573,48 @@ export class Calculate {
         'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
       );
     });
+  }
+
+  /**
+   * Runs given logic program and creates a graph using clingraph
+   * @param data
+   * @param timeout
+   * @returns
+   */
+  public async runGraph(
+    data: { query?: string; file?: string },
+    timeout?: number,
+  ) {
+    const clingoOutput = await this.run(data, 'graph');
+
+    const firstLine = clingoOutput.split('\n')[0];
+
+    // unlikely we ever get a collision
+    const randomId = generateRandomString(36, 20);
+
+    const clingGraphArgs = [
+      '--out=render',
+      '--format=png',
+      '--type=digraph',
+      `--name-format=${randomId}`,
+      `--dir=${this.project.paths.tempCardFolder}`,
+    ];
+    spawnSync(this.clingGraphBinary, clingGraphArgs, {
+      encoding: 'utf8',
+      input: firstLine,
+      timeout,
+      maxBuffer: 1024 * 1024 * 100,
+    });
+
+    const filePath = join(this.project.paths.tempCardFolder, randomId);
+
+    const fileData = await readFile(filePath + '.png');
+
+    await rm(filePath + '.png');
+
+    // Another file without the extension is also generated
+    await rm(filePath);
+
+    return fileData.toString('base64');
   }
 }

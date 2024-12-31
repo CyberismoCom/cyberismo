@@ -10,25 +10,12 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroName } from '@cyberismocom/data-handler/interfaces/macros';
-import CreateCards from './CreateCards';
-import ScoreCard from './ScoreCard';
-import { ReactElement } from 'react';
+import { MacroMetadata } from '../../interfaces/macros.js';
 
-export interface MacroContext {
-  /**
-   * The key inside of which the macro is rendered.
-   */
-  key: string;
-  /**
-   * True if the macro is rendered in preview mode.
-   */
-  preview: boolean;
-}
-
-export type UIMacroName = Exclude<MacroName, 'report' | 'graph'>;
-
-export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
-  createCards: CreateCards,
-  scoreCard: ScoreCard,
+const macroMetadata: MacroMetadata = {
+  name: 'graph',
+  tagName: 'graph',
+  schema: 'graphMacroBaseSchema',
 };
+
+export default macroMetadata;

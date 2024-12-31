@@ -12,11 +12,13 @@
 
 // important that this file imports only the metadata
 import createCards from './createCards/metadata.js';
-import scoreCard from './scoreCard/metadata.js';
+import graph from './report/metadata.js';
 import report from './report/metadata.js';
+import scoreCard from './scoreCard/metadata.js';
 
 export const macroMetadata = {
   createCards,
-  scoreCard,
+  graph,
   report,
+  scoreCard,
 };
