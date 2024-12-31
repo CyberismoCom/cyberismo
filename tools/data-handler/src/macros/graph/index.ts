@@ -21,6 +21,10 @@ import BaseMacro from '../BaseMacro.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { resourceNameParts } from '../../utils/resource-utils.js';
+import { logger } from '../../utils/log-utils.js';
+import { validateJson } from '../../utils/validate.js';
+import { Schema } from 'jsonschema';
+import { pathExists } from '../../utils/file-utils.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;
@@ -41,8 +45,6 @@ class ReportMacro extends BaseMacro {
   };
 
   handleInject = async (context: MacroGenerationContext, data: string) => {
-    const options = this.validate(data);
-
     const project = new Project(context.projectPath);
     const calculate = new Calculate(project);
 
@@ -60,12 +62,41 @@ class ReportMacro extends BaseMacro {
       );
     };
 
-    const modelLocation = resourceNameToPath(options.model, 'model.lp');
+    const options = this.validate(data);
 
-    const viewContent = await readFile(
-      resourceNameToPath(options.view, 'view.lp.hbs'),
-      { encoding: 'utf-8' },
-    );
+    let schema: Schema | null = null;
+    try {
+      schema = JSON.parse(
+        await readFile(
+          resourceNameToPath(options.view, 'parameterSchema.json'),
+          { encoding: 'utf-8' },
+        ),
+      );
+    } catch (err) {
+      logger.debug(
+        null,
+        'Graph schema not found or failed to read, skipping validation',
+      );
+    }
+
+    if (schema) {
+      validateJson(options, {
+        schema,
+      });
+    }
+
+    const modelLocation = resourceNameToPath(options.model, 'model.lp');
+    const viewLocation = resourceNameToPath(options.view, 'view.lp.hbs');
+
+    if (!pathExists(modelLocation)) {
+      throw new Error(`Graph: Model ${options.model} does not exist`);
+    }
+
+    if (!pathExists(viewLocation)) {
+      throw new Error(`Graph: View ${options.view} does not exist`);
+    }
+
+    const viewContent = await readFile(viewLocation, { encoding: 'utf-8' });
     const handlebarsContext = {
       cardKey: context.cardKey,
       ...options,
