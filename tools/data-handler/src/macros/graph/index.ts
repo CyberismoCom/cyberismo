@@ -74,7 +74,7 @@ class ReportMacro extends BaseMacro {
       );
     } catch (err) {
       logger.debug(
-        null,
+        err,
         'Graph schema not found or failed to read, skipping validation',
       );
     }
