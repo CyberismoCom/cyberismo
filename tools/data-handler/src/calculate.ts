@@ -180,6 +180,9 @@ export class Calculate {
 
   // Once card specific files have been done, write the the imports
   private async generateImports(folder: string, destinationFile: string) {
+    if (!pathExists(folder)) {
+      return;
+    }
     const files: string[] = getFilesSync(folder);
 
     const builder = new ClingoProgramBuilder().addComment(folder);
