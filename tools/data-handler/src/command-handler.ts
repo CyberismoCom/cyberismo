@@ -157,11 +157,14 @@ export class Commands {
   // Handles initializing the project so that it can be used in the class.
   private async doSetProject(path: string) {
     this.projectPath = resolveTilde(await this.setProjectPath(path));
-
     if (!Validate.validateFolder(this.projectPath)) {
-      throw new Error(
-        `Input validation error: folder name '${path}' is invalid`,
-      );
+      let errorMessage = '';
+      if (path === '' || path === undefined) {
+        errorMessage = `No 'cardRoot' in the current folder`;
+      } else {
+        errorMessage = `Input validation error: folder name '${path}' is invalid`;
+      }
+      throw new Error(errorMessage);
     }
 
     if (!pathExists(this.projectPath)) {
