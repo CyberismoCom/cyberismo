@@ -28,7 +28,7 @@
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.0",
     "@types/mocha": "^10.0.9",
-    "@types/node": "^22.9.0",
+    "@types/node": "^22.10.2",
     "@typescript-eslint/parser": "^8.15.0",
     "chai": "^5.1.2",
     "chai-as-promised": "^8.0.1",
