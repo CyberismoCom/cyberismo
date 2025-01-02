@@ -291,7 +291,10 @@ export function countChildren(treeRoot: QueryResult<'tree'>): number {
  * @param obj: object to copy
  * @returns deep copy of the object
  */
-export function deepCopy<T>(obj: T): T {
+export function deepCopy<T>(obj: T): T | null {
+  if (obj == null) {
+    return obj;
+  }
   return JSON.parse(JSON.stringify(obj));
 }
 
