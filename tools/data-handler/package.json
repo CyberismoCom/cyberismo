@@ -42,7 +42,7 @@
     "pino-pretty": "^13.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.15.0"
+    "typescript-eslint": "^8.19.0"
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
