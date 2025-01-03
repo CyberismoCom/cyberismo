@@ -33,7 +33,6 @@ import {
   FieldType,
   LinkType,
   Report,
-  ReportMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
@@ -44,16 +43,19 @@ import { Template } from './template.js';
 import { Validate } from '../validate.js';
 import { generateRandomString } from '../utils/random.js';
 import {
-  resourceNameParts,
+  resourceName,
+  ResourceName,
   resourceNameToString,
 } from '../utils/resource-utils.js';
-
-// base class
-import { CardContainer } from './card-container.js';
+import { CardContainer } from './card-container.js'; // base class
 import {
   ResourcesFrom,
   ResourceCollector,
 } from './project/resource-collector.js';
+import { CardTypeResource } from '../resources/card-type-resource.js';
+import { FieldTypeResource } from '../resources/field-type-resource.js';
+import { LinkTypeResource } from '../resources/link-type-resource.js';
+import { WorkflowResource } from '../resources/workflow-resource.js';
 
 // Re-export this, so that classes that use Project do not need to have separate import.
 export { ResourcesFrom };
@@ -74,10 +76,7 @@ export class Project extends CardContainer {
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
     this.projectPaths = new ProjectPaths(path, this.projectPrefix);
-    this.resources = new ResourceCollector(
-      this.projectPrefix,
-      this.projectPaths,
-    );
+    this.resources = new ResourceCollector(this);
 
     this.containerName = this.settings.name;
     // todo: implement project validation
@@ -367,20 +366,15 @@ export class Project extends CardContainer {
   /**
    * Returns the content of a specific card type.
    * @param cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
-   * @param from Defines where resources are collected from.
    * @param skipSettingDefaultValues do not set default values to fields, if members are missing. This avoids doing unnecessary changes to card types.
    * @returns JSON content of card type, or undefined if the card type cannot be found.
    */
   public async cardType(
     cardTypeName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
     skipSettingDefaultValues: boolean = false,
   ): Promise<CardType | undefined> {
-    const content = (await this.resources.resource(
-      'cardTypes',
-      cardTypeName,
-      from,
-    )) as unknown as CardType;
+    const resource = new CardTypeResource(this, resourceName(cardTypeName));
+    const content = resource?.data as CardType;
     if (!content) {
       return undefined;
     }
@@ -464,7 +458,7 @@ export class Project extends CardContainer {
     if (!template.name) {
       return undefined;
     }
-    template.name = resourceNameToString(resourceNameParts(template.name));
+    template.name = resourceNameToString(resourceName(template.name));
     if (!(await this.templateExists(template.name))) {
       return undefined;
     }
@@ -503,18 +497,13 @@ export class Project extends CardContainer {
   /**
    * Returns specific fieldType metadata.
    * @param fieldTypeName Name of the fileType
-   * @param from Defines where resources are collected from.
    * @returns fieldType metadata.
    */
   public async fieldType(
     fieldTypeName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<FieldType | undefined> {
-    return this.resources.resource(
-      'fieldTypes',
-      fieldTypeName,
-      from,
-    ) as unknown as FieldType;
+    const resource = new FieldTypeResource(this, resourceName(fieldTypeName));
+    return resource?.data as FieldType;
   }
 
   /**
@@ -680,18 +669,11 @@ export class Project extends CardContainer {
   /**
    * Returns specific link type metadata.
    * @param linkTypeName Name of the linkType
-   * @param from Defines where resources are read from.
    * @returns link type metadata.
    */
-  public async linkType(
-    linkTypeName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
-  ): Promise<LinkType | undefined> {
-    return this.resources.resource(
-      'linkTypes',
-      linkTypeName,
-      from,
-    ) as unknown as LinkType;
+  public async linkType(linkTypeName: string): Promise<LinkType | undefined> {
+    const resource = new LinkTypeResource(this, resourceName(linkTypeName));
+    return resource?.data as LinkType;
   }
 
   /**
@@ -785,33 +767,6 @@ export class Project extends CardContainer {
       };
     }
     return undefined;
-  }
-
-  /**
-   * Returns list of module names in the project.
-   * @returns List of module names in the project.
-   * @todo: Is this needed --> could be just modules() call?
-   */
-  public async moduleNames(): Promise<string[]> {
-    const moduleNames: string[] = [];
-    if (pathExists(this.paths.modulesFolder)) {
-      const names = await readdir(this.paths.modulesFolder);
-      if (names) {
-        moduleNames.push(...names);
-      }
-    }
-    return moduleNames;
-  }
-
-  /**
-   * Returns path to a module.
-   * @param moduleName Name of the module.
-   * @returns path to a module.
-   * @todo: Is this needed --> could be just module() call?
-   */
-  public async modulePath(moduleName: string): Promise<string | undefined> {
-    const module = await this.findModule(moduleName);
-    return module && module.path ? join(module.path, module.name) : undefined;
   }
 
   /**
@@ -921,13 +876,12 @@ export class Project extends CardContainer {
     if (!found || !found.path) {
       return undefined;
     }
-    const folder = join(found.path, basename(found.name));
-    const metadata = (await this.resources.resource(
-      'reports',
-      reportName,
-      from,
-    )) as unknown as ReportMetadata;
 
+    const metadata = await readJsonFile(
+      join(found.path, basename(found.name), 'report.json'),
+    );
+
+    const folder = join(found.path, basename(found.name));
     const schemaPath = join(folder, 'parameterSchema.json');
 
     return {
@@ -1021,6 +975,28 @@ export class Project extends CardContainer {
       (item) => item.name === name + '.json' || item.name === name,
     );
     return resource !== undefined;
+  }
+
+  /**
+   * Instantiates resource object from project with a resource name.
+   * @note that this is memory based object only.
+   *       To manipulate the resource (create files, delete files etc), use the resource object's API.
+   * @param project Project from which resources are created from.
+   * @param name Resource name
+   * @throws if called with unsupported resource type.
+   * @returns Created resource.
+   */
+  public static resourceObject(project: Project, name: ResourceName) {
+    if (name.type === 'cardTypes') {
+      return new CardTypeResource(project, name);
+    } else if (name.type === 'fieldTypes') {
+      return new FieldTypeResource(project, name);
+    } else if (name.type === 'linkTypes') {
+      return new LinkTypeResource(project, name);
+    } else if (name.type === 'workflows') {
+      return new WorkflowResource(project, name);
+    }
+    throw new Error(`Unsupported resource type ${name}`);
   }
 
   /**
@@ -1217,18 +1193,11 @@ export class Project extends CardContainer {
   /**
    * Returns details of certain workflow.
    * @param workflowName Name of the workflow (either filename (including .json extension), or workflow name).
-   * @param from Defines where resources are collected from.
    * @returns workflow configuration, or undefined if workflow cannot be found.
    */
-  public async workflow(
-    workflowName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
-  ): Promise<Workflow | undefined> {
-    return this.resources.resource(
-      'workflows',
-      workflowName,
-      from,
-    ) as unknown as Workflow;
+  public async workflow(workflowName: string): Promise<Workflow | undefined> {
+    const resource = new WorkflowResource(this, resourceName(workflowName));
+    return resource?.data as Workflow;
   }
 
   /**
@@ -1239,7 +1208,7 @@ export class Project extends CardContainer {
   public async workflowInitialState(
     workflow: string,
   ): Promise<string | undefined> {
-    const workflowMetaData = await this.workflow(workflow, ResourcesFrom.all);
+    const workflowMetaData = await this.workflow(workflow);
 
     if (!workflowMetaData) {
       return undefined;

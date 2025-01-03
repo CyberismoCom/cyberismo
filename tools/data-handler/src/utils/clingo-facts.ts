@@ -237,14 +237,14 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
         builder.addCustomFact(Facts.Common.FIELD, (b) =>
           b
             .addArgument(keyTuple)
-            .addArguments('enumDisplayValue', enumValue.enumDisplayValue),
+            .addArguments('enumDisplayValue', enumValue.enumDisplayValue!),
         );
 
       if (enumValue.enumDescription)
         builder.addCustomFact(Facts.Common.FIELD, (b) =>
           b
             .addArgument(keyTuple)
-            .addArguments('enumDescription', enumValue.enumDescription),
+            .addArguments('enumDescription', enumValue.enumDescription!),
         );
     }
   }

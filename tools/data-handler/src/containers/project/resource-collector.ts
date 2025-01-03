@@ -11,17 +11,18 @@
 */
 import { Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
-import { readJsonFile } from '../../utils/json.js';
 import { pathExists, stripExtension } from '../../utils/file-utils.js';
-import { resourceNameParts } from '../../utils/resource-utils.js';
+import { resourceName } from '../../utils/resource-utils.js';
 import { ProjectPaths } from './project-paths.js';
 import {
   Resource,
   ResourceFolderType,
 } from '../../interfaces/project-interfaces.js';
+
+import { Project } from '../project.js';
 
 /**
  * Defines where resources are collected from.
@@ -47,10 +48,11 @@ export class ResourceCollector {
   private localWorkflows: Resource[] = [];
   private localReports: Resource[] = [];
 
-  constructor(
-    private prefix: string,
-    private paths: ProjectPaths,
-  ) {}
+  private paths: ProjectPaths;
+
+  constructor(private project: Project) {
+    this.paths = this.project.paths;
+  }
 
   // Add resources of a given type to an array.
   private async addResources(
@@ -149,26 +151,7 @@ export class ResourceCollector {
     type: ResourceFolderType,
     requirement: string,
   ): Resource[] {
-    // todo: this type of mapping should exist somewhere else. Resource utils?
-    let resourceFolder: string;
-    if (type === 'calculation') {
-      resourceFolder = this.paths.calculationProjectFolder;
-    } else if (type === 'cardType') {
-      resourceFolder = this.paths.cardTypesFolder;
-    } else if (type === 'fieldType') {
-      resourceFolder = this.paths.fieldTypesFolder;
-    } else if (type === 'linkType') {
-      resourceFolder = this.paths.linkTypesFolder;
-    } else if (type === 'template') {
-      resourceFolder = this.paths.templatesFolder;
-    } else if (type === 'workflow') {
-      resourceFolder = this.paths.workflowsFolder;
-    } else if (type === 'report') {
-      resourceFolder = this.paths.reportsFolder;
-    } else {
-      return [];
-    }
-
+    const resourceFolder = this.project.paths.resourcePath(type);
     const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
       return [];
@@ -193,7 +176,7 @@ export class ResourceCollector {
         })
         .map((entry) => {
           return {
-            name: `${this.prefix}/${type}s/${entry.name}`,
+            name: `${this.project.projectPrefix}/${type}s/${entry.name}`,
             path: entry.parentPath,
           };
         }),
@@ -238,7 +221,7 @@ export class ResourceCollector {
       }
     }
 
-    const { type } = resourceNameParts(resource.name);
+    const { type } = resourceName(resource.name);
     switch (type) {
       case 'cardTypes':
         addItem(this.localCardTypes, resource);
@@ -289,10 +272,11 @@ export class ResourceCollector {
   /**
    * Removes a resource from Project.
    * @param resource Resource to remove.
+   * @returns the modified array.
    */
   public remove(resource: Resource) {
-    const { type } = resourceNameParts(resource.name);
-    let arrayToModify: Resource[];
+    const { type } = resourceName(resource.name);
+    let arrayToModify: Resource[] = [];
     switch (type) {
       case 'cardTypes':
         arrayToModify = this.localCardTypes;
@@ -318,38 +302,9 @@ export class ResourceCollector {
         );
       }
     }
-    const index = arrayToModify.indexOf(resource, 0);
-    if (index > -1) {
-      arrayToModify.splice(index, 1);
-    }
-  }
-
-  /**
-   * Returns resource's metadata.
-   * @param type Type of resource (e.g. 'templates').
-   * @param name Name of the resource.
-   * @param from Defines where resources are collected from.
-   * @returns Resources metadata, or undefined if resource was not found.
-   * @note that caller need to convert this to specific type (e.g "as unknown as Workflow")
-   */
-  public async resource(
-    type: string,
-    name: string,
-    from: ResourcesFrom,
-  ): Promise<object | undefined> {
-    if (!name) {
-      return undefined;
-    }
-    if (!name.endsWith('.json')) {
-      name += '.json';
-    }
-    const found = (await this.resources(type, from)).find(
-      (item) => item.name === name && item.path,
-    );
-    if (!found || !found.path) {
-      return undefined;
-    }
-    return readJsonFile(join(found.path, basename(found.name)));
+    arrayToModify = arrayToModify.filter((item) => item.name !== resource.name);
+    this.collectLocalResources();
+    return arrayToModify;
   }
 
   /**
