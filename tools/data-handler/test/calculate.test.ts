@@ -85,4 +85,39 @@ describe('calculate', () => {
 
     expect(res).to.deep.equal(expectedTree);
   });
+  it('calculate daysSince 2024-01-01', async () => {
+    const res = await calculate.run({
+      query: 'result(@daysSince("2024-01-01")).'
+    });
+
+    expect(Number(res.results[0].key)).greaterThan(365);
+  });
+  it('concatenate a string, a number and a constant', async () => {
+    const res = await calculate.run({
+      query: 'result(@concatenate("string", 1234, constant)).'
+    });
+
+    expect(res.results[0].key).to.equal("string1234constant");
+  });
+  it('concatenate without parameters', async () => {
+    const res = await calculate.run({
+      query: 'result(@concatenate()).'
+    });
+
+    expect(res.results[0].key).to.equal("");
+  });
+  it('concatenate with 1 parameter', async () => {
+    const res = await calculate.run({
+      query: 'result(@concatenate("parameter")).'
+    });
+
+    expect(res.results[0].key).to.equal("parameter");
+  });
+  it('concatenate with 2 parameters', async () => {
+    const res = await calculate.run({
+      query: 'result(@concatenate("one", "two")).'
+    });
+
+    expect(res.results[0].key).to.equal("onetwo");
+  });
 });
