@@ -57,7 +57,7 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.4.1",
     "mime-types": "^2.1.35",
-    "pino": "^9.5.0",
+    "pino": "^9.6.0",
     "sinon": "^19.0.2",
     "tslib": "^2.6.2"
   },
