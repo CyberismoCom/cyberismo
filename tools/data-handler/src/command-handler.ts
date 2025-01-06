@@ -469,7 +469,7 @@ export class Commands {
     if (!this.commands) {
       return { statusCode: 500 };
     }
-    let message = '';
+    let message;
     if (format === 'adoc') {
       message = await this.commands?.exportCmd.exportToADoc(
         destination,
@@ -481,7 +481,7 @@ export class Commands {
         parentCardKey,
       );
     } else if (format === 'site') {
-      message = await this.commands?.exportSiteCmd.exportToSite(
+      return this.commands?.exportSiteCmd.exportToSite(
         destination,
         parentCardKey,
         options,
