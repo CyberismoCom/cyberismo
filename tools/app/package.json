@@ -34,7 +34,7 @@
     "handlebars": "^4.7.8",
     "handlebars-loader": "^1.7.3",
     "html-react-parser": "^5.1.12",
-    "i18next": "^23.11.5",
+    "i18next": "^24.2.0",
     "moment": "^2.30.1",
     "next": "15.0.3",
     "node-html-parser": "^6.1.13",
