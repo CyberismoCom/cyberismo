@@ -24,7 +24,7 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@fontsource/inter": "^5.0.18",
-    "@mui/icons-material": "^6.0.1",
+    "@mui/icons-material": "^6.3.1",
     "@mui/joy": "5.0.0-beta.51",
     "@mui/material": "^6.1.8",
     "@next/env": "^15.0.3",
