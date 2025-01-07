@@ -1,0 +1,7 @@
+name: test-env
+channels:
+  - potassco
+  - defaults
+dependencies:
+  - python=3.12
+  - clingo
