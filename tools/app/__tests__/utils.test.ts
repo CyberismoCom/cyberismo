@@ -1,6 +1,7 @@
-import { CardDetails, Project } from '@/app/lib/definitions';
+import { Project } from '@/app/lib/definitions';
 import {
   countChildren,
+  deepCopy,
   findCard,
   findParentCard,
   findPathTo,
@@ -102,6 +103,24 @@ test('getDefaultValue returns a null for null', () => {
     const result = getDefaultValue(value);
     expect(result).toBe(value);
   });
+});
+
+test('Deep copy returns a different object', () => {
+  const obj = { a: 1 };
+  const result = deepCopy(obj);
+
+  expect(result).toEqual(obj);
+  expect(result).not.toBe(obj);
+});
+
+test('deepCopy returns undefined when input is undefined', () => {
+  const result = deepCopy(undefined);
+  expect(result).toBeUndefined();
+});
+
+test('deepCopy returns null when input is null', () => {
+  const result = deepCopy(null);
+  expect(result).toBeNull();
 });
 
 const testProject: Project = {
