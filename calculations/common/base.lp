@@ -48,39 +48,3 @@ dataType((FieldType, EnumValue), "enumValue", "longText") :-
 hiddenInTreeView(Card) :-
     ancestor(Card, Ancestor),
     hiddenInTreeView(Ancestor).
-
-% python functions
-
-#script (python)
-from clingo import Number, String, SymbolType
-from datetime import date
-
-class Context:
-    def daysSince(self, isodate):
-        try:
-            userdate = date.fromisoformat(isodate.string)
-            today = date.today()
-            return Number((today-userdate).days)
-        except:
-            return Number(0)
-
-    def concatenate(self, *args):
-        try:
-            result = ""
-            for arg in args:
-                match arg.type:
-                    case SymbolType.String:
-                        result = result + arg.string
-                    case SymbolType.Number:
-                        result = result + str(arg.number)
-                    case SymbolType.Function:
-                        # constants such as card keys are represented as function symbols
-                        result = result + arg.name
-            return String(result)
-        except:
-            return String("")
-
-def main(prg):
-    prg.ground([("base", [])], context=Context())
-    prg.solve()
-#end.
