@@ -30,8 +30,9 @@ jobs:
       with:
         python-version: 3.12
         auto-update-conda: true
-    - name: Install Clingo from Potassco channel
-      run: conda create -n potassco -c conda-forge clingo && conda init && conda activate potassco
+        activate-environment: test-env
+        environment-file: environment.yml
+
     - name: Check Clingo Availability
       run: which clingo
     - name: Install pnpm
