@@ -702,10 +702,17 @@ export class Validate {
 
     if (cardType) {
       for (const field of cardType.customFields) {
+        const found = await project.resourceExists('fieldType', field.name);
+        if (!found) {
+          validationErrors.push(
+            `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,
+          );
+        }
         if (card.metadata[field.name] === undefined) {
           validationErrors.push(
-            `Card '${card.key}' is missing custom field 'name' from '${field.name}'`,
+            `Card '${card.key}' is missing custom field '${field.name}'`,
           );
+          continue;
         }
         const fieldType = await project.fieldType(field.name);
         if (
