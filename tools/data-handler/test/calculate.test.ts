@@ -86,14 +86,12 @@ describe('calculate', () => {
     expect(res).to.deep.equal(expectedTree);
   });
   it('run clingraph successfully', async () => {
-    // uncomment when model.lp is done
-    /*const res = await calculate.runGraph({
+    const res = await calculate.runGraph({
       query: 'viewAll.',
       file: '../../calculations/test/model.lp',
     });
-    
+
     expect(res).to.not.equal('');
-    */
   });
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
