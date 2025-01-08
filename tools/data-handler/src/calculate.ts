@@ -602,7 +602,9 @@ export class Calculate {
     // python is only used for windows
     const pythonArgs = [
       '-c',
-      `from clingraph import main;import sys; sys.argv = [sys.argv[0], ${clingGraphArgs.map((arg) => `"${arg}"`).join(',')}];sys.exit(main())`,
+      `from clingraph import main; import sys; sys.argv = ["sys.argv[0]", ${clingGraphArgs
+        .map((arg) => `'${arg.replace(/\\/g, '\\\\')}'`)
+        .join(',')}]; sys.exit(main())`,
     ];
 
     spawnSync(
