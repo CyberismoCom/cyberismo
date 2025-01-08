@@ -10,21 +10,20 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import BaseMacro from '../BaseMacro.js';
+import { Calculate } from '../../calculate.js';
 import { createImage, validateMacroContent } from '../index.js';
-
+import Handlebars from 'handlebars';
+import { join } from 'node:path';
+import { logger } from '../../utils/log-utils.js';
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import { Project } from '../../containers/project.js';
-import { Calculate } from '../../calculate.js';
-import Handlebars from 'handlebars';
-import BaseMacro from '../BaseMacro.js';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { resourceNameParts } from '../../utils/resource-utils.js';
-import { logger } from '../../utils/log-utils.js';
-import { validateJson } from '../../utils/validate.js';
-import { Schema } from 'jsonschema';
 import { pathExists } from '../../utils/file-utils.js';
+import { Project } from '../../containers/project.js';
+import { readFile } from 'node:fs/promises';
+import { resourceNameParts } from '../../utils/resource-utils.js';
+import { Schema } from 'jsonschema';
+import { validateJson } from '../../utils/validate.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;
@@ -37,7 +36,7 @@ class ReportMacro extends BaseMacro {
   }
 
   handleValidate = (data: string) => {
-    this.validate(data);
+    this.parseOptions(data);
   };
 
   handleStatic = async (context: MacroGenerationContext, data: string) => {
@@ -48,21 +47,21 @@ class ReportMacro extends BaseMacro {
     const project = new Project(context.projectPath);
     const calculate = new Calculate(project);
 
-    const resourceNameToPath = (name: string, ending: string) => {
+    const resourceNameToPath = (name: string, fileName: string) => {
       const { identifier, prefix, type } = resourceNameParts(name);
       if (prefix === project.projectPrefix) {
-        return join(project.paths.resourcesFolder, type, identifier, ending);
+        return join(project.paths.resourcesFolder, type, identifier, fileName);
       }
       return join(
         project.paths.modulesFolder,
         prefix,
         type,
         identifier,
-        ending,
+        fileName,
       );
     };
 
-    const options = this.validate(data);
+    const options = this.parseOptions(data);
 
     let schema: Schema | null = null;
     try {
@@ -118,7 +117,7 @@ class ReportMacro extends BaseMacro {
     return createImage(result);
   };
 
-  private validate(data: string): GraphOptions {
+  private parseOptions(data: string): GraphOptions {
     if (!data || typeof data !== 'string') {
       throw new Error('Graph macro requires a JSON object as data');
     }
