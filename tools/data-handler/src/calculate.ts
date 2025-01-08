@@ -52,6 +52,7 @@ export class Calculate {
 
   private logicBinaryName: string = 'clingo';
   private clingGraphBinary: string = 'clingraph';
+  private pythonBinary: string = 'python';
   private static importResourcesFileName: string = 'resourceImports.lp';
   private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
@@ -597,12 +598,23 @@ export class Calculate {
       `--name-format=${randomId}`,
       `--dir=${this.project.paths.tempFolder}`,
     ];
-    spawnSync(this.clingGraphBinary, clingGraphArgs, {
-      encoding: 'utf8',
-      input: firstLine,
-      timeout,
-      maxBuffer: 1024 * 1024 * 100,
-    });
+
+    // python is only used for windows
+    const pythonArgs = [
+      '-c',
+      `from clingraph import main;import sys; sys.argv = [sys.argv[0], ${clingGraphArgs.map((arg) => `"${arg}"`).join(',')}];sys.exit(main())`,
+    ];
+
+    spawnSync(
+      process.platform === 'win32' ? this.pythonBinary : this.clingGraphBinary,
+      process.platform === 'win32' ? pythonArgs : clingGraphArgs,
+      {
+        encoding: 'utf8',
+        input: firstLine,
+        timeout,
+        maxBuffer: 1024 * 1024 * 100,
+      },
+    );
 
     const filePath = join(this.project.paths.tempFolder, randomId);
 
