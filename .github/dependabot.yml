@@ -8,17 +8,17 @@ updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/data-handler" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/cli" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/app" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
