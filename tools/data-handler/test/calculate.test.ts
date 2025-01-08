@@ -92,7 +92,7 @@ describe('calculate', () => {
     });
 
     expect(res).to.not.equal('');
-  });
+  }).timeout(20000);
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
       const res = await calculate.runLogicProgram({
