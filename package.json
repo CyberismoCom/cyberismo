@@ -25,6 +25,7 @@
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "script:schemas": "node scripts/generateSchemaImports && prettier --write tools/data-handler/src/utils/schemas.ts",
-    "dev": "concurrently \"pnpm --filter app dev\" \"pnpm --filter data-handler watch\""
+    "dev": "concurrently \"pnpm --filter app dev\" \"pnpm --filter data-handler watch\"",
+    "build-docker": "docker build -t cyberismo ."
   }
 }
