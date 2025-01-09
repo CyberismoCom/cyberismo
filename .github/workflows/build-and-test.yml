@@ -58,9 +58,6 @@ jobs:
         repository: CyberismoCom/cyberismo-docs
         path: .tmp/cyberismo-docs
         ref: main
-  
-    - name: Check Clingo Availability
-      run: which clingo
     - run: pnpm install
     - run: pnpm --filter=app exec cypress install
     - run: pnpm prettier-check

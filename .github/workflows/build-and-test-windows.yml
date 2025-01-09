@@ -32,9 +32,6 @@ jobs:
         auto-update-conda: true
         activate-environment: test-env
         environment-file: environment.yml
-
-    - name: Check Clingo Availability
-      run: which clingo
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
