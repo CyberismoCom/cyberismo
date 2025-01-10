@@ -94,7 +94,7 @@ export interface Report extends ResourceBaseMetadata {
 }
 
 // Metadata for report
-export interface ReportMetadata {
+export interface ReportMetadata extends ResourceBaseMetadata {
   displayName: string;
   description: string;
   category: string;

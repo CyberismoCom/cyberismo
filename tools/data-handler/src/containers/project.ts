@@ -151,6 +151,7 @@ export class Project extends CardContainer {
   }
 
   // Returns (local or all) resources of a given type.
+  // todo: if ResourceFolderType would be plural; this whole function could just be: "return this.resources(type. from);"
   private async resourcesOfType(
     type: ResourceFolderType,
     from: ResourcesFrom = ResourcesFrom.localOnly,
@@ -459,7 +460,7 @@ export class Project extends CardContainer {
       return undefined;
     }
     template.name = resourceNameToString(resourceName(template.name));
-    if (!(await this.templateExists(template.name))) {
+    if (!(await this.resourceExists('template', template.name))) {
       return undefined;
     }
 
@@ -645,28 +646,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns specific link type path
-   * @param linkTypeName Name of the linkType
-   * @returns link type path.
-   */
-  public async linkTypePath(linkTypeName: string): Promise<string | undefined> {
-    if (!linkTypeName) {
-      return undefined;
-    }
-    if (!linkTypeName.endsWith('.json')) {
-      linkTypeName += '.json';
-    }
-    const found = (await this.linkTypes()).find(
-      (item) => item.name === linkTypeName && item.path,
-    );
-
-    if (!found || !found.path) {
-      return undefined;
-    }
-    return join(found.path, basename(found.name));
-  }
-
-  /**
    * Returns specific link type metadata.
    * @param linkTypeName Name of the linkType
    * @returns link type metadata.
@@ -755,14 +734,14 @@ export class Project extends CardContainer {
         linkTypes: [
           ...(await this.resources.collectResourcesFromModules('linkTypes')),
         ],
+        reports: [
+          ...(await this.resources.collectResourcesFromModules('reports')),
+        ],
         templates: [
           ...(await this.resources.collectResourcesFromModules('templates')),
         ],
         workflows: [
           ...(await this.resources.collectResourcesFromModules('workflows')),
-        ],
-        reports: [
-          ...(await this.resources.collectResourcesFromModules('reports')),
         ],
       };
     }
@@ -878,14 +857,14 @@ export class Project extends CardContainer {
     }
 
     const metadata = await readJsonFile(
-      join(found.path, basename(found.name), 'report.json'),
+      join(found.path, basename(found.name)) + '.json',
     );
 
     const folder = join(found.path, basename(found.name));
     const schemaPath = join(folder, 'parameterSchema.json');
 
     return {
-      name: '', //todo: fill in name
+      name: found.name,
       metadata,
       contentTemplate: (
         await readFile(join(folder, 'index.adoc.hbs'))
@@ -971,9 +950,7 @@ export class Project extends CardContainer {
       resourceType,
       ResourcesFrom.all,
     );
-    const resource = resources.find(
-      (item) => item.name === name + '.json' || item.name === name,
-    );
+    const resource = resources.find((item) => item.name === name);
     return resource !== undefined;
   }
 
@@ -1032,10 +1009,8 @@ export class Project extends CardContainer {
     templateName: string,
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource | undefined> {
-    return (
-      (await this.templates(from)).find(
-        (item) => item.name === templateName && item.path,
-      ) || undefined
+    return (await this.templates(from)).find(
+      (item) => item.name === templateName && item.path,
     );
   }
 
@@ -1057,15 +1032,6 @@ export class Project extends CardContainer {
       }
     }
     return cards;
-  }
-
-  /**
-   * Indicates if a template exists in a project.
-   * @param templateName Name of a template
-   * @returns true, if template named 'templateName' exists in project; false otherwise.
-   */
-  public async templateExists(templateName: string): Promise<boolean> {
-    return this.resources.resourceExists('templates', templateName);
   }
 
   /**

@@ -184,7 +184,7 @@ describe('template', () => {
     expect(join(templateMain, 'c')).to.equal(templateCards);
     expect(templateCards).to.contain(`decision${sep}c`);
     expect(specificCardPath).to.contain(`decision${sep}c${sep}decision_1`);
-    expect(configFile).to.contain('template.json');
+    expect(configFile).to.contain('decision.json');
   });
   it('add card to a template', async () => {
     const template = new Template(project, {

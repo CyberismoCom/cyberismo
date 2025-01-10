@@ -29,6 +29,7 @@ import {
   CardType,
   FieldType,
   LinkType,
+  ReportMetadata,
   Workflow,
 } from './interfaces/resource-interfaces.js';
 
@@ -591,6 +592,7 @@ export class Commands {
       | LinkType
       | ModuleSettings
       | ProjectMetadata
+      | ReportMetadata
       | TemplateConfiguration
       | Workflow
       | string[]
@@ -644,6 +646,12 @@ export class Commands {
       case 'project':
         promise = this.commands!.showCmd.showProject();
         break;
+      case 'report':
+        promise = this.commands!.showCmd.showReport(detail);
+        break;
+      case 'reports':
+        promise = this.commands!.showCmd.showReports();
+        break;
       case 'template':
         promise = this.commands!.showCmd.showTemplate(detail);
         break;
@@ -653,13 +661,9 @@ export class Commands {
       case 'workflows':
         promise = this.commands!.showCmd.showWorkflows();
         break;
-      case 'reports':
-        promise = this.commands!.showCmd.showReports();
-        break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
       case 'links': // fallthrough - not implemented yet
-      case 'report': // fallthrough - not implemented yet
       case 'projects': // fallthrough - not possible
       case 'label':
       default:

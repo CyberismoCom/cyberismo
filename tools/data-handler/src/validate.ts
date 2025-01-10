@@ -72,11 +72,9 @@ export class Validate {
   static parentSchemaFile: string;
   static schemaConfigurationFile = '.schema';
   static projectConfigurationFile = 'cardsConfig.json';
-  static templateMetadataFile = 'template.json';
   static cardMetadataFile = 'index.json';
   static dotSchemaSchemaId = 'dotSchema';
   static parameterSchemaFile = 'parameterSchema.json';
-  static reportMetadataFile = 'report.json';
 
   constructor() {
     Validate.baseFolder = pathExists(
@@ -193,7 +191,6 @@ export class Validate {
       if (!schema) {
         throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
       }
-
       const result = this.validator.validate(content, schema);
       for (const error of result.errors) {
         const msg = `Validation error from '${fullPath}': ${error.message}.`;
@@ -351,18 +348,24 @@ export class Validate {
     // Exclude cardsConfig.json, .schemas and resource specific JSON files.
     if (
       file.name !== Validate.projectConfigurationFile &&
-      file.name !== Validate.templateMetadataFile &&
       file.name !== Validate.cardMetadataFile &&
       file.name !== Validate.dotSchemaSchemaId &&
-      file.name !== Validate.parameterSchemaFile &&
-      file.name !== Validate.reportMetadataFile
+      file.name !== Validate.parameterSchemaFile
     ) {
       const namedContent = content as
         | CardType
         | CustomField
         | FieldType
         | LinkType
+        | ReportMetadata
+        | TemplateMetadata
         | Workflow;
+      if (!namedContent.name) {
+        errors.push(
+          `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,
+        );
+        return errors;
+      }
       const { identifier, prefix, type } = resourceName(namedContent.name);
       const filenameWithoutExtension = parse(file.name).name;
 

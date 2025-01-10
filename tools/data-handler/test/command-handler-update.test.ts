@@ -31,20 +31,18 @@ describe('Update command tests', async () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('update folder file resource', async () => {
+  it('update file resource', async () => {
     const name = `${project.projectPrefix}/workflows/decision`;
-    const fileName = `${name}.json`;
-    const exists = await collector.resourceExists('workflows', fileName);
+    const exists = await collector.resourceExists('workflows', name);
+    const newName = `${project.projectPrefix}/workflows/newName`;
     expect(exists).to.equal(true);
 
-    const newName = `${project.projectPrefix}/workflows/newName`;
-
-    await update.updateValue(fileName, 'change', 'name', newName);
+    await update.updateValue(name, 'change', 'name', newName);
     collector.changed();
     const workflows = await project.workflows();
     let found = false;
     for (const wf of workflows) {
-      if (wf.name === newName + '.json') {
+      if (wf.name === newName) {
         found = true;
       }
     }
@@ -97,7 +95,6 @@ describe('Update command tests', async () => {
     });
     if (found) {
       indexBefore = before.customFields.indexOf(found);
-      console.error(indexBefore);
     }
 
     await update.updateValue(
@@ -119,15 +116,14 @@ describe('Update command tests', async () => {
     expect(indexAfter).to.equal(moveToIndex);
   });
 
-  it('try to update folder file resource with invalid data', async () => {
+  it('try to update file resource with invalid data', async () => {
     const name = `${project.projectPrefix}/workflows/simple`;
-    const fileName = `${name}.json`;
-    const exists = await collector.resourceExists('workflows', fileName);
+    const exists = await collector.resourceExists('workflows', name);
+    const invalidName = `${project.projectPrefix}/workflows/newName111`;
     expect(exists).to.equal(true);
 
-    const invalidName = `${project.projectPrefix}/workflows/newName111`;
     await update
-      .updateValue(fileName, 'change', 'name', invalidName)
+      .updateValue(name, 'change', 'name', invalidName)
       .then(() => {
         expect(false).to.equal(true);
       })

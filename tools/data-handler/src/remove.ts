@@ -46,12 +46,13 @@ export class Remove extends EventEmitter {
       type === 'workflow'
     );
   }
-  // True, if resource is based on a content of folder with multiple files.
+  // True, if resource has data in its folder in addition to the metadata file.
   private folderBasedResource(type: RemovableResourceTypes): boolean {
     return type === 'report' || type === 'template';
   }
 
   // Remove folder-based resource (template, report, ...).
+  // todo: can be removed when reports and templates are made to ResourceObjects.
   private async deleteFolderResource(name: string) {
     const { type } = resourceName(name);
     let resources: Resource[];
@@ -78,7 +79,7 @@ export class Remove extends EventEmitter {
     if (resourcePath.includes(MODULES_PATH)) {
       throw new Error(`Cannot modify imported module`);
     }
-
+    await deleteFile(resourcePath + '.json');
     await deleteDir(resourcePath);
     this.project.removeResource(resource);
   }

@@ -166,6 +166,22 @@
                           "type": "object",
                           "properties": {
                             "additionalProperties": false,
+                            "files": {
+                              "$comment": "reports folder can contain report configuration files (<name>.json), or .gitkeep",
+                              "type": "object",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                "^[A-Za-z-_]+.json$": {
+                                  "type": "object"
+                                },
+                                "^.schema$": {
+                                  "type": "object"
+                                },
+                                "^.gitkeep$": {
+                                  "type": "object"
+                                }
+                              }
+                            },
                             "directories": {
                               "type": "object",
                               "additionalProperties": false,
@@ -182,18 +198,17 @@
                                         "query.lp.hbs": {
                                           "type": "object"
                                         },
-                                        "report.json": {
-                                          "type": "object",
-                                          "contentSchema": "reportSchema.json"
-                                        },
                                         "parametersSchema.json": {
+                                          "type": "object"
+                                        },
+                                        ".schema": {
                                           "type": "object"
                                         }
                                       },
                                       "required": [
+                                        ".schema",
                                         "index.adoc.hbs",
-                                        "query.lp.hbs",
-                                        "report.json"
+                                        "query.lp.hbs"
                                       ]
                                     }
                                   }
@@ -258,68 +273,7 @@
                           }
                         },
                         "templates": {
-                          "type": "object",
-                          "properties": {
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                ".+": {
-                                  "type": "object",
-                                  "properties": {
-                                    "directories": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "properties": {
-                                        "c": {
-                                          "description": "Each subdirectory is a card.",
-                                          "type": "object",
-                                          "properties": {
-                                            "directories": {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "patternProperties": {
-                                                "^[a-z]+_[0-9a-z]+$": {
-                                                  "$ref": "#/$defs/cardDirectorySchema#"
-                                                }
-                                              }
-                                            },
-                                            "files": {
-                                              "type": "object",
-                                              "additionalProperties": false,
-                                              "properties": {
-                                                ".schema": {}
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "files": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "properties": {
-                                        ".schema": {},
-                                        ".gitkeep": {},
-                                        "template.json": {
-                                          "type": "object",
-                                          "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                          "contentSchema": "templateSchema.json"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            },
-                            "files": {
-                              "type": "object",
-                              "properties": {
-                                ".gitkeep": {}
-                              },
-                              "additionalProperties": false
-                            }
-                          }
+                          "$ref": "#/$defs/templatesSchema"
                         },
                         "workflows": {
                           "type": "object",
@@ -600,63 +554,7 @@
                       }
                     },
                     "templates": {
-                      "type": "object",
-                      "properties": {
-                        "additionalProperties": false,
-                        "directories": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "patternProperties": {
-                            ".+": {
-                              "type": "object",
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    "c": {
-                                      "description": "Each subdirectory is a card.",
-                                      "type": "object",
-                                      "properties": {
-                                        "directories": {
-                                          "type": "object",
-                                          "additionalProperties": false,
-                                          "patternProperties": {
-                                            "^[a-z]+_[0-9a-z]+$": {
-                                              "$ref": "#/$defs/cardDirectorySchema#"
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "required": ["c"]
-                                },
-                                "files": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "properties": {
-                                    ".gitkeep": {},
-                                    ".schema": {},
-                                    "template.json": {
-                                      "type": "object",
-                                      "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                      "contentSchema": "templateSchema.json"
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        "files": {
-                          "type": "object",
-                          "properties": {
-                            ".gitkeep": {}
-                          },
-                          "additionalProperties": false
-                        }
-                      }
+                      "$ref": "#/$defs/templatesSchema"
                     },
                     "workflows": {
                       "type": "object",
@@ -745,6 +643,101 @@
           }
         }
       }
+    },
+    "templatesSchema": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                ".+": {
+                  "type": "object",
+                  "allOf": [
+                    {
+                      "properties": {
+                        "directories": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "c": {
+                              "description": "Each subdirectory is a card.",
+                              "type": "object",
+                              "properties": {
+                                "directories": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "patternProperties": {
+                                    "^[a-z]+_[0-9a-z]+$": {
+                                      "$ref": "#/$defs/cardDirectorySchema#"
+                                    }
+                                  }
+                                },
+                                "files": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    ".schema": {}
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "properties": {
+                        "files": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            ".gitkeep": {}
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "$comment": "templates folder can contain template configuration files (<name>.json), content schema files (.schema) or .gitkeep",
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^[A-Za-z-_]+.json$": {
+                  "type": "object"
+                },
+                "^.schema$": {
+                  "type": "object"
+                },
+                "^.gitkeep$": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
+          }
+        }
+      ]
     }
   }
 }

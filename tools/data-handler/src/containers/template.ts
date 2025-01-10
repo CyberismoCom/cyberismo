@@ -494,7 +494,10 @@ export class Template extends CardContainer {
               templateContent,
             ),
             writeJsonFile(
-              join(this.templatePath, Project.schemaContentFile),
+              join(
+                this.project.paths.templatesFolder,
+                Project.schemaContentFile,
+              ),
               Template.DotSchemaContentForTemplate,
             ),
             writeJsonFile(
@@ -606,11 +609,14 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Path to template.json file.
+   * Path to template configuration json file.
    * @returns path to the template's configuration file.
    */
   public templateConfigurationFilePath(): string {
-    return join(this.templatePath, 'template.json');
+    return join(
+      this.project.paths.templatesFolder,
+      this.containerName + '.json',
+    );
   }
 
   /**
