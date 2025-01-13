@@ -607,7 +607,7 @@ export class Calculate {
         .join(',')}]; sys.exit(main())`,
     ];
 
-    spawnSync(
+    const clingraph = spawnSync(
       process.platform === 'win32' ? this.pythonBinary : this.clingGraphBinary,
       process.platform === 'win32' ? pythonArgs : clingGraphArgs,
       {
@@ -618,23 +618,22 @@ export class Calculate {
       },
     );
 
+    if (clingraph.status !== 0) {
+      throw new Error(`Graph: Failed to run clingraph ${clingraph.stderr}`);
+    }
+
     const filePath = join(this.project.paths.tempFolder, randomId);
 
     let fileData;
     try {
       fileData = await readFile(filePath + '.png');
-      await rm(filePath + '.png');
     } catch (e) {
       throw new Error(
-        `Graph: Failed to read image file after generating grape: ${e}`,
+        `Graph: Failed to read image file after generating graph: ${e}`,
       );
-    }
-
-    // Another file without the extension is also generated
-    try {
+    } finally {
       if (pathExists(filePath)) await rm(filePath);
-    } catch (err) {
-      logger.debug(err, 'Failed to remove generated graph file');
+      if (pathExists(filePath + '.png')) await rm(filePath + '.png');
     }
 
     return fileData.toString('base64');
