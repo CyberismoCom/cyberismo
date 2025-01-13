@@ -1,0 +1,17 @@
+{
+  "title": "Graph",
+  "$id": "graphMacroBaseSchema",
+  "description": "A graph object provides suppplemental information about a graph",
+  "type": "object",
+  "properties": {
+    "model": {
+      "description": "Model",
+      "type": "string"
+    },
+    "view": {
+      "description": "View",
+      "type": "string"
+    }
+  },
+  "required": ["model", "view"]
+}

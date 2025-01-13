@@ -26,7 +26,7 @@ export interface MacroContext {
   preview: boolean;
 }
 
-export type UIMacroName = Exclude<MacroName, 'report'>;
+export type UIMacroName = Exclude<MacroName, 'report' | 'graph'>;
 
 export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,

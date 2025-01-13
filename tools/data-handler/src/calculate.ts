@@ -12,7 +12,7 @@
 
 // node
 import path, { basename, join, resolve } from 'node:path';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -44,12 +44,15 @@ import {
   createWorkflowFacts,
 } from './utils/clingo-facts.js';
 import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
+import { generateRandomString } from './utils/random.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
+  private clingGraphBinary: string = 'clingraph';
+  private pythonBinary: string = 'python';
   private static importResourcesFileName: string = 'resourceImports.lp';
   private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
@@ -437,7 +440,6 @@ export class Calculate {
       throw new Error(`Query file ${queryName} not found`);
     }
 
-    // load file and
     let content = (await readFile(query)).toString();
 
     if (options && typeof options === 'object') {
@@ -446,30 +448,38 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const result = await this.run({
+    const clingoOutput = await this.run({
       query: content,
     });
+
+    const result = await this.parseClingoResult(clingoOutput);
 
     if (result.error) {
       throw new Error(result.error);
     }
     return result.results as QueryResult<T>[];
   }
-
   /**
-   * Runs a logic program.
+   * Runs a logic program using clingo.
    *
    * @param filePath Path to a query file to be run in relation to current working directory
    * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
-  public async run(
+  public async runLogicProgram(data: { query?: string; file?: string }) {
+    const clingoOutput = await this.run(data);
+
+    return this.parseClingoResult(clingoOutput);
+  }
+
+  private async run(
     data: {
       query?: string;
       file?: string;
     },
+    argMode: 'graph' | 'query' = 'query',
     timeout: number = 5000,
-  ): Promise<ParseResult<BaseResult>> {
+  ): Promise<string> {
     const main = join(
       this.project.paths.calculationFolder,
       Calculate.mainLogicFileName,
@@ -485,74 +495,147 @@ export class Calculate {
       );
     }
 
-    const args = ['-', '--outf=0', '--out-ifs=\\n', '-V0', main, queryLanguage];
+    const args = ['-', '--outf=0', '-V0', '--warn=none'];
+
+    if (argMode === 'graph') {
+      args.push('--out-atomf=%s.');
+    } else {
+      args.push('--out-ifs=\\n');
+      args.push(queryLanguage);
+    }
+    args.push(main);
+
     if (data.file) {
       args.push(data.file);
     }
-
-    return Calculate.mutex.runExclusive(async () => {
-      const clingo = spawnSync(this.logicBinaryName, args, {
+    const clingo = await Calculate.mutex.runExclusive(async () => {
+      return spawnSync(this.logicBinaryName, args, {
         encoding: 'utf8',
         input: data.query,
         timeout,
         maxBuffer: 1024 * 1024 * 100,
       });
-      logger.trace(
-        {
-          args,
-          query: data.query,
-        },
-        `Ran command`,
-      );
-
-      if (clingo.stdout) {
-        logger.trace({
-          stdout: clingo.stdout,
-          stderr: clingo.stderr,
-        });
-        return this.parseClingoResult(clingo.stdout);
-      }
-
-      if (clingo.stderr && clingo.status) {
-        const code = clingo.status;
-        // clingo's exit codes are bitfields. todo: move these somewhere
-        const clingo_process_exit = {
-          E_UNKNOWN: 0,
-          E_INTERRUPT: 1,
-          E_SAT: 10,
-          E_EXHAUST: 20,
-          E_MEMORY: 33,
-          E_ERROR: 65,
-          E_NO_RUN: 128,
-        };
-        // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
-        if (
-          !(
-            code & clingo_process_exit.E_SAT &&
-            code & clingo_process_exit.E_EXHAUST
-          )
-        ) {
-          if (code & clingo_process_exit.E_ERROR) {
-            console.error('Error');
-          }
-          if (code & clingo_process_exit.E_INTERRUPT) {
-            console.error('Interrupted');
-          }
-          if (code & clingo_process_exit.E_MEMORY) {
-            console.error('Out of memory');
-          }
-          if (code & clingo_process_exit.E_NO_RUN) {
-            console.error('Not run');
-          }
-          if (code & clingo_process_exit.E_UNKNOWN) {
-            console.error('Unknown error');
-          }
-        }
-        throw new Error(clingo.stderr);
-      }
-      throw new Error(
-        'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
-      );
     });
+    logger.trace(
+      {
+        args,
+        query: data.query,
+      },
+      `Ran command`,
+    );
+
+    if (clingo.stdout) {
+      logger.trace({
+        stdout: clingo.stdout,
+        stderr: clingo.stderr,
+      });
+      return clingo.stdout;
+    }
+
+    if (clingo.stderr && clingo.status) {
+      const code = clingo.status;
+      // clingo's exit codes are bitfields. todo: move these somewhere
+      const clingo_process_exit = {
+        E_UNKNOWN: 0,
+        E_INTERRUPT: 1,
+        E_SAT: 10,
+        E_EXHAUST: 20,
+        E_MEMORY: 33,
+        E_ERROR: 65,
+        E_NO_RUN: 128,
+      };
+      // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
+      if (
+        !(
+          code & clingo_process_exit.E_SAT &&
+          code & clingo_process_exit.E_EXHAUST
+        )
+      ) {
+        if (code & clingo_process_exit.E_ERROR) {
+          console.error('Error');
+        }
+        if (code & clingo_process_exit.E_INTERRUPT) {
+          console.error('Interrupted');
+        }
+        if (code & clingo_process_exit.E_MEMORY) {
+          console.error('Out of memory');
+        }
+        if (code & clingo_process_exit.E_NO_RUN) {
+          console.error('Not run');
+        }
+        if (code & clingo_process_exit.E_UNKNOWN) {
+          console.error('Unknown error');
+        }
+      }
+      throw new Error(clingo.stderr);
+    }
+    throw new Error(
+      'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
+    );
+  }
+
+  /**
+   * Runs given logic program and creates a graph using clingraph
+   * @param data Provide a query or/and a file which can be given to clingraph
+   * @param timeout Maximum amount of milliseconds clingraph is allowed to run
+   * @returns a base64 encoded image as a string
+   */
+  public async runGraph(
+    data: { query?: string; file?: string },
+    timeout?: number,
+  ) {
+    const clingoOutput = await this.run(data, 'graph');
+
+    const firstLine = clingoOutput.split('\n')[0];
+
+    // unlikely we ever get a collision
+    const randomId = generateRandomString(36, 20);
+
+    const clingGraphArgs = [
+      '--out=render',
+      '--format=png',
+      '--type=digraph',
+      `--name-format=${randomId}`,
+      `--dir=${this.project.paths.tempFolder}`,
+    ];
+
+    // python is only used for windows
+    const pythonArgs = [
+      '-c',
+      `from clingraph import main; import sys; sys.argv = ["sys.argv[0]", ${clingGraphArgs
+        .map((arg) => `'${arg.replace(/\\/g, '\\\\')}'`)
+        .join(',')}]; sys.exit(main())`,
+    ];
+
+    const clingraph = spawnSync(
+      process.platform === 'win32' ? this.pythonBinary : this.clingGraphBinary,
+      process.platform === 'win32' ? pythonArgs : clingGraphArgs,
+      {
+        encoding: 'utf8',
+        input: firstLine,
+        timeout,
+        maxBuffer: 1024 * 1024 * 100,
+      },
+    );
+
+    if (clingraph.status !== 0) {
+      throw new Error(`Graph: Failed to run clingraph ${clingraph.stderr}`);
+    }
+
+    const filePath = join(this.project.paths.tempFolder, randomId);
+
+    let fileData;
+    try {
+      fileData = await readFile(filePath + '.png');
+    } catch (e) {
+      throw new Error(
+        `Graph: Failed to read image file after generating graph: ${e}`,
+      );
+    } finally {
+      if (pathExists(filePath)) await rm(filePath);
+      if (pathExists(filePath + '.png')) await rm(filePath + '.png');
+    }
+
+    return fileData.toString('base64');
   }
 }

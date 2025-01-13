@@ -85,45 +85,53 @@ describe('calculate', () => {
 
     expect(res).to.deep.equal(expectedTree);
   });
+  it('run clingraph successfully', async () => {
+    const res = await calculate.runGraph({
+      query: 'viewAll.',
+      file: '../../calculations/test/model.lp',
+    });
+
+    expect(res).to.not.equal('');
+  }).timeout(20000);
   describe('python functions', () => {
     it('concatenate a string, a number and a constant', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@concatenate("string", 1234, constant)).',
       });
       expect(res.results[0].key).to.equal('string1234constant');
     });
     it('concatenate without parameters', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@concatenate()).',
       });
       expect(res.results[0].key).to.equal('');
     });
     it('concatenate with 1 parameter', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@concatenate("parameter")).',
       });
       expect(res.results[0].key).to.equal('parameter');
     });
     it('concatenate with 2 parameters', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@concatenate("one", "two")).',
       });
       expect(res.results[0].key).to.equal('onetwo');
     });
     it('calculate daysSince 2024-01-01', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@daysSince("2024-01-01")).',
       });
       expect(Number(res.results[0].key)).greaterThan(365);
     });
     it('daysSince of an invalid date should be zero', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@daysSince("23232323")).',
       });
       expect(Number(res.results[0].key)).to.equal(0);
     });
     it('daysSince of a number date should be zero', async () => {
-      const res = await calculate.run({
+      const res = await calculate.runLogicProgram({
         query: 'result(@daysSince(1)).',
       });
       expect(Number(res.results[0].key)).to.equal(0);
