@@ -13,7 +13,7 @@
 import { join } from 'node:path';
 
 import { ResourceFolderType } from '../../interfaces/project-interfaces.js';
-import { resourceNameParts } from '../../utils/resource-utils.js';
+import { resourceName } from '../../utils/resource-utils.js';
 
 /**
  * Handles paths for a project.
@@ -103,14 +103,14 @@ export class ProjectPaths {
   /**
    * Returns valid name of a resource.
    * @param resourceType Type of resource
-   * @param resourceName Resource name
+   * @param name Resource name
    * @returns name of a resource (prefix/type/name)
    */
   public resourceFullName(
     resourceType: ResourceFolderType,
-    resourceName: string,
+    name: string,
   ): string {
-    const { identifier, prefix, type } = resourceNameParts(resourceName);
+    const { identifier, prefix, type } = resourceName(name);
     const actualPrefix = prefix ? prefix : this.prefix;
     const actualType = type ? type : `${resourceType}s`;
     return `${actualPrefix}/${actualType}s/${identifier}`;

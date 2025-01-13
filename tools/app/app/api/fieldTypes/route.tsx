@@ -50,7 +50,7 @@ export async function GET() {
   if (response) {
     const fieldTypes = await Promise.all(
       response.map((fieldType: string) =>
-        commands.showCmd.showFieldType(fieldType),
+        commands.showCmd.showResource(fieldType),
       ),
     );
 

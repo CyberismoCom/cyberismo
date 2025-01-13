@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
-import { Create } from '../src/create.js';
 import { Calculate } from '../src/calculate.js';
 import { DefaultContent } from '../src/create-defaults.js';
 import { CardListContainer } from '../src/interfaces/project-interfaces.js';
+import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -324,7 +324,7 @@ describe('create command', () => {
       ['fieldTypes'],
       optionsMini,
     );
-    const fieldTypes = Create.supportedFieldTypes();
+    const fieldTypes = FieldTypeResource.fieldTypes();
     for (const fieldType of fieldTypes) {
       const name = `ft_${fieldType}`;
       const result = await commandHandler.command(

@@ -160,28 +160,28 @@ describe('show', () => {
     const results = await showCmd.showProjectCards();
     expect(results).to.not.equal(undefined);
   });
-  it('showCardTypeDetails (success)', async () => {
+  it('showResource - card type (success)', async () => {
     const cardType = 'decision/cardTypes/decision';
-    const results = await showCmd.showCardTypeDetails(cardType);
+    const results = await showCmd.showResource(cardType);
     expect(results).to.not.equal(undefined);
   });
-  it('showCardTypeDetails - no cardType', async () => {
+  it('showResource - empty cardType', async () => {
     const cardType = '';
     await showCmd
-      .showCardTypeDetails(cardType)
+      .showResource(cardType)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Must define card type name to query its details.`,
+          `Must define resource name to query its details`,
         ),
       );
   });
-  it('showCardTypeDetails - card type does not exist in project', async () => {
-    const cardType = 'my-card-type';
+  it('showResource - card type does not exist in project', async () => {
+    const cardType = 'decision/cardTypes/my-card-type';
     await showCmd
-      .showCardTypeDetails(cardType)
+      .showResource(cardType)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Card type 'my-card-type' not found from the project.`,
+          `CardType '${cardType}' does not exist in the project`,
         ),
       );
   });
@@ -197,18 +197,18 @@ describe('show', () => {
     const results = await showCmd.showFieldTypes();
     expect(results).to.not.equal(undefined);
   });
-  it('showFieldType (success)', async () => {
+  it('showResource - field type (success)', async () => {
     const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
-    const results = await showCmd.showFieldType(fieldTypeName);
+    const results = await showCmd.showResource(fieldTypeName);
     expect(results).to.not.equal(undefined);
   });
-  it('showFieldType (success)', async () => {
-    const fieldTypeName = 'i-do-not-exist';
+  it('showResource - field type does not exist', async () => {
+    const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
     await showCmd
-      .showFieldType(fieldTypeName)
+      .showResource(fieldTypeName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Field type 'i-do-not-exist' not found from the project.`,
+          `FieldType '${fieldTypeName}' does not exist in the project`,
         ),
       );
   });
@@ -216,18 +216,18 @@ describe('show', () => {
     const results = await showCmd.showLinkTypes();
     expect(results).to.not.equal(undefined);
   });
-  it('showLinkType (success)', async () => {
+  it('showResource - link type (success)', async () => {
     const fieldTypeName = 'decision/linkTypes/test';
-    const results = await showCmd.showLinkType(fieldTypeName);
+    const results = await showCmd.showResource(fieldTypeName);
     expect(results).to.not.equal(undefined);
   });
-  it('try showLinkType', async () => {
-    const linkTypeName = 'i-do-not-exist';
+  it('try showResource - link type does not exist', async () => {
+    const linkTypeName = 'decision/linkTypes/i-do-not-exist';
     await showCmd
-      .showLinkType(linkTypeName)
+      .showResource(linkTypeName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Link type 'i-do-not-exist' not found from the project.`,
+          `LinkType '${linkTypeName}' does not exist in the project`,
         ),
       );
   });
@@ -286,28 +286,28 @@ describe('show', () => {
     const results = await showCmd.showTemplatesWithDetails();
     expect(results).to.not.equal(undefined);
   });
-  it('showWorkflow (success)', async () => {
+  it('showResource - workflow (success)', async () => {
     const workflowName = 'decision/workflows/decision';
-    const results = await showCmd.showWorkflow(workflowName);
+    const results = await showCmd.showResource(workflowName);
     expect(results).to.not.equal(undefined);
   });
-  it('showWorkflow - empty workflow name', async () => {
+  it('showResource - empty workflow name', async () => {
     const workflowName = '';
     await showCmd
-      .showWorkflow(workflowName)
+      .showResource(workflowName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Must define workflow name to query its details.`,
+          `Must define resource name to query its details`,
         ),
       );
   });
-  it('showWorkflow - workflow does not exist in project', async () => {
-    const workflowName = 'i-do-not-exist';
+  it('showResource - workflow does not exist in project', async () => {
+    const workflowName = 'decision/workflows/i-do-not-exist';
     await showCmd
-      .showWorkflow(workflowName)
+      .showResource(workflowName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Workflow 'i-do-not-exist' not found from the project.`,
+          `Workflow '${workflowName}' does not exist in the project`,
         ),
       );
   });
