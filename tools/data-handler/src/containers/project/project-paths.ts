@@ -13,7 +13,6 @@
 import { join } from 'node:path';
 
 import { ResourceFolderType } from '../../interfaces/project-interfaces.js';
-import { resourceName } from '../../utils/resource-utils.js';
 
 /**
  * Handles paths for a project.
@@ -26,14 +25,14 @@ export class ProjectPaths {
     private prefix: string,
   ) {
     this.pathMap = new Map([
-      ['calculation', this.calculationProjectFolder],
-      ['cardType', this.cardTypesFolder],
-      ['fieldType', this.fieldTypesFolder],
-      ['linkType', this.linkTypesFolder],
-      ['module', this.modulesFolder],
-      ['report', this.reportsFolder],
-      ['template', this.templatesFolder],
-      ['workflow', this.workflowsFolder],
+      ['calculations', this.calculationProjectFolder],
+      ['cardTypes', this.cardTypesFolder],
+      ['fieldTypes', this.fieldTypesFolder],
+      ['linkTypes', this.linkTypesFolder],
+      ['modules', this.modulesFolder],
+      ['reports', this.reportsFolder],
+      ['templates', this.templatesFolder],
+      ['workflows', this.workflowsFolder],
     ]);
   }
 
@@ -98,22 +97,6 @@ export class ProjectPaths {
 
   public get workflowsFolder(): string {
     return join(this.resourcesFolder, 'workflows');
-  }
-
-  /**
-   * Returns valid name of a resource.
-   * @param resourceType Type of resource
-   * @param name Resource name
-   * @returns name of a resource (prefix/type/name)
-   */
-  public resourceFullName(
-    resourceType: ResourceFolderType,
-    name: string,
-  ): string {
-    const { identifier, prefix, type } = resourceName(name);
-    const actualPrefix = prefix ? prefix : this.prefix;
-    const actualType = type ? type : `${resourceType}s`;
-    return `${actualPrefix}/${actualType}s/${identifier}`;
   }
 
   /**

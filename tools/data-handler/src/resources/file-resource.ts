@@ -39,8 +39,7 @@ import {
   resourceNameToString,
   resourceObjectToResource,
 } from '../utils/resource-utils.js';
-import { ResourceTypes } from '../interfaces/project-interfaces.js';
-import { singularType } from '../utils/common-utils.js';
+import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { Validate } from '../validate.js';
 
 export { type Operation, type ChangeOperation };
@@ -56,14 +55,14 @@ export class FileResource extends ResourceObject {
   constructor(
     project: Project,
     resourceName: ResourceName,
-    protected type: string,
+    protected type: ResourceFolderType,
   ) {
     super(project, resourceName);
   }
 
   // Type of resource.
-  private resourceType(): ResourceTypes {
-    return this.type as ResourceTypes;
+  private resourceType(): ResourceFolderType {
+    return this.type as ResourceFolderType;
   }
 
   // Initialize the resource.
@@ -75,9 +74,7 @@ export class FileResource extends ResourceObject {
       this.resourceName.prefix = this.project.projectPrefix;
     }
     if (this.type) {
-      this.resourceFolder = this.project.paths.resourcePath(
-        singularType(this.type),
-      );
+      this.resourceFolder = this.project.paths.resourcePath(this.type);
       this.fileName = resourceNameToPath(this.project, this.resourceName);
       this.moduleResource =
         this.resourceName.prefix !== this.project.projectPrefix;
@@ -100,7 +97,7 @@ export class FileResource extends ResourceObject {
         `${this.project.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
       );
       this.resourceFolder = this.project.paths.resourcePath(
-        singularType(this.resourceName.type),
+        this.resourceName.type as ResourceFolderType,
       );
     }
 
@@ -219,7 +216,7 @@ export class FileResource extends ResourceObject {
       await this.project.projectPrefixes(),
     );
     const newFilename = join(
-      this.project.paths.resourcePath(singularType(newName.type)),
+      this.project.paths.resourcePath(newName.type as ResourceFolderType),
       newName.identifier + '.json',
     );
     if (pathExists(newFilename)) {

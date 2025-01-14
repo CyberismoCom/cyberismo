@@ -10,8 +10,6 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ResourceFolderType } from '../interfaces/project-interfaces.js';
-
 /**
  * Makes deep comparison between two objects.
  * @param arg1 First object to compare.
@@ -40,14 +38,4 @@ export function deepCompare(arg1: object, arg2: object): boolean {
     return arg1 === arg2;
   }
   return false;
-}
-
-/**
- * Converts plural type name to singular
- * @type Type name to change.
- * @returns singular format of type name
- */
-export function singularType(type: string): ResourceFolderType {
-  // note that this only works with certain nouns
-  return type.substring(0, type.length - 1) as ResourceFolderType;
 }

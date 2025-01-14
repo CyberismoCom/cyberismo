@@ -72,13 +72,13 @@ describe('project', () => {
     if (templates) {
       for (const template of templates) {
         expect(
-          await project.resourceExists('template', template.name),
+          await project.resourceExists('templates', template.name),
         ).to.equal(true);
         const fetchTemplate = await project.template(template.name);
         expect(fetchTemplate).to.equal(template);
       }
     }
-    expect(await project.resourceExists('template', 'idontexist')).to.equal(
+    expect(await project.resourceExists('templates', 'idontexist')).to.equal(
       false,
     );
 

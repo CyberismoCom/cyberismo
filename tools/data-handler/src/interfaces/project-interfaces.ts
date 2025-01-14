@@ -147,14 +147,14 @@ export interface Resource {
 
 // Resources that have own folders.
 export type ResourceFolderType =
-  | 'calculation'
-  | 'cardType'
-  | 'fieldType'
-  | 'linkType'
-  | 'module'
-  | 'report'
-  | 'template'
-  | 'workflow';
+  | 'calculations'
+  | 'cardTypes'
+  | 'fieldTypes'
+  | 'linkTypes'
+  | 'modules'
+  | 'reports'
+  | 'templates'
+  | 'workflows';
 
 // All resource types; both singular and plural.
 export type ResourceTypes =

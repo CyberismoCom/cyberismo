@@ -151,20 +151,11 @@ export class Project extends CardContainer {
   }
 
   // Returns (local or all) resources of a given type.
-  // todo: if ResourceFolderType would be plural; this whole function could just be: "return this.resources(type. from);"
   private async resourcesOfType(
     type: ResourceFolderType,
     from: ResourcesFrom = ResourcesFrom.localOnly,
   ): Promise<Resource[]> {
-    if (type === 'calculation') return this.calculations(from);
-    if (type === 'cardType') return this.cardTypes(from);
-    if (type === 'fieldType') return this.fieldTypes(from);
-    if (type === 'linkType') return this.linkTypes(from);
-    if (type === 'module') return this.modules();
-    if (type === 'report') return this.reports(from);
-    if (type === 'template') return this.templates(from);
-    if (type === 'workflow') return this.workflows(from);
-    return [];
+    return this.resources.resources(type, from);
   }
 
   /**
@@ -460,7 +451,7 @@ export class Project extends CardContainer {
       return undefined;
     }
     template.name = resourceNameToString(resourceName(template.name));
-    if (!(await this.resourceExists('template', template.name))) {
+    if (!(await this.resourceExists('templates', template.name))) {
       return undefined;
     }
 

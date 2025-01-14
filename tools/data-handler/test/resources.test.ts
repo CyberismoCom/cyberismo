@@ -17,7 +17,10 @@ import { Validate } from '../src/validate.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { RemovableResourceTypes } from '../src/interfaces/project-interfaces.js';
+import {
+  RemovableResourceTypes,
+  ResourceFolderType,
+} from '../src/interfaces/project-interfaces.js';
 
 import { WorkflowResource } from '../src/resources/workflow-resource.js';
 import { CardTypeResource } from '../src/resources/card-type-resource.js';
@@ -238,7 +241,7 @@ describe('resources', () => {
       const collector = new ResourceCollector(project);
 
       async function checkResource(type: string) {
-        const resourceType = type;
+        const resourceType = type as ResourceFolderType;
         const removeType = resourceType.substring(0, resourceType.length - 1);
         const resourceCount = (await collector.resources(resourceType)).length;
         const nameForResource = `${project.projectPrefix}/${resourceType}/newOne`;
@@ -282,7 +285,7 @@ describe('resources', () => {
       collector.collectLocalResources();
 
       async function checkResource(type: string) {
-        const resourceType = type;
+        const resourceType = type as ResourceFolderType;
         const removeType = resourceType.substring(0, resourceType.length - 1);
         const resourceCount = (await collector.resources(resourceType)).length;
         const nameForResource = `${project.projectPrefix}/${resourceType}/newOne`;

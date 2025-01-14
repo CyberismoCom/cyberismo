@@ -588,7 +588,7 @@ export class Create extends EventEmitter {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
 
-    if (await this.project.resourceExists('template', templateName)) {
+    if (await this.project.resourceExists('templates', templateName)) {
       throw new Error(
         `Template '${templateName}' already exists in the project`,
       );
