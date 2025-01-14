@@ -76,11 +76,27 @@ export function registerMacros(
   for (const macro of Object.keys(macros) as MacroName[]) {
     const MacroClass = macros[macro];
     const macroInstance = new MacroClass(tasks);
-    instance.registerHelper(macro, (options) =>
-      macroInstance.invokeMacro(context, options),
-    );
+    instance.registerHelper(macro, function (this: unknown, options) {
+      if (
+        this != null &&
+        typeof this === 'object' &&
+        '__isRaw' in this &&
+        this.__isRaw
+      ) {
+        // we use escaped chars so that they will not be re-run
+        return `&#123;&#123;#${macro}&#125;&#125;${options.fn(this)}&#123;&#123;/${macro}&#125;&#125;`;
+      }
+      return macroInstance.invokeMacro(context, options);
+    });
     macroInstances.push(macroInstance);
   }
+
+  instance.registerHelper('raw', function (options) {
+    return options.fn({
+      __isRaw: true,
+    });
+  });
+
   return macroInstances;
 }
 /**
@@ -101,8 +117,8 @@ export function macroCount(input: string): number {
  */
 export function registerEmptyMacros(instance: typeof Handlebars) {
   for (const macro of Object.keys(macros) as MacroName[]) {
-    instance.registerHelper(macro, (options) => {
-      return `{{#${macro}}}${options.fn()}{{/${macro}}}`;
+    instance.registerHelper(macro, function (this: unknown, options) {
+      return `{{#${macro}}}${options.fn(this)}{{/${macro}}}`;
     });
   }
 }

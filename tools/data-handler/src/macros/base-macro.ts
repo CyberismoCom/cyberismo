@@ -11,6 +11,7 @@
 */
 
 import {
+  HandlebarsOptions,
   MacroGenerationContext,
   MacroMetadata,
   MacroTaskState,
@@ -87,11 +88,20 @@ abstract class BaseMacro {
   /**
    * Function responsible for starting the promise and storing it along with its localId.
    */
-  public invokeMacro = (context: MacroGenerationContext, options: any) => {
+  public invokeMacro = (
+    context: MacroGenerationContext,
+    options: HandlebarsOptions,
+  ) => {
     // Create a unique localId for each invocation
     const { placeholder, localId } = this.generatePlaceholder();
 
     const rawInput = options.fn(this);
+    let input = '{' + rawInput + '}';
+
+    if (context.mode === 'validate') {
+      this.handleValidate(JSON.parse(input));
+      return;
+    }
 
     // Extract dependencies
     const dependencies = this.findDependencies(rawInput);
@@ -99,7 +109,6 @@ abstract class BaseMacro {
     // Create a promise to resolve dependencies, execute the macro, and handle the results
     const promise = Promise.all(dependencies.map((dep) => dep.promise))
       .then(() => {
-        let input = '{' + rawInput + '}';
         for (const dependency of dependencies) {
           input = input.replace(
             dependency.placeholder,
@@ -109,7 +118,7 @@ abstract class BaseMacro {
         let parsed;
         try {
           parsed = JSON.parse(input);
-        } catch (err) {
+        } catch {
           return 'Invalid JSON';
         }
 
@@ -155,8 +164,6 @@ abstract class BaseMacro {
       promiseResult: null,
       macro: this.macroMetadata.name,
     });
-
-    console.log('New task', placeholder, this.macroMetadata.name);
     // Return the placeholder
     return placeholder;
   };

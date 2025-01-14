@@ -45,4 +45,10 @@ export interface MacroTaskState {
   macro: string;
 }
 
+// Handlebars options is not documented
+// It contains much more parameters and changed in different context
+export interface HandlebarsOptions {
+  fn: (arg0: unknown) => string;
+}
+
 export type MacroName = keyof typeof macroMetadata;
