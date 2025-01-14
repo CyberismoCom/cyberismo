@@ -12,16 +12,20 @@ import {
 } from '../../src/macros/index.js';
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
-import BaseMacro from '../../src/macros/BaseMacro.js';
+import BaseMacro from '../../src/macros/base-macro.js';
 import { MacroGenerationContext } from '../../src/interfaces/macros.js';
+import TaskQueue from '../../src/macros/task-queue.js';
 
 class TestMacro extends BaseMacro {
   constructor(schema: string) {
-    super({
-      name: 'testName',
-      tagName: 'test-tag-name',
-      schema,
-    });
+    super(
+      {
+        name: 'testName',
+        tagName: 'test-tag-name',
+        schema,
+      },
+      new TaskQueue(),
+    );
   }
 
   handleValidate = async (data: string) => {
@@ -162,11 +166,15 @@ describe('macros', () => {
   describe('registerMacros', () => {
     it('registerMacros (success)', () => {
       const handlebars = Handlebars.create();
-      registerMacros(handlebars, {
-        mode: 'inject',
-        projectPath: '',
-        cardKey: '',
-      });
+      registerMacros(
+        handlebars,
+        {
+          mode: 'inject',
+          projectPath: '',
+          cardKey: '',
+        },
+        new TaskQueue(),
+      );
       expect(handlebars.helpers).to.have.property('createCards');
       expect(handlebars.helpers).to.have.property('scoreCard');
       expect(handlebars.helpers).to.have.property('report');

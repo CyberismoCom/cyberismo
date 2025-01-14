@@ -10,39 +10,36 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  registerEmptyMacros,
-  registerMacroHelpers,
-  validateMacroContent,
-} from '../index.js';
+import { registerEmptyMacros, validateMacroContent } from '../index.js';
 
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
 import { Calculate } from '../../calculate.js';
 import Handlebars from 'handlebars';
-import BaseMacro from '../BaseMacro.js';
+import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
+import TaskQueue from '../task-queue.js';
 
 export interface ReportOptions extends Record<string, string> {
   name: string;
 }
 
 class ReportMacro extends BaseMacro {
-  constructor() {
-    super(macroMetadata);
+  constructor(tasksQueue: TaskQueue) {
+    super(macroMetadata, tasksQueue);
   }
-
-  handleValidate = (data: string) => {
-    this.validate(data);
+  handleValidate = (input: unknown) => {
+    this.validate(input);
   };
 
-  handleStatic = async (context: MacroGenerationContext, data: string) => {
+  handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     return this.handleInject(context, data);
   };
 
-  handleInject = async (context: MacroGenerationContext, data: string) => {
+  handleInject = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
+    console.log(options);
 
     const project = new Project(context.projectPath);
     const report = await project.report(options.name);
@@ -73,8 +70,8 @@ class ReportMacro extends BaseMacro {
     if (result.error) {
       throw new Error(result.error);
     }
+    // register empty macros so that other macros aren't touched yet
     registerEmptyMacros(handlebars);
-    registerMacroHelpers(handlebars);
 
     return handlebars.compile(report.contentTemplate)({
       ...handlebarsContext,
@@ -82,11 +79,7 @@ class ReportMacro extends BaseMacro {
     });
   };
 
-  private validate(data: string): ReportOptions {
-    if (!data || typeof data !== 'string') {
-      throw new Error('report macro requires a JSON object as data');
-    }
-
+  private validate(data: unknown): ReportOptions {
     return validateMacroContent<ReportOptions>(this.metadata, data);
   }
 }

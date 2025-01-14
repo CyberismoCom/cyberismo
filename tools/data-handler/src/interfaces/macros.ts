@@ -37,10 +37,12 @@ export interface MacroMetadata {
 }
 
 export interface MacroTaskState {
+  globalId: string;
   localId: number;
   promise: Promise<void>;
   placeholder: string;
   promiseResult: string | null;
+  macro: string;
 }
 
 export type MacroName = keyof typeof macroMetadata;

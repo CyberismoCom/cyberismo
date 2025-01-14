@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import BaseMacro from '../BaseMacro.js';
+import BaseMacro from '../base-macro.js';
 import { Calculate } from '../../calculate.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
@@ -24,6 +24,7 @@ import { readFile } from 'node:fs/promises';
 import { resourceName } from '../../utils/resource-utils.js';
 import { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
+import TaskQueue from '../task-queue.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;
@@ -31,19 +32,19 @@ export interface GraphOptions extends Record<string, string> {
 }
 
 class ReportMacro extends BaseMacro {
-  constructor() {
-    super(macroMetadata);
+  constructor(tasksQueue: TaskQueue) {
+    super(macroMetadata, tasksQueue);
   }
 
-  handleValidate = (data: string) => {
-    this.parseOptions(data);
+  handleValidate = (input: unknown) => {
+    this.parseOptions(input);
   };
 
-  handleStatic = async (context: MacroGenerationContext, data: string) => {
-    return this.handleInject(context, data);
+  handleStatic = async (context: MacroGenerationContext, input: unknown) => {
+    return this.handleInject(context, input);
   };
 
-  handleInject = async (context: MacroGenerationContext, data: string) => {
+  handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const project = new Project(context.projectPath);
     const calculate = new Calculate(project);
 
@@ -61,7 +62,7 @@ class ReportMacro extends BaseMacro {
       );
     };
 
-    const options = this.parseOptions(data);
+    const options = this.parseOptions(input);
 
     let schema: Schema | null = null;
     try {
@@ -117,12 +118,8 @@ class ReportMacro extends BaseMacro {
     return createImage(result);
   };
 
-  private parseOptions(data: string): GraphOptions {
-    if (!data || typeof data !== 'string') {
-      throw new Error('Graph macro requires a JSON object as data');
-    }
-
-    return validateMacroContent<GraphOptions>(this.metadata, data);
+  private parseOptions(input: unknown): GraphOptions {
+    return validateMacroContent<GraphOptions>(this.metadata, input);
   }
 }
 
