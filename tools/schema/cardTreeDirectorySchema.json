@@ -39,275 +39,31 @@
                       "additionalProperties": false,
                       "properties": {
                         "calculations": {
-                          "type": "object",
-                          "properties": {
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false
-                            },
-                            "files": {
-                              "type": "object",
-                              "$comment": "Each file must be a logic program file",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                "^.+\\.lp$": {
-                                  "type": "object"
-                                }
-                              },
-                              "properties": {
-                                ".gitkeep": {}
-                              }
-                            }
-                          }
+                          "$ref": "#/$defs/calculationResourceSchema"
                         },
                         "cardTypes": {
-                          "type": "object",
-                          "allOf": [
-                            {
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "cardTypeSchema.json"
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    ".schema": {},
-                                    ".gitkeep": {}
-                                  },
-                                  "required": [".schema"]
-                                }
-                              }
-                            }
-                          ]
+                          "$ref": "#/$defs/cardTypeResourceSchema"
                         },
                         "fieldTypes": {
-                          "type": "object",
-                          "allOf": [
-                            {
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "cardTypeSchema.json"
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    ".schema": {},
-                                    ".gitkeep": {}
-                                  },
-                                  "required": [".schema"]
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        "linkTypes": {
-                          "type": "object",
-                          "allOf": [
-                            {
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "linkTypeSchema.json"
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    ".schema": {},
-                                    ".gitkeep": {}
-                                  },
-                                  "required": [".schema"]
-                                }
-                              }
-                            }
-                          ]
-                        },
-                        "reports": {
-                          "type": "object",
-                          "properties": {
-                            "additionalProperties": false,
-                            "files": {
-                              "$comment": "reports folder can contain report configuration files (<name>.json), or .gitkeep",
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                "^[A-Za-z-_]+.json$": {
-                                  "type": "object"
-                                },
-                                "^.schema$": {
-                                  "type": "object"
-                                },
-                                "^.gitkeep$": {
-                                  "type": "object"
-                                }
-                              }
-                            },
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                ".+": {
-                                  "type": "object",
-                                  "properties": {
-                                    "files": {
-                                      "type": "object",
-                                      "properties": {
-                                        "index.adoc.hbs": {
-                                          "type": "object"
-                                        },
-                                        "query.lp.hbs": {
-                                          "type": "object"
-                                        },
-                                        "parametersSchema.json": {
-                                          "type": "object"
-                                        },
-                                        ".schema": {
-                                          "type": "object"
-                                        }
-                                      },
-                                      "required": [
-                                        ".schema",
-                                        "index.adoc.hbs",
-                                        "query.lp.hbs"
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
+                          "$ref": "#/$defs/fieldTypeResourceSchema"
                         },
                         "graphViews": {
-                          "type": "object",
-                          "properties": {
-                            "additionalProperties": false,
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                ".+": {
-                                  "type": "object",
-                                  "properties": {
-                                    "files": {
-                                      "type": "object",
-                                      "properties": {
-                                        "view.lp.hbs": {
-                                          "type": "object"
-                                        },
-                                        "parameterSchema.json": {
-                                          "type": "object"
-                                        }
-                                      },
-                                      "required": ["view.lp.hbs"]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
+                          "$ref": "#/$defs/graphViewResourceSchema"
                         },
                         "graphModels": {
-                          "type": "object",
-                          "properties": {
-                            "additionalProperties": false,
-                            "directories": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "patternProperties": {
-                                ".+": {
-                                  "type": "object",
-                                  "properties": {
-                                    "files": {
-                                      "type": "object",
-                                      "properties": {
-                                        "model.lp": {
-                                          "type": "object"
-                                        }
-                                      },
-                                      "required": ["model.lp"]
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
+                          "$ref": "#/$defs/graphModelResourceSchema"
+                        },
+                        "linkTypes": {
+                          "$ref": "#/$defs/linkTypeResourceSchema"
+                        },
+                        "reports": {
+                          "$ref": "#/$defs/reportResourceSchema"
                         },
                         "templates": {
-                          "$ref": "#/$defs/templatesSchema"
+                          "$ref": "#/$defs/templatesResourceSchema"
                         },
                         "workflows": {
-                          "type": "object",
-                          "allOf": [
-                            {
-                              "properties": {
-                                "directories": {
-                                  "type": "object",
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
-                                  "contentSchema": "workflowSchema.json"
-                                }
-                              }
-                            },
-                            {
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    ".schema": {},
-                                    ".gitkeep": {}
-                                  },
-                                  "required": [".schema"]
-                                }
-                              }
-                            }
-                          ]
+                          "$ref": "#/$defs/workflowResourceSchema"
                         }
                       }
                     }
@@ -431,139 +187,32 @@
                 "directories": {
                   "type": "object",
                   "properties": {
-                    "graphViews": {
-                      "type": "object",
-                      "properties": {
-                        "additionalProperties": false,
-                        "directories": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "patternProperties": {
-                            ".+": {
-                              "type": "object",
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    "view.lp.hbs": {
-                                      "type": "object"
-                                    },
-                                    "parameterSchema.json": {
-                                      "type": "object"
-                                    }
-                                  },
-                                  "required": ["view.lp.hbs"]
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "graphModels": {
-                      "type": "object",
-                      "properties": {
-                        "additionalProperties": false,
-                        "directories": {
-                          "type": "object",
-                          "additionalProperties": false,
-                          "patternProperties": {
-                            ".+": {
-                              "type": "object",
-                              "properties": {
-                                "files": {
-                                  "type": "object",
-                                  "properties": {
-                                    "model.lp": {
-                                      "type": "object"
-                                    }
-                                  },
-                                  "required": ["model.lp"]
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
+                    "calculations": {
+                      "$ref": "#/$defs/calculationResourceSchema"
                     },
                     "cardTypes": {
-                      "type": "object",
-                      "allOf": [
-                        {
-                          "properties": {
-                            "files": {
-                              "type": "object",
-                              "patternProperties": {
-                                "^[A-Za-z-_]+.json$": {
-                                  "type": "object"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "properties": {
-                            "files": {
-                              "type": "object",
-                              "properties": {
-                                ".schema": {},
-                                ".gitkeep": {}
-                              },
-                              "required": [".schema"]
-                            }
-                          }
-                        }
-                      ]
-                    },
-                    "linkTypes": {
-                      "type": "object",
-                      "allOf": [
-                        {
-                          "properties": {
-                            "files": {
-                              "type": "object",
-                              "patternProperties": {
-                                "^[A-Za-z-_]+.json$": {
-                                  "type": "object"
-                                }
-                              }
-                            }
-                          }
-                        },
-                        {
-                          "properties": {
-                            "files": {
-                              "type": "object",
-                              "properties": {
-                                ".schema": {},
-                                ".gitkeep": {}
-                              },
-                              "required": [".schema"]
-                            }
-                          }
-                        }
-                      ]
+                      "$ref": "#/$defs/cardTypeResourceSchema"
                     },
                     "fieldTypes": {
-                      "type": "object",
-                      "properties": {
-                        "files": {
-                          "type": "object",
-                          "contentSchema": "fieldTypeSchema.json"
-                        }
-                      }
+                      "$ref": "#/$defs/fieldTypeResourceSchema"
+                    },
+                    "graphViews": {
+                      "$ref": "#/$defs/graphViewResourceSchema"
+                    },
+                    "graphModels": {
+                      "$ref": "#/$defs/graphModelResourceSchema"
+                    },
+                    "linkTypes": {
+                      "$ref": "#/$defs/linkTypeResourceSchema"
+                    },
+                    "reports": {
+                      "$ref": "#/$defs/reportResourceSchema"
                     },
                     "templates": {
-                      "$ref": "#/$defs/templatesSchema"
+                      "$ref": "#/$defs/templatesResourceSchema"
                     },
                     "workflows": {
-                      "type": "object",
-                      "properties": {
-                        "files": {
-                          "type": "object",
-                          "contentSchema": "workflowSchema.json"
-                        }
-                      }
+                      "$ref": "#/$defs/workflowResourceSchema"
                     }
                   }
                 },
@@ -644,7 +293,271 @@
         }
       }
     },
-    "templatesSchema": {
+    "calculationResourceSchema": {
+      "type": "object",
+      "properties": {
+        "directories": {
+          "type": "object",
+          "additionalProperties": false
+        },
+        "files": {
+          "type": "object",
+          "$comment": "Each file must be a logic program file",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^.+\\.lp$": {
+              "type": "object"
+            }
+          },
+          "properties": {
+            ".gitkeep": {}
+          }
+        }
+      }
+    },
+    "cardTypeResourceSchema": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "$comment": "Each file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "cardTypeSchema.json"
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
+          }
+        }
+      ]
+    },
+    "fieldTypeResourceSchema": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "$comment": "Each file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "cardTypeSchema.json"
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
+          }
+        }
+      ]
+    },
+    "graphViewResourceSchema": {
+      "type": "object",
+      "properties": {
+        "additionalProperties": false,
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "view.lp.hbs": {
+                      "type": "object"
+                    },
+                    "parameterSchema.json": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["view.lp.hbs"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "graphModelResourceSchema": {
+      "type": "object",
+      "properties": {
+        "additionalProperties": false,
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "model.lp": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["model.lp"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "linkTypeResourceSchema": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "$comment": "Each file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "linkTypeSchema.json"
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
+          }
+        }
+      ]
+    },
+    "reportResourceSchema": {
+      "type": "object",
+      "properties": {
+        "additionalProperties": false,
+        "files": {
+          "$comment": "reports folder can contain report configuration files (<name>.json), or .gitkeep",
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z-_]+.json$": {
+              "type": "object"
+            },
+            "^.schema$": {
+              "type": "object"
+            },
+            "^.gitkeep$": {
+              "type": "object"
+            }
+          }
+        },
+        "directories": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".+": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "index.adoc.hbs": {
+                      "type": "object"
+                    },
+                    "query.lp.hbs": {
+                      "type": "object"
+                    },
+                    "parametersSchema.json": {
+                      "type": "object"
+                    },
+                    ".schema": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [".schema", "index.adoc.hbs", "query.lp.hbs"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "workflowResourceSchema": {
+      "type": "object",
+      "allOf": [
+        {
+          "properties": {
+            "directories": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "$comment": "Each file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "workflowSchema.json"
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
+          }
+        }
+      ]
+    },
+    "templatesResourceSchema": {
       "type": "object",
       "allOf": [
         {
