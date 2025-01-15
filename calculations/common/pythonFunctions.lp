@@ -2,7 +2,7 @@
 
 #script (python)
 from clingo import Number, String, SymbolType
-from datetime import date
+from datetime import date, datetime, timezone
 
 class Functions:
     def concatenate(self, *args):
@@ -23,11 +23,20 @@ class Functions:
 
     def daysSince(self, isodate):
         try:
-            userdate = date.fromisoformat(isodate.string)
-            today = date.today()
+            userdate = datetime.fromisoformat(isodate.string)
+            # add UTC timezone in case the isodate was just a date without time
+            # datetimes are stored in UTC format in Cyberismo, so for them there is no effect
+            userdate = userdate.replace(tzinfo=timezone.utc)
+            today = datetime.now(timezone.utc)
             return Number((today-userdate).days)
         except:
             return Number(0)
+
+    def today(self):
+        try:
+            return String(date.today().isoformat())
+        except:
+            return String("")
 
 def main(prg):
     prg.ground([("base", [])], context=Functions())
