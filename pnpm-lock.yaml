@@ -245,8 +245,8 @@ importers:
         specifier: ^4.7.8
         version: 4.7.8
       isomorphic-git:
-        specifier: ^1.25.2
-        version: 1.25.10
+        specifier: ^1.29.0
+        version: 1.29.0
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.0
@@ -3265,8 +3265,8 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  isomorphic-git@1.25.10:
-    resolution: {integrity: sha512-IxGiaKBwAdcgBXwIcxJU6rHLk+NrzYaaPKXXQffcA0GW3IUrQXdUPDXDo+hkGVcYruuz/7JlGBiuaeTCgIgivQ==}
+  isomorphic-git@1.29.0:
+    resolution: {integrity: sha512-zWGqk8901cicvVEhVpN76AwKrS/TzHak2NQCtNXIAavpMIy/yqh+d/JtC9A8AUKZAauUdOyEWKI29tuCLAL+Zg==}
     engines: {node: '>=12'}
     hasBin: true
 
@@ -3921,6 +3921,9 @@ packages:
 
   parse5@7.2.1:
     resolution: {integrity: sha512-BuBYQYlv1ckiPdQi/ohiivi9Sagc9JG+Ozs0r7b/0iK3sKmrb0b9FdWdBbOdx6hBCM/F9Ir82ofnBhtZOjCRPQ==}
+
+  path-browserify@1.0.1:
+    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
 
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
@@ -8789,7 +8792,7 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-git@1.25.10:
+  isomorphic-git@1.29.0:
     dependencies:
       async-lock: 1.4.1
       clean-git-ref: 2.0.1
@@ -8798,6 +8801,7 @@ snapshots:
       ignore: 5.3.2
       minimisted: 2.0.1
       pako: 1.0.11
+      path-browserify: 1.0.1
       pify: 4.0.1
       readable-stream: 3.6.2
       sha.js: 2.4.11
@@ -9715,6 +9719,8 @@ snapshots:
   parse5@7.2.1:
     dependencies:
       entities: 4.5.0
+
+  path-browserify@1.0.1: {}
 
   path-exists@4.0.0: {}
 
