@@ -212,7 +212,7 @@ describe('resources', () => {
 
       const workflowsCount = (await collector.resources('workflows')).length;
       const nameForWorkflow = `${project.projectPrefix}/workflows/newOne`;
-      const fileName = nameForWorkflow + '.json';
+      const fileName = nameForWorkflow;
 
       // Creating new resources automatically updates collector arrays, but only for
       // instance that is owned by the Project. The tested 'collector' instance needs
@@ -242,7 +242,7 @@ describe('resources', () => {
         const removeType = resourceType.substring(0, resourceType.length - 1);
         const resourceCount = (await collector.resources(resourceType)).length;
         const nameForResource = `${project.projectPrefix}/${resourceType}/newOne`;
-        const fileName = nameForResource + '.json';
+        const fileName = nameForResource;
 
         if (type === 'cardTypes') {
           await createCmd.createCardType(
@@ -336,56 +336,50 @@ describe('resources', () => {
     it('create card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newWF.json'),
+        resourceName('decision/cardTypes/newWF'),
       );
       const before = await project.cardTypes();
       let found = before.find(
-        (item) => item.name === 'decision/cardTypes/newWF.json',
+        (item) => item.name === 'decision/cardTypes/newWF',
       );
       expect(found).to.equal(undefined);
       await res.createCardType('decision/workflows/decision');
       const after = await project.cardTypes();
-      found = after.find(
-        (item) => item.name === 'decision/cardTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/cardTypes/newWF');
       expect(found).to.not.equal(undefined);
     });
     it('create field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newWF.json'),
+        resourceName('decision/fieldTypes/newWF'),
       );
       const before = await project.fieldTypes();
       let found = before.find(
-        (item) => item.name === 'decision/fieldTypes/newWF.json',
+        (item) => item.name === 'decision/fieldTypes/newWF',
       );
       expect(found).to.equal(undefined);
       await res.createFieldType('shortText');
       const after = await project.fieldTypes();
-      found = after.find(
-        (item) => item.name === 'decision/fieldTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/fieldTypes/newWF');
       expect(found).to.not.equal(undefined);
     });
     it('create link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newWF.json'),
+        resourceName('decision/linkTypes/newWF'),
       );
       const before = await project.linkTypes();
       let found = before.find(
-        (item) => item.name === 'decision/linkTypes/newWF.json',
+        (item) => item.name === 'decision/linkTypes/newWF',
       );
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.linkTypes();
-      found = after.find(
-        (item) => item.name === 'decision/linkTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/linkTypes/newWF');
       expect(found).to.not.equal(undefined);
     });
     it('create link type with provided content', async () => {
-      const name = 'decision/linkTypes/newLTWithContent.json';
+      const name = 'decision/linkTypes/newLTWithContent';
       const res = new LinkTypeResource(project, resourceName(name));
       const before = await project.linkTypes();
       let found = before.find((item) => item.name === name);
@@ -404,7 +398,7 @@ describe('resources', () => {
       expect(found).to.not.equal(undefined);
     });
     it('try to create link type with invalid provided content', async () => {
-      const name = 'decision/linkTypes/invalidLTWithContent.json';
+      const name = 'decision/linkTypes/invalidLTWithContent';
       const res = new LinkTypeResource(project, resourceName(name));
       const before = await project.linkTypes();
       const found = before.find((item) => item.name === name);
@@ -433,22 +427,20 @@ describe('resources', () => {
     it('create workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const before = await project.workflows();
       let found = before.find(
-        (item) => item.name === 'decision/workflows/newWF.json',
+        (item) => item.name === 'decision/workflows/newWF',
       );
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.workflows();
-      found = after.find(
-        (item) => item.name === 'decision/workflows/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/workflows/newWF');
       expect(found).to.not.equal(undefined);
     });
     it('create workflow with provided content', async () => {
-      const name = 'decision/workflows/newWFWithContent.json';
+      const name = 'decision/workflows/newWFWithContent';
       const res = new WorkflowResource(project, resourceName(name));
       const before = await project.workflows();
       let found = before.find((item) => item.name === name);
@@ -466,7 +458,7 @@ describe('resources', () => {
     it('try to create card type with invalid name', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/new111.json'), // names cannot have digits
+        resourceName('decision/cardTypes/new111'), // names cannot have digits
       );
       await res
         .createCardType('decision/workflows/decision')
@@ -482,7 +474,7 @@ describe('resources', () => {
     it('try to create field type with invalid name', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/new111.json'), // names cannot have digits
+        resourceName('decision/fieldTypes/new111'), // names cannot have digits
       );
       await res
         .createFieldType('shortText')
@@ -498,7 +490,7 @@ describe('resources', () => {
     it('try to create link type with invalid name', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/new111.json'), // names cannot have digits
+        resourceName('decision/linkTypes/new111'), // names cannot have digits
       );
       await res
         .create()
@@ -514,7 +506,7 @@ describe('resources', () => {
     it('try to create workflow with invalid name', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/new111.json'), // names cannot have digits
+        resourceName('decision/workflows/new111'), // names cannot have digits
       );
       await res
         .create()
@@ -578,7 +570,7 @@ describe('resources', () => {
     it('try to create workflow with invalid type', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/linkTypes/new-one.json'), // cannot create from link types
+        resourceName('decision/linkTypes/new-one'), // cannot create from link types
       );
       await res
         .create()
@@ -642,7 +634,7 @@ describe('resources', () => {
     it('try to create workflow with invalid project prefix', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('diipadaapa/workflows/new-one.json'), // cannot create from unknown prefix
+        resourceName('diipadaapa/workflows/new-one'), // cannot create from unknown prefix
       );
       await res
         .create()
@@ -690,12 +682,12 @@ describe('resources', () => {
     it('data of card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newWF.json'),
+        resourceName('decision/cardTypes/newWF'),
       );
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
-          name: 'decision/cardTypes/newWF.json',
-          workflow: 'decision/workflows/decision.json',
+          name: 'decision/cardTypes/newWF',
+          workflow: 'decision/workflows/decision',
           customFields: [],
           alwaysVisibleFields: [],
           optionallyVisibleFields: [],
@@ -705,11 +697,11 @@ describe('resources', () => {
     it('data of field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newWF.json'),
+        resourceName('decision/fieldTypes/newWF'),
       );
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
-          name: 'decision/fieldTypes/newWF.json',
+          name: 'decision/fieldTypes/newWF',
           dataType: 'shortText',
         }),
       );
@@ -717,11 +709,11 @@ describe('resources', () => {
     it('data of link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newWF.json'),
+        resourceName('decision/linkTypes/newWF'),
       );
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
-          name: 'decision/linkTypes/newWF.json',
+          name: 'decision/linkTypes/newWF',
           outboundDisplayName: 'decision/linkTypes/newWF',
           inboundDisplayName: 'decision/linkTypes/newWF',
           sourceCardTypes: [],
@@ -733,11 +725,11 @@ describe('resources', () => {
     it('data of workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
-          name: 'decision/workflows/newWF.json',
+          name: 'decision/workflows/newWF',
           states: [
             { name: 'Draft', category: 'initial' },
             { name: 'Approved', category: 'closed' },
@@ -755,13 +747,13 @@ describe('resources', () => {
     it('show card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newWF.json'),
+        resourceName('decision/cardTypes/newWF'),
       );
       const data = await res.show();
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
-          name: 'decision/cardTypes/newWF.json',
-          workflow: 'decision/workflows/decision.json',
+          name: 'decision/cardTypes/newWF',
+          workflow: 'decision/workflows/decision',
           customFields: [],
           alwaysVisibleFields: [],
           optionallyVisibleFields: [],
@@ -771,12 +763,12 @@ describe('resources', () => {
     it('show field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newWF.json'),
+        resourceName('decision/fieldTypes/newWF'),
       );
       const data = await res.show();
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
-          name: 'decision/fieldTypes/newWF.json',
+          name: 'decision/fieldTypes/newWF',
           dataType: 'shortText',
         }),
       );
@@ -784,12 +776,12 @@ describe('resources', () => {
     it('show link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newWF.json'),
+        resourceName('decision/linkTypes/newWF'),
       );
       const data = await res.show();
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
-          name: 'decision/linkTypes/newWF.json',
+          name: 'decision/linkTypes/newWF',
           outboundDisplayName: 'decision/linkTypes/newWF',
           inboundDisplayName: 'decision/linkTypes/newWF',
           sourceCardTypes: [],
@@ -801,12 +793,12 @@ describe('resources', () => {
     it('show workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const data = await res.show();
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
-          name: 'decision/workflows/newWF.json',
+          name: 'decision/workflows/newWF',
           states: [
             { name: 'Draft', category: 'initial' },
             { name: 'Approved', category: 'closed' },
@@ -823,103 +815,103 @@ describe('resources', () => {
     it('validate card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newWF.json'),
+        resourceName('decision/cardTypes/newWF'),
       );
       await res.validate().catch(() => expect(false).to.equal(true));
     });
     it('validate field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newWF.json'),
+        resourceName('decision/fieldTypes/newWF'),
       );
       await res.validate().catch(() => expect(false).to.equal(true));
     });
     it('validate link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newWF.json'),
+        resourceName('decision/linkTypes/newWF'),
       );
       await res.validate().catch(() => expect(false).to.equal(true));
     });
     it('validate workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       await res.validate().catch(() => expect(false).to.equal(true));
     });
     it('try to validate missing card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/i-do-not-exist.json'),
+        resourceName('decision/cardTypes/i-do-not-exist'),
       );
       await res.validate().catch(() => expect(true).to.equal(true));
     });
     it('try to validate missing field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/i-do-not-exist.json'),
+        resourceName('decision/fieldTypes/i-do-not-exist'),
       );
       await res.validate().catch(() => expect(true).to.equal(true));
     });
     it('try to validate missing link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/i-do-not-exist.json'),
+        resourceName('decision/linkTypes/i-do-not-exist'),
       );
       await res.validate().catch(() => expect(true).to.equal(true));
     });
     it('try to validate missing workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/i-do-not-exist.json'),
+        resourceName('decision/workflows/i-do-not-exist'),
       );
       await res.validate().catch(() => expect(true).to.equal(true));
     });
     it('rename card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newResForRename.json'),
+        resourceName('decision/cardTypes/newResForRename'),
       );
       await res.createCardType('decision/workflows/decision');
-      await res.rename(resourceName('decision/cardTypes/newname.json'));
+      await res.rename(resourceName('decision/cardTypes/newname'));
       await res.delete();
     });
     it('rename field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newResForRename.json'),
+        resourceName('decision/fieldTypes/newResForRename'),
       );
       await res.createFieldType('shortText');
-      await res.rename(resourceName('decision/fieldTypes/newname.json'));
+      await res.rename(resourceName('decision/fieldTypes/newname'));
       await res.delete();
     });
     it('rename link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newResForRename.json'),
+        resourceName('decision/linkTypes/newResForRename'),
       );
       await res.create();
-      await res.rename(resourceName('decision/linkTypes/newname.json'));
+      await res.rename(resourceName('decision/linkTypes/newname'));
       await res.delete();
     });
     it('rename workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newResForRename.json'),
+        resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
-      await res.rename(resourceName('decision/workflows/newname.json'));
+      await res.rename(resourceName('decision/workflows/newname'));
       await res.delete();
     });
     it('try to rename workflow - attempt to change prefix', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newResForRename.json'),
+        resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
       await res
-        .rename(resourceName('newpre/workflows/newname.json'))
+        .rename(resourceName('newpre/workflows/newname'))
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
@@ -931,11 +923,11 @@ describe('resources', () => {
     it('try to rename workflow - attempt to change type', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newResForRename.json'),
+        resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
       await res
-        .rename(resourceName('decision/linkTypes/newname.json'))
+        .rename(resourceName('decision/linkTypes/newname'))
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
@@ -947,11 +939,11 @@ describe('resources', () => {
     it('try to rename workflow - attempt to use illegal name', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newResForRename.json'),
+        resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
       await res
-        .rename(resourceName('decision/workflows/newname111.json'))
+        .rename(resourceName('decision/workflows/newname111'))
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
@@ -965,7 +957,7 @@ describe('resources', () => {
     it('update card type - name', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/forRename.json'),
+        resourceName('decision/cardTypes/forRename'),
       );
       await res.createCardType('decision/workflows/decision');
       await res.update('name', {
@@ -978,7 +970,7 @@ describe('resources', () => {
     it('update card type - try to "rank" scalar "name"', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/tryForUpdate.json'),
+        resourceName('decision/cardTypes/tryForUpdate'),
       );
       await res.createCardType('decision/workflows/decision');
       await res
@@ -999,7 +991,7 @@ describe('resources', () => {
     it('update card type - try to "add" scalar "name"', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/tryForUpdate.json'),
+        resourceName('decision/cardTypes/tryForUpdate'),
       );
       await res
         .update('name', {
@@ -1018,7 +1010,7 @@ describe('resources', () => {
     it('update card type - try to "remove" scalar "name"', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/tryForUpdate.json'),
+        resourceName('decision/cardTypes/tryForUpdate'),
       );
       await res
         .update('name', {
@@ -1037,7 +1029,7 @@ describe('resources', () => {
     it('update card type - add element to alwaysVisibleFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/updateAlwaysVisible.json'),
+        resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
@@ -1050,7 +1042,7 @@ describe('resources', () => {
     it('update card type - remove element from alwaysVisibleFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/updateAlwaysVisible.json'),
+        resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(1);
       await res.update('alwaysVisibleFields', {
@@ -1062,7 +1054,7 @@ describe('resources', () => {
     it('update card type - add two elements to alwaysVisibleFields and move the latter to first', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/updateAlwaysVisible.json'),
+        resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
       await res.update('alwaysVisibleFields', {
@@ -1087,7 +1079,7 @@ describe('resources', () => {
     it('update card type - add element to optionallyVisibleFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/optionallyVisible.json'),
+        resourceName('decision/cardTypes/optionallyVisible'),
       );
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
@@ -1100,7 +1092,7 @@ describe('resources', () => {
     it('update card type - remove element from optionallyVisibleFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/optionallyVisible.json'),
+        resourceName('decision/cardTypes/optionallyVisible'),
       );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(1);
       await res.update('optionallyVisibleFields', {
@@ -1112,7 +1104,7 @@ describe('resources', () => {
     it('update card type - add two elements to optionallyVisibleFields and move the latter to first', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/optionallyVisible.json'),
+        resourceName('decision/cardTypes/optionallyVisible'),
       );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
       await res.update('optionallyVisibleFields', {
@@ -1137,7 +1129,7 @@ describe('resources', () => {
     it('update card type - workflow', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/updateWorkflow.json'),
+        resourceName('decision/cardTypes/updateWorkflow'),
       );
       await res.createCardType('decision/workflows/decision');
       await res.update('workflow', {
@@ -1152,7 +1144,7 @@ describe('resources', () => {
     it('update card type - add element to customFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/customFields.json'),
+        resourceName('decision/cardTypes/customFields'),
       );
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).customFields.length).to.equal(0);
@@ -1165,7 +1157,7 @@ describe('resources', () => {
     it('update card type - remove element from customFields', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/customFields.json'),
+        resourceName('decision/cardTypes/customFields'),
       );
       await res.update('customFields', {
         name: 'remove',
@@ -1176,7 +1168,7 @@ describe('resources', () => {
     it('update card type - add two elements to customFields, then move last one to first', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/customFields.json'),
+        resourceName('decision/cardTypes/customFields'),
       );
       expect((res.data as CardType).customFields.length).to.equal(0);
       await res.update('customFields', {
@@ -1201,7 +1193,7 @@ describe('resources', () => {
     it('update field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/dateFieldType.json'),
+        resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.createFieldType('dateTime');
       await res.update('name', {
@@ -1214,7 +1206,7 @@ describe('resources', () => {
     it('try to update field type with invalid name', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/dateFieldType.json'),
+        resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.createFieldType('dateTime');
       await res
@@ -1237,7 +1229,7 @@ describe('resources', () => {
     it('update field type - change displayName and fieldDescription', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/dateFieldType.json'),
+        resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.update('displayName', {
         name: 'change',
@@ -1257,7 +1249,7 @@ describe('resources', () => {
     it('update field type - change enumValues', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/enumFieldType.json'),
+        resourceName('decision/fieldTypes/enumFieldType'),
       );
       await res.createFieldType('enum');
       await res.update<EnumDefinition>('enumValues', {
@@ -1290,7 +1282,7 @@ describe('resources', () => {
     it('update link type scalar values', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newLT.json'),
+        resourceName('decision/linkTypes/newLT'),
       );
       await res.create();
       await res.update<boolean>('enableLinkDescription', {
@@ -1316,7 +1308,7 @@ describe('resources', () => {
     it('update link type arrays', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newLT.json'),
+        resourceName('decision/linkTypes/newLT'),
       );
       await res.update('sourceCardTypes', {
         name: 'add',
@@ -1343,7 +1335,7 @@ describe('resources', () => {
     it('update workflow - rename state', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const expectedItem = { name: 'Deprecated', category: 'closed' };
       const updatedItem = { name: 'ReallyDeprecated', category: 'closed' };
@@ -1369,7 +1361,7 @@ describe('resources', () => {
     it('update workflow - rename transition', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const expectedItem = {
         name: 'Approve',
@@ -1403,7 +1395,7 @@ describe('resources', () => {
     it('update workflow - add state', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const newState = { name: 'OrphanState', category: 'closed' };
       let found = (res.data as Workflow).states.find(
@@ -1423,7 +1415,7 @@ describe('resources', () => {
     it('update workflow - add transition', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const newTransition = {
         name: 'Orphaned',
@@ -1447,7 +1439,7 @@ describe('resources', () => {
     it('update workflow - remove state', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const expectedItem = { name: 'ReallyDeprecated', category: 'closed' };
       let found = (res.data as Workflow).states.find(
@@ -1467,7 +1459,7 @@ describe('resources', () => {
     it('update workflow - remove transition', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
       const expectedItem = {
         name: 'RemoveDraftStatus',
@@ -1492,76 +1484,69 @@ describe('resources', () => {
     it('delete card type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/newWF.json'),
+        resourceName('decision/cardTypes/newWF'),
       );
       const before = await project.cardTypes();
       let found = before.find(
-        (item) => item.name === 'decision/cardTypes/newWF.json',
+        (item) => item.name === 'decision/cardTypes/newWF',
       );
       expect(found).to.not.equal(undefined);
       await res.delete();
       const after = await project.workflows();
-      found = after.find(
-        (item) => item.name === 'decision/cardTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/cardTypes/newWF');
     });
     it('delete field type', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/newWF.json'),
+        resourceName('decision/fieldTypes/newWF'),
       );
       const before = await project.fieldTypes();
       let found = before.find(
-        (item) => item.name === 'decision/fieldTypes/newWF.json',
+        (item) => item.name === 'decision/fieldTypes/newWF',
       );
       expect(found).to.not.equal(undefined);
       await res.delete();
       const after = await project.fieldTypes();
-      found = after.find(
-        (item) => item.name === 'decision/fieldTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/fieldTypes/newWF');
     });
     it('delete link type', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/newWF.json'),
+        resourceName('decision/linkTypes/newWF'),
       );
       const before = await project.linkTypes();
       let found = before.find(
-        (item) => item.name === 'decision/linkTypes/newWF.json',
+        (item) => item.name === 'decision/linkTypes/newWF',
       );
       expect(found).to.not.equal(undefined);
       await res.delete();
       const after = await project.linkTypes();
-      found = after.find(
-        (item) => item.name === 'decision/linkTypes/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/linkTypes/newWF');
     });
     it('delete workflow', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/newWF.json'),
+        resourceName('decision/workflows/newWF'),
       );
+      res.create();
       const before = await project.workflows();
       let found = before.find(
-        (item) => item.name === 'decision/workflows/newWF.json',
+        (item) => item.name === 'decision/workflows/newWF',
       );
       expect(found).to.not.equal(undefined);
       await res.delete();
       const after = await project.workflows();
-      found = after.find(
-        (item) => item.name === 'decision/workflows/newWF.json',
-      );
+      found = after.find((item) => item.name === 'decision/workflows/newWF');
       expect(found).to.equal(undefined);
     });
     it('try to delete card type that does not exist', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/nonExistingCT.json'),
+        resourceName('decision/cardTypes/nonExistingCT'),
       );
       const before = await project.cardTypes();
       const found = before.find(
-        (item) => item.name === 'decision/cardTypes/nonExistingCT.json',
+        (item) => item.name === 'decision/cardTypes/nonExistingCT',
       );
       expect(found).to.equal(undefined);
       await res
@@ -1576,11 +1561,11 @@ describe('resources', () => {
     it('try to delete field type that does not exist', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/nonExistingFT.json'),
+        resourceName('decision/fieldTypes/nonExistingFT'),
       );
       const before = await project.fieldTypes();
       const found = before.find(
-        (item) => item.name === 'decision/fieldTypes/nonExistingFT.json',
+        (item) => item.name === 'decision/fieldTypes/nonExistingFT',
       );
       expect(found).to.equal(undefined);
       await res
@@ -1595,11 +1580,11 @@ describe('resources', () => {
     it('try to delete link type that does not exist', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/nonExistingLT.json'),
+        resourceName('decision/linkTypes/nonExistingLT'),
       );
       const before = await project.cardTypes();
       const found = before.find(
-        (item) => item.name === 'decision/linkTypes/nonExistingLT.json',
+        (item) => item.name === 'decision/linkTypes/nonExistingLT',
       );
       expect(found).to.equal(undefined);
       await res
@@ -1614,11 +1599,11 @@ describe('resources', () => {
     it('try to delete workflow that does not exist', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/nonExistingWF.json'),
+        resourceName('decision/workflows/nonExistingWF'),
       );
       const before = await project.cardTypes();
       const found = before.find(
-        (item) => item.name === 'decision/workflows/nonExistingWF.json',
+        (item) => item.name === 'decision/workflows/nonExistingWF',
       );
       expect(found).to.equal(undefined);
       await res

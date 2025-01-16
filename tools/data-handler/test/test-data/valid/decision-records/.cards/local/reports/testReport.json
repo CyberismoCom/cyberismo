@@ -1,5 +1,6 @@
 {
     "displayName": "Test report",
     "description": "This would be description...",
-    "category": "Architecture"
+    "category": "Architecture",
+    "name": "decision/reports/testReport"
 }

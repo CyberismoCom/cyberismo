@@ -21,7 +21,7 @@ import { stripExtension } from './file-utils.js';
 // - identifier; unique name (within a project/module) for the resource
 export interface ResourceName {
   prefix: string;
-  type: string;
+  type: string; // todo: should be a ResourceFolderType
   identifier: string;
 }
 

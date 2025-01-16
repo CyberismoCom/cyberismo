@@ -113,9 +113,7 @@ export class FileResource extends ResourceObject {
     let validContent = {} as ResourceContent;
     if (newContent) {
       validContent = newContent as unknown as ResourceContent;
-      validContent.name = validName.endsWith('.json')
-        ? validName
-        : validName + '.json';
+      validContent.name = validName;
     }
 
     this.content = validContent;
@@ -135,6 +133,9 @@ export class FileResource extends ResourceObject {
   protected async delete() {
     if (this.moduleResource) {
       throw new Error(`Cannot delete module resources`);
+    }
+    if (!this.fileName.endsWith('.json')) {
+      this.fileName += '.json';
     }
     if (!pathExists(this.fileName)) {
       throw new Error(

@@ -57,13 +57,9 @@ export class ResourceCollector {
   // Add resources of a given type to an array.
   private async addResources(
     resources: Dirent[],
-    requestedType: string, // should be a type
+    requestedType: string, // todo: should be a ResourceFolderType, but that needs to be converted to use plural values.
   ): Promise<Resource[]> {
     const collectedResources: Resource[] = [];
-    const filteredDirectories =
-      requestedType === 'templates' || requestedType === 'reports'
-        ? true
-        : false;
     for (const resource of resources) {
       if (requestedType === 'modules') {
         collectedResources.push(...resources);
@@ -77,17 +73,17 @@ export class ResourceCollector {
         if (!pathExists(resourcePath)) {
           continue;
         }
-        const files = await readdir(resourcePath, { withFileTypes: true });
-        const filteredFiles = filteredDirectories
-          ? files.filter((item) => item.isDirectory())
-          : files.filter(
-              (item) =>
-                item.name !== CardContainer.schemaContentFile &&
-                item.name !== '.gitkeep',
-            );
+        const files = (
+          await readdir(resourcePath, { withFileTypes: true })
+        ).filter(
+          (item) =>
+            item.isFile() &&
+            item.name !== CardContainer.schemaContentFile &&
+            item.name !== '.gitkeep',
+        );
 
-        filteredFiles.forEach((item) => {
-          item.name = `${resource.name}/${requestedType}/${item.name}`;
+        files.forEach((item) => {
+          item.name = `${resource.name}/${requestedType}/${stripExtension(item.name)}`;
           collectedResources.push({ name: item.name, path: item.parentPath });
         });
       }
@@ -125,6 +121,7 @@ export class ResourceCollector {
   }
 
   // Returns local resources of a given type.
+  // todo: parameter should be a ResourceFolderType, but that needs to be converted to use plural values.
   private localResources(type: string) {
     if (type === 'calculations') {
       return this.localCalculations;
@@ -147,10 +144,7 @@ export class ResourceCollector {
   }
 
   // Collects certain kinds of resources.
-  private resourcesSync(
-    type: ResourceFolderType,
-    requirement: string,
-  ): Resource[] {
+  private resourcesSync(type: ResourceFolderType): Resource[] {
     const resourceFolder = this.project.paths.resourcePath(type);
     const resources: Resource[] = [];
     if (!pathExists(resourceFolder)) {
@@ -160,21 +154,16 @@ export class ResourceCollector {
     resources.push(
       ...entries
         .filter((entry) => {
-          return !(
-            entry.isFile() && entry.name === CardContainer.schemaContentFile
+          return (
+            entry.isFile() &&
+            entry.name !== '.gitkeep' &&
+            entry.name !== CardContainer.schemaContentFile
           );
         })
-        .filter((entry) => {
-          return !(entry.isFile() && entry.name === '.gitkeep');
-        })
-        .filter((entry) => {
-          return requirement === 'folder'
-            ? entry.isDirectory()
-            : requirement === 'file'
-              ? entry.isFile()
-              : false;
-        })
         .map((entry) => {
+          if (entry.name.endsWith('.json')) {
+            entry.name = stripExtension(entry.name);
+          }
           return {
             name: `${this.project.projectPrefix}/${type}s/${entry.name}`,
             path: entry.parentPath,
@@ -189,13 +178,13 @@ export class ResourceCollector {
    * Collects all local resources.
    */
   public collectLocalResources() {
-    this.localCalculations = this.resourcesSync('calculation', 'file');
-    this.localCardTypes = this.resourcesSync('cardType', 'file');
-    this.localFieldTypes = this.resourcesSync('fieldType', 'file');
-    this.localLinkTypes = this.resourcesSync('linkType', 'file');
-    this.localReports = this.resourcesSync('report', 'folder');
-    this.localTemplates = this.resourcesSync('template', 'folder');
-    this.localWorkflows = this.resourcesSync('workflow', 'file');
+    this.localCalculations = this.resourcesSync('calculation');
+    this.localCardTypes = this.resourcesSync('cardType');
+    this.localFieldTypes = this.resourcesSync('fieldType');
+    this.localLinkTypes = this.resourcesSync('linkType');
+    this.localReports = this.resourcesSync('report');
+    this.localTemplates = this.resourcesSync('template');
+    this.localWorkflows = this.resourcesSync('workflow');
   }
 
   /**
@@ -217,6 +206,7 @@ export class ResourceCollector {
     // Helper to avoid adding duplicate entries.
     function addItem(array: Resource[], item: Resource) {
       if (!array.includes(item)) {
+        item.name = stripExtension(item.name);
         array.push(item);
       }
     }
@@ -327,7 +317,7 @@ export class ResourceCollector {
    * @returns Array of resources.
    */
   public async resources(
-    type: string,
+    type: string, // todo: should be a ResourceFolderType, but that needs to be converted to use plural values.
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     const moduleResources =

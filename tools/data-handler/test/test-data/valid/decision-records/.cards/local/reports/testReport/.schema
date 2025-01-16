@@ -2,6 +2,6 @@
   {
     "version": 1,
     "id": "reportSchema",
-    "file": "report.json"
+    "file": "../testReport.json"
   }
 ]

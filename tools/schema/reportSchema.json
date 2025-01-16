@@ -4,6 +4,12 @@
   "description": "A report object provides supplemental information about a report",
   "type": "object",
   "properties": {
+    "name": {
+      "description": "The name of this report",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z/._-]+$"
+    },
     "displayName": {
       "description": "The name of the report as it should be displayed in the user interface. For example, 'Children list'.",
       "type": "string"
@@ -17,6 +23,6 @@
       "type": "string"
     }
   },
-  "required": ["displayName", "description", "category"],
+  "required": ["name", "displayName", "description", "category"],
   "additionalProperties": false
 }

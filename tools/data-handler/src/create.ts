@@ -16,6 +16,7 @@ import {
   constants as fsConstants,
   copyFile,
   mkdir,
+  rename,
   writeFile,
 } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
@@ -23,7 +24,11 @@ import { EventEmitter } from 'node:events';
 import { Calculate } from './calculate.js';
 import { Validate } from './validate.js';
 import { ProjectFile, Resource } from './interfaces/project-interfaces.js';
-import { Link, TemplateMetadata } from './interfaces/resource-interfaces.js';
+import {
+  Link,
+  ReportMetadata,
+  TemplateMetadata,
+} from './interfaces/resource-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from './utils/json.js';
 import { Project } from './containers/project.js';
@@ -47,8 +52,7 @@ import { WorkflowResource } from './resources/workflow-resource.js';
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
 
 /**
- * Handles all creation operations.
- * Resources that it can create include attachments, cards, card types, projects, templates and workflows.
+ * Handles all create commands.
  */
 export class Create extends EventEmitter {
   private defaultReportLocation: string = join(
@@ -60,6 +64,7 @@ export class Create extends EventEmitter {
     private project: Project,
     private calculateCmd: Calculate,
     private validateCmd: Validate,
+    // todo: can be removed when reports and templates are made to ResourceObjects.
     private projectPrefixes: string[],
   ) {
     super();
@@ -220,6 +225,7 @@ export class Create extends EventEmitter {
    * Call this before calling other 'create' functions. If importing new modules, should be called again.
    * todo: if this would be 'sync' it could be called from this class's constructor; then make it private
    */
+  // todo: can be removed when reports and templates are made to ResourceObjects.
   public async setProjectPrefixes(): Promise<void> {
     this.projectPrefixes = await this.project.projectPrefixes();
   }
@@ -515,9 +521,45 @@ export class Create extends EventEmitter {
   }
 
   /**
+   * Creates a report
+   * @param name name of the report
+   * // todo: can be simplified when reports and templates are made to ResourceObjects.
+   */
+  public async createReport(name: string) {
+    const validReportName = await this.validateCmd.validResourceName(
+      'reports',
+      name,
+      this.projectPrefixes,
+    );
+    if (!isResourceName(validReportName)) {
+      throw new Error(
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createReport()'`,
+      );
+    }
+
+    const report = await this.project.report(validReportName);
+    if (report) {
+      throw new Error(`Report '${name}' already exists in the project`);
+    }
+
+    // Copy report default structure to destination.
+    const destination = join(this.project.paths.reportsFolder, name);
+    const reportFile = join(this.project.paths.reportsFolder, name + '.json');
+    await copyDir(this.defaultReportLocation, destination);
+    await rename(join(destination, 'report.json'), reportFile);
+    const reportContent = (await readJsonFile(reportFile)) as ReportMetadata;
+    reportContent.name = `${this.project.projectPrefix}/reports/${name}`;
+    await writeJsonFile(reportFile, reportContent);
+
+    const resource: Resource = { name: validReportName, path: destination };
+    this.project.addResource(resource);
+  }
+
+  /**
    * Creates a new template to a project.
    * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.
+   * // todo: can be simplified when reports and templates are made to ResourceObjects.
    */
   public async createTemplate(templateName: string, templateContent: string) {
     let validTemplateName = await this.validateCmd.validResourceName(
@@ -527,7 +569,7 @@ export class Create extends EventEmitter {
     );
     if (!isResourceName(validTemplateName)) {
       throw new Error(
-        `Resource name must be a valid name (<prefix>/<type>/<identifier>)  when calling 'createTemplate()'`,
+        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createTemplate()'`,
       );
     }
     if (!Validate.validateFolder(join(this.project.basePath, templateName))) {
@@ -537,7 +579,7 @@ export class Create extends EventEmitter {
     }
     const content = templateContent
       ? (JSON.parse(templateContent) as TemplateMetadata)
-      : DefaultContent.templateContent(templateName);
+      : DefaultContent.templateContent(validTemplateName);
 
     validTemplateName = resourceNameToString(resourceName(validTemplateName));
 
@@ -546,7 +588,7 @@ export class Create extends EventEmitter {
       throw new Error(`Invalid template JSON: ${validJson}`);
     }
 
-    if (await this.project.templateExists(validTemplateName)) {
+    if (await this.project.resourceExists('template', templateName)) {
       throw new Error(
         `Template '${templateName}' already exists in the project`,
       );
@@ -554,7 +596,7 @@ export class Create extends EventEmitter {
 
     const resource = {
       name: validTemplateName,
-      path: join(this.project.paths.templatesFolder, ''),
+      path: this.project.paths.templatesFolder,
     };
 
     const template = new Template(this.project, resource);
@@ -577,33 +619,5 @@ export class Create extends EventEmitter {
     await workflow.create(
       workflowContent ? JSON.parse(workflowContent) : undefined,
     );
-  }
-
-  /**
-   * Creates a report
-   * @param name name of the report
-   */
-  public async createReport(name: string) {
-    const validReportName = await this.validateCmd.validResourceName(
-      'reports',
-      name,
-      this.projectPrefixes,
-    );
-    if (!isResourceName(validReportName)) {
-      throw new Error(
-        `Resource name must be a valid name (<prefix>/<type>/<identifier>)  when calling 'createWorkflow()'`,
-      );
-    }
-
-    const report = await this.project.report(validReportName);
-    if (report) {
-      throw new Error(`Report '${name}' already exists in the project`);
-    }
-
-    const destination = join(this.project.paths.reportsFolder, name);
-    await copyDir(this.defaultReportLocation, destination);
-
-    const resource: Resource = { name: validReportName, path: destination };
-    this.project.addResource(resource);
   }
 }

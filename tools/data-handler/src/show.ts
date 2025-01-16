@@ -32,11 +32,11 @@ import {
   CardType,
   FieldType,
   LinkType,
+  ReportMetadata,
   Workflow,
 } from './interfaces/resource-interfaces.js';
 import { Project } from './containers/project.js';
 import { resourceName } from './utils/resource-utils.js';
-import { stripExtension } from './utils/file-utils.js';
 import { UserPreferences } from './utils/user-preferences.js';
 
 /**
@@ -233,9 +233,7 @@ export class Show {
    * @returns sorted array of card types
    */
   public async showCardTypes(): Promise<string[]> {
-    return (await this.project.cardTypes())
-      .map((item) => stripExtension(item.name))
-      .sort();
+    return (await this.project.cardTypes()).map((item) => item.name).sort();
   }
 
   /**
@@ -288,9 +286,7 @@ export class Show {
    * @returns sorted array of link types
    */
   public async showLinkTypes(): Promise<string[]> {
-    return (await this.project.linkTypes())
-      .map((item) => stripExtension(item.name))
-      .sort();
+    return (await this.project.linkTypes()).map((item) => item.name).sort();
   }
 
   /**
@@ -298,9 +294,7 @@ export class Show {
    * @returns sorted array of field types
    */
   public async showFieldTypes(): Promise<string[]> {
-    return (await this.project.fieldTypes())
-      .map((item) => stripExtension(item.name))
-      .sort();
+    return (await this.project.fieldTypes()).map((item) => item.name).sort();
   }
 
   /**
@@ -348,6 +342,22 @@ export class Show {
   }
 
   /**
+   * Show details of a particular report
+   * @param reportName Name of the report
+   * @returns Report metadata
+   // todo: can be removed when reports and templates are made to ResourceObjects.
+   */
+  public async showReport(
+    reportName: string,
+  ): Promise<ReportMetadata | undefined> {
+    const reportDetails = await this.project.report(reportName);
+    if (reportDetails === undefined) {
+      throw new Error(`Report '${reportName}' not found from the project.`);
+    }
+    return reportDetails.metadata;
+  }
+
+  /**
    * Shows all reports in a project
    * @returns sorted array of reports
    */
@@ -371,6 +381,7 @@ export class Show {
    * Shows details of a particular template.
    * @param templateName template name
    * @returns template details
+   // todo: can be removed when reports and templates are made to ResourceObjects.
    */
   public async showTemplate(
     templateName: string,
@@ -412,9 +423,7 @@ export class Show {
    * @returns sorted array of workflows
    */
   public async showWorkflows(): Promise<string[]> {
-    return (await this.project.workflows())
-      .map((item) => stripExtension(item.name))
-      .sort();
+    return (await this.project.workflows()).map((item) => item.name).sort();
   }
 
   /**

@@ -71,12 +71,16 @@ describe('project', () => {
     expect(templates.length).to.equal(3);
     if (templates) {
       for (const template of templates) {
-        expect(await project.templateExists(template.name)).to.equal(true);
+        expect(
+          await project.resourceExists('template', template.name),
+        ).to.equal(true);
         const fetchTemplate = await project.template(template.name);
         expect(fetchTemplate).to.equal(template);
       }
     }
-    expect(await project.templateExists('idontexist')).to.equal(false);
+    expect(await project.resourceExists('template', 'idontexist')).to.equal(
+      false,
+    );
 
     const workflows = await project.workflows();
     expect(workflows.length).to.equal(2);

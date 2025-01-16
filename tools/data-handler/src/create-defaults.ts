@@ -16,7 +16,6 @@ import {
   FieldType,
   Link,
   LinkType,
-  ReportMetadata,
   TemplateMetadata,
   WorkflowCategory,
   Workflow,
@@ -82,18 +81,6 @@ export abstract class DefaultContent {
       sourceCardTypes: [],
       destinationCardTypes: [],
       enableLinkDescription: false,
-    };
-  }
-
-  /**
-   * Default report content.
-   * @returns Default content for link type.
-   */
-  static reportContent(): ReportMetadata {
-    return {
-      displayName: '',
-      description: '',
-      category: '',
     };
   }
 

@@ -151,7 +151,7 @@ export class CardTypeResource extends FileResource {
       > = ['destinationCardTypes', 'sourceCardTypes'];
 
       for (const field of cardTypeFields) {
-        if (data[field].includes(oldName)) {
+        if (data && data[field].includes(oldName)) {
           const op: ChangeOperation<string> = {
             name: 'change',
             target: oldName,
@@ -203,7 +203,7 @@ export class CardTypeResource extends FileResource {
     }
     const content = DefaultContent.cardType(
       resourceNameToString(this.resourceName),
-      validWorkflowName + '.json',
+      validWorkflowName,
     );
     return super.create(content);
   }

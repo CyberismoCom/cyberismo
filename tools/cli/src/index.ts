@@ -665,13 +665,12 @@ program
   });
 
 // Show command
-// todo: 'show report' missing
 program
   .command('show')
   .description('Shows resource types in a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardType, cardTypes, labels, linkType, linkTypes, project, reports, template, templates, workflow, workflows',
+    'resource types: attachments, card, cards, cardType, cardTypes, labels, linkType, linkTypes, project, report, reports, template, templates, workflow, workflows',
     parseSupportedTypes,
   )
   .argument(

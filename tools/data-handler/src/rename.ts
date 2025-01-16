@@ -267,7 +267,7 @@ export class Rename extends EventEmitter {
       );
       const filename = join(
         this.project.paths.cardTypesFolder,
-        basename(cardTypeName),
+        basename(cardTypeName) + '.json',
       );
       await writeJsonFile(filename, cardType);
     }
@@ -282,7 +282,7 @@ export class Rename extends EventEmitter {
       // Write file
       const filename = join(
         this.project.paths.fieldTypesFolder,
-        basename(fieldTypeName),
+        basename(fieldTypeName) + '.json',
       );
       await writeJsonFile(filename, fieldType);
     }
@@ -303,7 +303,7 @@ export class Rename extends EventEmitter {
       // Write file
       const filename = join(
         this.project.paths.linkTypesFolder,
-        basename(linkTypeName),
+        basename(linkTypeName) + '.json',
       );
       await writeJsonFile(filename, linkType);
     }
@@ -311,6 +311,22 @@ export class Rename extends EventEmitter {
 
   // Rename project prefix references in the handlebar .hbs files.
   private async updateReports() {
+    const reports = await this.project.reports();
+    for (const reportName of reports) {
+      const report = await this.project.report(
+        reportName.name,
+        ResourcesFrom.localOnly,
+      );
+      if (report) {
+        report.metadata.name = this.updateResourceName(report.metadata.name);
+        const filename = join(
+          this.project.paths.reportsFolder,
+          basename(reportName.name) + '.json',
+        );
+        await writeJsonFile(filename, report.metadata);
+      }
+    }
+
     const handleBarFiles = await this.project.reportHandlerBarFiles(
       ResourcesFrom.localOnly,
     );
@@ -319,6 +335,24 @@ export class Rename extends EventEmitter {
       let content = (await readFile(handleBarFile)).toString();
       content = content.replace(fromRe, `${this.to}/`);
       await writeFile(handleBarFile, content);
+    }
+  }
+
+  // Rename templates.
+  // todo: once 'name' is dropped; can be removed.
+  private async updateTemplates() {
+    const templates = await this.project.templates(ResourcesFrom.localOnly);
+    for (const template of templates) {
+      const templateObject = await this.project.template(template.name);
+      if (templateObject) {
+        templateObject.name = this.updateResourceName(template.name);
+        // Write file
+        const filename = join(
+          this.project.paths.templatesFolder,
+          basename(template.name) + '.json',
+        );
+        await writeJsonFile(filename, template);
+      }
     }
   }
 
@@ -331,7 +365,7 @@ export class Rename extends EventEmitter {
       // Write file
       const filename = join(
         this.project.paths.workflowsFolder,
-        basename(workflowName),
+        basename(workflowName) + '.json',
       );
       await writeJsonFile(filename, workflow);
     }
@@ -399,6 +433,10 @@ export class Rename extends EventEmitter {
     console.info('Updated link types');
 
     await this.updateReports();
+    console.info('Updated reports');
+
+    await this.updateTemplates();
+    console.info('Updated templates');
 
     // Rename resource usage in all calculation files.
     const calculations = await this.project.calculations(
