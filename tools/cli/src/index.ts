@@ -705,7 +705,6 @@ program
   .argument('<key>', 'Detail to be changed')
   .argument('<value>', 'Value for a detail')
   .argument('[newValue]', 'When using "change" define new value for detail')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       resourceName: string,
