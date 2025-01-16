@@ -21,47 +21,35 @@ import { handleMacroError } from './index.js';
 import TaskQueue from './task-queue.js';
 
 abstract class BaseMacro {
-  private readonly tasks: TaskQueue;
-
   private globalId: string;
   private localCounter: number = 0;
 
   constructor(
     protected macroMetadata: MacroMetadata,
-    tasks: TaskQueue,
+    private readonly tasks: TaskQueue,
   ) {
     // Set a unique global id for each instance of the macro
     this.globalId = `${generateRandomString(36, 10)}`;
-    this.tasks = tasks;
   }
-
-  protected abstract handleValidate(input: unknown): void;
-
-  protected abstract handleStatic(
-    context: MacroGenerationContext,
-    input: unknown,
-  ): Promise<string>;
 
   protected abstract handleInject(
     context: MacroGenerationContext,
     input: unknown,
   ): Promise<string>;
 
+  protected abstract handleStatic(
+    context: MacroGenerationContext,
+    input: unknown,
+  ): Promise<string>;
+
+  protected abstract handleValidate(input: unknown): void;
+
   public get metadata() {
     return this.macroMetadata;
   }
 
-  private generatePlaceholder() {
-    const localId = this.localCounter++;
-    return {
-      localId,
-      placeholder: `<<macro::${this.globalId}::${localId}>>`,
-    };
-  }
-
   private findDependencies(input: string): MacroTaskState[] {
     // Define a regex pattern to identify dependencies in the input string.
-    // Customize this pattern to match your application's expected dependency format.
     const dependencyPattern = /<<macro::([a-zA-Z0-9_-]+)::([0-9]+)>>/g;
 
     const dependencies: MacroTaskState[] = [];
@@ -83,6 +71,14 @@ abstract class BaseMacro {
     }
 
     return dependencies;
+  }
+
+  private generatePlaceholder() {
+    const localId = this.localCounter++;
+    return {
+      localId,
+      placeholder: `<<macro::${this.globalId}::${localId}>>`,
+    };
   }
 
   /**

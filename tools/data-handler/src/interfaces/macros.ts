@@ -46,7 +46,7 @@ export interface MacroTaskState {
 }
 
 // Handlebars options is not documented
-// It contains much more parameters and changed in different context
+// It contains various context specific parameters
 export interface HandlebarsOptions {
   fn: (arg0: unknown) => string;
 }
