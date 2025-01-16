@@ -57,7 +57,7 @@ export class ResourceCollector {
   // Add resources of a given type to an array.
   private async addResources(
     resources: Dirent[],
-    requestedType: string, // todo: should be a ResourceFolderType, but that needs to be converted to use plural values.
+    requestedType: ResourceFolderType,
   ): Promise<Resource[]> {
     const collectedResources: Resource[] = [];
     for (const resource of resources) {
@@ -92,7 +92,9 @@ export class ResourceCollector {
   }
 
   // Adds a resource type from all modules.
-  private async addResourcesFromModules(type: string): Promise<Resource[]> {
+  private async addResourcesFromModules(
+    type: ResourceFolderType,
+  ): Promise<Resource[]> {
     if (!pathExists(this.paths.modulesFolder)) {
       return [];
     }
@@ -121,8 +123,7 @@ export class ResourceCollector {
   }
 
   // Returns local resources of a given type.
-  // todo: parameter should be a ResourceFolderType, but that needs to be converted to use plural values.
-  private localResources(type: string) {
+  private localResources(type: ResourceFolderType) {
     if (type === 'calculations') {
       return this.localCalculations;
     } else if (type === 'cardTypes') {
@@ -165,7 +166,7 @@ export class ResourceCollector {
             entry.name = stripExtension(entry.name);
           }
           return {
-            name: `${this.project.projectPrefix}/${type}s/${entry.name}`,
+            name: `${this.project.projectPrefix}/${type}/${entry.name}`,
             path: entry.parentPath,
           };
         }),
@@ -178,13 +179,13 @@ export class ResourceCollector {
    * Collects all local resources.
    */
   public collectLocalResources() {
-    this.localCalculations = this.resourcesSync('calculation');
-    this.localCardTypes = this.resourcesSync('cardType');
-    this.localFieldTypes = this.resourcesSync('fieldType');
-    this.localLinkTypes = this.resourcesSync('linkType');
-    this.localReports = this.resourcesSync('report');
-    this.localTemplates = this.resourcesSync('template');
-    this.localWorkflows = this.resourcesSync('workflow');
+    this.localCalculations = this.resourcesSync('calculations');
+    this.localCardTypes = this.resourcesSync('cardTypes');
+    this.localFieldTypes = this.resourcesSync('fieldTypes');
+    this.localLinkTypes = this.resourcesSync('linkTypes');
+    this.localReports = this.resourcesSync('reports');
+    this.localTemplates = this.resourcesSync('templates');
+    this.localWorkflows = this.resourcesSync('workflows');
   }
 
   /**
@@ -192,7 +193,7 @@ export class ResourceCollector {
    * @param type Type of resource (e.g. 'templates').
    * @returns array of collected items.
    */
-  public async collectResourcesFromModules(type: string) {
+  public async collectResourcesFromModules(type: ResourceFolderType) {
     return (await this.addResourcesFromModules(type)).map((item) =>
       stripExtension(item.name),
     );
@@ -303,7 +304,10 @@ export class ResourceCollector {
    * @param name Name of the resource.
    * @returns true, if resource exits, false otherwise.
    */
-  public async resourceExists(type: string, name: string): Promise<boolean> {
+  public async resourceExists(
+    type: ResourceFolderType,
+    name: string,
+  ): Promise<boolean> {
     if (!name) {
       return false;
     }
@@ -317,7 +321,7 @@ export class ResourceCollector {
    * @returns Array of resources.
    */
   public async resources(
-    type: string, // todo: should be a ResourceFolderType, but that needs to be converted to use plural values.
+    type: ResourceFolderType,
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     const moduleResources =

@@ -706,7 +706,7 @@ export class Validate {
 
     if (cardType) {
       for (const field of cardType.customFields) {
-        const found = await project.resourceExists('fieldType', field.name);
+        const found = await project.resourceExists('fieldTypes', field.name);
         if (!found) {
           validationErrors.push(
             `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,

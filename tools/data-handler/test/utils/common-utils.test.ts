@@ -1,20 +1,9 @@
 // testing
 import { expect } from 'chai';
 
-import { deepCompare, singularType } from '../../src/utils/common-utils.js';
+import { deepCompare } from '../../src/utils/common-utils.js';
 
 describe('common utils', () => {
-  it('change plural type name to singular', async () => {
-    const types = ['cardtypes', 'fieldtypes', 'linktypes', 'workflows'];
-    const expectedTypes = ['cardtype', 'fieldtype', 'linktype', 'workflow'];
-    let index = 0;
-    for (const type of types) {
-      const singular = singularType(type);
-      expect(expectedTypes[index]).to.equal(singular);
-      ++index;
-    }
-  });
-
   describe('deep compare', () => {
     it('different objects', () => {
       const obj1 = { key: 'value' };

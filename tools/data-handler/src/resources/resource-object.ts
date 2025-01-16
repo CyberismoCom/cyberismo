@@ -22,6 +22,7 @@ import {
   ResourceContent,
 } from '../interfaces/resource-interfaces.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
+import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';
 
 // Possible operations to perform when doing "update"
@@ -87,7 +88,7 @@ export class ResourceObject extends AbstractResource {
   protected moduleResource: boolean;
   protected contentSchema: JSON = {} as JSON;
   protected contentSchemaId: string = '';
-  protected type: string = '';
+  protected type: ResourceFolderType = '' as ResourceFolderType;
   protected resourceFolder: string = '';
   constructor(
     protected project: Project,
