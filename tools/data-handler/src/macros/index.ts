@@ -168,7 +168,13 @@ export async function evaluateMacros(
 }
 
 /**
- *
+ * This function assumes that tasks, which were started by macros, are complete.
+ * It replaces the placeholders of the tasks with the actual results
+ * @param input Adoc content, which might have macro placeholders
+ * @param tasks The taskqueue, which was used to run the macros
+ * @param context General context for the macro evaluation process
+ * @returns Adoc, where placeholders have been replaced with the results.
+ * Note that the results might include new macros.
  */
 export function applyMacroResults(
   input: string,
