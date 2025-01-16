@@ -18,9 +18,9 @@ import {
   Commands,
   ExportFormats,
   requestStatus,
-  ShowTypes,
   UpdateOperations,
 } from '@cyberismocom/data-handler';
+import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
@@ -41,22 +41,10 @@ function handleResponse(response: requestStatus) {
       console.log('Done');
     }
   } else {
-    console.error(response.message);
+    if (response.message) {
+      program.error(response.message);
+    }
   }
-}
-
-function parseTypes(types: string[], value: string): string {
-  if (types.includes(value)) {
-    return value;
-  }
-  console.error(`Unknown type: '${value}'`);
-  console.error('Supported types are: ' + types.join(', '));
-  return '';
-}
-
-// Parse allowed types for show command.
-function parseSupportedTypes(value: string): string {
-  return parseTypes(ShowTypes.all(), value);
 }
 
 // Commander
@@ -67,10 +55,88 @@ const commandHandler = new Commands();
 
 // Ensure that all names have the same guideline.
 const nameGuideline =
-  '\nName can contain letters (a-z|A-Z), spaces, underscores or hyphens.';
+  'Name can contain letters (a-z|A-Z), spaces, underscores or hyphens.';
 const pathGuideline =
   'Path to the project root. Mandatory if not running inside a project tree.';
 
+const additionalHelpForCreate = `Sub-command help:
+  create attachment <cardKey> <filename>, where
+      <cardKey> is card key of a card to have the attachment,
+      <filename> is attachment filename.
+
+  create card <template> [cardKey], where
+      <template> Template to use. You can list the templates in a project with "show templates" command.
+      [cardKey] Parent card's card key. If defined, new card will be created as a child card to that card.
+
+  create cardType <name> <workflow>, where
+      <name> Name for cardType. ${nameGuideline}
+      <workflow> Workflow for the card type. You can list workflows in a project with "show workflows" command.
+
+  create fieldType <name> <dataType>, where
+      <name> Name for fieldType. ${nameGuideline}
+      <dataType> Type of field. You can list field types in a project with "show fieldTypes" command.
+
+  create label <cardKey> <labelName>, where
+      <cardKey> Card key of the label
+      <labelName> Name for the new label
+
+  create link <source> <destination> <linkType> [description], where
+      <source> Source card key of the link
+      <destination> Destination card key of the link
+      <linkType> Link type to create
+      [description] Link description
+
+  create linkType <name>, where
+      <name> Name for linkType. ${nameGuideline}
+
+  create project <name> <prefix> <path>, where
+      <name> Name of the project.
+      <prefix> Prefix for the project.
+      <path> Path where to create the project
+
+  create report <name>, where
+      <name> Name for report. ${nameGuideline}
+
+  create template <name> [content], where
+      <name> Name for template. ${nameGuideline}
+      [content] If empty, template is created with default values. Template content must conform to schema "templateSchema.json"
+
+  create workflow <name> [content], where
+      <name> Name for workflow. ${nameGuideline}
+      [content] If empty, workflow is created with default values. Workflow content must conform to schema "workflowSchema.json"
+
+  create <resourceName> [content], where
+      <resourceName> Name of the resource (e.g. <prefix>/<type>/<identifier>)
+      [content] If empty, resource is created with default values. Content must conform to its resource schema.`;
+
+const additionalHelpForRemove = `Sub-command help:
+  remove attachment <cardKey> <filename>, where
+      <cardKey> is card key of the owning card,
+      <filename> is attachment filename.
+
+  remove card <cardKey>, where
+      <cardKey> Card key of card to remove
+
+  remove label <cardKey> [label], where
+      <cardKey> Card key of the label
+      [label] Label being removed
+
+  remove link <source> <destination> <linkType>, where
+      <source> Source card key of the link
+      <destination> Destination card key of the link
+      <linkType> Link type to remove
+
+  remove module <name>, where
+      <name> Name of the module to remove
+
+  remove <resourceName>, where
+    <resourceName> is <project prefix>/<type>/<identifier>, where
+      <project prefix> Prefix for the project.
+      <type> is plural form of supported types; e.g. "workflows"
+      <identifier> name of a specific resource.
+    Note that you cannot remove resources from imported modules.`;
+
+// Main CLI program.
 program
   .name('cyberismo')
   .description(packageDef.description)
@@ -139,217 +205,109 @@ calculate
     handleResponse(result);
   });
 
-// Create command and the subcommands
-const create = program.command('create');
-
-// Create attachment
-create
-  .command('attachment')
-  .description('Create an attachment to a card')
-  .argument('<cardKey>', 'Card key of card')
-  .argument('<attachment>', 'Full path to an attachment')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(
-    async (cardKey: string, attachment: string, options: CardsOptions) => {
-      const result = await commandHandler.command(
-        Cmd.create,
-        ['attachment', cardKey, attachment],
-        options,
-      );
-      handleResponse(result);
-    },
-  );
-
-// Create card
-create
-  .command('card')
-  .description('Create a card')
+program
+  .command('create')
   .argument(
-    '<template>',
-    'Template to use. \nYou can list the templates in a project with "show templates" command.',
+    '<type>',
+    `types to create: '${Parser.listTargets('create').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
+    Parser.parseCreateTypes,
   )
   .argument(
-    '[cardKey]',
-    "Parent card's card key. If defined, new card will be created as a child card to that card.",
+    '[target]',
+    'Name to create, or in some operations cardKey to create data to a specific card. See below',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (template: string, cardKey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['card', template, cardKey],
-      options,
-    );
-    handleResponse(result);
-  });
-
-// Create card type
-create
-  .command('cardType')
-  .description('Create a card type')
-  .argument('<name>', `Name for card type. ${nameGuideline}`)
   .argument(
-    '<workflow>',
-    'Workflow for the card type. \nYou can list workflows in a project with "show workflows" command.',
+    '[parameter1]',
+    'Depends on context; see below for specific remove operation',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name, workflow, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['cardType', name, workflow],
-      options,
-    );
-    handleResponse(result);
-  });
-
-// Create fieldType
-create
-  .command('fieldType')
-  .description('Create a field type')
-  .argument('<name>', `Name for field type. ${nameGuideline}`)
   .argument(
-    '<datatype>',
-    'Type of field. \nYou can list field types in a project with "show fieldTypes" command.',
+    '[parameter2]',
+    'Depends on context; see below for specific remove operation',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name, datatype, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['fieldType', name, datatype],
-      options,
-    );
-    handleResponse(result);
-  });
-
-create
-  .command('label')
-  .description('Create a label')
-  .argument('<cardKey>', 'Key of the card that the label will be added to')
-  .argument('<label>', `Name of the created label. ${nameGuideline}`)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, label: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['label', cardKey, label],
-      options,
-    );
-    handleResponse(result);
-  });
-create
-  .command('link')
-  .description('Create a link')
-  .argument('<source>', 'Source card key of the link')
-  .argument('<destination>', 'Destination card key of the link')
   .argument(
-    '<linkType>',
-    'Link type. \nYou can list link types in a project with "show linkTypes" command.',
+    '[parameter3]',
+    'Depends on context; see below for specific remove operation',
   )
-  .argument('[description]', 'Description of the link')
+  .addHelpText('after', additionalHelpForCreate)
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
-      source: string,
-      destination: string,
-      linkType: string,
-      description: string,
+      type: string,
+      target: string,
+      parameter1: string,
+      parameter2: string,
+      parameter3: string,
       options: CardsOptions,
     ) => {
+      if (!type) {
+        program.error(`missing required argument <type>`);
+      }
+
+      const resourceName: boolean = type.split('/').length === 3;
+
+      function nameOfFirstArgument(type: string) {
+        if (type === 'attachment' || type === 'label') return 'cardKey';
+        if (type === 'card') return 'template';
+        if (type === 'link') return 'source';
+        return 'name';
+      }
+
+      function nameOfSecondArgument(type: string) {
+        if (type === 'attachment') return 'fileName';
+        if (type === 'cardType') return 'workflow';
+        if (type === 'fieldType') return 'dataType';
+        if (type === 'label') return 'labelName';
+        if (type === 'link') return 'destination';
+        if (type === 'project') return 'prefix';
+        return type;
+      }
+
+      if (!target && !resourceName) {
+        program.error(
+          `missing required argument <${nameOfFirstArgument(type)}>`,
+        );
+      }
+
+      if (
+        !resourceName &&
+        !parameter1 &&
+        type !== 'card' &&
+        type !== 'linkType' &&
+        type !== 'report' &&
+        type !== 'template' &&
+        type !== 'workflow'
+      ) {
+        program.error(
+          `missing required argument <${nameOfSecondArgument(type)}>`,
+        );
+      }
+
+      if (
+        resourceName &&
+        (type.includes('cardTypes') || type.includes('fieldTypes')) &&
+        !target
+      ) {
+        program.error(
+          `missing required argument <${nameOfSecondArgument(type)}>`,
+        );
+      }
+
+      if (type === 'project') {
+        if (!parameter2) {
+          program.error(`missing required argument <path>`);
+        }
+        // Project path must be set to 'options' when creating a project.
+        options.projectPath = parameter2;
+      }
+
       const result = await commandHandler.command(
         Cmd.create,
-        ['link', source, destination, linkType, description],
+        [type, target, parameter1, parameter2, parameter3],
         options,
       );
       handleResponse(result);
     },
   );
-
-// Create link type
-create
-  .command('linkType')
-  .description('Create a link type')
-  .argument('<name>', `Name for link type. ${nameGuideline}`)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['linkType', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-// Create project
-create
-  .command('project')
-  .argument('<name>', `Name for project. ${nameGuideline}`)
-  .argument(
-    '<prefix>',
-    "Prefix that will be part of each card's card key. Prefix can be 3-10 characters (a-z)",
-  )
-  .argument(
-    '<path>',
-    'Path where project is created. \nNote that folder is automatically created.',
-  )
-  .description('Create a project')
-  .action(async (name, prefix, path) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['project', name, prefix],
-      { projectPath: path },
-    );
-    handleResponse(result);
-  });
-
-// Create template
-create
-  .command('template')
-  .description('Create a template')
-  .argument('<name>', `Name for template. ${nameGuideline}`)
-  .argument(
-    '[content]',
-    'If empty, template is created with default values. \nTemplate content must conform to schema "templateSchema.json"',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, content: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['template', name, content],
-      options,
-    );
-    handleResponse(result);
-  });
-
-// Create workflow
-create
-  .command('workflow')
-  .description('Create a workflow')
-  .argument('<name>', `Name for the workflow. ${nameGuideline}`)
-  .argument(
-    '[content]',
-    'If empty, workflow is created with default values. \nWorkflow content must conform to schema "workflowSchema.json"',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, content: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['workflow', name, content],
-      options,
-    );
-    handleResponse(result);
-  });
-
-create
-  .command('report')
-  .description('Create a report')
-  .argument('<name>', `Name for the report. ${nameGuideline}`)
-  .option('-p, --project-path [path]', pathGuideline)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['report', name],
-      options,
-    );
-    handleResponse(result);
-  });
 
 // Edit command
 program
@@ -496,160 +454,68 @@ rank
   });
 
 // Remove command
-const remove = program.command('remove');
-remove
-  .command('attachment')
-  .argument('<cardKey>', 'Card key of the owning card')
-  .argument('<filename>', 'attachment filename')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, filename: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['attachment', cardKey, filename],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('card')
-  .argument('<cardKey>', 'Card key of card to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['card', cardKey],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('cardType')
-  .argument('<name>', 'Name of the card type to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['cardType', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('fieldType')
-  .argument('<name>', 'Name of the field type to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['fieldType', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('label')
-  .argument('<cardKey>', 'Source card key of the link')
-  .argument('[label]', 'Label being removed')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, label: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['label', cardKey, label],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('link')
-  .argument('<source>', 'Source card key of the link')
-  .argument('<destination>', 'Destination card key of the link')
-  .argument('<linkType>', 'Link type')
+program
+  .command('remove')
+  .argument(
+    '<type>',
+    `removable types: '${Parser.listTargets('remove').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
+    Parser.parseRemoveTypes,
+  )
+  .argument(
+    '[parameter1]',
+    'Depends on context; see below for specific remove operation',
+  )
+  .argument(
+    '[parameter2]',
+    'Depends on context; see below for specific remove operation',
+  )
+  .argument(
+    '[parameter3]',
+    'Depends on context; see below for specific remove operation',
+  )
+  .addHelpText('after', additionalHelpForRemove)
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
-      source: string,
-      destination: string,
-      linkType: string,
+      type: string,
+      parameter1: string,
+      parameter2: string,
+      parameter3: string,
       options: CardsOptions,
     ) => {
-      const result = await commandHandler.command(
-        Cmd.remove,
-        ['link', source, destination, linkType],
-        options,
-      );
-      handleResponse(result);
+      if (type) {
+        if (!parameter1) {
+          if (type === 'attachment' || type === 'card' || type === 'label') {
+            program.error('error: missing argument <cardKey>');
+          } else if (type === 'link') {
+            program.error('error: missing argument <source>');
+          } else if (type === 'module') {
+            program.error('error: missing argument <moduleName>');
+          } else {
+            if (Parser.listTargets('remove').includes(type)) {
+              program.error('error: missing argument <resourceName>');
+            }
+          }
+        }
+        if (!parameter2 && type === 'attachment') {
+          program.error('error: missing argument <filename>');
+        }
+        if (!parameter2 && type === 'link') {
+          program.error('error: missing argument <destination>');
+        }
+        if (!parameter3 && type === 'link') {
+          program.error('error: missing argument <linkType>');
+        }
+
+        const result = await commandHandler.command(
+          Cmd.remove,
+          [type, parameter1, parameter2, parameter3],
+          options,
+        );
+        handleResponse(result);
+      }
     },
   );
-
-remove
-  .command('linkType')
-  .argument('<name>', 'Name of the link type to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['linkType', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('module')
-  .argument('<name>', 'Name of the module to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['module', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('report')
-  .argument('<name>', 'Name of the report to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['report', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('template')
-  .argument('<name>', 'Name of the template to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['template', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
-remove
-  .command('workflow')
-  .argument('<name>', 'Name of the workflow to remove')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.remove,
-      ['workflow', name],
-      options,
-    );
-    handleResponse(result);
-  });
 
 // Rename command
 program
@@ -667,11 +533,11 @@ program
 // Show command
 program
   .command('show')
-  .description('Shows resource types in a project')
+  .description('Shows details from a project')
   .argument(
     '<type>',
-    'resource types: attachments, card, cards, cardType, cardTypes, labels, linkType, linkTypes, project, report, reports, template, templates, workflow, workflows',
-    parseSupportedTypes,
+    `details can be seen from: ${Parser.listTargets('show').join(', ')}`,
+    Parser.parseShowTypes,
   )
   .argument(
     '[typeDetail]',

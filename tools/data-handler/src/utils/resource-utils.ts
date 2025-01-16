@@ -47,13 +47,21 @@ export function isResourceName(name: string): boolean {
 /**
  * Returns resource name parts (project prefix, type in plural, name of the resource).
  * @param resourceName Name of the resource (e.g. <prefix>/<type>/<name>)
+ * @param strict If true, does not allow names without 'prefix' and 'type'.
  * @throws if 'resourceName' is not valid resource name.
  * @returns resource name parts: project or module prefix, resource type (plural) and actual name of the resource.
+ * @todo: In the future, switch the default value of 'strict' to true. Only in certain cases should we accept names with just 'identifier'.
  */
-export function resourceName(resourceName: string): ResourceName {
+export function resourceName(
+  resourceName: string,
+  strict: boolean = false,
+): ResourceName {
   const parts = resourceName.split('/');
   // just resource identifier - type and prefix are unknown
   if (parts.length === 1 && parts.at(0) !== '') {
+    if (strict) {
+      throw new Error(`Name '${resourceName}' is not valid resource name`);
+    }
     return {
       prefix: '',
       type: '',

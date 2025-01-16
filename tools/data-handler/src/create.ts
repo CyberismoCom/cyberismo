@@ -427,6 +427,11 @@ export class Create extends EventEmitter {
     projectName: string,
   ) {
     projectPath = resolve(projectPath);
+
+    if (!projectPath) {
+      throw new Error('Cannot create project without a path');
+    }
+
     const projectFolders: string[] = ['.cards/local', 'cardRoot'];
 
     if (

@@ -313,6 +313,11 @@ export class CardTypeResource extends FileResource {
    * @param workflowName Workflow name that this card type uses.
    */
   public async createCardType(workflowName: string) {
+    if (!workflowName) {
+      throw new Error(
+        `Cannot create cardType without providing workflow for it`,
+      );
+    }
     const validWorkflowName = await Validate.getInstance().validResourceName(
       'workflows',
       resourceNameToString(resourceName(workflowName)),
