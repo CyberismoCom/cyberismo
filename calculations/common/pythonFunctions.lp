@@ -33,10 +33,7 @@ class Functions:
             return Number(0)
 
     def today(self):
-        try:
-            return String(date.today().isoformat())
-        except:
-            return String("")
+        return String(date.today().isoformat())
 
 def main(prg):
     prg.ground([("base", [])], context=Functions())
