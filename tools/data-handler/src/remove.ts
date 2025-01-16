@@ -240,6 +240,8 @@ export class Remove extends EventEmitter {
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
+    const strictNameCheck = true;
+
     if (type === 'attachment' && rest.length !== 1 && !rest[0]) {
       throw new Error(
         `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
@@ -259,7 +261,7 @@ export class Remove extends EventEmitter {
     if (this.fileBasedResource(type)) {
       const resource = Project.resourceObject(
         this.project,
-        resourceName(targetName),
+        resourceName(targetName, strictNameCheck),
       );
       return resource?.delete();
     } else if (this.folderBasedResource(type)) {
