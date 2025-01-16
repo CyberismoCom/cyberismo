@@ -343,15 +343,17 @@ export class Rename extends EventEmitter {
   private async updateTemplates() {
     const templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
-      const templateObject = await this.project.template(template.name);
+      const templateObject = await this.project.createTemplateObjectByName(
+        template.name,
+      );
       if (templateObject) {
-        templateObject.name = this.updateResourceName(template.name);
-        // Write file
+        const content = (await templateObject!.show()).metadata;
+        content.name = this.updateResourceName(template.name);
         const filename = join(
           this.project.paths.templatesFolder,
           basename(template.name) + '.json',
         );
-        await writeJsonFile(filename, template);
+        await writeJsonFile(filename, content);
       }
     }
   }

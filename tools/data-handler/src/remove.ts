@@ -66,9 +66,7 @@ export class Remove extends EventEmitter {
     const resource = resources.filter((item) => item.name === name)[0];
 
     if (!resource || !resource.path) {
-      throw new Error(
-        `Resource '${resourceName}' does not exist in the project`,
-      );
+      throw new Error(`Resource '${name}' does not exist in the project`);
     }
 
     const resourcePath = join(
