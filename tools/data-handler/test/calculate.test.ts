@@ -124,6 +124,12 @@ describe('calculate', () => {
       });
       expect(Number(res.results[0].key)).greaterThan(365);
     });
+    it('calculate daysSince "2022-01-15T17:08:50.716Z"', async () => {
+      const res = await calculate.runLogicProgram({
+        query: 'result(@daysSince("2022-01-01T17:08:50.716Z")).',
+      });
+      expect(Number(res.results[0].key)).greaterThan(1000);
+    });
     it('daysSince of an invalid date should be zero', async () => {
       const res = await calculate.runLogicProgram({
         query: 'result(@daysSince("23232323")).',
@@ -135,6 +141,12 @@ describe('calculate', () => {
         query: 'result(@daysSince(1)).',
       });
       expect(Number(res.results[0].key)).to.equal(0);
+    });
+    it('the length of today() should be 10', async () => {
+      const res = await calculate.runLogicProgram({
+        query: 'result(@today()).',
+      });
+      expect(res.results[0].key.length).to.equal(10);
     });
   });
 });
