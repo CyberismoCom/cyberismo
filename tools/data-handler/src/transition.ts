@@ -113,13 +113,12 @@ export class Transition extends EventEmitter {
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
-    // Write new state and re-calculate.
+    // Write new state
     await this.setCardState(details, found.toState);
     await this.editCmd.editCardMetadata(
       details.key,
       'lastTransitioned',
       new Date().toISOString(),
     );
-    this.emit('transitioned', details);
   }
 }

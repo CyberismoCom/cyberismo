@@ -228,11 +228,7 @@ export class Calculate {
   }
 
   // Collects all logic calculation files from project (local and imported modules)
-  private async generateModules(parentCard: Card | undefined) {
-    // When generating calculations for a specific module, do not generate common calculations.
-    if (parentCard) {
-      return;
-    }
+  private async generateModules() {
     const destinationFile = join(
       this.project.paths.calculationFolder,
       Calculate.modulesFileName,
@@ -333,7 +329,7 @@ export class Calculate {
         this.generateCardTreeContent(card).then(
           this.generateCardTree.bind(this),
         ),
-        this.generateModules(card),
+        this.generateModules(),
         this.generateWorkFlows(),
         this.generateCardTypes(),
         this.generateFieldTypes(),
