@@ -34,11 +34,6 @@ export interface CustomField {
   name: string;
   description?: string;
   displayName?: string;
-
-  /**
-   * @deprecated
-   */
-  isEditable: boolean;
   isCalculated: boolean;
 }
 
