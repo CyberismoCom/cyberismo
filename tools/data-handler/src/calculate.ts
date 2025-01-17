@@ -246,9 +246,12 @@ export class Calculate {
     for (const calculationFile of calculations) {
       if (calculationFile.path) {
         // modules resources are always prefixed with module name (to ensure uniqueness), remove module name
-        const moduleLogicFile = resolve(
+        let moduleLogicFile = resolve(
           join(calculationFile.path, basename(calculationFile.name)),
         );
+        if (!moduleLogicFile.endsWith('.lp')) {
+          moduleLogicFile = moduleLogicFile + '.lp';
+        }
         builder.addImport(moduleLogicFile.replace(/\\/g, '/'));
       }
     }
