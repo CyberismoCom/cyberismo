@@ -124,7 +124,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
 
   const { templates } = useTemplates();
 
-  const { createCard, card } = useCard(cardKey);
+  const { createCard, card, isUpdating } = useCard(cardKey);
 
   const dispatch = useAppDispatch();
 
@@ -258,6 +258,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             <Button
               data-cy="confirmCreateButton"
               disabled={chosenTemplate === null}
+              loading={isUpdating}
               onClick={async () => {
                 if (chosenTemplate) {
                   try {
