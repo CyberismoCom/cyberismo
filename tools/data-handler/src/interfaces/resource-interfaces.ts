@@ -72,7 +72,13 @@ export interface FieldType extends ResourceBaseMetadata {
 }
 
 // File-based resources metadata content.
-export type ResourceContent = CardType | FieldType | LinkType | Workflow;
+export type ResourceContent =
+  | CardType
+  | FieldType
+  | LinkType
+  | ReportMetadata
+  | TemplateMetadata
+  | Workflow;
 
 // Link content.
 export interface Link {
@@ -91,7 +97,8 @@ export interface LinkType extends ResourceBaseMetadata {
 }
 
 // Report resource.
-export interface Report extends ResourceBaseMetadata {
+export interface Report {
+  name: string;
   metadata: ReportMetadata;
   contentTemplate: string;
   queryTemplate: string;
@@ -110,15 +117,13 @@ export interface ResourceBaseMetadata {
   name: string;
 }
 
-// Resource's metadata. There are based from ResourceBaseMetadata.
-export type ResourceMetadataType =
-  | CalculationMetadata
-  | CardType
-  | FieldType
-  | LinkType
-  | Report
-  | TemplateMetadata
-  | Workflow;
+// Template configuration details.
+export interface TemplateConfiguration {
+  name: string;
+  path: string;
+  numberOfCards: number;
+  metadata: TemplateMetadata;
+}
 
 // Template configuration content details.
 export interface TemplateMetadata extends ResourceBaseMetadata {

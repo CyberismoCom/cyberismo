@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { Card, FileContentType } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
+import { resourceName } from '../src/utils/resource-utils.js';
 import { Template } from '../src/containers/template.js';
+import { TemplateResource } from '../src/resources/template-resource.js';
 
 // Create test artifacts in a temp directory.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -163,13 +165,27 @@ describe('template', () => {
     expect(attachments.length).to.equal(0);
   });
   it('check that template does not exist, then create it', async () => {
-    const templateName = 'idontexistyet';
-    const template = new Template(project, { name: templateName, path: '' });
+    const templateName = 'decision/templates/idontexistyet';
+    const template = new Template(project, {
+      name: templateName,
+      path: '',
+    });
 
     expect(template.isCreated()).to.equal(false);
-    const success = await template.create({ name: templateName });
+
+    const templateResource = new TemplateResource(
+      project,
+      resourceName('decision/templates/idontexistyet'),
+    );
+    await templateResource
+      .create()
+      .then(() => {
+        expect(true);
+      })
+      .catch(() => {
+        expect(false);
+      });
     expect(template.isCreated()).to.equal(true);
-    expect(success).to.not.equal(undefined);
   });
   it('check template paths', async () => {
     const template = new Template(project, {
@@ -251,7 +267,10 @@ describe('template', () => {
     }
   });
   it('try to add card to a template that does not exist on disk', async () => {
-    const template = new Template(project, { name: 'i-dont-exist', path: '' });
+    const template = new Template(project, {
+      name: 'i-dont-exist',
+      path: '',
+    });
 
     await template
       .addCard('decision/cardTypes/decision')
@@ -365,13 +384,10 @@ describe('template', () => {
     expect(existingCard).to.not.equal(undefined);
   });
   it('show template details', async () => {
-    const template = new Template(project, {
-      name: 'decision/templates/decision',
-      path: '',
-    });
-
-    const templateProject = template.templateProject;
-    expect(templateProject).to.equal(project);
+    const template = new TemplateResource(
+      project,
+      resourceName('decision/templates/decision'),
+    );
 
     const templateDetails = await template.show();
     expect(templateDetails.name).to.equal('decision/templates/decision');

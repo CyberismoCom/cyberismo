@@ -348,6 +348,7 @@ export class CardContainer {
       await writeFile(contentFile, card.content);
       return;
     }
+    // todo: this could just call 'saveCardMetadata'
     if (card.metadata) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       await writeJsonFile(metadataFile, card.metadata);

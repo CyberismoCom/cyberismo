@@ -24,12 +24,13 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
+import { Calculate } from './calculate.js';
 import { Card } from './interfaces/project-interfaces.js';
+import { CardType } from '../src/interfaces/resource-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { Export } from './export.js';
 import { Project } from './containers/project.js';
 import { sortItems } from './utils/lexorank.js';
-import { Calculate } from './calculate.js';
 import { Show } from './show.js';
 
 interface ExportOptions {
@@ -229,7 +230,7 @@ export class ExportSite extends Export {
 
       let tempContent: string = '';
       if (card.metadata) {
-        const cardTypeForCard = await this.project.cardType(
+        const cardTypeForCard = await this.project.resource<CardType>(
           card.metadata?.cardType,
         );
         tempContent = '\n= ';

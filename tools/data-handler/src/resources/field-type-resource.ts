@@ -17,8 +17,8 @@ import {
   FieldType,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
-import { DefaultContent } from '../create-defaults.js';
 import { ChangeOperation, FileResource, Operation } from './file-resource.js';
+import { DefaultContent } from './create-defaults.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   ResourceName,
@@ -43,7 +43,6 @@ export class FieldTypeResource extends FileResource {
   // When resource name changes.
   private async handleNameChange(existingName: string) {
     await Promise.all([
-      this.updateCardTypes(existingName),
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
@@ -75,32 +74,13 @@ export class FieldTypeResource extends FileResource {
   }
 
   /**
-   * Returns all possible field types.
-   * @returns all possible field types.
-   */
-  public static fieldTypes(): string[] {
-    return [
-      'shortText',
-      'longText',
-      'number',
-      'integer',
-      'boolean',
-      'enum',
-      'list',
-      'date',
-      'dateTime',
-      'person',
-    ];
-  }
-
-  /**
    * Creates a new field type object. Base class writes the object to disk automatically.
    * @param dataType Type for the new field type.
    */
   public async createFieldType(dataType: string) {
-    if (!FieldTypeResource.fieldTypes().includes(dataType)) {
+    if (!FieldTypeResource.fieldDataTypes().includes(dataType)) {
       throw new Error(
-        `Field type '${dataType}' not supported. Supported types ${FieldTypeResource.fieldTypes().join(', ')}`,
+        `Field type '${dataType}' not supported. Supported types ${FieldTypeResource.fieldDataTypes().join(', ')}`,
       );
     }
 
@@ -113,10 +93,36 @@ export class FieldTypeResource extends FileResource {
   }
 
   /**
+   * Returns content data.
+   */
+  public get data(): FieldType {
+    return super.data as FieldType;
+  }
+
+  /**
    * Deletes file(s) from disk and clears out the memory resident object.
    */
   public async delete() {
     return super.delete();
+  }
+
+  /**
+   * Returns all possible field types.
+   * @returns all possible field types.
+   */
+  public static fieldDataTypes(): string[] {
+    return [
+      'shortText',
+      'longText',
+      'number',
+      'integer',
+      'boolean',
+      'enum',
+      'list',
+      'date',
+      'dateTime',
+      'person',
+    ];
   }
 
   /**
@@ -155,7 +161,7 @@ export class FieldTypeResource extends FileResource {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'dataType') {
       const toType = op as ChangeOperation<string>;
-      if (!FieldTypeResource.fieldTypes().includes(toType.to)) {
+      if (!FieldTypeResource.fieldDataTypes().includes(toType.to)) {
         throw new Error(
           `Cannot change '${key}' to unknown type '${toType.to}'`,
         );
@@ -195,6 +201,7 @@ export class FieldTypeResource extends FileResource {
     // Renaming this field type causes that references to its name must be updated.
     if (nameChange) {
       await this.handleNameChange(existingName);
+      await this.updateCardTypes(existingName);
     } else if (typeChange) {
       // @todo: fetch all cardTypes that use this FT, then fetch all cards that use those CTs and update ALL the values.
       console.error('all affected card types cards should be updated');

@@ -14,13 +14,17 @@
 import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 
+import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 import { Card } from './interfaces/project-interfaces.js';
-import { WorkflowState } from './interfaces/resource-interfaces.js';
+import {
+  CardType,
+  Workflow,
+  WorkflowState,
+} from './interfaces/resource-interfaces.js';
+import { Edit } from './edit.js';
 import { Project } from './containers/project.js';
 import { writeJsonFile } from './utils/json.js';
-import { Edit } from './edit.js';
-import { ActionGuard } from './permissions/action-guard.js';
 
 export class Transition extends EventEmitter {
   constructor(
@@ -61,7 +65,9 @@ export class Transition extends EventEmitter {
     }
 
     // Card type
-    const cardType = await this.project.cardType(details.metadata?.cardType);
+    const cardType = await this.project.resource<CardType>(
+      details.metadata?.cardType,
+    );
     if (cardType === undefined) {
       throw new Error(
         `Card's card type '${details.metadata?.cardType}' does not exist in the project`,
@@ -69,7 +75,7 @@ export class Transition extends EventEmitter {
     }
 
     // Workflow
-    const workflow = await this.project.workflow(cardType.workflow);
+    const workflow = await this.project.resource<Workflow>(cardType.workflow);
     if (workflow === undefined) {
       throw new Error(
         `Card's workflow '${cardType.workflow}' does not exist in the project`,
@@ -114,7 +120,7 @@ export class Transition extends EventEmitter {
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     // Write new state
-    await this.setCardState(details, found.toState);
+    await this.setCardState(details, found.toState); //todo: instead, this could just use project.updateCardMetadata
     await this.editCmd.editCardMetadata(
       details.key,
       'lastTransitioned',

@@ -21,11 +21,6 @@ import { Validator as JSONValidator, Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 
 // data-handler
-import { errorFunction } from './utils/log-utils.js';
-import { readJsonFile, readJsonFileSync } from './utils/json.js';
-import { pathExists } from './utils/file-utils.js';
-import { resourceName } from './utils/resource-utils.js';
-import { Project } from './containers/project.js';
 import {
   Card,
   DotSchemaContent,
@@ -36,11 +31,15 @@ import {
   CardType,
   CustomField,
   FieldType,
-  LinkType,
   ReportMetadata,
-  TemplateMetadata,
+  ResourceContent,
   Workflow,
 } from './interfaces/resource-interfaces.js';
+import { errorFunction } from './utils/log-utils.js';
+import { pathExists } from './utils/file-utils.js';
+import { Project } from './containers/project.js';
+import { readJsonFile, readJsonFileSync } from './utils/json.js';
+import { resourceName } from './utils/resource-utils.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
@@ -316,7 +315,7 @@ export class Validate {
     const errors: string[] = [];
     if (cardType && fieldArray) {
       for (const field of fieldArray) {
-        const fieldType = await project.fieldType(field);
+        const fieldType = await project.resource<FieldType>(field);
         if (!fieldType) {
           errors.push(
             `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`,
@@ -332,14 +331,10 @@ export class Validate {
   private checkResourceName(
     file: Dirent,
     content:
-      | TemplateMetadata
-      | CardType
+      | ResourceContent
       | CustomField
       | DotSchemaContent
-      | FieldType
-      | LinkType
       | ProjectSettings
-      | Workflow
       | ReportMetadata,
     projectPrefixes: string[],
   ): string[] {
@@ -352,14 +347,7 @@ export class Validate {
       file.name !== Validate.dotSchemaSchemaId &&
       file.name !== Validate.parameterSchemaFile
     ) {
-      const namedContent = content as
-        | CardType
-        | CustomField
-        | FieldType
-        | LinkType
-        | ReportMetadata
-        | TemplateMetadata
-        | Workflow;
+      const namedContent = content as ResourceContent | ReportMetadata;
       if (!namedContent.name) {
         errors.push(
           `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,
@@ -710,7 +698,7 @@ export class Validate {
       );
     }
 
-    const cardType = await project.cardType(card.metadata?.cardType);
+    const cardType = await project.resource<CardType>(card.metadata?.cardType);
     if (cardType) {
       // Check that arrays of field types refer to existing fields.
       let fieldErrors = await this.validateArrayOfFields(
@@ -757,7 +745,7 @@ export class Validate {
           );
           continue;
         }
-        const fieldType = await project.fieldType(field.name);
+        const fieldType = await project.resource<FieldType>(field.name);
         if (
           fieldType &&
           !this.validType(card.metadata[field.name], fieldType)
@@ -844,7 +832,9 @@ export class Validate {
       );
     }
 
-    const cardType = await project.cardType(card.metadata?.cardType || '');
+    const cardType = await project.resource<CardType>(
+      card.metadata?.cardType || '',
+    );
     if (!cardType) {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
@@ -858,11 +848,11 @@ export class Validate {
         );
       }
 
-      const workflow = await project.workflow(cardType?.workflow);
+      const workflow = await project.resource<Workflow>(cardType?.workflow);
       if (workflow) {
+        const cardState = card.metadata?.workflowState;
         if (!Project.isTemplateCard(card)) {
           const states = workflow.states;
-          const cardState = card.metadata?.workflowState;
           const found = states.find((item) => item.name === cardState);
           if (!found) {
             validationErrors.push(
@@ -870,7 +860,6 @@ export class Validate {
             );
           }
         } else {
-          const cardState = card.metadata?.workflowState;
           if (cardState) {
             validationErrors.push(
               `Template card ${card.key} must have empty "workflowState"`,

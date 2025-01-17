@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DefaultContent } from '../create-defaults.js';
+import { DefaultContent } from './create-defaults.js';
 import { FileResource, Operation } from './file-resource.js';
 import { LinkType } from '../interfaces/resource-interfaces.js';
 import { Project } from '../containers/project.js';
@@ -31,6 +31,19 @@ export class LinkTypeResource extends FileResource {
 
   // When resource name changes.
   private async handleNameChange(existingName: string) {
+    const current = this.content as LinkType;
+    const prefixes = await this.project.projectPrefixes();
+    if (current.sourceCardTypes) {
+      current.sourceCardTypes = current.sourceCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.destinationCardTypes) {
+      current.destinationCardTypes = current.destinationCardTypes.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    await this.write();
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
@@ -43,13 +56,20 @@ export class LinkTypeResource extends FileResource {
    */
   public async create(newContent?: LinkType) {
     if (!newContent) {
-      newContent = DefaultContent.linkTypeContent(
+      newContent = DefaultContent.linkType(
         resourceNameToString(this.resourceName),
       );
     } else {
       await this.validate(newContent);
     }
     return super.create(newContent);
+  }
+
+  /**
+   * Returns content data.
+   */
+  public get data() {
+    return super.data as LinkType;
   }
 
   /**
@@ -89,7 +109,6 @@ export class LinkTypeResource extends FileResource {
     await super.update(key, op);
 
     const content = this.content as LinkType;
-
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'destinationCardTypes') {

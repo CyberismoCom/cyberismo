@@ -18,10 +18,7 @@ import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 import { deleteDir, deleteFile } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-import {
-  RemovableResourceTypes,
-  Resource,
-} from './interfaces/project-interfaces.js';
+import { RemovableResourceTypes } from './interfaces/project-interfaces.js';
 import { resourceName } from './utils/resource-utils.js';
 
 const MODULES_PATH = `${sep}modules${sep}`;
@@ -37,49 +34,16 @@ export class Remove extends EventEmitter {
     super();
   }
 
-  // True, if resource is based on a single JSON file.
-  private fileBasedResource(type: RemovableResourceTypes): boolean {
+  // True, if resource is a project resource
+  private projectResource(type: RemovableResourceTypes): boolean {
     return (
       type === 'cardType' ||
       type === 'fieldType' ||
       type === 'linkType' ||
+      type === 'report' ||
+      type === 'template' ||
       type === 'workflow'
     );
-  }
-  // True, if resource has data in its folder in addition to the metadata file.
-  private folderBasedResource(type: RemovableResourceTypes): boolean {
-    return type === 'report' || type === 'template';
-  }
-
-  // Remove folder-based resource (template, report, ...).
-  // todo: can be removed when reports and templates are made to ResourceObjects.
-  private async deleteFolderResource(name: string) {
-    const { type } = resourceName(name);
-    let resources: Resource[];
-    if (type === 'templates') {
-      resources = await this.project.templates();
-    } else if (type === 'reports') {
-      resources = await this.project.reports();
-    } else {
-      resources = [];
-    }
-    const resource = resources.filter((item) => item.name === name)[0];
-
-    if (!resource || !resource.path) {
-      throw new Error(`Resource '${name}' does not exist in the project`);
-    }
-
-    const resourcePath = join(
-      resource.path,
-      resourceName(resource.name).identifier,
-    );
-
-    if (resourcePath.includes(MODULES_PATH)) {
-      throw new Error(`Cannot modify imported module`);
-    }
-    await deleteFile(resourcePath + '.json');
-    await deleteDir(resourcePath);
-    this.project.removeResource(resource);
   }
 
   // Removes attachment from template or project card
@@ -256,14 +220,12 @@ export class Remove extends EventEmitter {
         `Input validation error: must pass arguments 'source', 'destination' and possibly 'linkType' if requesting to remove link`,
       );
     }
-    if (this.fileBasedResource(type)) {
+    if (this.projectResource(type)) {
       const resource = Project.resourceObject(
         this.project,
         resourceName(targetName),
       );
       return resource?.delete();
-    } else if (this.folderBasedResource(type)) {
-      return this.deleteFolderResource(targetName);
     } else {
       // Something else than resources...
       if (type == 'attachment')
