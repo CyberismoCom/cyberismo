@@ -74,8 +74,7 @@ const pathGuideline =
 program
   .name('cyberismo')
   .description(packageDef.description)
-  .version(packageDef.version)
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+  .version(packageDef.version);
 
 // Add card to a template
 program
@@ -90,6 +89,7 @@ program
     'Card type to use for the new card. \nYou can list the card types in a project with "show cardTypes" command.',
   )
   .argument('[cardKey]', "Parent card's card key")
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .option('-r, --repeat <quantity>', 'Add multiple cards to a template')
   .action(
     async (
@@ -107,17 +107,6 @@ program
     },
   );
 
-// Start app command
-program
-  .command('app')
-  .description(
-    'Starts the cyberismo app, accessible with a web browser at http://localhost:3000',
-  )
-  .action(async (options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.start, [], options);
-    handleResponse(result);
-  });
-
 const calculate = program
   .command('calc')
   .description('Used for running logic programs');
@@ -126,6 +115,7 @@ calculate
   .command('generate')
   .description('Generate a logic program')
   .argument('[cardKey]', 'If given, calculates on the subtree of the card')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (filePath: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.calc,
@@ -139,6 +129,7 @@ calculate
   .command('run')
   .description('Run a logic program')
   .argument('<filePath>', 'Path to the logic program')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (filePath: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.calc,
@@ -157,6 +148,7 @@ create
   .description('Create an attachment to a card')
   .argument('<cardKey>', 'Card key of card')
   .argument('<attachment>', 'Full path to an attachment')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (cardKey: string, attachment: string, options: CardsOptions) => {
       const result = await commandHandler.command(
@@ -180,6 +172,7 @@ create
     '[cardKey]',
     "Parent card's card key. If defined, new card will be created as a child card to that card.",
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (template: string, cardKey: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -198,6 +191,7 @@ create
     '<workflow>',
     'Workflow for the card type. \nYou can list workflows in a project with "show workflows" command.',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name, workflow, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -216,6 +210,7 @@ create
     '<datatype>',
     'Type of field. \nYou can list field types in a project with "show fieldTypes" command.',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name, datatype, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -230,6 +225,7 @@ create
   .description('Create a label')
   .argument('<cardKey>', 'Key of the card that the label will be added to')
   .argument('<label>', `Name of the created label. ${nameGuideline}`)
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, label: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -248,6 +244,7 @@ create
     'Link type. \nYou can list link types in a project with "show linkTypes" command.',
   )
   .argument('[description]', 'Description of the link')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       source: string,
@@ -270,6 +267,7 @@ create
   .command('linkType')
   .description('Create a link type')
   .argument('<name>', `Name for link type. ${nameGuideline}`)
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -301,20 +299,6 @@ create
     handleResponse(result);
   });
 
-// Create report
-create
-  .command('report')
-  .description('Create a report')
-  .argument('<name>', `Name for the report. ${nameGuideline}`)
-  .action(async (name: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.create,
-      ['report', name],
-      options,
-    );
-    handleResponse(result);
-  });
-
 // Create template
 create
   .command('template')
@@ -324,6 +308,7 @@ create
     '[content]',
     'If empty, template is created with default values. \nTemplate content must conform to schema "templateSchema.json"',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -342,10 +327,25 @@ create
     '[content]',
     'If empty, workflow is created with default values. \nWorkflow content must conform to schema "workflowSchema.json"',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, content: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.create,
       ['workflow', name, content],
+      options,
+    );
+    handleResponse(result);
+  });
+
+create
+  .command('report')
+  .description('Create a report')
+  .argument('<name>', `Name for the report. ${nameGuideline}`)
+  .option('-p, --project-path [path]', pathGuideline)
+  .action(async (name: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', name],
       options,
     );
     handleResponse(result);
@@ -356,6 +356,7 @@ program
   .command('edit')
   .description('Edit a card')
   .argument('<cardKey>', 'Card key of card')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, options: CardsOptions) => {
     const result = await commandHandler.command(Cmd.edit, [cardKey], options);
     handleResponse(result);
@@ -375,6 +376,7 @@ program
     '[cardKey]',
     'Path to a card. If defined will export only that card and its children instead of whole project.',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       format: string,
@@ -398,6 +400,7 @@ importCmd
   .command('module')
   .description('Imports another project to this project as a module.')
   .argument('<source>', 'Path to import from')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (source: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
@@ -416,6 +419,7 @@ importCmd
     '[cardKey]',
     'Card key of the parent. If defined, cards are created as children of this card',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (csvFile: string, cardKey: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
@@ -436,6 +440,7 @@ program
     '[destination]',
     'Destination Card key where "source" is moved to. If moving to root, use "root"',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (source: string, destination: string, options: CardsOptions) => {
       const result = await commandHandler.command(
@@ -459,6 +464,7 @@ rank
     '<afterCardKey>',
     'Card key of the card that the card should be after. Use "first" to rank the card first.',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (cardKey: string, afterCardKey: string, options: CardsOptions) => {
       const result = await commandHandler.command(
@@ -479,6 +485,7 @@ rank
     '[parentCardKey]',
     'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.rank,
@@ -494,6 +501,7 @@ remove
   .command('attachment')
   .argument('<cardKey>', 'Card key of the owning card')
   .argument('<filename>', 'attachment filename')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, filename: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -506,6 +514,7 @@ remove
 remove
   .command('card')
   .argument('<cardKey>', 'Card key of card to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -518,6 +527,7 @@ remove
 remove
   .command('cardType')
   .argument('<name>', 'Name of the card type to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -530,6 +540,7 @@ remove
 remove
   .command('fieldType')
   .argument('<name>', 'Name of the field type to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -543,6 +554,7 @@ remove
   .command('label')
   .argument('<cardKey>', 'Source card key of the link')
   .argument('[label]', 'Label being removed')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, label: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -557,6 +569,7 @@ remove
   .argument('<source>', 'Source card key of the link')
   .argument('<destination>', 'Destination card key of the link')
   .argument('<linkType>', 'Link type')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       source: string,
@@ -576,6 +589,7 @@ remove
 remove
   .command('linkType')
   .argument('<name>', 'Name of the link type to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -588,6 +602,7 @@ remove
 remove
   .command('module')
   .argument('<name>', 'Name of the module to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -600,6 +615,7 @@ remove
 remove
   .command('report')
   .argument('<name>', 'Name of the report to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -612,6 +628,7 @@ remove
 remove
   .command('template')
   .argument('<name>', 'Name of the template to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -624,6 +641,7 @@ remove
 remove
   .command('workflow')
   .argument('<name>', 'Name of the workflow to remove')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (name: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.remove,
@@ -640,6 +658,7 @@ program
     'Change project prefix and rename all the content with the new prefix',
   )
   .argument('<to>', 'New project prefix')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (to: string, options: CardsOptions) => {
     const result = await commandHandler.command(Cmd.rename, [to], options);
     handleResponse(result);
@@ -662,6 +681,7 @@ program
     '-d --details',
     'Certain resources (such as cards) can have additional details',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (type: string, typeDetail, options: CardsOptions) => {
     if (type !== '') {
       const result = await commandHandler.command(
@@ -682,6 +702,7 @@ program
     '<transition>',
     'Workflow state transition that is done.\nYou can list the workflows in a project with "show workflows" command.\nYou can see the available transitions with "show workflow <name>" command.',
   )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (cardKey: string, transition: string, options: CardsOptions) => {
       const result = await commandHandler.command(
@@ -727,19 +748,22 @@ program
 program
   .command('validate')
   .description('Validate project structure')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
     const result = await commandHandler.command(Cmd.validate, [], options);
     handleResponse(result);
   });
 
-// Add the project path option to 'program' commands.
-program.commands.forEach((cmd) => {
-  if (cmd.commands) {
-    cmd.commands.forEach((innerCmd) => {
-      innerCmd.option('-p, --project-path [path]', `${pathGuideline}`);
-    });
-  }
-  cmd.option('-p, --project-path [path]', `${pathGuideline}`);
-});
+// Start app command
+program
+  .command('app')
+  .description(
+    'Starts the cyberismo app, accessible with a web browser at http://localhost:3000',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (options: CardsOptions) => {
+    const result = await commandHandler.command(Cmd.start, [], options);
+    handleResponse(result);
+  });
 
 export default program;
