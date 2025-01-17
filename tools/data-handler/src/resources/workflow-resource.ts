@@ -17,7 +17,7 @@ import {
   WorkflowTransition,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
-import { DefaultContent } from '../create-defaults.js';
+import { DefaultContent } from './create-defaults.js';
 import { ChangeOperation, FileResource, Operation } from './file-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
@@ -42,7 +42,6 @@ export class WorkflowResource extends FileResource {
   // When resource name changes.
   private async handleNameChange(existingName: string) {
     await Promise.all([
-      this.updateCardTypes(existingName),
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
@@ -74,13 +73,20 @@ export class WorkflowResource extends FileResource {
    */
   public async create(newContent?: Workflow) {
     if (!newContent) {
-      newContent = DefaultContent.workflowContent(
+      newContent = DefaultContent.workflow(
         resourceNameToString(this.resourceName),
       );
     } else {
       await this.validate(newContent);
     }
     return super.create(newContent);
+  }
+
+  /**
+   * Returns content data.
+   */
+  public get data(): Workflow {
+    return super.data as Workflow;
   }
 
   /**
@@ -146,6 +152,7 @@ export class WorkflowResource extends FileResource {
     // Renaming this workflow causes that references to its name must be updated.
     if (nameChange) {
       await this.handleNameChange(existingName);
+      await this.updateCardTypes(existingName);
     }
   }
 

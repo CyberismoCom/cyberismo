@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Calculate } from '../src/calculate.js';
-import { DefaultContent } from '../src/create-defaults.js';
+import { DefaultContent } from '../src/resources/create-defaults.js';
 import { CardListContainer } from '../src/interfaces/project-interfaces.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 
@@ -324,7 +324,7 @@ describe('create command', () => {
       ['fieldTypes'],
       optionsMini,
     );
-    const fieldTypes = FieldTypeResource.fieldTypes();
+    const fieldTypes = FieldTypeResource.fieldDataTypes();
     for (const fieldType of fieldTypes) {
       const name = `ft_${fieldType}`;
       const result = await commandHandler.command(
@@ -710,7 +710,7 @@ describe('create command', () => {
       optionsMini,
     );
     const templateName = 'template-name_first';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -726,7 +726,7 @@ describe('create command', () => {
   it('template with "local"', async () => {
     // local is no longer a valid name part.
     const templateName = 'local/templates/template-name_second';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -735,7 +735,7 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('template with default parameters (success)', async () => {
-    const templateName = 'validname';
+    const templateName = 'validName';
     const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
@@ -766,7 +766,7 @@ describe('create command', () => {
   });
   it('template with "loc"', async () => {
     const templateName = 'loc/templates/template-name_second';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -776,7 +776,7 @@ describe('create command', () => {
   });
   it('template with "123"', async () => {
     const templateName = 'loc/123';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -786,7 +786,7 @@ describe('create command', () => {
   });
   it('template invalid project', async () => {
     const templateName = 'validName';
-    const templateContent = '{}';
+    const templateContent = '';
     const invalidOptions = { projectPath: join(testDir, 'no-such-project') };
     const result = await commandHandler.command(
       Cmd.create,
@@ -797,7 +797,7 @@ describe('create command', () => {
   });
   it('template invalid template name', async () => {
     const templateName = 'aux';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -807,7 +807,7 @@ describe('create command', () => {
   });
   it('template already exists', async () => {
     const templateName = 'decision/templates/decision';
-    const templateContent = '{}';
+    const templateContent = '';
     const result = await commandHandler.command(
       Cmd.create,
       ['template', templateName, templateContent],
@@ -934,13 +934,13 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
   it('access default parameters for template (success)', () => {
-    const defaultContent = DefaultContent.templateContent('testName');
+    const defaultContent = DefaultContent.template('testName');
     expect(defaultContent.displayName).to.equal(undefined);
     expect(defaultContent.category).to.equal(undefined);
     expect(defaultContent.description).to.equal(undefined);
   });
   it('access default parameters for workflow (success)', () => {
-    const defaultContent = DefaultContent.workflowContent('test');
+    const defaultContent = DefaultContent.workflow('test');
     expect(defaultContent.name).to.equal('test');
     expect(defaultContent.states.length).to.equal(3);
     expect(defaultContent.transitions.length).to.equal(3);

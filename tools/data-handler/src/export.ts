@@ -17,15 +17,14 @@ import { dirname, join } from 'node:path';
 // asciidoctor
 import Processor from '@asciidoctor/core';
 
+import { Calculate } from './calculate.js';
 import { Card, FetchCardDetails } from './interfaces/project-interfaces.js';
 import { CardType } from './interfaces/resource-interfaces.js';
 import { pathExists } from './utils/file-utils.js';
 import { Project } from './containers/project.js';
-
-import { sortItems } from './utils/lexorank.js';
 import { QueryResult } from './types/queries.js';
 import { Show } from './show.js';
-import { Calculate } from './calculate.js';
+import { sortItems } from './utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
 
@@ -102,7 +101,7 @@ export class Export {
       }
 
       if (card.metadata) {
-        const cardTypeForCard = await this.project.cardType(
+        const cardTypeForCard = await this.project.resource<CardType>(
           card.metadata?.cardType,
         );
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);

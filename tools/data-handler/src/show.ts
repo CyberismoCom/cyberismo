@@ -26,17 +26,16 @@ import {
   ProjectFetchCardDetails,
   ModuleSettings,
   ProjectMetadata,
-  TemplateConfiguration,
 } from './interfaces/project-interfaces.js';
 import {
   CardType,
-  FieldType,
-  LinkType,
-  ReportMetadata,
+  ResourceContent,
+  TemplateConfiguration,
   Workflow,
 } from './interfaces/resource-interfaces.js';
 import { Project } from './containers/project.js';
 import { resourceName } from './utils/resource-utils.js';
+import { TemplateResource } from './resources/template-resource.js';
 import { UserPreferences } from './utils/user-preferences.js';
 
 /**
@@ -54,7 +53,11 @@ export class Show {
     const templateAttachments: CardAttachment[] = [];
     const templates = await this.project.templates();
     for (const template of templates) {
-      const templateObject = await this.project.createTemplateObject(template);
+      const templateResource = new TemplateResource(
+        this.project,
+        resourceName(template.name),
+      );
+      const templateObject = templateResource.templateObject();
       if (templateObject) {
         templateAttachments.push(...(await templateObject.attachments()));
       }
@@ -154,6 +157,20 @@ export class Show {
     }
   }
 
+  private collectLabels = (cards: Card[]): string[] => {
+    return cards.reduce<string[]>((labels, card) => {
+      // Add the labels from the current card
+      if (card.metadata?.labels) {
+        labels.push(...card.metadata.labels);
+      }
+      // Recursively collect labels from subcards, if they exist
+      if (card.children) {
+        labels.push(...this.collectLabels(card.children));
+      }
+      return labels;
+    }, []);
+  };
+
   // Returns attachment details
   private async getAttachment(cardKey: string, filename: string) {
     const details = {
@@ -242,7 +259,7 @@ export class Show {
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
     const promiseContainer = [];
     for (const cardType of await this.project.cardTypes()) {
-      const cardTypeDetails = this.project.cardType(cardType.name);
+      const cardTypeDetails = this.project.resource<CardType>(cardType.name);
       if (cardTypeDetails) {
         promiseContainer.push(cardTypeDetails);
       }
@@ -251,19 +268,13 @@ export class Show {
     return results.filter((item) => item);
   }
 
-  private collectLabels = (cards: Card[]): string[] => {
-    return cards.reduce<string[]>((labels, card) => {
-      // Add the labels from the current card
-      if (card.metadata?.labels) {
-        labels.push(...card.metadata.labels);
-      }
-      // Recursively collect labels from subcards, if they exist
-      if (card.children) {
-        labels.push(...this.collectLabels(card.children));
-      }
-      return labels;
-    }, []);
-  };
+  /**
+   * Shows all available field types.
+   * @returns sorted array of field types
+   */
+  public async showFieldTypes(): Promise<string[]> {
+    return (await this.project.fieldTypes()).map((item) => item.name).sort();
+  }
 
   /**
    * Returns all unique labels in a project
@@ -286,14 +297,6 @@ export class Show {
    */
   public async showLinkTypes(): Promise<string[]> {
     return (await this.project.linkTypes()).map((item) => item.name).sort();
-  }
-
-  /**
-   * Shows all available field types.
-   * @returns sorted array of field types
-   */
-  public async showFieldTypes(): Promise<string[]> {
-    return (await this.project.fieldTypes()).map((item) => item.name).sort();
   }
 
   /**
@@ -341,22 +344,6 @@ export class Show {
   }
 
   /**
-   * Show details of a particular report
-   * @param reportName Name of the report
-   * @returns Report metadata
-   // todo: can be removed when reports and templates are made to ResourceObjects.
-   */
-  public async showReport(
-    reportName: string,
-  ): Promise<ReportMetadata | undefined> {
-    const reportDetails = await this.project.report(reportName);
-    if (reportDetails === undefined) {
-      throw new Error(`Report '${reportName}' not found from the project.`);
-    }
-    return reportDetails.metadata;
-  }
-
-  /**
    * Shows all reports in a project
    * @returns sorted array of reports
    */
@@ -371,28 +358,9 @@ export class Show {
    */
   public async showResource(
     name: string,
-  ): Promise<CardType | Workflow | LinkType | FieldType | undefined> {
+  ): Promise<ResourceContent | undefined> {
     const resource = Project.resourceObject(this.project, resourceName(name));
     return resource?.show();
-  }
-
-  /**
-   * Shows details of a particular template.
-   * @param templateName template name
-   * @returns template details
-   // todo: can be removed when reports and templates are made to ResourceObjects.
-   */
-  public async showTemplate(
-    templateName: string,
-  ): Promise<TemplateConfiguration> {
-    const templateObject =
-      await this.project.createTemplateObjectByName(templateName);
-    if (!templateObject) {
-      throw new Error(
-        `Template '${templateName}' does not exist in the project`,
-      );
-    }
-    return templateObject.show();
   }
 
   /**
@@ -409,9 +377,7 @@ export class Show {
    */
   public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const promiseContainer = (await this.project.templates()).map((template) =>
-      this.project
-        .createTemplateObjectByName(template.name)
-        .then((t) => t?.show()),
+      new TemplateResource(this.project, resourceName(template.name)).show(),
     );
     const result = await Promise.all(promiseContainer);
     return result.filter(Boolean) as TemplateConfiguration[];
@@ -432,7 +398,7 @@ export class Show {
   public async showWorkflowsWithDetails(): Promise<(Workflow | undefined)[]> {
     const promiseContainer = [];
     for (const workflow of await this.project.workflows()) {
-      promiseContainer.push(this.project.workflow(workflow.name));
+      promiseContainer.push(this.project.resource<Workflow>(workflow.name));
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);

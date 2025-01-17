@@ -9,13 +9,15 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+import { AddOperation, ChangeOperation } from './resource-object.js';
 import { Card } from '../interfaces/project-interfaces.js';
 import {
   CardType,
   CustomField,
   LinkType,
 } from '../interfaces/resource-interfaces.js';
-import { DefaultContent } from '../create-defaults.js';
+import { DefaultContent } from './create-defaults.js';
+import { FieldTypeResource } from './field-type-resource.js';
 import { FileResource, Operation } from './file-resource.js';
 import { LinkTypeResource } from './link-type-resource.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
@@ -26,7 +28,6 @@ import {
 } from '../utils/resource-utils.js';
 import { Template } from '../containers/template.js';
 import { Validate } from '../validate.js';
-import { AddOperation, ChangeOperation } from './resource-object.js';
 
 /**
  * Card type resource class.
@@ -39,6 +40,7 @@ export class CardTypeResource extends FileResource {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
 
     this.initialize();
+    this.setContainerValues();
   }
 
   // Collects affected cards.
@@ -116,8 +118,30 @@ export class CardTypeResource extends FileResource {
 
   // When resource name changes.
   private async handleNameChange(existingName: string) {
+    const current = this.content as CardType;
+    const prefixes = await this.project.projectPrefixes();
+    if (current.customFields) {
+      current.customFields.map(
+        (field) =>
+          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
+      );
+    }
+    if (current.alwaysVisibleFields) {
+      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.optionallyVisibleFields) {
+      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
+        (item) => this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    current.workflow = this.updatePrefixInResourceName(
+      current.workflow,
+      prefixes,
+    );
+    await this.write(); // update own JSON immediately
     await Promise.all([
-      this.updateLinkTypes(existingName),
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
@@ -133,6 +157,48 @@ export class CardTypeResource extends FileResource {
     }
   }
 
+  // Sets content container values to be either '[]' or with proper values.
+  private setContainerValues() {
+    const content = this.content as CardType;
+    if (content.customFields) {
+      for (const item of content.customFields) {
+        // DEPRECATED BACKWARDS COMPABILITY: REMOVE
+        if (item.isEditable !== undefined) {
+          item.isCalculated = !item.isEditable;
+        }
+        // Set "isCalculated" if it is missing; default = false
+        if (item.isCalculated === undefined) {
+          item.isCalculated = false;
+        }
+        // Fetch "displayName" from field type if it is missing.
+        if (item.name && item.displayName === undefined) {
+          const fieldType = new FieldTypeResource(
+            this.project,
+            resourceName(item.name),
+          );
+          const fieldTypeContent = fieldType.data;
+          if (fieldTypeContent) {
+            item.displayName = fieldTypeContent.displayName;
+          }
+        } else if (!item.name) {
+          console.error(
+            `Custom field '${item.name}' is missing mandatory 'name' in card type '${content.name}'`,
+          );
+          return undefined;
+        }
+      }
+    } else {
+      content.customFields = [];
+    }
+    if (!content.alwaysVisibleFields) {
+      content.alwaysVisibleFields = [];
+    }
+    if (!content.optionallyVisibleFields) {
+      content.optionallyVisibleFields = [];
+    }
+    this.content = content;
+  }
+
   // Updates dependent link types.
   private async updateLinkTypes(oldName: string): Promise<void> {
     const linkTypes = await this.project.linkTypes(ResourcesFrom.localOnly);
@@ -143,7 +209,7 @@ export class CardTypeResource extends FileResource {
         resourceName(linkType.name),
       );
 
-      const data = object.data as LinkType;
+      const data = object.data;
       const updates: Promise<void>[] = [];
 
       const cardTypeFields: Array<
@@ -196,7 +262,8 @@ export class CardTypeResource extends FileResource {
       resourceNameToString(resourceName(workflowName)),
       await this.project.projectPrefixes(),
     );
-    if (!(await this.project.workflow(workflowName))) {
+    const workflow = await this.project.resource(workflowName);
+    if (!workflow) {
       throw new Error(
         `Workflow '${workflowName}' does not exist in the project`,
       );
@@ -206,6 +273,13 @@ export class CardTypeResource extends FileResource {
       validWorkflowName,
     );
     return super.create(content);
+  }
+
+  /**
+   * Returns content data.
+   */
+  public get data(): CardType {
+    return super.data as CardType;
   }
 
   /**
@@ -267,20 +341,6 @@ export class CardTypeResource extends FileResource {
         key,
         content.customFields as Type[],
       ) as CustomField[];
-
-      // Once the actual key has been changed, check if anything else needs to be updated.
-      if (op.name === 'change') {
-        const from = (op as ChangeOperation<string>).target;
-        const to = (op as ChangeOperation<string>).to;
-
-        // Changed item can be in two other arrays.
-        content.optionallyVisibleFields = content.optionallyVisibleFields?.map(
-          (item) => (item === from ? to : item),
-        );
-        content.alwaysVisibleFields = content.alwaysVisibleFields?.map(
-          (item) => (item === from ? to : item),
-        );
-      }
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }
@@ -289,7 +349,8 @@ export class CardTypeResource extends FileResource {
 
     // Renaming this card type causes that references to its name must be updated.
     if (nameChange) {
-      return this.handleNameChange(existingName);
+      await this.handleNameChange(existingName);
+      await this.updateLinkTypes(existingName);
     } else if (customFieldsChange) {
       return this.handleCustomFieldsChange(op as ChangeOperation<string>);
     }

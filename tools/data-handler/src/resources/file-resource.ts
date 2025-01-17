@@ -49,7 +49,6 @@ export { type Operation, type ChangeOperation };
  */
 export class FileResource extends ResourceObject {
   public fileName: string = '';
-
   protected content: ResourceBaseMetadata = { name: '' };
 
   constructor(
@@ -220,14 +219,10 @@ export class FileResource extends ResourceObject {
       this.project.paths.resourcePath(newName.type as ResourceFolderType),
       newName.identifier + '.json',
     );
-    if (pathExists(newFilename)) {
-      throw new Error(`Resource '${newFilename}' already exists`);
-    }
     await rename(this.fileName, newFilename);
 
     this.fileName = newFilename;
-    const content = await readJsonFile(newFilename);
-    content.name = newName.identifier;
+    this.content.name = resourceNameToString(newName);
     this.write();
   }
 
@@ -260,6 +255,17 @@ export class FileResource extends ResourceObject {
     }
   }
 
+  // Updates resource key to a new prefix
+  protected updatePrefixInResourceName(name: string, prefixes: string[]) {
+    const { identifier, prefix, type } = resourceName(name);
+    if (this.moduleResource) {
+      return name;
+    }
+    return !prefixes.includes(prefix)
+      ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
+      : name;
+  }
+
   // Write the content from memory to disk.
   protected async write() {
     if (this.moduleResource) {
@@ -277,7 +283,6 @@ export class FileResource extends ResourceObject {
         },
       );
     }
-
     // Check if "name" has changed. Changing "name" means renaming the file.
     const nameInContent = resourceName(this.content.name).identifier + '.json';
     const currentFileName = basename(this.fileName);
@@ -287,6 +292,7 @@ export class FileResource extends ResourceObject {
       await rename(this.fileName, newFileName);
       this.fileName = newFileName;
     }
+
     await writeJsonFile(this.fileName, this.content);
   }
 
