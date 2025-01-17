@@ -116,7 +116,7 @@ interface CardQueryField extends BaseResult {
   fieldDisplayName: string;
   fieldDescription: string;
   dataType: DataType;
-  isEditable: boolean;
+  isCalculated: boolean;
   value: string | number | boolean | null | EnumValue | ListValueItem[];
   enumValues: EnumDefinition[];
 }

@@ -308,7 +308,7 @@ export const createCardTypeFacts = (cardType: CardType) => {
     builder.addCustomFact(Facts.Common.FIELD, (b) =>
       b
         .addArgument(keyTuple)
-        .addArguments('isEditable', customField.isEditable),
+        .addArguments('isCalculated', customField.isCalculated),
     );
 
     let visible = false;

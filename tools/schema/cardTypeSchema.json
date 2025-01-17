@@ -32,7 +32,12 @@
             "type": "string"
           },
           "isEditable": {
-            "description": "Defines if field value can be modified.",
+            "description": "DEPRECATED: Defines if field value can be modified.",
+            "type": "boolean",
+            "default": true
+          },
+          "isCalculated": {
+            "description": "Defines if field value is a calculated field.",
             "type": "boolean",
             "default": true
           }
