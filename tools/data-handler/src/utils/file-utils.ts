@@ -18,7 +18,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { existsSync, lstatSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -50,14 +50,10 @@ export async function copyDir(source: string, destination: string) {
     const sourcePath = join(source, entry.name);
     const destinationPath = join(destination, entry.name);
     if (entry.isDirectory()) {
-      if (!pathExists(destinationPath)) {
-        await mkdir(destinationPath, { recursive: true });
-      }
+      await mkdir(destinationPath, { recursive: true });
       await copyDir(sourcePath, destinationPath);
     } else {
-      if (!pathExists(destination)) {
-        await mkdir(destination, { recursive: true });
-      }
+      await mkdir(destination, { recursive: true });
       await copyFile(sourcePath, destinationPath);
     }
   }
@@ -125,18 +121,24 @@ export function stripExtension(filename: string) {
 /**
  * Lists all files from a folder.
  * @param path path to folder
+ * @param pathPrefix relative adjustment to 'path', if any; optional; by default empty.
+ * @param files currently collected files; optional; by default empty.
  * @returns array of filenames that are in the folder or in one of its subfolders.
+ * @note that 'pathPrefix' and 'files' are generally only used in internal recursion.
+ *       When calling this from code, do not pass the parameters.
  */
-export function getFilesSync(path: string): string[] {
-  const files = [];
-  for (const file of readdirSync(path)) {
-    const fullPath = join(path, file);
-    if (lstatSync(fullPath).isDirectory()) {
-      getFilesSync(fullPath).forEach((fileName) =>
-        files.push(join(file, fileName)),
-      );
-    } else {
-      files.push(file);
+export function getFilesSync(
+  path: string,
+  pathPrefix: string = '',
+  files: string[] = [],
+): string[] {
+  for (const entry of readdirSync(path, { withFileTypes: true })) {
+    const relativePath = pathPrefix ? join(pathPrefix, entry.name) : entry.name;
+
+    if (entry.isFile()) {
+      files.push(relativePath);
+    } else if (entry.isDirectory()) {
+      getFilesSync(join(path, entry.name), relativePath, files);
     }
   }
   return files;
