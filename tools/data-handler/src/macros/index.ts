@@ -29,6 +29,9 @@ import {
 import BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 
+const CURLY_LEFT = '&#123;';
+const CURLY_RIGHT = '&#125;';
+
 export interface MacroConstructor {
   new (tasks: TaskQueue): BaseMacro; // Constructor signature
 }
@@ -84,7 +87,7 @@ export function registerMacros(
         this.__isRaw
       ) {
         // we use escaped chars so that they will not be re-run
-        return `&#123;&#123;#${macro}&#125;&#125;${options.fn(this)}&#123;&#123;/${macro}&#125;&#125;`;
+        return `${CURLY_LEFT}${CURLY_LEFT}${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
       }
       return macroInstance.invokeMacro(context, options);
     });
@@ -164,7 +167,7 @@ export async function evaluateMacros(
       context,
     );
   }
-  return result;
+  return result.replaceAll(CURLY_LEFT, '{').replaceAll(CURLY_RIGHT, '}');
 }
 
 /**
