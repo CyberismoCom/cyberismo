@@ -47,6 +47,13 @@ export interface PredefinedCardMetadata {
   lastUpdated?: string;
 }
 
+// todo: do we need in the future separation between module-template-cards and local template-cards
+export enum CardLocation {
+  all = 'all',
+  projectOnly = 'project',
+  templatesOnly = 'local',
+}
+
 // Card's index.json file content.
 export interface CardMetadata extends PredefinedCardMetadata {
   labels?: string[];

@@ -7,7 +7,10 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { FileContentType } from '../src/interfaces/project-interfaces.js';
+import {
+  CardLocation,
+  FileContentType,
+} from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
@@ -550,13 +553,13 @@ describe('project', () => {
     expect(Project.isCreated('idontexist')).to.equal(false);
     expect(Project.isCreated('')).to.equal(false);
   });
-  it('list all project cards (success)', async () => {
+  it('list project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const allProjectCards = await project.listAllCards(false);
-    const allCards = await project.listAllCards(true);
+    const allProjectCards = await project.listCards(CardLocation.projectOnly);
+    const allCards = await project.listCards();
     expect(allProjectCards).to.not.equal(undefined);
     expect(allCards).to.not.equal(undefined);
     expect(allProjectCards.length).to.be.lessThan(allCards.length);
@@ -564,6 +567,19 @@ describe('project', () => {
     expect(allCards[0].cards.length).to.equal(2);
     expect(allCards[1].type).to.equal('template');
     expect(allCards[1].cards.length).to.equal(1);
+  });
+  it('list project cards IDs (success)', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = new Project(decisionRecordsPath);
+    expect(project).to.not.equal(undefined);
+
+    const allTemplateCards = await project.listCardIds(
+      CardLocation.templatesOnly,
+    );
+    const allCards = await project.listCardIds();
+    expect(allTemplateCards).to.not.equal(undefined);
+    expect(allCards).to.not.equal(undefined);
+    expect(allTemplateCards.size).to.be.lessThan(allCards.size);
   });
   it('check all attachments', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
