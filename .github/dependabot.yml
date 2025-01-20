@@ -21,4 +21,21 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+      groups:
+        chai-dependencies: # Update all Chai dependencies in one PR
+          patterns:
+            - "@types/chai"
+            - "@types/chai-as-promised"
+            - "chai"
+            - "chai-as-promised"
+        eslint-dependencies: # Update all ESLint dependencies in one PR
+          patterns:
+            - "eslint"
+            - "eslint-config-prettier"
+            - "typescript-eslint"
+        mocha-dependencies: # Update all Mocha dependencies in one PR
+          patterns:
+            - "@types/mocha"
+            - "mocha"
+            - "mocha-suppress-logs"
 
