@@ -129,7 +129,9 @@ export class CardContainer {
     details: FetchCardDetails = {},
     foundCards: Card[],
   ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
+    const entries = (await readdir(path, { withFileTypes: true })).filter(
+      (item) => item.isDirectory(),
+    );
     if (foundCards.length > 0) {
       return foundCards;
     }
@@ -141,47 +143,47 @@ export class CardContainer {
     }
 
     for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        if (CardNameRegEx.test(entry.name)) {
-          // todo: from hereon, this could be shared with doCollect
-          if (entry.name === cardKey) {
-            const attachmentFiles: CardAttachment[] = [];
-            const promiseContainer = [
-              this.getContent(currentPath, details.content),
-              this.getMetadata(currentPath, details.metadata),
-              this.getChildren(currentPath, details),
-              this.getAttachments(
-                currentPath,
-                attachmentFiles,
-                details.attachments,
-              ),
-            ];
-            const [cardContent, cardMetadata, cardChildren] =
-              await Promise.all(promiseContainer);
+      //if (entry.isDirectory()) {
+      const currentPath = join(entry.parentPath, entry.name);
+      if (CardNameRegEx.test(entry.name)) {
+        // todo: from hereon, this could be shared with doCollect
+        if (entry.name === cardKey) {
+          const attachmentFiles: CardAttachment[] = [];
+          const promiseContainer = [
+            this.getContent(currentPath, details.content),
+            this.getMetadata(currentPath, details.metadata),
+            this.getChildren(currentPath, details),
+            this.getAttachments(
+              currentPath,
+              attachmentFiles,
+              details.attachments,
+            ),
+          ];
+          const [cardContent, cardMetadata, cardChildren] =
+            await Promise.all(promiseContainer);
 
-            const content =
-              details.contentType && details.contentType === 'html'
-                ? asciiDocProcessor?.convert(cardContent as string)
-                : cardContent;
+          const content =
+            details.contentType && details.contentType === 'html'
+              ? asciiDocProcessor?.convert(cardContent as string)
+              : cardContent;
 
-            foundCards.push({
-              key: entry.name,
-              path: currentPath,
-              children: details.children ? (cardChildren as Card[]) : [],
-              attachments: details.attachments ? [...attachmentFiles] : [],
-              ...(details.content && { content: content as string }),
-              ...(details.metadata && {
-                metadata: JSON.parse(cardMetadata as string),
-              }),
-              ...(details.parent && { parent: this.parentCard(currentPath) }),
-              ...(details.calculations && { calculations: [] }),
-            });
-            break; //optimization - there can only be one.
-          }
+          foundCards.push({
+            key: entry.name,
+            path: currentPath,
+            children: details.children ? (cardChildren as Card[]) : [],
+            attachments: details.attachments ? [...attachmentFiles] : [],
+            ...(details.content && { content: content as string }),
+            ...(details.metadata && {
+              metadata: JSON.parse(cardMetadata as string),
+            }),
+            ...(details.parent && { parent: this.parentCard(currentPath) }),
+            ...(details.calculations && { calculations: [] }),
+          });
+          break; //optimization - there can only be one.
         }
-        await this.doFindCard(currentPath, cardKey, details, foundCards);
       }
+      await this.doFindCard(currentPath, cardKey, details, foundCards);
+      //}
     }
     return foundCards;
   }
@@ -236,47 +238,49 @@ export class CardContainer {
     details: FetchCardDetails = {},
     directChildrenOnly: boolean = false,
   ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
+    const entries = (await readdir(path, { withFileTypes: true })).filter(
+      (item) => item.isDirectory(),
+    );
     let finish = false;
     const currentPaths: string[] = [];
 
     for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        currentPaths.push(currentPath);
-        if (CardNameRegEx.test(entry.name)) {
-          if (directChildrenOnly) {
-            // Make recursion stop on the level where first children cards are found.
-            finish = true;
-          }
-
-          const attachmentFiles: CardAttachment[] = [];
-          const promiseContainer = [
-            this.getContent(currentPath, details.content),
-            this.getMetadata(currentPath, details.metadata),
-            this.getChildren(currentPath, details),
-            this.getAttachments(
-              currentPath,
-              attachmentFiles,
-              details.attachments,
-            ),
-          ];
-          const [cardContent, cardMetadata, cardChildren] =
-            await Promise.all(promiseContainer);
-
-          cards.push({
-            key: entry.name,
-            path: currentPath,
-            children: details.children ? (cardChildren as Card[]) : [],
-            attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: cardContent as string }),
-            ...(details.metadata && {
-              metadata: JSON.parse(cardMetadata as string),
-            }),
-            ...(details.parent && { parent: this.parentCard(currentPath) }),
-          });
+      //if (entry.isDirectory()) {
+      const currentPath = join(entry.parentPath, entry.name);
+      currentPaths.push(currentPath);
+      if (CardNameRegEx.test(entry.name)) {
+        if (directChildrenOnly) {
+          // Make recursion stop on the level where first children cards are found.
+          finish = true;
         }
+
+        const attachmentFiles: CardAttachment[] = [];
+        const promiseContainer = [
+          this.getContent(currentPath, details.content),
+          this.getMetadata(currentPath, details.metadata),
+          this.getChildren(currentPath, details),
+          this.getAttachments(
+            currentPath,
+            attachmentFiles,
+            details.attachments,
+          ),
+        ];
+        const [cardContent, cardMetadata, cardChildren] =
+          await Promise.all(promiseContainer);
+
+        cards.push({
+          key: entry.name,
+          path: currentPath,
+          children: details.children ? (cardChildren as Card[]) : [],
+          attachments: details.attachments ? [...attachmentFiles] : [],
+          ...(details.content && { content: cardContent as string }),
+          ...(details.metadata && {
+            metadata: JSON.parse(cardMetadata as string),
+          }),
+          ...(details.parent && { parent: this.parentCard(currentPath) }),
+        });
       }
+      //}
     }
 
     // Continue collecting cards from children

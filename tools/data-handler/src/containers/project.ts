@@ -561,19 +561,39 @@ export class Project extends CardContainer {
         }
       } else {
         const templates = await this.templates();
-        for (const template of templates) {
-          templateObject = await this.createTemplateObject(template);
-          // optimize: execute each find in template parallel
-          if (templateObject) {
-            templateCard = await templateObject.findSpecificCard(
-              cardToFind as string,
+        const templateObjectResults = await Promise.allSettled(
+          templates.map((template) => this.createTemplateObject(template)),
+        );
+
+        // Filter out results that return nothing; or resulted in error.
+        const validTemplateObjects = templateObjectResults
+          .filter(
+            (
+              result,
+            ): result is PromiseFulfilledResult<
+              NonNullable<Awaited<ReturnType<typeof this.createTemplateObject>>>
+            > => result.status === 'fulfilled' && result.value !== null,
+          )
+          .map((result) => result.value);
+
+        const templateCardResults = await Promise.allSettled(
+          validTemplateObjects.map(async (templateObj) => {
+            const cards = await templateObj.findSpecificCard(
+              cardToFind,
               details,
             );
-            if (templateCard) {
-              break;
-            }
-          }
-        }
+            return cards;
+          }),
+        );
+        templateCard = templateCardResults
+          .filter(
+            (result): result is PromiseFulfilledResult<Card | undefined> =>
+              result.status === 'fulfilled',
+          )
+          .filter((result) => result.value !== undefined)
+          .map((result) => result.value)
+          .flat()
+          .at(0);
       }
     }
     return projectCard ? projectCard : templateCard;
@@ -687,20 +707,24 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.templatesOnly
     ) {
       const templates = await this.templates();
-      for (const template of templates) {
+      const cardListPromises = templates.map(async (template) => {
         const templateObject = await this.createTemplateObject(template);
-        if (templateObject) {
-          // todo: optimization - do all this in parallel
-          const templateCards = await templateObject.listCards();
-          if (templateCards) {
-            cardListContainer.push({
-              name: template.name,
-              type: 'template',
-              cards: templateCards.map((item) => item.key),
-            });
-          }
-        }
-      }
+        if (!templateObject) return null;
+
+        const templateCards = await templateObject.listCards();
+        if (!templateCards) return null;
+
+        return {
+          name: template.name,
+          type: 'template',
+          cards: templateCards.map((item) => item.key),
+        };
+      });
+
+      const cardLists = (await Promise.all(cardListPromises)).filter(
+        (item) => item !== null,
+      );
+      cardListContainer.push(...cardLists);
     }
     return cardListContainer;
   }
@@ -1087,17 +1111,16 @@ export class Project extends CardContainer {
    */
   public async templateCards(cardDetails?: FetchCardDetails): Promise<Card[]> {
     const templates = await this.templates();
-    const cards: Card[] = [];
-    for (const template of templates) {
+    const templatePromises = templates.map(async (template) => {
       const templateObject = await this.createTemplateObject(template);
-      const templateCards = await templateObject?.cards('', cardDetails);
-      if (templateCards) {
-        for (const card of templateCards) {
-          cards.push(card);
-        }
-      }
-    }
-    return cards;
+      const templateCard = templateObject
+        ? await templateObject.cards('', cardDetails)
+        : undefined;
+      return templateCard;
+    });
+
+    const templateCards = await Promise.all(templatePromises);
+    return templateCards.filter((item) => item !== undefined).flat();
   }
 
   /**

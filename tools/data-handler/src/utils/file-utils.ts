@@ -50,15 +50,31 @@ export async function copyDir(source: string, destination: string) {
     const sourcePath = join(source, entry.name);
     const destinationPath = join(destination, entry.name);
     if (entry.isDirectory()) {
-      if (!pathExists(destinationPath)) {
+      // if (!pathExists(destinationPath)) {
+      //   await mkdir(destinationPath, { recursive: true });
+      // }
+      try {
+        await copyDir(sourcePath, destinationPath);
+      } catch (error) {
+        if (error instanceof Error) {
+          //console.error(error.message);
+        }
         await mkdir(destinationPath, { recursive: true });
+        await copyDir(sourcePath, destinationPath);
       }
-      await copyDir(sourcePath, destinationPath);
     } else {
-      if (!pathExists(destination)) {
+      // if (!pathExists(destination)) {
+      //   await mkdir(destination, { recursive: true });
+      // }
+      try {
+        await copyFile(sourcePath, destinationPath);
+      } catch (error) {
+        if (error instanceof Error) {
+          //console.error(error.message);
+        }
         await mkdir(destination, { recursive: true });
+        await copyFile(sourcePath, destinationPath);
       }
-      await copyFile(sourcePath, destinationPath);
     }
   }
 }

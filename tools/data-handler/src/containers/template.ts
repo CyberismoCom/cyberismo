@@ -12,7 +12,7 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, rm, writeFile, readdir } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 
 import {
@@ -82,6 +82,29 @@ export class Template extends CardContainer {
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
+  private async topLevelOnly(): Promise<Card[]> {
+    const entries = (
+      await readdir(this.project.paths.cardRootFolder, {
+        withFileTypes: true,
+      })
+    ).filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name));
+
+    const cardPromises = entries.map(async (entry) => {
+      const currentPath = join(entry.parentPath, entry.name);
+      return {
+        key: entry.name,
+        path: currentPath,
+        metadata: await readJsonFile(
+          join(currentPath, CardContainer.cardMetadataFile),
+        ),
+        children: [],
+        attachments: [],
+      };
+    });
+
+    return Promise.all(cardPromises);
+  }
+
   // Creates card(s) as project cards from template.
   // optimize: first make temp file, them copy all template cards to it as-is.
   //           Then rename the folder based on mapped names.
@@ -94,14 +117,23 @@ export class Template extends CardContainer {
     const templateIDMap: mappingValue[] = [];
     const tempDestination = this.project.paths.tempCardFolder;
 
+    //const start = Date.now();
+
     // First, create a mapping table.
     const cardIds = await this.project.listCardIds();
-    for (const card of cards) {
-      templateIDMap.push({
+    // Process all cards in parallel using Promise.all
+    const mappings = await Promise.all(
+      cards.map(async (card) => ({
         from: card.key,
         to: await this.project.newCardKey(cardIds),
-      });
-    }
+      })),
+    );
+
+    // Add all mappings at once
+    templateIDMap.push(...mappings);
+
+    // const afterInitial = Date.now();
+    // console.error(`initial took ${afterInitial - start}`);
 
     // find parent cards
     // here we want to insert the cards after the last card, but not after a card that has no rank
@@ -111,13 +143,20 @@ export class Template extends CardContainer {
       (c) => c?.metadata?.rank || '',
     );
 
+    // const beforeSiblings = Date.now();
+    // console.error(`sortItems #1 took ${beforeSiblings - start}`);
+
     // If parent card is not defined, then we are creating top-level cards.
     // also filter out cards that have no rank
     const futureSiblings = (
       parentCard
         ? parentCard.children || []
-        : await this.project.showProjectCards()
+        : //: await this.project.showProjectCards()
+          await this.topLevelOnly()
     ).filter((c) => c.metadata?.rank !== undefined);
+
+    // const beforeSorting = Date.now();
+    // console.error(`futureSiblings took ${beforeSorting - beforeSiblings}`);
 
     let latestRank = sortItems(
       futureSiblings,
@@ -128,6 +167,9 @@ export class Template extends CardContainer {
       latestRank = FIRST_RANK;
     }
 
+    // const beforeRanking = Date.now();
+    // console.error(`sortItems #2 took ${beforeRanking - beforeSorting}`);
+
     parentCards.forEach((card) => {
       const newRank = getRankAfter(latestRank as string);
       latestRank = newRank;
@@ -136,6 +178,9 @@ export class Template extends CardContainer {
         card.metadata.rank = newRank;
       }
     });
+
+    // const afterRanking = Date.now();
+    // console.error(`getRankAfter took ${afterRanking - beforeRanking}`);
 
     try {
       // Update card keys and paths according to the new upcoming IDs.
@@ -159,6 +204,9 @@ export class Template extends CardContainer {
         );
         card.key = found ? found?.to : card.key;
       }
+
+      // const afterUpdate = Date.now();
+      // console.error(`card update took ${afterUpdate - afterRanking}`);
 
       // Create temp-folder and schema file.
       const templatesFolder = this.templateFolder();
@@ -187,10 +235,14 @@ export class Template extends CardContainer {
         if (!workflow) {
           throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
         }
+        // Accept both empty list and list with empty string item, as "initial state"
+        const initialWorkflowState = workflow.transitions.find(
+          (item) => item.fromState.includes('') || item.fromState.length === 0,
+        )?.toState;
 
-        const initialWorkflowState = await this.project.workflowInitialState(
-          cardType.workflow,
-        );
+        // const initialWorkflowState = await this.project.workflowInitialState(
+        //   cardType.workflow,
+        // );
         if (!initialWorkflowState) {
           throw new Error(
             `Workflow '${cardType.workflow}' initial state cannot be found`,
@@ -244,6 +296,9 @@ export class Template extends CardContainer {
         );
       }
 
+      // const afterTempCard = Date.now();
+      // console.error(`temp cards took ${afterTempCard - afterUpdate}`);
+
       // Next, copy all created cards to proper place.
       if (parentCard) {
         await mkdir(parentCard.path, { recursive: true });
@@ -253,6 +308,9 @@ export class Template extends CardContainer {
       }
       // Finally, delete temp folder.
       await rm(tempDestination, { recursive: true, force: true });
+
+      // const afterCopy = Date.now();
+      // console.error(`copy cards took ${afterCopy - afterTempCard}`);
     } catch (error) {
       if (error instanceof Error) {
         // If card creation causes an exception, remove 'temp'.
