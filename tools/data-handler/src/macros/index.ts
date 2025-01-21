@@ -87,7 +87,7 @@ export function registerMacros(
         this.__isRaw
       ) {
         // we use escaped chars so that they will not be re-run
-        return `${CURLY_LEFT}${CURLY_LEFT}${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
+        return `${CURLY_LEFT}${CURLY_LEFT}#${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
       }
       return macroInstance.invokeMacro(context, options);
     });
