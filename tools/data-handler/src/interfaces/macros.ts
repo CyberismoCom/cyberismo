@@ -37,10 +37,18 @@ export interface MacroMetadata {
 }
 
 export interface MacroTaskState {
+  globalId: string;
   localId: number;
   promise: Promise<void>;
   placeholder: string;
   promiseResult: string | null;
+  macro: string;
+}
+
+// Handlebars options is not documented
+// It contains various context specific parameters
+export interface HandlebarsOptions {
+  fn: (arg0: unknown) => string;
 }
 
 export type MacroName = keyof typeof macroMetadata;

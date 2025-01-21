@@ -2,10 +2,10 @@
 
 To create a new decision, click this button:
 
-{{{ createCards '{"template": "decision/templates/simplepage", "buttonLabel": "Create a new page"}'}}}
+{{#createCards}}"template": "decision/templates/simplepage", "buttonLabel": "Create a new page"{{/createCards}}
 
 == Decisions
 
 The following decisions have been made:
 
-{{{ report '{"name": "decision/reports/testReport", "key3": "key"}'}}}
+{{#report}}"name": "decision/reports/testReport", "key3": "key"{{/report}}

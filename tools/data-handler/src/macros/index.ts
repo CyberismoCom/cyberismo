@@ -26,10 +26,14 @@ import {
   MacroMetadata,
   MacroName,
 } from '../interfaces/macros.js';
-import BaseMacro from './BaseMacro.js';
+import BaseMacro from './base-macro.js';
+import TaskQueue from './task-queue.js';
+
+const CURLY_LEFT = '&#123;';
+const CURLY_RIGHT = '&#125;';
 
 export interface MacroConstructor {
-  new (): BaseMacro; // Constructor signature
+  new (tasks: TaskQueue): BaseMacro; // Constructor signature
 }
 
 export const macros: { [K in MacroName]: MacroConstructor } = {
@@ -39,14 +43,9 @@ export const macros: { [K in MacroName]: MacroConstructor } = {
   scoreCard,
 };
 
-const emptyMacro = {
-  name: '',
-  tagName: '',
-};
-
 export function validateMacroContent<T>(
   macro: MacroMetadata,
-  data: string,
+  data: unknown,
   validator?: Validator,
 ): T {
   if (!macro.schema) {
@@ -54,7 +53,7 @@ export function validateMacroContent<T>(
   }
 
   try {
-    return validateJson<T>(JSON.parse(data), {
+    return validateJson<T>(data, {
       schemaId: macro.schema,
       validator,
     });
@@ -74,16 +73,33 @@ export function validateMacroContent<T>(
 export function registerMacros(
   instance: typeof Handlebars,
   context: MacroGenerationContext,
+  tasks: TaskQueue,
 ) {
   const macroInstances: BaseMacro[] = [];
   for (const macro of Object.keys(macros) as MacroName[]) {
     const MacroClass = macros[macro];
-    const macroInstance = new MacroClass();
-    instance.registerHelper(macro, (data: string) =>
-      macroInstance.invokeMacro(context, data),
-    );
+    const macroInstance = new MacroClass(tasks);
+    instance.registerHelper(macro, function (this: unknown, options) {
+      if (
+        this != null &&
+        typeof this === 'object' &&
+        '__isRaw' in this &&
+        this.__isRaw
+      ) {
+        // we use escaped chars so that they will not be re-run
+        return `${CURLY_LEFT}${CURLY_LEFT}#${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
+      }
+      return macroInstance.invokeMacro(context, options);
+    });
     macroInstances.push(macroInstance);
   }
+
+  instance.registerHelper('raw', function (options) {
+    return options.fn({
+      __isRaw: true,
+    });
+  });
+
   return macroInstances;
 }
 /**
@@ -91,7 +107,7 @@ export function registerMacros(
  * @param input
  */
 export function macroCount(input: string): number {
-  const regex = /{{{.+}}}/g;
+  const regex = /{{#.+}}/g;
   const match = input.match(regex);
   return match ? match.length : 0;
 }
@@ -104,59 +120,10 @@ export function macroCount(input: string): number {
  */
 export function registerEmptyMacros(instance: typeof Handlebars) {
   for (const macro of Object.keys(macros) as MacroName[]) {
-    instance.registerHelper(macro, (...args) => {
-      let argString = '';
-      // last is the options object so go through everything else
-      for (let i = 0; i < args.length - 1; i++) {
-        argString += `'${args[i]}'`;
-      }
-      return `{{{${macro}${argString ? ` ${argString}` : ''}}}}`;
+    instance.registerHelper(macro, function (this: unknown, options) {
+      return `{{#${macro}}}${options.fn(this)}{{/${macro}}}`;
     });
   }
-}
-
-/**
- * Registers any Handlebars helper functions that may be needed by sub-macros
- * @param instance handlebars instance
- */
-export function registerMacroHelpers(instance: typeof Handlebars) {
-  // Register a helper to create the parameters JSON string for the scoreCard macro
-  // Usage: (scoreCardParams title value unit legend)
-  instance.registerHelper('scoreCardParams', function (...args) {
-    // Remove the options object from the arguments
-    args.pop();
-
-    // value argument should be a number
-    const value = parseFloat(args[1]);
-
-    if (args.length === 2) {
-      return JSON.stringify({
-        title: args[0],
-        value: value,
-      });
-    }
-
-    if (args.length === 3) {
-      return JSON.stringify({
-        title: args[0],
-        value: value,
-        unit: args[2],
-      });
-    }
-
-    if (args.length === 4) {
-      return JSON.stringify({
-        title: args[0],
-        value: value,
-        unit: args[2],
-        legend: args[3],
-      });
-    }
-
-    throw new Error(
-      'scoreCardParams: invalid arguments, please specify title and value and optionally unit and legend',
-    );
-  });
 }
 
 /**
@@ -170,34 +137,67 @@ export async function evaluateMacros(
   maxTries: number = 10,
 ) {
   const handlebars = Handlebars.create();
-  const macroInstances = registerMacros(handlebars, context);
+  const tasks = new TaskQueue();
+  registerMacros(handlebars, context, tasks);
   let result = content;
   while (maxTries-- > 0) {
+    tasks.reset();
     const compiled = handlebars.compile(result, {
       strict: true,
     });
     try {
       result = compiled({});
 
-      for (const macro of macroInstances) {
-        result = await macro.applyMacroResults(result, context);
-      }
+      await tasks.waitAll();
+
+      result = applyMacroResults(result, tasks, context);
+
       if (macroCount(result) === 0) {
         break;
       }
     } catch (err) {
       // This will produce a warning in the output in inject/static modes and throw an error in validate mode
-      return handleMacroError(err, emptyMacro, context);
+      return handleMacroError(err, '', context);
     }
   }
   if (macroCount(result) !== 0) {
     return handleMacroError(
       new Error(`Too many recursive macro evaluations.`),
-      emptyMacro,
+      '',
       context,
     );
   }
-  return result;
+  return result.replaceAll(CURLY_LEFT, '{').replaceAll(CURLY_RIGHT, '}');
+}
+
+/**
+ * This function assumes that tasks, which were started by macros, are complete.
+ * It replaces the placeholders of the tasks with the actual results
+ * @param input Adoc content, which might have macro placeholders
+ * @param tasks The taskqueue, which was used to run the macros
+ * @param context General context for the macro evaluation process
+ * @returns Adoc, where placeholders have been replaced with the results.
+ * Note that the results might include new macros.
+ */
+export function applyMacroResults(
+  input: string,
+  tasks: TaskQueue,
+  context: MacroGenerationContext,
+) {
+  for (const item of tasks) {
+    if (item.promiseResult === null) {
+      input = handleMacroError(
+        new Error(
+          `Tried to access result before it was resolved for ${item.placeholder}`,
+        ),
+        item.macro,
+        context,
+      );
+    } else {
+      input = input.replace(item.placeholder, item.promiseResult);
+    }
+  }
+  return input;
 }
 
 /**
@@ -208,12 +208,12 @@ export async function evaluateMacros(
  */
 export function handleMacroError(
   error: unknown,
-  macro: MacroMetadata,
+  macro: string,
   context: MacroGenerationContext,
 ): string {
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
-    message = `Check json syntax of macro ${macro.name}: ${error.errors?.map((e) => e.message).join(', ')}`;
+    message = `Check json syntax of macro ${macro}: ${error.errors?.map((e) => e.message).join(', ')}`;
   }
   if (
     typeof error === 'object' &&

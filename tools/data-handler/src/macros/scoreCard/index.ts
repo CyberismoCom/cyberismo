@@ -14,7 +14,8 @@ import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import BaseMacro from '../BaseMacro.js';
+import BaseMacro from '../base-macro.js';
+import TaskQueue from '../task-queue.js';
 
 export interface ScoreCardOptions {
   title?: string;
@@ -25,30 +26,25 @@ export interface ScoreCardOptions {
 }
 
 class ScoreCardMacro extends BaseMacro {
-  constructor() {
-    super(macroMetadata);
+  constructor(tasksQueue: TaskQueue) {
+    super(macroMetadata, tasksQueue);
   }
-
   handleValidate = (data: string) => {
     this.validate(data);
   };
 
-  handleStatic = async (context: MacroGenerationContext, data: string) => {
-    const options = this.validate(data);
+  handleStatic = async (context: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input);
     return this.createAsciidocElement(options);
   };
 
-  handleInject = async (_: MacroGenerationContext, data: string) => {
-    const options = this.validate(data);
+  handleInject = async (_: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input);
     return createHtmlPlaceholder(this.metadata, options);
   };
 
-  private validate(data: string): ScoreCardOptions {
-    if (!data || typeof data !== 'string') {
-      throw new Error('scoreCard macro requires a JSON object as data');
-    }
-
-    return validateMacroContent<ScoreCardOptions>(this.metadata, data);
+  private validate(input: unknown): ScoreCardOptions {
+    return validateMacroContent<ScoreCardOptions>(this.metadata, input);
   }
 
   private createAsciidocElement(options: ScoreCardOptions) {

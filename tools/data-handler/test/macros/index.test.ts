@@ -12,28 +12,38 @@ import {
 } from '../../src/macros/index.js';
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
-import BaseMacro from '../../src/macros/BaseMacro.js';
+import BaseMacro from '../../src/macros/base-macro.js';
 import { MacroGenerationContext } from '../../src/interfaces/macros.js';
+import TaskQueue from '../../src/macros/task-queue.js';
 
 class TestMacro extends BaseMacro {
   constructor(schema: string) {
-    super({
-      name: 'testName',
-      tagName: 'test-tag-name',
-      schema,
-    });
+    super(
+      {
+        name: 'testName',
+        tagName: 'test-tag-name',
+        schema,
+      },
+      new TaskQueue(),
+    );
   }
 
-  handleValidate = async (data: string) => {
-    return 'test-static: ' + data;
+  handleValidate = async (data: { content: string }) => {
+    return 'test-static: ' + data.content;
   };
 
-  handleStatic = async (_: MacroGenerationContext, data: string) => {
-    return 'test-static: ' + data;
+  handleStatic = async (
+    _: MacroGenerationContext,
+    data: { content: string },
+  ) => {
+    return 'test-static: ' + data.content;
   };
 
-  handleInject = async (_: MacroGenerationContext, data: string) => {
-    return 'test-static: ' + data;
+  handleInject = async (
+    _: MacroGenerationContext,
+    data: { content: string },
+  ) => {
+    return 'test-static: ' + data?.content;
   };
 }
 
@@ -56,16 +66,16 @@ validator.addSchema(testSchema, 'test-schema');
 
 const validAdoc = `
 == Title
-{{{createCards '{"buttonLabel": "test-label", "template": "test-template", "cardKey": "test-key"}'}}}`;
+{{#createCards}}"buttonLabel": "test-label", "template": "test-template", "cardKey": "test-key"{{/createCards}}`;
 
 const invalidAdoc = `
 == Title
-{{{createCards '{"buttonLabel": "test-label", "template": "test-template", "cardKey": "test-key"}'`;
+{{#createCards}} '{"buttonLabel": "test-label", "template": "test-template", "cardKey": "test-key"}'`;
 
 describe('macros', () => {
   describe('validateMacroContent', () => {
     it('validateMacroContent (success)', () => {
-      const data = '{"test": "test"}';
+      const data = { test: 'test' };
       const result = validateMacroContent(macro.metadata, data, validator);
       expect(result).to.deep.equal({ test: 'test' });
     });
@@ -116,7 +126,7 @@ describe('macros', () => {
 
     describe('scoreCard', () => {
       it('scoreCard inject (success)', async () => {
-        const macro = `{{{ scoreCard '{"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete" }' }}}`;
+        const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
           projectPath: '',
@@ -125,13 +135,25 @@ describe('macros', () => {
         expect(result).to.contain('<score-card');
       });
       it('scoreCard static (success)', async () => {
-        const macro = `{{{ scoreCard '{"title": "Open issues", "value": 0 }}}`;
+        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
         const result = await evaluateMacros(macro, {
           mode: 'static',
           projectPath: '',
           cardKey: '',
         });
         expect(result).to.contain('----');
+      });
+      it('raw macro (success)', async () => {
+        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
+        const withRaw = `{{#raw}}${macro}{{/raw}}`;
+        const result = await evaluateMacros(withRaw, {
+          mode: 'static',
+          projectPath: '',
+          cardKey: '',
+        });
+        expect(result).to.equal(
+          '&#123;&#123;#scoreCard&#125;&#125;"title": "Open issues", "value": 0 &#123;&#123;/scoreCard&#125;&#125;',
+        );
       });
     });
   });
@@ -162,11 +184,15 @@ describe('macros', () => {
   describe('registerMacros', () => {
     it('registerMacros (success)', () => {
       const handlebars = Handlebars.create();
-      registerMacros(handlebars, {
-        mode: 'inject',
-        projectPath: '',
-        cardKey: '',
-      });
+      registerMacros(
+        handlebars,
+        {
+          mode: 'inject',
+          projectPath: '',
+          cardKey: '',
+        },
+        new TaskQueue(),
+      );
       expect(handlebars.helpers).to.have.property('createCards');
       expect(handlebars.helpers).to.have.property('scoreCard');
       expect(handlebars.helpers).to.have.property('report');

@@ -14,7 +14,8 @@ import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import BaseMacro from '../BaseMacro.js';
+import BaseMacro from '../base-macro.js';
+import TaskQueue from '../task-queue.js';
 
 export interface CreateCardsOptions {
   buttonLabel: string;
@@ -24,12 +25,12 @@ export interface CreateCardsOptions {
 }
 
 class CreateCardsMacro extends BaseMacro {
-  constructor() {
-    super(macroMetadata);
+  constructor(tasksQueue: TaskQueue) {
+    super(macroMetadata, tasksQueue);
   }
 
-  handleValidate = (data: string) => {
-    this.validate(data);
+  handleValidate = (input: unknown) => {
+    this.validate(input);
   };
 
   async handleStatic() {
@@ -37,17 +38,13 @@ class CreateCardsMacro extends BaseMacro {
     return '';
   }
 
-  handleInject = async (_: MacroGenerationContext, data: string) => {
-    const options = this.validate(data);
+  handleInject = async (_: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input);
     return createHtmlPlaceholder(this.metadata, options);
   };
 
-  private validate(data: string): CreateCardsOptions {
-    if (!data || typeof data !== 'string') {
-      throw new Error('createCards macro requires a JSON object as data');
-    }
-
-    return validateMacroContent<CreateCardsOptions>(this.metadata, data);
+  private validate(input: unknown): CreateCardsOptions {
+    return validateMacroContent<CreateCardsOptions>(this.metadata, input);
   }
 }
 
