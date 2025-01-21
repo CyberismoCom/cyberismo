@@ -214,8 +214,7 @@ export class Show {
    * @returns cards list array
    */
   public async showCards(): Promise<CardListContainer[]> {
-    const projectCards = await this.project.listAllCards(true);
-    return projectCards;
+    return this.project.listCards();
   }
 
   /**

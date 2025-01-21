@@ -95,10 +95,11 @@ export class Template extends CardContainer {
     const tempDestination = this.project.paths.tempCardFolder;
 
     // First, create a mapping table.
+    const cardIds = await this.project.listCardIds();
     for (const card of cards) {
       templateIDMap.push({
         from: card.key,
-        to: await this.project.newCardKey(),
+        to: await this.project.newCardKey(cardIds),
       });
     }
 
@@ -383,7 +384,8 @@ export class Template extends CardContainer {
         );
       }
 
-      newCardKey = await this.project.newCardKey();
+      const cardIds = await this.project.listCardIds();
+      newCardKey = await this.project.newCardKey(cardIds);
       const templateCardToCreate = parentCard
         ? join(destinationCardPath, newCardKey)
         : join(this.templateCardsPath, newCardKey);

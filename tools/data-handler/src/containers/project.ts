@@ -17,6 +17,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import {
   Card,
   CardAttachment,
+  CardLocation,
   CardListContainer,
   CardMetadata,
   CardNameRegEx,
@@ -658,24 +659,33 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns an array of all the cards in the project. Cards don't have content and nor metadata.
-   * @param includeTemplateCards Whether or not to include cards in templates
+   * Returns an array of cards in the project, in the templates or both.
+   * Cards don't have content and nor metadata.
+   * @param includeCardsFrom Where to return cards from (project, templates, or both)
    * @returns all cards in the project.
    */
-  public async listAllCards(
-    includeTemplateCards: boolean,
+  public async listCards(
+    cardsFrom: CardLocation = CardLocation.all,
   ): Promise<CardListContainer[]> {
     const cardListContainer: CardListContainer[] = [];
-    const projectCards = (await super.cards(this.paths.cardRootFolder)).map(
-      (item) => item.key,
-    );
-    cardListContainer.push({
-      name: this.projectName,
-      type: 'project',
-      cards: projectCards,
-    });
+    if (
+      cardsFrom === CardLocation.all ||
+      cardsFrom === CardLocation.projectOnly
+    ) {
+      const projectCards = (await super.cards(this.paths.cardRootFolder)).map(
+        (item) => item.key,
+      );
+      cardListContainer.push({
+        name: this.projectName,
+        type: 'project',
+        cards: projectCards,
+      });
+    }
 
-    if (includeTemplateCards) {
+    if (
+      cardsFrom === CardLocation.all ||
+      cardsFrom === CardLocation.templatesOnly
+    ) {
       const templates = await this.templates();
       for (const template of templates) {
         const templateObject = await this.createTemplateObject(template);
@@ -693,6 +703,67 @@ export class Project extends CardContainer {
       }
     }
     return cardListContainer;
+  }
+
+  /**
+   * Return cardIDs of the cards in the project or from templates, or both.
+   * @param includeCardsFrom Where to return cards from (project, templates, or both)
+   * @returns Array of cardIDs.
+   * @note that cardIDs are not sorted. Project cards are first in the array, followed by template cards.
+   */
+  public async listCardIds(
+    cardsFrom: CardLocation = CardLocation.all,
+  ): Promise<Set<string>> {
+    const cardIDs = new Set<string>();
+
+    if (
+      cardsFrom === CardLocation.all ||
+      cardsFrom === CardLocation.projectOnly
+    ) {
+      (await super.cards(this.paths.cardRootFolder)).forEach((item) =>
+        cardIDs.add(item.key),
+      );
+    }
+
+    if (
+      cardsFrom === CardLocation.all ||
+      cardsFrom === CardLocation.templatesOnly
+    ) {
+      const templates = await this.templates();
+      const templateObjectResults = await Promise.allSettled(
+        templates.map((template) => this.createTemplateObject(template)),
+      );
+
+      // Filter out results that return nothing; or resulted in error.
+      const validTemplateObjects = templateObjectResults
+        .filter(
+          (
+            result,
+          ): result is PromiseFulfilledResult<
+            NonNullable<Awaited<ReturnType<typeof this.createTemplateObject>>>
+          > => result.status === 'fulfilled' && result.value !== null,
+        )
+        .map((result) => result.value);
+
+      const templateCardResults = await Promise.allSettled(
+        validTemplateObjects.map(async (templateObj) => {
+          const cards = await templateObj.listCards();
+          return cards.map((item) => item.key);
+        }),
+      );
+
+      // Filter out results that return nothing; or resulted in error.
+      templateCardResults
+        .filter(
+          (result): result is PromiseFulfilledResult<string[]> =>
+            result.status === 'fulfilled',
+        )
+        .map((result) => result.value)
+        .flat()
+        .forEach((result) => cardIDs.add(result));
+    }
+
+    return cardIDs;
   }
 
   /**
@@ -753,15 +824,18 @@ export class Project extends CardContainer {
    * @returns a new card key string
    * @throws if a unique key could not be created within set number of attempts
    */
-  public async newCardKey(): Promise<string> {
+  public async newCardKey(cardIds: Set<string>): Promise<string> {
     const maxAttempts = 10;
     const base = 36;
     const length = 8;
     for (let i = 0; i < maxAttempts; i++) {
       // Create a key and check that there are no collisions with other keys in project
       const newKey = `${this.settings.cardKeyPrefix}_${generateRandomString(base, length)}`;
-      const exists = await this.findSpecificCard(newKey);
-      if (exists) continue;
+      if (cardIds.has(newKey)) {
+        continue;
+      } else {
+        cardIds.add(newKey);
+      }
       return newKey;
     }
 
@@ -976,7 +1050,8 @@ export class Project extends CardContainer {
       name: this.containerName,
       path: this.basePath,
       prefix: this.projectPrefix,
-      numberOfCards: (await this.listAllCards(false))[0].cards.length,
+      numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
+        .length,
     };
   }
 
