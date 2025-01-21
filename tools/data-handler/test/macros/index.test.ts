@@ -152,7 +152,7 @@ describe('macros', () => {
           cardKey: '',
         });
         expect(result).to.equal(
-          '&#123;&#123;#scoreCard&#125;&#125;"title": "Open issues", "value": 0 &#123;&#123;/scoreCard&#125;&#125;',
+          '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
         );
       });
     });
