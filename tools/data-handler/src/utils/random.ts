@@ -10,10 +10,15 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { randomInt } from 'node:crypto';
+
+// Maximum base for randomInt.
+const MAX_VALUE = Math.pow(2, 48) - 1;
+
 /**
- * Returns a random string in given base with given length (padded with 0's if necessary)
- * @param {number} base which base to be used, e.g. 36 for base-36, must be an integer
- * @param {number} length length of string, must be an integer
+ * Returns a random string in given base with given length.
+ * @param base which base to be used, e.g. 36 for base-36, must be an integer
+ * @param length length of string, must be an integer
  * @returns a random string
  * @throws if parameters are not integer numbers
  */
@@ -23,9 +28,10 @@ export function generateRandomString(base: number, length: number): string {
   }
 
   // Generate a random number between 0 and given base max number - 1
-  const maxBaseNumber = Math.pow(base, length);
-  const randomNum = Math.floor(Math.random() * maxBaseNumber);
-
-  // Convert the number to a given base string and pad it with leading zeros if necessary
-  return randomNum.toString(base).padStart(length, '0');
+  const maxBaseNumber = Math.min(MAX_VALUE, Math.pow(base, length));
+  let generatedString = '';
+  while (generatedString.length < length) {
+    generatedString += randomInt(maxBaseNumber).toString(base);
+  }
+  return generatedString.substring(0, length);
 }
