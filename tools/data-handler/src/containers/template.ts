@@ -188,8 +188,8 @@ export class Template extends CardContainer {
           throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
         }
 
-        const initialWorkflowState = await this.project.workflowInitialState(
-          cardType.workflow,
+        const initialWorkflowState = workflow.transitions.find(
+          (item) => item.fromState.includes('') || item.fromState.length === 0,
         );
         if (!initialWorkflowState) {
           throw new Error(
@@ -198,7 +198,7 @@ export class Template extends CardContainer {
         }
         if (card.metadata) {
           const cardWithRank = parentCards.find((c) => c.key === card.key);
-          card.metadata.workflowState = initialWorkflowState;
+          card.metadata.workflowState = initialWorkflowState.toState;
           card.metadata.cardType = cardType.name;
           card.metadata.rank =
             cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK;
