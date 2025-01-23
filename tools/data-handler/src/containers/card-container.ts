@@ -14,8 +14,8 @@
 import { basename, join, sep } from 'node:path';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
+import { getFilesSync } from '../utils/file-utils.js';
 import { writeJsonFile } from '../utils/json.js';
-import { getFilesSync, pathExists } from '../utils/file-utils.js';
 
 // interfaces
 import {
@@ -64,9 +64,7 @@ export class CardContainer {
 
   // Lists all direct children.
   private async childrenCards(cardPath: string, details?: FetchCardDetails) {
-    const containerCards: Card[] = [];
-    await this.doCollectCards(cardPath, containerCards, details, true);
-    return containerCards;
+    return await this.doCollectCards(cardPath, details, true);
   }
 
   // Gets conditionally content
@@ -98,10 +96,12 @@ export class CardContainer {
   // Gets conditionally attachments
   private async getAttachments(
     currentPath: string,
-    files: CardAttachment[],
     include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include ? this.doCollectAttachments(currentPath, files) : [];
+  ): Promise<CardAttachment[]> {
+    if (include) {
+      return this.doCollectAttachments(currentPath);
+    }
+    return [];
   }
 
   // Gets conditionally children
@@ -121,170 +121,75 @@ export class CardContainer {
     return metadata;
   }
 
-  // Find specific card
-  // todo: combine doFind & doCollect
-  private async doFindCard(
-    path: string,
-    cardKey: string,
-    details: FetchCardDetails = {},
-    foundCards: Card[],
-  ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
-    if (foundCards.length > 0) {
-      return foundCards;
-    }
-
-    let asciiDocProcessor;
-    // optimization: do not create AsciiDoctor Processor, unless it is needed.
-    if (details.contentType && details.contentType === 'html') {
-      asciiDocProcessor = asciidoctor();
-    }
-
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        if (CardNameRegEx.test(entry.name)) {
-          // todo: from hereon, this could be shared with doCollect
-          if (entry.name === cardKey) {
-            const attachmentFiles: CardAttachment[] = [];
-            const promiseContainer = [
-              this.getContent(currentPath, details.content),
-              this.getMetadata(currentPath, details.metadata),
-              this.getChildren(currentPath, details),
-              this.getAttachments(
-                currentPath,
-                attachmentFiles,
-                details.attachments,
-              ),
-            ];
-            const [cardContent, cardMetadata, cardChildren] =
-              await Promise.all(promiseContainer);
-
-            const content =
-              details.contentType && details.contentType === 'html'
-                ? asciiDocProcessor?.convert(cardContent as string)
-                : cardContent;
-
-            foundCards.push({
-              key: entry.name,
-              path: currentPath,
-              children: details.children ? (cardChildren as Card[]) : [],
-              attachments: details.attachments ? [...attachmentFiles] : [],
-              ...(details.content && { content: content as string }),
-              ...(details.metadata && {
-                metadata: JSON.parse(cardMetadata as string),
-              }),
-              ...(details.parent && { parent: this.parentCard(currentPath) }),
-              ...(details.calculations && { calculations: [] }),
-            });
-            break; //optimization - there can only be one.
-          }
-        }
-        await this.doFindCard(currentPath, cardKey, details, foundCards);
-      }
-    }
-    return foundCards;
-  }
-
   // Function collects attachments from all cards in one folder.
   private async doCollectAttachments(
     folder: string,
-    attachments: CardAttachment[],
   ): Promise<CardAttachment[]> {
-    const currentPaths: string[] = [];
-    if (pathExists(folder)) {
-      const entries = (await readdir(folder, { withFileTypes: true })).filter(
-        (item) => item.isDirectory(),
+    const currentCard = basename(folder);
+    const attachmentFolder = join(folder, 'a');
+    const attachments: CardAttachment[] = [];
+
+    try {
+      const entryAttachments = await readdir(attachmentFolder, {
+        withFileTypes: true,
+      });
+      entryAttachments.forEach((attachment) =>
+        attachments.push({
+          card: currentCard,
+          fileName: attachment.name,
+          path: attachment.parentPath,
+          mimeType: mime.lookup(attachment.name) || null,
+        }),
       );
-      for (const entry of entries) {
-        // Investigate the content of card folders' attachment folders, but do not continue to children cards.
-        // For each attachment folder, collect all files.
-        if (CardNameRegEx.test(entry.name)) {
-          currentPaths.push(join(entry.parentPath, entry.name));
-        } else if (entry.name === 'c') {
-          continue;
-        } else if (entry.name === 'a') {
-          const attachmentFolder = join(entry.parentPath, entry.name);
-          const cardItem = basename(entry.parentPath) || '';
-          const entryAttachments = await readdir(attachmentFolder, {
-            withFileTypes: true,
-          });
-          entryAttachments.forEach((attachment) =>
-            attachments.push({
-              card: cardItem,
-              fileName: attachment.name,
-              path: attachment.parentPath,
-              mimeType: mime.lookup(attachment.name) || null,
-            }),
-          );
-        }
-      }
+      return attachments;
+    } catch {
+      return [];
     }
-    if (currentPaths) {
-      const promises = currentPaths.map((item) =>
-        this.doCollectAttachments(item, attachments),
-      );
-      await Promise.all(promises);
-    }
-    return attachments;
   }
 
   // Collects all cards from container.
   private async doCollectCards(
     path: string,
-    cards: Card[],
     details: FetchCardDetails = {},
     directChildrenOnly: boolean = false,
   ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
-    let finish = false;
-    const currentPaths: string[] = [];
+    const cards: Card[] = [];
+    const entries = (
+      await readdir(path, {
+        withFileTypes: true,
+        recursive: true,
+      })
+    ).filter((item) => {
+      return item.isDirectory() && CardNameRegEx.test(item.name);
+    });
 
     for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        currentPaths.push(currentPath);
-        if (CardNameRegEx.test(entry.name)) {
-          if (directChildrenOnly) {
-            // Make recursion stop on the level where first children cards are found.
-            finish = true;
-          }
+      const currentPath = join(entry.parentPath, entry.name);
+      const promiseContainer = [
+        this.getContent(currentPath, details.content),
+        this.getMetadata(currentPath, details.metadata),
+        this.getChildren(currentPath, details),
+        this.getAttachments(currentPath, details.attachments),
+      ];
+      const [cardContent, cardMetadata, cardChildren, attachments] =
+        await Promise.all(promiseContainer);
 
-          const attachmentFiles: CardAttachment[] = [];
-          const promiseContainer = [
-            this.getContent(currentPath, details.content),
-            this.getMetadata(currentPath, details.metadata),
-            this.getChildren(currentPath, details),
-            this.getAttachments(
-              currentPath,
-              attachmentFiles,
-              details.attachments,
-            ),
-          ];
-          const [cardContent, cardMetadata, cardChildren] =
-            await Promise.all(promiseContainer);
-
-          cards.push({
-            key: entry.name,
-            path: currentPath,
-            children: details.children ? (cardChildren as Card[]) : [],
-            attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: cardContent as string }),
-            ...(details.metadata && {
-              metadata: JSON.parse(cardMetadata as string),
-            }),
-            ...(details.parent && { parent: this.parentCard(currentPath) }),
-          });
-        }
-      }
+      cards.push({
+        key: entry.name,
+        path: currentPath,
+        children: details.children ? (cardChildren as Card[]) : [],
+        attachments: attachments as CardAttachment[],
+        ...(details.content && { content: cardContent as string }),
+        ...(details.metadata && {
+          metadata: JSON.parse(cardMetadata as string),
+        }),
+        ...(details.parent && { parent: this.parentCard(currentPath) }),
+      });
     }
-
-    // Continue collecting cards from children
-    if (!finish && currentPaths) {
-      const promises = currentPaths.map((item) =>
-        this.doCollectCards(item, cards, details, directChildrenOnly),
+    if (directChildrenOnly) {
+      return cards.filter(
+        (item) => this.parentCard(item.path) === basename(path),
       );
-      await Promise.all(promises);
     }
     return cards;
   }
@@ -292,8 +197,7 @@ export class CardContainer {
   // Lists all attachments from container.
   protected async attachments(path: string): Promise<CardAttachment[]> {
     const attachments: CardAttachment[] = [];
-    const cards: Card[] = [];
-    await this.doCollectCards(path, cards, { attachments: true });
+    const cards = await this.doCollectCards(path, { attachments: true });
 
     cards.forEach((card) => {
       if (card.attachments) {
@@ -310,10 +214,8 @@ export class CardContainer {
     details: FetchCardDetails = {},
     directChildrenOnly: boolean = false,
   ): Promise<Card[]> {
-    const containerCards: Card[] = [];
-    await this.doCollectCards(
+    const containerCards = await this.doCollectCards(
       path,
-      containerCards,
       details,
       directChildrenOnly,
     );
@@ -326,19 +228,60 @@ export class CardContainer {
     cardKey: string,
     details: FetchCardDetails = {},
   ): Promise<Card | undefined> {
-    const foundCards: Card[] = [];
-    await this.doFindCard(path, cardKey, details, foundCards);
-    return foundCards.at(0);
+    const entries = await readdir(path, {
+      withFileTypes: true,
+      recursive: true,
+    });
+    let asciiDocProcessor;
+    // optimization: do not create AsciiDoctor Processor, unless it is needed.
+    if (details.contentType && details.contentType === 'html') {
+      asciiDocProcessor = asciidoctor();
+    }
+
+    const found = entries.find((item) => {
+      return item.isDirectory() && item.name === cardKey;
+    });
+    if (!found) {
+      return undefined;
+    }
+
+    const foundPath = join(found.parentPath, found.name);
+    const promiseContainer = [
+      this.getContent(foundPath, details.content),
+      this.getMetadata(foundPath, details.metadata),
+      this.getChildren(foundPath, details),
+      this.getAttachments(foundPath, details.attachments),
+    ];
+    const [cardContent, cardMetadata, cardChildren, attachments] =
+      await Promise.all(promiseContainer);
+
+    const content =
+      details.contentType && details.contentType === 'html'
+        ? asciiDocProcessor?.convert(cardContent as string)
+        : cardContent;
+
+    return {
+      key: found.name,
+      path: foundPath,
+      children: details.children ? (cardChildren as Card[]) : [],
+      attachments: attachments as CardAttachment[],
+      ...(details.content && { content: content as string }),
+      ...(details.metadata && {
+        metadata: JSON.parse(cardMetadata as string),
+      }),
+      ...(details.parent && { parent: this.parentCard(foundPath) }),
+      ...(details.calculations && { calculations: [] }),
+    };
   }
 
   // Checks if container has the specified card.
+  // @note this is rather IO-heavy function, as it fetches all the files in the path.
+  // @todo: there could be a "get specific file sync" that does getFilesSync
+  //        but with a search param; once found -> recursion would stop
   protected hasCard(cardKey: string, path: string): boolean {
     const allFiles = getFilesSync(path);
     const cardIndexJsonFile = join(cardKey, CardContainer.cardMetadataFile);
-    const found = allFiles.findIndex((file) =>
-      file.includes(cardIndexJsonFile),
-    );
-    return found !== -1;
+    return allFiles.some((file) => file.includes(cardIndexJsonFile));
   }
 
   // Persists card content.
