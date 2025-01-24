@@ -72,7 +72,24 @@ field(Field, "value", Value) :-
 
 
 % select only non-custom fields
-selectAll.
+select(1, "cardType").
+select(1, "title").
+select(1, "key").
+select(1, "lastUpdated").
+select(1, "workflowState").
+select(1, "notifications").
+select(1, "policyChecks").
+select(1, "links").
+select(1, "deniedOperations").
+select(1, "labels").
+
+select(2, "visibility").
+select(2, "index").
+select(2, "fieldDisplayName").
+select(2, "fieldDescription").
+select(2, "dataType").
+select(2, "isCalculated").
+select(2, "value").
 
 childResult({{cardKey}}, Field, "fields") :-
     alwaysVisibleField(CardType, Field),
@@ -82,7 +99,11 @@ childResult({{cardKey}}, Field, "fields") :-
     optionallyVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
 
-
+% for enum fields, add enum values as child results:
+select(3, "index").
+select(3, "enumDisplayValue").
+select(3, "enumDescription").
+select(3, "enumValue").
 
 childResult(Field, (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue).
