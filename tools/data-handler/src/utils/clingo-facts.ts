@@ -51,6 +51,7 @@ export namespace Facts {
     CUSTOM_FIELD = 'customField',
     ALWAYS_VISIBLE_FIELD = 'alwaysVisibleField',
     OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
+    CALCULATED_FIELD = 'calculatedField',
   }
 
   export enum LinkType {
@@ -304,12 +305,13 @@ export const createCardTypeFacts = (cardType: CardType) => {
         ),
       );
     }
-
-    builder.addCustomFact(Facts.Common.FIELD, (b) =>
-      b
-        .addArgument(keyTuple)
-        .addArguments('isCalculated', customField.isCalculated),
-    );
+    if (customField.isCalculated) {
+      builder.addFact(
+        Facts.CardType.CALCULATED_FIELD,
+        cardType.name,
+        customField.name,
+      );
+    }
 
     let visible = false;
     if (cardType.alwaysVisibleFields.includes(customField.name)) {

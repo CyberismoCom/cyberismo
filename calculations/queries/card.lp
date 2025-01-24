@@ -45,19 +45,18 @@ dataType(Field, "isCalculated", "boolean") :-
     childResult(_, Field, "fields"),
     field(Field, "isCalculated", _).
 
-field(Field, "isCalculated", isCalculated) :-
+field(Field, "isCalculated", true) :-
     field({{cardKey}}, "cardType", CardType),
-    field((CardType, Field), "isCalculated", isCalculated).
+    calculatedField(CardType, Field).
 
-field(Field, "isCalculated", "false") :-
-   field({{cardKey}}, "cardType", CardType),
-   alwaysVisibleField(CardType, Field),
-   not field((CardType, Field), "isCalculated", _).
+field(Field, "isCalculated", false) :-
 
-field(Field, "isCalculated", "false") :-
-   field({{cardKey}}, "cardType", CardType),
-   optionallyVisibleField(CardType, Field),
-   not field((CardType, Field), "isCalculated", _).
+    childResult(_, Field, "fields"),
+    field({{cardKey}}, "cardType", CardType),
+    not calculatedField(CardType, Field).
+
+
+
 
 % add value
 dataType(Field, "value", DataType) :-
@@ -73,24 +72,7 @@ field(Field, "value", Value) :-
 
 
 % select only non-custom fields
-select(1, "cardType").
-select(1, "title").
-select(1, "key").
-select(1, "lastUpdated").
-select(1, "workflowState").
-select(1, "notifications").
-select(1, "policyChecks").
-select(1, "links").
-select(1, "deniedOperations").
-select(1, "labels").
-
-select(2, "visibility").
-select(2, "index").
-select(2, "fieldDisplayName").
-select(2, "fieldDescription").
-select(2, "dataType").
-select(2, "isCalculated").
-select(2, "value").
+selectAll.
 
 childResult({{cardKey}}, Field, "fields") :-
     alwaysVisibleField(CardType, Field),
@@ -100,11 +82,7 @@ childResult({{cardKey}}, Field, "fields") :-
     optionallyVisibleField(CardType, Field),
     field({{cardKey}}, "cardType", CardType).
 
-% for enum fields, add enum values as child results:
-select(3, "index").
-select(3, "enumDisplayValue").
-select(3, "enumDescription").
-select(3, "enumValue").
+
 
 childResult(Field, (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue).
