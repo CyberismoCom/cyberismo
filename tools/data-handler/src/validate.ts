@@ -713,12 +713,13 @@ export class Validate {
           );
         }
         if (field.isCalculated) {
-          // change to in COMPAT-PR: card.metadata[field.name] !== undefined
-          if (card.metadata[field.name] != undefined) {
+          /* uncomment in COMPAT-PR: card.metadata[field.name] !== undefined
+          
+          if (card.metadata[field.name] !== undefined) {
             validationErrors.push(
               `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
             );
-          }
+          }*/
           continue;
         }
         if (!field.isCalculated && card.metadata[field.name] === undefined) {
