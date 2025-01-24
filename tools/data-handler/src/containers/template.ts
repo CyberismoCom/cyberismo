@@ -203,6 +203,7 @@ export class Template extends CardContainer {
           card.metadata.rank =
             cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK;
           for (const customField of cardType.customFields) {
+            if (customField.isCalculated) continue;
             const defaultValue = null;
             card.metadata = {
               ...card.metadata,
