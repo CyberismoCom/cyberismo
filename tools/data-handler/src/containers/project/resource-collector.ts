@@ -36,18 +36,40 @@ export enum ResourcesFrom {
   localOnly = 'local',
 }
 
+// Helper class to contain collected resources.
+class ResourceCollection {
+  public calculations: Resource[] = [];
+  public cardTypes: Resource[] = [];
+  public fieldTypes: Resource[] = [];
+  public linkTypes: Resource[] = [];
+  public reports: Resource[] = [];
+  public templates: Resource[] = [];
+  public workflows: Resource[] = [];
+
+  /**
+   * Returns resource array of a give type.
+   * @param type Resource array type to return.
+   * @returns resource array of a give type.
+   */
+  public resourceArray(type: ResourceFolderType): Resource[] {
+    if (type === 'calculations') return this.calculations;
+    if (type === 'cardTypes') return this.cardTypes;
+    if (type === 'fieldTypes') return this.fieldTypes;
+    if (type === 'linkTypes') return this.linkTypes;
+    if (type === 'reports') return this.reports;
+    if (type === 'templates') return this.templates;
+    if (type === 'workflows') return this.workflows;
+    throw new Error(`Unknown resource type '${type}'`);
+  }
+}
+
 /**
  * This class handles local and modules resources.
  */
 export class ResourceCollector {
-  private localCalculations: Resource[] = [];
-  private localCardTypes: Resource[] = [];
-  private localFieldTypes: Resource[] = [];
-  private localLinkTypes: Resource[] = [];
-  private localTemplates: Resource[] = [];
-  private localWorkflows: Resource[] = [];
-  private localReports: Resource[] = [];
-
+  private local: ResourceCollection = new ResourceCollection();
+  private modules: ResourceCollection = new ResourceCollection();
+  private modulesCollected: boolean = false;
   private paths: ProjectPaths;
 
   constructor(private project: Project) {
@@ -59,36 +81,70 @@ export class ResourceCollector {
     resources: Dirent[],
     requestedType: ResourceFolderType,
   ): Promise<Resource[]> {
-    const collectedResources: Resource[] = [];
-    for (const resource of resources) {
-      if (requestedType === 'modules') {
-        collectedResources.push(...resources);
-        break;
-      } else {
-        const resourcePath = join(
-          this.paths.modulesFolder,
-          resource.name,
-          requestedType,
-        );
-        if (!pathExists(resourcePath)) {
-          continue;
-        }
-        const files = (
-          await readdir(resourcePath, { withFileTypes: true })
-        ).filter(
-          (item) =>
-            item.isFile() &&
-            item.name !== CardContainer.schemaContentFile &&
-            item.name !== '.gitkeep',
-        );
-
-        files.forEach((item) => {
-          item.name = `${resource.name}/${requestedType}/${stripExtension(item.name)}`;
-          collectedResources.push({ name: item.name, path: item.parentPath });
-        });
-      }
+    if (requestedType === 'modules') {
+      return resources.map((resource) => ({
+        name: resource.name,
+        path: resource.parentPath,
+      }));
     }
-    return collectedResources;
+
+    const isValidFile = (item: Dirent): boolean =>
+      item.isFile() &&
+      item.name !== CardContainer.schemaContentFile &&
+      item.name !== '.gitkeep';
+
+    const processResource = async (resource: Dirent): Promise<Resource[]> => {
+      const resourcePath = join(
+        this.paths.modulesFolder,
+        resource.name,
+        requestedType,
+      );
+
+      if (!pathExists(resourcePath)) {
+        return [];
+      }
+
+      const files = await readdir(resourcePath, { withFileTypes: true });
+      return files.filter(isValidFile).map((item) => ({
+        name: `${resource.name}/${requestedType}/${stripExtension(item.name)}`,
+        path: item.parentPath,
+      }));
+    };
+
+    const results = await Promise.all(resources.map(processResource));
+
+    return results.flat();
+  }
+
+  // Collects all module resources.
+  private async addModuleResources() {
+    if (!this.modulesCollected) {
+      const moduleDirectories = await readdir(this.paths.modulesFolder, {
+        withFileTypes: true,
+      });
+      const modules = moduleDirectories.filter((item) => item.isDirectory());
+
+      this.modules.calculations = [
+        ...(await this.addResources(modules, 'calculations')),
+      ];
+      this.modules.cardTypes = [
+        ...(await this.addResources(modules, 'cardTypes')),
+      ];
+      this.modules.fieldTypes = [
+        ...(await this.addResources(modules, 'fieldTypes')),
+      ];
+      this.modules.linkTypes = [
+        ...(await this.addResources(modules, 'linkTypes')),
+      ];
+      this.modules.reports = [...(await this.addResources(modules, 'reports'))];
+      this.modules.templates = [
+        ...(await this.addResources(modules, 'templates')),
+      ];
+      this.modules.workflows = [
+        ...(await this.addResources(modules, 'workflows')),
+      ];
+      this.modulesCollected = true;
+    }
   }
 
   // Adds a resource type from all modules.
@@ -98,13 +154,17 @@ export class ResourceCollector {
     if (!pathExists(this.paths.modulesFolder)) {
       return [];
     }
+    // 'modules' is a bit special; it is collected separately from actual resources.
+    if (type === 'modules') {
+      const moduleDirectories = await readdir(this.paths.modulesFolder, {
+        withFileTypes: true,
+      });
+      const modules = moduleDirectories.filter((item) => item.isDirectory());
+      return [...(await this.addResources(modules, 'modules'))];
+    }
 
-    const moduleDirectories = await readdir(this.paths.modulesFolder, {
-      withFileTypes: true,
-    });
-    const modules = moduleDirectories.filter((item) => item.isDirectory());
-
-    return [...(await this.addResources(modules, type))];
+    await this.addModuleResources();
+    return this.modules.resourceArray(type);
   }
 
   // Joins local resources and module resources together to one array.
@@ -124,24 +184,11 @@ export class ResourceCollector {
 
   // Returns local resources of a given type.
   private localResources(type: ResourceFolderType) {
-    if (type === 'calculations') {
-      return this.localCalculations;
-    } else if (type === 'cardTypes') {
-      return this.localCardTypes;
-    } else if (type === 'fieldTypes') {
-      return this.localFieldTypes;
-    } else if (type === 'linkTypes') {
-      return this.localLinkTypes;
-    } else if (type === 'modules') {
+    if (type === 'modules') {
       return [];
-    } else if (type === 'reports') {
-      return this.localReports;
-    } else if (type === 'templates') {
-      return this.localTemplates;
-    } else if (type === 'workflows') {
-      return this.localWorkflows;
+    } else {
+      return this.local.resourceArray(type);
     }
-    throw new Error('Incorrect resource type ' + type);
   }
 
   // Collects certain kinds of resources.
@@ -179,13 +226,19 @@ export class ResourceCollector {
    * Collects all local resources.
    */
   public collectLocalResources() {
-    this.localCalculations = this.resourcesSync('calculations');
-    this.localCardTypes = this.resourcesSync('cardTypes');
-    this.localFieldTypes = this.resourcesSync('fieldTypes');
-    this.localLinkTypes = this.resourcesSync('linkTypes');
-    this.localReports = this.resourcesSync('reports');
-    this.localTemplates = this.resourcesSync('templates');
-    this.localWorkflows = this.resourcesSync('workflows');
+    const resourceTypes = [
+      'calculations',
+      'cardTypes',
+      'fieldTypes',
+      'linkTypes',
+      'reports',
+      'templates',
+      'workflows',
+    ] as const;
+
+    resourceTypes.forEach((type) => {
+      this.local[type] = this.resourcesSync(type);
+    });
   }
 
   /**
@@ -215,22 +268,22 @@ export class ResourceCollector {
     const { type } = resourceName(resource.name);
     switch (type) {
       case 'cardTypes':
-        addItem(this.localCardTypes, resource);
+        addItem(this.local.cardTypes, resource);
         break;
       case 'fieldTypes':
-        addItem(this.localFieldTypes, resource);
+        addItem(this.local.fieldTypes, resource);
         break;
       case 'linkTypes':
-        addItem(this.localLinkTypes, resource);
+        addItem(this.local.linkTypes, resource);
         break;
       case 'reports':
-        addItem(this.localReports, resource);
+        addItem(this.local.reports, resource);
         break;
       case 'templates':
-        addItem(this.localTemplates, resource);
+        addItem(this.local.templates, resource);
         break;
       case 'workflows':
-        addItem(this.localWorkflows, resource);
+        addItem(this.local.workflows, resource);
         break;
       default: {
         throw new Error(`Resource type '${type}' not handled in 'addResource'`);
@@ -249,15 +302,7 @@ export class ResourceCollector {
    * Re-collects imported module resources.
    */
   public async moduleImported() {
-    const promises = [];
-    promises.push(this.collectResourcesFromModules('calculations'));
-    promises.push(this.collectResourcesFromModules('cardTypes'));
-    promises.push(this.collectResourcesFromModules('fieldTypes'));
-    promises.push(this.collectResourcesFromModules('linkTypes'));
-    promises.push(this.collectResourcesFromModules('reports'));
-    promises.push(this.collectResourcesFromModules('templates'));
-    promises.push(this.collectResourcesFromModules('workflows'));
-    Promise.all(promises);
+    this.modulesCollected = false;
   }
 
   /**
@@ -267,33 +312,9 @@ export class ResourceCollector {
    */
   public remove(resource: Resource) {
     const { type } = resourceName(resource.name);
-    let arrayToModify: Resource[] = [];
-    switch (type) {
-      case 'cardTypes':
-        arrayToModify = this.localCardTypes;
-        break;
-      case 'fieldTypes':
-        arrayToModify = this.localFieldTypes;
-        break;
-      case 'linkTypes':
-        arrayToModify = this.localLinkTypes;
-        break;
-      case 'reports':
-        arrayToModify = this.localReports;
-        break;
-      case 'templates':
-        arrayToModify = this.localTemplates;
-        break;
-      case 'workflows':
-        arrayToModify = this.localWorkflows;
-        break;
-      default: {
-        throw new Error(
-          `Resource type '${type}' not handled in 'removeResource'`,
-        );
-      }
-    }
-    arrayToModify = arrayToModify.filter((item) => item.name !== resource.name);
+    const arrayToModify = this.local
+      .resourceArray(type as ResourceFolderType)
+      .filter((item) => item.name !== resource.name);
     this.collectLocalResources();
     return arrayToModify;
   }
