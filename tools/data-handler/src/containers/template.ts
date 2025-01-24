@@ -104,17 +104,17 @@ export class Template extends CardContainer {
     cards: Card[],
     parentCard?: Card,
   ): Promise<Card[]> {
-    // Create ID mapping and update ranks in one pass
+    const templateIDMap = new Map<string, string>();
+    // Create ID mapping and update ranks
     const createMappingAndRanks = async () => {
       const cardIds = await this.project.listCardIds();
-      const templateIDMap = new Map<string, string>();
+      const newCardIds = this.project.newCardKeys(cards.length, cardIds);
+      //const templateIDMap = new Map<string, string>();
 
       // Create mapping table
-      await Promise.all(
-        cards.map(async (card) => {
-          templateIDMap.set(card.key, await this.project.newCardKey(cardIds));
-        }),
-      );
+      cards.map((card, index) => {
+        templateIDMap.set(card.key, newCardIds.at(index) || '');
+      });
 
       // Handle ranking for parent cards
       const parentCards = sortItems(
@@ -140,7 +140,7 @@ export class Template extends CardContainer {
         }
       });
 
-      return { templateIDMap, parentCards };
+      return parentCards;
     };
 
     // Update paths and keys
@@ -246,11 +246,11 @@ export class Template extends CardContainer {
     };
 
     try {
-      // Step 1: Create mapping and handle ranks
-      const { templateIDMap, parentCards } = await createMappingAndRanks();
+      // Create mapping and handle ranks
+      const parentCards = await createMappingAndRanks();
       const templatesFolder = this.templateFolder();
 
-      // Step 2: Process all cards in parallel
+      // Process all cards in parallel
       const processedCards = await Promise.all(
         cards.map(async (card) => {
           // Update paths and keys
@@ -276,40 +276,17 @@ export class Template extends CardContainer {
               processedAttachments.content || '',
             ),
           ]);
-
           return processedCard;
         }),
       );
       return processedCards;
     } catch (error) {
-      await this.removeCards((await createMappingAndRanks()).templateIDMap);
+      await this.removeCards(templateIDMap);
       if (error instanceof Error) {
         throw new Error(`Failed to create cards: ${error.message}`);
       }
       throw error;
     }
-  }
-
-  // Removes cards as
-  private async removeCards(cardMap: Map<string, string>) {
-    const tasks: Promise<Card | undefined>[] = [];
-    cardMap.forEach(async (templateCard, createdCard) => {
-      tasks.push(this.project.findSpecificCard(createdCard));
-    });
-    // Sort cards so that once with longer path (ie. child cards) are first
-    const cards = (await Promise.all(tasks)).filter(
-      (item) => item !== undefined,
-    );
-    // .sort((a, b) => {
-    //   if (a.path.length > b.path.length) return 1;
-    //   if (a.path.length < b.path.length) return -1;
-    //   return 0;
-    // });
-    const deleteAll: Promise<void>[] = [];
-    cards.forEach(async (card) => {
-      deleteAll.push(rmdir(card.path, { recursive: true }));
-    });
-    await Promise.all(deleteAll);
   }
 
   // Returns the latest rank in the given array of cards.
@@ -373,6 +350,25 @@ export class Template extends CardContainer {
       return parts.at(modulesIndex + 1) as string;
     }
     return '';
+  }
+
+  // Removes cards
+  private async removeCards(cardMap: Map<string, string>) {
+    const tasks: Promise<Card | undefined>[] = [];
+    // Find all cards that need to be removed.
+    cardMap.forEach(async (createdCard) => {
+      tasks.push(this.project.findSpecificCard(createdCard));
+    });
+    // Remove empty results.
+    const cards = (await Promise.all(tasks)).filter(
+      (item) => item !== undefined,
+    );
+    // Delete card folders.
+    const deleteAll: Promise<void>[] = [];
+    cards.forEach(async (card) => {
+      deleteAll.push(rmdir(card.path, { recursive: true }));
+    });
+    await Promise.all(deleteAll);
   }
 
   // Set path to template location.
