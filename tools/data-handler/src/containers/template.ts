@@ -12,7 +12,7 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, readdir, mkdir, rm, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 
 import {
@@ -82,6 +82,29 @@ export class Template extends CardContainer {
     this.templateCardsPath = join(this.templatePath, 'c');
   }
 
+  // Fetches project top level cards only.
+  // Top level cards are those that have parent as 'root'.
+  private async rootLevelProjectCards(): Promise<Card[]> {
+    const entries = (
+      await readdir(this.project.paths.cardRootFolder, {
+        withFileTypes: true,
+      })
+    ).filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name));
+    const cardPromises = entries.map(async (entry) => {
+      const currentPath = join(entry.parentPath, entry.name);
+      return {
+        key: entry.name,
+        path: currentPath,
+        metadata: await readJsonFile(
+          join(currentPath, CardContainer.cardMetadataFile),
+        ),
+        children: [],
+        attachments: [],
+      };
+    });
+    return Promise.all(cardPromises);
+  }
+
   // Creates card(s) as project cards from template.
   // optimize: first make temp file, them copy all template cards to it as-is.
   //           Then rename the folder based on mapped names.
@@ -116,7 +139,7 @@ export class Template extends CardContainer {
     const futureSiblings = (
       parentCard
         ? parentCard.children || []
-        : await this.project.showProjectCards()
+        : await this.rootLevelProjectCards()
     ).filter((c) => c.metadata?.rank !== undefined);
 
     let latestRank = sortItems(
