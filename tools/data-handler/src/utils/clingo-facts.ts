@@ -32,14 +32,14 @@ export namespace Facts {
     WORKFLOW_TRANSITION = 'workflowTransition',
   }
   export enum Card {
-    LINK = 'link',
     LABEL = 'label',
+    LINK = 'link',
     PARENT = 'parent',
   }
 
   export enum FieldType {
-    FIELD_TYPE = 'fieldType',
     ENUM_VALUE = 'enumValue',
+    FIELD_TYPE = 'fieldType',
   }
 
   export enum Common {
@@ -47,17 +47,17 @@ export namespace Facts {
   }
 
   export enum CardType {
+    ALWAYS_VISIBLE_FIELD = 'alwaysVisibleField',
+    CALCULATED_FIELD = 'calculatedField',
     CARD_TYPE = 'cardType',
     CUSTOM_FIELD = 'customField',
-    ALWAYS_VISIBLE_FIELD = 'alwaysVisibleField',
     OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
-    CALCULATED_FIELD = 'calculatedField',
   }
 
   export enum LinkType {
-    LINK_TYPE = 'linkType',
-    LINK_SOURCE_CARD_TYPE = 'linkSourceCardType',
     LINK_DESTINATION_CARD_TYPE = 'linkDestinationCardType',
+    LINK_SOURCE_CARD_TYPE = 'linkSourceCardType',
+    LINK_TYPE = 'linkType',
   }
 }
 
