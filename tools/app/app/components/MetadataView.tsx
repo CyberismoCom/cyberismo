@@ -188,7 +188,7 @@ function MetadataView({
             fieldDisplayName,
             fieldDescription,
             visibility,
-            isEditable,
+            isCalculated,
             value,
           }) => (
             <FieldItem
@@ -205,7 +205,7 @@ function MetadataView({
               editableFieldProps={{
                 dataType,
                 label: fieldDisplayName || key,
-                edit: (editMode && isEditable) ?? false,
+                edit: (editMode && !isCalculated) ?? false,
                 enumValues,
               }}
             />

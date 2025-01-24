@@ -41,23 +41,22 @@ field(Field, "fieldDisplayName", DisplayName) :-
     childResult(_, Field, "fields"),
     displayName({{cardKey}}, Field, DisplayName).
 
-dataType(Field, "isEditable", "boolean") :-
+dataType(Field, "isCalculated", "boolean") :-
     childResult(_, Field, "fields"),
-    field(Field, "isEditable", _).
+    field(Field, "isCalculated", _).
 
-field(Field, "isEditable", IsEditable) :-
+field(Field, "isCalculated", true) :-
     field({{cardKey}}, "cardType", CardType),
-    field((CardType, Field), "isEditable", IsEditable).
+    calculatedField(CardType, Field).
 
-field(Field, "isEditable", "true") :-
-   field({{cardKey}}, "cardType", CardType),
-   alwaysVisibleField(CardType, Field),
-   not field((CardType, Field), "isEditable", _).
+field(Field, "isCalculated", false) :-
 
-field(Field, "isEditable", "true") :-
-   field({{cardKey}}, "cardType", CardType),
-   optionallyVisibleField(CardType, Field),
-   not field((CardType, Field), "isEditable", _).
+    childResult(_, Field, "fields"),
+    field({{cardKey}}, "cardType", CardType),
+    not calculatedField(CardType, Field).
+
+
+
 
 % add value
 dataType(Field, "value", DataType) :-
@@ -89,7 +88,7 @@ select(2, "index").
 select(2, "fieldDisplayName").
 select(2, "fieldDescription").
 select(2, "dataType").
-select(2, "isEditable").
+select(2, "isCalculated").
 select(2, "value").
 
 childResult({{cardKey}}, Field, "fields") :-

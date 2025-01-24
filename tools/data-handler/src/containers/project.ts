@@ -373,9 +373,13 @@ export class Project extends CardContainer {
     }
     if (content && content.customFields) {
       for (const item of content.customFields) {
-        // Set "isEditable" if it is missing; default = true
-        if (item.isEditable === undefined && !skipSettingDefaultValues) {
-          item.isEditable = true;
+        // DEPRECATED BACKWARDS COMPABILITY: REMOVE
+        if (item.isEditable !== undefined) {
+          item.isCalculated = !item.isEditable;
+        }
+        // Set "isCalculated" if it is missing; default = false
+        if (item.isCalculated === undefined && !skipSettingDefaultValues) {
+          item.isCalculated = false;
         }
         // Fetch displayName from field type
         if (item.name) {

@@ -454,10 +454,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
       };
 
       for (const key of Object.keys(metadata)) {
-        if (
-          metadata[key] !==
-          card?.fields?.find((field) => field.key === key)?.value
-        ) {
+        const field = card?.fields?.find((field) => field.key === key);
+        if (field && metadata[key] !== field.value && !field.isCalculated) {
           update.metadata[key] = metadata[key];
         }
       }
