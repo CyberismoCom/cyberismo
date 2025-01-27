@@ -1,8 +1,20 @@
 #!/usr/bin/env node --no-warnings=ExperimentalWarning
 
+import path from 'path';
 import program from '@cyberismocom/cli';
 
-// Don't show any warnings when running CLI.
+const clingoDir = path.resolve(process.cwd(), 'vendor', 'utils', 'clingo');
+const graphvizDir = path.resolve(
+  process.cwd(),
+  'vendor',
+  'utils',
+  'graphviz',
+  'bin',
+);
+
+process.env.PATH =
+  clingoDir + path.delimiter + graphvizDir + path.delimiter + process.env.PATH;
+
 process.removeAllListeners('warning');
 
 program.parseAsync(process.argv).catch((error) => {
