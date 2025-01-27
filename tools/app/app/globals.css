@@ -473,7 +473,7 @@
 .doc .imageblock object,
 .doc .imageblock svg {
   display: inline-block;
-  height: auto;
+  max-height: 75vh;
   max-width: 100%;
   vertical-align: middle;
 }
