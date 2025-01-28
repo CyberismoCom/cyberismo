@@ -27,7 +27,7 @@ function getPlatformAndExtension() {
   return { platform, arch, mappedPlatform, extension };
 }
 
-function getDownloadUrl() {
+function getClingoDownloadUrl() {
   const { mappedPlatform, arch, extension } = getPlatformAndExtension();
 
   const baseUrl = 'https://github.com/username/clingo/releases/download/v0.0.1';
@@ -64,7 +64,17 @@ function downloadFile(url, destPath) {
   });
 }
 
-async function installClingo() {
+async function installVendorPackages() {
+  // Feature only enabled for Windows machines!
+  const { mappedPlatform } = getPlatformAndExtension();
+
+  if (mappedPlatform !== 'windows') {
+    console.log(
+      'Postinstall script enabled only for Windows machines! Skipping',
+    );
+    process.exit(0);
+  }
+
   try {
     const utilsLocation = path.resolve(process.cwd(), 'vendor', 'utils');
 
@@ -77,13 +87,24 @@ async function installClingo() {
      * Clingo Installation
      * =======================
      */
-    const { url, filename } = getDownloadUrl();
 
-    console.log(`[clingo-install] Downloading from: ${url}`);
-
+    const clingoInstallationLocation = path.join(utilsLocation, 'clingo');
+    const { url, filename } = getClingoDownloadUrl();
     const clingoArchivePath = path.join(utilsLocation, filename);
 
-    await downloadFile(url, clingoArchivePath);
+    console.log(`[clingo-install] Checking for existing installation`);
+
+    if (fs.existsSync(clingoInstallationLocation)) {
+      console.log(
+        `[clingo-install] Existing installation detected, removing...`,
+      );
+      fs.rmSync(clingoInstallationLocation, { recursive: true, force: true });
+    }
+
+    console.log(`[clingo-install] Installation location ready`);
+    console.log(`[clingo-install] Downloading from: ${url}`);
+
+    //await downloadFile(url, clingoArchivePath);
 
     console.log('[clingo-install] Download complete.');
 
@@ -100,11 +121,40 @@ async function installClingo() {
      */
     const graphvizUrl =
       'https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/12.2.1/windows_10_cmake_Release_Graphviz-12.2.1-win64.zip';
-    const graphvizFilename = 'graphviz.zip';
 
+    const graphvizBaseName = 'graphviz';
+    const graphvizOriginalName = 'Graphviz-12.2.1-win64';
+    const graphvizArchive = graphvizOriginalName + '.zip';
+    const graphvizInstallationLocation = path.join(
+      utilsLocation,
+      graphvizBaseName,
+    );
+    const graphvizOriginalInstallationLocation = path.join(
+      utilsLocation,
+      graphvizOriginalName,
+    );
+    const graphvizArchivePath = path.join(utilsLocation, graphvizArchive);
+
+    console.log(`[graphviz-install] Checking for existing installation`);
+
+    if (fs.existsSync(graphvizInstallationLocation)) {
+      console.log(
+        `[graphviz-install] Existing installation detected, removing...`,
+      );
+      fs.rmSync(graphvizInstallationLocation, { recursive: true, force: true });
+    }
+    if (fs.existsSync(graphvizOriginalInstallationLocation)) {
+      console.log(
+        `[graphviz-install] Existing installation attempt detected, removing...`,
+      );
+      fs.rmSync(graphvizOriginalInstallationLocation, {
+        recursive: true,
+        force: true,
+      });
+    }
+
+    console.log(`[graphviz-install] Installation location ready`);
     console.log(`[graphviz-install] Downloading from: ${graphvizUrl}`);
-
-    const graphvizArchivePath = path.join(utilsLocation, graphvizFilename);
 
     await downloadFile(graphvizUrl, graphvizArchivePath);
 
@@ -113,14 +163,15 @@ async function installClingo() {
     execSync(`tar -xzf "${graphvizArchivePath}" -C "${utilsLocation}"`);
 
     fs.rename(
-      path.join(utilsLocation, 'Graphviz-12.2.1-win64'),
-      path.join(utilsLocation, 'graphviz'),
+      path.join(utilsLocation, graphvizOriginalName),
+      path.join(utilsLocation, graphvizBaseName),
       (err) => {
-        console.log(err);
+        if (err) throw err;
       },
     );
 
     fs.unlinkSync(graphvizArchivePath);
+
     console.log('[graphviz-install] Extraction complete.');
   } catch (err) {
     console.error('[install] ERROR:', err);
@@ -128,4 +179,4 @@ async function installClingo() {
   }
 }
 
-installClingo();
+installVendorPackages();
