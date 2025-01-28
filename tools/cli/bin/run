@@ -1,11 +1,19 @@
 #!/usr/bin/env node --no-warnings=ExperimentalWarning
 
-import path from 'path';
 import program from '@cyberismocom/cli';
 
-const clingoDir = path.resolve(process.cwd(), 'vendor', 'utils', 'clingo');
-const graphvizDir = path.resolve(
-  process.cwd(),
+import { fileURLToPath } from 'url';
+import { dirname, resolve, delimiter } from 'path';
+
+// Convert import.meta.url to a file path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const rootDirectory = resolve(__dirname, '../../../');
+
+const clingoDir = resolve(rootDirectory, 'vendor', 'utils', 'clingo');
+const graphvizDir = resolve(
+  rootDirectory,
   'vendor',
   'utils',
   'graphviz',
@@ -13,7 +21,7 @@ const graphvizDir = path.resolve(
 );
 
 process.env.PATH =
-  clingoDir + path.delimiter + graphvizDir + path.delimiter + process.env.PATH;
+  clingoDir + delimiter + graphvizDir + delimiter + process.env.PATH;
 
 process.removeAllListeners('warning');
 
