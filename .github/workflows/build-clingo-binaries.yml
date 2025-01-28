@@ -1,0 +1,374 @@
+name: Build and Package Python + Clingo
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: 0.0.1
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: clingo-binary
+          body: Cyberismo suitable Clingo binary
+    outputs:
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
+
+  build-windows:
+    name: Build and Package (Windows)
+    runs-on: windows-latest
+    needs: create-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Download Embeddable Python
+        run: |
+          curl -LO https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-amd64.zip
+          mkdir python-embed
+          tar.exe -xf python-3.11.2-embed-amd64.zip -C python-embed
+
+          (Get-Content python-embed/python311._pth) |
+            ForEach-Object { $_ -replace '#import site', 'import site' } |
+            Set-Content python-embed/python311._pth
+
+      - name: Install pip in embeddable Python
+        run: |
+          curl -LO https://bootstrap.pypa.io/get-pip.py
+          python-embed/python.exe get-pip.py --no-warn-script-location
+          python-embed/python.exe -m pip install --no-warn-script-location cffi clingo clingraph          
+
+      - name: Build Clingo with MSVC
+        run: |
+          git clone --recurse-submodules https://github.com/potassco/clingo.git clingo-source
+          cd clingo-source
+          mkdir build
+          cd build
+
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DCLINGO_BUILD_WITH_PYTHON=ON -DCLINGO_BUILD_STATIC=ON -DCLINGO_BUILD_WITH_LUA=OFF -DCMAKE_BUILD_TYPE=Release -DPYCLINGO_INSTALL_DIR="LOCATION" -DPython_ROOT_DIR="${{ github.workspace }}\\python-embed"
+
+          # Build the Release config
+          cmake --build . --config Release
+
+      - name: Package Clingo + Python
+        shell: pwsh
+        run: |
+          mkdir clingo
+
+          Copy-Item clingo-source\build\bin\Release\clingo.exe .\clingo\
+          Copy-Item .\python-embed\* .\clingo\ -Recurse
+
+          Compress-Archive -Path .\clingo -DestinationPath clingo-windows-x64.zip
+
+      - name: Test Clingo
+        run: |
+          Expand-Archive clingo-windows-x64.zip -DestinationPath test_dir
+
+          # Create a test logic program
+          Set-Content -Path test_dir\clingo\test.lp -Value @"
+          #script (python)
+          from clingo.symbol import String
+
+          class Context:
+              def test(self):
+                  return String('Python works great.')
+
+          def main(prg):
+              prg.ground([('base', [])], context=Context())
+              prg.solve()
+          #end.
+
+          test(@test()).
+          "@
+
+          Push-Location test_dir\clingo
+
+          .\clingo test.lp
+          $code = $LASTEXITCODE
+          Write-Host "Clingo returned exit code: $code"
+
+          # If you consider 10 = SAT, 20 = UNSAT, 0 = normal, all success:
+          if ($code -eq 0 -or $code -eq 10 -or $code -eq 20) {
+            exit 0
+          } else {
+            exit $code
+          }
+
+          Pop-Location
+
+      - name: Upload binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./clingo-windows-x64.zip
+          asset_name: clingo-windows-x64.zip
+          asset_content_type: application/zip
+
+  build-ubuntu:
+    name: Build and Package (Ubuntu)
+    runs-on: ubuntu-20.04
+    if: false
+    needs: create-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libffi-dev \
+            libssl-dev \
+            zlib1g-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libsqlite3-dev \
+            libncurses5-dev \
+            libgdbm-dev \
+            liblzma-dev \
+            uuid-dev \
+            tk-dev \
+            libexpat1-dev
+
+      - name: Download and build Python
+        run: |
+          curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz
+          tar -xvzf Python-3.11.11.tgz
+          cd Python-3.11.11
+          CFLAGS="-Os" ./configure \
+            --enable-optimizations \
+            --prefix=$(pwd)/dist \
+            --without-readline \
+            --disable-test-modules \
+            --disable-ipv6
+          make -j$(nproc) 
+          make altinstall
+          ./dist/bin/python3.11 -m pip install cffi clingo clingraph --prefix dist/
+          strip dist/bin/python3.11
+
+      - name: Build Clingo
+        run: |
+          git clone --recurse-submodules https://github.com/potassco/clingo.git
+          cd clingo
+          mkdir build
+          cd build
+          cmake .. \
+            -DCLINGO_BUILD_WITH_PYTHON=ON \
+            -DPYTHON_EXECUTABLE=$(pwd)/../../Python-3.11.11/dist/bin/python3.11 \
+            -DCLINGO_PYTHON_VERSION=3.11 \
+            -DPYTHON_INCLUDE_DIR=$(pwd)/../../Python-3.11.11/dist/include/python3.11 \
+            -DPYTHON_LIBRARY=$(pwd)/../../Python-3.11.11/dist/lib/libpython3.11.a \
+            -DPYCLINGO_INSTALL_DIR=$(pwd)/install/python/site-packages \
+            -DCLINGO_BUILD_STATIC=ON \
+            -DCLINGO_BUILD_WITH_LUA=OFF \
+            -DCMAKE_INSTALL_RPATH='$ORIGIN' \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release -j$(nproc)
+
+          strip bin/clingo
+          mv bin/clingo bin/clingo_bin
+
+          echo '#!/bin/bash
+
+          export PYTHONHOME="$(dirname "$0")/clingo_env"
+          export PYTHONPATH="$(dirname "$0")/clingo_env/lib/python3.11"
+
+          "$(dirname "$0")/clingo_bin" "$@"' > bin/clingo
+
+          chmod +x bin/clingo
+
+          # Remove unnecessary binaries
+          rm -f bin/{clasp,gringo,lpconvert,reify}
+          
+          mkdir bin/clingo_env
+
+      - name: Clean Python and Combine with Clingo
+        run: |
+          # Remove unnecessary files
+          rm -f Python-3.11.11/dist/lib/libpython3.11.a
+          rm -rf Python-3.11.11/dist/lib/python3.11/__pycache__
+          rm -rf Python-3.11.11/dist/lib/python3.11/{config-3.11-x86_64-linux-gnu,idlelib,ensurepip,asyncio,tkinter,lib2to3,email,unittest,multiprocessing,xml}
+          rm -rf Python-3.11.11/dist/lib/python3.11/site-packages/{pip,setuptools,pkg_resources,pycparser}
+          find Python-3.11.11/dist/bin -type f ! -name '*python3*' -exec rm -f {} +
+          find Python-3.11.11/dist/bin -type l -exec rm -f {} +
+
+          cp -r Python-3.11.11/dist/* clingo/build/bin/clingo_env/
+
+          cd clingo/build
+          mv bin clingo
+          tar -czvf ../../clingo-linux-x64.tar.gz clingo
+
+      - name: Verify Clingo Functionality
+        run: |
+          mkdir test_dir
+          tar -xzf clingo-linux-x64.tar.gz -C test_dir
+
+          cd test_dir/clingo
+
+          echo "#script (python)
+          from clingo.symbol import String
+
+          class Context:
+              def test(self):
+                  return String('Python works great.')
+
+          def main(prg):
+              prg.ground([('base', [])], context=Context())
+              prg.solve()
+          #end.
+
+          test(@test())." > test.lp
+
+          ./clingo test.lp || [ $? -eq 10 ]
+
+      - name: Upload binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./clingo-linux-x64.tar.gz
+          asset_name: clingo-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+  build-macos:
+    name: Build and Package (macOS)
+    runs-on: macos-latest
+    if: false
+    needs: create-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install openssl xz gdbm
+
+      - name: Download and build Python
+        run: |
+          curl -O https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tgz
+          tar -xvzf Python-3.11.11.tgz
+          cd Python-3.11.11
+          
+          export MACOSX_DEPLOYMENT_TARGET=10.15
+          
+          CFLAGS="-Os" ./configure \
+            --enable-optimizations \
+            --enable-shared \
+            --prefix="$(pwd)/dist" \
+            --disable-test-modules \
+            --disable-ipv6
+          make -j$(sysctl -n hw.logicalcpu)
+          make altinstall
+
+          ./dist/bin/python3.11 -m ensurepip
+          ./dist/bin/python3.11 -m pip install cffi clingo clingraph --prefix dist/
+          
+          strip dist/bin/python3.11 2>/dev/null || true
+
+      - name: Build Clingo
+        run: |
+          git clone --recurse-submodules https://github.com/potassco/clingo.git
+          cd clingo
+          mkdir build
+          cd build
+
+          cmake .. \
+            -DCLINGO_BUILD_WITH_PYTHON=ON \
+            -DPYTHON_EXECUTABLE=$(pwd)/../../Python-3.11.11/dist/bin/python3.11 \
+            -DCLINGO_PYTHON_VERSION=3.11 \
+            -DPYTHON_INCLUDE_DIR=$(pwd)/../../Python-3.11.11/dist/include/python3.11 \
+            -DPYTHON_LIBRARY=$(pwd)/../../Python-3.11.11/dist/lib/libpython3.11.dylib \
+            -DCLINGO_BUILD_STATIC=ON \
+            -DCLINGO_BUILD_WITH_LUA=OFF \
+            -DCMAKE_INSTALL_RPATH="@loader_path" \
+            -DCMAKE_BUILD_TYPE=Release
+
+          cmake --build . --config Release -- -j$(sysctl -n hw.logicalcpu)
+
+          strip bin/clingo 2>/dev/null || true
+          mv bin/clingo bin/clingo_bin
+
+          echo '#!/bin/bash
+
+          export PYTHONHOME="$(dirname "$0")/clingo_env"
+          export PYTHONPATH="$(dirname "$0")/clingo_env/lib/python3.11"
+
+          "$(dirname "$0")/clingo_bin" "$@"' > bin/clingo
+          chmod +x bin/clingo
+
+          rm -f bin/{clasp,gringo,lpconvert,reify}
+          
+          mkdir bin/clingo_env
+
+      - name: Clean Python and Combine with Clingo
+        run: |
+          rm -f Python-3.11.11/dist/lib/libpython3.11.a
+          rm -rf Python-3.11.11/dist/lib/python3.11/__pycache__
+          rm -rf Python-3.11.11/dist/lib/python3.11/{config-3.11-*,idlelib,ensurepip,asyncio,tkinter,lib2to3,email,unittest,multiprocessing,xml}
+          rm -rf Python-3.11.11/dist/lib/python3.11/site-packages/{pip,setuptools,pkg_resources,pycparser}
+          find Python-3.11.11/dist/bin -type f ! -name '*python3*' -exec rm -f {} +
+          find Python-3.11.11/dist/bin -type l -exec rm -f {} +
+
+          cp -r Python-3.11.11/dist/* clingo/build/bin/clingo_env/
+
+          cd clingo/build
+          mv bin clingo
+          tar -czvf ../../clingo-mac-arm64.tar.gz clingo
+
+      - name: Verify Clingo Functionality
+        run: |
+          mkdir test_dir
+          tar -xzf clingo-mac-arm64.tar.gz -C test_dir
+          cd test_dir/clingo
+
+          cat <<EOF > test.lp
+          #script (python)
+          from clingo.symbol import String
+
+          class Context:
+              def test(self):
+                  return String('Python works great.')
+
+          def main(prg):
+              prg.ground([('base', [])], context=Context())
+              prg.solve()
+          #end.
+
+          test(@test()).
+          EOF
+
+          ./clingo test.lp || [ $? -eq 10 ]
+
+      - name: Upload binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./clingo-mac-arm64.tar.gz
+          asset_name: clingo-mac-arm64.tar.gz
+          asset_content_type: application/gzip
