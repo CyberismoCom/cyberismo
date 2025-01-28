@@ -569,7 +569,7 @@ export class Calculate {
       throw new Error(clingo.stderr);
     }
     throw new Error(
-      'Cannot find "Clingo". Please install "Clingo".\nIf using MacOs: "brew install clingo".\nIf using Windows: download sources and compile new version.\nIf using Linux: check if your distribution contains pre-built package. Otherwise download sources and compile.',
+      'Cannot find "Clingo". Please check "Clingo" installation. See installation instructions at https://docs.cyberismo.com/cards/docs_17.html',
     );
   }
 
