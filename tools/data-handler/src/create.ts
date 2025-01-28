@@ -159,7 +159,7 @@ export class Create extends EventEmitter {
       (results) => {
         for (const result of results) {
           if (result.status !== 'fulfilled') {
-            throw new Error(`Promise not filled`);
+            throw new Error(result.reason);
           }
           cardsContainer.push(result.value);
         }
