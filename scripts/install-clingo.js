@@ -104,7 +104,7 @@ async function installVendorPackages() {
     console.log(`[clingo-install] Installation location ready`);
     console.log(`[clingo-install] Downloading from: ${url}`);
 
-    //await downloadFile(url, clingoArchivePath);
+    await downloadFile(url, clingoArchivePath);
 
     console.log('[clingo-install] Download complete.');
 
