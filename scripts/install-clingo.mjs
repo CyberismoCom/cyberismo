@@ -1,11 +1,15 @@
 // scripts/install-clingo.js
 
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-const childProcess = require('child_process');
-const { execSync } = childProcess;
+import os from 'os';
+import fs from 'fs';
+import https from 'https';
+import { execSync } from 'child_process';
+import { dirname, resolve, join } from 'path';
+import { fileURLToPath } from 'url';
+
+// Convert import.meta.url to a file path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function getPlatformAndExtension() {
   const platform = os.platform(); // 'darwin', 'win32', 'linux'
@@ -76,7 +80,7 @@ async function installVendorPackages() {
   }
 
   try {
-    const utilsLocation = path.resolve(process.cwd(), 'vendor', 'utils');
+    const utilsLocation = resolve(__dirname, '../', 'vendor', 'utils');
 
     if (!fs.existsSync(utilsLocation)) {
       fs.mkdirSync(utilsLocation, { recursive: true });
@@ -88,9 +92,9 @@ async function installVendorPackages() {
      * =======================
      */
 
-    const clingoInstallationLocation = path.join(utilsLocation, 'clingo');
+    const clingoInstallationLocation = join(utilsLocation, 'clingo');
     const { url, filename } = getClingoDownloadUrl();
-    const clingoArchivePath = path.join(utilsLocation, filename);
+    const clingoArchivePath = join(utilsLocation, filename);
 
     console.log(`[clingo-install] Checking for existing installation`);
 
@@ -125,15 +129,15 @@ async function installVendorPackages() {
     const graphvizBaseName = 'graphviz';
     const graphvizOriginalName = 'Graphviz-12.2.1-win64';
     const graphvizArchive = graphvizOriginalName + '.zip';
-    const graphvizInstallationLocation = path.join(
+    const graphvizInstallationLocation = join(
       utilsLocation,
       graphvizBaseName,
     );
-    const graphvizOriginalInstallationLocation = path.join(
+    const graphvizOriginalInstallationLocation = join(
       utilsLocation,
       graphvizOriginalName,
     );
-    const graphvizArchivePath = path.join(utilsLocation, graphvizArchive);
+    const graphvizArchivePath = join(utilsLocation, graphvizArchive);
 
     console.log(`[graphviz-install] Checking for existing installation`);
 
@@ -163,8 +167,8 @@ async function installVendorPackages() {
     execSync(`tar -xzf "${graphvizArchivePath}" -C "${utilsLocation}"`);
 
     fs.rename(
-      path.join(utilsLocation, graphvizOriginalName),
-      path.join(utilsLocation, graphvizBaseName),
+      join(utilsLocation, graphvizOriginalName),
+      join(utilsLocation, graphvizBaseName),
       (err) => {
         if (err) throw err;
       },
