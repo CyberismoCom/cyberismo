@@ -30,7 +30,7 @@ jobs:
       with:
         python-version: 3.12
         auto-update-conda: true
-        activate-environment: test-env
+        activate-environment: cyberismo
         environment-file: environment.yml
     - name: Install pnpm
       uses: pnpm/action-setup@v4
