@@ -12,6 +12,7 @@
 
 // node
 import fs from 'node:fs';
+import os from 'node:os';
 import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -87,6 +88,7 @@ export class ExportSite extends Export {
       // Allthough we use pnpm as the package manager, we rather use npx at runtime, because it is shipped with node
       spawnSync('npx', ['antora', ...additionalArguments], {
         stdio: 'inherit',
+        shell: os.platform() === 'win32',
       });
     } catch (error) {
       throw new Error(errorFunction(error));
