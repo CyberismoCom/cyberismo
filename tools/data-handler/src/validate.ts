@@ -389,16 +389,45 @@ export class Validate {
   }
 
   /**
-   * Validates that new name of a resource is according to naming convention.
-   * @param name: resource name
-   * returns true if name is valid, and false otherwise.
+   * Validates that new identifier of a resource is according to naming convention.
+   * @param identifier: resource identifier
+   * returns true if identifier is valid, and false otherwise.
    */
-  public static isValidResourceName(name: string): boolean {
+  public static isValidIdentifierName(identifier: string): boolean {
+    const validIdentifier = new RegExp('^[A-Za-z ._-]+$');
+    const contentValidated = validIdentifier.test(identifier);
+    const lengthValidated = identifier.length > 0 && identifier.length < 256;
+    const notInvalidIdentifier = !invalidNames.test(identifier);
+    return contentValidated && lengthValidated && notInvalidIdentifier;
+  }
+
+  /**
+   * Validates that 'name' can be used as a project name.
+   * @param name project name
+   * @returns true if name is valid, and false otherwise.
+   * @note that on Windows, if path + filename is longer than 256 characters, some file operations
+   *       are not possible. Thus, setting the maximum length of project name to 64 characters.
+   *       The 192 characters usually should be enough for the path.
+   */
+  public static isValidProjectName(name: string): boolean {
     const validName = new RegExp('^[A-Za-z ._-]+$');
     const contentValidated = validName.test(name);
-    const lengthValidated = name.length > 0 && name.length < 256;
+    const lengthValidated = name.length > 0 && name.length < 64;
     const notInvalidName = !invalidNames.test(name);
     return contentValidated && lengthValidated && notInvalidName;
+  }
+
+  /**
+   * Validates that 'name' can be used as label name.
+   * Labels are less restricted than other names, as they are never file names.
+   * @param name label name
+   * @returns true if name is valid, and false otherwise.
+   */
+  public static isValidLabelName(name: string): boolean {
+    const validName = new RegExp('^[-a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 256;
+    return contentValidated && lengthValidated;
   }
 
   // Validates that card's dataType can be used with JS types.
@@ -612,7 +641,7 @@ export class Validate {
         `Resource name must match the resource type. Type '${resource.type}' does not match '${resourceType}'`,
       );
     }
-    if (!Validate.isValidResourceName(resource.identifier)) {
+    if (!Validate.isValidIdentifierName(resource.identifier)) {
       throw new Error(
         `Resource identifier must follow naming rules. Identifier '${resource.identifier}' is invalid`,
       );
@@ -714,7 +743,7 @@ export class Validate {
         }
         if (field.isCalculated) {
           /* uncomment in COMPAT-PR: card.metadata[field.name] !== undefined
-          
+
           if (card.metadata[field.name] !== undefined) {
             validationErrors.push(
               `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
@@ -785,7 +814,7 @@ export class Validate {
       } else {
         for (const label of card.metadata.labels) {
           // labels follow same name guidance as resource names
-          if (!Validate.isValidResourceName(label)) {
+          if (!Validate.isValidLabelName(label)) {
             validationErrors.push(
               `In card '${card.key}' label '${label}' does not follow naming rules`,
             );

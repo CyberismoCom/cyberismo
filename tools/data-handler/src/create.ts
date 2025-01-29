@@ -317,10 +317,8 @@ export class Create extends EventEmitter {
    * @param label The label being added
    */
   public async createLabel(cardKey: string, label: string) {
-    if (!Validate.isValidResourceName(label)) {
-      throw new Error(
-        `Labels must follow the same naming convention as resource names'`,
-      );
+    if (!Validate.isValidLabelName(label)) {
+      throw new Error(`Not a valid label name'`);
     }
 
     const card = await this.project.findSpecificCard(cardKey, {
@@ -475,7 +473,7 @@ export class Create extends EventEmitter {
         `Input validation error: prefix must be from 3 to 10 characters long. '${projectPrefix}' does not fulfill the condition.`,
       );
     }
-    if (!Validate.isValidResourceName(projectName)) {
+    if (!Validate.isValidProjectName(projectName)) {
       throw new Error(
         `Input validation error: invalid project name '${projectName}'`,
       );
@@ -490,7 +488,7 @@ export class Create extends EventEmitter {
       throw new Error('Project already exists');
     }
 
-    if (!Validate.isValidResourceName(projectName)) {
+    if (!Validate.isValidProjectName(projectName)) {
       throw new Error(
         `Input validation error: invalid project name '${projectName}'`,
       );
