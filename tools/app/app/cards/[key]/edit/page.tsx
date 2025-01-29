@@ -285,7 +285,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   // Here we assume that metadata contains valid metadata values
 
-  const [parsed, setParsed] = useState<string>('');
+  const [parsed, setParsed] = useState<string | null>(null);
 
   useEffect(() => {
     setContent(card?.rawContent || '');
@@ -296,7 +296,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     if (!content) {
       return;
     }
-    setParsed('');
+    setParsed(null);
     let mounted = true;
     async function parse() {
       const res = await parseContent(params.key, content);
@@ -311,15 +311,16 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  const previewCard = card
-    ? {
-        ...card,
-        title: __title__ ?? card.title,
-        rawContent: getContent() ?? card.rawContent,
-        parsedContent: parsed,
-        fields: deepCopy(card.fields) ?? [],
-      }
-    : null;
+  const previewCard =
+    card && parsed
+      ? {
+          ...card,
+          title: __title__ ?? card.title,
+          rawContent: getContent() ?? card.rawContent,
+          parsedContent: parsed,
+          fields: deepCopy(card.fields) ?? [],
+        }
+      : null;
 
   if (previewCard) {
     for (const [key, value] of Object.entries(metadata)) {
@@ -430,7 +431,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     return <Box>{t('loading')}</Box>;
   }
   // If any of the data is missing, just show a message that the card was not found
-  if (!card || !previewCard || !tree || !linkTypes) {
+  if (!card || !tree || !linkTypes) {
     return (
       <Box>
         {t('failedToLoad')}
@@ -691,11 +692,12 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                 }}
               >
                 <Box height="100%">
-                  <LoadingGate
-                    values={[linkTypes, previewCard.parsedContent ?? null]}
-                  >
+                  <LoadingGate values={[linkTypes, previewCard]}>
+                    {/* Note: It is very important that ContentArea is not rendered unless we have gotten the parsed response.
+                        LoadingGate ensures that it will show up as loading until previewCard is not null*/}
+
                     <ContentArea
-                      card={previewCard}
+                      card={previewCard!}
                       linkTypes={expandedLinkTypes}
                       preview={true}
                       cards={tree}
