@@ -13,6 +13,7 @@
 // node
 import fs from 'node:fs';
 import os from 'node:os';
+import { resolve } from 'node:path';
 import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -79,7 +80,16 @@ export class ExportSite extends Export {
 
   // Generate the site from the source files using Antora.
   private generate(outputPath: string) {
-    const additionalArguments = ['--to-dir', outputPath, this.playbookFile];
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    const absoluteOutputPath = resolve(process.cwd(), outputPath);
+
+    const additionalArguments = [
+      '--to-dir',
+      absoluteOutputPath,
+      this.playbookFile,
+    ];
     if (this.options && this.options?.silent) {
       additionalArguments.unshift('--silent');
     }
@@ -89,6 +99,7 @@ export class ExportSite extends Export {
       spawnSync('npx', ['antora', ...additionalArguments], {
         stdio: 'inherit',
         shell: os.platform() === 'win32',
+        cwd: __dirname,
       });
     } catch (error) {
       throw new Error(errorFunction(error));
