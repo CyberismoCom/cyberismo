@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const https = require('https');
 const path = require('path');
 const crypto = require('crypto');
@@ -118,7 +118,7 @@ async function installCondaMacOS() {
     fs.mkdirSync(vendorDir);
   }
 
-  execSync(`sh ${filename} -b -p ${vendorDir}/miniconda3`, { shell: true });
+  execFileSync('sh', [filename, '-b', '-p', path.join(vendorDir, 'miniconda3')]);
 
   // Removing the installer
   console.log('Removing Miniconda installer...');
@@ -136,9 +136,7 @@ async function installCondaMacOS() {
  */
 function installClingo(condaCommand) {
   // Use conda to install clingo in cyberismo environment
-  execSync(`${condaCommand} install -n cyberismo -c conda-forge clingo -y`, {
-    shell: true,
-  });
+  execFileSync(condaCommand, ['install', '-n', 'cyberismo', '-c', 'conda-forge', 'clingo', '-y']);
   console.log('Clingo installed');
 }
 
@@ -168,9 +166,7 @@ function isExecutableAvailable(executable) {
  */
 function isCondaPackageInstalled(condaCommand, package) {
   try {
-    const output = execSync(
-      `${condaCommand} list -n cyberismo ${package}`,
-    ).toString();
+    const output = execFileSync(condaCommand, ['list', '-n', 'cyberismo', package]).toString();
     return output.includes(package);
   } catch (error) {
     return false;
@@ -183,17 +179,15 @@ function isCondaPackageInstalled(condaCommand, package) {
  */
 function createCondaEnvironment(condaCommand) {
   console.log('Checking if Cyberismo conda environment exists...');
-  try {
-    execSync(`${condaCommand} env list | grep ^cyberismo`, { stdio: 'ignore' });
-  } catch (error) {
-    console.log('Cyberismo conda environment not found. Creating...');
-    execSync(`${condaCommand} env create -f environment.yml -y`, {
-      shell: true,
-    });
-    console.log('Cyberismo conda environment created');
+
+  if (execFileSync(condaCommand, ['env', 'list'], { stdio: 'pipe' }).toString().includes('^cyberismo')) {
+    console.log('Cyberismo conda environment already exists');
     return;
   }
-  console.log('Cyberismo conda environment exists');
+
+  console.log('Cyberismo conda environment not found. Creating...');
+  execFileSync(condaCommand, ['env', 'create', '-f', 'environment.yml', '-y']);
+  console.log('Cyberismo conda environment created');
 }
 
 /**
