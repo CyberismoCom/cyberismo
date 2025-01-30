@@ -180,7 +180,7 @@ function isCondaPackageInstalled(condaCommand, package) {
 function createCondaEnvironment(condaCommand) {
   console.log('Checking if Cyberismo conda environment exists...');
 
-  if (execFileSync(condaCommand, ['env', 'list'], { stdio: 'pipe' }).toString().includes('^cyberismo')) {
+  if (execFileSync(condaCommand, ['env', 'list'], { stdio: 'pipe' }).toString().match(/\ncyberismo/)) {
     console.log('Cyberismo conda environment already exists');
     return;
   }
