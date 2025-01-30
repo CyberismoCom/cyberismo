@@ -206,7 +206,7 @@ describe('Cli BAT test', function () {
   });
   it('Add a card of the new cardtype to the newly created template', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo add base/templates/templateTest bat/cardTypes/cardTypeTest&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo add bat/templates/templateTest bat/cardTypes/cardTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);

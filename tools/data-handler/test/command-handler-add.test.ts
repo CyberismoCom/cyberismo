@@ -32,7 +32,7 @@ describe('add command', () => {
   it('add template card (success)', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision/cardTypes/decision'],
+      ['decision/templates/decision', 'decision/cardTypes/decision'],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -55,7 +55,11 @@ describe('add command', () => {
   it('add template card to under a parent (success)', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision/cardTypes/decision', 'decision_1'],
+      [
+        'decision/templates/decision',
+        'decision/cardTypes/decision',
+        'decision_1',
+      ],
       options,
     );
     expect(result.statusCode).to.equal(200);
@@ -63,7 +67,7 @@ describe('add command', () => {
   it('try to add template card to non-existent template', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['idontexists', 'decision/cardTypes/decision'],
+      ['decision/templates/idontexists', 'decision/cardTypes/decision'],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -71,7 +75,11 @@ describe('add command', () => {
   it('try to add template card to non-existent template parent card', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision/cardTypes/decision', 'decision_999'],
+      [
+        'decision/templates/decision',
+        'decision/cardTypes/decision',
+        'decision_999',
+      ],
       options,
     );
     expect(result.statusCode).to.equal(400);
@@ -79,7 +87,7 @@ describe('add command', () => {
   it('try to add template card with invalid path', async () => {
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision/cardTypes/decision'],
+      ['decision/templates/decision', 'decision/cardTypes/decision'],
       { projectPath: 'random-path' },
     );
     expect(result.statusCode).to.equal(400);
@@ -88,7 +96,7 @@ describe('add command', () => {
     options.repeat = -1;
     const result = await commandHandler.command(
       Cmd.add,
-      ['decision', 'decision/cardTypes/decision'],
+      ['decision/templates/decision', 'decision/cardTypes/decision'],
       options,
     );
     expect(result.statusCode).to.equal(400);
