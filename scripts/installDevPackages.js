@@ -118,7 +118,12 @@ async function installCondaMacOS() {
     fs.mkdirSync(vendorDir);
   }
 
-  execFileSync('sh', [filename, '-b', '-p', path.join(vendorDir, 'miniconda3')]);
+  execFileSync('sh', [
+    filename,
+    '-b',
+    '-p',
+    path.join(vendorDir, 'miniconda3'),
+  ]);
 
   // Removing the installer
   console.log('Removing Miniconda installer...');
@@ -136,7 +141,15 @@ async function installCondaMacOS() {
  */
 function installClingo(condaCommand) {
   // Use conda to install clingo in cyberismo environment
-  execFileSync(condaCommand, ['install', '-n', 'cyberismo', '-c', 'conda-forge', 'clingo', '-y']);
+  execFileSync(condaCommand, [
+    'install',
+    '-n',
+    'cyberismo',
+    '-c',
+    'conda-forge',
+    'clingo',
+    '-y',
+  ]);
   console.log('Clingo installed');
 }
 
@@ -166,7 +179,12 @@ function isExecutableAvailable(executable) {
  */
 function isCondaPackageInstalled(condaCommand, package) {
   try {
-    const output = execFileSync(condaCommand, ['list', '-n', 'cyberismo', package]).toString();
+    const output = execFileSync(condaCommand, [
+      'list',
+      '-n',
+      'cyberismo',
+      package,
+    ]).toString();
     return output.includes(package);
   } catch (error) {
     return false;
@@ -180,7 +198,11 @@ function isCondaPackageInstalled(condaCommand, package) {
 function createCondaEnvironment(condaCommand) {
   console.log('Checking if Cyberismo conda environment exists...');
 
-  if (execFileSync(condaCommand, ['env', 'list'], { stdio: 'pipe' }).toString().match(/\ncyberismo/)) {
+  if (
+    execFileSync(condaCommand, ['env', 'list'], { stdio: 'pipe' })
+      .toString()
+      .match(/\ncyberismo/)
+  ) {
     console.log('Cyberismo conda environment already exists');
     return;
   }
