@@ -1,4 +1,4 @@
-name: test-env
+name: cyberismo
 channels:
   - conda-forge
   - potassco
