@@ -30,7 +30,7 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "postinstall": "node scripts/install-clingo.mjs",
+    "postinstall": "node scripts/install-vendor-utils.mjs",
     "build": "pnpm -r run build",
     "clean": "rm -rf node_modules && pnpm -r run clean",
     "test": "pnpm test-data-handler && pnpm test-cli && pnpm test-app",

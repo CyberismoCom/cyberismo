@@ -3,6 +3,9 @@ import ClingoParser, {
   decodeClingoValue,
 } from '../../src/utils/clingo-parser.js';
 import { encodeClingoValue } from '../../src/utils/clingo-fact-builder.js';
+import { updatePathWithVendorUtils } from '../../../../scripts/install-vendor-utils.mjs';
+
+updatePathWithVendorUtils();
 
 const encodingTests = [
   ['\n', '\\n'],

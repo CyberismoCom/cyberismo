@@ -209,10 +209,15 @@ jobs:
           # Remove unnecessary files
           rm -f Python-3.11.11/dist/lib/libpython3.11.a
           rm -rf Python-3.11.11/dist/lib/python3.11/__pycache__
-          rm -rf Python-3.11.11/dist/lib/python3.11/{config-3.11-x86_64-linux-gnu,idlelib,ensurepip,asyncio,tkinter,lib2to3,email,unittest,multiprocessing,xml}
+          rm -rf Python-3.11.11/dist/lib/python3.11/{config-3.11-x86_64-linux-gnu,idlelib,ensurepip,asyncio,tkinter,lib2to3,unittest,multiprocessing}
           rm -rf Python-3.11.11/dist/lib/python3.11/site-packages/{pip,setuptools,pkg_resources,pycparser}
           find Python-3.11.11/dist/bin -type f ! -name '*python3*' -exec rm -f {} +
           find Python-3.11.11/dist/bin -type l -exec rm -f {} +
+
+          # Create symlink for python
+          cd Python-3.11.11/dist/bin
+          ln -sf python3.11 python
+          cd -
 
           cp -r Python-3.11.11/dist/* clingo/build/bin/clingo_env/
 

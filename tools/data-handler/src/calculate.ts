@@ -51,7 +51,6 @@ export class Calculate {
   private static mutex = new Mutex();
 
   private logicBinaryName: string = 'clingo';
-  private clingGraphBinary: string = 'clingraph';
   private pythonBinary: string = 'python';
   private static importResourcesFileName: string = 'resourceImports.lp';
   private static importCardsFileName: string = 'cardTree.lp';
@@ -606,16 +605,12 @@ export class Calculate {
         .join(',')}]; sys.exit(main())`,
     ];
 
-    const clingraph = spawnSync(
-      process.platform === 'win32' ? this.pythonBinary : this.clingGraphBinary,
-      process.platform === 'win32' ? pythonArgs : clingGraphArgs,
-      {
-        encoding: 'utf8',
-        input: firstLine,
-        timeout,
-        maxBuffer: 1024 * 1024 * 100,
-      },
-    );
+    const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
+      encoding: 'utf8',
+      input: firstLine,
+      timeout,
+      maxBuffer: 1024 * 1024 * 100,
+    });
 
     if (clingraph.status !== 0) {
       throw new Error(`Graph: Failed to run clingraph ${clingraph.stderr}`);
