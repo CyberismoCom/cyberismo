@@ -144,12 +144,13 @@ export class FileResource extends ResourceObject {
     this.fileName = '';
   }
 
-  protected async isValidName(newName: ResourceName) {
-    await Validate.getInstance().validResourceName(
+  protected async validName(newName: ResourceName) {
+    const validName = await Validate.getInstance().validResourceName(
       this.resourceType(),
       resourceNameToString(newName),
       await this.project.projectPrefixes(),
     );
+    return validName;
   }
 
   // Called after inherited class has finished 'update' operation.
@@ -170,7 +171,7 @@ export class FileResource extends ResourceObject {
       const newName = resourceName(
         (op as ChangeOperation<string>).to as string,
       );
-      await this.isValidName(newName);
+      content.name = await this.validName(newName);
     }
 
     // Once changes have been made; validate the content.

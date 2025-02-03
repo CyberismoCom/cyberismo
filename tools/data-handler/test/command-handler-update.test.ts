@@ -48,6 +48,23 @@ describe('Update command tests', async () => {
     }
     expect(found).to.equal(true);
   });
+  it('update file resource name using just identifier', async () => {
+    const name = `${project.projectPrefix}/workflows/newName`;
+    const exists = await collector.resourceExists('workflows', name);
+    const newName = `decision`;
+    expect(exists).to.equal(true);
+
+    await update.updateValue(name, 'change', 'name', newName);
+    collector.changed();
+    const workflows = await project.workflows();
+    let found = false;
+    for (const wf of workflows) {
+      if (wf.name === `${project.projectPrefix}/workflows/${newName}`) {
+        found = true;
+      }
+    }
+    expect(found).to.equal(true);
+  });
 
   it('update resource - rank item using string value (name)', async () => {
     const name = `${project.projectPrefix}/cardTypes/decision`;
