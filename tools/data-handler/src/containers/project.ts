@@ -1046,7 +1046,7 @@ export class Project extends CardContainer {
     } else if (name.type === 'workflows') {
       return new WorkflowResource(project, name);
     }
-    throw new Error(`Unsupported resource type ${name}`);
+    throw new Error(`Unsupported resource type ${resourceNameToString(name)}`);
   }
 
   /**

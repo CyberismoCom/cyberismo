@@ -372,7 +372,11 @@ export class Show {
   public async showResource(
     name: string,
   ): Promise<CardType | Workflow | LinkType | FieldType | undefined> {
-    const resource = Project.resourceObject(this.project, resourceName(name));
+    const strictNameCheck = true;
+    const resource = Project.resourceObject(
+      this.project,
+      resourceName(name, strictNameCheck),
+    );
     return resource?.show();
   }
 

@@ -43,6 +43,7 @@ import { Validate } from './validate.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/log-utils.js';
+import { resourceName } from './utils/resource-utils.js';
 
 // Generic options interface
 export interface CardsOptions {
@@ -82,43 +83,12 @@ export enum ExportFormats {
 
 export { CommandManager } from './command-manager.js';
 
-// Helper class for allowed types.
-export abstract class ShowTypes {
-  // Show-able types
-  public static allowed = [
-    'attachment',
-    'card',
-    'cardType',
-    'fieldType',
-    'label',
-    'linkType',
-    'module',
-    'project',
-    'report',
-    'template',
-    'workflow',
-  ];
-
-  // Lists all show-able resource types.
-  public static all(): string[] {
-    return [...ShowTypes.pluralizeTypes(), ...ShowTypes.allowed].sort();
-  }
-  // Pluralizes allowed target types.
-  // @note Supports English only and does not support exceptions (e.g. datum -> data).
-  public static pluralizeTypes(): string[] {
-    const retArray = [];
-    retArray.push(...ShowTypes.allowed.map((item) => (item += 's')));
-    return retArray;
-  }
-}
-
 /**
  * Class that handles all CLI commands.
  */
 export class Commands {
   private commands?: CommandManager;
   private projectPath: string;
-  private projectPrefixes: string[] = [];
   private validateCmd: Validate;
 
   constructor() {
@@ -157,6 +127,21 @@ export class Commands {
     return await this.doHandleCommand(command, args, options);
   }
 
+  // Returns command 'target'.
+  // If name is resource name -> returns from <prefix/type/identifier> 'type' in singular form.
+  // If not, returns the input parameter.
+  private commandType<Type>(type: string): Type {
+    const resource = resourceName(type);
+    return (resource.type.substring(0, resource.type.length - 1) ||
+      type) as Type;
+  }
+
+  // If 'type' is resource name, replaces original 'target' with 'type'
+  private commandTarget(type: string, target: string) {
+    const resource = resourceName(type);
+    return resource.type ? type : target;
+  }
+
   // Handles initializing the project so that it can be used in the class.
   private async doSetProject(path: string) {
     this.projectPath = resolveTilde(await this.setProjectPath(path));
@@ -179,7 +164,6 @@ export class Commands {
       throw new Error('Cannot get instance of CommandManager');
     }
     await this.commands.initialize();
-    this.projectPrefixes = await this.commands.project.projectPrefixes();
   }
 
   // Handles actual command. Sets returns values correctly.
@@ -204,55 +188,52 @@ export class Commands {
           return this.generateLogicProgram(cardKey);
         }
       } else if (command === Cmd.create) {
-        const target: ResourceTypes = args.splice(0, 1)[0] as ResourceTypes;
+        const [type, ...rest] = args;
+        const target = this.commandType(type);
+        // If 'type' was used to deduce 'target', put the parameter back into the args.
+        if (target !== type) {
+          rest.unshift(type as string);
+        }
         if (target === 'attachment') {
-          const [cardKey, attachment] = args;
+          const [cardKey, attachment] = rest;
           await this.createAttachment(cardKey, attachment);
-        }
-        if (target === 'card') {
-          const [template, parent] = args;
+        } else if (target === 'card') {
+          const [template, parent] = rest;
           return await this.createCard(template, parent);
-        }
-        if (target === 'cardType') {
-          const [name, workflow] = args;
+        } else if (target === 'cardType') {
+          const [name, workflow] = rest;
           await this.createCardType(name, workflow);
-        }
-        if (target === 'fieldType') {
-          const [name, datatype] = args;
+        } else if (target === 'fieldType') {
+          const [name, datatype] = rest;
           await this.createFieldType(name, datatype);
-        }
-        if (target == 'label') {
-          const [cardKey, label] = args;
+        } else if (target == 'label') {
+          const [cardKey, label] = rest;
           await this.commands?.createCmd.createLabel(cardKey, label);
-        }
-        if (target === 'link') {
-          const [cardKey, destinationCardKey, linkType, linkDescription] = args;
+        } else if (target === 'link') {
+          const [cardKey, destinationCardKey, linkType, linkDescription] = rest;
           await this.commands?.createCmd.createLink(
             cardKey,
             destinationCardKey,
             linkType,
             linkDescription,
           );
-        }
-        if (target === 'linkType') {
-          const [name] = args;
+        } else if (target === 'linkType') {
+          const [name] = rest;
           await this.createLinkType(name);
-        }
-        if (target === 'project') {
-          const [name, prefix] = args;
+        } else if (target === 'project') {
+          const [name, prefix] = rest;
           await this.createProject(name, prefix);
-        }
-        if (target === 'report') {
-          const [name] = args;
+        } else if (target === 'report') {
+          const [name] = rest;
           await this.createReport(name);
-        }
-        if (target === 'template') {
-          const [name, content] = args;
+        } else if (target === 'template') {
+          const [name, content] = rest;
           await this.createTemplate(name, content);
-        }
-        if (target === 'workflow') {
-          const [name, content] = args;
+        } else if (target === 'workflow') {
+          const [name, content] = rest;
           await this.createWorkflow(name, content);
+        } else {
+          throw new Error(`Unknown type to create: '${target}'`);
         }
       } else if (command === Cmd.edit) {
         const [cardKey] = args;
@@ -292,17 +273,18 @@ export class Commands {
         }
       } else if (command === Cmd.remove) {
         const [type, target, ...rest] = args;
-        const removedType: RemovableResourceTypes =
-          type as RemovableResourceTypes;
-        await this.remove(removedType, target, rest);
+        await this.remove(
+          this.commandType(type),
+          this.commandTarget(type, target),
+          rest,
+        );
       } else if (command === Cmd.rename) {
         const [to] = args;
         await this.commands?.renameCmd.rename(to);
       } else if (command === Cmd.show) {
         const [type, detail] = args;
-        const shownTypes: ResourceTypes = type as ResourceTypes;
         options.projectPath = this.projectPath;
-        return this.show(shownTypes, detail, options);
+        return this.show(this.commandType(type), detail, options);
       } else if (command === Cmd.start) {
         await this.startApp();
       } else if (command === Cmd.transition) {
@@ -438,7 +420,9 @@ export class Commands {
 
   // Creates a new link type.
   private async createLinkType(name: string): Promise<void> {
-    return await this.commands?.createCmd.createLinkType(name);
+    return await this.commands?.createCmd.createLinkType(
+      resourceName(name).identifier,
+    );
   }
 
   // Creates a new project.
@@ -570,18 +554,6 @@ export class Commands {
     typeDetail: string,
     options: CardsOptions,
   ): Promise<requestStatus> {
-    if (!ShowTypes.all().includes(type)) {
-      throw new Error(`Input validation error: illegal type '${type}'`);
-    }
-    if (
-      !ShowTypes.pluralizeTypes().includes(type) &&
-      !typeDetail &&
-      type !== 'project'
-    ) {
-      throw new Error(
-        `Input validation error: must pass argument 'typeDetail' if requesting to show info on '${type}'`,
-      );
-    }
     const detail = typeDetail || '';
     let promise: Promise<
       | Card
@@ -664,7 +636,6 @@ export class Commands {
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet
       case 'links': // fallthrough - not implemented yet
-      case 'projects': // fallthrough - not possible
       case 'label':
       default:
         throw new Error(`Unknown or not yet handled type ${type}`);
