@@ -220,13 +220,24 @@ async function installAllUtils() {
     console.log(`No packages found for ${platform}/${arch}. Exiting...`);
     return;
   }
-
+  const errorPackages = [];
   for (const pkg of packagesToInstall) {
     try {
       await installSinglePackage(pkg, utilsLocation);
     } catch (err) {
-      console.error(`[ERROR installing ${pkg.name}]:`, err);
+      errorPackages.push(pkg.name);
     }
+  }
+  // Finally summarize failures
+  if (errorPackages.length) {
+    console.log('\nThe following packages failed to install:');
+    for (const pkgName of errorPackages) {
+      console.log(`- ${pkgName}`);
+    }
+    // Optionally exit with non-zero code
+    process.exit(1);
+  } else {
+    console.log('\nAll packages installed successfully.');
   }
 }
 
