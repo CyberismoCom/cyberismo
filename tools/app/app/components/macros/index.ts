@@ -17,9 +17,9 @@ import { ReactElement } from 'react';
 
 export interface MacroContext {
   /**
-   * The key inside of which the macro is rendered.
+   * The key inside of which the macro is rendered
    */
-  key: string;
+  macroKey: string;
   /**
    * True if the macro is rendered in preview mode.
    */

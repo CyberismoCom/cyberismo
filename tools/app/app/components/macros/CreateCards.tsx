@@ -28,11 +28,11 @@ export default function CreateCards({
   buttonlabel,
   template,
   cardKey,
-  key,
+  macroKey,
   preview,
 }: CreateCardsProps) {
   const { t } = useTranslation();
-  const { createCard, isUpdating } = useCard(cardKey || key);
+  const { createCard, isUpdating } = useCard(cardKey || macroKey);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const router = useAppRouter();
