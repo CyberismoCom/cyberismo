@@ -204,12 +204,13 @@ describe('macros', () => {
         test: 'test-data',
       });
       expect(result).to.equal(
-        '\n++++\n<test-tag-name test="test-data"></test-tag-name>\n++++',
+        '\n++++\n<test-tag-name test="test-data" key="macro-0"></test-tag-name>\n++++',
       );
     });
     it('createHtmlPlaceholder (success) without data', () => {
+      // note: depends on the order of execution
       const result = createHtmlPlaceholder(macro.metadata, {});
-      expect(result).to.equal('\n++++\n<test-tag-name></test-tag-name>\n++++');
+      expect(result).to.equal('\n++++\n<test-tag-name key="macro-1"></test-tag-name>\n++++');
     });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
