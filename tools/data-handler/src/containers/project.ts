@@ -713,61 +713,65 @@ export class Project extends CardContainer {
    * Return cardIDs of the cards in the project or from templates, or both.
    * @param includeCardsFrom Where to return cards from (project, templates, or both)
    * @returns Array of cardIDs.
-   * @note that cardIDs are not sorted. Project cards are first in the array, followed by template cards.
+   * @note that cardIDs are not sorted.
    */
   public async listCardIds(
     cardsFrom: CardLocation = CardLocation.all,
   ): Promise<Set<string>> {
-    const cardIDs = new Set<string>();
-
+    const promises: Promise<Set<string>>[] = [];
     if (
       cardsFrom === CardLocation.all ||
       cardsFrom === CardLocation.projectOnly
     ) {
-      (await super.cards(this.paths.cardRootFolder)).forEach((item) =>
-        cardIDs.add(item.key),
+      promises.push(
+        super
+          .cards(this.paths.cardRootFolder)
+          .then((cards) => new Set(cards.map((card) => card.key))),
       );
     }
-
     if (
       cardsFrom === CardLocation.all ||
       cardsFrom === CardLocation.templatesOnly
     ) {
-      const templates = await this.templates();
-      const templateObjectResults = await Promise.allSettled(
-        templates.map((template) => this.createTemplateObject(template)),
+      promises.push(
+        this.templates()
+          .then((templates) =>
+            Promise.allSettled(
+              templates.map((template) => this.createTemplateObject(template)),
+            ),
+          )
+          .then((results) =>
+            results
+              .filter(
+                (
+                  result,
+                ): result is PromiseFulfilledResult<
+                  NonNullable<
+                    Awaited<ReturnType<typeof this.createTemplateObject>>
+                  >
+                > => result.status === 'fulfilled' && result.value !== null,
+              )
+              .map((result) => result.value),
+          )
+          .then((templateObjects) =>
+            Promise.allSettled(templateObjects.map((obj) => obj.listCards())),
+          )
+          .then((results) => {
+            const templateCardIds = new Set<string>();
+            results
+              .filter(
+                (result): result is PromiseFulfilledResult<Card[]> =>
+                  result.status === 'fulfilled',
+              )
+              .forEach((result) => {
+                result.value.forEach((card) => templateCardIds.add(card.key));
+              });
+            return templateCardIds;
+          }),
       );
-
-      // Filter out results that return nothing; or resulted in error.
-      const validTemplateObjects = templateObjectResults
-        .filter(
-          (
-            result,
-          ): result is PromiseFulfilledResult<
-            NonNullable<Awaited<ReturnType<typeof this.createTemplateObject>>>
-          > => result.status === 'fulfilled' && result.value !== null,
-        )
-        .map((result) => result.value);
-
-      const templateCardResults = await Promise.allSettled(
-        validTemplateObjects.map(async (templateObj) => {
-          const cards = await templateObj.listCards();
-          return cards.map((item) => item.key);
-        }),
-      );
-
-      // Filter out results that return nothing; or resulted in error.
-      templateCardResults
-        .filter(
-          (result): result is PromiseFulfilledResult<string[]> =>
-            result.status === 'fulfilled',
-        )
-        .map((result) => result.value)
-        .flat()
-        .forEach((result) => cardIDs.add(result));
     }
-
-    return cardIDs;
+    const allCardIdSets = await Promise.all(promises);
+    return new Set(allCardIdSets.flatMap((set) => [...set]));
   }
 
   /**
