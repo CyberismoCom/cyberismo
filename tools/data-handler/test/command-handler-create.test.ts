@@ -427,6 +427,15 @@ describe('create command', () => {
     expect(result.statusCode).to.equal(400);
   });
 
+  it('try create a label - whitespace character in the beginning of a name', async () => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['label', 'decision_6', ' test'],
+      options,
+    );
+    expect(result.statusCode).to.equal(400);
+  });
+
   it('try create a label - empty name', async () => {
     const result = await commandHandler.command(
       Cmd.create,

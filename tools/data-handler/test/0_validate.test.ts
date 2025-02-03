@@ -324,7 +324,7 @@ describe('validate cmd tests', () => {
     expect(separatedErrors[3]).to.equal(expectWrongType);
   });
 
-  it('validate that name follows naming rules', async () => {
+  it('validate that identifier follows naming rules', async () => {
     const validNames: string[] = [
       'test',
       'test-too',
@@ -349,11 +349,11 @@ describe('validate cmd tests', () => {
       'aux',
     ];
     for (const name of validNames) {
-      const valid = Validate.isValidResourceName(name);
+      const valid = Validate.isValidIdentifierName(name);
       expect(valid).to.equal(true);
     }
     for (const name of invalidNames) {
-      const invalid = Validate.isValidResourceName(name);
+      const invalid = Validate.isValidIdentifierName(name);
       expect(invalid).to.equal(false);
     }
   });
@@ -376,6 +376,65 @@ describe('validate cmd tests', () => {
     }
     for (const name of invalidNames) {
       const invalid = Validate.validateFolder(name);
+      expect(invalid).to.equal(false);
+    }
+  });
+  it('validate project names', async () => {
+    const validNames: string[] = [
+      'test',
+      'test-too',
+      'test_too',
+      'test too',
+      'test.too',
+      'Test',
+      'TEST',
+      '_test',
+      '-test',
+      'a'.repeat(63),
+    ];
+    const invalidNames: string[] = [
+      '',
+      'test2',
+      '2',
+      'test+too',
+      'test*',
+      'test$',
+      'lpt1',
+      'prn',
+      'aux',
+      'a'.repeat(65),
+    ];
+    for (const name of validNames) {
+      const valid = Validate.isValidProjectName(name);
+      expect(valid).to.equal(true);
+    }
+    for (const name of invalidNames) {
+      const invalid = Validate.isValidProjectName(name);
+      expect(invalid).to.equal(false);
+    }
+  });
+  it('validate label names', async () => {
+    const validNames: string[] = [
+      'test',
+      'test-too',
+      'test_too',
+      'test too',
+      'test.too',
+      'Test',
+      'TEST',
+      '_test',
+      '-test',
+      'very-long-but-still-marvelously-valid-resource-name.that_canBe-used-as-a-resource-name',
+      'test2',
+      '2',
+    ];
+    const invalidNames: string[] = ['', ' test2', '(test)', '2'.repeat(500)];
+    for (const name of validNames) {
+      const valid = Validate.isValidLabelName(name);
+      expect(valid).to.equal(true);
+    }
+    for (const name of invalidNames) {
+      const invalid = Validate.isValidLabelName(name);
       expect(invalid).to.equal(false);
     }
   });
