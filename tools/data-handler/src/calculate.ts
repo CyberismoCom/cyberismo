@@ -60,14 +60,14 @@ export class Calculate {
   private static queryLanguageFileName: string = 'queryLanguage.lp';
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../calculations/common',
+    '../../../../../../calculations/common',
   );
 
   constructor(private project: Project) {}
 
   private static queryFolderLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../calculations/queries',
+    '../../../../../../calculations/queries',
   );
 
   private async generateCardTypes() {

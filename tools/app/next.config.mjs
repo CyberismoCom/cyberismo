@@ -2,16 +2,15 @@ import path from 'path';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  webpack: (config) => {
-    config.resolve.alias.handlebars = path.resolve(
-      './node_modules/handlebars/dist/handlebars.js',
-    );
-    config.externals.push({
-      'thread-stream': 'commonjs thread-stream',
-      pino: 'commonjs pino',
-    });
-    return config;
+  // Enable experimental features including Turbopack
+  experimental: {
+    turbo: {
+      enabled: true
+    }
   },
+  // Specify packages that should only be bundled on server-side
+  serverExternalPackages: ['pino', 'thread-stream', 'handlebars'],
+  // Keep redirects as they are compatible
   async redirects() {
     return [
       {
