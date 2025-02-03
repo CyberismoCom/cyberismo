@@ -501,6 +501,7 @@
               "properties": {
                 "files": {
                   "type": "object",
+                  "additionalProperties": false,
                   "properties": {
                     "index.adoc.hbs": {
                       "type": "object"
@@ -508,7 +509,7 @@
                     "query.lp.hbs": {
                       "type": "object"
                     },
-                    "parametersSchema.json": {
+                    "parameterSchema.json": {
                       "type": "object"
                     },
                     ".schema": {
