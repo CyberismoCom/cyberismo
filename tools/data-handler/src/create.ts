@@ -31,7 +31,7 @@ import {
 } from './interfaces/resource-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from './utils/json.js';
-import { Project } from './containers/project.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 import { Template } from './containers/template.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
 import { fileURLToPath } from 'node:url';
@@ -131,6 +131,13 @@ export class Create extends EventEmitter {
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
     templateName = resourceNameToString(resourceName(templateName));
+
+    const templates = await this.project.templates(ResourcesFrom.all);
+    const found = templates.find((item) => item.name === templateName);
+    if (!found) {
+      throw new Error(`Template '${templateName}' not found from the project`);
+    }
+
     const templateObject = new Template(
       this.project,
       { name: templateName, path: '' }, // Template can deduce its own path
