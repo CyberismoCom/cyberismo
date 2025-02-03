@@ -512,13 +512,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
         if (macro) {
-          // This key should be unique for each macro
-          const key = `${node.name}-${Object.entries(node.attribs)
-            .map(([k, v]) => `${k}=${v}`)
-            .join('-')}`;
           return React.createElement(macro.component, {
-            ...node.attribs,
-            key,
+            ...node.attribs, // node attribs should contain the key
             macroKey: card.key,
             preview,
           });
