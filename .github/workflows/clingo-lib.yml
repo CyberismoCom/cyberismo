@@ -12,12 +12,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4  # Updated checkout action
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Check for python
         run: |
-          curl -LO https://www.python.org/ftp/python/3.11.2/python-3.11.2-amd64.exe
-          Start-Process -Wait -FilePath python-3.11.2-amd64.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0"
           python --version
 
       - name: Build Clingo with MSVC (Python Enabled)
@@ -26,7 +24,7 @@ jobs:
           cd clingo-source
           mkdir build
           cd build
-      
+
           # Configure Clingo build with Python support.
           cmake .. -G "Visual Studio 17 2022" -A x64 `
             -DCLINGO_BUILD_WITH_PYTHON=ON `
@@ -34,7 +32,7 @@ jobs:
             -DCLINGO_BUILD_STATIC=OFF `
             -DCLINGO_BUILD_APP=OFF `
             -DCMAKE_BUILD_TYPE=Release
-      
+
           cmake --build . --config Release --target install
 
       - name: Inspect Build Artifacts
@@ -45,15 +43,14 @@ jobs:
           
           Write-Host "Listing files in clingo-source/build/lib/Release:"
           Get-ChildItem clingo-source/build/lib/Release
+          
+          Write-Host "Listing header files in clingo-source/include:"
+          Get-ChildItem clingo-source/include -Recurse
 
-      - name: Upload Clingo Build Artifacts
-        uses: actions/upload-artifact@v4  # ✅ Updated to v4
+      - name: Upload Clingo Build and Source Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: clingo-windows-python-enabled
+          name: clingo-full-artifact
           path: |
-            clingo-source/build/bin/Release/clingo.dll
-            clingo-source/build/lib/Release/clingo.lib
-            clingo-source/build/lib/Release/clingo.exp
-            clingo-source/build/lib/Release/clingo.pdb
-            clingo-source/build/lib/Release/clingo-static.lib
-            clingo-source/build/lib/Release/cmake/**
+            clingo-source/build/**
+            clingo-source/include/**
