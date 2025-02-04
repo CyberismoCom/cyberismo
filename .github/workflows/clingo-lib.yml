@@ -61,26 +61,30 @@ jobs:
         run: |
           # Create a folder to hold the final distribution
           mkdir clingo
-
+          mkdir clingo\bin
+          mkdir clingo\lib
+          mkdir clingo\include
+          mkdir clingo\python-embed
+      
           # Copy the executable and any .dll files from the build output.
-          # Adjust the paths below if your build layout is different.
           Copy-Item clingo-source\build\bin\Release\* -Destination .\clingo\bin\ -Recurse
-
+      
           # Copy the .lib and additional .dll files (if they are placed in a separate lib folder).
           if (Test-Path "clingo-source\build\lib\Release") {
               Copy-Item clingo-source\build\lib\Release\* -Destination .\clingo\lib\ -Recurse
           }
-
+      
           # Copy header files so that you have the interface files for C++ integration.
           if (Test-Path "clingo-source\include") {
               Copy-Item clingo-source\include\* -Destination .\clingo\include\ -Recurse
           }
-
+      
           # Also include the embedded Python distribution if you need it.
           Copy-Item .\python-embed\* -Destination .\clingo\python-embed\ -Recurse
-
+      
           # Create a zip package containing the full artifacts.
           Compress-Archive -Path .\clingo -DestinationPath clingo-windows-x64-full.zip
+
 
       - name: Test Clingo (Optional)
         run: |
