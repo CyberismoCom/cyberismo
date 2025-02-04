@@ -1,0 +1,58 @@
+name: Build Clingo (Windows, Python Enabled)
+
+on:
+  push:
+    branches:
+      - clingo-test
+
+jobs:
+  build-windows:
+    name: Build Clingo with Python (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          curl -LO https://www.python.org/ftp/python/3.11.2/python-3.11.2-amd64.exe
+          Start-Process -Wait -FilePath python-3.11.2-amd64.exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0"
+          python --version
+
+      - name: Build Clingo with MSVC (Python Enabled)
+        run: |
+          git clone --recurse-submodules https://github.com/potassco/clingo.git clingo-source
+          cd clingo-source
+          mkdir build
+          cd build
+
+          cmake .. -G "Visual Studio 17 2022" -A x64 `
+            -DCLINGO_BUILD_WITH_PYTHON=ON `
+            -DCLINGO_BUILD_SHARED=ON `  # Ensure shared library is built
+            -DCLINGO_BUILD_STATIC=OFF ` # Static lib does not support Python
+            -DCLINGO_BUILD_APP=OFF `    # Skip building Clingo CLI tool
+            -DCMAKE_BUILD_TYPE=Release 
+
+          cmake --build . --config Release --target install
+
+      - name: Inspect Build Artifacts
+        shell: pwsh
+        run: |
+          Write-Host "Listing files in clingo-source/build/bin/Release:"
+          Get-ChildItem clingo-source/build/bin/Release
+          
+          Write-Host "Listing files in clingo-source/build/lib/Release:"
+          Get-ChildItem clingo-source/build/lib/Release
+
+      - name: Upload Clingo Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: clingo-windows-python-enabled
+          path: |
+            clingo-source/build/bin/Release/clingo.dll
+            clingo-source/build/lib/Release/clingo.lib
+            clingo-source/build/lib/Release/clingo.exp
+            clingo-source/build/lib/Release/clingo.pdb
+            clingo-source/build/lib/Release/clingo-static.lib
+            clingo-source/build/lib/Release/cmake/**  # CMake config files
