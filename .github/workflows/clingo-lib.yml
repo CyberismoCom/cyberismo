@@ -26,14 +26,15 @@ jobs:
           cd clingo-source
           mkdir build
           cd build
-
+      
+          # Configure Clingo build with Python support.
           cmake .. -G "Visual Studio 17 2022" -A x64 `
             -DCLINGO_BUILD_WITH_PYTHON=ON `
-            -DCLINGO_BUILD_SHARED=ON `  # Ensure shared library is built
-            -DCLINGO_BUILD_STATIC=OFF ` # Static lib does not support Python
-            -DCLINGO_BUILD_APP=OFF `    # Skip building Clingo CLI tool
-            -DCMAKE_BUILD_TYPE=Release 
-
+            -DCLINGO_BUILD_SHARED=ON `
+            -DCLINGO_BUILD_STATIC=OFF `
+            -DCLINGO_BUILD_APP=OFF `
+            -DCMAKE_BUILD_TYPE=Release
+      
           cmake --build . --config Release --target install
 
       - name: Inspect Build Artifacts
