@@ -3,7 +3,8 @@ name: Build Clingo (Windows, Python Enabled)
 on:
   push:
     branches:
-      - clingo-test
+      - main
+  pull_request:
 
 jobs:
   build-windows:
@@ -12,7 +13,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Updated checkout action
 
       - name: Install Dependencies
         run: |
@@ -46,7 +47,7 @@ jobs:
           Get-ChildItem clingo-source/build/lib/Release
 
       - name: Upload Clingo Build Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # ✅ Updated to v4
         with:
           name: clingo-windows-python-enabled
           path: |
@@ -55,4 +56,4 @@ jobs:
             clingo-source/build/lib/Release/clingo.exp
             clingo-source/build/lib/Release/clingo.pdb
             clingo-source/build/lib/Release/clingo-static.lib
-            clingo-source/build/lib/Release/cmake/**  # CMake config files
+            clingo-source/build/lib/Release/cmake/**
