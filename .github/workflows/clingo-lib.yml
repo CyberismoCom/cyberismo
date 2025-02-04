@@ -1,4 +1,4 @@
-name: Build Clingo (Windows, Python Enabled)
+name: Build and Package Clingo with Embedded Python (Full Artifacts)
 
 on:
   push:
@@ -7,50 +7,120 @@ on:
 
 jobs:
   build-windows:
-    name: Build Clingo with Python (Windows)
+    name: Build and Package (Windows)
     runs-on: windows-latest
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Check for python
+      - name: Download Embeddable Python
         run: |
-          python --version
+          # Download the embeddable Python 3.11.2 zip package
+          curl -LO https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-amd64.zip
+          mkdir python-embed
+          tar.exe -xf python-3.11.2-embed-amd64.zip -C python-embed
 
-      - name: Build Clingo with MSVC (Python Enabled)
+          # Enable site imports by uncommenting the "import site" line in the _pth file
+          (Get-Content python-embed/python311._pth) |
+            ForEach-Object { $_ -replace '#import site', 'import site' } |
+            Set-Content python-embed/python311._pth
+
+      - name: Install pip in Embeddable Python
+        run: |
+          # Download get-pip.py to install pip
+          curl -LO https://bootstrap.pypa.io/get-pip.py
+          python-embed/python.exe get-pip.py --no-warn-script-location
+          # Install required packages (adjust if additional packages are needed)
+          python-embed/python.exe -m pip install --no-warn-script-location cffi clingo clingraph
+
+      - name: Build Clingo with MSVC (Using Embedded Python)
         run: |
           git clone --recurse-submodules https://github.com/potassco/clingo.git clingo-source
           cd clingo-source
           mkdir build
           cd build
 
-          # Configure Clingo build with Python support.
+          # Configure the build using the embedded Python root.
+          # Adjust the options as needed. In this case we build:
+          #   - Clingo with Python support.
+          #   - A static build for Clingo (which produces .lib and .dll files).
           cmake .. -G "Visual Studio 17 2022" -A x64 `
             -DCLINGO_BUILD_WITH_PYTHON=ON `
-            -DCLINGO_BUILD_SHARED=ON `
-            -DCLINGO_BUILD_STATIC=OFF `
-            -DCLINGO_BUILD_APP=OFF `
-            -DCMAKE_BUILD_TYPE=Release
+            -DCLINGO_BUILD_STATIC=ON `
+            -DCLINGO_BUILD_WITH_LUA=OFF `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DPYCLINGO_INSTALL_DIR="LOCATION" `
+            -DPython_ROOT_DIR="${{ github.workspace }}\\python-embed"
 
-          cmake --build . --config Release --target install
+          # Build the Release configuration.
+          cmake --build . --config Release
 
-      - name: Inspect Build Artifacts
+      - name: Package Clingo + Embedded Python Artifacts
         shell: pwsh
         run: |
-          Write-Host "Listing files in clingo-source/build/bin/Release:"
-          Get-ChildItem clingo-source/build/bin/Release
-          
-          Write-Host "Listing files in clingo-source/build/lib/Release:"
-          Get-ChildItem clingo-source/build/lib/Release
-          
-          Write-Host "Listing header files in clingo-source/include:"
-          Get-ChildItem clingo-source/include -Recurse
+          # Create a folder to hold the final distribution
+          mkdir clingo
 
-      - name: Upload Clingo Build and Source Artifacts
-        uses: actions/upload-artifact@v4
+          # Copy the executable and any .dll files from the build output.
+          # Adjust the paths below if your build layout is different.
+          Copy-Item clingo-source\build\bin\Release\* -Destination .\clingo\bin\ -Recurse
+
+          # Copy the .lib and additional .dll files (if they are placed in a separate lib folder).
+          if (Test-Path "clingo-source\build\lib\Release") {
+              Copy-Item clingo-source\build\lib\Release\* -Destination .\clingo\lib\ -Recurse
+          }
+
+          # Copy header files so that you have the interface files for C++ integration.
+          if (Test-Path "clingo-source\include") {
+              Copy-Item clingo-source\include\* -Destination .\clingo\include\ -Recurse
+          }
+
+          # Also include the embedded Python distribution if you need it.
+          Copy-Item .\python-embed\* -Destination .\clingo\python-embed\ -Recurse
+
+          # Create a zip package containing the full artifacts.
+          Compress-Archive -Path .\clingo -DestinationPath clingo-windows-x64-full.zip
+
+      - name: Test Clingo (Optional)
+        run: |
+          # Expand the package to a test directory to verify it works.
+          Expand-Archive clingo-windows-x64-full.zip -DestinationPath test_dir
+
+          # Create a simple test logic program that uses an embedded Python script.
+          Set-Content -Path test_dir\clingo\test.lp -Value @"
+          #script (python)
+          from clingo.symbol import String
+
+          class Context:
+              def test(self):
+                  return String('Python works great.')
+
+          def main(prg):
+              prg.ground([('base', [])], context=Context())
+              prg.solve()
+          #end.
+
+          test(@test()).
+          "@
+
+          Push-Location test_dir\clingo\bin
+
+          # Run the test using the clingo executable.
+          .\clingo.exe ..\test.lp
+          $code = $LASTEXITCODE
+          Write-Host "Clingo returned exit code: $code"
+
+          # Accept exit codes 0, 10, or 20 as successful.
+          if ($code -eq 0 -or $code -eq 10 -or $code -eq 20) {
+            exit 0
+          } else {
+            exit $code
+          }
+          Pop-Location
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: clingo-full-artifact
-          path: |
-            clingo-source/build/**
-            clingo-source/include/**
+          name: clingo-windows-x64-full
+          path: clingo-windows-x64-full.zip
