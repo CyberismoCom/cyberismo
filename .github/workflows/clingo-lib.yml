@@ -9,9 +9,6 @@ jobs:
   build-windows:
     name: Build and Package (Windows)
     runs-on: windows-latest
-    needs: create-release
-    permissions:
-      contents: write
 
     steps:
       - name: Check out code
