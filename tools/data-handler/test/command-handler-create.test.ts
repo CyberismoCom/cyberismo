@@ -15,6 +15,7 @@ import { Calculate } from '../src/calculate.js';
 import { DefaultContent } from '../src/create-defaults.js';
 import { CardListContainer } from '../src/interfaces/project-interfaces.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
+import { Project } from '../src/containers/project.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -944,5 +945,29 @@ describe('create command', () => {
     expect(defaultContent.name).to.equal('test');
     expect(defaultContent.states.length).to.equal(3);
     expect(defaultContent.transitions.length).to.equal(3);
+  });
+  it('access default values for card (success)', () => {
+    const defaultCardType = DefaultContent.cardType('test', 'testWorkflow');
+    const defaultCard = DefaultContent.card(defaultCardType);
+    expect(defaultCard.cardType).to.equal('test');
+    expect(defaultCard.rank).to.equal('');
+    expect(defaultCard.title).to.equal('Untitled');
+    expect(defaultCard.workflowState).to.equal('');
+  });
+  it('access default values for card using real card type and template cards (success)', async () => {
+    const project = new Project(decisionRecordsPath);
+    const templateFile = await project.template('decision/templates/decision');
+    const template = await project.createTemplateObject(templateFile!);
+    const templateCards = await template?.cards('', { metadata: true });
+
+    const cardType = DefaultContent.cardType(
+      'decision/cardTypes/decision',
+      'decision/workflows/decision',
+    );
+    const defaultCard = DefaultContent.card(cardType, templateCards);
+    expect(defaultCard.cardType).to.equal('decision/cardTypes/decision');
+    expect(defaultCard.rank).to.equal('0|b');
+    expect(defaultCard.title).to.equal('Untitled');
+    expect(defaultCard.workflowState).to.equal('');
   });
 });
