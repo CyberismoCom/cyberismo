@@ -50,7 +50,7 @@ import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from './macros/index.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
-const subFoldersToValidate = ['.cards', 'cardRoot', '.calc'];
+const subFoldersToValidate = ['.cards', 'cardRoot'];
 
 export interface LengthProvider {
   length: number;
