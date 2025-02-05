@@ -1,5 +1,5 @@
 # Use the custom Clingo base image
-FROM cyberismo-clingo-base
+FROM ghcr.io/cyberismocom/cyberismo-clingo-base:latest
 
 # Clone the Cyberismo repository
 RUN git clone https://github.com/CyberismoCom/cyberismo.git /cyberismo
@@ -17,7 +17,3 @@ RUN pnpm install \
 
 # Set the working directory for the final image
 WORKDIR /project
-
-
-
-
