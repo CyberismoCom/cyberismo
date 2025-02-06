@@ -4,6 +4,9 @@ import {
   encodeClingoValue,
 } from '../../src/utils/clingo-fact-builder.js';
 import { INT32_MAX } from '../../src/utils/constants.js';
+import { updatePathWithVendorUtils } from '../../../../scripts/install-vendor-utils.mjs';
+
+updatePathWithVendorUtils();
 
 describe('ClingoFactBuilder', () => {
   it('should generate fact with addArgument', () => {

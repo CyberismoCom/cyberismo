@@ -1,27 +1,9 @@
 #!/usr/bin/env node --no-warnings=ExperimentalWarning
 
 import program from '@cyberismocom/cli';
+import { updatePathWithVendorUtils } from '../../../scripts/install-vendor-utils.mjs';
 
-import { fileURLToPath } from 'url';
-import { dirname, resolve, delimiter } from 'path';
-
-// Convert import.meta.url to a file path
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const rootDirectory = resolve(__dirname, '../../../');
-
-const clingoDir = resolve(rootDirectory, 'vendor', 'utils', 'clingo');
-const graphvizDir = resolve(
-  rootDirectory,
-  'vendor',
-  'utils',
-  'graphviz',
-  'bin',
-);
-
-process.env.PATH =
-  clingoDir + delimiter + graphvizDir + delimiter + process.env.PATH;
+updatePathWithVendorUtils();
 
 process.removeAllListeners('warning');
 
