@@ -130,7 +130,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   tree,
 }) => {
   const { ref, width, height } = useResizeObserver();
-  const treeRef = useRef();
+  const treeRef = useRef(null);
 
   useEffect(() => {
     // unfortunately react arborist does not provide a type for the ref
