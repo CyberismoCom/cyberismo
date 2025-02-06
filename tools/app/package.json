@@ -66,11 +66,5 @@
     "next-swagger-doc": "^0.4.0",
     "start-server-and-test": "^2.0.5",
     "swagger-ui-react": "^5.18.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "@types/react": "19.0.8",
-      "@types/react-dom": "19.0.3"
-    }
   }
 }
