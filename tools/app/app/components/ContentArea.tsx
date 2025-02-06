@@ -512,9 +512,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
         if (macro) {
-          return macro.component({
-            ...node.attribs,
-            key: card.key,
+          return React.createElement(macro.component, {
+            ...node.attribs, // node attribs should contain the key
+            macroKey: card.key,
             preview,
           });
         }

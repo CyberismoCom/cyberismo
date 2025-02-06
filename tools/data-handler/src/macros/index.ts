@@ -230,6 +230,9 @@ export function handleMacroError(
   }
 }
 
+// This is used to generate unique keys for macros
+// There might be a better way to do this
+let macroCounter = 0;
 /**
  * Creates an injectable placeholder for a macro
  * @param macro - The macro to create the placeholder for
@@ -246,7 +249,7 @@ export function createHtmlPlaceholder(
     .join(' ');
 
   // start with a line change to ensure that passthrough ++++ is on its own line
-  return `\n++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''}></${macro.tagName}>\n++++`;
+  return `\n++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''} key="macro-${macroCounter++}"></${macro.tagName}>\n++++`;
 }
 
 /**
