@@ -12,12 +12,10 @@
 
 // node
 import fs from 'node:fs';
-import os from 'node:os';
-import { resolve } from 'node:path';
+import { platform, tmpdir } from 'node:os';
 import { appendFile, copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { mkdtempSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -98,7 +96,7 @@ export class ExportSite extends Export {
       // Allthough we use pnpm as the package manager, we rather use npx at runtime, because it is shipped with node
       spawnSync('npx', ['antora', ...additionalArguments], {
         stdio: 'inherit',
-        shell: os.platform() === 'win32',
+        shell: platform() === 'win32',
         cwd: __dirname,
       });
     } catch (error) {
@@ -147,7 +145,7 @@ export class ExportSite extends Export {
     };
 
     this.playbookFile = join(this.playbookDir, 'antora-playbook.yml');
-    fs.writeFileSync(this.playbookFile, dump(playbook));
+    writeFileSync(this.playbookFile, dump(playbook));
   }
 
   // Create the Antora site descriptor.
@@ -246,7 +244,7 @@ export class ExportSite extends Export {
         await writeFile(cardPath, tempContent);
       }
 
-      if (card.children) {
+      if (card.children && card.children.length > 0) {
         // Recurse into the child cards
         await this.toAdocDirectoryAsContent(path, card.children, depth);
       }
