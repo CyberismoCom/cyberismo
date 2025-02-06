@@ -18,8 +18,8 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { Persistor } from 'redux-persist';
 
 export default function StoreProvider({ children }: { children: ReactNode }) {
-  const storeRef = useRef<AppStore>();
-  const persistorRef = useRef<Persistor>();
+  const storeRef = useRef<AppStore | null>(null);
+  const persistorRef = useRef<Persistor | null>(null);
   if (!storeRef.current || !persistorRef.current) {
     const { store, persistor } = makeStore();
     storeRef.current = store;

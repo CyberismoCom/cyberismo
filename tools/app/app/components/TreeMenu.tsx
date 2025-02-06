@@ -128,7 +128,7 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   onCardSelect,
   tree,
 }) => {
-  const treeRef = useRef();
+  const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
 
