@@ -36,7 +36,7 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
-import { readJsonFile, writeJsonFile } from '../utils/json.js';
+import { readJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 import { resourceName } from '../utils/resource-utils.js';
 
@@ -224,11 +224,7 @@ export class Template extends CardContainer {
           }
 
           await mkdir(card.path, { recursive: true });
-          // todo: this could just call base class saveCardMetadata
-          await writeJsonFile(
-            join(card.path, Project.cardMetadataFile),
-            card.metadata,
-          );
+          await this.saveCardMetadata(card);
         }
 
         if (card.attachments.length) {
@@ -390,15 +386,17 @@ export class Template extends CardContainer {
       defaultContent.rank = this.latestRank(templateCards);
 
       await mkdir(templateCardToCreate, { recursive: true });
-      // todo: call base class saveCardMetadata
-      await writeJsonFile(
-        join(templateCardToCreate, Project.cardMetadataFile),
-        defaultContent,
-      );
-      await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
+      const defaultCard: Card = {
+        key: basename(templateCardToCreate),
+        path: templateCardToCreate,
+        metadata: defaultContent,
+        children: [],
+        attachments: [],
+        content: '',
+      };
+      await this.saveCard(defaultCard);
     } catch (error) {
       if (error instanceof Error) {
-        // todo: use temp folder and destroy everything from there.
         throw new Error(error.message);
       }
     }

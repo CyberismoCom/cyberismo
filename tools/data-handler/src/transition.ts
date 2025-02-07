@@ -12,7 +12,6 @@
 
 // node
 import { EventEmitter } from 'node:events';
-import { join } from 'node:path';
 
 import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
@@ -24,7 +23,6 @@ import {
 } from './interfaces/resource-interfaces.js';
 import { Edit } from './edit.js';
 import { Project } from './containers/project.js';
-import { writeJsonFile } from './utils/json.js';
 
 export class Transition extends EventEmitter {
   constructor(
@@ -43,10 +41,7 @@ export class Transition extends EventEmitter {
   private async setCardState(card: Card, state: string) {
     if (card.metadata) {
       card.metadata.workflowState = state;
-      await writeJsonFile(
-        join(card.path, Project.cardMetadataFile),
-        card.metadata,
-      );
+      this.project.updateCardMetadata(card, card.metadata);
     }
   }
 

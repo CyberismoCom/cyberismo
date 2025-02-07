@@ -1037,10 +1037,9 @@ export class Project extends CardContainer {
     if (skipValidation) {
       card.metadata.lastUpdated = new Date().toISOString();
       return await this.saveCardMetadata(card);
-    } else {
-      await this.saveCardMetadata(card);
-      return this.onCardUpdate(card.key);
     }
+    await this.saveCardMetadata(card);
+    return this.onCardUpdate(card.key);
   }
 
   /**
