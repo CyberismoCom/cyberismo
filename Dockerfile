@@ -6,7 +6,7 @@ RUN git clone https://github.com/CyberismoCom/cyberismo.git /cyberismo
 
 # Install and build Cyberismo
 WORKDIR /cyberismo
-RUN pnpm install \
+RUN pnpm install --ignore-scripts \
     && rm -rf .git \
     && pnpm build \
     && pnpm link -g \
