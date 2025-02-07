@@ -13,12 +13,15 @@
 // node
 import { join } from 'node:path';
 
+import { CardType } from './interfaces/resource-interfaces.js';
 import { copyDir } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
-import { readCsvFile } from './utils/csv.js';
-import { Validate } from './validate.js';
 import { Create } from './create.js';
+import { Project } from './containers/project.js';
 import { pathExists } from './utils/file-utils.js';
+import { readCsvFile } from './utils/csv.js';
+import { resourceName } from './utils/resource-utils.js';
+import { TemplateResource } from './resources/template-resource.js';
+import { Validate } from './validate.js';
 
 export class Import {
   constructor(
@@ -47,8 +50,11 @@ export class Import {
 
     for (const row of csv) {
       const { title, template, description, labels, ...customFields } = row;
-      const templateObject =
-        await this.project.createTemplateObjectByName(template);
+      const templateResource = new TemplateResource(
+        this.project,
+        resourceName(template),
+      );
+      const templateObject = templateResource.templateObject();
       if (!templateObject) {
         throw new Error(`Template '${template}' not found`);
       }
@@ -71,7 +77,7 @@ export class Import {
       const card = await this.project.findSpecificCard(cardKey, {
         metadata: true,
       });
-      const cardType = await this.project.cardType(
+      const cardType = await this.project.resource<CardType>(
         card?.metadata?.cardType || '',
       );
 

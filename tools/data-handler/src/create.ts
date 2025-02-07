@@ -16,36 +16,26 @@ import {
   constants as fsConstants,
   copyFile,
   mkdir,
-  rename,
   writeFile,
 } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 
 import { Calculate } from './calculate.js';
-import { Validate } from './validate.js';
-import { ProjectFile, Resource } from './interfaces/project-interfaces.js';
-import {
-  Link,
-  ReportMetadata,
-  TemplateMetadata,
-} from './interfaces/resource-interfaces.js';
 import { errorFunction } from './utils/log-utils.js';
-import { readJsonFile, writeJsonFile } from './utils/json.js';
-import { Project, ResourcesFrom } from './containers/project.js';
-import { Template } from './containers/template.js';
+import { Project } from './containers/project.js';
 import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
-import { fileURLToPath } from 'node:url';
-import { copyDir, pathExists } from './utils/file-utils.js';
-import {
-  isResourceName,
-  resourceName,
-  resourceNameToString,
-} from './utils/resource-utils.js';
-import { DefaultContent } from './create-defaults.js';
+import { Link, LinkType } from './interfaces/resource-interfaces.js';
+import { pathExists } from './utils/file-utils.js';
+import { ProjectFile } from './interfaces/project-interfaces.js';
+import { resourceName, resourceNameToString } from './utils/resource-utils.js';
+import { Validate } from './validate.js';
+import { writeJsonFile } from './utils/json.js';
 
 import { CardTypeResource } from './resources/card-type-resource.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { LinkTypeResource } from './resources/link-type-resource.js';
+import { ReportResource } from './resources/report-resource.js';
+import { TemplateResource } from './resources/template-resource.js';
 import { WorkflowResource } from './resources/workflow-resource.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
@@ -55,17 +45,9 @@ import { WorkflowResource } from './resources/workflow-resource.js';
  * Handles all create commands.
  */
 export class Create extends EventEmitter {
-  private defaultReportLocation: string = join(
-    fileURLToPath(import.meta.url),
-    '../../../../content/defaultReport',
-  );
-
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
-    private validateCmd: Validate,
-    // todo: can be removed when reports and templates are made to ResourceObjects.
-    private projectPrefixes: string[],
   ) {
     super();
 
@@ -101,8 +83,6 @@ export class Create extends EventEmitter {
         *-debug.log\n
         *-error.log\n`;
 
-  static gitKeepContent: string = '';
-
   /**
    * Adds new cards to a template.
    * @param cardTypeName Card type for new cards.
@@ -130,18 +110,11 @@ export class Create extends EventEmitter {
     }
     // Use slice to get a copy of a string.
     const origTemplateName = templateName.slice(0);
-    templateName = resourceNameToString(resourceName(templateName));
-
-    const templates = await this.project.templates(ResourcesFrom.all);
-    const found = templates.find((item) => item.name === templateName);
-    if (!found) {
-      throw new Error(`Template '${templateName}' not found from the project`);
-    }
-
-    const templateObject = new Template(
+    const templateResource = new TemplateResource(
       this.project,
-      { name: templateName, path: '' }, // Template can deduce its own path
+      resourceName(templateName),
     );
+    const templateObject = templateResource.templateObject();
 
     const specificCard = card
       ? await templateObject.findSpecificCard(card)
@@ -229,15 +202,6 @@ export class Create extends EventEmitter {
   }
 
   /**
-   * Call this before calling other 'create' functions. If importing new modules, should be called again.
-   * todo: if this would be 'sync' it could be called from this class's constructor; then make it private
-   */
-  // todo: can be removed when reports and templates are made to ResourceObjects.
-  public async setProjectPrefixes(): Promise<void> {
-    this.projectPrefixes = await this.project.projectPrefixes();
-  }
-
-  /**
    * Creates card(s) to a project. All cards from template are instantiated to the project.
    * @param templateName name of a template to use
    * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
@@ -247,20 +211,18 @@ export class Create extends EventEmitter {
     templateName: string,
     parentCardKey?: string,
   ): Promise<string[]> {
-    const templateObject =
-      await this.project.createTemplateObjectByName(templateName);
-    if (!templateObject || !templateObject.isCreated()) {
-      throw new Error(`Template '${templateName}' not found from project`);
-    }
+    const templateResource = new TemplateResource(
+      this.project,
+      resourceName(templateName),
+    );
 
-    const validator = Validate.getInstance();
-    const content = (await readJsonFile(
-      templateObject.templateConfigurationFilePath(),
-    )) as TemplateMetadata;
-    const validJson = validator.validateJson(content, 'templateSchema');
-    if (validJson.length !== 0) {
-      throw new Error(`Invalid template JSON: ${validJson}`);
-    }
+    await Validate.getInstance().validResourceName(
+      'templates',
+      resourceNameToString(resourceName(templateName)),
+      await this.project.projectPrefixes(),
+    );
+
+    await templateResource.validate();
 
     const specificCard = parentCardKey
       ? await this.project.findSpecificCard(parentCardKey, {
@@ -270,6 +232,11 @@ export class Create extends EventEmitter {
       : undefined;
     if (parentCardKey && !specificCard) {
       throw new Error(`Card '${parentCardKey}' not found from project`);
+    }
+
+    const templateObject = templateResource.templateObject();
+    if (!templateObject || !templateObject.isCreated()) {
+      throw new Error(`Template '${templateName}' not found from project`);
     }
 
     const createdCards = await templateObject.createCards(specificCard);
@@ -386,8 +353,7 @@ export class Create extends EventEmitter {
       );
     }
     // make sure the link type exists
-    const linkTypeObject = await this.project.linkType(linkType);
-
+    const linkTypeObject = await this.project.resource<LinkType>(linkType);
     if (!linkTypeObject) {
       throw new Error(`Link type '${linkType}' does not exist in the project`);
     }
@@ -454,7 +420,6 @@ export class Create extends EventEmitter {
    * @param projectPath where to create the project.
    * @param projectPrefix prefix for the project.
    * @param projectName name for the project.
-   * @param validateCmd validator
    */
   public static async createProject(
     projectPath: string,
@@ -528,86 +493,26 @@ export class Create extends EventEmitter {
   /**
    * Creates a report
    * @param name name of the report
-   * // todo: can be simplified when reports and templates are made to ResourceObjects.
    */
   public async createReport(name: string) {
-    const validReportName = await this.validateCmd.validResourceName(
-      'reports',
-      name,
-      this.projectPrefixes,
-    );
-    if (!isResourceName(validReportName)) {
-      throw new Error(
-        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createReport()'`,
-      );
-    }
-
-    const report = await this.project.report(validReportName);
-    if (report) {
-      throw new Error(`Report '${name}' already exists in the project`);
-    }
-
-    // Copy report default structure to destination.
-    const destination = join(this.project.paths.reportsFolder, name);
-    const reportFile = join(this.project.paths.reportsFolder, name + '.json');
-    await copyDir(this.defaultReportLocation, destination);
-    await rename(join(destination, 'report.json'), reportFile);
-    const reportContent = (await readJsonFile(reportFile)) as ReportMetadata;
-    reportContent.name = `${this.project.projectPrefix}/reports/${name}`;
-    await writeJsonFile(reportFile, reportContent);
-
-    const resource: Resource = { name: validReportName, path: destination };
-    this.project.addResource(resource);
+    const report = new ReportResource(this.project, resourceName(name));
+    await report.createReport();
   }
 
   /**
    * Creates a new template to a project.
    * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.
-   * // todo: can be simplified when reports and templates are made to ResourceObjects.
    */
   public async createTemplate(templateName: string, templateContent: string) {
-    let validTemplateName = await this.validateCmd.validResourceName(
-      'templates',
-      templateName,
-      this.projectPrefixes,
+    const template = new TemplateResource(
+      this.project,
+      resourceName(templateName),
     );
-    if (!isResourceName(validTemplateName)) {
-      throw new Error(
-        `Resource name must be a valid name (<prefix>/<type>/<identifier>) when calling 'createTemplate()'`,
-      );
-    }
-    if (!Validate.validateFolder(join(this.project.basePath, templateName))) {
-      throw new Error(
-        `Input validation error: template name is invalid '${templateName}'`,
-      );
-    }
-    const content = templateContent
-      ? (JSON.parse(templateContent) as TemplateMetadata)
-      : DefaultContent.templateContent(validTemplateName);
 
-    validTemplateName = resourceNameToString(resourceName(validTemplateName));
-
-    const validJson = this.validateCmd.validateJson(content, 'templateSchema');
-    if (validJson.length !== 0) {
-      throw new Error(`Invalid template JSON: ${validJson}`);
-    }
-
-    if (await this.project.resourceExists('templates', templateName)) {
-      throw new Error(
-        `Template '${templateName}' already exists in the project`,
-      );
-    }
-
-    const resource = {
-      name: validTemplateName,
-      path: this.project.paths.templatesFolder,
-    };
-
-    const template = new Template(this.project, resource);
-    await template.create(content);
-
-    this.project.addResource(resource);
+    await template.create(
+      templateContent ? JSON.parse(templateContent) : undefined,
+    );
   }
 
   /**

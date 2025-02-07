@@ -343,25 +343,23 @@ export class CardContainer {
 
   // Persists card content.
   protected async saveCard(card: Card) {
+    await this.saveCardContent(card);
+    await this.saveCardMetadata(card);
+  }
+
+  // Persists card metadata.
+  protected async saveCardContent(card: Card) {
     if (card.content != null) {
       const contentFile = join(card.path, CardContainer.cardContentFile);
       await writeFile(contentFile, card.content);
-      return;
     }
-    if (card.metadata) {
-      const metadataFile = join(card.path, CardContainer.cardMetadataFile);
-      await writeJsonFile(metadataFile, card.metadata);
-      return;
-    }
-    throw new Error(`No content for card ${card.key}`);
   }
+
   // Persists card metadata.
   protected async saveCardMetadata(card: Card) {
-    if (card.metadata) {
+    if (card.metadata != null) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       await writeJsonFile(metadataFile, card.metadata);
-      return;
     }
-    throw new Error(`No metadata for card ${card.key}`);
   }
 }

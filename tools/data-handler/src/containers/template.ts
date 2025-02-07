@@ -15,23 +15,20 @@ import { basename, join, resolve, sep } from 'node:path';
 import { copyFile, readdir, mkdir, rm, writeFile } from 'node:fs/promises';
 import { readdirSync } from 'node:fs';
 
+// Base class
+import { CardContainer } from './card-container.js';
+
 import {
   Card,
   CardAttachment,
   CardNameRegEx,
-  DotSchemaItem,
   FetchCardDetails,
   FileContentType,
   Resource,
-  TemplateConfiguration as TemplateInterface,
 } from '../interfaces/project-interfaces.js';
-import { TemplateMetadata } from '../interfaces/resource-interfaces.js';
-import { copyDir, pathExists } from '../utils/file-utils.js';
-import { readJsonFile, writeJsonFile } from '../utils/json.js';
-import { Project } from './project.js';
-
-// Base class
-import { CardContainer } from './card-container.js';
+import { CardType, Workflow } from '../interfaces/resource-interfaces.js';
+import { copyDir, pathExists, stripExtension } from '../utils/file-utils.js';
+import { DefaultContent } from '../resources/create-defaults.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -39,6 +36,8 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { logger } from '../utils/log-utils.js';
+import { readJsonFile } from '../utils/json.js';
+import { Project } from './project.js';
 import { resourceName } from '../utils/resource-utils.js';
 
 // Simple mapping table for card instantiation
@@ -53,23 +52,9 @@ export class Template extends CardContainer {
   private templateCardsPath: string;
   private project: Project;
 
-  private static DotSchemaContentForCard: DotSchemaItem[] = [
-    {
-      id: 'cardBaseSchema',
-      version: 1,
-    },
-  ];
-
-  private static DotSchemaContentForTemplate: DotSchemaItem[] = [
-    {
-      id: 'templateSchema',
-      version: 1,
-    },
-  ];
-
   constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
-    const templateName = basename(template.name);
+    const templateName = stripExtension(basename(template.name));
     super(template.path!, templateName);
 
     // prevent constructing a new project object, if one is passed to this class.
@@ -84,6 +69,7 @@ export class Template extends CardContainer {
 
   // Fetches project top level cards only.
   // Top level cards are those that have parent as 'root'.
+  // todo: This should be in 'project' or 'card-container'
   private async rootLevelProjectCards(): Promise<Card[]> {
     const entries = (
       await readdir(this.project.paths.cardRootFolder, {
@@ -198,7 +184,7 @@ export class Template extends CardContainer {
         } else {
           card.path = card.path.replace(templatesFolder, tempDestination);
         }
-        const cardType = await this.project.cardType(
+        const cardType = await this.project.resource<CardType>(
           card.metadata?.cardType || '',
         );
         if (!cardType) {
@@ -206,7 +192,9 @@ export class Template extends CardContainer {
             `Card type '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
           );
         }
-        const workflow = await this.project.workflow(cardType.workflow);
+        const workflow = await this.project.resource<Workflow>(
+          cardType.workflow,
+        );
         if (!workflow) {
           throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
         }
@@ -236,10 +224,7 @@ export class Template extends CardContainer {
           }
 
           await mkdir(card.path, { recursive: true });
-          await writeJsonFile(
-            join(card.path, Project.cardMetadataFile),
-            card.metadata,
-          );
+          await this.saveCardMetadata(card);
         }
 
         if (card.attachments.length) {
@@ -317,10 +302,9 @@ export class Template extends CardContainer {
     if (pathExists(this.templatePath)) {
       return this.templatePath;
     }
-    const files = readdirSync(this.project.paths.modulesFolder, {
+    const modules = readdirSync(this.project.paths.modulesFolder, {
       withFileTypes: true,
-    });
-    const modules = files.filter((item) => item.isDirectory());
+    }).filter((item) => item.isDirectory());
     for (const module of modules) {
       const exists = pathExists(
         join(module?.parentPath, module?.name, 'templates', templateName),
@@ -333,19 +317,6 @@ export class Template extends CardContainer {
           templateName,
         );
       }
-    }
-    return '';
-  }
-
-  private moduleNameFromPath(template: string): string {
-    const modulePath = this.moduleTemplatePath(template);
-    if (modulePath !== '') {
-      const parts = modulePath.split(sep);
-      const modulesIndex = parts.indexOf('modules');
-      if (modulesIndex === -1) {
-        return '';
-      }
-      return parts.at(modulesIndex + 1) as string;
     }
     return '';
   }
@@ -387,19 +358,13 @@ export class Template extends CardContainer {
     const destinationCardPath = parentCard
       ? join(await this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
-    const defaultContent = {
-      title: 'Untitled',
-      cardType: cardType,
-      workflowState: '',
-      rank: '',
-    };
     let newCardKey = '';
 
     try {
       if (!pathExists(this.templateFolder())) {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
-      if ((await this.project.cardType(cardType)) === undefined) {
+      if ((await this.project.resource<CardType>(cardType)) === undefined) {
         throw new Error(`Card type '${cardType}' does not exist`);
       }
       if (parentCard && !this.hasCard(parentCard.key)) {
@@ -408,6 +373,7 @@ export class Template extends CardContainer {
         );
       }
 
+      const defaultContent = DefaultContent.card(cardType);
       const cardIds = await this.project.listCardIds();
       newCardKey = await this.project.newCardKey(cardIds);
       const templateCardToCreate = parentCard
@@ -420,14 +386,17 @@ export class Template extends CardContainer {
       defaultContent.rank = this.latestRank(templateCards);
 
       await mkdir(templateCardToCreate, { recursive: true });
-      await writeJsonFile(
-        join(templateCardToCreate, Project.cardMetadataFile),
-        defaultContent,
-      );
-      await writeFile(join(templateCardToCreate, Project.cardContentFile), '');
+      const defaultCard: Card = {
+        key: basename(templateCardToCreate),
+        path: templateCardToCreate,
+        metadata: defaultContent,
+        children: [],
+        attachments: [],
+        content: '',
+      };
+      await this.saveCard(defaultCard);
     } catch (error) {
       if (error instanceof Error) {
-        // todo: use temp folder and destroy everything from there.
         throw new Error(error.message);
       }
     }
@@ -502,51 +471,6 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Creates a new template to a project.
-   * todo: it would make more sense if Project would have this function
-   * @returns message text with details of creating; or empty string when template was already created.
-   */
-  public async create(templateContent: TemplateMetadata): Promise<string> {
-    const isCreated = this.isCreated();
-    if (!isCreated) {
-      try {
-        let messageText = '';
-        const created = await mkdir(this.templateCardsPath, {
-          recursive: true,
-        }).then(async (name) => {
-          await Promise.all([
-            writeJsonFile(
-              this.templateConfigurationFilePath(),
-              templateContent,
-            ),
-            writeJsonFile(
-              join(this.templatePath, '..', Project.schemaContentFile),
-              Template.DotSchemaContentForTemplate,
-            ),
-            writeJsonFile(
-              join(this.templateCardsPath, Project.schemaContentFile),
-              Template.DotSchemaContentForCard,
-            ),
-          ]);
-
-          return name;
-        });
-        if (created) {
-          const templateName = basename(created);
-          messageText = `Created template '${templateName}' to folder ${this.templatePath}`;
-        }
-        return messageText;
-      } catch (error) {
-        if (error instanceof Error)
-          throw new Error(
-            `Could not instantiate template ${this.containerName}`,
-          );
-      }
-    }
-    return '';
-  }
-
-  /**
    * Creates cards from a template. If parent card is specified, then cards are created to underneath a parent.
    * @param parentCard parent card
    * @returns array of created card keys
@@ -606,24 +530,6 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Shows details of template.
-   * @returns details of template
-   */
-  public async show(): Promise<TemplateInterface> {
-    const modulePrefix = this.moduleNameFromPath(this.containerName);
-    const prefix = modulePrefix ? modulePrefix : this.project.projectPrefix;
-
-    return {
-      name: `${prefix}/templates/${this.containerName}`,
-      path: this.templateFolder(),
-      numberOfCards: (await super.cards(this.templateCardsPath)).length,
-      metadata: (await readJsonFile(
-        this.templateConfigurationFilePath(),
-      )) as TemplateMetadata,
-    };
-  }
-
-  /**
    * Returns path to 'templates/<name>/c' folder.
    * @returns path to the template's folder for cards.
    */
@@ -645,13 +551,5 @@ export class Template extends CardContainer {
    */
   public templateFolder(): string {
     return this.templatePath;
-  }
-
-  /**
-   * Returns template's project.
-   * @returns Template's project.
-   */
-  public get templateProject(): Project {
-    return this.project;
   }
 }

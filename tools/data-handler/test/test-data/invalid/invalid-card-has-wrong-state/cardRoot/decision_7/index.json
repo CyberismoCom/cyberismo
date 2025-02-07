@@ -1,5 +1,5 @@
 {
-    "cardType": "decision/cardtTypes/decisionWrongWF",
+    "cardType": "decision/cardTypes/decisionWrongWF",
     "title": "Decision Records",
     "workflowState": "Draft",
     "decision/fieldTypes/obsoletedBy": null,

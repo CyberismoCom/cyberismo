@@ -11,15 +11,21 @@ import {
   CardLocation,
   FileContentType,
 } from '../src/interfaces/project-interfaces.js';
+import {
+  CardType,
+  TemplateMetadata,
+  Workflow,
+} from '../src/interfaces/resource-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
-import { WorkflowResource } from '../src/resources/workflow-resource.js';
 import { CardTypeResource } from '../src/resources/card-type-resource.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { LinkTypeResource } from '../src/resources/link-type-resource.js';
+import { TemplateResource } from '../src/resources/template-resource.js';
+import { WorkflowResource } from '../src/resources/workflow-resource.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -66,8 +72,8 @@ describe('project', () => {
     expect(cards.length).to.equal(2);
     const cardTypes = await project.cardTypes();
     expect(cardTypes.length).to.equal(2);
-    const cardType1 = await project.cardType(cardTypes[0].name);
-    const cardType2 = await project.cardType(cardTypes[1].name);
+    const cardType1 = await project.resource<CardType>(cardTypes[0].name);
+    const cardType2 = await project.resource<CardType>(cardTypes[1].name);
     expect(cardType1).to.not.equal(undefined);
     expect(cardType2).to.not.equal(undefined);
     const templates = await project.templates();
@@ -77,8 +83,10 @@ describe('project', () => {
         expect(
           await project.resourceExists('templates', template.name),
         ).to.equal(true);
-        const fetchTemplate = await project.template(template.name);
-        expect(fetchTemplate).to.equal(template);
+        const fetchTemplate = await project.resource<TemplateMetadata>(
+          template.name,
+        );
+        expect(fetchTemplate?.name).to.equal(template.name);
       }
     }
     expect(await project.resourceExists('templates', 'idontexist')).to.equal(
@@ -87,34 +95,6 @@ describe('project', () => {
 
     const workflows = await project.workflows();
     expect(workflows.length).to.equal(2);
-    // Check workflow initial states are correct per workflow.
-    if (workflows && workflows.length > 1) {
-      const expectedInitialStates = ['Draft', 'Created'];
-      for (const workflow of workflows) {
-        if (workflow) {
-          const initialState = await project.workflowInitialState(
-            workflow.name,
-          );
-          const expectedState = expectedInitialStates.at(
-            workflows.indexOf(workflow),
-          );
-          expect(initialState).to.equal(expectedState);
-
-          const workflowDetails = await project.workflow(workflow.name);
-          if (workflowDetails) {
-            for (const states of workflowDetails.states) {
-              if (expectedInitialStates.find((item) => item === states.name)) {
-                expect(states.category).to.equal('initial');
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Check that invalid workflow name does return correctly
-    const initialState = await project.workflowInitialState('idontexist');
-    expect(initialState).to.equal(undefined);
   });
 
   it('create class - show details (success)', async () => {
@@ -196,7 +176,10 @@ describe('project', () => {
 
     const cardExists = project.hasCard(cardToOperateOn);
     expect(cardExists).to.equal(true);
-    const templateObject = await project.createTemplateObjectByName(template);
+    const templateObject = new TemplateResource(
+      project,
+      resourceName(template),
+    ).templateObject();
     if (templateObject) {
       const templateCardExists = templateObject.hasCard(templateCard);
       expect(templateCardExists).to.equal(true);
@@ -276,7 +259,7 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const cardTypeDetails = await project.cardType(
+    const cardTypeDetails = await project.resource<CardType>(
       'decision/cardTypes/simplepage',
     );
     expect(cardTypeDetails).to.not.equal(undefined);
@@ -289,7 +272,7 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const cardTypeDetails = await project.cardType('i-dont-exist');
+    const cardTypeDetails = await project.resource<CardType>('i-dont-exist');
     expect(cardTypeDetails).to.equal(undefined);
   });
   it('update card metadata (success)', async () => {
@@ -435,7 +418,9 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const workflowDetails = await project.workflow('decision/workflows/simple');
+    const workflowDetails = await project.resource<Workflow>(
+      'decision/workflows/simple',
+    );
     expect(workflowDetails).to.not.equal(undefined);
     if (workflowDetails) {
       expect(workflowDetails.states.length).to.equal(3);
@@ -447,7 +432,7 @@ describe('project', () => {
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
 
-    const workflowDetails = await project.workflow('i-dont-exist');
+    const workflowDetails = await project.resource<Workflow>('i-dont-exist');
     expect(workflowDetails).to.equal(undefined);
   });
   it('change card state (success)', async () => {
@@ -463,7 +448,9 @@ describe('project', () => {
     expect(cardDetails).to.not.equal(undefined);
     expect(cardDetails?.metadata?.workflowState).not.to.equal(state);
 
-    const workflowDetails = await project.workflow('decision/workflows/simple');
+    const workflowDetails = await project.resource<Workflow>(
+      'decision/workflows/simple',
+    );
     expect(workflowDetails).to.not.equal(undefined);
     const found = workflowDetails?.states.find((item) => item.name === state);
     expect(found).to.not.equal(undefined);
@@ -472,9 +459,10 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
-    const template = await project.createTemplateObjectByName(
-      'decision/templates/decision',
-    );
+    const template = new TemplateResource(
+      project,
+      resourceName('decision/templates/decision'),
+    ).templateObject();
     expect(template).to.not.equal(undefined);
   });
   it('create template object from project using card (success)', async () => {
@@ -484,7 +472,7 @@ describe('project', () => {
     const templateCards = await project.templateCards();
     expect(templateCards.length).to.be.greaterThan(0);
     if (templateCards && templateCards.at(0)) {
-      const template = await project.createTemplateObjectFromCard(
+      const template = project.createTemplateObjectFromCard(
         templateCards.at(0)!,
       );
       expect(template).to.not.equal(undefined);

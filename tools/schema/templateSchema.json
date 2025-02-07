@@ -23,5 +23,6 @@
       "description": "The category of the template. For example, 'Decision'.",
       "type": "string"
     }
-  }
+  },
+  "required": ["name"]
 }

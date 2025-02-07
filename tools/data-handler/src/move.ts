@@ -27,6 +27,9 @@ import {
 import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
 
+import { resourceName } from './utils/resource-utils.js';
+import { TemplateResource } from './resources/template-resource.js';
+
 // @todo - we should have project wide constants, so that if we need them, only the const value needs to be changed.
 const ROOT: string = 'root';
 
@@ -310,7 +313,11 @@ export class Move {
     // rebalance templates
     const templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
-      const templateObject = await this.project.createTemplateObject(template);
+      const templateResource = new TemplateResource(
+        this.project,
+        resourceName(template.name),
+      );
+      const templateObject = templateResource.templateObject();
 
       if (!templateObject) {
         throw new Error(`Template '${template.name}' not found`);
@@ -409,7 +416,7 @@ export class Move {
     // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
     if (parentCardKey === ROOT) {
       if (Project.isTemplateCard(card)) {
-        const template = await this.project.createTemplateObjectFromCard(card);
+        const template = this.project.createTemplateObjectFromCard(card);
         if (!template) {
           throw new Error(
             `Cannot find template for the template card '${card.key}'`,
