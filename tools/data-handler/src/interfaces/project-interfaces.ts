@@ -85,6 +85,7 @@ export interface FetchCardDetails {
   contentType?: FileContentType;
   metadata?: boolean;
   parent?: boolean;
+  location?: CardLocation;
 }
 
 export type FileContentType = 'adoc' | 'html';

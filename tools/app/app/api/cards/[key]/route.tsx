@@ -16,6 +16,7 @@ import Processor from '@asciidoctor/core';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  CardLocation,
   FetchCardDetails,
   MetadataContent,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
@@ -187,6 +188,7 @@ async function getCardDetails(
     contentType: 'adoc',
     metadata: false,
     parent: false,
+    location: CardLocation.projectOnly,
   };
 
   const commands = await CommandManager.getInstance(projectPath);
