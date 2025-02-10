@@ -545,10 +545,13 @@ export class Project extends CardContainer {
     cardToFind: string | Card,
     details: ProjectFetchCardDetails = {},
   ): Promise<Card | undefined> {
-
     let card;
 
-    if(details.location === CardLocation.projectOnly || details.location === CardLocation.all || !details.location) {
+    if (
+      details.location === CardLocation.projectOnly ||
+      details.location === CardLocation.all ||
+      !details.location
+    ) {
       card = await super.findCard(
         this.paths.cardRootFolder,
         cardToFind as string,
@@ -556,7 +559,12 @@ export class Project extends CardContainer {
       );
     }
 
-    if (!card && (details.location === CardLocation.templatesOnly || details.location === CardLocation.all || !details.location)) {
+    if (
+      !card &&
+      (details.location === CardLocation.templatesOnly ||
+        details.location === CardLocation.all ||
+        !details.location)
+    ) {
       let templateObject;
 
       if (typeof cardToFind == 'object') {
@@ -564,10 +572,7 @@ export class Project extends CardContainer {
           cardToFind as Card,
         );
         if (templateObject) {
-          card = await templateObject.findSpecificCard(
-            cardToFind.key,
-            details,
-          );
+          card = await templateObject.findSpecificCard(cardToFind.key, details);
         }
       } else {
         const templates = await this.templates();
