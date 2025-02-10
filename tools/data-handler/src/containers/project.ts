@@ -24,6 +24,7 @@ import {
   FetchCardDetails,
   MetadataContent,
   ModuleSettings,
+  ProjectFetchCardDetails,
   ProjectMetadata,
   ProjectSettings,
   Resource,
@@ -253,7 +254,7 @@ export class Project extends CardContainer {
    */
   public async cardDetailsById(
     cardKey: string,
-    cardDetails: FetchCardDetails,
+    cardDetails: ProjectFetchCardDetails,
   ): Promise<Card | undefined> {
     return this.findSpecificCard(cardKey, cardDetails);
   }
@@ -542,7 +543,7 @@ export class Project extends CardContainer {
    */
   public async findSpecificCard(
     cardToFind: string | Card,
-    details: FetchCardDetails = {},
+    details: ProjectFetchCardDetails = {},
   ): Promise<Card | undefined> {
 
     let card;

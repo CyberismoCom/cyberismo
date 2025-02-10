@@ -85,6 +85,8 @@ export interface FetchCardDetails {
   contentType?: FileContentType;
   metadata?: boolean;
   parent?: boolean;
+}
+export interface ProjectFetchCardDetails extends FetchCardDetails {
   location?: CardLocation;
 }
 
