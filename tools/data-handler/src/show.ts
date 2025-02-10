@@ -23,7 +23,7 @@ import {
   CardAttachment,
   Card,
   CardListContainer,
-  FetchCardDetails,
+  ProjectFetchCardDetails,
   ModuleSettings,
   ProjectMetadata,
   TemplateConfiguration,
@@ -196,7 +196,7 @@ export class Show {
    * @returns card details
    */
   public async showCardDetails(
-    details: FetchCardDetails,
+    details: ProjectFetchCardDetails,
     cardKey?: string,
   ): Promise<Card> {
     if (!cardKey) {

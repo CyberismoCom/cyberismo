@@ -86,6 +86,9 @@ export interface FetchCardDetails {
   metadata?: boolean;
   parent?: boolean;
 }
+export interface ProjectFetchCardDetails extends FetchCardDetails {
+  location?: CardLocation;
+}
 
 export type FileContentType = 'adoc' | 'html';
 

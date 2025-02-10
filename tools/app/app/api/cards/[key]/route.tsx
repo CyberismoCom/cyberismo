@@ -16,8 +16,9 @@ import Processor from '@asciidoctor/core';
 
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  FetchCardDetails,
+  CardLocation,
   MetadataContent,
+  ProjectFetchCardDetails,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { evaluateMacros } from '@cyberismocom/data-handler/macros';
 
@@ -180,13 +181,14 @@ async function getCardDetails(
   projectPath: string,
   key: string,
 ): Promise<NextResponse> {
-  const fetchCardDetails: FetchCardDetails = {
+  const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
     children: false,
     content: true,
     contentType: 'adoc',
     metadata: false,
     parent: false,
+    location: CardLocation.projectOnly,
   };
 
   const commands = await CommandManager.getInstance(projectPath);
