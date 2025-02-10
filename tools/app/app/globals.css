@@ -44,7 +44,6 @@
   hyphens: auto;
   line-height: 1.6;
   margin: 0;
-  max-width: 40rem;
   padding: 0;
 }
 @media screen and (min-width: 1024px) {
@@ -54,7 +53,6 @@
     flex: auto;
     font-size: 0.94444rem;
     margin: 0;
-    max-width: 46rem;
     min-width: 0;
   }
 }
