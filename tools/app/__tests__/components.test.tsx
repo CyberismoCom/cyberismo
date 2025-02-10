@@ -7,21 +7,21 @@ import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-int
 import { useTranslation } from 'react-i18next';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 
-// mock resize observer
-global.ResizeObserver = class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
-
-// mock useAppRouter
-
-jest.mock('../app/lib/hooks', () => ({
-  useAppRouter: jest.fn(() => ({
-    push: jest.fn(),
-  })),
-}));
-
+// mock useAppRouter and useResizeObserver
+jest.mock('../app/lib/hooks', () => {
+  let callCount = 0;
+  return {
+    useAppRouter: jest.fn(() => ({
+      push: jest.fn(),
+    })),
+    useResizeObserver: jest.fn(() => {
+      if (callCount++ % 2 === 0) {
+        return { width: 800, height: 2000, ref: jest.fn() }; // Main container height
+      }
+      return { width: 800, height: 50, ref: jest.fn() }; // Title bar height
+    }),
+  };
+});
 jest.mock('react-i18next', () => ({
   useTranslation: jest.fn(),
 }));

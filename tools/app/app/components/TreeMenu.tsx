@@ -16,11 +16,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
-import useResizeObserver from 'use-resize-observer';
 import { FiberManualRecord } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import Link from 'next/link';
-
+import { useResizeObserver } from '../lib/hooks';
 type TreeMenuProps = {
   title: string;
   selectedCardKey: string | null;
@@ -129,8 +128,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
   onCardSelect,
   tree,
 }) => {
-  const { ref, width, height } = useResizeObserver();
   const treeRef = useRef();
+  const { width, height, ref } = useResizeObserver();
+  const { height: titleHeight, ref: titleRef } = useResizeObserver();
 
   useEffect(() => {
     // unfortunately react arborist does not provide a type for the ref
@@ -147,8 +147,9 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       bgcolor="#f0f0f0"
       height="100%"
       width="100%"
+      ref={ref}
     >
-      <Link href="/cards" style={{ textDecoration: 'none' }}>
+      <Link href="/cards" style={{ textDecoration: 'none' }} ref={titleRef}>
         <Typography level="h4" marginBottom={2}>
           {title}
         </Typography>
@@ -157,7 +158,6 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
         sx={{
           flexGrow: 1,
         }}
-        ref={ref}
       >
         <Tree
           ref={treeRef}
@@ -166,8 +166,8 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           idAccessor={(node) => node.key}
           childrenAccessor="children"
           indent={16}
-          width={(width || 0) - 1}
-          height={height}
+          width={width}
+          height={height - titleHeight}
           rowHeight={28}
           onMove={(n) => {
             if (onMove && n.dragIds.length === 1) {
