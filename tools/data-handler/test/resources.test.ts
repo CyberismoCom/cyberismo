@@ -987,6 +987,56 @@ describe('resources', () => {
         }),
       );
     });
+    // Tests that report data can be shown from a module; ensures that
+    // all report files are reachable; even if their content is not validated.
+    it('show imported report', async () => {
+      const projectMini = new Project(minimalPath);
+      const calculateCmdMini = new Calculate(projectMini);
+      const createCmdMini = new Create(projectMini, calculateCmdMini);
+      const importCmdMini = new Import(projectMini, createCmdMini);
+      const collectorMini = new ResourceCollector(projectMini);
+      await importCmdMini.importProject(
+        decisionRecordsPath,
+        projectMini.basePath,
+      );
+      await collectorMini.moduleImported();
+      const res = new ReportResource(
+        projectMini,
+        resourceName('decision/reports/newREP'),
+      );
+      const data = await res.show();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { contentTemplate, queryTemplate, ...others } = data;
+      expect(JSON.stringify(others)).to.equal(
+        JSON.stringify({
+          name: 'decision/reports/newREP',
+          metadata: {
+            name: 'decision/reports/newREP',
+            displayName: '',
+            description: '',
+            category: 'Uncategorised report',
+          },
+          schema: {
+            title: 'Report',
+            $id: 'reportMacroDefaultSchema',
+            description:
+              'A report object provides supplemental information about a report',
+            type: 'object',
+            properties: {
+              name: { description: 'The name of the report', type: 'string' },
+              cardKey: {
+                description:
+                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
+                type: 'string',
+              },
+            },
+            additionalProperties: false,
+            required: ['name'],
+          },
+        }),
+      );
+    });
+
     it('show template', async () => {
       const res = new TemplateResource(
         project,

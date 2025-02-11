@@ -73,10 +73,16 @@ export class FileResource extends ResourceObject {
       this.resourceName.prefix = this.project.projectPrefix;
     }
     if (this.type) {
-      this.resourceFolder = this.project.paths.resourcePath(this.type);
-      this.fileName = resourceNameToPath(this.project, this.resourceName);
       this.moduleResource =
         this.resourceName.prefix !== this.project.projectPrefix;
+      this.resourceFolder = this.moduleResource
+        ? join(
+            this.project.paths.modulesFolder,
+            this.resourceName.prefix,
+            this.resourceName.type,
+          )
+        : this.project.paths.resourcePath(this.type);
+      this.fileName = resourceNameToPath(this.project, this.resourceName);
     }
     if (pathExists(this.fileName)) {
       this.content = readJsonFileSync(this.fileName);
