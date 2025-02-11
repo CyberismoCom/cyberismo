@@ -38,12 +38,20 @@ import {
   Select,
   Stack,
   Typography,
+  Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree } from '../lib/utils';
 import { default as NextLink } from 'next/link';
-import { Add, Delete, Edit, ExpandMore, Search } from '@mui/icons-material';
+import {
+  Add,
+  Delete,
+  Edit,
+  ExpandMore,
+  Search,
+  Info,
+} from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
 
@@ -672,15 +680,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         {link.linkDescription}
                       </Typography>
                     </Stack>
-                    <IconButton
-                      className="deleteButton"
-                      onClick={() => {
-                        setDeleteLinkModalVisible(true);
-                        setDeleteLinkData(link);
-                      }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
+                    {link.linkSource === 'user' ? (
+                      <IconButton
+                        className="deleteButton"
+                        onClick={() => {
+                          setDeleteLinkModalVisible(true);
+                          setDeleteLinkData(link);
+                        }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    ) : (
+                      <IconButton>
+                        <Tooltip title={t('linkForm.calculatedLink')}>
+                          <Info fontSize="small" />
+                        </Tooltip>
+                      </IconButton>
+                    )}
                   </Box>
                 );
               })}
