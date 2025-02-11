@@ -6,19 +6,19 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "prettier": "^3.3.2",
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.0",
     "@types/mocha": "^10.0.9",
-    "@types/node": "^22",
+    "@types/node": "^22.13.0",
     "@typescript-eslint/parser": "^8.15.0",
     "chai": "^5.1.2",
     "chai-as-promised": "^8.0.1",
+    "concurrently": "^9.1.2",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
     "mocha": "^11.1.0",
     "mocha-suppress-logs": "^0.5.1",
+    "prettier": "^3.3.2",
     "ts-node": "^10.9.1",
     "typescript": "^5",
     "typescript-eslint": "^8.15.0"
