@@ -43,6 +43,29 @@ export function createFunctionGuard<T extends unknown[], U>(
     }
   };
 }
+
+/**
+ * This function is used to get the value of a ResizeObserverEntry.
+ * @param entry - the ResizeObserverEntry
+ * @param value - the value to get
+ * @returns the value of the ResizeObserverEntry
+ */
+function getEntryValue(entry: ResizeObserverEntry, value: 'width' | 'height') {
+  const { contentRect, contentBoxSize } = entry;
+
+  if (!contentBoxSize) {
+    if (!contentRect) {
+      return 0;
+    }
+    return contentRect[value];
+  }
+
+  const accessor = value === 'width' ? 'inlineSize' : 'blockSize';
+  return contentBoxSize[0]
+    ? contentBoxSize[0][accessor]
+    : // @ts-ignore
+      contentBoxSize[accessor];
+}
 /**
  * This hook is used to observe the size of a DOM element.
  * @returns the width and height of the element and a ref to be attached to the element
@@ -61,8 +84,8 @@ export function useResizeObserver() {
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       setDimensions({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
+        width: getEntryValue(entry, 'width'),
+        height: getEntryValue(entry, 'height'),
       });
     });
 
