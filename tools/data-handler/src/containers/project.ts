@@ -737,7 +737,7 @@ export class Project extends CardContainer {
    * @returns a new card key string
    * @throws if a unique key could not be created within set number of attempts
    */
-  public async newCardKey(cardIds: Set<string>): Promise<string> {
+  public newCardKey(cardIds: Set<string>): string {
     const maxAttempts = 10;
     const base = 36;
     const length = 8;
@@ -753,6 +753,39 @@ export class Project extends CardContainer {
     }
 
     throw 'Could not generate unique card key';
+  }
+
+  /**
+   * Returns an array of new unique card keys with project prefix (e.g. test_x649it4x).
+   * Random part of string will be always 8 characters in base-36 (0-9a-z)
+   * @returns an array of new card key strings
+   * @throws if a unique key could not be created within set number of attempts
+   */
+  public newCardKeys(keysToCreate: number, cardIds: Set<string>): string[] {
+    if (keysToCreate < 1) {
+      return [];
+    }
+    const createdKeys: string[] = [];
+    const base = 36;
+    const length = 8;
+    let maxAttempts = 10 * keysToCreate;
+    while (true) {
+      if (maxAttempts <= 0) {
+        throw new Error('Could not generate unique card key');
+      }
+      const newKey = `${this.settings.cardKeyPrefix}_${generateRandomString(base, length)}`;
+      if (cardIds.has(newKey)) {
+        --maxAttempts;
+        continue;
+      } else {
+        cardIds.add(newKey);
+        createdKeys.push(newKey);
+      }
+      if (createdKeys.length >= keysToCreate) {
+        break;
+      }
+    }
+    return createdKeys;
   }
 
   /**
