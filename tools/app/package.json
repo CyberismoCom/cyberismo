@@ -46,8 +46,7 @@
     "react-redux": "^9.1.2",
     "react-resizable-panels": "^2.1.6",
     "redux-persist": "^6.0.0",
-    "swr": "^2.2.5",
-    "use-resize-observer": "^9.1.0"
+    "swr": "^2.2.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",

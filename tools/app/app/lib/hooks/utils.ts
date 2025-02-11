@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
 
@@ -42,4 +42,37 @@ export function createFunctionGuard<T extends unknown[], U>(
       return fn(...args);
     }
   };
+}
+/**
+ * This hook is used to observe the size of a DOM element.
+ * @returns the width and height of the element and a ref to be attached to the element
+ */
+export function useResizeObserver() {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [node, setNode] = useState<HTMLElement | null>(null);
+
+  const callbackRef = useCallback((node: HTMLElement | null) => {
+    setNode(node);
+  }, []);
+
+  useEffect(() => {
+    if (!node) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      setDimensions({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
+    });
+
+    observer.observe(node);
+
+    return () => {
+      observer.unobserve(node);
+      observer.disconnect();
+    };
+  }, [node]);
+
+  return { ...dimensions, ref: callbackRef };
 }
