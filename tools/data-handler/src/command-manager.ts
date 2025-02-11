@@ -50,12 +50,7 @@ export class CommandManager {
 
     this.showCmd = new Show(this.project);
     this.calculateCmd = new Calculate(this.project);
-    this.createCmd = new Create(
-      this.project,
-      this.calculateCmd,
-      this.validateCmd,
-      [],
-    );
+    this.createCmd = new Create(this.project, this.calculateCmd);
     this.editCmd = new Edit(this.project, this.calculateCmd);
     this.exportCmd = new Export(this.project, this.calculateCmd, this.showCmd);
     this.exportSiteCmd = new ExportSite(
@@ -80,7 +75,6 @@ export class CommandManager {
    * Add such calls here.
    */
   public async initialize() {
-    await this.createCmd.setProjectPrefixes();
     await this.project.collectModuleResources();
   }
 

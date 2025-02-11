@@ -20,6 +20,7 @@ import Handlebars from 'handlebars';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import TaskQueue from '../task-queue.js';
+import { Report } from '../../interfaces/resource-interfaces.js';
 
 export interface ReportOptions extends Record<string, string> {
   name: string;
@@ -42,7 +43,7 @@ class ReportMacro extends BaseMacro {
     console.log(options);
 
     const project = new Project(context.projectPath);
-    const report = await project.report(options.name);
+    const report = await project.resource<Report>(options.name);
 
     if (!report) throw new Error(`Report ${options} does not exist`);
 

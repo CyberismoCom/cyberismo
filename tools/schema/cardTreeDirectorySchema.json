@@ -627,7 +627,9 @@
               "additionalProperties": false,
               "patternProperties": {
                 "^[A-Za-z-_]+.json$": {
-                  "type": "object"
+                  "type": "object",
+                  "$comment": "Each file needs to be separately validated against 'contentSchema'",
+                  "contentSchema": "templateSchema.json"
                 },
                 "^.schema$": {
                   "type": "object"

@@ -23,15 +23,8 @@ import {
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
-  TemplateConfiguration,
 } from './interfaces/project-interfaces.js';
-import {
-  CardType,
-  FieldType,
-  LinkType,
-  ReportMetadata,
-  Workflow,
-} from './interfaces/resource-interfaces.js';
+import { ResourceContent } from './interfaces/resource-interfaces.js';
 
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 
@@ -587,14 +580,9 @@ export class Commands {
       | Card
       | CardAttachment[]
       | CardListContainer[]
-      | CardType
-      | FieldType
-      | LinkType
       | ModuleSettings
       | ProjectMetadata
-      | ReportMetadata
-      | TemplateConfiguration
-      | Workflow
+      | ResourceContent
       | string[]
       | undefined
     >;
@@ -622,6 +610,8 @@ export class Commands {
       case 'cardType':
       case 'fieldType':
       case 'linkType':
+      case 'report':
+      case 'template':
       case 'workflow':
         promise = this.commands!.showCmd.showResource(detail);
         break;
@@ -646,14 +636,8 @@ export class Commands {
       case 'project':
         promise = this.commands!.showCmd.showProject();
         break;
-      case 'report':
-        promise = this.commands!.showCmd.showReport(detail);
-        break;
       case 'reports':
         promise = this.commands!.showCmd.showReports();
-        break;
-      case 'template':
-        promise = this.commands!.showCmd.showTemplate(detail);
         break;
       case 'templates':
         promise = this.commands!.showCmd.showTemplates();

@@ -10,18 +10,35 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { CardMetadata } from '../interfaces/project-interfaces.js';
 import {
   CardType,
   DataType,
   FieldType,
   Link,
   LinkType,
+  ReportMetadata,
   TemplateMetadata,
   WorkflowCategory,
   Workflow,
-} from './interfaces/resource-interfaces.js';
+} from '../interfaces/resource-interfaces.js';
 
 export abstract class DefaultContent {
+  /**
+   * Default content for a card.
+   * @parm cardType Name of a card type
+   * @returns Default content for card.
+   */
+  static card(cardType: string): CardMetadata {
+    return {
+      title: 'Untitled',
+      cardType: cardType,
+      workflowState: '',
+      rank: '',
+      links: [],
+    };
+  }
+
   /**
    * Default content for card type.
    * @param cardTypeName card type name
@@ -73,7 +90,7 @@ export abstract class DefaultContent {
    * @param linkTypeName link type name
    * @returns Default content for link type.
    */
-  static linkTypeContent(linkTypeName: string): LinkType {
+  static linkType(linkTypeName: string): LinkType {
     return {
       name: linkTypeName,
       outboundDisplayName: linkTypeName,
@@ -85,11 +102,27 @@ export abstract class DefaultContent {
   }
 
   /**
+   * Default content for report type.
+   * @param reportName report name
+   * @returns Default content for report type.
+   */
+  static report(reportName: string): ReportMetadata {
+    return {
+      name: reportName,
+      displayName: '',
+      description: '',
+      category: 'Uncategorised report',
+    };
+  }
+
+  /**
    * Default template content
    * @returns Default template content
    */
-  public static templateContent(templateName: string): TemplateMetadata {
-    return { name: templateName };
+  public static template(templateName: string): TemplateMetadata {
+    return {
+      name: templateName,
+    };
   }
 
   /**
@@ -97,7 +130,7 @@ export abstract class DefaultContent {
    * @param {string} workflowName workflow name
    * @returns Default content for workflow JSON values.
    */
-  public static workflowContent(workflowName: string): Workflow {
+  public static workflow(workflowName: string): Workflow {
     return {
       name: workflowName,
       states: [

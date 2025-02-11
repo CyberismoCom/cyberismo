@@ -45,6 +45,12 @@ import {
 } from './utils/clingo-facts.js';
 import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
 import { generateRandomString } from './utils/random.js';
+import {
+  CardType,
+  FieldType,
+  LinkType,
+  Workflow,
+} from './interfaces/resource-interfaces.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -74,7 +80,7 @@ export class Calculate {
     const promises = [];
 
     for (const cardType of await Promise.all(
-      cardTypes.map((c) => this.project.cardType(c.name)),
+      cardTypes.map((c) => this.project.resource<CardType>(c.name)),
     )) {
       if (!cardType) continue;
 
@@ -99,7 +105,7 @@ export class Calculate {
     const promises = [];
     // loop through workflows
     for (const workflow of await Promise.all(
-      workflows.map((m) => this.project.workflow(m.name)),
+      workflows.map((m) => this.project.resource<Workflow>(m.name)),
     )) {
       if (!workflow) continue;
 
@@ -159,7 +165,7 @@ export class Calculate {
     const promises = [];
 
     for (const fieldType of await Promise.all(
-      fieldTypes.map((m) => this.project.fieldType(m.name)),
+      fieldTypes.map((m) => this.project.resource<FieldType>(m.name)),
     )) {
       if (!fieldType) continue;
 
@@ -205,7 +211,7 @@ export class Calculate {
     const promises = [];
 
     for (const linkType of await Promise.all(
-      linkTypes.map((c) => this.project.linkType(c.name)),
+      linkTypes.map((c) => this.project.resource<LinkType>(c.name)),
     )) {
       if (!linkType) continue;
 

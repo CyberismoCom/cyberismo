@@ -253,28 +253,28 @@ describe('show', () => {
     const results = await showCmd.showProject();
     expect(results).to.not.equal(undefined);
   });
-  it('showTemplate (success)', async () => {
+  it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';
-    const results = await showCmd.showTemplate(templateName);
+    const results = await showCmd.showResource(templateName);
     expect(results).to.not.equal(undefined);
   });
-  it('showTemplate - empty template name', async () => {
+  it('showResource - template with no name', async () => {
     const templateName = '';
     await showCmd
-      .showTemplate(templateName)
+      .showResource(templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Template '' does not exist in the project`,
+          `Must define resource name to query its details`,
         ),
       );
   });
-  it('showTemplate - template does not exist in project', async () => {
+  it('showResource - template does not exist in project', async () => {
     const templateName = 'i-do-not-exist';
     await showCmd
-      .showTemplate(templateName)
+      .showResource(templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Template 'i-do-not-exist' does not exist in the project`,
+          `Unsupported resource type '${templateName}'`,
         ),
       );
   });

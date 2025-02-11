@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Link, TemplateMetadata } from './resource-interfaces.js';
+import { Link, TemplateConfiguration } from './resource-interfaces.js';
 
 // Single card; either in project or in template.
 export interface Card {
@@ -186,13 +186,8 @@ export type ResourceTypes =
   | 'templates'
   | 'workflows';
 
-// Template configuration details.
-export interface TemplateConfiguration {
-  name: string;
-  path: string;
-  numberOfCards: number;
-  metadata: TemplateMetadata;
-}
+// Re-export Template Configuration to avoid unnecessary changes to other files.
+export { TemplateConfiguration };
 
 // Name for a card (consists of prefix and a random 8-character base36 string; e.g. 'test_abcd1234')
 export const CardNameRegEx = new RegExp(/^[a-z]+_[0-9a-z]+$/);

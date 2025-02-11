@@ -150,7 +150,7 @@ describe('Cli BAT test', function () {
   });
   it('Create a new cardtype that uses the new workflow', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo create cardType cardTypeTest workflowTest&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo create cardType cardTypeTest bat/workflows/workflowTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -218,7 +218,7 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Create a card from the new cardtype', function (done) {
+  it('Create a card from the new template', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo create card bat/templates/templateTest&&cyberismo validate`,
       (error, stdout, _stderr) => {

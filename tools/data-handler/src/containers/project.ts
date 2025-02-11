@@ -11,8 +11,10 @@
 */
 
 // node
-import { basename, dirname, extname, join, resolve, sep } from 'node:path';
-import { readdir, readFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve, sep } from 'node:path';
+import { readdir } from 'node:fs/promises';
+
+import { CardContainer } from './card-container.js'; // base class
 
 import {
   Card,
@@ -30,33 +32,28 @@ import {
   Resource,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
-import {
-  CardType,
-  FieldType,
-  LinkType,
-  Report,
-  Workflow,
-} from '../interfaces/resource-interfaces.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
+import { generateRandomString } from '../utils/random.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import { Template } from './template.js';
-import { Validate } from '../validate.js';
-import { generateRandomString } from '../utils/random.js';
 import {
   resourceName,
   ResourceName,
   resourceNameToString,
 } from '../utils/resource-utils.js';
-import { CardContainer } from './card-container.js'; // base class
 import {
   ResourcesFrom,
   ResourceCollector,
 } from './project/resource-collector.js';
+import { Template } from './template.js';
+import { Validate } from '../validate.js';
+
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
 import { LinkTypeResource } from '../resources/link-type-resource.js';
+import { ReportResource } from '../resources/report-resource.js';
+import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
 
 // Re-export this, so that classes that use Project do not need to have separate import.
@@ -153,6 +150,7 @@ export class Project extends CardContainer {
   }
 
   // Returns (local or all) resources of a given type.
+  // @todo: if this would be public, we could remove cardTypes(), fieldTypes(), ... and similar APIs
   private async resourcesOfType(
     type: ResourceFolderType,
     from: ResourcesFrom = ResourcesFrom.localOnly,
@@ -232,11 +230,9 @@ export class Project extends CardContainer {
    * @returns path to card's attachment folder.
    */
   public async cardAttachmentFolder(cardKey: string): Promise<string> {
-    const cardPath = await this.cardFolder(cardKey);
-
     // Check if it is a template card.
-    // todo: if 'cardFolder()' would return 'card', this could be Project.isTemplateCard()
-    if (cardPath.includes('templates')) {
+    if (await this.isTemplateCard(cardKey)) {
+      const cardPath = await this.cardFolder(cardKey);
       return join(cardPath, 'a');
     }
 
@@ -272,7 +268,10 @@ export class Project extends CardContainer {
 
     const templates = await this.templates();
     const templatePromises = templates.map(async (template) => {
-      const templateObject = await this.createTemplateObject(template);
+      const templateObject = new TemplateResource(
+        this,
+        resourceName(template.name),
+      ).templateObject();
       const templateCard = templateObject
         ? await templateObject.findSpecificCard(cardKey)
         : undefined;
@@ -288,6 +287,7 @@ export class Project extends CardContainer {
    * Returned parts are: prefix, card key, array of parents and template name. Template name is returned only for template cards.
    * @param cardPath path to a card
    * @returns card path logical parts
+   * todo: if prefix would be parameter; this could be static, or util method
    */
   public cardPathParts(cardPath: string) {
     const pathParts = cardPath.split(sep);
@@ -358,61 +358,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns the content of a specific card type.
-   * @param cardTypeName Name of card type to fetch. Can either be filename (including .json extension), or just name.
-   * @param skipSettingDefaultValues do not set default values to fields, if members are missing. This avoids doing unnecessary changes to card types.
-   * @returns JSON content of card type, or undefined if the card type cannot be found.
-   */
-  public async cardType(
-    cardTypeName: string,
-    skipSettingDefaultValues: boolean = false,
-  ): Promise<CardType | undefined> {
-    const resource = new CardTypeResource(this, resourceName(cardTypeName));
-    const content = resource?.data as CardType;
-    if (!content) {
-      return undefined;
-    }
-    if (content && content.customFields) {
-      for (const item of content.customFields) {
-        // DEPRECATED BACKWARDS COMPABILITY: REMOVE
-        if (item.isEditable !== undefined) {
-          item.isCalculated = !item.isEditable;
-        }
-        // Set "isCalculated" if it is missing; default = false
-        if (item.isCalculated === undefined && !skipSettingDefaultValues) {
-          item.isCalculated = false;
-        }
-        // Fetch displayName from field type
-        if (item.name) {
-          const fieldType = await this.fieldType(item.name);
-          if (fieldType) {
-            if (item.displayName === undefined && !skipSettingDefaultValues)
-              item.displayName = fieldType.displayName;
-            if (item.description === undefined && !skipSettingDefaultValues)
-              item.description = fieldType.fieldDescription;
-          } else {
-            continue;
-          }
-        } else {
-          console.error(
-            `Custom field '${item.name}' is missing mandatory 'name' in card type '${cardTypeName}'`,
-          );
-          return undefined;
-        }
-      }
-    } else {
-      content.customFields = [];
-    }
-    if (!content.alwaysVisibleFields) {
-      content.alwaysVisibleFields = [];
-    }
-    if (!content.optionallyVisibleFields) {
-      content.optionallyVisibleFields = [];
-    }
-    return content;
-  }
-
-  /**
    * Returns an array of all the card types in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all card types in the project.
@@ -446,62 +391,16 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Creates a Template object. It is ensured that the template is part of project.
-   * @param template Template resource (name + path)
-   * @returns Template object, or undefined if template does not exist in the project.
-   */
-  public async createTemplateObject(
-    template: Resource,
-  ): Promise<Template | undefined> {
-    if (!template.name) {
-      return undefined;
-    }
-    template.name = resourceNameToString(resourceName(template.name));
-    if (!(await this.resourceExists('templates', template.name))) {
-      return undefined;
-    }
-
-    const templateObject = new Template(this, template);
-    await templateObject.create({ name: template.name });
-    return templateObject;
-  }
-
-  /**
-   * Creates a Template object. It is ensured that the template is part of project.
-   * @param templateName Name of the template
-   * @returns Template object, or undefined if templateName does not exist in the project.
-   */
-  public async createTemplateObjectByName(
-    templateName: string,
-  ): Promise<Template | undefined> {
-    return this.createTemplateObject({ name: templateName, path: '' });
-  }
-
-  /**
    * Creates a Template object from template Card. It is ensured that the template is part of project.
    * @param card Card that is part of some template.
    * @returns Template object, or undefined if card is not part of template.
    */
-  public async createTemplateObjectFromCard(
-    card: Card,
-  ): Promise<Template | undefined> {
+  public createTemplateObjectFromCard(card: Card): Template | undefined {
     if (!card || !card.path || !Project.isTemplateCard(card)) {
       return undefined;
     }
     const { template } = this.cardPathParts(card.path);
-    return this.createTemplateObjectByName(template);
-  }
-
-  /**
-   * Returns specific fieldType metadata.
-   * @param fieldTypeName Name of the fileType
-   * @returns fieldType metadata.
-   */
-  public async fieldType(
-    fieldTypeName: string,
-  ): Promise<FieldType | undefined> {
-    const resource = new FieldTypeResource(this, resourceName(fieldTypeName));
-    return resource?.data as FieldType;
+    return new TemplateResource(this, resourceName(template)).templateObject();
   }
 
   /**
@@ -577,7 +476,11 @@ export class Project extends CardContainer {
       } else {
         const templates = await this.templates();
         for (const template of templates) {
-          templateObject = await this.createTemplateObject(template);
+          templateObject = new TemplateResource(
+            this,
+            resourceName(template.name),
+          ).templateObject();
+
           // optimize: execute each find in template parallel
           if (templateObject) {
             card = await templateObject.findSpecificCard(
@@ -602,7 +505,6 @@ export class Project extends CardContainer {
   public static flattenCardArray(array: Card[]): Card[] {
     const result: Card[] = [];
     array.forEach((item) => {
-      //todo: for more generic utility, define details
       const { key, path, children, attachments, metadata } = item;
       result.push({ key, path, children, attachments, metadata });
       if (children) {
@@ -653,16 +555,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns specific link type metadata.
-   * @param linkTypeName Name of the linkType
-   * @returns link type metadata.
-   */
-  public async linkType(linkTypeName: string): Promise<LinkType | undefined> {
-    const resource = new LinkTypeResource(this, resourceName(linkTypeName));
-    return resource?.data as LinkType;
-  }
-
-  /**
    * Returns an array of all the link types in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all link types in the project.
@@ -703,7 +595,10 @@ export class Project extends CardContainer {
     ) {
       const templates = await this.templates();
       for (const template of templates) {
-        const templateObject = await this.createTemplateObject(template);
+        const templateObject = new TemplateResource(
+          this,
+          resourceName(template.name),
+        ).templateObject();
         if (templateObject) {
           // todo: optimization - do all this in parallel
           const templateCards = await templateObject.listCards();
@@ -745,40 +640,41 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.templatesOnly
     ) {
       promises.push(
-        this.templates()
-          .then((templates) =>
-            Promise.allSettled(
-              templates.map((template) => this.createTemplateObject(template)),
+        this.templates().then((templates) =>
+          Promise.allSettled(
+            templates.map(
+              (template) =>
+                new TemplateResource(this, resourceName(template.name)),
             ),
           )
-          .then((results) =>
-            results
-              .filter(
-                (
-                  result,
-                ): result is PromiseFulfilledResult<
-                  NonNullable<
-                    Awaited<ReturnType<typeof this.createTemplateObject>>
-                  >
-                > => result.status === 'fulfilled' && result.value !== null,
-              )
-              .map((result) => result.value),
-          )
-          .then((templateObjects) =>
-            Promise.allSettled(templateObjects.map((obj) => obj.listCards())),
-          )
-          .then((results) => {
-            const templateCardIds = new Set<string>();
-            results
-              .filter(
-                (result): result is PromiseFulfilledResult<Card[]> =>
-                  result.status === 'fulfilled',
-              )
-              .forEach((result) => {
-                result.value.forEach((card) => templateCardIds.add(card.key));
-              });
-            return templateCardIds;
-          }),
+            .then((results) =>
+              results
+                .filter(
+                  (
+                    result,
+                  ): result is PromiseFulfilledResult<TemplateResource> =>
+                    result.status === 'fulfilled' && result.value !== null,
+                )
+                .map((result) => result.value),
+            )
+            .then((templateObjects) =>
+              Promise.allSettled(
+                templateObjects.map((obj) => obj.templateObject().listCards()),
+              ),
+            )
+            .then((results) => {
+              const templateCardIds = new Set<string>();
+              results
+                .filter(
+                  (result): result is PromiseFulfilledResult<Card[]> =>
+                    result.status === 'fulfilled',
+                )
+                .forEach((result) => {
+                  result.value.forEach((card) => templateCardIds.add(card.key));
+                });
+              return templateCardIds;
+            }),
+        ),
       );
     }
     const allCardIdSets = await Promise.all(promises);
@@ -801,8 +697,6 @@ export class Project extends CardContainer {
         name: moduleConfig.name,
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
-
-        // resources:
         calculations: [
           ...(await this.resources.collectResourcesFromModules('calculations')),
         ],
@@ -888,7 +782,7 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Getter. Returns project prefix (part of card ID).
+   * Getter. Returns project prefix.
    */
   public get projectPrefix(): string {
     return this.settings.cardKeyPrefix;
@@ -897,6 +791,8 @@ export class Project extends CardContainer {
   /**
    * Collects all prefixes used in the project (project's own plus all from modules).
    * @returns all prefixes used in the project.
+   * @todo - move the module prefix fetch to resource-collector.
+   *        Make it use cached value that is only changed when  module is removed/imported.
    */
   public async projectPrefixes(): Promise<string[]> {
     const prefixes: string[] = [this.projectPrefix];
@@ -924,43 +820,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns details of certain report.
-   * @param reportName Name of the report (either filename (including .json extension), or report name).
-   * @param from Defines where resources are collected from.
-   * @returns report configuration, or undefined if report cannot be found.
-   */
-  public async report(
-    reportName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
-  ): Promise<Report | undefined> {
-    const found = (await this.resources.resources('reports', from)).find(
-      (item) => item.name === reportName && item.path,
-    );
-    if (!found || !found.path) {
-      return undefined;
-    }
-
-    const metadata = await readJsonFile(
-      join(found.path, basename(found.name)) + '.json',
-    );
-
-    const folder = join(found.path, basename(found.name));
-    const schemaPath = join(folder, 'parameterSchema.json');
-
-    return {
-      name: found.name,
-      metadata,
-      contentTemplate: (
-        await readFile(join(folder, 'index.adoc.hbs'))
-      ).toString(),
-      queryTemplate: (await readFile(join(folder, 'query.lp.hbs'))).toString(),
-      schema: pathExists(schemaPath)
-        ? JSON.parse((await readFile(schemaPath)).toString()) // Here we assume the file is actually a schema. Should be validated elsewhere
-        : undefined,
-    };
-  }
-
-  /**
    * Array of reports in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all reports in the project.
@@ -977,39 +836,14 @@ export class Project extends CardContainer {
    * @returns handlebar files from reports.
    */
   public async reportHandlerBarFiles(from: ResourcesFrom = ResourcesFrom.all) {
-    // Helper; fetch one location's all '.hbs'-files.
-    async function readReportFolder(path: string) {
-      if (!pathExists(path)) {
-        return [];
-      }
-      return (
-        await readdir(path, {
-          withFileTypes: true,
-          recursive: true,
-        })
-      )
-        .filter((dirent) => {
-          return dirent.isFile() && extname(dirent.name) === '.hbs';
-        })
-        .map((item) => join(item.parentPath, item.name));
+    const reports = await this.reports(from);
+    const handleBarFiles: string[] = [];
+    for (const reportResourceName of reports) {
+      const name = resourceName(reportResourceName.name);
+      const report = new ReportResource(this, name);
+      handleBarFiles.push(...(await report.handleBarFiles()));
     }
-
-    const reportHandleBarFiles: string[] = [];
-    if (from === ResourcesFrom.localOnly || from === ResourcesFrom.all) {
-      reportHandleBarFiles.push(
-        ...(await readReportFolder(this.paths.reportsFolder)),
-      );
-    }
-    if (from === ResourcesFrom.importedOnly || from === ResourcesFrom.all) {
-      const modules = await this.modules();
-      for (const module of modules) {
-        const moduleReportFolder = join(module.path, module.name, 'reports');
-        reportHandleBarFiles.push(
-          ...(await readReportFolder(moduleReportFolder)),
-        );
-      }
-    }
-    return reportHandleBarFiles;
+    return handleBarFiles;
   }
 
   /**
@@ -1018,6 +852,26 @@ export class Project extends CardContainer {
    */
   public removeResource(resource: Resource) {
     this.resources.remove(resource);
+  }
+
+  /**
+   * Returns metadata from a given resource
+   * @param name Name of a resource
+   * @returns Metadata from the resource.
+   */
+  public async resource<Type>(name: string): Promise<Type | undefined> {
+    const resName = resourceName(name);
+    let resource = undefined;
+    try {
+      resource = Project.resourceObject(this, resName);
+    } catch {
+      return undefined;
+    }
+    const data = resource?.data as Type;
+    if (!data) {
+      return undefined;
+    }
+    return data;
   }
 
   /**
@@ -1054,10 +908,16 @@ export class Project extends CardContainer {
       return new FieldTypeResource(project, name);
     } else if (name.type === 'linkTypes') {
       return new LinkTypeResource(project, name);
+    } else if (name.type === 'reports') {
+      return new ReportResource(project, name);
+    } else if (name.type === 'templates') {
+      return new TemplateResource(project, name);
     } else if (name.type === 'workflows') {
       return new WorkflowResource(project, name);
     }
-    throw new Error(`Unsupported resource type ${name}`);
+    throw new Error(
+      `Unsupported resource type '${resourceNameToString(name)}'`,
+    );
   }
 
   /**
@@ -1085,21 +945,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns details of certain template.
-   * @param templateName Name of the template.
-   * @param from Defines where resources are collected from.
-   * @returns template resource details.
-   */
-  public async template(
-    templateName: string,
-    from: ResourcesFrom = ResourcesFrom.all,
-  ): Promise<Resource | undefined> {
-    return (await this.templates(from)).find(
-      (item) => item.name === templateName && item.path,
-    );
-  }
-
-  /**
    * Returns all template cards from the project. This includes all module templates' cards.
    * @param cardDetails which details to fetch. Optional.
    * @returns all the template cards from the project
@@ -1108,7 +953,10 @@ export class Project extends CardContainer {
     const templates = await this.templates();
     const cards: Card[] = [];
     for (const template of templates) {
-      const templateObject = await this.createTemplateObject(template);
+      const templateObject = new TemplateResource(
+        this,
+        resourceName(template.name),
+      ).templateObject();
       const templateCards = await templateObject?.cards('', cardDetails);
       if (templateCards) {
         for (const card of templateCards) {
@@ -1200,10 +1048,9 @@ export class Project extends CardContainer {
     if (skipValidation) {
       card.metadata.lastUpdated = new Date().toISOString();
       return await this.saveCardMetadata(card);
-    } else {
-      await this.saveCardMetadata(card);
-      return this.onCardUpdate(card.key);
     }
+    await this.saveCardMetadata(card);
+    return this.onCardUpdate(card.key);
   }
 
   /**
@@ -1239,37 +1086,6 @@ export class Project extends CardContainer {
       errors.push(invalidLabels);
     }
     return errors.join('\n');
-  }
-
-  /**
-   * Returns details of certain workflow.
-   * @param workflowName Name of the workflow (either filename (including .json extension), or workflow name).
-   * @returns workflow configuration, or undefined if workflow cannot be found.
-   */
-  public async workflow(workflowName: string): Promise<Workflow | undefined> {
-    const resource = new WorkflowResource(this, resourceName(workflowName));
-    return resource?.data as Workflow;
-  }
-
-  /**
-   * Finds initial state of a workflow.
-   * @param workflow Workflow name
-   * @returns workflow's initial state; undefined if either workflow cannot be found, or there is no initial state
-   */
-  public async workflowInitialState(
-    workflow: string,
-  ): Promise<string | undefined> {
-    const workflowMetaData = await this.workflow(workflow);
-
-    if (!workflowMetaData) {
-      return undefined;
-    }
-
-    // Accept both empty list and list with empty string item, as "initial state"
-    const initialState = workflowMetaData.transitions.find(
-      (item) => item.fromState.includes('') || item.fromState.length === 0,
-    );
-    return initialState?.toState;
   }
 
   /**

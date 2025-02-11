@@ -17,11 +17,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
-import {
-  DataType,
-  ResourceContent,
-} from '../interfaces/resource-interfaces.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
+import { ResourceContent } from '../interfaces/resource-interfaces.js';
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';
 
@@ -90,6 +87,7 @@ export class ResourceObject extends AbstractResource {
   protected contentSchemaId: string = '';
   protected type: ResourceFolderType = '' as ResourceFolderType;
   protected resourceFolder: string = '';
+
   constructor(
     protected project: Project,
     protected resourceName: ResourceName,
@@ -209,28 +207,30 @@ export class ResourceObject extends AbstractResource {
    * Update references in handlebars.
    * @param from Resource name to update
    * @param to New name for resource
-   * @todo: this is 95% same as in 'rename.ts'. Combine and share?
+   * @param handleBarFiles Optional. List of handlebar files. If omitted, affects all handlebar files in the project.
    */
-  protected async updateHandleBars(from: string, to: string) {
+  protected async updateHandleBars(
+    from: string,
+    to: string,
+    handleBarFiles?: string[],
+  ) {
     if (!from.trim() || !to.trim()) {
       throw new Error(
         'updateHandleBars: "from" and "to" parameters must not be empty',
       );
     }
 
-    const handleBarFiles = await this.project.reportHandlerBarFiles(
-      ResourcesFrom.localOnly,
-    );
+    if (!handleBarFiles) {
+      handleBarFiles = await this.project.reportHandlerBarFiles(
+        ResourcesFrom.localOnly,
+      );
+    }
 
-    // Create a safe regex by escaping special characters
-    const escapedFrom = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const fromRe = new RegExp(escapedFrom, 'g');
-
-    // Process all files in parallel with proper error handling
+    // Process all files in parallel.
     await Promise.all(
       handleBarFiles.map(async (handleBarFile) => {
         const content = await readFile(handleBarFile);
-        const updatedContent = content.toString().replace(fromRe, to);
+        const updatedContent = content.toString().replaceAll(from, to);
         await writeFile(handleBarFile, Buffer.from(updatedContent));
       }),
     );
