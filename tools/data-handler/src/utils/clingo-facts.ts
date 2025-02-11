@@ -33,7 +33,7 @@ export namespace Facts {
   }
   export enum Card {
     LABEL = 'label',
-    LINK = 'link',
+    LINK = 'userLink',
     PARENT = 'parent',
   }
 

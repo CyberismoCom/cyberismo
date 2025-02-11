@@ -170,6 +170,7 @@ class ClingoParser {
       linkType: string,
       displayName: string,
       direction: 'inbound' | 'outbound',
+      linkSource: 'user' | 'calculated',
       linkDescription?: string,
     ) => {
       const res = this.getOrInitResult(key);
@@ -179,6 +180,7 @@ class ClingoParser {
         displayName,
         linkDescription,
         direction,
+        linkSource,
         title,
       });
     },

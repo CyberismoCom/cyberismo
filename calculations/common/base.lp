@@ -51,3 +51,16 @@ hiddenInTreeView(Card) :-
 
 % TODO: remove this compatibility rule, once content repositories have been updated (INTDEV-666)
 field(Card, "progress", Progress) :- field(Card, "base/fieldTypes/progress", Progress).
+
+% user-defined links are links
+link(Source, Destination, LinkType) :- userLink(Source, Destination, LinkType).
+link(Source, Destination, LinkType, LinkDescription) :- userLink(Source, Destination, LinkType, LinkDescription).
+
+% if a link is not user-defined, then it is calculated
+calculatedLink(Source, Destination, LinkType) :-
+    link(Source, Destination, LinkType),
+    not userLink(Source, Destination, LinkType).
+    
+calculatedLink(Source, Destination, LinkType, LinkDescription) :-
+    link(Source, Destination, LinkType, LinkDescription),
+    not userLink(Source, Destination, LinkType, LinkDescription).
