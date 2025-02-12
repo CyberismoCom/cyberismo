@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@codemirror/language": "^6.10.3",
-    "@codemirror/view": "^6.34.2",
+    "@codemirror/language": "6.10.6",
+    "@codemirror/view": "6.35.2",
     "@cyberismocom/data-handler": "workspace:*",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
@@ -64,5 +64,13 @@
     "next-swagger-doc": "^0.4.0",
     "start-server-and-test": "^2.0.5",
     "swagger-ui-react": "^5.17.14"
+  },
+  "peerDependencies": {
+    "@codemirror/autocomplete": "6.18.2",
+    "@codemirror/commands": "6.7.1",
+    "@codemirror/lint": "6.8.2",
+    "@codemirror/search": "6.5.7",
+    "@codemirror/state": "6.4.1",
+    "@codemirror/theme-one-dark": "6.1.2"
   }
 }
