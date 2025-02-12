@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardMetadata } from '../interfaces/project-interfaces.js';
+import { Card } from '../interfaces/project-interfaces.js';
 import {
   CardType,
   DataType,
@@ -22,21 +22,49 @@ import {
   WorkflowCategory,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
+import { FIRST_RANK, getRankAfter, sortItems } from '../utils/lexorank.js';
 
+// Helper function to get latest card rank from a set of cards.
+function latestRank(cards: Card[]): string {
+  // Only use cards that have 'rank'.
+  const filteredCards = cards.filter(
+    (c) => c.metadata?.rank !== undefined || c.metadata?.rank !== '',
+  );
+
+  let latestRank = sortItems(filteredCards, (c) => c.metadata?.rank || '').pop()
+    ?.metadata?.rank;
+
+  if (!latestRank) {
+    latestRank = FIRST_RANK;
+  }
+
+  const newRank = getRankAfter(latestRank as string);
+  latestRank = newRank;
+  return latestRank;
+}
+
+/**
+ * Provides default values for resources and cards.
+ */
 export abstract class DefaultContent {
   /**
-   * Default content for a card.
-   * @parm cardType Name of a card type
-   * @returns Default content for card.
+   * Returns card with default content. Card is automatically ranked last, if siblings are provided.
+   * @param cardType Card type; custom values from card type are set to null.
+   * @param siblings Optional. If given, content will have been ranked last.
+   * @returns card with default content.
    */
-  static card(cardType: string): CardMetadata {
-    return {
-      title: 'Untitled',
-      cardType: cardType,
-      workflowState: '',
-      rank: '',
-      links: [],
-    };
+  static card(cardType: CardType, siblings?: Card[]) {
+    return Object.assign(
+      {
+        title: 'Untitled',
+        cardType: cardType.name,
+        workflowState: '',
+        rank: siblings ? latestRank(siblings) : '',
+      },
+      ...cardType.customFields
+        .filter((field) => !field.isCalculated)
+        .map((field) => ({ [field.name]: null })),
+    );
   }
 
   /**

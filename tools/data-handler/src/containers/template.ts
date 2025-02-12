@@ -271,27 +271,6 @@ export class Template extends CardContainer {
     }
   }
 
-  // Returns the latest rank in the given array of cards.
-  private latestRank(cards: Card[]): string {
-    // Only use cards that have 'rank'.
-    const filteredCards = cards.filter(
-      (c) => c.metadata?.rank !== undefined || c.metadata?.rank !== '',
-    );
-
-    let latestRank = sortItems(
-      filteredCards,
-      (c) => c.metadata?.rank || '',
-    ).pop()?.metadata?.rank;
-
-    if (!latestRank) {
-      latestRank = FIRST_RANK;
-    }
-
-    const newRank = getRankAfter(latestRank as string);
-    latestRank = newRank;
-    return latestRank;
-  }
-
   // fetches path to module.
   private moduleTemplatePath(templateName: string): string {
     if (!pathExists(this.project.paths.modulesFolder)) {
@@ -368,11 +347,14 @@ export class Template extends CardContainer {
 
   /**
    * Adds a new card to template.
-   * @param cardType card type
+   * @param cardTypeName card type
    * @param parentCard parent card; optional - if missing will create a top-level card
    * @returns next available card key ID
    */
-  public async addCard(cardType: string, parentCard?: Card): Promise<string> {
+  public async addCard(
+    cardTypeName: string,
+    parentCard?: Card,
+  ): Promise<string> {
     const destinationCardPath = parentCard
       ? join(await this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
@@ -382,8 +364,9 @@ export class Template extends CardContainer {
       if (!pathExists(this.templateFolder())) {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
-      if ((await this.project.resource<CardType>(cardType)) === undefined) {
-        throw new Error(`Card type '${cardType}' does not exist`);
+      const cardType = await this.project.resource<CardType>(cardTypeName);
+      if (cardType === undefined) {
+        throw new Error(`Card type '${cardTypeName}' does not exist`);
       }
       if (parentCard && !this.hasCard(parentCard.key)) {
         throw new Error(
@@ -391,9 +374,8 @@ export class Template extends CardContainer {
         );
       }
 
-      const defaultContent = DefaultContent.card(cardType);
       const cardIds = await this.project.listCardIds();
-      newCardKey = await this.project.newCardKey(cardIds);
+      newCardKey = this.project.newCardKey(cardIds);
       const templateCardToCreate = parentCard
         ? join(destinationCardPath, newCardKey)
         : join(this.templateCardsPath, newCardKey);
@@ -401,7 +383,7 @@ export class Template extends CardContainer {
       const templateCards = parentCard
         ? parentCard.children || []
         : await this.cards();
-      defaultContent.rank = this.latestRank(templateCards);
+      const defaultContent = DefaultContent.card(cardType, templateCards);
 
       await mkdir(templateCardToCreate, { recursive: true });
       const defaultCard: Card = {
