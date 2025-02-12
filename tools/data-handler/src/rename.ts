@@ -13,11 +13,11 @@
 // node
 import { assert } from 'node:console';
 import { EventEmitter } from 'node:events';
-import { basename, join, sep } from 'node:path';
-import { rename, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
 import { Calculate } from './calculate.js';
-import { Card, Resource } from './interfaces/project-interfaces.js';
+import { Card } from './interfaces/project-interfaces.js';
 import { Project, ResourcesFrom } from './containers/project.js';
 import { resourceName } from './utils/resource-utils.js';
 import { Template } from './containers/template.js';
@@ -28,6 +28,8 @@ import { LinkTypeResource } from './resources/link-type-resource.js';
 import { ReportResource } from './resources/report-resource.js';
 import { TemplateResource } from './resources/template-resource.js';
 import { WorkflowResource } from './resources/workflow-resource.js';
+
+const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
 /**
  * Class that handles 'rename' command.
@@ -79,15 +81,23 @@ export class Rename extends EventEmitter {
     const sortedCards = cards.sort((a, b) => sortCards(a, b));
 
     // Cannot do this parallel, since cards deeper in the hierarchy needs to be renamed first.
-    // First update cards content and metadata
     for (const card of sortedCards) {
-      await this.updateCardContent(re, card);
-      await this.updateCardLinks(re, card);
-    }
-    // Then rename the cards
-    for (const card of sortedCards) {
+      // Attachments
+      card.content = await this.updateCardAttachments(re, card);
       await this.renameCard(re, card);
     }
+  }
+
+  // Checks if file's extension is one that might contain project prefix references.
+  private scanExtensions(fileName: string): boolean {
+    // If file does not contain a dot, then it cannot have extension.
+    // Disqualify all files starting with dot as well.
+    if (!fileName || !fileName.includes('.') || fileName.at(0) === '.') {
+      return false;
+    }
+
+    const extension = fileName.split('.').pop() || '';
+    return FILE_TYPES_WITH_PREFIX_REFERENCES.includes(extension);
   }
 
   // Update card's attachments (both the files and the references to them)
@@ -112,74 +122,6 @@ export class Rename extends EventEmitter {
           );
         }),
       );
-    }
-    return card.content;
-  }
-
-  // Update card's content. Ensures that cards that have been updated are the only ones saved to disk.
-  private async updateCardContent(re: RegExp, card: Card) {
-    // Ensure that modules are not updated.
-    if (card.path.includes(`${sep}modules${sep}`)) {
-      return;
-    }
-    if (!card.content) {
-      return;
-    }
-
-    const originalContent = card.content?.slice(0);
-
-    // Attachments
-    card.content = await this.updateCardAttachments(re, card);
-    // Macros
-    card.content = await this.updateCardMacros(card);
-    // XRefs
-    card.content = await this.updateCardXrefs(card);
-
-    // Update changed card's content.
-    if (card.content !== originalContent) {
-      await this.project.updateCardContent(card.key, card.content!, true);
-    }
-  }
-
-  // Rename card links.
-  private async updateCardLinks(re: RegExp, card: Card) {
-    const links = card.metadata?.links ?? [];
-    let changed = false;
-    // Ensure that modules are not updated.
-    if (card.path.includes(`${sep}modules${sep}`)) {
-      return;
-    }
-    links.forEach((link) => {
-      const copyCardKey = link.cardKey.slice(0);
-      const copyLinkType = link.linkType.slice(0);
-      link.cardKey = link.cardKey.replace(re, this.to);
-      link.linkType = link.linkType.replace(re, this.to);
-      changed ||=
-        copyCardKey !== link.cardKey || copyLinkType !== link.linkType;
-    });
-    if (card.metadata && changed) {
-      this.project.updateCardMetadata(card, card.metadata, true);
-    }
-  }
-
-  // Update card's macros
-  private async updateCardMacros(card: Card) {
-    if (!card.content) {
-      return;
-    }
-
-    const conversionMap = new Map([
-      [`${this.from}/calculations/`, `${this.to}/calculations/`],
-      [`${this.from}/cardTypes/`, `${this.to}/cardTypes/`],
-      [`${this.from}/fieldTypes/`, `${this.to}/fieldTypes/`],
-      [`${this.from}/linkTypes/`, `${this.to}/linkTypes/`],
-      [`${this.from}/reports/`, `${this.to}/reports/`],
-      [`${this.from}/templates/`, `${this.to}/templates/`],
-      [`${this.from}/workflows/`, `${this.to}/workflows/`],
-    ]);
-    for (const [key, value] of conversionMap) {
-      const re = new RegExp(key, 'g');
-      card.content = card.content.replace(re, value);
     }
     return card.content;
   }
@@ -211,10 +153,42 @@ export class Rename extends EventEmitter {
     }
   }
 
-  // Update card content's xref links that refer to other cards.
-  private async updateCardXrefs(card: Card) {
-    const xrefsRe = new RegExp(`xref:${this.from}_`, 'g');
-    return card.content?.replace(xrefsRe, `xref:${this.to}_`);
+  private async updateFiles(location: string) {
+    const conversionMap = new Map([
+      [`${this.from}/calculations/`, `${this.to}/calculations/`],
+      [`${this.from}/cardTypes/`, `${this.to}/cardTypes/`],
+      [`${this.from}/fieldTypes/`, `${this.to}/fieldTypes/`],
+      [`${this.from}/linkTypes/`, `${this.to}/linkTypes/`],
+      [`${this.from}/reports/`, `${this.to}/reports/`],
+      [`${this.from}/templates/`, `${this.to}/templates/`],
+      [`${this.from}/workflows/`, `${this.to}/workflows/`],
+      [`${this.from}_`, `${this.to}_`],
+    ]);
+    // Collect all supported file types from the location.
+    const files = (
+      await readdir(location, {
+        recursive: true,
+        withFileTypes: true,
+      })
+    ).filter(
+      (item) =>
+        item.isFile() &&
+        item.name !== '.schema' &&
+        this.scanExtensions(item.name),
+    );
+
+    // Then replace all values that match in the conversion map.
+    files.forEach(async (item) => {
+      const target = join(item.parentPath, item.name);
+      let fileContent = await readFile(target, {
+        encoding: 'utf-8',
+      });
+      for (const [key, value] of conversionMap) {
+        const re = new RegExp(key, 'g');
+        fileContent = fileContent.replaceAll(re, value);
+      }
+      await writeFile(target, fileContent);
+    });
   }
 
   // Changes the name of a resource to match the new prefix.
@@ -224,31 +198,6 @@ export class Rename extends EventEmitter {
     return this.from === prefix
       ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
       : name;
-  }
-
-  // Updates single calculation file.
-  private async updateCalculationFile(calculation: Resource) {
-    if (!calculation.path) {
-      throw new Error(
-        `Calculation file's '${calculation.name}' path is not defined`,
-      );
-    }
-    const filename = join(calculation.path, basename(calculation.name));
-    let content = (await readFile(filename)).toString();
-    const conversionMap = new Map([
-      [`${this.from}/calculations/`, `${this.to}/calculations/`],
-      [`${this.from}/cardTypes/`, `${this.to}/cardTypes/`],
-      [`${this.from}/fieldTypes/`, `${this.to}/fieldTypes/`],
-      [`${this.from}/linkTypes/`, `${this.to}/linkTypes/`],
-      [`${this.from}/reports/`, `${this.to}/reports/`],
-      [`${this.from}/templates/`, `${this.to}/templates/`],
-      [`${this.from}/workflows/`, `${this.to}/workflows/`],
-    ]);
-    for (const [key, value] of conversionMap) {
-      const re = new RegExp(key, 'g');
-      content = content.replace(re, value);
-    }
-    await writeFile(filename, content);
   }
 
   // Updates card type's metadata.
@@ -335,7 +284,7 @@ export class Rename extends EventEmitter {
     // Update the resources collection, since project prefix has changed.
     this.project.collectLocalResources();
 
-    // Rename resources - module content shall not be modified.
+    // Rename local resources.
     // It is better to rename the resources in this order: card types, field types
 
     // Rename all card types and custom fields in them.
@@ -344,8 +293,6 @@ export class Rename extends EventEmitter {
       await this.updateCardTypeMetadata(cardType.name);
     }
     console.info('Updated card types');
-
-    // Rename all different resources.
 
     const workflows = await this.project.workflows(ResourcesFrom.localOnly);
     for (const workflow of workflows) {
@@ -377,18 +324,6 @@ export class Rename extends EventEmitter {
     }
     console.info('Updated templates');
 
-    // Rename resource usage in all calculation files.
-    const calculations = await this.project.calculations(
-      ResourcesFrom.localOnly,
-    );
-    for (const calculation of calculations) {
-      await this.updateCalculationFile(calculation);
-    }
-    console.info('Updated calculations');
-
-    this.project.collectLocalResources();
-    console.info('Collected renamed resources');
-
     // Rename all local template cards.
     templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
@@ -402,6 +337,15 @@ export class Rename extends EventEmitter {
       await this.project.cards(this.project.paths.cardRootFolder, cardContent),
     );
     console.info('Renamed project cards and updated the content');
+
+    await this.updateFiles(this.project.paths.cardRootFolder);
+    console.info('Renamed all remaining references in cardRoot folder');
+    await this.updateFiles(this.project.paths.resourcesFolder);
+    console.info('Renamed all remaining references in .cards folder');
+
+    // It is best that the resources are re-collected after all the renaming has occurred.
+    this.project.collectLocalResources();
+    console.info('Collected renamed resources');
 
     this.emit('renamed');
   }
