@@ -44,6 +44,8 @@ export interface CardsOptions {
   output?: string;
   projectPath?: string;
   repeat?: number;
+  silent?: boolean;
+  themePath?: string;
 }
 
 // Commands that this class supports.
@@ -252,7 +254,7 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(output, format as ExportFormats, cardKey);
+        await this.export(output, format as ExportFormats, cardKey, options);
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -478,11 +480,12 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
+    options?: CardsOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
     }
-    let message = '';
+    let message;
     if (format === 'adoc') {
       message = await this.commands?.exportCmd.exportToADoc(
         destination,
@@ -494,9 +497,10 @@ export class Commands {
         parentCardKey,
       );
     } else if (format === 'site') {
-      message = await this.commands?.exportSiteCmd.exportToSite(
+      return this.commands?.exportSiteCmd.exportToSite(
         destination,
         parentCardKey,
+        options,
       );
     }
     return { statusCode: 200, message: message };
