@@ -82,10 +82,12 @@ export function useResizeObserver() {
     if (!node) return;
 
     const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      setDimensions({
-        width: getEntryValue(entry, 'width'),
-        height: getEntryValue(entry, 'height'),
+      requestAnimationFrame(() => {
+        const entry = entries[0];
+        setDimensions({
+          width: getEntryValue(entry, 'width'),
+          height: getEntryValue(entry, 'height'),
+        });
       });
     });
 
