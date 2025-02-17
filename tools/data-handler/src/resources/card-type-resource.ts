@@ -162,10 +162,6 @@ export class CardTypeResource extends FileResource {
     const content = this.content as CardType;
     if (content.customFields) {
       for (const item of content.customFields) {
-        // DEPRECATED BACKWARDS COMPABILITY: REMOVE
-        if (item.isEditable !== undefined) {
-          item.isCalculated = !item.isEditable;
-        }
         // Set "isCalculated" if it is missing; default = false
         if (item.isCalculated === undefined) {
           item.isCalculated = false;
