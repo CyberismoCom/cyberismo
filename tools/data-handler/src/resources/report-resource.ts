@@ -63,6 +63,8 @@ export class ReportResource extends FolderResource {
       ),
       super.updateCalculations(existingName, this.content.name),
     ]);
+    // Finally, write updated content.
+    await this.write();
   }
 
   /**

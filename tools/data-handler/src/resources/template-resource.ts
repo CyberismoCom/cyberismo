@@ -55,6 +55,8 @@ export class TemplateResource extends FolderResource {
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
+    // Finally, write updated content.
+    await this.write();
   }
 
   /**

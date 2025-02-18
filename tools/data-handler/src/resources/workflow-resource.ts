@@ -45,6 +45,8 @@ export class WorkflowResource extends FileResource {
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
+    // Finally, write updated content.
+    await this.write();
   }
 
   // Update dependant card types.
