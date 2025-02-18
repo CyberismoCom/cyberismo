@@ -9,7 +9,11 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { AddOperation, ChangeOperation } from './resource-object.js';
+import {
+  AddOperation,
+  ChangeOperation,
+  RemoveOperation,
+} from './resource-object.js';
 import { Card } from '../interfaces/project-interfaces.js';
 import {
   CardType,
@@ -94,13 +98,15 @@ export class CardTypeResource extends FileResource {
         promises.push(this.updateCardMetadata(card, from, to));
       }
       await Promise.all(promises);
-    }
-    if (op && (op.name === 'add' || op.name === 'remove')) {
-      const item = (op as AddOperation<Type>).target as CustomField;
+    } else if (op && (op.name === 'add' || op.name === 'remove')) {
       const cards = await this.collectCards(cardContent);
       if (op.name === 'add') {
+        // todo: target can be string here as well? Fix at some point
+        const item = (op as AddOperation<Type>).target as CustomField;
         await this.handleAddNewField(cards, item);
       } else {
+        // todo: target can be string here as well? Fix at some point
+        const item = (op as RemoveOperation<Type>).target as CustomField;
         await this.handleRemoveField(cards, item);
       }
     }
@@ -147,7 +153,7 @@ export class CardTypeResource extends FileResource {
     ]);
   }
 
-  // When new field is removed, add it all affected cards with 'null' value.
+  // When a field is removed, remove it from all affected cards.
   private async handleRemoveField(cards: Card[], item: CustomField) {
     for (const card of cards) {
       if (card.metadata) {
@@ -155,6 +161,29 @@ export class CardTypeResource extends FileResource {
         await this.project.updateCardMetadata(card, card.metadata, true);
       }
     }
+  }
+
+  // Remove value from array.
+  // todo: make it as generic and move to utils
+  private removeValue(array: string[], value: string) {
+    const index = array.findIndex((element) => element === value);
+    if (index !== -1) {
+      array.splice(index, 1);
+    }
+  }
+
+  // If value from 'customFields' is removed, remove it also from 'optionallyVisible' and 'alwaysVisible' arrays.
+  private removeValueFromOtherArrays<Type>(op: Operation<Type>) {
+    // Update target can be a string, or an object. Of object, fetch only 'name'
+    // todo: fetching 'name' or using string as name could be function in resource base class.
+    const target = (op as RemoveOperation<Type>).target as Type;
+    let field = undefined;
+    if (target['name' as keyof Type]) {
+      field = { name: target['name' as keyof Type] };
+    }
+    const fieldName = (field ? field.name : target) as string;
+    this.removeValue(this.data.alwaysVisibleFields, fieldName);
+    this.removeValue(this.data.optionallyVisibleFields, fieldName);
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -337,6 +366,9 @@ export class CardTypeResource extends FileResource {
         key,
         content.customFields as Type[],
       ) as CustomField[];
+      if (op.name === 'remove') {
+        this.removeValueFromOtherArrays(op);
+      }
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }

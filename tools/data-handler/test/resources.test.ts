@@ -1474,11 +1474,25 @@ describe('resources', () => {
         project,
         resourceName('decision/cardTypes/customFields'),
       );
+      // First add the to-be-removed field to optionally and always visible fields.
+      // todo: probably couldn't really exist in both arrays?
+      await res.update('optionallyVisibleFields', {
+        name: 'add',
+        target: 'decision/fieldTypes/newOne',
+      });
+      await res.update('alwaysVisibleFields', {
+        name: 'add',
+        target: 'decision/fieldTypes/newOne',
+      });
+      expect((res.data as CardType).optionallyVisibleFields.length).to.equal(1);
+      expect((res.data as CardType).alwaysVisibleFields.length).to.equal(1);
       await res.update('customFields', {
         name: 'remove',
         target: { name: 'decision/fieldTypes/newOne' },
       });
       expect((res.data as CardType).customFields.length).to.equal(0);
+      expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
+      expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
     });
     it('update card type - add two elements to customFields, then move last one to first', async () => {
       const res = new CardTypeResource(
