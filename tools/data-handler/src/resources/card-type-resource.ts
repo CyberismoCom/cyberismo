@@ -146,11 +146,12 @@ export class CardTypeResource extends FileResource {
       current.workflow,
       prefixes,
     );
-    await this.write(); // update own JSON immediately
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
+    // Finally, write updated content.
+    await this.write();
   }
 
   // When a field is removed, remove it from all affected cards.

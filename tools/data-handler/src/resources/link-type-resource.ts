@@ -43,11 +43,12 @@ export class LinkTypeResource extends FileResource {
         this.updatePrefixInResourceName(item, prefixes),
       );
     }
-    await this.write();
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
+    // Finally, write updated content.
+    await this.write();
   }
 
   /**
@@ -86,7 +87,7 @@ export class LinkTypeResource extends FileResource {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    await this.handleNameChange(existingName);
+    return this.handleNameChange(existingName);
   }
 
   /**
