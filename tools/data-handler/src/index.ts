@@ -16,7 +16,6 @@ import {
   Commands,
   CommandManager,
   ExportFormats,
-  ShowTypes,
 } from './command-handler.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
@@ -28,6 +27,5 @@ export {
   Commands,
   ExportFormats,
   requestStatus,
-  ShowTypes,
   UpdateOperations,
 };

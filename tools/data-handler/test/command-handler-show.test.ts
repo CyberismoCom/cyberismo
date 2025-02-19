@@ -35,7 +35,7 @@ describe('shows command', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  describe('shows command', () => {
+  describe('show command', () => {
     it('show attachments - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -181,6 +181,17 @@ describe('shows command', () => {
         expect(result.payload).to.not.equal(undefined);
       }
     });
+    it('show reports - success()', async () => {
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['reports'],
+        optionsDecision,
+      );
+      const payloadAsArray = Object.values(result.payload || []);
+      expect(result.statusCode).to.equal(200);
+      expect(payloadAsArray.length).to.equal(1);
+      expect(payloadAsArray[0]).to.equal('decision/reports/testReport');
+    });
     it('show templates - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -247,17 +258,6 @@ describe('shows command', () => {
       }
     });
     // @todo add test cases for error situations
-  });
-  it('show reports - success()', async () => {
-    const result = await commandHandler.command(
-      Cmd.show,
-      ['reports'],
-      optionsDecision,
-    );
-    const payloadAsArray = Object.values(result.payload || []);
-    expect(result.statusCode).to.equal(200);
-    expect(payloadAsArray.length).to.equal(1);
-    expect(payloadAsArray[0]).to.equal('decision/reports/testReport');
   });
 
   describe('show command with modules', () => {
