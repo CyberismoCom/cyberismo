@@ -40,8 +40,6 @@ import { errorFunction } from './utils/log-utils.js';
 // Generic options interface
 export interface CardsOptions {
   details?: boolean;
-  format?: string;
-  output?: string;
   projectPath?: string;
   repeat?: number;
 }
