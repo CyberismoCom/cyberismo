@@ -66,6 +66,10 @@ export class Validate {
 
   private parentSchema: Schema;
 
+  private validatedCardTypes: Map<string, CardType>;
+  private validatedWorkflows: Map<string, Workflow>;
+  private validatedFieldTypes: Map<string, FieldType>;
+
   static baseFolder: string;
   static jsonFileExtension = '.json';
   static parentSchemaFile: string;
@@ -89,6 +93,9 @@ export class Validate {
     this.directoryValidator = new DirectoryValidator();
     this.parentSchema = readJsonFileSync(Validate.parentSchemaFile) as Schema;
     this.addChildSchemas();
+    this.validatedFieldTypes = new Map();
+    this.validatedWorkflows = new Map();
+    this.validatedCardTypes = new Map();
   }
 
   // Helper to get length from types when needed.
@@ -109,6 +116,25 @@ export class Validate {
   // Return full path and filename.
   private fullPath(file: Dirent): string {
     return join(file.parentPath, file.name);
+  }
+
+  // Puts resource to a local cache if found and returns the resource.
+  // If value is already cached, returns from cache.
+  private async getAndCacheResource<Type>(
+    project: Project,
+    cachedValues: Map<string, Type>,
+    valueName: string,
+  ): Promise<Type | undefined> {
+    return (
+      cachedValues.get(valueName) ||
+      project.resource<Type>(valueName).then((resource) => {
+        if (!resource) {
+          return undefined;
+        }
+        cachedValues.set(valueName, resource);
+        return resource;
+      })
+    );
   }
 
   // Validate one subfolder.
@@ -306,6 +332,7 @@ export class Validate {
     return array.indexOf(value) === index;
   }
 
+  // Validate array of custom field names
   private async validateArrayOfFields(
     project: Project,
     cardType: CardType,
@@ -314,14 +341,22 @@ export class Validate {
   ) {
     const errors: string[] = [];
     if (cardType && fieldArray) {
-      for (const field of fieldArray) {
-        const fieldType = await project.resource<FieldType>(field);
+      const validationPromises = fieldArray.map(async (field) => {
+        const fieldType = await this.getAndCacheResource(
+          project,
+          this.validatedFieldTypes,
+          field,
+        );
         if (!fieldType) {
-          errors.push(
-            `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`,
-          );
+          return `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`;
         }
-      }
+        return null;
+      });
+
+      const results = await Promise.all(validationPromises);
+      errors.push(
+        ...results.filter((result): result is string => result !== null),
+      );
     }
     return errors;
   }
@@ -483,6 +518,10 @@ export class Validate {
    */
   public async validate(projectPath: string): Promise<string> {
     let validationErrors = '';
+    this.validatedFieldTypes.clear();
+    this.validatedWorkflows.clear();
+    this.validatedCardTypes.clear();
+
     try {
       // First, validate that the directory content conforms to the schema.
       const valid = this.directoryValidator.validate(
@@ -698,82 +737,96 @@ export class Validate {
       );
     }
 
-    const cardType = await project.resource<CardType>(card.metadata?.cardType);
-    if (cardType) {
-      // Check that arrays of field types refer to existing fields.
-      let fieldErrors = await this.validateArrayOfFields(
-        project,
-        cardType,
-        cardType.optionallyVisibleFields,
-        'optionally visible fields',
-      );
-      validationErrors.push(...fieldErrors);
-      fieldErrors = await this.validateArrayOfFields(
-        project,
-        cardType,
-        cardType.alwaysVisibleFields,
-        'always visible fields',
-      );
-      validationErrors.push(...fieldErrors);
-    } else {
+    const cardType = await this.getAndCacheResource(
+      project,
+      this.validatedCardTypes,
+      card.metadata?.cardType,
+    );
+
+    if (!cardType) {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );
+      return validationErrors.join('\n');
     }
 
-    if (cardType) {
-      for (const field of cardType.customFields) {
-        const found = await project.resourceExists('fieldTypes', field.name);
-        if (!found) {
+    // Check that arrays of field types refer to existing fields.
+    let fieldErrors = await this.validateArrayOfFields(
+      project,
+      cardType,
+      cardType.optionallyVisibleFields,
+      'optionally visible fields',
+    );
+    validationErrors.push(...fieldErrors);
+    fieldErrors = await this.validateArrayOfFields(
+      project,
+      cardType,
+      cardType.alwaysVisibleFields,
+      'always visible fields',
+    );
+    validationErrors.push(...fieldErrors);
+
+    for (const field of cardType.customFields) {
+      const found = await project.resourceExists('fieldTypes', field.name);
+      if (!found) {
+        validationErrors.push(
+          `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,
+        );
+      }
+      if (field.isCalculated) {
+        if (card.metadata[field.name] !== undefined) {
           validationErrors.push(
-            `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,
+            `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
           );
         }
-        if (field.isCalculated) {
-          if (card.metadata[field.name] !== undefined) {
-            validationErrors.push(
-              `Card '${card.key}' not allowed to have a value in a calculated field '${field.name}'`,
-            );
-          }
+        continue;
+      }
+      if (card.metadata[field.name] === undefined) {
+        validationErrors.push(
+          `Card '${card.key}' is missing custom field '${field.name}'`,
+        );
+        continue;
+      }
+
+      const fieldType = await this.getAndCacheResource(
+        project,
+        this.validatedFieldTypes,
+        field.name,
+      );
+
+      if (!fieldType) {
+        validationErrors.push(
+          `In card '${card.key}' field '${field.name}' is missing from project\n`,
+        );
+        continue;
+      }
+
+      if (!this.validType(card.metadata[field.name], fieldType)) {
+        const typeOfValue = typeof card.metadata[field.name];
+        let fieldValue = card.metadata[field.name];
+        if (typeOfValue === 'string') {
+          fieldValue = card.metadata[field.name]
+            ? `"${card.metadata[field.name]}"`
+            : '""';
+        }
+        if (fieldType.dataType === 'enum') {
+          const listOfEnumValues = fieldType.enumValues?.map(
+            (item) => item.enumValue,
+          );
+          validationErrors.push(
+            `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
+          );
           continue;
         }
-        if (card.metadata[field.name] === undefined) {
+        if (fieldType.dataType === 'person') {
           validationErrors.push(
-            `Card '${card.key}' is missing custom field '${field.name}'`,
+            `In card '${card.key}' field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
           );
           continue;
         }
-        const fieldType = await project.resource<FieldType>(field.name);
-        if (
-          fieldType &&
-          !this.validType(card.metadata[field.name], fieldType)
-        ) {
-          const typeOfValue = typeof card.metadata[field.name];
-          let fieldValue = card.metadata[field.name];
-          if (typeOfValue === 'string') {
-            fieldValue = card.metadata[field.name]
-              ? `"${card.metadata[field.name]}"`
-              : '""';
-          }
-          if (fieldType.dataType === 'enum') {
-            const listOfEnumValues = fieldType.enumValues?.map(
-              (item) => item.enumValue,
-            );
-            validationErrors.push(
-              `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', possible enumerations are: ${listOfEnumValues?.join(', ')}\n`,
-            );
-            continue;
-          }
-          if (fieldType.dataType === 'person') {
-            validationErrors.push(
-              `In card '${card.key}' field '${field.name}' value '${card.metadata[field.name]}' cannot be used as '${fieldType.dataType}'. Not a valid email address.'`,
-            );
-            continue;
-          }
-          validationErrors.push(
-            `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
-          );
-        }
+        validationErrors.push(
+          `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+        );
       }
     }
 
@@ -830,43 +883,50 @@ export class Validate {
       );
     }
 
-    const cardType = await project.resource<CardType>(
+    // Use caches for cardTypes and workflows, to avoid re-reading the same JSON files multiple times.
+    const cardType = await this.getAndCacheResource(
+      project,
+      this.validatedCardTypes,
       card.metadata?.cardType || '',
     );
     if (!cardType) {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
       );
+      return validationErrors.join('\n');
+    }
+    if (!cardType.workflow) {
+      validationErrors.push(
+        `Card type '${card.metadata?.cardType}' does not have 'workflow'`,
+      );
+      return validationErrors.join('\n');
     }
 
-    if (cardType) {
-      if (!cardType.workflow) {
+    const workflow = await this.getAndCacheResource(
+      project,
+      this.validatedWorkflows,
+      cardType.workflow,
+    );
+
+    if (!workflow) {
+      validationErrors.push(
+        `Workflow of '${cardType.workflow}' card type '${card.metadata?.cardType}' does not exist in the project`,
+      );
+      return validationErrors.join('\n');
+    }
+
+    const cardState = card.metadata?.workflowState;
+    if (!Project.isTemplateCard(card)) {
+      const found = workflow.states.find((item) => item.name === cardState);
+      if (!found) {
         validationErrors.push(
-          `Card type '${card.metadata?.cardType}' does not have 'workflow'`,
+          `Card '${card.key}' has invalid state '${cardState}'`,
         );
       }
-
-      const workflow = await project.resource<Workflow>(cardType?.workflow);
-      if (workflow) {
-        const cardState = card.metadata?.workflowState;
-        if (!Project.isTemplateCard(card)) {
-          const states = workflow.states;
-          const found = states.find((item) => item.name === cardState);
-          if (!found) {
-            validationErrors.push(
-              `Card '${card.key}' has invalid state '${cardState}'`,
-            );
-          }
-        } else {
-          if (cardState) {
-            validationErrors.push(
-              `Template card ${card.key} must have empty "workflowState"`,
-            );
-          }
-        }
-      } else {
+    } else {
+      if (cardState) {
         validationErrors.push(
-          `Workflow of '${cardType.workflow}' card type '${card.metadata?.cardType}' does not exist in the project`,
+          `Template card ${card.key} must have empty "workflowState"`,
         );
       }
     }
