@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo, useEffect, useState, useRef, useCallback } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
 
@@ -71,7 +71,10 @@ function getEntryValue(entry: ResizeObserverEntry, value: 'width' | 'height') {
  * @returns the width and height of the element and a ref to be attached to the element
  */
 export function useResizeObserver() {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({
+    width: undefined,
+    height: undefined,
+  });
   const [node, setNode] = useState<HTMLElement | null>(null);
 
   const callbackRef = useCallback((node: HTMLElement | null) => {
@@ -82,12 +85,10 @@ export function useResizeObserver() {
     if (!node) return;
 
     const observer = new ResizeObserver((entries) => {
-      requestAnimationFrame(() => {
-        const entry = entries[0];
-        setDimensions({
-          width: getEntryValue(entry, 'width'),
-          height: getEntryValue(entry, 'height'),
-        });
+      const entry = entries[0];
+      setDimensions({
+        width: getEntryValue(entry, 'width'),
+        height: getEntryValue(entry, 'height'),
       });
     });
 
@@ -99,5 +100,7 @@ export function useResizeObserver() {
     };
   }, [node]);
 
-  return { ...dimensions, ref: callbackRef };
+  return useMemo(() => {
+    return { ...dimensions, ref: callbackRef };
+  }, [dimensions, callbackRef]);
 }

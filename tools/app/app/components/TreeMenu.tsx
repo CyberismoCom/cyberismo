@@ -154,30 +154,24 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
           {title}
         </Typography>
       </Link>
-      <Box
-        sx={{
-          flexGrow: 1,
+      <Tree
+        ref={treeRef}
+        data={tree}
+        openByDefault={false}
+        idAccessor={(node) => node.key}
+        childrenAccessor="children"
+        indent={16}
+        width={width}
+        height={height && titleHeight ? height - titleHeight : undefined}
+        rowHeight={28}
+        onMove={(n) => {
+          if (onMove && n.dragIds.length === 1) {
+            onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
+          }
         }}
       >
-        <Tree
-          ref={treeRef}
-          data={tree}
-          openByDefault={false}
-          idAccessor={(node) => node.key}
-          childrenAccessor="children"
-          indent={16}
-          width={width}
-          height={height - titleHeight}
-          rowHeight={28}
-          onMove={(n) => {
-            if (onMove && n.dragIds.length === 1) {
-              onMove(n.dragIds[0], n.parentId ?? 'root', n.index);
-            }
-          }}
-        >
-          {RenderTree(onCardSelect)}
-        </Tree>
-      </Box>
+        {RenderTree(onCardSelect)}
+      </Tree>
     </Stack>
   );
 };
