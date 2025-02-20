@@ -149,7 +149,7 @@ describe('ClingoParser', () => {
 
   it('should parse link correctly', async () => {
     const input =
-      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "linkDescription")';
+      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "user", "linkDescription")';
     const result = await parser.parseInput(input);
     expect(result.results[0].links).to.have.lengthOf(1);
     expect(result.results[0].links[0]).to.deep.equal({
@@ -158,13 +158,14 @@ describe('ClingoParser', () => {
       title: 'title',
       displayName: 'displayName',
       linkDescription: 'linkDescription',
+      linkSource: 'user',
       direction: 'inbound',
     });
   });
 
   it('should parse link without linkDescription correctly', async () => {
     const input =
-      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound")';
+      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "calculated")';
     const result = await parser.parseInput(input);
     expect(result.results[0].links).to.have.lengthOf(1);
     expect(result.results[0].links[0]).to.deep.equal({
@@ -173,6 +174,7 @@ describe('ClingoParser', () => {
       title: 'title',
       displayName: 'displayName',
       linkDescription: undefined,
+      linkSource: 'calculated',
       direction: 'inbound',
     });
   });
