@@ -87,7 +87,7 @@ describe('Navigation', () => {
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 
     cy.get('button').contains(t['all']).click(); // Select All in Move dialog
-    cy.get('[role="dialog"] >>>>>>>>> [role="treeitem"]')
+    cy.get('[role="dialog"] >>>>>>>> [role="treeitem"]')
       .contains('Untitled page')
       .click(); // Select Untitled page
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);
