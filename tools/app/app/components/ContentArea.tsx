@@ -691,7 +691,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         <Delete fontSize="small" />
                       </IconButton>
                     ) : (
-                      <IconButton>
+                      <IconButton color="primary">
                         <Tooltip title={t('linkForm.calculatedLink')}>
                           <Info fontSize="small" />
                         </Tooltip>
