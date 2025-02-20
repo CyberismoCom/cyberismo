@@ -627,79 +627,76 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             />
           )}
           {card.links.length > 0 && (
-            <Stack>
-              {card.links.map((link, index) => {
-                return (
-                  <Box
-                    bgcolor="neutral.softBg"
-                    borderRadius={16}
-                    marginY={0.5}
-                    paddingY={2}
-                    paddingX={3}
-                    flexDirection="row"
-                    display="flex"
-                    key={index}
-                    alignItems="center"
-                    justifyContent="space-between"
-                    sx={{
-                      '&:hover .deleteButton': {
-                        opacity: 1,
-                      },
-                      '& .deleteButton': {
-                        opacity: 0,
-                        transition: 'opacity 0.2s',
-                      },
-                    }}
-                  >
-                    <Stack>
-                      <Stack direction="row" alignItems="center">
-                        <Typography
-                          data-cy="cardLinkType"
-                          level="body-sm"
-                          paddingRight={2}
-                        >
-                          {link.displayName}
-                        </Typography>
-                        <NextLink
-                          data-cy="cardLink"
-                          href={`/cards/${link.key}`}
-                        >
-                          <Link component={'div'}>{link.key}</Link>
-                        </NextLink>
-                        <Divider
-                          orientation="vertical"
-                          sx={{
-                            marginX: 1,
-                          }}
-                        />
-                        <Typography data-cy="cardLinkTitle" level="title-sm">
-                          {link.title}
-                        </Typography>
-                      </Stack>
+            <Stack
+              bgcolor="neutral.softBg"
+              borderRadius={16}
+              paddingY={1}
+              paddingRight={2}
+              paddingLeft={4}
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(auto, max-content) 1fr auto',
+                rowGap: 1,
+                columnGap: 4,
+                alignItems: 'center',
+                '& > *': {
+                  gridColumn: '1 / -1',
+                },
+                '& .linkRow': {
+                  display: 'contents',
+                },
+              }}
+            >
+              {card.links.map((link, index) => (
+                <Box
+                  key={index}
+                  className="linkRow"
+                  sx={{
+                    '&:hover .deleteButton': {
+                      opacity: 1,
+                    },
+                    '& .deleteButton': {
+                      opacity: 0,
+                      transition: 'opacity 0.2s',
+                    },
+                  }}
+                >
+                  <Typography data-cy="cardLinkType" level="body-sm">
+                    {link.displayName}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NextLink data-cy="cardLink" href={`/cards/${link.key}`}>
+                      <Link component={'div'}>{link.key}</Link>
+                    </NextLink>
+                    <Divider orientation="vertical" />
+                    <Typography data-cy="cardLinkTitle" level="title-sm">
+                      {link.title}
+                    </Typography>
+                    {link.linkDescription && (
                       <Typography level="body-sm">
                         {link.linkDescription}
                       </Typography>
-                    </Stack>
-                    {link.linkSource === 'user' ? (
-                      <IconButton
-                        className="deleteButton"
-                        onClick={() => {
-                          setDeleteLinkModalVisible(true);
-                          setDeleteLinkData(link);
-                        }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    ) : (
-                      <IconButton color="primary">
-                        <Tooltip title={t('linkForm.calculatedLink')}>
-                          <Info fontSize="small" />
-                        </Tooltip>
-                      </IconButton>
                     )}
                   </Box>
-                );
-              })}
+                  {link.linkSource === 'user' ? (
+                    <IconButton
+                      className="deleteButton"
+                      onClick={() => {
+                        setDeleteLinkModalVisible(true);
+                        setDeleteLinkData(link);
+                      }}
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  ) : (
+                    <IconButton color="primary">
+                      <Tooltip title={t('linkForm.calculatedLink')}>
+                        <Info fontSize="small" />
+                      </Tooltip>
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
             </Stack>
           )}
           <Box pl={4} pr={4} mt={0}>
