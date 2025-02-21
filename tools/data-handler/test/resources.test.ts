@@ -1956,7 +1956,7 @@ describe('resources', () => {
     it('try to delete link type that does not exist', async () => {
       const name = 'decision/linkTypes/nonExisting';
       const res = new LinkTypeResource(project, resourceName(name));
-      const before = await project.cardTypes();
+      const before = await project.linkTypes();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await res
@@ -1971,7 +1971,7 @@ describe('resources', () => {
     it('try to delete report that does not exist', async () => {
       const name = 'decision/reports/nonExisting';
       const res = new ReportResource(project, resourceName(name));
-      const before = await project.cardTypes();
+      const before = await project.reports();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await res
@@ -1986,7 +1986,7 @@ describe('resources', () => {
     it('try to delete template that does not exist', async () => {
       const name = 'decision/templates/nonExisting';
       const res = new TemplateResource(project, resourceName(name));
-      const before = await project.cardTypes();
+      const before = await project.templates();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await res
@@ -2001,7 +2001,7 @@ describe('resources', () => {
     it('try to delete workflow that does not exist', async () => {
       const name = 'decision/workflows/nonExisting';
       const res = new WorkflowResource(project, resourceName(name));
-      const before = await project.cardTypes();
+      const before = await project.workflows();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await res
@@ -2011,6 +2011,69 @@ describe('resources', () => {
           expect(error.message).to.equal(
             `Resource 'nonExisting' does not exist in the project`,
           ),
+        );
+    });
+    it('try to check usage of nonExisting resource', async () => {
+      const name = 'decision/workflows/nonExisting';
+      const res = new WorkflowResource(project, resourceName(name));
+      const before = await project.workflows();
+      const found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      await res
+        .usage()
+        .then(() => expect(false).to.equal(true))
+        .catch((error) =>
+          expect(error.message).to.equal(
+            `Resource 'nonExisting' does not exist in the project`,
+          ),
+        );
+    });
+    it('check usage of cardType resource', async () => {
+      const name = 'decision/cardTypes/decision';
+      const res = new CardTypeResource(project, resourceName(name));
+      await res.usage().then((references) => {
+        expect(references).to.include('decision_1');
+        expect(references).to.include('decision_6');
+        expect(references).to.include('decision/linkTypes/testTypes');
+      });
+    });
+    it('check usage of fieldType resource', async () => {
+      const name = 'decision/fieldTypes/finished';
+      const res = new FieldTypeResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) =>
+          expect(references).to.include('decision/cardTypes/decision'),
+        );
+    });
+    it('check usage of linkType resource', async () => {
+      const name = 'decision/linkTypes/test';
+      const res = new LinkTypeResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) => expect(references.length).to.equal(0)); // no references to this linkType
+    });
+    it('check usage of report resource', async () => {
+      const name = 'decision/reports/testReport';
+      const res = new ReportResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) => expect(references).to.include('decision_5'));
+    });
+    it('check usage of template resource', async () => {
+      const name = 'decision/templates/simplepage';
+      const res = new TemplateResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) => expect(references).to.include('decision_5'));
+    });
+    it('check usage of workflow resource', async () => {
+      const name = 'decision/workflows/decision';
+      const res = new WorkflowResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) =>
+          expect(references).to.include('decision/cardTypes/decision'),
         );
     });
   });

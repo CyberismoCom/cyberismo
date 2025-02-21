@@ -10,11 +10,17 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DefaultContent } from './create-defaults.js';
-import { FileResource, Operation } from './file-resource.js';
+import {
+  Card,
+  DefaultContent,
+  FileResource,
+  Operation,
+  Project,
+  ResourceName,
+  resourceNameToString,
+  sortCards,
+} from './file-resource.js';
 import { LinkType } from '../interfaces/resource-interfaces.js';
-import { Project } from '../containers/project.js';
-import { ResourceName, resourceNameToString } from '../utils/resource-utils.js';
 
 /**
  * Link Type resource class.
@@ -140,6 +146,38 @@ export class LinkTypeResource extends FileResource {
     if (nameChange) {
       await this.handleNameChange(existingName);
     }
+  }
+
+  /**
+   * List where link type is used.
+   * Always returns card key references first, then calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const resourceName = resourceNameToString(this.resourceName);
+    const allCards = cards || (await super.cards());
+
+    const cardsThatUseLinkType = allCards
+      .filter((card) =>
+        card.metadata?.links.find((item) => item.linkType === resourceName),
+      )
+      .filter(Boolean)
+      .map((card) => card.key);
+
+    const [cardContentReferences, calculations] = await Promise.all([
+      super.usage(allCards),
+      super.calculations(),
+    ]);
+
+    const cardReferences = [
+      ...cardsThatUseLinkType,
+      ...cardContentReferences,
+    ].sort(sortCards);
+
+    // Using Set to avoid duplicate cards
+    return [...new Set([...cardReferences, ...calculations])];
   }
 
   /**

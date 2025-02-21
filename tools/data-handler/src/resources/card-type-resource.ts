@@ -10,26 +10,27 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import {
-  AddOperation,
-  ChangeOperation,
-  RemoveOperation,
-} from './resource-object.js';
-import { Card } from '../interfaces/project-interfaces.js';
-import {
   CardType,
   CustomField,
   LinkType,
 } from '../interfaces/resource-interfaces.js';
-import { DefaultContent } from './create-defaults.js';
 import { FieldTypeResource } from './field-type-resource.js';
-import { FileResource, Operation } from './file-resource.js';
-import { LinkTypeResource } from './link-type-resource.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
 import {
+  AddOperation,
+  Card,
+  ChangeOperation,
+  DefaultContent,
+  FileResource,
+  Operation,
+  Project,
+  RemoveOperation,
+  ResourcesFrom,
   ResourceName,
   resourceName,
   resourceNameToString,
-} from '../utils/resource-utils.js';
+  sortCards,
+} from './file-resource.js';
+import { LinkTypeResource } from './link-type-resource.js';
 import { Template } from '../containers/template.js';
 import { Validate } from '../validate.js';
 
@@ -45,6 +46,14 @@ export class CardTypeResource extends FileResource {
 
     this.initialize();
     this.setContainerValues();
+  }
+
+  // Returns cards that have this card type.
+  private async cardsWithCardType(cards: Card[]): Promise<string[]> {
+    const resourceName = resourceNameToString(this.resourceName);
+    return cards
+      .filter((card) => card.metadata?.cardType === resourceName)
+      .map((card) => card.key);
   }
 
   // Collects affected cards.
@@ -171,6 +180,27 @@ export class CardTypeResource extends FileResource {
     if (index !== -1) {
       array.splice(index, 1);
     }
+  }
+
+  // Return link types that use this card type.
+  private async relevantLinkTypes(): Promise<string[]> {
+    const resourceName = resourceNameToString(this.resourceName);
+    const allLinkTypes = await this.project.linkTypes(ResourcesFrom.all);
+
+    const linkTypeNames = await Promise.all(
+      allLinkTypes.map(async (linkType) => {
+        const metadata = await this.project.resource<LinkType>(linkType.name);
+        if (!metadata) return null;
+
+        const isRelevant =
+          metadata.destinationCardTypes.includes(resourceName) ||
+          metadata.sourceCardTypes.includes(resourceName);
+
+        return isRelevant ? linkType.name : null;
+      }),
+    );
+
+    return linkTypeNames.filter((name): name is string => name !== null);
   }
 
   // If value from 'customFields' is removed, remove it also from 'optionallyVisible' and 'alwaysVisible' arrays.
@@ -383,6 +413,37 @@ export class CardTypeResource extends FileResource {
     } else if (customFieldsChange) {
       return this.handleCustomFieldsChange(op as ChangeOperation<string>);
     }
+  }
+
+  /**
+   * List where card type is used. This includes card metadata, card content, calculations and link type resources.
+   * Always returns card key references first, then any resource references and finally calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys, resource names and calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const allCards = cards ?? (await super.cards());
+    const [
+      cardsWithCardType,
+      cardContentReferences,
+      relevantLinkTypes,
+      calculations,
+    ] = await Promise.all([
+      this.cardsWithCardType(allCards),
+      super.usage(allCards),
+      this.relevantLinkTypes(),
+      super.calculations(),
+    ]);
+    const cardReferences = [
+      ...cardsWithCardType,
+      ...cardContentReferences,
+    ].sort(sortCards);
+
+    // Using Set to avoid duplicate cards
+    return [
+      ...new Set([...cardReferences, ...relevantLinkTypes, ...calculations]),
+    ];
   }
 
   /**

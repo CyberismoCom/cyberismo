@@ -236,7 +236,12 @@ export class CardContainer {
     details: FetchCardDetails = {},
     directChildrenOnly: boolean = false,
   ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
+    let entries = [];
+    try {
+      entries = await readdir(path, { withFileTypes: true });
+    } catch {
+      return cards;
+    }
     let finish = false;
     const currentPaths: string[] = [];
 

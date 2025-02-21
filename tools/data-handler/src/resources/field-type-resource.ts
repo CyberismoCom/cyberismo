@@ -11,20 +11,25 @@
 */
 
 import {
+  Card,
+  ChangeOperation,
+  DefaultContent,
+  FileResource,
+  Operation,
+  Project,
+  ResourcesFrom,
+  resourceName,
+  resourceNameToString,
+  ResourceName,
+  sortCards,
+} from './file-resource.js';
+import {
   CardType,
   DataType,
   EnumDefinition,
   FieldType,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
-import { ChangeOperation, FileResource, Operation } from './file-resource.js';
-import { DefaultContent } from './create-defaults.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
-import {
-  ResourceName,
-  resourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
 
 /**
  * Field type resource class.
@@ -40,6 +45,14 @@ export class FieldTypeResource extends FileResource {
     this.initialize();
   }
 
+  // Cards from given array that include this field type.
+  private cardsWithFieldType(cards: Card[]): string[] {
+    const resourceName = resourceNameToString(this.resourceName);
+    return cards
+      .filter((card) => card.metadata?.[resourceName])
+      .map((card) => card.key);
+  }
+
   // When resource name changes.
   private async handleNameChange(existingName: string) {
     await Promise.all([
@@ -48,6 +61,25 @@ export class FieldTypeResource extends FileResource {
     ]);
     // Finally, write updated content.
     await this.write();
+  }
+
+  // Card types that use field type.
+  private async relevantCardTypes(): Promise<string[]> {
+    const resourceName = resourceNameToString(this.resourceName);
+    const cardTypes = await this.project.cardTypes(ResourcesFrom.all);
+
+    const references = await Promise.all(
+      cardTypes.map(async (cardType) => {
+        const metadata = await this.project.resource<CardType>(cardType.name);
+        return metadata?.customFields.some(
+          (field) => field.name === resourceName,
+        )
+          ? cardType.name
+          : '';
+      }),
+    );
+    // Remove empty values.
+    return references.filter(Boolean);
   }
 
   // Update dependant card types
@@ -208,6 +240,34 @@ export class FieldTypeResource extends FileResource {
       // @todo: fetch all cardTypes that use this FT, then fetch all cards that use those CTs and update ALL the values.
       console.error('all affected card types cards should be updated');
     }
+  }
+
+  /**
+   * List where link type is used.
+   * Always returns card key references first, then any resource references and finally calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys, resource names and calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const allCards = cards ?? (await super.cards());
+
+    const [cardContentReferences, relevantLinkTypes, calculations] =
+      await Promise.all([
+        super.usage(allCards),
+        this.relevantCardTypes(),
+        super.calculations(),
+      ]);
+
+    const cardReferences = [
+      ...this.cardsWithFieldType(allCards),
+      ...cardContentReferences,
+    ].sort(sortCards);
+
+    // Using Set to avoid duplicate cards
+    return [
+      ...new Set([...cardReferences, ...relevantLinkTypes, ...calculations]),
+    ];
   }
 
   /**
