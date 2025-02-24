@@ -70,6 +70,8 @@ import {
 } from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
 
+export type LinkFormState = 'hidden' | 'add' | 'edit';
+
 type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
   card: CardResponse;
@@ -78,8 +80,8 @@ type ContentAreaProps = {
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
   preview?: boolean;
-  linksVisible?: boolean;
-  onLinkToggle?: () => void;
+  linkFormState: LinkFormState;
+  onLinkFormChange?: (state: LinkFormState) => void;
 };
 
 interface LinkFormSubmitData {
@@ -87,6 +89,7 @@ interface LinkFormSubmitData {
   cardKey: string;
   linkDescription: string;
   direction: 'inbound' | 'outbound';
+  oldLinkDescription?: string;
 }
 
 interface LinkFormData {
@@ -100,6 +103,8 @@ interface LinkFormProps {
   cards: QueryResult<'tree'>[];
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   cardKey: string;
+  state: LinkFormState;
+  data?: LinkFormData;
 }
 
 const NO_LINK_TYPE = -1;
@@ -109,11 +114,25 @@ export function LinkForm({
   linkTypes,
   onSubmit,
   cardKey,
+  data,
+  state,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
-    defaultValues: { linkType: NO_LINK_TYPE, cardKey: '', linkDescription: '' },
+    defaultValues: {
+      linkType: data?.linkType || NO_LINK_TYPE,
+      cardKey: data?.cardKey || '',
+      linkDescription: data?.linkDescription || '',
+    },
   });
   const { t } = useTranslation();
+
+  useEffect(() => {
+    reset({
+      linkType: data?.linkType || NO_LINK_TYPE,
+      cardKey: data?.cardKey || '',
+      linkDescription: data?.linkDescription || '',
+    });
+  }, [data, reset]);
 
   // find chosen link type
   const linkType = watch('linkType');
@@ -136,14 +155,16 @@ export function LinkForm({
 
   return (
     <form
-      onSubmit={handleSubmit(async (data) => {
-        const linkType = linkTypes.find((t) => t.id === data.linkType);
+      onSubmit={handleSubmit(async (formData) => {
+        const linkType = linkTypes.find((t) => t.id === formData.linkType);
         if (!linkType) return;
         const success = await onSubmit?.({
           linkType: linkType.name,
-          cardKey: data.cardKey,
-          linkDescription: data.linkDescription,
+          cardKey: formData.cardKey,
+          linkDescription: formData.linkDescription,
           direction: linkType.direction,
+          oldLinkDescription:
+            state === 'edit' ? data?.linkDescription : undefined,
         });
         if (success) reset();
       })}
@@ -163,6 +184,7 @@ export function LinkForm({
                   width: 180,
                 }}
                 required={true}
+                disabled={state === 'edit'}
               >
                 {linkTypes.map((linkType) => (
                   <Option key={linkType.id} value={linkType.id}>
@@ -202,6 +224,7 @@ export function LinkForm({
                 sx={{
                   flexGrow: 1,
                 }}
+                disabled={state === 'edit'}
               />
             )}
           />
@@ -228,7 +251,7 @@ export function LinkForm({
             alignSelf: 'flex-end',
           }}
         >
-          {t('linkForm.button')}
+          {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
         </Button>
       </Stack>
     </form>
@@ -466,8 +489,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   onLinkFormSubmit,
   onDeleteLink,
   preview,
-  linksVisible,
-  onLinkToggle,
+  linkFormState,
+  onLinkFormChange,
 }) => {
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
@@ -488,6 +511,20 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
+
+  const [editLinkData, setEditLinkData] = useState<
+    LinkFormData & {
+      linkTypeName: string;
+      direction: 'inbound' | 'outbound';
+    }
+  >();
+
+  useEffect(() => {
+    if (linkFormState !== 'edit') {
+      setEditLinkData(undefined);
+    }
+  }, [linkFormState]);
+
   // scroll to last title on first render and when tab is changed
   useEffect(() => {
     if (lastTitle && contentRef && cardKey === card?.key) {
@@ -601,7 +638,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             onClick={onMetadataClick}
             card={card}
           />
-          {(card.links.length > 0 || linksVisible) && (
+          {(card.links.length > 0 || linkFormState !== 'hidden') && (
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -609,85 +646,132 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             >
               <Typography level="title-sm">{t('linkedCards')}</Typography>
               {!preview &&
-                (linksVisible ? (
-                  <ChipDelete onDelete={onLinkToggle} />
+                (linkFormState !== 'hidden' ? (
+                  <ChipDelete
+                    onDelete={() =>
+                      onLinkFormChange && onLinkFormChange('hidden')
+                    }
+                  />
                 ) : (
-                  <IconButton onClick={onLinkToggle}>
+                  <IconButton
+                    onClick={() => onLinkFormChange && onLinkFormChange('add')}
+                  >
                     <Add />
                   </IconButton>
                 ))}
             </Stack>
           )}
-          {!preview && linksVisible && (
+          {!preview && linkFormState !== 'hidden' && (
             <LinkForm
               cards={cards}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
               cardKey={card.key}
+              data={editLinkData}
+              state={linkFormState}
             />
           )}
           {card.links.length > 0 && (
             <Stack
               bgcolor="neutral.softBg"
               borderRadius={16}
-              paddingY={1}
-              paddingRight={2}
-              paddingLeft={4}
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(auto, max-content) 1fr auto',
-                rowGap: 1,
-                columnGap: 4,
-                alignItems: 'center',
-                '& > *': {
-                  gridColumn: '1 / -1',
-                },
-                '& .linkRow': {
-                  display: 'contents',
-                },
-              }}
+              paddingY={2}
+              paddingX={2}
+              spacing={2}
             >
               {card.links.map((link, index) => (
-                <Box
+                <Stack
                   key={index}
-                  className="linkRow"
+                  borderRadius={16}
+                  paddingLeft={2}
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  bgcolor={
+                    editLinkData &&
+                    editLinkData.cardKey === link.key &&
+                    editLinkData.linkTypeName === link.linkType &&
+                    editLinkData.linkDescription ===
+                      (link.linkDescription || '') &&
+                    editLinkData.direction === link.direction
+                      ? 'neutral.softActiveBg'
+                      : 'transparent'
+                  }
                   sx={{
-                    '&:hover .deleteButton': {
+                    '&:hover .actionButton': {
                       opacity: 1,
                     },
-                    '& .deleteButton': {
+                    '& .actionButton': {
                       opacity: 0,
                       transition: 'opacity 0.2s',
                     },
                   }}
                 >
-                  <Typography data-cy="cardLinkType" level="body-sm">
-                    {link.displayName}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <NextLink data-cy="cardLink" href={`/cards/${link.key}`}>
-                      <Link component={'div'}>{link.key}</Link>
-                    </NextLink>
-                    <Divider orientation="vertical" />
-                    <Typography data-cy="cardLinkTitle" level="title-sm">
-                      {link.title}
+                  <Stack>
+                    <Typography data-cy="cardLinkType" level="body-sm">
+                      {link.displayName}
                     </Typography>
-                    {link.linkDescription && (
-                      <Typography level="body-sm">
-                        {link.linkDescription}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <NextLink data-cy="cardLink" href={`/cards/${link.key}`}>
+                        <Link component="div">{link.key}</Link>
+                      </NextLink>
+                      <Divider orientation="vertical" />
+                      <Typography data-cy="cardLinkTitle" level="title-sm">
+                        {link.title}
                       </Typography>
-                    )}
-                  </Box>
+                      {link.linkDescription && (
+                        <Typography level="body-sm">
+                          {link.linkDescription}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Stack>
                   {link.linkSource === 'user' ? (
-                    <IconButton
-                      className="deleteButton"
-                      onClick={() => {
-                        setDeleteLinkModalVisible(true);
-                        setDeleteLinkData(link);
-                      }}
+                    <Box
+                      gap={1}
+                      fontSize={24}
+                      alignItems="center"
+                      marginRight={2}
                     >
-                      <Delete fontSize="small" />
-                    </IconButton>
+                      <IconButton
+                        className="actionButton"
+                        sx={{
+                          visibility: linkTypes.find(
+                            (t) =>
+                              t.name === link.linkType &&
+                              t.direction === link.direction,
+                          )?.enableLinkDescription
+                            ? 'visible'
+                            : 'hidden',
+                        }}
+                        onClick={() => {
+                          const linkType = linkTypes.find(
+                            (t) =>
+                              t.name === link.linkType &&
+                              t.direction === link.direction,
+                          );
+                          onLinkFormChange?.('edit');
+                          setEditLinkData({
+                            linkType: linkType?.id ?? NO_LINK_TYPE,
+                            cardKey: link.key,
+                            linkDescription: link.linkDescription || '',
+                            linkTypeName: link.linkType,
+                            direction: link.direction,
+                          });
+                        }}
+                      >
+                        <Edit fontSize="inherit" />
+                      </IconButton>
+                      <IconButton
+                        className="actionButton"
+                        onClick={() => {
+                          setDeleteLinkModalVisible(true);
+                          setDeleteLinkData(link);
+                        }}
+                      >
+                        <Delete fontSize="inherit" />
+                      </IconButton>
+                    </Box>
                   ) : (
                     <IconButton color="primary">
                       <Tooltip title={t('linkForm.calculatedLink')}>
@@ -695,7 +779,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                       </Tooltip>
                     </IconButton>
                   )}
-                </Box>
+                </Stack>
               ))}
             </Stack>
           )}

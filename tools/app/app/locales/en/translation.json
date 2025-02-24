@@ -99,6 +99,7 @@
     "searchCard": "Search card",
     "writeDescription": "Write a link description",
     "button": "Add link",
+    "buttonEdit": "Update",
     "calculatedLink": "This is an calculated link that cannot be deleted"
   },
   "deleteLink": "Delete link",

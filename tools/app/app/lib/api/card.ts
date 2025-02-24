@@ -66,18 +66,50 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         ))) ||
       null,
     deleteLink: async (
-      fromCard: string,
-      toCard: string,
+      target: string,
+      direction: 'inbound' | 'outbound',
       linkType: string,
       linkDescription?: string,
     ) =>
       (key &&
         (await callUpdate(() =>
-          removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
-            mutate(apiPaths.card(fromCard));
+          removeLink(
+            direction === 'outbound' ? key : target,
+            direction === 'outbound' ? target : key,
+            linkType,
+            linkDescription,
+          ).then(() => {
+            mutate(apiPaths.card(key));
           }),
         ))) ||
       null,
+    editLink: async (
+      target: string,
+      direction: 'inbound' | 'outbound',
+      linkType: string,
+      linkDescription?: string,
+      oldLinkDescription?: string,
+    ) => {
+      (key &&
+        (await callUpdate(() =>
+          removeLink(
+            direction === 'outbound' ? key : target,
+            direction === 'outbound' ? target : key,
+            linkType,
+            oldLinkDescription,
+          )
+            .then(() =>
+              createLink(
+                direction === 'outbound' ? key : target,
+                direction === 'outbound' ? target : key,
+                linkType,
+                linkDescription,
+              ),
+            )
+            .then(() => mutate(apiPaths.card(key))),
+        ))) ||
+        null;
+    },
   };
 };
 export async function updateCard(key: string, cardUpdate: CardUpdate) {
