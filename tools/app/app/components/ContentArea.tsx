@@ -731,7 +731,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                       )}
                     </Box>
                   </Stack>
-                  {link.linkSource === 'user' ? (
+                  {link.linkSource === 'user' && !preview && (
                     <Box
                       gap={1}
                       fontSize={24}
@@ -777,7 +777,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         <Delete fontSize="inherit" />
                       </IconButton>
                     </Box>
-                  ) : (
+                  )}
+                  {link.linkSource === 'calculated' && (
                     <IconButton color="primary">
                       <Tooltip title={t('linkForm.calculatedLink')}>
                         <Info fontSize="small" />
