@@ -26,6 +26,7 @@ export interface CalculationLink {
   title: string; // title of the other card
   linkDescription?: string;
   direction: 'inbound' | 'outbound';
+  linkSource: 'user' | 'calculated';
 }
 
 export interface Notification {

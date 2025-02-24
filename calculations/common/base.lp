@@ -48,3 +48,16 @@ dataType((FieldType, EnumValue), "enumValue", "longText") :-
 hiddenInTreeView(Card) :-
     ancestor(Card, Ancestor),
     hiddenInTreeView(Ancestor).
+
+% user-defined links are links
+link(Source, Destination, LinkType) :- userLink(Source, Destination, LinkType).
+link(Source, Destination, LinkType, LinkDescription) :- userLink(Source, Destination, LinkType, LinkDescription).
+
+% if a link is not user-defined, then it is calculated
+calculatedLink(Source, Destination, LinkType) :-
+    link(Source, Destination, LinkType),
+    not userLink(Source, Destination, LinkType).
+    
+calculatedLink(Source, Destination, LinkType, LinkDescription) :-
+    link(Source, Destination, LinkType, LinkDescription),
+    not userLink(Source, Destination, LinkType, LinkDescription).
