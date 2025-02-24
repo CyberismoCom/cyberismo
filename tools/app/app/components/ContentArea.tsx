@@ -711,16 +711,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     <Typography data-cy="cardLinkType" level="body-sm">
                       {link.displayName}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <NextLink data-cy="cardLink" href={`/cards/${link.key}`}>
                         <Link component="div">{link.key}</Link>
                       </NextLink>
-                      <Divider orientation="vertical" />
+                      <Divider
+                        orientation="vertical"
+                        sx={{
+                          marginX: '4px',
+                        }}
+                      />
                       <Typography data-cy="cardLinkTitle" level="title-sm">
                         {link.title}
                       </Typography>
                       {link.linkDescription && (
-                        <Typography level="body-sm">
+                        <Typography level="body-sm" marginLeft={2}>
                           {link.linkDescription}
                         </Typography>
                       )}
