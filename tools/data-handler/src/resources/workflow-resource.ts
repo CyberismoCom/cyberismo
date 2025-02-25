@@ -17,14 +17,19 @@ import {
   WorkflowTransition,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
-import { DefaultContent } from './create-defaults.js';
-import { ChangeOperation, FileResource, Operation } from './file-resource.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
 import {
+  Card,
+  ChangeOperation,
+  DefaultContent,
+  FileResource,
+  Operation,
+  Project,
+  ResourcesFrom,
   ResourceName,
   resourceName,
   resourceNameToString,
-} from '../utils/resource-utils.js';
+  sortCards,
+} from './file-resource.js';
 
 /**
  * Workflow resource class.
@@ -156,6 +161,36 @@ export class WorkflowResource extends FileResource {
       await this.handleNameChange(existingName);
       await this.updateCardTypes(existingName);
     }
+  }
+
+  /**
+   * List where workflow is used.
+   * Always returns card key references first, then any resource references and finally calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys, resource names and calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const resourceName = resourceNameToString(this.resourceName);
+    const allCards = cards ?? (await super.cards());
+    const cardTypes = await this.project.cardTypes(ResourcesFrom.all);
+    const cardTypeReferences = await Promise.all(
+      cardTypes.map(async (cardType) => {
+        const metadata = await this.project.resource<CardType>(cardType.name);
+        return metadata?.workflow === resourceName ? cardType.name : null;
+      }),
+    );
+
+    const [relevantCards, calculations] = await Promise.all([
+      super.usage(allCards),
+      super.calculations(),
+    ]);
+
+    return [
+      ...relevantCards.sort(sortCards),
+      ...cardTypeReferences.filter((name): name is string => name !== null),
+      ...calculations,
+    ];
   }
 
   /**

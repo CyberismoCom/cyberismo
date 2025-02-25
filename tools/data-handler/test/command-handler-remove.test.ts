@@ -206,8 +206,16 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     it('remove cardType (success)', async () => {
-      const cardTypeName = 'decision/cardTypes/decision';
-      const result = await commandHandler.command(
+      // First create a cardType, then remove it
+      const name = 'testForCreation';
+      const workflow = 'decision/workflows/decision';
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['cardType', name, workflow],
+        options,
+      );
+      const cardTypeName = `decision/cardTypes/${name}`;
+      result = await commandHandler.command(
         Cmd.remove,
         ['cardType', cardTypeName],
         options,
@@ -215,8 +223,16 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     it('remove fieldType (success)', async () => {
-      const fieldTypeName = 'decision/fieldTypes/finished';
-      const result = await commandHandler.command(
+      // First create a fieldType, then remove it
+      const name = 'testForCreation';
+      const dataType = 'integer';
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['fieldType', name, dataType],
+        options,
+      );
+      const fieldTypeName = `decision/fieldTypes/${name}`;
+      result = await commandHandler.command(
         Cmd.remove,
         ['fieldType', fieldTypeName],
         options,
@@ -224,8 +240,15 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     it('remove report (success)', async () => {
-      const report = 'decision/reports/testReport';
-      const result = await commandHandler.command(
+      // First create a report, then remove it
+      const name = 'testForCreation';
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['report', name],
+        options,
+      );
+      const report = `decision/reports/${name}`;
+      result = await commandHandler.command(
         Cmd.remove,
         ['report', report],
         options,
@@ -242,13 +265,29 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     it('remove workflow (success)', async () => {
-      const workflowName = 'decision/workflows/decision';
-      const result = await commandHandler.command(
+      // First create a workflow, then remove it
+      const name = 'testForCreation';
+      let result = await commandHandler.command(
+        Cmd.create,
+        ['workflow', name],
+        options,
+      );
+      const workflowName = `decision/workflows/${name}`;
+      result = await commandHandler.command(
         Cmd.remove,
         ['workflow', workflowName],
         options,
       );
       expect(result.statusCode).to.equal(200);
+    });
+    it('try to remove workflow that this is still used', async () => {
+      const workflowName = `decision/workflows/decision`;
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['workflow', workflowName],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
     });
     // todo: at some point move to own test file
     it('Remove - remove card (success)', async () => {

@@ -15,14 +15,19 @@
 // node
 import { basename, join } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 
-import { deleteFile, pathExists } from '../utils/file-utils.js';
+import { Card, ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
+  AddOperation,
   ChangeOperation,
   Operation,
+  RemoveOperation,
   ResourceObject,
 } from './resource-object.js';
-import { Project } from '../containers/project.js';
+import { DefaultContent } from './create-defaults.js';
+import { deleteFile, pathExists } from '../utils/file-utils.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   readJsonFile,
   readJsonFileSync,
@@ -39,10 +44,23 @@ import {
   resourceNameToString,
   resourceObjectToResource,
 } from '../utils/resource-utils.js';
-import { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../validate.js';
 
-export { type Operation, type ChangeOperation };
+export {
+  AddOperation,
+  Card,
+  ChangeOperation,
+  DefaultContent,
+  Operation,
+  Project,
+  RemoveOperation,
+  ResourcesFrom,
+  resourceName,
+  ResourceName,
+  resourceNameToString,
+  sortCards,
+};
 
 /**
  * Base class for file based resources (card types, field types, link types, workflows, ...)
@@ -125,6 +143,45 @@ export class FileResource extends ResourceObject {
     this.project.addResource(resourceObjectToResource(this));
   }
 
+  // Calculations that use this resource.
+  protected async calculations(): Promise<string[]> {
+    const references: string[] = [];
+    const resourceName = resourceNameToString(this.resourceName);
+    for (const calculation of await this.project.calculations(
+      ResourcesFrom.all,
+    )) {
+      const fileNameWithExtension = calculation.name.endsWith('.lp')
+        ? calculation.name
+        : calculation.name + '.lp';
+      const filename = join(calculation.path, basename(fileNameWithExtension));
+      try {
+        const content = await readFile(filename, 'utf-8');
+        if (content.includes(resourceName)) {
+          references.push(calculation.name);
+        }
+      } catch (error) {
+        throw new Error(
+          `Failed to process file ${filename}: ${(error as Error).message}`,
+        );
+      }
+    }
+    return references;
+  }
+
+  // Cards from project.
+  protected async cards(): Promise<Card[]> {
+    return [
+      ...(await this.project.cards(undefined, {
+        content: true,
+        metadata: true,
+      })),
+      ...(await this.project.templateCards({
+        content: true,
+        metadata: true,
+      })),
+    ];
+  }
+
   // Returns memory resident data as JSON.
   // This is basically same as 'show' but doesn't do any checks; just returns the current content.
   public get data() {
@@ -142,6 +199,12 @@ export class FileResource extends ResourceObject {
     if (!pathExists(this.fileName)) {
       throw new Error(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
+      );
+    }
+    const usedIn = await this.usage();
+    if (usedIn.length > 0) {
+      throw new Error(
+        `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
     await deleteFile(this.fileName);
@@ -269,6 +332,27 @@ export class FileResource extends ResourceObject {
     return !prefixes.includes(prefix)
       ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
       : name;
+  }
+
+  // Check if there are references to the resource in the card content.
+  protected async usage(cards?: Card[]): Promise<string[]> {
+    if (!pathExists(this.fileName)) {
+      throw new Error(
+        `Resource '${this.resourceName.identifier}' does not exist in the project`,
+      );
+    }
+    const cardArray = cards?.length
+      ? cards
+      : await this.project.cards(undefined, {
+          content: true,
+          metadata: true,
+        });
+
+    return cardArray
+      .filter((card) =>
+        card.content?.includes(resourceNameToString(this.resourceName)),
+      )
+      .map((card) => card.key);
   }
 
   // Write the content from memory to disk.

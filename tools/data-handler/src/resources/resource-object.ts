@@ -17,9 +17,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
+import { Card, ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import { ResourceContent } from '../interfaces/resource-interfaces.js';
-import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';
 
 // Possible operations to perform when doing "update"
@@ -74,6 +74,7 @@ export abstract class AbstractResource {
     key: string,
     operation: Operation<Type>,
   ): Promise<void>; // change one key of resource
+  protected abstract usage(cards?: Card[]): Promise<string[]>; // list of card keys or resource names where this resource is used in
   protected abstract validate(content?: object): Promise<void>; // validate the content
   protected abstract write(): Promise<void>; // write content to disk
 }
@@ -106,6 +107,9 @@ export class ResourceObject extends AbstractResource {
     return {} as ResourceContent;
   }
   protected async update<Type>(_key: string, _op: Operation<Type>) {}
+  protected async usage(_cards?: Card[]): Promise<string[]> {
+    return [];
+  }
   protected async validate(_content?: object) {}
   protected async write() {}
 

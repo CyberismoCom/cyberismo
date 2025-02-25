@@ -13,13 +13,29 @@
 import { join } from 'node:path';
 import { mkdir, rm } from 'node:fs/promises';
 
-import { FileResource, Operation } from './file-resource.js';
-import { Project } from '../containers/project.js';
-import { ResourceContent } from '../interfaces/resource-interfaces.js';
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import { ResourceName } from '../utils/resource-utils.js';
+import {
+  Card,
+  DefaultContent,
+  FileResource,
+  Operation,
+  Project,
+  ResourceName,
+  resourceNameToString,
+  sortCards,
+} from './file-resource.js';
+import { ResourceContent } from '../interfaces/resource-interfaces.js';
 
-export { type Operation };
+export {
+  Card,
+  DefaultContent,
+  FileResource,
+  type Operation,
+  Project,
+  ResourceName,
+  resourceNameToString,
+  sortCards,
+};
 
 /**
  * Folder type resource class. These are resources that have their own folders for content.
@@ -51,8 +67,8 @@ export class FolderResource extends FileResource {
    * Deletes file(s) from disk and clears out the memory resident object.
    */
   protected async delete() {
+    await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
-    return super.delete();
   }
 
   protected initialize(): void {
@@ -87,6 +103,15 @@ export class FolderResource extends FileResource {
    */
   protected async update<Type>(key: string, op: Operation<Type>) {
     return super.update(key, op);
+  }
+
+  /**
+   * Returns an array of card keys, and/or resource names where this resource is used.
+   * @param cards Optional. If defined, only these cards are checked.
+   * @returns an array of card keys, and/or resource names where this resource is used.
+   */
+  protected async usage(cards?: Card[]): Promise<string[]> {
+    return super.usage(cards);
   }
 
   /**

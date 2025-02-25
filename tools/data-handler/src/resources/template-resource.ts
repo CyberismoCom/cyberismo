@@ -13,11 +13,17 @@
 import { basename, dirname, join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
-import { DefaultContent } from './create-defaults.js';
-import { FolderResource, Operation } from './folder-resource.js';
+import {
+  Card,
+  DefaultContent,
+  FolderResource,
+  Operation,
+  Project,
+  ResourceName,
+  resourceNameToString,
+  sortCards,
+} from './folder-resource.js';
 import { pathExists } from '../utils/file-utils.js';
-import { Project } from '../containers/project.js';
-import { ResourceName, resourceNameToString } from '../utils/resource-utils.js';
 import {
   TemplateConfiguration,
   TemplateMetadata,
@@ -156,6 +162,22 @@ export class TemplateResource extends FolderResource {
     if (nameChange) {
       await this.handleNameChange(existingName);
     }
+  }
+
+  /**
+   * List where template is used.
+   * Always returns card key references first, then calculation references.
+   *
+   * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
+   * @returns array of card keys, and calculation filenames that refer this resource.
+   */
+  public async usage(cards?: Card[]): Promise<string[]> {
+    const allCards = cards ?? (await super.cards());
+    const [relevantCards, calculations] = await Promise.all([
+      super.usage(allCards),
+      super.calculations(),
+    ]);
+    return [...relevantCards.sort(sortCards), ...calculations];
   }
 
   /**
