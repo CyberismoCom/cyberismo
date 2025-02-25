@@ -229,7 +229,6 @@ export class FileResource extends ResourceObject {
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
-    this.write();
   }
 
   // Show resource data as JSON.
