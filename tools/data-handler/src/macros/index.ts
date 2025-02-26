@@ -283,3 +283,6 @@ ${Buffer.from(image, 'base64').toString('utf-8')}
 ++++`;
   }
 }
+
+// To make the links work with SVGs, this needs to be added to model.lp 
+// attr(node, X, href, @concatenate("/cards/", X)) :- node(X, _), not invisible(X).
