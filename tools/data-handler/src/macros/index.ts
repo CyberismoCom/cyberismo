@@ -273,5 +273,13 @@ export function createAdmonition(
  * @returns valid asciidoc with the image
  */
 export function createImage(image: string) {
-  return `image::data:image/png;base64,${image}[]\n`;
+  const x = false;
+  if(x) {
+    return `image::data:image/svg+xml;base64,${image}[]\n`;;
+  } else {
+    return `[pass]
+++++
+${Buffer.from(image, 'base64').toString('utf-8')}
+++++`;
+  }
 }

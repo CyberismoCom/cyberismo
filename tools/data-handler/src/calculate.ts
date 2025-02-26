@@ -597,7 +597,7 @@ export class Calculate {
 
     const clingGraphArgs = [
       '--out=render',
-      '--format=png',
+      '--format=svg',
       '--type=digraph',
       `--name-format=${randomId}`,
       `--dir=${this.project.paths.tempFolder}`,
@@ -626,16 +626,24 @@ export class Calculate {
 
     let fileData;
     try {
-      fileData = await readFile(filePath + '.png');
+      fileData = await readFile(filePath + '.svg');
     } catch (e) {
       throw new Error(
         `Graph: Failed to read image file after generating graph: ${e}`,
       );
     } finally {
       if (pathExists(filePath)) await rm(filePath);
-      if (pathExists(filePath + '.png')) await rm(filePath + '.png');
+      if (pathExists(filePath + '.svg')) await rm(filePath + '.svg');
     }
 
-    return fileData.toString('base64');
+    // Next two modification are here since no better way was found
+
+    // Clingraph adds extra JS to the file + we want to remove all possible script tags anyway
+    const sanitized = fileData.toString('utf-8').replace(/<script[\s\S]*<\/script>/gi, '')
+
+    // Generated SVG will have defined size parameters that we do not need
+    const sizeFized = sanitized.replace(/width="[^"]*"/, '').replace(/height="[^"]*"/, '');
+
+    return Buffer.from(sizeFized, 'utf-8').toString('base64');
   }
 }
