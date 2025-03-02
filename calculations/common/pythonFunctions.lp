@@ -3,6 +3,7 @@
 #script (python)
 from clingo import Number, String, SymbolType
 from datetime import date, datetime, timezone
+import textwrap
 
 class Functions:
     def concatenate(self, *args):
@@ -34,6 +35,23 @@ class Functions:
 
     def today(self):
         return String(date.today().isoformat())
+
+    def wrap(self, original_text):
+        try:
+            result = ""
+            line_width = 27
+            lines = textwrap.wrap(original_text.string, line_width)
+            numlines = len(lines)
+            counter = 0
+            for line in lines:
+                counter += 1
+                if counter == numlines:
+                    result = result + line
+                else:
+                    result = result + line + "<br/>"
+            return String(result)
+        except:
+            return String("")
 
 def main(prg):
     prg.ground([("base", [])], context=Functions())
