@@ -100,7 +100,7 @@
     "writeDescription": "Write a link description",
     "button": "Add link",
     "buttonEdit": "Update",
-    "calculatedLink": "This is an calculated link that cannot be deleted"
+    "calculatedLink": "This is an automatic link that cannot be deleted"
   },
   "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
