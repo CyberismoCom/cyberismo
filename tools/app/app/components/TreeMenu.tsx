@@ -36,7 +36,7 @@ const RenderTree = (
     style,
     dragHandle,
   }: NodeRendererProps<QueryResult<'tree'>>) {
-    const progress = node.data['base/fieldTypes/progress'];
+    const progress = node.data.progress;
 
     return (
       <Box
