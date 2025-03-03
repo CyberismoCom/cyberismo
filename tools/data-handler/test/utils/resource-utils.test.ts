@@ -35,6 +35,18 @@ describe('resource utils', () => {
     expect(type).to.equal('');
     expect(identifier).to.equal('test');
   });
+  it('resourceName with only identifier and using "strict" throws', () => {
+    const name = 'test';
+    const strictNameValidation = true;
+    try {
+      resourceName(name, strictNameValidation);
+    } catch (error) {
+      if (error instanceof Error)
+        expect(error.message).to.equal(
+          "Name 'test' is not valid resource name",
+        );
+    }
+  });
   it('resourceName with invalid names', () => {
     const invalidResourceNames = ['', 'test/test', 'test/test/test/test'];
     for (const invalidName of invalidResourceNames) {

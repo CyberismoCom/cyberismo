@@ -274,7 +274,7 @@ describe('show', () => {
       .showResource(templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Unsupported resource type '${templateName}'`,
+          `Name '${templateName}' is not valid resource name`,
         ),
       );
   });

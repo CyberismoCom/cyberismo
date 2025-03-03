@@ -41,8 +41,6 @@ class ReportMacro extends BaseMacro {
 
   handleInject = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    console.log(options);
-
     const project = new Project(context.projectPath);
     const resource = new ReportResource(project, resourceName(options.name));
     const report = await resource.show();
