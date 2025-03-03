@@ -7,6 +7,13 @@ import textwrap
 
 class Functions:
     def concatenate(self, *args):
+        """Concatenate strings, constants or numbers as a single string
+
+        Args:
+            A variable number of Clingo Strings, Numbers, or Functions (constants)
+        Returns
+            All the arguments concatenated together as a Clingo string
+        """
         try:
             result = ""
             for arg in args:
@@ -23,6 +30,14 @@ class Functions:
             return String("")
 
     def daysSince(self, isodate):
+        """Calculates the number of dates since a date
+
+        Args:
+            isodate: a Clingo string that is a date in the ISO format
+
+        Returns:
+            A Clingo number that is the number of days since isodate
+        """
         try:
             userdate = datetime.fromisoformat(isodate.string)
             # add UTC timezone in case the isodate was just a date without time
@@ -34,11 +49,21 @@ class Functions:
             return Number(0)
 
     def today(self):
+        """Returns the current date in the ISO format as a Clingo string. For example '2025-03-03'  """
         return String(date.today().isoformat())
 
     def wrap(self, original_text):
+        """ Adds line break tags <br/> in a string to make the strings work better as titles in graphs
+
+        Args:
+            original_text: A Clingo string that needs to be wrapped
+        Returns:
+            A Clingo string that has been wrapped to fit better in diagrams
+
+        """
         try:
             result = ""
+            #column with of 27 seems to work fine in diagrams
             line_width = 27
             lines = textwrap.wrap(original_text.string, line_width)
             numlines = len(lines)

@@ -148,13 +148,13 @@ describe('calculate', () => {
       });
       expect(res.results[0].key.length).to.equal(10);
     });
-    it('wraping a short string should yield the string itself', async () => {
+    it('wrapping a short string should yield the string itself', async () => {
       const res = await calculate.runLogicProgram({
         query: 'result(@wrap("A short string")).',
       });
       expect(res.results[0].key).to.equal('A short string');
     });
-    it('wraping a long string', async () => {
+    it('wrapping a long string', async () => {
       const res = await calculate.runLogicProgram({
         query:
           'result(@wrap("This is a long string that would be too long as a title of a node in a graph")).',
@@ -163,9 +163,15 @@ describe('calculate', () => {
         'This is a long string that<br/>would be too long as a<br/>title of a node in a graph',
       );
     });
-    it('wraping an empty', async () => {
+    it('wrapping an empty string', async () => {
       const res = await calculate.runLogicProgram({
         query: 'result(@wrap("")).',
+      });
+      expect(res.results[0].key).to.equal('');
+    });
+    it('wrapping an integer', async () => {
+      const res = await calculate.runLogicProgram({
+        query: 'result(@wrap(5)).',
       });
       expect(res.results[0].key).to.equal('');
     });
