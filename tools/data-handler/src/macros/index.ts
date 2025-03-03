@@ -273,8 +273,7 @@ export function createAdmonition(
  * @returns valid asciidoc with the image
  */
 export function createImage(image: string) {
-  const x = false;
-  if(x) {
+  if(process.env.EXPORT_FORMAT) {
     return `image::data:image/svg+xml;base64,${image}[]\n`;;
   } else {
     return `[pass]
