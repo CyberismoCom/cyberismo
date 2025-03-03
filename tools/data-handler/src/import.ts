@@ -135,7 +135,7 @@ export class Import {
         `Input validation error: destination does not exist '${destination}'`,
       );
     }
-    const destinationProject = new Project(destination);
+    const destinationProject = this.project;
     const sourceProject = new Project(source);
     const modulePrefix = sourceProject.projectPrefix;
     const destinationPath = join(

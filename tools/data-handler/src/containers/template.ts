@@ -53,7 +53,7 @@ export class Template extends CardContainer {
     super(template.path!, templateName);
 
     // prevent constructing a new project object, if one is passed to this class.
-    this.project = project ? project : new Project(this.basePath);
+    this.project = project;
     // optimization - if template.path is set - use it
     this.templatePath =
       template.path && template.path.length > 0
