@@ -67,6 +67,7 @@ import {
   Notification,
   QueryResult,
   CalculationLink,
+  LinkDirection,
 } from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
 
@@ -88,8 +89,8 @@ interface LinkFormSubmitData {
   linkType: string;
   cardKey: string;
   linkDescription: string;
-  direction: 'inbound' | 'outbound';
-  oldLinkDescription?: string;
+  direction: LinkDirection;
+  previousLinkDescription?: string;
 }
 
 interface LinkFormData {
@@ -109,6 +110,12 @@ interface LinkFormProps {
 
 const NO_LINK_TYPE = -1;
 
+const DEFAULT_LINK_FORM_DATA: LinkFormData = {
+  linkType: NO_LINK_TYPE,
+  cardKey: '',
+  linkDescription: '',
+};
+
 export function LinkForm({
   cards,
   linkTypes,
@@ -119,18 +126,16 @@ export function LinkForm({
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: {
-      linkType: data?.linkType || NO_LINK_TYPE,
-      cardKey: data?.cardKey || '',
-      linkDescription: data?.linkDescription || '',
+      ...DEFAULT_LINK_FORM_DATA,
+      ...(data || {}),
     },
   });
   const { t } = useTranslation();
 
   useEffect(() => {
     reset({
-      linkType: data?.linkType || NO_LINK_TYPE,
-      cardKey: data?.cardKey || '',
-      linkDescription: data?.linkDescription || '',
+      ...DEFAULT_LINK_FORM_DATA,
+      ...(data || {}),
     });
   }, [data, reset]);
 
@@ -163,7 +168,7 @@ export function LinkForm({
           cardKey: formData.cardKey,
           linkDescription: formData.linkDescription,
           direction: linkType.direction,
-          oldLinkDescription:
+          previousLinkDescription:
             state === 'edit' ? data?.linkDescription : undefined,
         });
         if (success) reset();
@@ -515,7 +520,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [editLinkData, setEditLinkData] = useState<
     LinkFormData & {
       linkTypeName: string;
-      direction: 'inbound' | 'outbound';
+      direction: LinkDirection;
     }
   >();
 

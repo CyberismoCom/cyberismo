@@ -103,7 +103,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                     linkType.enableLinkDescription
                       ? data.linkDescription
                       : undefined,
-                    data.oldLinkDescription,
+                    data.previousLinkDescription,
                   );
                   setLinkFormState('hidden');
                   return true;

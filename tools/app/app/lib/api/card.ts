@@ -19,6 +19,7 @@ import { CardDetails, Project } from '../definitions';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
+import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
@@ -51,7 +52,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       target: string,
       type: string,
       linkDescription?: string,
-      direction: 'inbound' | 'outbound' = 'outbound',
+      direction: LinkDirection = 'outbound',
     ) =>
       (key &&
         (await callUpdate(() =>
@@ -67,7 +68,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       null,
     deleteLink: async (
       target: string,
-      direction: 'inbound' | 'outbound',
+      direction: LinkDirection,
       linkType: string,
       linkDescription?: string,
     ) =>
@@ -85,10 +86,10 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       null,
     editLink: async (
       target: string,
-      direction: 'inbound' | 'outbound',
+      direction: LinkDirection,
       linkType: string,
       linkDescription?: string,
-      oldLinkDescription?: string,
+      previousLinkDescription?: string,
     ) => {
       (key &&
         (await callUpdate(() =>
@@ -96,7 +97,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
             direction === 'outbound' ? key : target,
             direction === 'outbound' ? target : key,
             linkType,
-            oldLinkDescription,
+            previousLinkDescription,
           )
             .then(() =>
               createLink(
