@@ -156,6 +156,21 @@ describe('shows command', () => {
         expect(result.payload).to.not.equal(undefined);
       }
     });
+    it('show particular card type with usage', async () => {
+      optionsDecision.showUse = true;
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['decision/cardTypes/decision'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      if (result.payload) {
+        expect(result.payload).to.not.equal(undefined);
+        expect(result.payload).to.haveOwnProperty('usedIn');
+      } else {
+        expect(false).to.equal(true);
+      }
+    });
     it('shows labels - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,

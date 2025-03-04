@@ -110,6 +110,7 @@ export interface ReportMetadata extends ResourceBaseMetadata {
 // Base interface for all resources.
 export interface ResourceBaseMetadata {
   name: string;
+  usedIn?: string[];
 }
 
 // Template configuration details.

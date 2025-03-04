@@ -43,6 +43,7 @@ export interface CardsOptions {
   details?: boolean;
   projectPath?: string;
   repeat?: number;
+  showUse?: boolean;
 }
 
 // Commands that this class supports.
@@ -521,7 +522,7 @@ export class Commands {
       case 'report':
       case 'template':
       case 'workflow':
-        promise = this.commands!.showCmd.showResource(detail);
+        promise = this.commands!.showCmd.showResource(detail, options.showUse);
         break;
       case 'cardTypes':
         promise = this.commands!.showCmd.showCardTypes();
