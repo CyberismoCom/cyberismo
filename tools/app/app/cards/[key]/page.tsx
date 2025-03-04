@@ -95,17 +95,25 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                 if (!linkType) {
                   throw new Error('Link type not found');
                 }
-                
+
                 // Handle both regular form and modal form submissions
-                if (data.previousLinkDescription !== undefined) {
+                if (
+                  data.previousLinkDescription !== undefined &&
+                  data.previousLinkType !== undefined &&
+                  data.previousCardKey !== undefined &&
+                  data.previousDirection !== undefined
+                ) {
                   // This is coming from edit link modal
                   await editLink(
                     data.cardKey,
                     data.direction,
                     data.linkType,
+                    data.previousLinkType,
+                    data.previousCardKey,
+                    data.previousDirection,
                     linkType.enableLinkDescription
-                      ? data.linkDescription
-                      : undefined,
+                    ? data.linkDescription
+                    : undefined,
                     data.previousLinkDescription,
                   );
                   return true;

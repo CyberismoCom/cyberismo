@@ -24,7 +24,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ExpandedLinkType } from '@/app/lib/definitions';
 import { LinkForm } from '../ContentArea';
-import { QueryResult, LinkDirection } from '@cyberismocom/data-handler/types/queries';
+import {
+  QueryResult,
+  LinkDirection,
+} from '@cyberismocom/data-handler/types/queries';
 
 interface LinkFormData {
   linkType: number;
@@ -42,7 +45,10 @@ interface EditLinkModalProps {
     cardKey: string;
     linkDescription: string;
     direction: LinkDirection;
+    previousLinkType?: string;
+    previousCardKey?: string;
     previousLinkDescription?: string;
+    previousDirection?: LinkDirection;
   }) => Promise<boolean> | boolean;
   editLinkData?: LinkFormData;
   cards: QueryResult<'tree'>[];
@@ -68,41 +74,47 @@ export function EditLinkModal({
         <ModalClose />
         <DialogTitle>{t('editLinkModal.title')}</DialogTitle>
         <Divider />
-        <DialogContent sx={{
-          paddingBottom: 2 
-        }}>
+        <DialogContent
+          sx={{
+            paddingBottom: 2,
+            paddingX: 1,
+          }}
+        >
           <LinkForm
             linkTypes={linkTypes}
             cards={cards}
             onSubmit={async (data) => {
-              const result = await onSubmit(data);
+              // When submitting, include the original link information as well
+              const result = await onSubmit({
+                ...data,
+                previousLinkType: editLinkData?.linkTypeName,
+                previousCardKey: editLinkData?.cardKey,
+                previousLinkDescription: editLinkData?.linkDescription,
+                previousDirection: editLinkData?.direction,
+              });
               if (result) {
                 onClose();
               }
               return result;
             }}
             cardKey={cardKey}
-            data={editLinkData && {
-              linkType: editLinkData.linkType,
-              cardKey: editLinkData.cardKey,
-              linkDescription: editLinkData.linkDescription,
-            }}
+            data={editLinkData}
             state="edit"
             inModal={true}
             formRef={formRef}
           />
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => formRef.current?.requestSubmit()} 
+          <Button
+            onClick={() => formRef.current?.requestSubmit()}
             color="primary"
             data-cy="editLinkConfirmButton"
           >
             {t('update')}
           </Button>
-          <Button 
-            onClick={onClose} 
-            variant="plain" 
+          <Button
+            onClick={onClose}
+            variant="plain"
             color="neutral"
             loading={false}
           >

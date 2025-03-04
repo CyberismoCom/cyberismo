@@ -90,7 +90,10 @@ interface LinkFormSubmitData {
   cardKey: string;
   linkDescription: string;
   direction: LinkDirection;
+  previousLinkType?: string;
+  previousCardKey?: string;
   previousLinkDescription?: string;
+  previousDirection?: LinkDirection;
 }
 
 interface LinkFormData {
@@ -166,6 +169,7 @@ export function LinkForm({
     <form
       ref={formRef}
       onSubmit={handleSubmit(async (formData) => {
+        const oldLinkType = linkTypes.find((t) => t.id === data?.linkType);
         const linkType = linkTypes.find((t) => t.id === formData.linkType);
         if (!linkType) return;
         const success = await onSubmit?.({
@@ -173,8 +177,12 @@ export function LinkForm({
           cardKey: formData.cardKey,
           linkDescription: formData.linkDescription,
           direction: linkType.direction,
+          previousLinkType:
+            state === 'edit' && data ? linkType.name : undefined,
+          previousCardKey: state === 'edit' && data ? data.cardKey : undefined,
           previousLinkDescription:
-            state === 'edit' ? data?.linkDescription : undefined,
+            state === 'edit' && data ? data.linkDescription : undefined,
+          previousDirection: state === 'edit' && oldLinkType ? oldLinkType.direction : undefined,
         });
         if (success) reset();
       })}
@@ -194,7 +202,6 @@ export function LinkForm({
                   width: 180,
                 }}
                 required={true}
-                disabled={state === 'edit'}
               >
                 {linkTypes.map((linkType) => (
                   <Option key={linkType.id} value={linkType.id}>
@@ -234,7 +241,6 @@ export function LinkForm({
                 sx={{
                   flexGrow: 1,
                 }}
-                disabled={state === 'edit'}
               />
             )}
           />
@@ -254,7 +260,7 @@ export function LinkForm({
             )}
           />
         )}
-        
+
         {/* Only render the button if not in modal mode */}
         {!inModal && (
           <Button
@@ -677,15 +683,17 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                 ))}
             </Stack>
           )}
-          {!preview && linkFormState !== 'hidden' && linkFormState !== 'edit' && (
-            <LinkForm
-              cards={cards}
-              linkTypes={linkTypes}
-              onSubmit={onLinkFormSubmit}
-              cardKey={card.key}
-              state={linkFormState}
-            />
-          )}
+          {!preview &&
+            linkFormState !== 'hidden' &&
+            linkFormState !== 'edit' && (
+              <LinkForm
+                cards={cards}
+                linkTypes={linkTypes}
+                onSubmit={onLinkFormSubmit}
+                cardKey={card.key}
+                state={linkFormState}
+              />
+            )}
           {card.links.length > 0 && (
             <Stack
               bgcolor="neutral.softBg"
@@ -702,16 +710,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   direction="row"
                   justifyContent="space-between"
                   alignItems="center"
-                  bgcolor={
-                    editLinkData &&
-                    editLinkData.cardKey === link.key &&
-                    editLinkData.linkTypeName === link.linkType &&
-                    editLinkData.linkDescription ===
-                      (link.linkDescription || '') &&
-                    editLinkData.direction === link.direction
-                      ? 'neutral.softActiveBg'
-                      : 'transparent'
-                  }
                   sx={{
                     '&:hover .actionButton': {
                       opacity: 1,
@@ -755,15 +753,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     >
                       <IconButton
                         className="actionButton"
-                        sx={{
-                          visibility: linkTypes.find(
-                            (t) =>
-                              t.name === link.linkType &&
-                              t.direction === link.direction,
-                          )?.enableLinkDescription
-                            ? 'visible'
-                            : 'hidden',
-                        }}
                         onClick={() => {
                           const linkType = linkTypes.find(
                             (t) =>
@@ -828,26 +817,26 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Notifications notifications={card.notifications} />
         <PolicyChecks policyChecks={card.policyChecks} />
       </Stack>
-      
+
       {/* Modals */}
       {!preview && (
-          <EditLinkModal
-            open={modalOpen.editLink}
-            onClose={() => {
-              closeModal('editLink')();
-              setEditLinkData(undefined);
-            }}
-            onSubmit={async (data) => {
-              if (onLinkFormSubmit) {
-                return await onLinkFormSubmit(data);
-              }
-              return false;
-            }}
-            editLinkData={editLinkData}
-            cards={cards}
-            linkTypes={linkTypes}
-            cardKey={card.key}
-          />
+        <EditLinkModal
+          open={modalOpen.editLink}
+          onClose={() => {
+            closeModal('editLink')();
+            setEditLinkData(undefined);
+          }}
+          onSubmit={async (data) => {
+            if (onLinkFormSubmit) {
+              return await onLinkFormSubmit(data);
+            }
+            return false;
+          }}
+          editLinkData={editLinkData}
+          cards={cards}
+          linkTypes={linkTypes}
+          cardKey={card.key}
+        />
       )}
     </Stack>
   );
