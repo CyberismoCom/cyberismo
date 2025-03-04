@@ -95,7 +95,10 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                 if (!linkType) {
                   throw new Error('Link type not found');
                 }
-                if (linkFormState === 'edit') {
+                
+                // Handle both regular form and modal form submissions
+                if (data.previousLinkDescription !== undefined) {
+                  // This is coming from edit link modal
                   await editLink(
                     data.cardKey,
                     data.direction,
@@ -105,23 +108,24 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                       : undefined,
                     data.previousLinkDescription,
                   );
+                  return true;
+                } else {
+                  // This is a new link creation
+                  await createLink(
+                    data.cardKey,
+                    data.linkType,
+                    linkType.enableLinkDescription
+                      ? data.linkDescription
+                      : undefined,
+                    data.direction,
+                  );
                   setLinkFormState('hidden');
                   return true;
                 }
-                await createLink(
-                  data.cardKey,
-                  data.linkType,
-                  linkType.enableLinkDescription
-                    ? data.linkDescription
-                    : undefined,
-                  data.direction,
-                );
-                setLinkFormState('hidden');
-                return true;
               } catch (error) {
                 dispatch(
                   addNotification({
-                    message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    message: `Failed to handle link operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
                     type: 'error',
                   }),
                 );

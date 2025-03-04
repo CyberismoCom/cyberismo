@@ -42,7 +42,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
-import { findCard, flattenTree } from '../lib/utils';
+import { findCard, flattenTree, useModals } from '../lib/utils';
 import { default as NextLink } from 'next/link';
 import {
   Add,
@@ -53,7 +53,7 @@ import {
   Info,
 } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
-import { GenericConfirmModal } from './modals';
+import EditLinkModal from './modals/EditLinkModal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
@@ -106,6 +106,8 @@ interface LinkFormProps {
   cardKey: string;
   state: LinkFormState;
   data?: LinkFormData;
+  inModal?: boolean;
+  formRef?: React.RefObject<HTMLFormElement>;
 }
 
 const NO_LINK_TYPE = -1;
@@ -123,6 +125,8 @@ export function LinkForm({
   cardKey,
   data,
   state,
+  inModal = false,
+  formRef,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: {
@@ -160,6 +164,7 @@ export function LinkForm({
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit(async (formData) => {
         const linkType = linkTypes.find((t) => t.id === formData.linkType);
         if (!linkType) return;
@@ -249,15 +254,19 @@ export function LinkForm({
             )}
           />
         )}
-        <Button
-          type="submit"
-          sx={{
-            width: '100px',
-            alignSelf: 'flex-end',
-          }}
-        >
-          {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
-        </Button>
+        
+        {/* Only render the button if not in modal mode */}
+        {!inModal && (
+          <Button
+            type="submit"
+            sx={{
+              width: '100px',
+              alignSelf: 'flex-end',
+            }}
+          >
+            {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
+          </Button>
+        )}
       </Stack>
     </form>
   );
@@ -492,7 +501,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   linkTypes,
   onMetadataClick,
   onLinkFormSubmit,
-  onDeleteLink,
   preview,
   linkFormState,
   onLinkFormChange,
@@ -501,7 +509,10 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     null,
   );
 
-  const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
+  const { modalOpen, openModal, closeModal } = useModals({
+    editLink: false,
+  });
+
   const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
     null,
   );
@@ -666,13 +677,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                 ))}
             </Stack>
           )}
-          {!preview && linkFormState !== 'hidden' && (
+          {!preview && linkFormState !== 'hidden' && linkFormState !== 'edit' && (
             <LinkForm
               cards={cards}
               linkTypes={linkTypes}
               onSubmit={onLinkFormSubmit}
               cardKey={card.key}
-              data={editLinkData}
               state={linkFormState}
             />
           )}
@@ -760,7 +770,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                               t.name === link.linkType &&
                               t.direction === link.direction,
                           );
-                          onLinkFormChange?.('edit');
                           setEditLinkData({
                             linkType: linkType?.id ?? NO_LINK_TYPE,
                             cardKey: link.key,
@@ -768,6 +777,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                             linkTypeName: link.linkType,
                             direction: link.direction,
                           });
+                          openModal('editLink')();
                         }}
                       >
                         <Edit fontSize="inherit" />
@@ -775,7 +785,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                       <IconButton
                         className="actionButton"
                         onClick={() => {
-                          setDeleteLinkModalVisible(true);
                           setDeleteLinkData(link);
                         }}
                       >
@@ -819,22 +828,26 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Notifications notifications={card.notifications} />
         <PolicyChecks policyChecks={card.policyChecks} />
       </Stack>
+      
+      {/* Modals */}
       {!preview && (
-        <GenericConfirmModal
-          open={isDeleteLinkModalVisible}
-          onClose={() => {
-            setDeleteLinkModalVisible(false);
-          }}
-          onConfirm={async () => {
-            if (deleteLinkData) {
-              await onDeleteLink?.(deleteLinkData);
-            }
-            setDeleteLinkModalVisible(false);
-          }}
-          title={t('deleteLink')}
-          content={t('deleteLinkConfirm')}
-          confirmText={t('delete')}
-        />
+          <EditLinkModal
+            open={modalOpen.editLink}
+            onClose={() => {
+              closeModal('editLink')();
+              setEditLinkData(undefined);
+            }}
+            onSubmit={async (data) => {
+              if (onLinkFormSubmit) {
+                return await onLinkFormSubmit(data);
+              }
+              return false;
+            }}
+            editLinkData={editLinkData}
+            cards={cards}
+            linkTypes={linkTypes}
+            cardKey={card.key}
+          />
       )}
     </Stack>
   );

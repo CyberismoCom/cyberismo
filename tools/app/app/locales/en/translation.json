@@ -25,6 +25,9 @@
     "success": "Attachment(s) added successfully",
     "acceptedFormats": "Accepted file types: ..."
   },
+  "editLinkModal": {
+    "title": "Edit link"
+  },
   "createCardModal": {
     "success": "Card created successfully"
   },
