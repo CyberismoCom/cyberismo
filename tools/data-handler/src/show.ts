@@ -358,13 +358,25 @@ export class Show {
    */
   public async showResource(
     name: string,
+    showUse: boolean = false,
   ): Promise<ResourceContent | undefined> {
     const strictNameCheck = true;
     const resource = Project.resourceObject(
       this.project,
       resourceName(name, strictNameCheck),
     );
-    return resource?.show();
+    const [details, usage] = await Promise.all([
+      resource?.show(),
+      showUse ? resource?.usage() : [],
+    ]);
+    if (showUse) {
+      return {
+        ...details,
+        usedIn: [...usage],
+      };
+    } else {
+      return details;
+    }
   }
 
   /**

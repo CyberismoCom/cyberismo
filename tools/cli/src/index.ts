@@ -545,9 +545,13 @@ program
   )
   .option(
     '-d --details',
-    'Certain resources (such as cards) can have additional details',
+    'Certain types (such as cards) can have additional details',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option(
+    '-u --show-use',
+    'Show where resource is used. Only used with resources, otherwise will be ignored.',
+  )
   .action(async (type: string, typeDetail, options: CardsOptions) => {
     if (type !== '') {
       const result = await commandHandler.command(
