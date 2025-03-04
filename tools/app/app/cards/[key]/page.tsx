@@ -75,9 +75,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         cardKey={params.key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
-        onInsertLink={() => {
-          setLinkFormState('add');
-        }}
+        onInsertLink={() => setLinkFormState('add-from-toolbar')}
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>

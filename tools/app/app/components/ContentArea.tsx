@@ -78,7 +78,7 @@ import {
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 
-export type LinkFormState = 'hidden' | 'add' | 'edit';
+export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
 type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
@@ -579,7 +579,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   >();
 
   useEffect(() => {
-    if (linkFormState === 'add' && !linksExpanded) {
+    if ((linkFormState === 'add' || linkFormState === 'add-from-toolbar') && !linksExpanded) {
       setLinksExpanded(true);
     }
   }, [linkFormState, linksExpanded]);
@@ -689,9 +689,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
   };
 
-  // Effect to scroll to linked cards when link form is opened
+  // Effect to scroll to linked cards when link form is opened from toolbar
   useEffect(() => {
-    if (linkFormState === 'add') {
+    if (linkFormState === 'add-from-toolbar') {
       scrollToLinkedCards();
     }
   }, [linkFormState]);
