@@ -13,6 +13,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
+import AddIcon from '@mui/icons-material/Add';
 
 import { Stack, Button, Box, Typography } from '@mui/joy';
 import Link from 'next/link';
@@ -38,23 +39,13 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
       <Box sx={{ flexGrow: 1 }} />
       <Button
         data-cy="createNewCardButton"
-        variant="plain"
-        sx={{
-          bgcolor: 'black',
-          '&:hover': {
-            bgcolor: 'black',
-          },
-        }}
+        variant="solid"
+        size="sm"
+        startDecorator={<AddIcon />}
+        sx={{ marginRight: '16px' }}
         onClick={onNewCard}
       >
-        <Typography
-          level="title-sm"
-          sx={{
-            color: 'white',
-          }}
-        >
-          {t('toolbar.newCard')}
-        </Typography>
+        {t('toolbar.newCard')}
       </Button>
     </Stack>
   );
