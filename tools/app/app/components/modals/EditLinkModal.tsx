@@ -28,6 +28,7 @@ import {
   QueryResult,
   LinkDirection,
 } from '@cyberismocom/data-handler/types/queries';
+import { useCard } from '@/app/lib/api';
 
 interface LinkFormData {
   linkType: number;
@@ -67,6 +68,7 @@ export function EditLinkModal({
 }: EditLinkModalProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement>(null);
+  const { isUpdating } = useCard(cardKey);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -109,15 +111,11 @@ export function EditLinkModal({
             onClick={() => formRef.current?.requestSubmit()}
             color="primary"
             data-cy="editLinkConfirmButton"
+            loading={isUpdating}
           >
             {t('update')}
           </Button>
-          <Button
-            onClick={onClose}
-            variant="plain"
-            color="neutral"
-            loading={false}
-          >
+          <Button onClick={onClose} variant="plain" color="neutral">
             {t('cancel')}
           </Button>
         </DialogActions>
