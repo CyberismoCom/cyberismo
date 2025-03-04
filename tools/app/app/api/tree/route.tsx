@@ -17,13 +17,13 @@ export const dynamic = 'force-dynamic';
 
 /**
  * @swagger
- * /api/tree
+ * /api/tree:
  *   get:
  *     summary: Returns everything required by treeview
  *     description: Returns the query result
  *     responses:
  *       200:
- *        description: Object containing the query result
+ *         description: Object containing the query result
  *       500:
  *         description: project_path not set or other internal error
  */

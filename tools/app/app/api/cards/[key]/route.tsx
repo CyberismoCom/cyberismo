@@ -23,7 +23,6 @@ import {
 import { evaluateMacros } from '@cyberismocom/data-handler/macros';
 
 export const dynamic = 'force-dynamic';
-
 /**
  * @swagger
  * /api/cards/{key}:
@@ -39,7 +38,7 @@ export const dynamic = 'force-dynamic';
  *       200:
  *         description: Object containing card details. See lib/api/types.ts/CardResponse for the structure.
  *       400:
- *        description: No search key or card not found with given key
+ *         description: No search key or card not found with given key
  *       500:
  *         description: project_path not set.
  *   put:
@@ -69,14 +68,13 @@ export const dynamic = 'force-dynamic';
  *       500:
  *         description: project_path not set.
  *   delete:
- *      summary: Delete a card
- *      description: The key parameter is the unique identifier ("cardKey") of the card.
- *      parameters:
+ *     summary: Delete a card
+ *     description: The key parameter is the unique identifier ("cardKey") of the card.
+ *     parameters:
  *       - name: key
  *         in: path
  *         required: true
  *         description: Card key (string)
- *
  *     responses:
  *       204:
  *         description: Card deleted successfully.
