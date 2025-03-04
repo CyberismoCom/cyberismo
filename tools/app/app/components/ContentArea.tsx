@@ -148,6 +148,7 @@ export function LinkForm({
 
   // find chosen link type
   const linkType = watch('linkType');
+
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
   const usableCards = flattenTree(cards).filter((card) => {
@@ -164,6 +165,18 @@ export function LinkForm({
       );
     }
   });
+
+  // If card is not in usable cards, reset the form
+
+  const formCardKey = watch('cardKey');
+  useEffect(() => {
+    if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
+      reset({
+        ...DEFAULT_LINK_FORM_DATA,
+        linkType,
+      });
+    }
+  }, [formCardKey, usableCards, linkType, reset]);
 
   return (
     <form
