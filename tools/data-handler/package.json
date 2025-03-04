@@ -14,7 +14,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
-    "lint": "pnpm dlx eslint .",
+    "lint": "eslint .",
     "posttest": "pnpm lint",
     "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
     "test-coverage": "c8 pnpm test",

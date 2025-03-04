@@ -6,7 +6,7 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "@eslint/js": "^9.21.0",
     "@types/chai": "^5.0.0",
     "@types/chai-as-promised": "^8.0.0",
     "@types/mocha": "^10.0.9",
@@ -14,6 +14,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "chai": "^5.1.2",
     "chai-as-promised": "^8.0.1",
+    "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
     "mocha": "^11.0.1",
@@ -33,6 +34,7 @@
     "postinstall": "node scripts/install-vendor-utils.mjs",
     "build": "pnpm -r run build",
     "clean": "rm -rf node_modules && pnpm -r run clean",
+    "lint": "pnpm -r run lint",
     "test": "pnpm test-data-handler && pnpm test-cli && pnpm test-app",
     "test-app": "pnpm --filter app test",
     "test-cli": "pnpm --filter cli test",
