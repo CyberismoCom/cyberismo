@@ -856,7 +856,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             linkTypes={linkTypes}
             cardKey={card.key}
           />
-        <GenericConfirmModal
+          <GenericConfirmModal
             open={modalOpen.deleteLink}
             onClose={closeModal('deleteLink')}
             onConfirm={async () => {
@@ -869,7 +869,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             content={t('deleteLinkConfirm')}
             confirmText={t('delete')}
           />
-      </>
+        </>
       )}
     </Stack>
   );
