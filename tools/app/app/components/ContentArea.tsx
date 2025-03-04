@@ -70,6 +70,7 @@ import {
   LinkDirection,
 } from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
+import { GenericConfirmModal } from './modals';
 
 export type LinkFormState = 'hidden' | 'add' | 'edit';
 
@@ -524,6 +525,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   preview,
   linkFormState,
   onLinkFormChange,
+  onDeleteLink,
 }) => {
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
@@ -531,6 +533,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const { modalOpen, openModal, closeModal } = useModals({
     editLink: false,
+    deleteLink: false,
   });
 
   const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
@@ -789,6 +792,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         className="actionButton"
                         onClick={() => {
                           setDeleteLinkData(link);
+                          openModal('deleteLink')();
                         }}
                       >
                         <Delete fontSize="inherit" />
@@ -834,23 +838,38 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
       {/* Modals */}
       {!preview && (
-        <EditLinkModal
-          open={modalOpen.editLink}
-          onClose={() => {
-            closeModal('editLink')();
-            setEditLinkData(undefined);
-          }}
-          onSubmit={async (data) => {
-            if (onLinkFormSubmit) {
-              return await onLinkFormSubmit(data);
-            }
-            return false;
-          }}
-          editLinkData={editLinkData}
-          cards={cards}
-          linkTypes={linkTypes}
-          cardKey={card.key}
-        />
+        <>
+          <EditLinkModal
+            open={modalOpen.editLink}
+            onClose={() => {
+              closeModal('editLink')();
+              setEditLinkData(undefined);
+            }}
+            onSubmit={async (data) => {
+              if (onLinkFormSubmit) {
+                return await onLinkFormSubmit(data);
+              }
+              return false;
+            }}
+            editLinkData={editLinkData}
+            cards={cards}
+            linkTypes={linkTypes}
+            cardKey={card.key}
+          />
+        <GenericConfirmModal
+            open={modalOpen.deleteLink}
+            onClose={closeModal('deleteLink')}
+            onConfirm={async () => {
+              if (deleteLinkData) {
+                await onDeleteLink?.(deleteLinkData);
+              }
+              closeModal('deleteLink')();
+            }}
+            title={t('deleteLink')}
+            content={t('deleteLinkConfirm')}
+            confirmText={t('delete')}
+          />
+      </>
       )}
     </Stack>
   );
