@@ -129,11 +129,11 @@ export class CardContainer {
     details: FetchCardDetails = {},
     foundCards: Card[],
   ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
     if (foundCards.length > 0) {
       return foundCards;
     }
 
+    const entries = await readdir(path, { withFileTypes: true });
     let asciiDocProcessor;
     // optimization: do not create AsciiDoctor Processor, unless it is needed.
     if (details.contentType && details.contentType === 'html') {

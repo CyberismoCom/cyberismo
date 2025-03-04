@@ -62,11 +62,7 @@ export class CommandManager {
     this.moveCmd = new Move(this.project, this.calculateCmd);
     this.removeCmd = new Remove(this.project, this.calculateCmd);
     this.renameCmd = new Rename(this.project, this.calculateCmd);
-    this.transitionCmd = new Transition(
-      this.project,
-      this.calculateCmd,
-      this.editCmd,
-    );
+    this.transitionCmd = new Transition(this.project, this.calculateCmd);
     this.updateCmd = new Update(this.project);
   }
 
