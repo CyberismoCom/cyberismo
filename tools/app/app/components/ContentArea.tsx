@@ -12,7 +12,13 @@
 
 'use client';
 
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+} from 'react';
 import {
   CardDetails,
   ExpandedLinkType,
@@ -553,7 +559,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     null,
   );
 
-  const boxRef = React.createRef<HTMLDivElement>();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const linkedCardsRef = useRef<HTMLDivElement>(null);
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
@@ -575,7 +582,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     if (linkFormState === 'add' && !linksExpanded) {
       setLinksExpanded(true);
     }
-  }, [linkFormState]);
+  }, [linkFormState, linksExpanded]);
 
   useEffect(() => {
     if (linkFormState !== 'edit') {
@@ -675,6 +682,20 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
   };
 
+  // Function to scroll to linked cards section
+  const scrollToLinkedCards = () => {
+    if (linkedCardsRef.current) {
+      linkedCardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Effect to scroll to linked cards when link form is opened
+  useEffect(() => {
+    if (linkFormState === 'add') {
+      scrollToLinkedCards();
+    }
+  }, [linkFormState]);
+
   return (
     <Stack direction="row" height="100%">
       <Box
@@ -697,7 +718,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             card={card}
           />
           {(card.links.length > 0 || linkFormState !== 'hidden') && (
-            <Accordion expanded={linksExpanded}>
+            <Accordion expanded={linksExpanded} ref={linkedCardsRef}>
               <AccordionSummary
                 indicator={<ExpandMore />}
                 onClick={() => {
@@ -731,7 +752,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   alignItems="center"
                   sx={{ width: '100%' }}
                 >
-                  <Typography level="title-sm">{t('linkedCards')}</Typography>
+                  <Typography level="title-sm" fontWeight="bold">
+                    {t('linkedCards')}
+                  </Typography>
                   {!preview &&
                     (linkFormState === 'hidden' ? (
                       <IconButton
