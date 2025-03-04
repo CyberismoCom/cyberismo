@@ -12,7 +12,7 @@
     "@types/mocha": "^10.0.9",
     "@types/node": "^22.13.0",
     "@typescript-eslint/parser": "^8.15.0",
-    "chai": "^5.1.2",
+    "chai": "^5.2.0",
     "chai-as-promised": "^8.0.1",
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
