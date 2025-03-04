@@ -579,7 +579,10 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   >();
 
   useEffect(() => {
-    if ((linkFormState === 'add' || linkFormState === 'add-from-toolbar') && !linksExpanded) {
+    if (
+      (linkFormState === 'add' || linkFormState === 'add-from-toolbar') &&
+      !linksExpanded
+    ) {
       setLinksExpanded(true);
     }
   }, [linkFormState, linksExpanded]);
