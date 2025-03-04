@@ -279,7 +279,11 @@ export class Commands {
       } else if (command === Cmd.show) {
         const [type, detail] = args;
         options.projectPath = this.projectPath;
-        return this.show(this.commandType(type), detail, options);
+        return this.show(
+          this.commandType(type),
+          this.commandTarget(type, detail),
+          options,
+        );
       } else if (command === Cmd.start) {
         await this.startApp();
       } else if (command === Cmd.transition) {

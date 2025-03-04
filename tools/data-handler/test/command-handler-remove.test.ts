@@ -222,6 +222,23 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
+    it('remove cardType with name only', async () => {
+      // First create a cardType, then remove it
+      const name = 'testForCreationWithOutName';
+      const cardTypeName = `decision/cardTypes/${name}`;
+      const workflow = 'decision/workflows/decision';
+      let result = await commandHandler.command(
+        Cmd.create,
+        [cardTypeName, workflow],
+        options,
+      );
+      result = await commandHandler.command(
+        Cmd.remove,
+        [cardTypeName],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
     it('remove fieldType (success)', async () => {
       // First create a fieldType, then remove it
       const name = 'testForCreation';

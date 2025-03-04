@@ -282,6 +282,26 @@ describe('create command', () => {
     );
     expect(cardTypesCountBefore + 1).equals(cardTypesCountAfter);
   });
+  it('cardType with name only', async () => {
+    const cardTypesCountBefore = await countOfResources(
+      ['cardTypes'],
+      optionsMini,
+    );
+    const cardType = 'mini/cardTypes/test-test';
+    const workflow = 'mini/workflows/default';
+    const result = await commandHandler.command(
+      Cmd.create,
+      [cardType, workflow],
+      optionsMini,
+    );
+    console.error(result);
+    expect(result.statusCode).to.equal(200);
+    const cardTypesCountAfter = await countOfResources(
+      ['cardTypes'],
+      optionsMini,
+    );
+    expect(cardTypesCountBefore + 1).equals(cardTypesCountAfter);
+  });
   it('cardType invalid project', async () => {
     const cardType = 'test';
     const workflow = 'mini/workflows/default';

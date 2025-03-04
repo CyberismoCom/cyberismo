@@ -145,6 +145,17 @@ describe('shows command', () => {
         expect(result.payload).to.not.equal(undefined);
       }
     });
+    it('show particular card type with name only', async () => {
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['decision/cardTypes/decision'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      if (result.payload) {
+        expect(result.payload).to.not.equal(undefined);
+      }
+    });
     it('shows labels - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
