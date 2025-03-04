@@ -111,8 +111,8 @@ importers:
         specifier: ^6.1.8
         version: 6.1.8(@emotion/react@11.13.3(@types/react@18.3.12)(react@19.0.0))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.3.12)(react@19.0.0))(@types/react@18.3.12)(react@19.0.0))(@types/react@18.3.12)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@next/env':
-        specifier: ^15.0.3
-        version: 15.0.3
+        specifier: ^15.2.1
+        version: 15.2.1
       '@reduxjs/toolkit':
         specifier: ^2.6.0
         version: 2.6.0(react-redux@9.2.0(@types/react@18.3.12)(react@19.0.0)(redux@5.0.1))(react@19.0.0)
@@ -1158,9 +1158,6 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
-
-  '@next/env@15.0.3':
-    resolution: {integrity: sha512-t9Xy32pjNOvVn2AS+Utt6VmyrshbpfUMhIjFO60gI58deSo/KgLOp31XZ4O+kY/Is8WAGYwA5gR7kOb1eORDBA==}
 
   '@next/env@15.2.1':
     resolution: {integrity: sha512-JmY0qvnPuS2NCWOz2bbby3Pe0VzdAQ7XpEB6uLIHmtXNfAsAO0KLQLkuAoc42Bxbo3/jMC3dcn9cdf+piCcG2Q==}
@@ -6358,8 +6355,6 @@ snapshots:
       react-is: 18.3.1
     optionalDependencies:
       '@types/react': 18.3.12
-
-  '@next/env@15.0.3': {}
 
   '@next/env@15.2.1': {}
 
