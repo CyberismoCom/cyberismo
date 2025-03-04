@@ -112,8 +112,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                     data.previousCardKey,
                     data.previousDirection,
                     linkType.enableLinkDescription
-                    ? data.linkDescription
-                    : undefined,
+                      ? data.linkDescription
+                      : undefined,
                     data.previousLinkDescription,
                   );
                   return true;

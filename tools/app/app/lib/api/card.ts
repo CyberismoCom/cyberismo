@@ -94,39 +94,34 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       linkDescription?: string,
       previousLinkDescription?: string,
     ) => {
-      return (key &&
-        (await callUpdate(() => {
-          // Current link structure
-          const sourceKey = direction === 'outbound' ? key : target;
-          const destKey = direction === 'outbound' ? target : key;
-          
-          // Original link structure
-          const oldDirection = previousDirection;
-          const oldSourceKey = oldDirection === 'outbound' 
-            ? key 
-            : (previousCardKey || target);
-          const oldDestKey = oldDirection === 'outbound' 
-            ? (previousCardKey || target) 
-            : key;
-          const oldLinkType = previousLinkType || linkType;
-          
-          return removeLink(
-            oldSourceKey,
-            oldDestKey,
-            oldLinkType,
-            previousLinkDescription,
-          )
-            .then(() =>
-              createLink(
-                sourceKey,
-                destKey,
-                linkType,
-                linkDescription,
-              ),
+      return (
+        (key &&
+          (await callUpdate(() => {
+            // Current link structure
+            const sourceKey = direction === 'outbound' ? key : target;
+            const destKey = direction === 'outbound' ? target : key;
+
+            // Original link structure
+            const oldDirection = previousDirection;
+            const oldSourceKey =
+              oldDirection === 'outbound' ? key : previousCardKey || target;
+            const oldDestKey =
+              oldDirection === 'outbound' ? previousCardKey || target : key;
+            const oldLinkType = previousLinkType || linkType;
+
+            return removeLink(
+              oldSourceKey,
+              oldDestKey,
+              oldLinkType,
+              previousLinkDescription,
             )
-            .then(() => mutate(apiPaths.card(key)));
-        }))) ||
-        null;
+              .then(() =>
+                createLink(sourceKey, destKey, linkType, linkDescription),
+              )
+              .then(() => mutate(apiPaths.card(key)));
+          }))) ||
+        null
+      );
     },
   };
 };

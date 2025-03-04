@@ -182,7 +182,8 @@ export function LinkForm({
           previousCardKey: state === 'edit' && data ? data.cardKey : undefined,
           previousLinkDescription:
             state === 'edit' && data ? data.linkDescription : undefined,
-          previousDirection: state === 'edit' && oldLinkType ? oldLinkType.direction : undefined,
+          previousDirection:
+            state === 'edit' && oldLinkType ? oldLinkType.direction : undefined,
         });
         if (success) reset();
       })}
