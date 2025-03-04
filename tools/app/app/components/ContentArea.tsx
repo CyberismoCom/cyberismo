@@ -107,6 +107,7 @@ interface LinkFormProps {
   linkTypes: ExpandedLinkType[];
   cards: QueryResult<'tree'>[];
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
+  onCancel?: () => void;
   cardKey: string;
   state: LinkFormState;
   data?: LinkFormData;
@@ -131,6 +132,7 @@ export function LinkForm({
   state,
   inModal = false,
   formRef,
+  onCancel,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: {
@@ -278,15 +280,25 @@ export function LinkForm({
 
         {/* Only render the button if not in modal mode */}
         {!inModal && (
-          <Button
-            type="submit"
-            sx={{
-              width: '100px',
-              alignSelf: 'flex-end',
-            }}
-          >
-            {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
-          </Button>
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="plain"
+              onClick={onCancel}
+              sx={{
+                width: '100px',
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="submit"
+              sx={{
+                width: '100px',
+              }}
+            >
+              {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
+            </Button>
+          </Stack>
         )}
       </Stack>
     </form>
@@ -530,6 +542,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
+  const [linksExpanded, setLinksExpanded] = useState(true);
 
   const { modalOpen, openModal, closeModal } = useModals({
     editLink: false,
@@ -557,6 +570,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       direction: LinkDirection;
     }
   >();
+
+  useEffect(() => {
+    if (linkFormState === 'add' && !linksExpanded) {
+      setLinksExpanded(true);
+    }
+  }, [linkFormState]);
 
   useEffect(() => {
     if (linkFormState !== 'edit') {
@@ -678,137 +697,184 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             card={card}
           />
           {(card.links.length > 0 || linkFormState !== 'hidden') && (
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Typography level="title-sm">{t('linkedCards')}</Typography>
-              {!preview &&
-                (linkFormState !== 'hidden' ? (
-                  <ChipDelete
-                    onDelete={() =>
-                      onLinkFormChange && onLinkFormChange('hidden')
-                    }
-                  />
-                ) : (
-                  <IconButton
-                    onClick={() => onLinkFormChange && onLinkFormChange('add')}
-                  >
-                    <Add />
-                  </IconButton>
-                ))}
-            </Stack>
-          )}
-          {!preview &&
-            linkFormState !== 'hidden' &&
-            linkFormState !== 'edit' && (
-              <LinkForm
-                cards={cards}
-                linkTypes={linkTypes}
-                onSubmit={onLinkFormSubmit}
-                cardKey={card.key}
-                state={linkFormState}
-              />
-            )}
-          {card.links.length > 0 && (
-            <Stack
-              bgcolor="neutral.softBg"
-              borderRadius={16}
-              paddingY={2}
-              paddingX={2}
-              spacing={2}
-            >
-              {card.links.map((link, index) => (
+            <Accordion expanded={linksExpanded}>
+              <AccordionSummary
+                indicator={<ExpandMore />}
+                onClick={() => {
+                  if (linksExpanded) {
+                    onLinkFormChange && onLinkFormChange('hidden');
+                  }
+                  setLinksExpanded(!linksExpanded);
+                }}
+                sx={{
+                  borderRadius: '4px',
+                  marginTop: 1,
+                  marginBottom: 1,
+                }}
+              >
+                <Typography
+                  level="body-xs"
+                  color="primary"
+                  variant="soft"
+                  width={24}
+                  height={24}
+                  alignContent="center"
+                  borderRadius={40}
+                  marginLeft={0}
+                  paddingX={1.1}
+                >
+                  {card.links.length}
+                </Typography>
                 <Stack
-                  key={index}
-                  borderRadius={16}
-                  paddingLeft={2}
                   direction="row"
                   justifyContent="space-between"
                   alignItems="center"
-                  sx={{
-                    '&:hover .actionButton': {
-                      opacity: 1,
-                    },
-                    '& .actionButton': {
-                      opacity: 0,
-                      transition: 'opacity 0.2s',
-                    },
-                  }}
+                  sx={{ width: '100%' }}
                 >
-                  <Stack>
-                    <Typography data-cy="cardLinkType" level="body-sm">
-                      {link.displayName}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <NextLink data-cy="cardLink" href={`/cards/${link.key}`}>
-                        <Link component="div">{link.key}</Link>
-                      </NextLink>
-                      <Divider
-                        orientation="vertical"
+                  <Typography level="title-sm">{t('linkedCards')}</Typography>
+                  {!preview &&
+                    (linkFormState === 'hidden' ? (
+                      <IconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLinkFormChange && onLinkFormChange('add');
+                        }}
+                      >
+                        <Add />
+                      </IconButton>
+                    ) : (
+                      <Box
                         sx={{
-                          marginX: '4px',
+                          height: 36,
                         }}
                       />
-                      <Typography data-cy="cardLinkTitle" level="title-sm">
-                        {link.title}
-                      </Typography>
-                      {link.linkDescription && (
-                        <Typography level="body-sm" marginLeft={2}>
-                          {link.linkDescription}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Stack>
-                  {link.linkSource === 'user' && !preview && (
-                    <Box
-                      gap={1}
-                      fontSize={24}
-                      alignItems="center"
-                      marginRight={2}
-                    >
-                      <IconButton
-                        className="actionButton"
-                        onClick={() => {
-                          const linkType = linkTypes.find(
-                            (t) =>
-                              t.name === link.linkType &&
-                              t.direction === link.direction,
-                          );
-                          setEditLinkData({
-                            linkType: linkType?.id ?? NO_LINK_TYPE,
-                            cardKey: link.key,
-                            linkDescription: link.linkDescription || '',
-                            linkTypeName: link.linkType,
-                            direction: link.direction,
-                          });
-                          openModal('editLink')();
-                        }}
-                      >
-                        <Edit fontSize="inherit" />
-                      </IconButton>
-                      <IconButton
-                        className="actionButton"
-                        onClick={() => {
-                          setDeleteLinkData(link);
-                          openModal('deleteLink')();
-                        }}
-                      >
-                        <Delete fontSize="inherit" />
-                      </IconButton>
-                    </Box>
-                  )}
-                  {link.linkSource === 'calculated' && (
-                    <IconButton color="primary">
-                      <Tooltip title={t('linkForm.calculatedLink')}>
-                        <Info fontSize="small" />
-                      </Tooltip>
-                    </IconButton>
-                  )}
+                    ))}
                 </Stack>
-              ))}
-            </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                {!preview &&
+                  linkFormState !== 'hidden' &&
+                  linkFormState !== 'edit' && (
+                    <Box p={2}>
+                      <LinkForm
+                        cards={cards}
+                        linkTypes={linkTypes}
+                        onSubmit={onLinkFormSubmit}
+                        cardKey={card.key}
+                        state={linkFormState}
+                        onCancel={() =>
+                          onLinkFormChange && onLinkFormChange('hidden')
+                        }
+                      />
+                    </Box>
+                  )}
+                {card.links.length > 0 && (
+                  <Stack
+                    bgcolor="neutral.softBg"
+                    borderRadius={16}
+                    paddingY={2}
+                    paddingX={2}
+                    spacing={2}
+                  >
+                    {card.links.map((link, index) => (
+                      <Stack
+                        key={index}
+                        borderRadius={16}
+                        paddingLeft={2}
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{
+                          '&:hover .actionButton': {
+                            opacity: 1,
+                          },
+                          '& .actionButton': {
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          },
+                        }}
+                      >
+                        <Stack>
+                          <Typography data-cy="cardLinkType" level="body-sm">
+                            {link.displayName}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <NextLink
+                              data-cy="cardLink"
+                              href={`/cards/${link.key}`}
+                            >
+                              <Link component="div">{link.key}</Link>
+                            </NextLink>
+                            <Divider
+                              orientation="vertical"
+                              sx={{
+                                marginX: '4px',
+                              }}
+                            />
+                            <Typography
+                              data-cy="cardLinkTitle"
+                              level="title-sm"
+                            >
+                              {link.title}
+                            </Typography>
+                            {link.linkDescription && (
+                              <Typography level="body-sm" marginLeft={2}>
+                                {link.linkDescription}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                        {link.linkSource === 'user' && !preview && (
+                          <Box
+                            gap={1}
+                            fontSize={24}
+                            alignItems="center"
+                            marginRight={2}
+                          >
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                const linkType = linkTypes.find(
+                                  (t) =>
+                                    t.name === link.linkType &&
+                                    t.direction === link.direction,
+                                );
+                                setEditLinkData({
+                                  linkType: linkType?.id ?? NO_LINK_TYPE,
+                                  cardKey: link.key,
+                                  linkDescription: link.linkDescription || '',
+                                  linkTypeName: link.linkType,
+                                  direction: link.direction,
+                                });
+                                openModal('editLink')();
+                              }}
+                            >
+                              <Edit fontSize="inherit" />
+                            </IconButton>
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                setDeleteLinkData(link);
+                                openModal('deleteLink')();
+                              }}
+                            >
+                              <Delete fontSize="inherit" />
+                            </IconButton>
+                          </Box>
+                        )}
+                        {link.linkSource === 'calculated' && (
+                          <IconButton color="primary">
+                            <Tooltip title={t('linkForm.calculatedLink')}>
+                              <Info fontSize="small" />
+                            </Tooltip>
+                          </IconButton>
+                        )}
+                      </Stack>
+                    ))}
+                  </Stack>
+                )}
+              </AccordionDetails>
+            </Accordion>
           )}
           <Box pl={4} pr={4} mt={0}>
             <div className="doc" ref={setRef}>
