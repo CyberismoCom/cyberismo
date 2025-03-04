@@ -80,7 +80,7 @@ export type QueryResult<T extends QueryName> = QueryMap[T];
  * Define all the queries below
  */
 interface TreeQueryResult extends BaseResult {
-  'base/fieldTypes/progress'?: string;
+  progress?: string;
   rank: string;
   title: string;
   cardType: string;
@@ -89,7 +89,7 @@ interface TreeQueryResult extends BaseResult {
 }
 
 interface CardQueryResult extends BaseResult {
-  'base/fieldTypes/progress'?: string;
+  progress?: string;
   rank: string;
   title: string;
   cardType: string;

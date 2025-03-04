@@ -48,3 +48,6 @@ dataType((FieldType, EnumValue), "enumValue", "longText") :-
 hiddenInTreeView(Card) :-
     ancestor(Card, Ancestor),
     hiddenInTreeView(Ancestor).
+
+% TODO: remove this compatibility rule, once content repositories have been updated (INTDEV-666)
+field(Card, "progress", Progress) :- field(Card, "base/fieldTypes/progress", Progress).

@@ -187,7 +187,7 @@ export class Export {
 
     card.path = cardDetailsResponse.path;
     card.metadata = cardDetailsResponse.metadata;
-    card.metadata!.progress = treeQueryResult['base/fieldTypes/progress'];
+    card.metadata!.progress = treeQueryResult.progress;
     card.content = asciiDocContent;
     card.attachments = cardDetailsResponse.attachments;
 
