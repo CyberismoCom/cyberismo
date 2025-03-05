@@ -21,14 +21,12 @@ import {
   Workflow,
   WorkflowState,
 } from './interfaces/resource-interfaces.js';
-import { Edit } from './edit.js';
 import { Project } from './containers/project.js';
 
 export class Transition extends EventEmitter {
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
-    private editCmd: Edit,
   ) {
     super();
     this.addListener(
@@ -47,8 +45,8 @@ export class Transition extends EventEmitter {
 
   /**
    * Transitions a card from its current state to a new state.
-   * @param {string} cardKey card key
-   * @param {string} transition which transition to do
+   * @param cardKey card key
+   * @param transition which transition to do
    */
   public async cardTransition(cardKey: string, transition: WorkflowState) {
     // Card details
@@ -115,11 +113,9 @@ export class Transition extends EventEmitter {
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     // Write new state
-    await this.setCardState(details, found.toState); //todo: instead, this could just use project.updateCardMetadata
-    await this.editCmd.editCardMetadata(
-      details.key,
-      'lastTransitioned',
-      new Date().toISOString(),
-    );
+    await this.setCardState(details, found.toState);
+    // If update succeeds, update last transition timestamp
+    details.metadata.lastTransitioned = new Date().toISOString();
+    await this.project.updateCardMetadata(details, details.metadata);
   }
 }

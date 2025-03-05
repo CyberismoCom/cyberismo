@@ -172,9 +172,14 @@ export class Project extends CardContainer {
     newValue: MetadataContent,
     skipValidation: boolean = false,
   ) {
-    const card = await this.findCard(this.basePath, cardKey, {
-      metadata: true,
-    });
+    const templateCard = await this.isTemplateCard(cardKey);
+    const card = await this.findCard(
+      templateCard ? this.paths.templatesFolder : this.paths.cardRootFolder,
+      cardKey,
+      {
+        metadata: true,
+      },
+    );
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
