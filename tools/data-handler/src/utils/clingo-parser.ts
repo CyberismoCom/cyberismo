@@ -11,7 +11,7 @@
 */
 
 import { DataType } from '../interfaces/resource-interfaces.js';
-import { BaseResult, ParseResult } from '../types/queries.js';
+import { BaseResult, LinkDirection, ParseResult } from '../types/queries.js';
 
 /**
  * This function reverses the encoding made by the "encodeClingoValue" function
@@ -169,7 +169,8 @@ class ClingoParser {
       title: string,
       linkType: string,
       displayName: string,
-      direction: 'inbound' | 'outbound',
+      direction: LinkDirection,
+      linkSource: 'user' | 'calculated',
       linkDescription?: string,
     ) => {
       const res = this.getOrInitResult(key);
@@ -179,6 +180,7 @@ class ClingoParser {
         displayName,
         linkDescription,
         direction,
+        linkSource,
         title,
       });
     },

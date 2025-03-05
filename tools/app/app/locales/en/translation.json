@@ -25,6 +25,9 @@
     "success": "Attachment(s) added successfully",
     "acceptedFormats": "Accepted file types: ..."
   },
+  "editLinkModal": {
+    "title": "Edit link"
+  },
   "createCardModal": {
     "success": "Card created successfully"
   },
@@ -98,7 +101,9 @@
     "selectLinkType": "Select link type",
     "searchCard": "Search card",
     "writeDescription": "Write a link description",
-    "button": "Add link"
+    "button": "Add link",
+    "buttonEdit": "Update",
+    "calculatedLink": "This is an automatic link that cannot be deleted"
   },
   "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",

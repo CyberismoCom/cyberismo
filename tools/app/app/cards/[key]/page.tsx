@@ -11,7 +11,7 @@
 */
 
 'use client';
-import { ContentArea } from '@/app/components/ContentArea';
+import { ContentArea, LinkFormState } from '@/app/components/ContentArea';
 import ContentToolbar from '@/app/components/ContentToolbar';
 import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
@@ -28,9 +28,7 @@ export const dynamic = 'force-dynamic';
 
 export default function Page(props: { params: Promise<{ key: string }> }) {
   const params = use(props.params);
-  const { card, error, createLink, deleteLink, isLoading } = useCard(
-    params.key,
-  );
+  const { card, error, createLink, deleteLink, editLink } = useCard(params.key);
 
   const { tree } = useTree();
 
@@ -44,7 +42,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   const { t } = useTranslation();
 
-  const [linksVisible, setLinksVisible] = useState(false);
+  const [linkFormState, setLinkFormState] = useState<LinkFormState>('hidden');
 
   useEffect(() => {
     if (listCard) {
@@ -77,7 +75,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         cardKey={params.key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
-        onInsertLink={() => setLinksVisible(true)}
+        onInsertLink={() => setLinkFormState('add-from-toolbar')}
         linkButtonDisabled={expandedLinkTypes.length === 0}
       />
       <Box flexGrow={1} minHeight={0}>
@@ -97,32 +95,58 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                 if (!linkType) {
                   throw new Error('Link type not found');
                 }
-                await createLink(
-                  data.cardKey,
-                  data.linkType,
-                  linkType.enableLinkDescription
-                    ? data.linkDescription
-                    : undefined,
-                  data.direction,
-                );
-                return true;
+
+                // Handle both regular form and modal form submissions
+                if (
+                  data.previousLinkDescription !== undefined &&
+                  data.previousLinkType !== undefined &&
+                  data.previousCardKey !== undefined &&
+                  data.previousDirection !== undefined
+                ) {
+                  // This is coming from edit link modal
+                  await editLink(
+                    data.cardKey,
+                    data.direction,
+                    data.linkType,
+                    data.previousLinkType,
+                    data.previousCardKey,
+                    data.previousDirection,
+                    linkType.enableLinkDescription
+                      ? data.linkDescription
+                      : undefined,
+                    data.previousLinkDescription,
+                  );
+                  return true;
+                } else {
+                  // This is a new link creation
+                  await createLink(
+                    data.cardKey,
+                    data.linkType,
+                    linkType.enableLinkDescription
+                      ? data.linkDescription
+                      : undefined,
+                    data.direction,
+                  );
+                  setLinkFormState('hidden');
+                  return true;
+                }
               } catch (error) {
                 dispatch(
                   addNotification({
-                    message: `Failed to create link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    message: `Failed to handle link operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
                     type: 'error',
                   }),
                 );
                 return false;
               }
             }}
-            linksVisible={linksVisible}
-            onLinkToggle={() => setLinksVisible(!linksVisible)}
+            linkFormState={linkFormState}
+            onLinkFormChange={(state) => setLinkFormState(state)}
             onDeleteLink={async (data) => {
               try {
                 await deleteLink(
-                  data.direction === 'outbound' ? params.key : data.key,
-                  data.direction === 'outbound' ? data.key : params.key,
+                  data.key,
+                  data.direction,
                   data.linkType,
                   data.linkDescription,
                 );

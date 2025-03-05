@@ -19,6 +19,7 @@ import {
   Workflow,
 } from '@cyberismocom/data-handler/interfaces/resource-interfaces';
 import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 
 // These are exported as-is.
 export {
@@ -103,5 +104,5 @@ export interface Project {
 
 export type ExpandedLinkType = LinkType & {
   id: number;
-  direction: 'inbound' | 'outbound';
+  direction: LinkDirection;
 };

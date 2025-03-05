@@ -19,6 +19,7 @@ import { CardDetails, Project } from '../definitions';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
+import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
@@ -51,7 +52,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       target: string,
       type: string,
       linkDescription?: string,
-      direction: 'inbound' | 'outbound' = 'outbound',
+      direction: LinkDirection = 'outbound',
     ) =>
       (key &&
         (await callUpdate(() =>
@@ -66,18 +67,62 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         ))) ||
       null,
     deleteLink: async (
-      fromCard: string,
-      toCard: string,
+      target: string,
+      direction: LinkDirection,
       linkType: string,
       linkDescription?: string,
     ) =>
       (key &&
         (await callUpdate(() =>
-          removeLink(fromCard, toCard, linkType, linkDescription).then(() => {
-            mutate(apiPaths.card(fromCard));
+          removeLink(
+            direction === 'outbound' ? key : target,
+            direction === 'outbound' ? target : key,
+            linkType,
+            linkDescription,
+          ).then(() => {
+            mutate(apiPaths.card(key));
           }),
         ))) ||
       null,
+    editLink: async (
+      target: string,
+      direction: LinkDirection,
+      linkType: string,
+      previousLinkType: string,
+      previousCardKey: string,
+      previousDirection: LinkDirection,
+      linkDescription?: string,
+      previousLinkDescription?: string,
+    ) => {
+      return (
+        (key &&
+          (await callUpdate(() => {
+            // Current link structure
+            const sourceKey = direction === 'outbound' ? key : target;
+            const destKey = direction === 'outbound' ? target : key;
+
+            // Original link structure
+            const oldDirection = previousDirection;
+            const oldSourceKey =
+              oldDirection === 'outbound' ? key : previousCardKey || target;
+            const oldDestKey =
+              oldDirection === 'outbound' ? previousCardKey || target : key;
+            const oldLinkType = previousLinkType || linkType;
+
+            return removeLink(
+              oldSourceKey,
+              oldDestKey,
+              oldLinkType,
+              previousLinkDescription,
+            )
+              .then(() =>
+                createLink(sourceKey, destKey, linkType, linkDescription),
+              )
+              .then(() => mutate(apiPaths.card(key)));
+          }))) ||
+        null
+      );
+    },
   };
 };
 export async function updateCard(key: string, cardUpdate: CardUpdate) {

@@ -12,7 +12,13 @@
 
 'use client';
 
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+  useRef,
+} from 'react';
 import {
   CardDetails,
   ExpandedLinkType,
@@ -38,14 +44,22 @@ import {
   Select,
   Stack,
   Typography,
+  Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
-import { findCard, flattenTree } from '../lib/utils';
+import { findCard, flattenTree, useModals } from '../lib/utils';
 import { default as NextLink } from 'next/link';
-import { Add, Delete, Edit, ExpandMore, Search } from '@mui/icons-material';
+import {
+  Add,
+  Delete,
+  Edit,
+  ExpandMore,
+  Search,
+  Info,
+} from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
-import { GenericConfirmModal } from './modals';
+import EditLinkModal from './modals/EditLinkModal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
@@ -59,8 +73,12 @@ import {
   Notification,
   QueryResult,
   CalculationLink,
+  LinkDirection,
 } from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
+import { GenericConfirmModal } from './modals';
+
+export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
 type ContentAreaProps = {
   cards: QueryResult<'tree'>[];
@@ -70,15 +88,19 @@ type ContentAreaProps = {
   onLinkFormSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onDeleteLink?: (data: CalculationLink) => void | Promise<void>;
   preview?: boolean;
-  linksVisible?: boolean;
-  onLinkToggle?: () => void;
+  linkFormState: LinkFormState;
+  onLinkFormChange?: (state: LinkFormState) => void;
 };
 
 interface LinkFormSubmitData {
   linkType: string;
   cardKey: string;
   linkDescription: string;
-  direction: 'inbound' | 'outbound';
+  direction: LinkDirection;
+  previousLinkType?: string;
+  previousCardKey?: string;
+  previousLinkDescription?: string;
+  previousDirection?: LinkDirection;
 }
 
 interface LinkFormData {
@@ -91,24 +113,51 @@ interface LinkFormProps {
   linkTypes: ExpandedLinkType[];
   cards: QueryResult<'tree'>[];
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
+  onCancel?: () => void;
   cardKey: string;
+  state: LinkFormState;
+  data?: LinkFormData;
+  inModal?: boolean;
+  formRef?: React.RefObject<HTMLFormElement>;
 }
 
 const NO_LINK_TYPE = -1;
+
+const DEFAULT_LINK_FORM_DATA: LinkFormData = {
+  linkType: NO_LINK_TYPE,
+  cardKey: '',
+  linkDescription: '',
+};
 
 export function LinkForm({
   cards,
   linkTypes,
   onSubmit,
   cardKey,
+  data,
+  state,
+  inModal = false,
+  formRef,
+  onCancel,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
-    defaultValues: { linkType: NO_LINK_TYPE, cardKey: '', linkDescription: '' },
+    defaultValues: {
+      ...DEFAULT_LINK_FORM_DATA,
+      ...(data || {}),
+    },
   });
   const { t } = useTranslation();
 
+  useEffect(() => {
+    reset({
+      ...DEFAULT_LINK_FORM_DATA,
+      ...(data || {}),
+    });
+  }, [data, reset]);
+
   // find chosen link type
   const linkType = watch('linkType');
+
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
   const usableCards = flattenTree(cards).filter((card) => {
@@ -126,16 +175,37 @@ export function LinkForm({
     }
   });
 
+  // If card is not in usable cards, reset the form
+
+  const formCardKey = watch('cardKey');
+  useEffect(() => {
+    if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
+      reset({
+        ...DEFAULT_LINK_FORM_DATA,
+        linkType,
+      });
+    }
+  }, [formCardKey, usableCards, linkType, reset]);
+
   return (
     <form
-      onSubmit={handleSubmit(async (data) => {
-        const linkType = linkTypes.find((t) => t.id === data.linkType);
+      ref={formRef}
+      onSubmit={handleSubmit(async (formData) => {
+        const oldLinkType = linkTypes.find((t) => t.id === data?.linkType);
+        const linkType = linkTypes.find((t) => t.id === formData.linkType);
         if (!linkType) return;
         const success = await onSubmit?.({
           linkType: linkType.name,
-          cardKey: data.cardKey,
-          linkDescription: data.linkDescription,
+          cardKey: formData.cardKey,
+          linkDescription: formData.linkDescription,
           direction: linkType.direction,
+          previousLinkType:
+            state === 'edit' && data ? linkType.name : undefined,
+          previousCardKey: state === 'edit' && data ? data.cardKey : undefined,
+          previousLinkDescription:
+            state === 'edit' && data ? data.linkDescription : undefined,
+          previousDirection:
+            state === 'edit' && oldLinkType ? oldLinkType.direction : undefined,
         });
         if (success) reset();
       })}
@@ -213,15 +283,29 @@ export function LinkForm({
             )}
           />
         )}
-        <Button
-          type="submit"
-          sx={{
-            width: '100px',
-            alignSelf: 'flex-end',
-          }}
-        >
-          {t('linkForm.button')}
-        </Button>
+
+        {/* Only render the button if not in modal mode */}
+        {!inModal && (
+          <Stack direction="row" spacing={1} justifyContent="flex-end">
+            <Button
+              variant="plain"
+              onClick={onCancel}
+              sx={{
+                width: '100px',
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="submit"
+              sx={{
+                width: '100px',
+              }}
+            >
+              {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
+            </Button>
+          </Stack>
+        )}
       </Stack>
     </form>
   );
@@ -456,21 +540,27 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   linkTypes,
   onMetadataClick,
   onLinkFormSubmit,
-  onDeleteLink,
   preview,
-  linksVisible,
-  onLinkToggle,
+  linkFormState,
+  onLinkFormChange,
+  onDeleteLink,
 }) => {
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
+  const [linksExpanded, setLinksExpanded] = useState(false);
 
-  const [isDeleteLinkModalVisible, setDeleteLinkModalVisible] = useState(false); // replace with usemodals if you add more modals
+  const { modalOpen, openModal, closeModal } = useModals({
+    editLink: false,
+    deleteLink: false,
+  });
+
   const [deleteLinkData, setDeleteLinkData] = useState<CalculationLink | null>(
     null,
   );
 
-  const boxRef = React.createRef<HTMLDivElement>();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const linkedCardsRef = useRef<HTMLDivElement>(null);
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
 
@@ -480,6 +570,29 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
+
+  const [editLinkData, setEditLinkData] = useState<
+    LinkFormData & {
+      linkTypeName: string;
+      direction: LinkDirection;
+    }
+  >();
+
+  useEffect(() => {
+    if (
+      (linkFormState === 'add' || linkFormState === 'add-from-toolbar') &&
+      !linksExpanded
+    ) {
+      setLinksExpanded(true);
+    }
+  }, [linkFormState, linksExpanded]);
+
+  useEffect(() => {
+    if (linkFormState !== 'edit') {
+      setEditLinkData(undefined);
+    }
+  }, [linkFormState]);
+
   // scroll to last title on first render and when tab is changed
   useEffect(() => {
     if (lastTitle && contentRef && cardKey === card?.key) {
@@ -572,6 +685,20 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
   };
 
+  // Function to scroll to linked cards section
+  const scrollToLinkedCards = () => {
+    if (linkedCardsRef.current) {
+      linkedCardsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Effect to scroll to linked cards when link form is opened from toolbar
+  useEffect(() => {
+    if (linkFormState === 'add-from-toolbar') {
+      scrollToLinkedCards();
+    }
+  }, [linkFormState]);
+
   return (
     <Stack direction="row" height="100%">
       <Box
@@ -593,98 +720,194 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             onClick={onMetadataClick}
             card={card}
           />
-          {(card.links.length > 0 || linksVisible) && (
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
+          {(card.links.length > 0 || linkFormState !== 'hidden') && (
+            <Accordion
+              expanded={linksExpanded}
+              ref={linkedCardsRef}
+              sx={{
+                width: '100%',
+              }}
             >
-              <Typography level="title-sm">{t('linkedCards')}</Typography>
-              {!preview &&
-                (linksVisible ? (
-                  <ChipDelete onDelete={onLinkToggle} />
-                ) : (
-                  <IconButton onClick={onLinkToggle}>
-                    <Add />
-                  </IconButton>
-                ))}
-            </Stack>
-          )}
-          {!preview && linksVisible && (
-            <LinkForm
-              cards={cards}
-              linkTypes={linkTypes}
-              onSubmit={onLinkFormSubmit}
-              cardKey={card.key}
-            />
-          )}
-          {card.links.length > 0 && (
-            <Stack>
-              {card.links.map((link, index) => {
-                return (
-                  <Box
-                    bgcolor="neutral.softBg"
-                    borderRadius={16}
-                    marginY={0.5}
-                    paddingY={2}
-                    paddingX={3}
-                    flexDirection="row"
-                    display="flex"
-                    key={index}
-                    alignItems="center"
+              <Stack direction="row" width="100%">
+                <AccordionSummary
+                  indicator={<ExpandMore data-cy="expandLinks" />}
+                  onClick={() => {
+                    if (linksExpanded) {
+                      onLinkFormChange && onLinkFormChange('hidden');
+                    }
+                    setLinksExpanded(!linksExpanded);
+                  }}
+                  sx={{
+                    borderRadius: '4px',
+                    marginTop: 1,
+                    marginBottom: 1,
+                    flexGrow: 1,
+                    height: 36,
+                  }}
+                >
+                  <Typography
+                    level="body-xs"
+                    color="primary"
+                    variant="soft"
+                    width={24}
+                    height={24}
+                    alignContent="center"
+                    borderRadius={40}
+                    marginLeft={0}
+                    paddingX={1.1}
+                  >
+                    {card.links.length}
+                  </Typography>
+                  <Stack
+                    direction="row"
                     justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ width: '100%' }}
+                  >
+                    <Typography level="title-sm" fontWeight="bold">
+                      {t('linkedCards')}
+                    </Typography>
+                  </Stack>
+                </AccordionSummary>
+                {!preview && linkFormState === 'hidden' && (
+                  <IconButton
                     sx={{
-                      '&:hover .deleteButton': {
-                        opacity: 1,
-                      },
-                      '& .deleteButton': {
-                        opacity: 0,
-                        transition: 'opacity 0.2s',
-                      },
+                      height: 36,
+                      alignSelf: 'center',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLinkFormChange && onLinkFormChange('add');
                     }}
                   >
-                    <Stack>
-                      <Stack direction="row" alignItems="center">
-                        <Typography
-                          data-cy="cardLinkType"
-                          level="body-sm"
-                          paddingRight={2}
-                        >
-                          {link.displayName}
-                        </Typography>
-                        <NextLink
-                          data-cy="cardLink"
-                          href={`/cards/${link.key}`}
-                        >
-                          <Link component={'div'}>{link.key}</Link>
-                        </NextLink>
-                        <Divider
-                          orientation="vertical"
-                          sx={{
-                            marginX: 1,
-                          }}
-                        />
-                        <Typography data-cy="cardLinkTitle" level="title-sm">
-                          {link.title}
-                        </Typography>
+                    <Add />
+                  </IconButton>
+                )}
+              </Stack>
+              <AccordionDetails>
+                {!preview &&
+                  linkFormState !== 'hidden' &&
+                  linkFormState !== 'edit' && (
+                    <Box p={2}>
+                      <LinkForm
+                        cards={cards}
+                        linkTypes={linkTypes}
+                        onSubmit={onLinkFormSubmit}
+                        cardKey={card.key}
+                        state={linkFormState}
+                        onCancel={() =>
+                          onLinkFormChange && onLinkFormChange('hidden')
+                        }
+                      />
+                    </Box>
+                  )}
+                {card.links.length > 0 && (
+                  <Stack
+                    bgcolor="neutral.softBg"
+                    borderRadius={16}
+                    paddingY={2}
+                    paddingX={2}
+                    spacing={2}
+                  >
+                    {card.links.map((link, index) => (
+                      <Stack
+                        key={index}
+                        borderRadius={16}
+                        paddingLeft={2}
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                        sx={{
+                          '&:hover .actionButton': {
+                            opacity: 1,
+                          },
+                          '& .actionButton': {
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                          },
+                        }}
+                      >
+                        <Stack>
+                          <Typography data-cy="cardLinkType" level="body-sm">
+                            {link.displayName}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <NextLink
+                              data-cy="cardLink"
+                              href={`/cards/${link.key}`}
+                            >
+                              <Link component="div">{link.key}</Link>
+                            </NextLink>
+                            <Divider
+                              orientation="vertical"
+                              sx={{
+                                marginX: '4px',
+                              }}
+                            />
+                            <Typography
+                              data-cy="cardLinkTitle"
+                              level="title-sm"
+                            >
+                              {link.title}
+                            </Typography>
+                            {link.linkDescription && (
+                              <Typography level="body-sm" marginLeft={2}>
+                                {link.linkDescription}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                        {link.linkSource === 'user' && !preview && (
+                          <Box
+                            gap={1}
+                            fontSize={24}
+                            alignItems="center"
+                            marginRight={2}
+                          >
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                const linkType = linkTypes.find(
+                                  (t) =>
+                                    t.name === link.linkType &&
+                                    t.direction === link.direction,
+                                );
+                                setEditLinkData({
+                                  linkType: linkType?.id ?? NO_LINK_TYPE,
+                                  cardKey: link.key,
+                                  linkDescription: link.linkDescription || '',
+                                  linkTypeName: link.linkType,
+                                  direction: link.direction,
+                                });
+                                openModal('editLink')();
+                              }}
+                            >
+                              <Edit fontSize="inherit" />
+                            </IconButton>
+                            <IconButton
+                              className="actionButton"
+                              onClick={() => {
+                                setDeleteLinkData(link);
+                                openModal('deleteLink')();
+                              }}
+                            >
+                              <Delete fontSize="inherit" />
+                            </IconButton>
+                          </Box>
+                        )}
+                        {link.linkSource === 'calculated' && (
+                          <IconButton color="primary">
+                            <Tooltip title={t('linkForm.calculatedLink')}>
+                              <Info fontSize="small" />
+                            </Tooltip>
+                          </IconButton>
+                        )}
                       </Stack>
-                      <Typography level="body-sm">
-                        {link.linkDescription}
-                      </Typography>
-                    </Stack>
-                    <IconButton
-                      className="deleteButton"
-                      onClick={() => {
-                        setDeleteLinkModalVisible(true);
-                        setDeleteLinkData(link);
-                      }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                );
-              })}
-            </Stack>
+                    ))}
+                  </Stack>
+                )}
+              </AccordionDetails>
+            </Accordion>
           )}
           <Box pl={4} pr={4} mt={0}>
             <div className="doc" ref={setRef}>
@@ -711,22 +934,41 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         <Notifications notifications={card.notifications} />
         <PolicyChecks policyChecks={card.policyChecks} />
       </Stack>
+
+      {/* Modals */}
       {!preview && (
-        <GenericConfirmModal
-          open={isDeleteLinkModalVisible}
-          onClose={() => {
-            setDeleteLinkModalVisible(false);
-          }}
-          onConfirm={async () => {
-            if (deleteLinkData) {
-              await onDeleteLink?.(deleteLinkData);
-            }
-            setDeleteLinkModalVisible(false);
-          }}
-          title={t('deleteLink')}
-          content={t('deleteLinkConfirm')}
-          confirmText={t('delete')}
-        />
+        <>
+          <EditLinkModal
+            open={modalOpen.editLink}
+            onClose={() => {
+              closeModal('editLink')();
+              setEditLinkData(undefined);
+            }}
+            onSubmit={async (data) => {
+              if (onLinkFormSubmit) {
+                return await onLinkFormSubmit(data);
+              }
+              return false;
+            }}
+            editLinkData={editLinkData}
+            cards={cards}
+            linkTypes={linkTypes}
+            cardKey={card.key}
+          />
+          <GenericConfirmModal
+            open={modalOpen.deleteLink}
+            onClose={closeModal('deleteLink')}
+            onConfirm={async () => {
+              if (deleteLinkData) {
+                await onDeleteLink?.(deleteLinkData);
+              }
+              closeModal('deleteLink')();
+            }}
+            title={t('deleteLink')}
+            content={t('deleteLinkConfirm')}
+            confirmText={t('delete')}
+          />
+        </>
       )}
     </Stack>
   );

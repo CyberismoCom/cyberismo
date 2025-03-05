@@ -701,6 +701,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                       linkTypes={expandedLinkTypes}
                       preview={true}
                       cards={tree}
+                      linkFormState="hidden"
                     />
                   </LoadingGate>
                 </Box>

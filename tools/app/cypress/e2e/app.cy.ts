@@ -225,6 +225,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="cardLinkTitle"]').contains('Updated title');
     cy.get('[data-cy="cardLink"]');
 
+    cy.get('[data-cy="expandLinks"]').click();
     cy.get('[data-testid="DeleteIcon"]').click(); // Delete link
     // Verify delete link dialog contents and click delete
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);

@@ -19,13 +19,16 @@ import {
   WorkflowCategory,
 } from '../interfaces/resource-interfaces.js';
 
+export type LinkDirection = 'inbound' | 'outbound';
+
 export interface CalculationLink {
   displayName: string;
   key: string;
   linkType: string;
   title: string; // title of the other card
   linkDescription?: string;
-  direction: 'inbound' | 'outbound';
+  direction: LinkDirection;
+  linkSource: 'user' | 'calculated';
 }
 
 export interface Notification {
