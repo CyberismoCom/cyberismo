@@ -2,7 +2,6 @@
     "cardType": "decision/cardTypes/decision",
     "title": "Untitled",
     "workflowState": "Draft",
-    "decision/fieldTypes/obsoletedBy": null,
     "rank": "0|a",
     "lastUpdated": "2024-09-13T11:49:45.184Z"
 }

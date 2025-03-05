@@ -2,6 +2,5 @@
     "cardType": "decision/cardTypes/decision",
     "title": "Document Decisions with Decision Records",
     "workflowState": "IdontExist",
-    "decision/fieldTypes/obsoletedBy": null,
     "rank": "0|a"
 }

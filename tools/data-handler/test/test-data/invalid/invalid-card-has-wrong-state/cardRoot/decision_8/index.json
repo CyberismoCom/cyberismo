@@ -2,7 +2,6 @@
     "cardType": "decision/cardTypes/decisionWrongMissingWF",
     "title": "Decision Records",
     "workflowState": "Draft",
-    "decision/fieldTypes/obsoletedBy": null,
     "rank": "0|z",
     "lastUpdated": "2024-09-13T11:49:45.182Z"
 }

@@ -212,13 +212,15 @@ export class Template extends CardContainer {
       }
 
       const cardWithRank = parentCards.find((c) => c.key === card.key);
-      const customFields = cardType.customFields.reduce(
-        (acc, field) => ({
-          ...acc,
-          [field.name]: card.metadata?.[field.name] || null,
-        }),
-        {},
-      );
+      const customFields = cardType.customFields
+        .filter((item) => !item.isCalculated)
+        .reduce(
+          (acc, field) => ({
+            ...acc,
+            [field.name]: card.metadata?.[field.name] || null,
+          }),
+          {},
+        );
 
       const newMetadata = {
         ...card.metadata,

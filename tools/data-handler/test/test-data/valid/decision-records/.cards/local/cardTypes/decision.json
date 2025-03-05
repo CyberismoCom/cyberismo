@@ -3,7 +3,8 @@
     "workflow": "decision/workflows/decision",
     "customFields": [
         {
-            "name": "decision/fieldTypes/obsoletedBy"
+            "name": "decision/fieldTypes/obsoletedBy",
+            "isCalculated": true
         },
         {
             "name": "decision/fieldTypes/admins"
