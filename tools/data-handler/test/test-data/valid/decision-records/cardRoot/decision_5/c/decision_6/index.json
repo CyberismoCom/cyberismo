@@ -4,7 +4,6 @@
     "workflowState": "Approved",
     "rank": "0|a",
     "lastUpdated": "2024-09-30T14:17:52.214Z",
-    "decision/fieldTypes/obsoletedBy": null,
     "decision/fieldTypes/admins": null,
     "decision/fieldTypes/commitDescription": null,
     "decision/fieldTypes/finished": null,

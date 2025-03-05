@@ -780,12 +780,13 @@ export class Validate {
           );
         }
         continue;
-      }
-      if (card.metadata[field.name] === undefined) {
-        validationErrors.push(
-          `Card '${card.key}' is missing custom field '${field.name}'`,
-        );
-        continue;
+      } else {
+        if (card.metadata[field.name] === undefined) {
+          validationErrors.push(
+            `Card '${card.key}' is missing custom field '${field.name}'`,
+          );
+          continue;
+        }
       }
 
       const fieldType = await this.getAndCacheResource(

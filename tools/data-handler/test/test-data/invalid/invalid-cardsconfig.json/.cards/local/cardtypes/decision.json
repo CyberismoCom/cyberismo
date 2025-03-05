@@ -4,6 +4,7 @@
     "customFields": [
         {
             "name": "decision/fieldTypes/obsoletedBy",
+            "isCalculated": true,
             "displayName": "Obsoleted By"
         }
     ]

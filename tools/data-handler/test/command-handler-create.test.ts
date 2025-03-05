@@ -13,7 +13,10 @@ import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Calculate } from '../src/calculate.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
-import { CardListContainer } from '../src/interfaces/project-interfaces.js';
+import {
+  Card,
+  CardListContainer,
+} from '../src/interfaces/project-interfaces.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -203,6 +206,21 @@ describe('create command', () => {
       options,
     );
     expect(result.statusCode).to.equal(200);
+
+    // Check that created card contains custom fields, but not calculated fields
+    const createdCard = result.affectsCards?.at(0) || '';
+    const cardDetails = (
+      await commandHandler.command(Cmd.show, ['card', createdCard], options)
+    ).payload;
+    if (cardDetails) {
+      console.error(cardDetails);
+      expect((cardDetails as Card).metadata).to.not.include.keys(
+        'decision/fieldTypes/obsoletedBy',
+      );
+      expect((cardDetails as Card).metadata).to.include.keys(
+        'decision/fieldTypes/admins',
+      );
+    }
   });
 
   it('card incorrect template name', async () => {
@@ -294,7 +312,6 @@ describe('create command', () => {
       [cardType, workflow],
       optionsMini,
     );
-    console.error(result);
     expect(result.statusCode).to.equal(200);
     const cardTypesCountAfter = await countOfResources(
       ['cardTypes'],
