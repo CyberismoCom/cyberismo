@@ -730,7 +730,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             >
               <Stack direction="row" width="100%">
                 <AccordionSummary
-                  indicator={<ExpandMore />}
+                  indicator={<ExpandMore data-cy="expandLinks" />}
                   onClick={() => {
                     if (linksExpanded) {
                       onLinkFormChange && onLinkFormChange('hidden');
