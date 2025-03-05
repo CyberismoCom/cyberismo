@@ -21,7 +21,7 @@ import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import Link from 'next/link';
 import { useResizeObserver } from '../lib/hooks';
 type TreeMenuProps = {
-  title: string;
+  title?: string;
   selectedCardKey: string | null;
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
@@ -149,7 +149,11 @@ export const TreeMenu: React.FC<TreeMenuProps> = ({
       width="100%"
       ref={ref}
     >
-      <Link href="/cards" style={{ textDecoration: 'none' }} ref={titleRef}>
+      <Link
+        href={(title && '/cards') || ''}
+        style={{ textDecoration: 'none' }}
+        ref={titleRef}
+      >
         <Typography level="h4" marginBottom={2}>
           {title}
         </Typography>
