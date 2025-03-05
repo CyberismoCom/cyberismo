@@ -548,7 +548,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
-  const [linksExpanded, setLinksExpanded] = useState(true);
+  const [linksExpanded, setLinksExpanded] = useState(false);
 
   const { modalOpen, openModal, closeModal } = useModals({
     editLink: false,
@@ -721,62 +721,69 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             card={card}
           />
           {(card.links.length > 0 || linkFormState !== 'hidden') && (
-            <Accordion expanded={linksExpanded} ref={linkedCardsRef}>
-              <AccordionSummary
-                indicator={<ExpandMore />}
-                onClick={() => {
-                  if (linksExpanded) {
-                    onLinkFormChange && onLinkFormChange('hidden');
-                  }
-                  setLinksExpanded(!linksExpanded);
-                }}
-                sx={{
-                  borderRadius: '4px',
-                  marginTop: 1,
-                  marginBottom: 1,
-                }}
-              >
-                <Typography
-                  level="body-xs"
-                  color="primary"
-                  variant="soft"
-                  width={24}
-                  height={24}
-                  alignContent="center"
-                  borderRadius={40}
-                  marginLeft={0}
-                  paddingX={1.1}
+            <Accordion
+              expanded={linksExpanded}
+              ref={linkedCardsRef}
+              sx={{
+                width: '100%',
+              }}
+            >
+              <Stack direction="row" width="100%">
+                <AccordionSummary
+                  indicator={<ExpandMore />}
+                  onClick={() => {
+                    if (linksExpanded) {
+                      onLinkFormChange && onLinkFormChange('hidden');
+                    }
+                    setLinksExpanded(!linksExpanded);
+                  }}
+                  sx={{
+                    borderRadius: '4px',
+                    marginTop: 1,
+                    marginBottom: 1,
+                    flexGrow: 1,
+                    height: 36,
+                  }}
                 >
-                  {card.links.length}
-                </Typography>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  alignItems="center"
-                  sx={{ width: '100%' }}
-                >
-                  <Typography level="title-sm" fontWeight="bold">
-                    {t('linkedCards')}
+                  <Typography
+                    level="body-xs"
+                    color="primary"
+                    variant="soft"
+                    width={24}
+                    height={24}
+                    alignContent="center"
+                    borderRadius={40}
+                    marginLeft={0}
+                    paddingX={1.1}
+                  >
+                    {card.links.length}
                   </Typography>
-                  {!preview &&
-                    (linkFormState === 'hidden' ? (
-                      <IconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onLinkFormChange && onLinkFormChange('add');
-                        }}
-                      >
-                        <Add />
-                      </IconButton>
-                    ) : (
-                      <Box
-                        sx={{
-                          height: 36,
-                        }}
-                      />
-                    ))}
-                </Stack>
-              </AccordionSummary>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ width: '100%' }}
+                  >
+                    <Typography level="title-sm" fontWeight="bold">
+                      {t('linkedCards')}
+                    </Typography>
+                  </Stack>
+                </AccordionSummary>
+                {!preview && linkFormState === 'hidden' && (
+                  <IconButton
+                    sx={{
+                      height: 36,
+                      alignSelf: 'center',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLinkFormChange && onLinkFormChange('add');
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
+                )}
+              </Stack>
               <AccordionDetails>
                 {!preview &&
                   linkFormState !== 'hidden' &&
