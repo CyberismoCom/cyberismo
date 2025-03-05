@@ -77,6 +77,7 @@ import {
 } from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
+import { useCard } from '../lib/api';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
@@ -119,6 +120,7 @@ interface LinkFormProps {
   data?: LinkFormData;
   inModal?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
+  isLoading?: boolean;
 }
 
 const NO_LINK_TYPE = -1;
@@ -139,6 +141,7 @@ export function LinkForm({
   inModal = false,
   formRef,
   onCancel,
+  isLoading,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: {
@@ -293,6 +296,7 @@ export function LinkForm({
               sx={{
                 width: '100px',
               }}
+              disabled={isLoading}
             >
               {t('cancel')}
             </Button>
@@ -301,6 +305,7 @@ export function LinkForm({
               sx={{
                 width: '100px',
               }}
+              loading={isLoading}
             >
               {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
             </Button>
@@ -545,6 +550,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   onLinkFormChange,
   onDeleteLink,
 }) => {
+  const { isUpdating } = useCard(card.key);
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
@@ -798,6 +804,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         onCancel={() =>
                           onLinkFormChange && onLinkFormChange('hidden')
                         }
+                        isLoading={isUpdating}
                       />
                     </Box>
                   )}

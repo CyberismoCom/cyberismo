@@ -22,6 +22,7 @@ import {
   ListItemContent,
   Dropdown,
   MenuButton,
+  CircularProgress,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
@@ -30,12 +31,14 @@ interface StateSelectorProps {
   currentState: WorkflowState | null;
   workflow: Workflow | null;
   onTransition: (transition: WorkflowTransition) => void;
+  isLoading?: boolean;
 }
 
 const StateSelector: React.FC<StateSelectorProps> = ({
   currentState,
   workflow,
   onTransition,
+  isLoading,
 }) => {
   const { t } = useTranslation();
 
@@ -57,29 +60,35 @@ const StateSelector: React.FC<StateSelectorProps> = ({
 
   if (!availableTransitions || !currentState) return null;
 
+  const statusDot = (
+    <span
+      style={{
+        width: '16px',
+        height: '16px',
+        backgroundColor: getStateColor(currentState.category),
+        borderRadius: '50%',
+        marginRight: '2px',
+      }}
+    ></span>
+  );
+
   return (
     <Dropdown>
       <MenuButton
         size="sm"
-        disabled={availableTransitions.length == 0}
+        disabled={availableTransitions.length === 0 || isLoading}
         variant="soft"
-        startDecorator={
-          <span
-            style={{
-              width: '16px',
-              height: '16px',
-              backgroundColor: getStateColor(currentState.category),
-              borderRadius: '50%',
-              marginRight: '2px',
-            }}
-          ></span>
-        }
+        startDecorator={!isLoading && statusDot}
       >
-        <div style={{ whiteSpace: 'nowrap' }}>
-          {t('stateSelector.status', {
-            state: currentState.name,
-          })}
-        </div>
+        {isLoading ? (
+          <CircularProgress size="sm" />
+        ) : (
+          <div style={{ whiteSpace: 'nowrap' }}>
+            {t('stateSelector.status', {
+              state: currentState.name,
+            })}
+          </div>
+        )}
       </MenuButton>
       <Menu>
         {availableTransitions.map((transition) => (

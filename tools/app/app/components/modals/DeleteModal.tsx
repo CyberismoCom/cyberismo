@@ -40,7 +40,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
   const { t } = useTranslation();
   const [checked, setChecked] = React.useState(false);
 
-  const { deleteCard } = useCard(cardKey);
+  const { deleteCard, isUpdating } = useCard(cardKey);
   const childAmount = useChildAmount(cardKey);
 
   const dispatch = useAppDispatch();
@@ -121,6 +121,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
                 variant="outlined"
                 checked={checked}
                 onChange={(e) => setChecked(e.target.checked)}
+                disabled={isUpdating}
               />
             </Alert>
           )}
@@ -129,11 +130,17 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
               data-cy="confirmDeleteButton"
               onClick={handleDelete}
               color="danger"
-              disabled={warning != null && !checked}
+              loading={isUpdating}
+              disabled={(warning != null && !checked) || isUpdating}
             >
               {t('delete')}
             </Button>
-            <Button onClick={onClose} variant="plain" color="neutral">
+            <Button
+              onClick={onClose}
+              variant="plain"
+              color="neutral"
+              disabled={isUpdating}
+            >
               {t('cancel')}
             </Button>
           </DialogActions>

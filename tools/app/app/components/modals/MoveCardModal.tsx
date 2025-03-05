@@ -66,7 +66,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   // TODO: get rid of this dependency
   const { project, isLoading: isLoadingProject } = useProject();
 
-  const { updateCard } = useCard(cardKey);
+  const { updateCard, isUpdating } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
 
   const dispatch = useDispatch();
@@ -325,10 +325,19 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
               flex: '0 0 auto',
             }}
           >
-            <Button onClick={moveCard} disabled={selected === null}>
+            <Button
+              onClick={moveCard}
+              disabled={selected === null || isUpdating}
+              loading={isUpdating}
+            >
               {t('move')}
             </Button>
-            <Button onClick={onClose} variant="plain" color="neutral">
+            <Button
+              onClick={onClose}
+              variant="plain"
+              color="neutral"
+              disabled={isUpdating}
+            >
               {t('cancel')}
             </Button>
           </DialogActions>
