@@ -15,7 +15,6 @@ import { EventEmitter } from 'node:events';
 
 import { ActionGuard } from './permissions/action-guard.js';
 import { Calculate } from './calculate.js';
-import { Card } from './interfaces/project-interfaces.js';
 import {
   CardType,
   Workflow,
@@ -33,14 +32,6 @@ export class Transition extends EventEmitter {
       'transitioned',
       this.calculateCmd.handleCardChanged.bind(this.calculateCmd),
     );
-  }
-
-  // Sets card state
-  private async setCardState(card: Card, state: string) {
-    if (card.metadata) {
-      card.metadata.workflowState = state;
-      this.project.updateCardMetadata(card, card.metadata);
-    }
   }
 
   /**
@@ -113,9 +104,9 @@ export class Transition extends EventEmitter {
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     // Write new state
-    await this.setCardState(details, found.toState);
-    // If update succeeds, update last transition timestamp
+    details.metadata.workflowState = found.toState;
+    details.metadata.lastUpdated = new Date().toISOString();
     details.metadata.lastTransitioned = new Date().toISOString();
-    await this.project.updateCardMetadata(details, details.metadata);
+    return this.project.updateCardMetadata(details, details.metadata);
   }
 }
