@@ -21,6 +21,8 @@ import {
 
 export type LinkDirection = 'inbound' | 'outbound';
 
+export type StatusIndicator = WorkflowCategory | 'error';
+
 export interface CalculationLink {
   displayName: string;
   key: string;
@@ -87,7 +89,7 @@ interface TreeQueryResult extends BaseResult {
   rank: string;
   title: string;
   cardType: string;
-  workflowStateCategory?: WorkflowCategory;
+  statusIndicator?: StatusIndicator;
   children?: TreeQueryResult[];
 }
 

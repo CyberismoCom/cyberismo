@@ -16,10 +16,12 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
-import { FiberManualRecord } from '@mui/icons-material';
+import { FiberManualRecord, Error as ErrorIcon } from '@mui/icons-material';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import Link from 'next/link';
 import { useResizeObserver } from '../lib/hooks';
+import { useTranslation } from 'react-i18next';
+
 type TreeMenuProps = {
   title?: string;
   selectedCardKey: string | null;
@@ -37,6 +39,45 @@ const RenderTree = (
     dragHandle,
   }: NodeRendererProps<QueryResult<'tree'>>) {
     const progress = node.data.progress;
+
+    const renderStatusIndicator = () => {
+      const statusIndicator = node.data.statusIndicator;
+
+      if (!statusIndicator || statusIndicator === 'none') {
+        return null;
+      }
+
+      if (statusIndicator === 'error') {
+        return (
+          <ErrorIcon
+            color="error"
+            sx={{
+              marginRight: 1,
+              fontSize: 15,
+              alignSelf: 'center',
+            }}
+          />
+        );
+      }
+
+      return (
+        <Box
+          color={getStateColor(statusIndicator)}
+          display="flex"
+          alignItems="center"
+          alignSelf="center"
+          width={10}
+          height={10}
+          marginRight={1}
+        >
+          <FiberManualRecord
+            sx={{
+              fontSize: 15,
+            }}
+          />
+        </Box>
+      );
+    };
 
     return (
       <Box
@@ -71,25 +112,7 @@ const RenderTree = (
             cursor: 'pointer',
           }}
         />
-        {node.data.workflowStateCategory && (
-          // Status color circle
-          <Box
-            color={getStateColor(node.data.workflowStateCategory)}
-            visibility={progress ? 'hidden' : 'visible'}
-            display="flex"
-            alignItems="center"
-            alignSelf="center"
-            width={10}
-            height={10}
-            marginRight={1}
-          >
-            <FiberManualRecord
-              sx={{
-                fontSize: 15,
-              }}
-            />
-          </Box>
-        )}
+        {renderStatusIndicator()}
         <Typography
           level="title-sm"
           noWrap

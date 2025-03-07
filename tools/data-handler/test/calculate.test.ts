@@ -8,7 +8,6 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import { QueryResult } from '../src/types/queries.js';
-import { WorkflowCategory } from '../src/interfaces/resource-interfaces.js';
 
 use(chaiAsPromised);
 
@@ -19,7 +18,6 @@ const expectedTree: QueryResult<'tree'>[] = [
     cardType: 'decision/cardTypes/simplepage',
     links: [],
     rank: '0|a',
-    workflowStateCategory: WorkflowCategory.initial,
     children: [
       {
         key: 'decision_6',
@@ -29,7 +27,6 @@ const expectedTree: QueryResult<'tree'>[] = [
         rank: '0|a',
         notifications: [],
         policyChecks: { successes: [], failures: [] },
-        workflowStateCategory: WorkflowCategory.closed,
         deniedOperations: {
           transition: [],
           move: [],
