@@ -33,6 +33,8 @@ updates:
           - "eslint"
           - "eslint-config-prettier"
           - "typescript-eslint"
+          - "@eslint/js"
+          - "@typescript-eslint/parser"
       mocha-dependencies: # Update all Mocha dependencies in one PR
         patterns:
           - "@types/mocha"
