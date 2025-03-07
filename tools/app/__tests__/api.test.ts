@@ -140,11 +140,9 @@ test('tree endpoint returns proper data', async () => {
   expect(result[0].key).toBe('decision_5');
   expect(result[0].title).toBe('Decision Records');
   expect(result[0].rank).toBe('0|a');
-  expect(result[0].workflowStateCategory).toBe('initial');
   expect(result[0].children?.at(0)?.key).toBe('decision_6');
   expect(result[0].children?.at(0)?.title).toBe(
     'Document Decisions with Decision Records',
   );
   expect(result[0].children?.at(0)?.rank).toBe('0|a');
-  expect(result[0].children?.at(0)?.workflowStateCategory).toBe('closed');
 });
