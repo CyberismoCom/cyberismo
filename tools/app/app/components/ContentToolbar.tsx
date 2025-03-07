@@ -97,6 +97,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         currentState={currentState}
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
+        isLoading={isUpdating}
       />
 
       {mode === CardMode.VIEW && (
@@ -135,7 +136,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           data-cy="updateButton"
           style={{ marginLeft: 8, minWidth: 80 }}
           onClick={onUpdate}
-          disabled={isUpdating}
+          loading={isUpdating}
         >
           {t('update')}
         </Button>
