@@ -111,8 +111,8 @@ importers:
         specifier: ^6.1.8
         version: 6.1.8(@emotion/react@11.13.3(@types/react@18.3.12)(react@18.3.1))(@emotion/styled@11.13.0(@emotion/react@11.13.3(@types/react@18.3.12)(react@18.3.1))(@types/react@18.3.12)(react@18.3.1))(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@next/env':
-        specifier: ^15.0.3
-        version: 15.0.3
+        specifier: ^15.2.1
+        version: 15.2.1
       '@reduxjs/toolkit':
         specifier: ^2.2.5
         version: 2.3.0(react-redux@9.1.2(@types/react@18.3.12)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
@@ -585,6 +585,9 @@ packages:
 
   '@codemirror/commands@6.7.1':
     resolution: {integrity: sha512-llTrboQYw5H4THfhN4U3qCnSZ1SOJ60ohhz+SzU0ADGtwlc533DtklQP0vSFaQuCPDn3BPpOd1GbbnUtwNjsrw==}
+
+  '@codemirror/commands@6.8.0':
+    resolution: {integrity: sha512-q8VPEFaEP4ikSlt6ZxjB3zW72+7osfAYW9i8Zu943uqbKuz6utc1+F170hyLUCUltXORjQXRyYQNfkckzA/bPQ==}
 
   '@codemirror/language@6.10.6':
     resolution: {integrity: sha512-KrsbdCnxEztLVbB5PycWXFxas4EOyk/fPAfruSOnDDppevQgid2XZ+KbJ9u+fDikP/e7MW7HPBTvTb8JlZK9vA==}
@@ -1161,6 +1164,9 @@ packages:
 
   '@next/env@15.0.3':
     resolution: {integrity: sha512-t9Xy32pjNOvVn2AS+Utt6VmyrshbpfUMhIjFO60gI58deSo/KgLOp31XZ4O+kY/Is8WAGYwA5gR7kOb1eORDBA==}
+
+  '@next/env@15.2.1':
+    resolution: {integrity: sha512-JmY0qvnPuS2NCWOz2bbby3Pe0VzdAQ7XpEB6uLIHmtXNfAsAO0KLQLkuAoc42Bxbo3/jMC3dcn9cdf+piCcG2Q==}
 
   '@next/eslint-plugin-next@15.0.3':
     resolution: {integrity: sha512-3Ln/nHq2V+v8uIaxCR6YfYo7ceRgZNXfTd3yW1ukTaFbO+/I8jNakrjYWODvG9BuR2v5kgVtH/C8r0i11quOgw==}
@@ -5660,6 +5666,13 @@ snapshots:
       '@codemirror/view': 6.35.2
       '@lezer/common': 1.2.3
 
+  '@codemirror/commands@6.8.0':
+    dependencies:
+      '@codemirror/language': 6.10.6
+      '@codemirror/state': 6.4.1
+      '@codemirror/view': 6.35.2
+      '@lezer/common': 1.2.3
+
   '@codemirror/language@6.10.6':
     dependencies:
       '@codemirror/state': 6.4.1
@@ -6374,6 +6387,8 @@ snapshots:
       '@types/react': 18.3.12
 
   '@next/env@15.0.3': {}
+
+  '@next/env@15.2.1': {}
 
   '@next/eslint-plugin-next@15.0.3':
     dependencies:
@@ -7707,7 +7722,7 @@ snapshots:
   codemirror@6.0.1(@lezer/common@1.2.3):
     dependencies:
       '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.10.6)(@codemirror/state@6.4.1)(@codemirror/view@6.35.2)(@lezer/common@1.2.3)
-      '@codemirror/commands': 6.7.1
+      '@codemirror/commands': 6.8.0
       '@codemirror/language': 6.10.6
       '@codemirror/lint': 6.8.2
       '@codemirror/search': 6.5.7
