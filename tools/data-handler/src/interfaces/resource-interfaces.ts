@@ -139,6 +139,7 @@ export enum WorkflowCategory {
   initial = 'initial',
   active = 'active',
   closed = 'closed',
+  none = 'none',
 }
 
 // Workflow state.
