@@ -20,6 +20,7 @@ import {
   Workflow,
   WorkflowState,
 } from './interfaces/resource-interfaces.js';
+import { CardMetadataUpdater } from './card-metadata-updater.js';
 import { Project } from './containers/project.js';
 
 export class Transition extends EventEmitter {
@@ -103,10 +104,32 @@ export class Transition extends EventEmitter {
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
-    // Write new state
     details.metadata.workflowState = found.toState;
     details.metadata.lastUpdated = new Date().toISOString();
     details.metadata.lastTransitioned = new Date().toISOString();
-    return this.project.updateCardMetadata(details, details.metadata);
+    return this.project
+      .updateCardMetadata(details, details.metadata)
+      .then(async () => this.transitionChangesQuery(cardKey, transition.name))
+      .then(async (queryResult) => {
+        if (
+          !queryResult ||
+          queryResult.at(0) === undefined ||
+          queryResult.at(0)?.updateFields === undefined
+        ) {
+          return;
+        }
+        const fieldsToUpdate = queryResult.at(0)!.updateFields;
+        return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+      })
+      .catch((error) => console.error(error));
+  }
+
+  // Wrapper to run onTransition query.
+  private async transitionChangesQuery(cardKey: string, transition: string) {
+    if (!cardKey || !transition) return undefined;
+    return this.calculateCmd.runQuery('onTransition', {
+      cardKey,
+      transition,
+    });
   }
 }
