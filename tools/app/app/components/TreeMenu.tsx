@@ -43,20 +43,23 @@ const RenderTree = (
     const renderStatusIndicator = () => {
       const statusIndicator = node.data.statusIndicator;
 
-      if (!statusIndicator || statusIndicator === 'none') {
-        return null;
-      }
-
       if (statusIndicator === 'error') {
         return (
-          <ErrorIcon
-            color="error"
-            sx={{
-              marginRight: 1,
-              fontSize: 15,
-              alignSelf: 'center',
-            }}
-          />
+          <Box
+            display="flex"
+            alignItems="center"
+            alignSelf="center"
+            width={10}
+            height={10}
+            marginRight={1}
+          >
+            <ErrorIcon
+              color="error"
+              sx={{
+                fontSize: 15,
+              }}
+            />
+          </Box>
         );
       }
 
