@@ -377,7 +377,7 @@ export function getStateColor(category: string | undefined) {
     case WorkflowCategory.closed:
       return '#51BC51'; // 'success.400'
     default:
-      return 'black';
+      return 'transparent';
   }
 }
 
