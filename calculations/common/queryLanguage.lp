@@ -295,6 +295,14 @@ showField(Key, Field) :-
 
 % policy checks
 
+#show policyCheckFailure(Key, Category, Title, ErrorMessage, Field) :
+    policyCheckFailure(Key, Category, Title, ErrorMessage, Field),
+    showField(Key, "policyChecks").
+
+#show policyCheckFailure(Key, Category, Title, ErrorMessage, Field) :
+    policyCheckFailure(Key, Category, Title, ErrorMessage, Field),
+    showAll(Key).
+
 #show policyCheckFailure(Key, Category, Title, ErrorMessage) :
     policyCheckFailure(Key, Category, Title, ErrorMessage),
     showField(Key, "policyChecks").

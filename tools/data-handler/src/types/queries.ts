@@ -42,7 +42,7 @@ export interface Notification {
 
 export interface PolicyCheckCollection {
   successes: { category: string; title: string }[];
-  failures: { category: string; title: string; errorMessage: string }[];
+  failures: { category: string; title: string; errorMessage: string, fieldName?: string }[];
 }
 
 export interface DeniedOperationCollection {

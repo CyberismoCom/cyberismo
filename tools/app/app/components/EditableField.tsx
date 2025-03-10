@@ -28,6 +28,7 @@ export type EditableFieldProps = {
   edit: boolean;
   disabled?: boolean;
   enumValues?: EnumDefinition[];
+  focus?: boolean;
 };
 
 const EditableField = ({
@@ -39,6 +40,7 @@ const EditableField = ({
   description,
   enumValues,
   disabled,
+  focus,
 }: EditableFieldProps) => {
   const { t } = useTranslation();
   return (
@@ -65,6 +67,7 @@ const EditableField = ({
           dataType={dataType}
           enumValues={enumValues}
           disabled={disabled}
+          focus={focus}
         />
       ) : dataType === 'label' ? (
         <Box>

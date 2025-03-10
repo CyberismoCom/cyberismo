@@ -24,7 +24,7 @@ import {
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import { Add, Person } from '@mui/icons-material';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface FieldEditorProps {
   value: MetadataValue;
@@ -32,6 +32,7 @@ export interface FieldEditorProps {
   onChange?: (value: string | string[] | null) => void;
   enumValues?: Array<EnumDefinition>;
   disabled?: boolean;
+  focus?: boolean;
 }
 
 export default function FieldEditor({
@@ -40,6 +41,7 @@ export default function FieldEditor({
   dataType,
   enumValues,
   disabled,
+  focus,
 }: FieldEditorProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState('');
@@ -55,6 +57,7 @@ export default function FieldEditor({
           color="primary"
           size="sm"
           fullWidth
+          autoFocus={focus}
           placeholder={
             dataType === 'integer'
               ? t('placeholder.integer')
@@ -74,6 +77,7 @@ export default function FieldEditor({
             width: '100%',
           }}
           size="sm"
+          autoFocus={focus}
           placeholder={t('placeholder.boolean')}
         >
           <Option value="">{t('none')}</Option>
@@ -92,6 +96,7 @@ export default function FieldEditor({
             width: '100%',
           }}
           size="sm"
+          autoFocus={focus}
           placeholder={t('placeholder.enum')}
         >
           <Option value="" key="none">
@@ -115,6 +120,7 @@ export default function FieldEditor({
             width: '100%',
           }}
           size="sm"
+          autoFocus={focus}
           placeholder={t('placeholder.enum')}
           disabled={disabled}
         >
@@ -135,6 +141,7 @@ export default function FieldEditor({
           color="primary"
           size="sm"
           fullWidth
+          autoFocus={focus}
         />
       );
     case 'dateTime':
@@ -147,6 +154,7 @@ export default function FieldEditor({
           color="primary"
           size="sm"
           fullWidth
+          autoFocus={focus}
         />
       );
     case 'person':
@@ -158,6 +166,7 @@ export default function FieldEditor({
           color="primary"
           size="sm"
           fullWidth
+          autoFocus={focus}
           endDecorator={<Person color="primary" fontSize="small" />}
           placeholder={t('placeholder.person')}
         />
@@ -174,6 +183,7 @@ export default function FieldEditor({
           sx={{
             width: '100%',
           }}
+          autoFocus={focus}
           placeholder={t('placeholder.longText')}
         />
       );
@@ -246,6 +256,7 @@ export default function FieldEditor({
           color="primary"
           size="sm"
           fullWidth
+          autoFocus={focus}
           placeholder={t('placeholder.shortText')}
         />
       );
