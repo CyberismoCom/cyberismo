@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
+import { Calculate } from '../src/calculate.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/show.js';
@@ -58,7 +59,10 @@ describe('rank command', () => {
       options,
     );
 
-    await commandHandler.command(Cmd.show, ['templates'], options);
+    // To avoid logged errors from clingo queries during tests, generate calculations.
+    const project = new Project(decisionRecordsPath);
+    const calculate = new Calculate(project);
+    await calculate.generate();
 
     childCardKey = childResult.affectsCards![0];
   });
