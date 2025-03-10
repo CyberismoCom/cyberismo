@@ -213,7 +213,6 @@ describe('create command', () => {
       await commandHandler.command(Cmd.show, ['card', createdCard], options)
     ).payload;
     if (cardDetails) {
-      console.error(cardDetails);
       expect((cardDetails as Card).metadata).to.not.include.keys(
         'decision/fieldTypes/obsoletedBy',
       );
