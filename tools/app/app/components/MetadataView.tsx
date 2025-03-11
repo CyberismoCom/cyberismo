@@ -38,6 +38,7 @@ interface FieldItemProps {
   ) => void;
   disabled?: boolean;
   description?: string;
+  focus?: boolean;
 }
 
 function FieldItem({
@@ -49,6 +50,7 @@ function FieldItem({
   disabled,
   description,
   handleChange,
+  focus,
 }: FieldItemProps) {
   return (
     <Accordion expanded={expanded}>
@@ -64,6 +66,7 @@ function FieldItem({
                   value={value}
                   disabled={disabled}
                   description={description}
+                  focus={focus}
                   onChange={(e) => {
                     if (handleChange)
                       handleChange(e, onChange, editableFieldProps.dataType);
@@ -74,7 +77,11 @@ function FieldItem({
             }}
           />
         ) : (
-          <EditableField value={defaultValue} {...editableFieldProps} />
+          <EditableField
+            value={defaultValue}
+            {...editableFieldProps}
+            focus={focus}
+          />
         )}
       </AccordionDetails>
     </Accordion>
@@ -86,6 +93,7 @@ export interface MetadataViewProps {
   editMode?: boolean;
   card: CardResponse;
   onClick?: () => void;
+  focusField?: string;
 }
 
 function MetadataView({
@@ -93,6 +101,7 @@ function MetadataView({
   editMode,
   card,
   onClick,
+  focusField,
 }: MetadataViewProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(initialExpanded);
@@ -196,7 +205,9 @@ function MetadataView({
               name={key}
               handleChange={handleChange}
               defaultValue={getDefaultValue(value)}
-              expanded={visibility === 'always' || expanded}
+              expanded={
+                visibility === 'always' || expanded || key === focusField
+              }
               disabled={card.deniedOperations.editField
                 .map((field) => field.fieldName)
                 .includes(key)}
@@ -208,6 +219,7 @@ function MetadataView({
                 edit: (editMode && !isCalculated) ?? false,
                 enumValues,
               }}
+              focus={key === focusField}
             />
           ),
         )}

@@ -128,5 +128,6 @@
     "person": "firstname.lastname@example.com",
     "list": "Select",
     "label": "Add label"
-  }
+  },
+  "goToField": "Go to field"
 }

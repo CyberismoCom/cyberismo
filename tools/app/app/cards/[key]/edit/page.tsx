@@ -236,6 +236,8 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   const searchParams = useSearchParams();
 
+  const focusField = searchParams.get('focusField') || undefined;
+
   const dispatch = useAppDispatch();
 
   const router = useAppRouter();
@@ -599,6 +601,7 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
                         initialExpanded={searchParams.get('expand') === 'true'}
                         editMode={true}
                         card={card}
+                        focusField={focusField}
                       />
                     </Box>
                     <div ref={setRef} onDrop={handleDragDrop} />

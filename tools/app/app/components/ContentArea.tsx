@@ -61,7 +61,7 @@ import {
 import { Controller, useForm } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { useAppDispatch, useAppRouter, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import { MacroMetadata } from '@cyberismocom/data-handler/interfaces/macros';
@@ -394,12 +394,15 @@ const Notifications = ({
 
 const PolicyChecks = ({
   policyChecks,
+  cardKey,
 }: {
   policyChecks: PolicyCheckCollection;
+  cardKey: string;
 }) => {
   const { t } = useTranslation();
   const [successesExpanded, setSuccessesExpanded] = useState(false);
   const [failuresExpanded, setFailuresExpanded] = useState(true);
+  const router = useAppRouter();
 
   if (
     policyChecks.successes.length === 0 &&
@@ -407,6 +410,11 @@ const PolicyChecks = ({
   ) {
     return null;
   }
+
+  const handleGoToField = (cardKey: string, fieldName: string) => {
+    router.push(`/cards/${cardKey}/edit?focusField=${fieldName}`);
+  };
+
   return (
     <Box sx={{ marginTop: 2, maxWidth: 400 }}>
       {policyChecks.successes.length > 0 && (
@@ -524,6 +532,18 @@ const PolicyChecks = ({
                       <Typography fontSize="xs">
                         {failure.errorMessage}
                       </Typography>
+                      {failure.fieldName && (
+                        <Link
+                          level="body-sm"
+                          component="button"
+                          onClick={() =>
+                            handleGoToField(cardKey, failure.fieldName!)
+                          }
+                          sx={{ mt: 1 }}
+                        >
+                          {t('goToField')}
+                        </Link>
+                      )}
                     </Box>
                     <Typography level="title-sm" fontWeight="bold">
                       {t('policyCheckFail')}
@@ -939,7 +959,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           )}
         </Box>
         <Notifications notifications={card.notifications} />
-        <PolicyChecks policyChecks={card.policyChecks} />
+        <PolicyChecks policyChecks={card.policyChecks} cardKey={card.key} />
       </Stack>
 
       {/* Modals */}

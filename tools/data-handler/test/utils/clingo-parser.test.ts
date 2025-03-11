@@ -238,6 +238,21 @@ describe('ClingoParser', () => {
       category: 'category',
       title: 'title',
       errorMessage: 'errorMessage',
+      fieldName: undefined,
+    });
+    expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
+  });
+
+  it('should parse policyCheckFailure correctly with fieldName', async () => {
+    const input =
+      'result("key1")\npolicyCheckFailure("key1", "category", "title", "errorMessage", "field")';
+    const result = await parser.parseInput(input);
+    expect(result.results[0].policyChecks.failures).to.have.lengthOf(1);
+    expect(result.results[0].policyChecks.failures[0]).to.deep.equal({
+      category: 'category',
+      title: 'title',
+      errorMessage: 'errorMessage',
+      fieldName: 'field',
     });
     expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
   });
