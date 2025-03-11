@@ -15,7 +15,7 @@ import { callApi, apiPaths } from '../swr';
 
 import { SWRConfiguration, mutate } from 'swr';
 import { CardUpdate } from './types';
-import { CardDetails, Project } from '../definitions';
+import { CardDetails } from '../definitions';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';

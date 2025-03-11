@@ -45,7 +45,12 @@ import { useCard, useLinkTypes, useTree } from '@/app/lib/api';
 import { useTranslation } from 'react-i18next';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 
-import { useAppDispatch, useAppRouter, useAppSelector } from '@/app/lib/hooks';
+import {
+  useAppDispatch,
+  useAppRouter,
+  useAppSelector,
+  useKeyboardShortcut,
+} from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import MetadataView from '@/app/components/MetadataView';
 import Image from 'next/image';
@@ -239,6 +244,14 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const dispatch = useAppDispatch();
 
   const router = useAppRouter();
+
+  useKeyboardShortcut(
+    {
+      key: 'escape',
+    },
+    () => router.safeBack(),
+    [router],
+  );
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
 
