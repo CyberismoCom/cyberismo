@@ -229,7 +229,12 @@ class ClingoParser {
       fieldName?: string,
     ) => {
       const res = this.getOrInitResult(key);
-      res.policyChecks.failures.push({ category, title, errorMessage, fieldName });
+      res.policyChecks.failures.push({
+        category,
+        title,
+        errorMessage,
+        fieldName,
+      });
     },
     policyCheckSuccess: (key: string, category: string, title: string) => {
       const res = this.getOrInitResult(key);
