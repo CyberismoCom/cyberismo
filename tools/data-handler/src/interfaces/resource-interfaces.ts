@@ -45,7 +45,6 @@ export type DataType =
   | 'number'
   | 'integer'
   | 'boolean'
-  | 'enum'
   | 'list'
   | 'date'
   | 'dateTime'
