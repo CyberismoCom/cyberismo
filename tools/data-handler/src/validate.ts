@@ -417,7 +417,7 @@ export class Validate {
    * returns true if identifier is valid, and false otherwise.
    */
   public static isValidIdentifierName(identifier: string): boolean {
-    const validIdentifier = new RegExp('^[A-Za-z ._-]+$');
+    const validIdentifier = new RegExp('^[A-Za-z0-9 ._-]+$');
     const contentValidated = validIdentifier.test(identifier);
     const lengthValidated = identifier.length > 0 && identifier.length < 256;
     const notInvalidIdentifier = !invalidNames.test(identifier);

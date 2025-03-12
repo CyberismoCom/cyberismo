@@ -335,12 +335,14 @@ describe('validate cmd tests', () => {
       'TEST',
       '_test',
       '-test',
+      'test111',
+      'test-222',
+      '2',
       'very-long-but-still-marvelously-valid-resource-name.that_canBe-used-as-a-resource-name',
     ];
     const invalidNames: string[] = [
       '',
-      'test2',
-      '2',
+      'testÄ',
       'test+too',
       'test*',
       'test$',

@@ -412,7 +412,7 @@ describe('create command', () => {
     expect(result2.statusCode).to.equal(400);
   });
   it('fieldType with invalid name', async () => {
-    const name = `name1`;
+    const name = `nameÄ`;
     const dataType = 'integer';
     const result = await commandHandler.command(
       Cmd.create,

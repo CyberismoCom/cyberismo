@@ -136,7 +136,7 @@ describe('Update command tests', async () => {
   it('try to update file resource with invalid data', async () => {
     const name = `${project.projectPrefix}/workflows/simple`;
     const exists = await collector.resourceExists('workflows', name);
-    const invalidName = `${project.projectPrefix}/workflows/newName111`;
+    const invalidName = `${project.projectPrefix}/workflows/newName-ÄÄÄ`;
     expect(exists).to.equal(true);
 
     await update
@@ -146,7 +146,7 @@ describe('Update command tests', async () => {
       })
       .catch((error) => {
         expect(error.message).to.equal(
-          "Resource identifier must follow naming rules. Identifier 'newName111' is invalid",
+          "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
         );
       });
   });
