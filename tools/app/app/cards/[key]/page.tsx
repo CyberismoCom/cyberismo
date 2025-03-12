@@ -17,7 +17,12 @@ import LoadingGate from '@/app/components/LoadingGate';
 import { cardViewed } from '@/app/lib/actions';
 import { useCard, useLinkTypes, useTree } from '@/app/lib/api';
 import { CardMode } from '@/app/lib/definitions';
-import { useAppDispatch, useListCard, useAppRouter } from '@/app/lib/hooks';
+import {
+  useAppDispatch,
+  useListCard,
+  useAppRouter,
+  useKeyboardShortcut,
+} from '@/app/lib/hooks';
 import { addNotification } from '@/app/lib/slices/notifications';
 import { expandLinkTypes } from '@/app/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
@@ -39,6 +44,14 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const dispatch = useAppDispatch();
 
   const router = useAppRouter();
+
+  useKeyboardShortcut(
+    {
+      key: 'e',
+    },
+    () => router.safePush(`/cards/${params.key}/edit`),
+    [params.key, router],
+  );
 
   const { t } = useTranslation();
 
