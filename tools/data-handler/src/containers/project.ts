@@ -472,9 +472,7 @@ export class Project extends CardContainer {
       let templateObject;
 
       if (typeof cardToFind == 'object') {
-        templateObject = await this.createTemplateObjectFromCard(
-          cardToFind as Card,
-        );
+        templateObject = this.createTemplateObjectFromCard(cardToFind as Card);
         if (templateObject) {
           card = await templateObject.findSpecificCard(cardToFind.key, details);
         }
