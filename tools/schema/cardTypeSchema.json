@@ -9,13 +9,13 @@
       "description": "The name of the card type",
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z]*/?[A-Za-z]*/?[A-Za-z-_]+[.json]*$"
+      "pattern": "^[A-Za-z0-9]*/?[A-Za-z]*/?[A-Za-z-_]+[.json]*$"
     },
     "workflow": {
       "description": "The name of the workflow",
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z]*/?[A-Za-z]*/?[A-Za-z-_]+[.json]*$"
+      "pattern": "^[A-Za-z0-9]*/?[A-Za-z0-9]*/?[A-Za-z-_]+[.json]*$"
     },
     "customFields": {
       "type": "array",

@@ -529,7 +529,7 @@ describe('resources', () => {
     it('try to create card type with invalid name', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/cardTypes/new111'), // names cannot have digits
+        resourceName('decision/cardTypes/new-ööö'),
       );
       await res
         .createCardType('decision/workflows/decision')
@@ -537,7 +537,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -545,7 +545,7 @@ describe('resources', () => {
     it('try to create field type with invalid name', async () => {
       const res = new FieldTypeResource(
         project,
-        resourceName('decision/fieldTypes/new111'), // names cannot have digits
+        resourceName('decision/fieldTypes/new-ööö'),
       );
       await res
         .createFieldType('shortText')
@@ -553,7 +553,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -561,7 +561,7 @@ describe('resources', () => {
     it('try to create link type with invalid name', async () => {
       const res = new LinkTypeResource(
         project,
-        resourceName('decision/linkTypes/new111'), // names cannot have digits
+        resourceName('decision/linkTypes/new-ööö'),
       );
       await res
         .create()
@@ -569,7 +569,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -577,7 +577,7 @@ describe('resources', () => {
     it('try to create report with invalid name', async () => {
       const res = new ReportResource(
         project,
-        resourceName('decision/reports/new111'), // names cannot have digits
+        resourceName('decision/reports/new-ööö'),
       );
       await res
         .createReport()
@@ -585,7 +585,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -593,7 +593,7 @@ describe('resources', () => {
     it('try to create template with invalid name', async () => {
       const res = new TemplateResource(
         project,
-        resourceName('decision/templates/new111'), // names cannot have digits
+        resourceName('decision/templates/new-ööö'),
       );
       await res
         .create()
@@ -601,7 +601,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -609,7 +609,7 @@ describe('resources', () => {
     it('try to create workflow with invalid name', async () => {
       const res = new WorkflowResource(
         project,
-        resourceName('decision/workflows/new111'), // names cannot have digits
+        resourceName('decision/workflows/new-ööö'),
       );
       await res
         .create()
@@ -617,7 +617,7 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new111' is invalid",
+              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
             );
           }
         });
@@ -625,7 +625,7 @@ describe('resources', () => {
     it('try to create card type with invalid type', async () => {
       const res = new CardTypeResource(
         project,
-        resourceName('decision/workflows/new-one'), // cannot create from workflows
+        resourceName('decision/workflows/new-one'),
       );
       await res
         .createCardType('decision/workflows/decision')
@@ -1251,14 +1251,14 @@ describe('resources', () => {
         });
       await res.delete();
     });
-    it('try to rename workflow - attempt to use illegal name', async () => {
+    it('try to rename workflow - attempt to use invalid name', async () => {
       const res = new WorkflowResource(
         project,
         resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
       await res
-        .rename(resourceName('decision/workflows/newname111'))
+        .rename(resourceName('decision/workflows/newname-ööö'))
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
@@ -1542,7 +1542,7 @@ describe('resources', () => {
         .update('name', {
           name: 'change',
           target: '',
-          to: 'decision/fieldTypes/afterUpdate12121212',
+          to: 'decision/fieldTypes/afterUpdate-öööö',
         })
         .then(() => {
           expect(false).to.equal(true);

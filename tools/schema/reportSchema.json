@@ -8,7 +8,7 @@
       "description": "The name of this report",
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z/._-]+$"
+      "pattern": "^[A-Za-z0-9/._-]+$"
     },
     "displayName": {
       "description": "The name of the report as it should be displayed in the user interface. For example, 'Children list'.",
