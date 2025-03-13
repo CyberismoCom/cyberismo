@@ -75,7 +75,7 @@ export class ReportResource extends FolderResource {
 
   /**
    * Sets new metadata into the report object.
-   * @param newContent metadata content for the template.
+   * @param newContent metadata content for the report.
    * @throws if 'newContent' is not valid.
    */
   public async createReport() {
@@ -130,7 +130,7 @@ export class ReportResource extends FolderResource {
 
   /**
    * Shows metadata of the resource.
-   * @returns template metadata.
+   * @returns report metadata.
    */
   public async show(): Promise<Report> {
     const reportMetadata = (await super.show()) as ReportMetadata;
@@ -173,7 +173,7 @@ export class ReportResource extends FolderResource {
 
     await super.postUpdate(content, key, op);
 
-    // Renaming this template causes that references to its name must be updated.
+    // Renaming this report causes that references to its name must be updated.
     if (nameChange) {
       await this.handleNameChange(existingName);
     }

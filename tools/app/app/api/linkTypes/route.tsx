@@ -46,7 +46,7 @@ export async function GET() {
     });
   }
 
-  const response = await commands.showCmd.showLinkTypes();
+  const response = await commands.showCmd.showResources('linkTypes');
   if (response) {
     const linkTypes = await Promise.all(
       response.map((linkType: string) =>

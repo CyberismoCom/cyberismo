@@ -1,0 +1,28 @@
+{
+  "title": "GraphView",
+  "$id": "graphViewSchema",
+  "description": "A graph view object provides means to show graph model data to users",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of this graph view",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9/._-]+$"
+    },
+    "displayName": {
+      "description": "The name of the graph view as it should be displayed in the user interface. For example, 'Workflow view'.",
+      "type": "string"
+    },
+    "description": {
+      "description": "A description of the graph view. For example, 'Workflow view defines ways how to show workflow data to the user'.",
+      "type": "string"
+    },
+    "category": {
+      "description": "The category of the graph view. For example, 'UserViews'.",
+      "type": "string"
+    }
+  },
+  "required": ["name", "displayName"],
+  "additionalProperties": false
+}

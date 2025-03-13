@@ -51,6 +51,8 @@ import { Validate } from '../validate.js';
 
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
+import { GraphModelResource } from '../resources/graph-model-resource.js';
+import { GraphViewResource } from '../resources/graph-view-resource.js';
 import { LinkTypeResource } from '../resources/link-type-resource.js';
 import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
@@ -518,6 +520,28 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Returns an array of all the graph models in the project.
+   * @param from  Defines where resources are collected from.
+   * @returns array of all the graph models in the project.
+   */
+  public async graphModels(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
+    return this.resources.resources('graphModels', from);
+  }
+
+  /**
+   * Returns an array of all the graph views in the project.
+   * @param from  Defines where resources are collected from.
+   * @returns array of all the graph views in the project.
+   */
+  public async graphViews(
+    from: ResourcesFrom = ResourcesFrom.all,
+  ): Promise<Resource[]> {
+    return this.resources.resources('graphViews', from);
+  }
+
+  /**
    * Checks if a given card is part of this project.
    * @param cardKey card to check.
    * @returns true if a given card is found from project, false otherwise.
@@ -708,6 +732,12 @@ export class Project extends CardContainer {
         ],
         fieldTypes: [
           ...(await this.resources.collectResourcesFromModules('fieldTypes')),
+        ],
+        graphModels: [
+          ...(await this.resources.collectResourcesFromModules('graphModels')),
+        ],
+        graphViews: [
+          ...(await this.resources.collectResourcesFromModules('graphViews')),
         ],
         linkTypes: [
           ...(await this.resources.collectResourcesFromModules('linkTypes')),
@@ -942,6 +972,10 @@ export class Project extends CardContainer {
       return new CardTypeResource(project, name);
     } else if (name.type === 'fieldTypes') {
       return new FieldTypeResource(project, name);
+    } else if (name.type === 'graphModels') {
+      return new GraphModelResource(project, name);
+    } else if (name.type === 'graphViews') {
+      return new GraphViewResource(project, name);
     } else if (name.type === 'linkTypes') {
       return new LinkTypeResource(project, name);
     } else if (name.type === 'reports') {

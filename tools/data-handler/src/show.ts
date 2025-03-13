@@ -23,9 +23,10 @@ import {
   CardAttachment,
   Card,
   CardListContainer,
-  ProjectFetchCardDetails,
   ModuleSettings,
+  ProjectFetchCardDetails,
   ProjectMetadata,
+  Resource,
 } from './interfaces/project-interfaces.js';
 import {
   CardType,
@@ -33,7 +34,7 @@ import {
   TemplateConfiguration,
   Workflow,
 } from './interfaces/resource-interfaces.js';
-import { Project } from './containers/project.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 import { resourceName } from './utils/resource-utils.js';
 import { TemplateResource } from './resources/template-resource.js';
 import { UserPreferences } from './utils/user-preferences.js';
@@ -42,7 +43,22 @@ import { UserPreferences } from './utils/user-preferences.js';
  * Show command.
  */
 export class Show {
-  constructor(private project: Project) {}
+  private resourceFunction: Map<
+    string,
+    (from?: ResourcesFrom) => Promise<Resource[]>
+  >;
+  constructor(private project: Project) {
+    this.resourceFunction = new Map([
+      ['cardTypes', this.project.cardTypes.bind(this.project)],
+      ['fieldTypes', this.project.fieldTypes.bind(this.project)],
+      ['graphModels', this.project.graphModels.bind(this.project)],
+      ['graphViews', this.project.graphViews.bind(this.project)],
+      ['linkTypes', this.project.linkTypes.bind(this.project)],
+      ['reports', this.project.reports.bind(this.project)],
+      ['templates', this.project.templates.bind(this.project)],
+      ['workflows', this.project.workflows.bind(this.project)],
+    ]);
+  }
 
   /**
    * Shows all attachments (either template or project attachments) from a project.
@@ -157,6 +173,7 @@ export class Show {
     }
   }
 
+  // Collect all labels from cards.
   private collectLabels = (cards: Card[]): string[] => {
     return cards.reduce<string[]>((labels, card) => {
       // Add the labels from the current card
@@ -246,14 +263,6 @@ export class Show {
 
   /**
    * Shows all card types in a project.
-   * @returns sorted array of card types
-   */
-  public async showCardTypes(): Promise<string[]> {
-    return (await this.project.cardTypes()).map((item) => item.name).sort();
-  }
-
-  /**
-   * Shows all card types in a project.
    * @returns array of card type details
    */
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
@@ -269,14 +278,6 @@ export class Show {
   }
 
   /**
-   * Shows all available field types.
-   * @returns sorted array of field types
-   */
-  public async showFieldTypes(): Promise<string[]> {
-    return (await this.project.fieldTypes()).map((item) => item.name).sort();
-  }
-
-  /**
    * Returns all unique labels in a project
    * @returns labels in a list
    */
@@ -289,14 +290,6 @@ export class Show {
 
     const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels));
-  }
-
-  /**
-   * Shows all available link types.
-   * @returns sorted array of link types
-   */
-  public async showLinkTypes(): Promise<string[]> {
-    return (await this.project.linkTypes()).map((item) => item.name).sort();
   }
 
   /**
@@ -344,14 +337,6 @@ export class Show {
   }
 
   /**
-   * Shows all reports in a project
-   * @returns sorted array of reports
-   */
-  public async showReports(): Promise<string[]> {
-    return (await this.project.reports()).map((item) => item.name).sort();
-  }
-
-  /**
    * Shows details of certain resource.
    * @param name Name of resource.
    * @returns resource metadata as JSON.
@@ -380,11 +365,14 @@ export class Show {
   }
 
   /**
-   * Shows all templates in a project.
-   * @returns sorted array of templates
+   * Shows all available resources of a given type.
+   * @param type Name of resources to return (in plural form, e.g. 'templates')
+   * @returns sorted array of resources
    */
-  public async showTemplates(): Promise<string[]> {
-    return (await this.project.templates()).map((item) => item.name).sort();
+  public async showResources(type: string): Promise<string[]> {
+    const func = this.resourceFunction.get(type);
+    if (!func) return [];
+    return (await func()).map((item) => item.name).sort();
   }
 
   /**
@@ -397,14 +385,6 @@ export class Show {
     );
     const result = await Promise.all(promiseContainer);
     return result.filter(Boolean) as TemplateConfiguration[];
-  }
-
-  /**
-   * Shows all workflows in a project.
-   * @returns sorted array of workflows
-   */
-  public async showWorkflows(): Promise<string[]> {
-    return (await this.project.workflows()).map((item) => item.name).sort();
   }
 
   /**

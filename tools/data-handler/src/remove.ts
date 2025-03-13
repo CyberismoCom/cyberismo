@@ -39,6 +39,8 @@ export class Remove extends EventEmitter {
     return (
       type === 'cardType' ||
       type === 'fieldType' ||
+      type === 'graphModel' ||
+      type === 'graphView' ||
       type === 'linkType' ||
       type === 'report' ||
       type === 'template' ||

@@ -33,6 +33,8 @@ import { writeJsonFile } from './utils/json.js';
 
 import { CardTypeResource } from './resources/card-type-resource.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
+import { GraphModelResource } from './resources/graph-model-resource.js';
+import { GraphViewResource } from './resources/graph-view-resource.js';
 import { LinkTypeResource } from './resources/link-type-resource.js';
 import { ReportResource } from './resources/report-resource.js';
 import { TemplateResource } from './resources/template-resource.js';
@@ -276,6 +278,30 @@ export class Create extends EventEmitter {
       resourceName(fieldTypeName),
     );
     await fieldType.createFieldType(dataType);
+  }
+
+  /**
+   * Creates a new graph model.
+   * @param graphModelName name for the graph model.
+   */
+  public async createGraphModel(graphModelName: string) {
+    const graphModel = new GraphModelResource(
+      this.project,
+      resourceName(graphModelName),
+    );
+    await graphModel.create();
+  }
+
+  /**
+   * Creates a new graph view.
+   * @param graphModelName name for the graph view.
+   */
+  public async createGraphView(graphViewName: string) {
+    const graphView = new GraphViewResource(
+      this.project,
+      resourceName(graphViewName),
+    );
+    await graphView.create();
   }
 
   /**
