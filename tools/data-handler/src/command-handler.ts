@@ -198,6 +198,12 @@ export class Commands {
         } else if (target === 'fieldType') {
           const [name, datatype] = rest;
           await this.commands?.createCmd.createFieldType(name, datatype);
+        } else if (target === 'graphModel') {
+          const [name] = rest;
+          await this.commands?.createCmd.createGraphModel(name);
+        } else if (target === 'graphView') {
+          const [name] = rest;
+          await this.commands?.createCmd.createGraphView(name);
         } else if (target == 'label') {
           const [cardKey, label] = rest;
           await this.commands?.createCmd.createLabel(cardKey, label);
@@ -518,6 +524,8 @@ export class Commands {
         break;
       case 'cardType':
       case 'fieldType':
+      case 'graphView':
+      case 'graphModel':
       case 'linkType':
       case 'report':
       case 'template':
@@ -525,16 +533,17 @@ export class Commands {
         promise = this.commands!.showCmd.showResource(detail, options.showUse);
         break;
       case 'cardTypes':
-        promise = this.commands!.showCmd.showCardTypes();
-        break;
       case 'fieldTypes':
-        promise = this.commands!.showCmd.showFieldTypes();
+      case 'graphModels':
+      case 'graphViews':
+      case 'linkTypes':
+      case 'reports':
+      case 'templates':
+      case 'workflows':
+        promise = this.commands!.showCmd.showResources(type);
         break;
       case 'labels':
         promise = this.commands!.showCmd.showLabels();
-        break;
-      case 'linkTypes':
-        promise = this.commands!.showCmd.showLinkTypes();
         break;
       case 'module':
         promise = this.commands!.showCmd.showModule(detail);
@@ -544,15 +553,6 @@ export class Commands {
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();
-        break;
-      case 'reports':
-        promise = this.commands!.showCmd.showReports();
-        break;
-      case 'templates':
-        promise = this.commands!.showCmd.showTemplates();
-        break;
-      case 'workflows':
-        promise = this.commands!.showCmd.showWorkflows();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet

@@ -185,16 +185,8 @@ describe('show', () => {
         ),
       );
   });
-  it('showCardTypes (success)', async () => {
-    const results = await showCmd.showCardTypes();
-    expect(results).to.not.equal(undefined);
-  });
   it('showCardTypesWithDetails (success)', async () => {
     const results = await showCmd.showCardTypesWithDetails();
-    expect(results).to.not.equal(undefined);
-  });
-  it('showFieldTypes (success)', async () => {
-    const results = await showCmd.showFieldTypes();
     expect(results).to.not.equal(undefined);
   });
   it('showResource - field type (success)', async () => {
@@ -211,10 +203,6 @@ describe('show', () => {
           `FieldType '${fieldTypeName}' does not exist in the project`,
         ),
       );
-  });
-  it('showLinkTypes (success)', async () => {
-    const results = await showCmd.showLinkTypes();
-    expect(results).to.not.equal(undefined);
   });
   it('showResource - link type (success)', async () => {
     const fieldTypeName = 'decision/linkTypes/test';
@@ -278,9 +266,28 @@ describe('show', () => {
         ),
       );
   });
-  it('showTemplates (success)', async () => {
-    const results = await showCmd.showTemplates();
-    expect(results).to.not.equal(undefined);
+  it('showResources - valid types', async () => {
+    const validResourceTypes = [
+      'cardTypes',
+      'fieldTypes',
+      'graphViews',
+      'graphModels',
+      'linkTypes',
+      'reports',
+      'templates',
+      'workflows',
+    ];
+    for (const type of validResourceTypes) {
+      const results = await showCmd.showResources(type);
+      expect(results).to.not.equal(undefined);
+    }
+  });
+  it('showResources - invalid type', async () => {
+    const validResourceTypes = ['unknown'];
+    for (const type of validResourceTypes) {
+      const results = await showCmd.showResources(type);
+      expect(results.length).to.equal(0);
+    }
   });
   it('showTemplatesWithDetails (success)', async () => {
     const results = await showCmd.showTemplatesWithDetails();
@@ -310,10 +317,6 @@ describe('show', () => {
           `Workflow '${workflowName}' does not exist in the project`,
         ),
       );
-  });
-  it('showWorkflows (success)', async () => {
-    const results = await showCmd.showWorkflows();
-    expect(results).to.not.equal(undefined);
   });
   it('showWorkflowsWithDetails (success)', async () => {
     const results = await showCmd.showWorkflowsWithDetails();

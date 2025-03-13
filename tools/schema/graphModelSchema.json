@@ -1,0 +1,28 @@
+{
+  "title": "GraphModel",
+  "$id": "graphModelSchema",
+  "description": "A graph model object provides data for graph views",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of this graph model",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9/._-]+$"
+    },
+    "displayName": {
+      "description": "The name of the graph model as it should be displayed in the user interface. For example, 'Workflow data'.",
+      "type": "string"
+    },
+    "description": {
+      "description": "A description of the graph model. For example, 'Workflow data defines necessary data elements to show workflow graphically.'.",
+      "type": "string"
+    },
+    "category": {
+      "description": "The category of the graph model. For example, 'UserModels'.",
+      "type": "string"
+    }
+  },
+  "required": ["name", "displayName"],
+  "additionalProperties": false
+}

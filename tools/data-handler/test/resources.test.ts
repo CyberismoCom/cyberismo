@@ -23,6 +23,8 @@ import {
 
 import { CardTypeResource } from '../src/resources/card-type-resource.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
+import { GraphModelResource } from '../src/resources/graph-model-resource.js';
+import { GraphViewResource } from '../src/resources/graph-view-resource.js';
 import { LinkTypeResource } from '../src/resources/link-type-resource.js';
 import { ReportResource } from '../src/resources/report-resource.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
@@ -33,6 +35,8 @@ import {
   CustomField,
   EnumDefinition,
   FieldType,
+  GraphModel,
+  GraphView,
   LinkType,
   ReportMetadata,
   TemplateMetadata,
@@ -82,6 +86,8 @@ describe('resources', () => {
       expect((await collector.resources('calculations')).length).to.equal(0);
       expect((await collector.resources('cardTypes')).length).to.equal(0);
       expect((await collector.resources('fieldTypes')).length).to.equal(0);
+      expect((await collector.resources('graphModels')).length).to.equal(0);
+      expect((await collector.resources('graphViews')).length).to.equal(0);
       expect((await collector.resources('linkTypes')).length).to.equal(0);
       expect((await collector.resources('reports')).length).to.equal(0);
       expect((await collector.resources('templates')).length).to.equal(0);
@@ -92,6 +98,8 @@ describe('resources', () => {
       const calcCount = (await collector.resources('calculations')).length;
       const cardTypesCount = (await collector.resources('cardTypes')).length;
       const fieldTypesCount = (await collector.resources('fieldTypes')).length;
+      const graphModelCount = (await collector.resources('graphModels')).length;
+      const graphViewCount = (await collector.resources('graphViews')).length;
       const linkTypesCount = (await collector.resources('linkTypes')).length;
       const reportsCount = (await collector.resources('reports')).length;
       const templatesCount = (await collector.resources('templates')).length;
@@ -100,6 +108,8 @@ describe('resources', () => {
       expect(calcCount).not.to.equal(0);
       expect(cardTypesCount).not.to.equal(0);
       expect(fieldTypesCount).not.to.equal(0);
+      expect(graphModelCount).not.to.equal(0);
+      expect(graphViewCount).not.to.equal(0);
       expect(linkTypesCount).not.to.equal(0);
       expect(reportsCount).not.to.equal(0);
       expect(templatesCount).not.to.equal(0);
@@ -113,6 +123,10 @@ describe('resources', () => {
         .length;
       const fieldTypesCountAgain = (await collector.resources('fieldTypes'))
         .length;
+      const graphModelCountAgain = (await collector.resources('graphModels'))
+        .length;
+      const graphViewCountAgain = (await collector.resources('graphViews'))
+        .length;
       const linkTypesCountAgain = (await collector.resources('linkTypes'))
         .length;
       const reportsCountAgain = (await collector.resources('reports')).length;
@@ -124,6 +138,8 @@ describe('resources', () => {
       expect(calcCount).to.equal(calcCountAgain);
       expect(cardTypesCount).to.equal(cardTypesCountAgain);
       expect(fieldTypesCount).to.equal(fieldTypesCountAgain);
+      expect(graphModelCount).to.equal(graphModelCountAgain);
+      expect(graphViewCount).to.equal(graphViewCountAgain);
       expect(linkTypesCount).to.equal(linkTypesCountAgain);
       expect(reportsCount).to.equal(reportsCountAgain);
       expect(templatesCount).to.equal(templatesCountAgain);
@@ -137,6 +153,10 @@ describe('resources', () => {
         await collector.collectResourcesFromModules('cardTypes');
       const moduleFieldTypes =
         await collector.collectResourcesFromModules('fieldTypes');
+      const moduleGraphModels =
+        await collector.collectResourcesFromModules('graphModels');
+      const moduleGraphViews =
+        await collector.collectResourcesFromModules('graphViews');
       const moduleLinkTypes =
         await collector.collectResourcesFromModules('linkTypes');
       const moduleReports =
@@ -150,6 +170,8 @@ describe('resources', () => {
       expect(moduleCalcs.length).to.equal(0);
       expect(moduleCardTypes.length).to.equal(0);
       expect(moduleFieldTypes.length).to.equal(0);
+      expect(moduleGraphModels.length).to.equal(0);
+      expect(moduleGraphViews.length).to.equal(0);
       expect(moduleLinkTypes.length).to.equal(0);
       expect(moduleReports.length).to.equal(0);
       expect(moduleTemplates.length).to.equal(0);
@@ -163,6 +185,12 @@ describe('resources', () => {
       );
       expect((await collector.resources('fieldTypes')).length).to.equal(
         fieldTypesCount,
+      );
+      expect((await collector.resources('graphModels')).length).to.equal(
+        graphModelCount,
+      );
+      expect((await collector.resources('graphViews')).length).to.equal(
+        graphViewCount,
       );
       expect((await collector.resources('linkTypes')).length).to.equal(
         linkTypesCount,
@@ -182,7 +210,7 @@ describe('resources', () => {
       const collector = new ResourceCollector(project);
 
       // Store the resource counts before import.
-      // Note that minimal project does not have fieldTypes, linkTypes or reports
+      // Note that minimal project does not have fieldTypes, graphModels, graphViews, linkTypes or reports
       collector.collectLocalResources();
       const calcCount = (await collector.resources('calculations')).length;
       const cardTypesCount = (await collector.resources('cardTypes')).length;
@@ -291,6 +319,10 @@ describe('resources', () => {
           await createCmd.createTemplate(nameForResource, '');
         } else if (type === 'reports') {
           await createCmd.createReport(nameForResource);
+        } else if (type === 'graphModels') {
+          await createCmd.createGraphModel(nameForResource);
+        } else if (type === 'graphViews') {
+          await createCmd.createGraphView(nameForResource);
         } else {
           expect(false).to.equal(true);
         }
@@ -312,8 +344,10 @@ describe('resources', () => {
         expect(exists).to.equal(false);
       }
 
-      checkResource('templates');
+      checkResource('graphModels');
+      checkResource('graphViews');
       checkResource('reports');
+      checkResource('templates');
     });
   });
 
@@ -345,7 +379,7 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.createCardType('decision/workflows/decision');
       const after = await project.cardTypes();
-      found = after.find((item) => item.name === 'decision/cardTypes/newCT');
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create field type', async () => {
@@ -360,7 +394,37 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.createFieldType('shortText');
       const after = await project.fieldTypes();
-      found = after.find((item) => item.name === 'decision/fieldTypes/newFT');
+      found = after.find((item) => item.name === res.data.name);
+      expect(found).to.not.equal(undefined);
+    });
+    it('create graph model', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newGM'),
+      );
+      const before = await project.graphModels();
+      let found = before.find(
+        (item) => item.name === 'decision/graphModels/newGM',
+      );
+      expect(found).to.equal(undefined);
+      await res.create();
+      const after = await project.graphModels();
+      found = after.find((item) => item.name === res.data.name);
+      expect(found).to.not.equal(undefined);
+    });
+    it('create graph view', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newGV'),
+      );
+      const before = await project.graphViews();
+      let found = before.find(
+        (item) => item.name === 'decision/graphViews/newGV',
+      );
+      expect(found).to.equal(undefined);
+      await res.create();
+      const after = await project.graphViews();
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create link type', async () => {
@@ -375,7 +439,7 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.linkTypes();
-      found = after.find((item) => item.name === 'decision/linkTypes/newLT');
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create link type with provided content', async () => {
@@ -436,7 +500,7 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.createReport();
       const after = await project.reports();
-      found = after.find((item) => item.name === 'decision/reports/newREP');
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create template', async () => {
@@ -451,7 +515,7 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.templates();
-      found = after.find((item) => item.name === 'decision/templates/newTEMP');
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create template with provided content', async () => {
@@ -507,7 +571,7 @@ describe('resources', () => {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.workflows();
-      found = after.find((item) => item.name === 'decision/workflows/newWF');
+      found = after.find((item) => item.name === res.data.name);
       expect(found).to.not.equal(undefined);
     });
     it('create workflow with provided content', async () => {
@@ -570,6 +634,38 @@ describe('resources', () => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
               "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+            );
+          }
+        });
+    });
+    it('try to create graph model with invalid name', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newÄ'),
+      );
+      await res
+        .create()
+        .then(() => expect(false).to.equal(true))
+        .catch((err) => {
+          if (err instanceof Error) {
+            expect(err.message).to.equal(
+              "Resource identifier must follow naming rules. Identifier 'newÄ' is invalid",
+            );
+          }
+        });
+    });
+    it('try to create graph view with invalid name', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newÖ'),
+      );
+      await res
+        .create()
+        .then(() => expect(false).to.equal(true))
+        .catch((err) => {
+          if (err instanceof Error) {
+            expect(err.message).to.equal(
+              "Resource identifier must follow naming rules. Identifier 'newÖ' is invalid",
             );
           }
         });
@@ -654,90 +750,10 @@ describe('resources', () => {
           }
         });
     });
-    it('try to create link type with invalid type', async () => {
-      const res = new LinkTypeResource(
-        project,
-        resourceName('decision/workflows/new-one'), // cannot create from workflows
-      );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name must match the resource type. Type 'workflows' does not match 'linkTypes'",
-            );
-          }
-        });
-    });
-    it('try to create workflow with invalid type', async () => {
-      const res = new WorkflowResource(
-        project,
-        resourceName('decision/linkTypes/new-one'), // cannot create from link types
-      );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name must match the resource type. Type 'linkTypes' does not match 'workflows'",
-            );
-          }
-        });
-    });
-    it('try to create card type with invalid project prefix', async () => {
-      const res = new CardTypeResource(
-        project,
-        resourceName('diipadaapa/cardTypes/new-one'), // cannot create from unknown prefix
-      );
-      await res
-        .createCardType('decision/workflows/decision')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
-            );
-          }
-        });
-    });
-    it('try to create field type with invalid project prefix', async () => {
-      const res = new FieldTypeResource(
-        project,
-        resourceName('diipadaapa/fieldTypes/new-one'), // cannot create from unknown prefix
-      );
-      await res
-        .createFieldType('shortText')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
-            );
-          }
-        });
-    });
-    it('try to create link type with invalid project prefix', async () => {
-      const res = new LinkTypeResource(
-        project,
-        resourceName('diipadaapa/linkTypes/new-one'), // cannot create from unknown prefix
-      );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
-            );
-          }
-        });
-    });
-    it('try to create report with invalid project prefix', async () => {
+    it('try to create field type with invalid type', async () => {
       const res = new ReportResource(
         project,
-        resourceName('diipadaapa/reports/new-one'), // cannot create from unknown prefix
+        resourceName('decision/workflows/new-one'), // cannot create from workflows
       );
       await res
         .createReport()
@@ -745,39 +761,129 @@ describe('resources', () => {
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
+              "Resource name must match the resource type. Type 'workflows' does not match 'reports'",
             );
           }
         });
     });
-    it('try to create template with invalid project prefix', async () => {
-      const res = new TemplateResource(
+    it('try to create resources with invalid types', async () => {
+      const resources = [
+        // cannot create any of these with 'cardTypes' in name
+        new GraphModelResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
+        new GraphViewResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
+        new LinkTypeResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
+        new TemplateResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
+        new WorkflowResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
+      ];
+      for (const res of resources) {
+        await res
+          .create()
+          .then(() => expect(false).to.equal(true))
+          .catch((err) => {
+            if (err instanceof Error) {
+              expect(err.message).to.include(
+                "Resource name must match the resource type. Type 'cardTypes' does not match",
+              );
+            }
+          });
+      }
+    });
+    it('try to create card type with invalid project prefix', async () => {
+      const res = new CardTypeResource(
         project,
-        resourceName('diipadaapa/templates/new-one'), // cannot create from unknown prefix
+        resourceName('unknown/cardTypes/new-one'),
       );
       await res
-        .create()
+        .createCardType('decision/workflows/decision')
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
+              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
             );
           }
         });
     });
-    it('try to create workflow with invalid project prefix', async () => {
-      const res = new WorkflowResource(
+    it('try to create field type with invalid project prefix', async () => {
+      const res = new FieldTypeResource(
         project,
-        resourceName('diipadaapa/workflows/new-one'), // cannot create from unknown prefix
+        resourceName('unknown/fieldTypes/new-one'),
       );
       await res
-        .create()
+        .createFieldType('shortText')
         .then(() => expect(false).to.equal(true))
         .catch((err) => {
           if (err instanceof Error) {
             expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'diipadaapa' is not included in '[decision]'",
+              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+            );
+          }
+        });
+    });
+    it('try to create resources with invalid project prefix', async () => {
+      // Include only resources that can be created with call to 'create()'
+      const resources = [
+        new GraphModelResource(
+          project,
+          resourceName('unknown/graphModels/new-one'),
+        ),
+        new GraphViewResource(
+          project,
+          resourceName('unknown/graphViews/new-one'),
+        ),
+        new LinkTypeResource(
+          project,
+          resourceName('unknown/linkTypes/new-one'),
+        ),
+        new TemplateResource(
+          project,
+          resourceName('unknown/templates/new-one'),
+        ),
+        new WorkflowResource(
+          project,
+          resourceName('unknown/workflows/new-one'),
+        ),
+      ];
+      for (const res of resources) {
+        await res
+          .create()
+          .then(() => expect(false).to.equal(true))
+          .catch((err) => {
+            if (err instanceof Error) {
+              expect(err.message).to.equal(
+                "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+              );
+            }
+          });
+      }
+    });
+    it('try to create report with invalid project prefix', async () => {
+      const res = new ReportResource(
+        project,
+        resourceName('unknown/reports/new-one'),
+      );
+      await res
+        .createReport()
+        .then(() => expect(false).to.equal(true))
+        .catch((err) => {
+          if (err instanceof Error) {
+            expect(err.message).to.equal(
+              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
             );
           }
         });
@@ -838,6 +944,32 @@ describe('resources', () => {
         JSON.stringify({
           name: 'decision/fieldTypes/newFT',
           dataType: 'shortText',
+        }),
+      );
+    });
+    it('data of graph model', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newGM'),
+      );
+      expect(JSON.stringify(res.data)).to.equal(
+        JSON.stringify({
+          name: 'decision/graphModels/newGM',
+          displayName: '',
+          description: '',
+        }),
+      );
+    });
+    it('data of graph view', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newGV'),
+      );
+      expect(JSON.stringify(res.data)).to.equal(
+        JSON.stringify({
+          name: 'decision/graphViews/newGV',
+          displayName: '',
+          description: '',
         }),
       );
     });
@@ -930,6 +1062,36 @@ describe('resources', () => {
         JSON.stringify({
           name: 'decision/fieldTypes/newFT',
           dataType: 'shortText',
+        }),
+      );
+    });
+    it('show graph model', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newGM'),
+      );
+      const data = await res.show();
+      expect(JSON.stringify(data)).to.equal(
+        JSON.stringify({
+          name: 'decision/graphModels/newGM',
+          displayName: '',
+          description: '',
+          calculationFile: 'model.lp',
+        }),
+      );
+    });
+    it('show graph view', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newGV'),
+      );
+      const data = await res.show();
+      expect(JSON.stringify(data)).to.equal(
+        JSON.stringify({
+          name: 'decision/graphViews/newGV',
+          displayName: '',
+          description: '',
+          handleBarFile: 'view.lp.hbs',
         }),
       );
     });
@@ -1075,89 +1237,71 @@ describe('resources', () => {
         }),
       );
     });
-    it('validate card type', async () => {
-      const res = new CardTypeResource(
-        project,
-        resourceName('decision/cardTypes/newCT'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
+    it('validate resources', async () => {
+      const resources = [
+        new CardTypeResource(project, resourceName('decision/cardTypes/newCT')),
+        new FieldTypeResource(
+          project,
+          resourceName('decision/fieldTypes/newFT'),
+        ),
+        new GraphModelResource(
+          project,
+          resourceName('decision/graphModels/newGM'),
+        ),
+        new GraphViewResource(
+          project,
+          resourceName('decision/graphViews/newGV'),
+        ),
+        new LinkTypeResource(project, resourceName('decision/linkTypes/newLT')),
+        new ReportResource(project, resourceName('decision/reports/newREP')),
+        new TemplateResource(
+          project,
+          resourceName('decision/templates/newTEMP'),
+        ),
+        new WorkflowResource(project, resourceName('decision/workflows/newWF')),
+      ];
+      for (const resource of resources) {
+        await resource.validate().catch(() => expect(false).to.equal(true));
+      }
     });
-    it('validate field type', async () => {
-      const res = new FieldTypeResource(
-        project,
-        resourceName('decision/fieldTypes/newFT'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
-    });
-    it('validate link type', async () => {
-      const res = new LinkTypeResource(
-        project,
-        resourceName('decision/linkTypes/newLT'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
-    });
-    it('validate report', async () => {
-      const res = new ReportResource(
-        project,
-        resourceName('decision/reports/newREP'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
-    });
-    it('validate template', async () => {
-      const res = new TemplateResource(
-        project,
-        resourceName('decision/templates/newTEMP'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
-    });
-    it('validate workflow', async () => {
-      const res = new WorkflowResource(
-        project,
-        resourceName('decision/workflows/newWF'),
-      );
-      await res.validate().catch(() => expect(false).to.equal(true));
-    });
-    it('try to validate missing card type', async () => {
-      const res = new CardTypeResource(
-        project,
-        resourceName('decision/cardTypes/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
-    });
-    it('try to validate missing field type', async () => {
-      const res = new FieldTypeResource(
-        project,
-        resourceName('decision/fieldTypes/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
-    });
-    it('try to validate missing link type', async () => {
-      const res = new LinkTypeResource(
-        project,
-        resourceName('decision/linkTypes/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
-    });
-    it('try to validate missing report', async () => {
-      const res = new ReportResource(
-        project,
-        resourceName('decision/reports/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
-    });
-    it('try to validate missing template', async () => {
-      const res = new TemplateResource(
-        project,
-        resourceName('decision/templates/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
-    });
-    it('try to validate missing workflow', async () => {
-      const res = new WorkflowResource(
-        project,
-        resourceName('decision/workflows/i-do-not-exist'),
-      );
-      await res.validate().catch(() => expect(true).to.equal(true));
+    it('try to validate missing resource types', async () => {
+      const resources = [
+        new CardTypeResource(
+          project,
+          resourceName('decision/cardTypes/i-do-not-exist'),
+        ),
+        new FieldTypeResource(
+          project,
+          resourceName('decision/fieldTypes/i-do-not-exist'),
+        ),
+        new GraphModelResource(
+          project,
+          resourceName('decision/graphModels/i-do-not-exist'),
+        ),
+        new GraphViewResource(
+          project,
+          resourceName('decision/graphViews/i-do-not-exist'),
+        ),
+        new LinkTypeResource(
+          project,
+          resourceName('decision/linkTypes/i-do-not-exist'),
+        ),
+        new ReportResource(
+          project,
+          resourceName('decision/reports/i-do-not-exist'),
+        ),
+        new TemplateResource(
+          project,
+          resourceName('decision/templates/i-do-not-exist'),
+        ),
+        new WorkflowResource(
+          project,
+          resourceName('decision/workflows/i-do-not-exist'),
+        ),
+      ];
+      for (const resource of resources) {
+        await resource.validate().catch(() => expect(true).to.equal(true));
+      }
     });
     it('rename card type', async () => {
       const res = new CardTypeResource(
@@ -1167,6 +1311,26 @@ describe('resources', () => {
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newname'));
       expect(res.data.name).equals('decision/cardTypes/newname');
+      await res.delete();
+    });
+    it('rename graph model', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newResForRename'),
+      );
+      await res.create();
+      await res.rename(resourceName('decision/graphModels/newname'));
+      expect(res.data.name).equals('decision/graphModels/newname');
+      await res.delete();
+    });
+    it('rename graph view', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newResForRename'),
+      );
+      await res.create();
+      await res.rename(resourceName('decision/graphViews/newname'));
+      expect(res.data.name).equals('decision/graphViews/newname');
       await res.delete();
     });
     it('rename field type', async () => {
@@ -1634,6 +1798,58 @@ describe('resources', () => {
       expect(data.outboundDisplayName).to.equal('outbound');
       expect(data.enableLinkDescription).to.equal(true);
     });
+    it('update graph model scalar values', async () => {
+      const res = new GraphModelResource(
+        project,
+        resourceName('decision/graphModels/newGraphModel'),
+      );
+      await res.create();
+      await res.update('displayName', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      await res.update('description', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      await res.update('category', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      const data = res.data as GraphModel;
+      expect(data.displayName).to.equal('updated');
+      expect(data.description).to.equal('updated');
+      expect(data.category).to.equal('updated');
+    });
+    it('update graph view scalar values', async () => {
+      const res = new GraphViewResource(
+        project,
+        resourceName('decision/graphViews/newGraphView'),
+      );
+      await res.create();
+      await res.update('displayName', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      await res.update('description', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      await res.update('category', {
+        name: 'change',
+        target: '',
+        to: 'updated',
+      });
+      const data = res.data as GraphView;
+      expect(data.displayName).to.equal('updated');
+      expect(data.description).to.equal('updated');
+      expect(data.category).to.equal('updated');
+    });
     it('update link type arrays', async () => {
       const res = new LinkTypeResource(
         project,
@@ -1880,6 +2096,26 @@ describe('resources', () => {
       const after = await project.fieldTypes();
       found = after.find((item) => item.name === name);
     });
+    it('delete graph model', async () => {
+      const name = 'decision/graphModels/newGM';
+      const res = new GraphModelResource(project, resourceName(name));
+      const before = await project.graphModels();
+      let found = before.find((item) => item.name === name);
+      expect(found).to.not.equal(undefined);
+      await res.delete();
+      const after = await project.graphModels();
+      found = after.find((item) => item.name === name);
+    });
+    it('delete graph view', async () => {
+      const name = 'decision/graphViews/newGV';
+      const res = new GraphViewResource(project, resourceName(name));
+      const before = await project.graphViews();
+      let found = before.find((item) => item.name === name);
+      expect(found).to.not.equal(undefined);
+      await res.delete();
+      const after = await project.graphViews();
+      found = after.find((item) => item.name === name);
+    });
     it('delete link type', async () => {
       const name = 'decision/linkTypes/newLT';
       const res = new LinkTypeResource(project, resourceName(name));
@@ -1942,6 +2178,36 @@ describe('resources', () => {
       const name = 'decision/fieldTypes/nonExisting';
       const res = new FieldTypeResource(project, resourceName(name));
       const before = await project.fieldTypes();
+      const found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      await res
+        .delete()
+        .then(() => expect(false).to.equal(true))
+        .catch((error) =>
+          expect(error.message).to.equal(
+            `Resource 'nonExisting' does not exist in the project`,
+          ),
+        );
+    });
+    it('try to delete graph model that does not exist', async () => {
+      const name = 'decision/graphModels/nonExisting';
+      const res = new GraphModelResource(project, resourceName(name));
+      const before = await project.graphModels();
+      const found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      await res
+        .delete()
+        .then(() => expect(false).to.equal(true))
+        .catch((error) =>
+          expect(error.message).to.equal(
+            `Resource 'nonExisting' does not exist in the project`,
+          ),
+        );
+    });
+    it('try to delete graph view that does not exist', async () => {
+      const name = 'decision/graphViews/nonExisting';
+      const res = new GraphModelResource(project, resourceName(name));
+      const before = await project.graphViews();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await res
@@ -2045,6 +2311,20 @@ describe('resources', () => {
         .then((references) =>
           expect(references).to.include('decision/cardTypes/decision'),
         );
+    });
+    it('check usage of graphModel resource', async () => {
+      const name = 'decision/graphModels/test';
+      const res = new GraphModelResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) => expect(references.length).to.equal(0));
+    });
+    it('check usage of graphView resource', async () => {
+      const name = 'decision/graphViews/test';
+      const res = new GraphViewResource(project, resourceName(name));
+      await res
+        .usage()
+        .then((references) => expect(references.length).to.equal(0));
     });
     it('check usage of linkType resource', async () => {
       const name = 'decision/linkTypes/test';

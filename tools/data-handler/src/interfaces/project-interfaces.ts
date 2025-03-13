@@ -109,6 +109,8 @@ export interface ModuleSettings extends ProjectSettings {
   calculations: string[];
   cardTypes: string[];
   fieldTypes: string[];
+  graphModels: string[];
+  graphViews: string[];
   linkTypes: string[];
   reports: string[];
   templates: string[];
@@ -142,6 +144,8 @@ export type RemovableResourceTypes =
   | 'card'
   | 'cardType'
   | 'fieldType'
+  | 'graphModel'
+  | 'graphView'
   | 'link'
   | 'linkType'
   | 'module'
@@ -161,6 +165,8 @@ export type ResourceFolderType =
   | 'calculations'
   | 'cardTypes'
   | 'fieldTypes'
+  | 'graphModels'
+  | 'graphViews'
   | 'linkTypes'
   | 'modules'
   | 'reports'
@@ -170,22 +176,16 @@ export type ResourceFolderType =
 // All resource types; both singular and plural.
 export type ResourceTypes =
   | RemovableResourceTypes
+  | ResourceFolderType
   | 'attachments'
   | 'calculation'
-  | 'calculations'
   | 'cards'
-  | 'cardTypes'
-  | 'fieldTypes'
   | 'label'
   | 'labels'
   | 'links'
-  | 'linkTypes'
   | 'modules'
   | 'project'
-  | 'projects'
-  | 'reports'
-  | 'templates'
-  | 'workflows';
+  | 'projects';
 
 // Re-export Template Configuration to avoid unnecessary changes to other files.
 export { TemplateConfiguration };

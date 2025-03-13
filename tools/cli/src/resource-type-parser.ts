@@ -14,6 +14,8 @@
 const Resources = [
   'cardType',
   'fieldType',
+  'graphModel',
+  'graphView',
   'linkType',
   'report',
   'template',
@@ -24,6 +26,8 @@ const Resources = [
 const pluralLookUpForResources = new Map([
   ['cardType', 'cardTypes'],
   ['fieldType', 'fieldTypes'],
+  ['graphModel', 'graphModels'],
+  ['graphView', 'graphViews'],
   ['linkType', 'linkTypes'],
   ['report', 'reports'],
   ['template', 'templates'],
