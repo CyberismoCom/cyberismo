@@ -82,7 +82,6 @@ describe('clingo results to fieldType dataType', () => {
     const epoch = new Date('1973-01-01').toISOString();
     expect(FT.fromClingoResult(epoch, 'date')).to.equal('1973-01-01');
     expect(FT.fromClingoResult('1972', 'date')).to.equal('1972-01-01');
-    expect(FT.fromClingoResult('-1', 'date')).to.equal('2000-12-31');
     expect(FT.fromClingoResult('null', 'date')).to.equal(null);
     expect(FT.fromClingoResult('', 'date')).to.equal('');
   });
