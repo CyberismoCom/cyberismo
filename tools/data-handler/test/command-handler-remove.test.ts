@@ -190,6 +190,12 @@ describe('remove command', () => {
       const attachment = 'the-needle.heic';
       const attachmentPath = join(testDir, 'attachments' + sep + attachment);
       const card = await createCard(commandHandler);
+
+      // To avoid logged errors from clingo queries during tests, generate calculations.
+      const project = new Project(decisionRecordsPath);
+      const calculate = new Calculate(project);
+      await calculate.generate();
+
       const cardId = card.affectsCards![0];
       await commandHandler.command(
         Cmd.create,

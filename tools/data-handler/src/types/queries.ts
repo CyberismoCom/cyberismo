@@ -76,19 +76,33 @@ export interface ParseResult<T extends BaseResult> {
  * Generic types for named queries
  */
 
-export const queries = ['tree', 'card'] as const;
+export const queries = ['card', 'onCreation', 'onTransition', 'tree'] as const;
 
 export type QueryName = (typeof queries)[number];
 
 export type QueryMap = {
-  tree: TreeQueryResult;
   card: CardQueryResult;
+  onCreation: FieldsToUpdateQueryResult;
+  onTransition: FieldsToUpdateQueryResult;
+  tree: TreeQueryResult;
 };
 export type QueryResult<T extends QueryName> = QueryMap[T];
 
 /**
  * Define all the queries below
  */
+interface CardQueryResult extends BaseResult {
+  progress?: string;
+  rank: string;
+  title: string;
+  cardType: string;
+  workflowState: string;
+  lastUpdated: string;
+  fields?: CardQueryField[];
+}
+interface FieldsToUpdateQueryResult extends BaseResult {
+  updateFields: UpdateField[];
+}
 interface TreeQueryResult extends BaseResult {
   progress?: string;
   rank: string;
@@ -98,14 +112,10 @@ interface TreeQueryResult extends BaseResult {
   children?: TreeQueryResult[];
 }
 
-interface CardQueryResult extends BaseResult {
-  progress?: string;
-  rank: string;
-  title: string;
-  cardType: string;
-  workflowState: string;
-  lastUpdated: string;
-  fields?: CardQueryField[];
+export interface UpdateField {
+  card: string;
+  field: string;
+  newValue: string;
 }
 
 interface EnumValue {

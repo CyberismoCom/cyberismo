@@ -69,7 +69,7 @@ describe('calculate', () => {
       rmSync(testDir, { recursive: true, force: true });
     }, 5000);
   });
-  it('run named query successfully', async () => {
+  it('run named queries successfully', async () => {
     const query = 'tree';
 
     const res = await calculate.runQuery(query);
@@ -79,8 +79,17 @@ describe('calculate', () => {
     delete res[0].children?.[0].workflowState;
     delete res[0].lastUpdated;
     delete res[0].children?.[0].lastUpdated;
-
     expect(res).to.deep.equal(expectedTree);
+
+    // todo: run also 'card' query
+
+    // Run onTransition and onCreation queries even if they don't return anything.
+    const onTransitionQuery = 'onTransition';
+    let changes = await calculate.runQuery(onTransitionQuery);
+    expect(changes.length).to.equal(0);
+    const onCreationQuery = 'onCreation';
+    changes = await calculate.runQuery(onCreationQuery);
+    expect(changes.length).to.equal(0);
   });
   it('run clingraph successfully', async () => {
     const res = await calculate.runGraph({
