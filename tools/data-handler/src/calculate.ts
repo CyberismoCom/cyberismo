@@ -402,10 +402,10 @@ export class Calculate {
   }
 
   // Wrapper to run onCreation query.
-  private async creationQuery(cards: string[]) {
-    if (!cards) return undefined;
+  private async creationQuery(cardKeys: string[]) {
+    if (!cardKeys) return undefined;
     return this.runQuery('onCreation', {
-      cards,
+      cardKeys,
     });
   }
   /**
