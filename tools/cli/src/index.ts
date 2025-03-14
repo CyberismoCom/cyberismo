@@ -335,6 +335,10 @@ program
     'Path to a card. If defined will export only that card and its children instead of whole project.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option(
+    '-t, --theme-path [path]',
+    `Path to a custom theme / UI bundle (site export only)`,
+  )
   .action(
     async (
       format: string,
