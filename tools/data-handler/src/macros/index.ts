@@ -276,9 +276,11 @@ export function createImage(image: string) {
   if(process.env.EXPORT_FORMAT) {
     return `image::data:image/svg+xml;base64,${image}[]\n`;;
   } else {
-    return `[pass]
-++++
+    return `++++
+<div data-type="svg-wrapper">
+<button>Fullscreen</button>
 ${Buffer.from(image, 'base64').toString('utf-8')}
+</div>
 ++++`;
   }
 }

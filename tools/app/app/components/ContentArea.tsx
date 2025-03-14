@@ -12,7 +12,7 @@
 
 'use client';
 
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import React, { ReactElement, useCallback, useEffect, useState, useRef } from 'react';
 import {
   CardDetails,
   ExpandedLinkType,
@@ -43,9 +43,10 @@ import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree } from '../lib/utils';
 import { default as NextLink } from 'next/link';
-import { Add, Delete, Edit, ExpandMore, Search } from '@mui/icons-material';
+import { Add, Delete, Edit, ExpandMore, Search, Remove, Close, Autorenew } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
 import { GenericConfirmModal } from './modals';
+import Modal from '@mui/material/Modal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
@@ -473,6 +474,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const boxRef = React.createRef<HTMLDivElement>();
 
   const [contentRef, setContentRef] = useState<HTMLDivElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [modalSVG, setModalSVG] = useState('');
+  const [zoomScale, setZoomScale] = useState(1);
 
   const dispatch = useAppDispatch();
 
@@ -490,6 +494,49 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef]);
+
+  useEffect(() => {
+    if (!contentRef) return;
+
+    // Find all elements that hold the embedded SVG + "Fullscreen" button
+    const wrapperEls = contentRef.querySelectorAll('[data-type="svg-wrapper"]');
+    console.log(wrapperEls);
+
+    // Handler for the button click
+    function handleFullscreenClick(this: HTMLButtonElement) {
+      const wrapper = this.closest('[data-type="svg-wrapper"]');
+      if (!wrapper) return;
+
+      const rawSvg = wrapper.innerHTML;
+
+      setModalSVG(rawSvg);
+
+      setOpen(true);
+    }
+
+    // 4) Attach the listener to the button inside each wrapper
+    wrapperEls.forEach((wrapperEl) => {
+      const button = wrapperEl.querySelector('button');
+      if (button) {
+        button.addEventListener('click', handleFullscreenClick);
+      }
+    });
+
+    // 5) Cleanup: remove listeners on unmount or when `parsedContent` changes
+    return () => {
+      wrapperEls.forEach((wrapperEl) => {
+        const button = wrapperEl.querySelector('button');
+        if (button) {
+          button.removeEventListener('click', handleFullscreenClick);
+        }
+      });
+    };
+  }, [contentRef]);
+
+  // Zoom handlers
+  const handleZoomIn = () => setZoomScale((prev) => prev + 0.2);
+  const handleZoomOut = () => setZoomScale((prev) => Math.max(0.2, prev - 0.2));
+  const handleResetZoom = () => setZoomScale(1);
 
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
@@ -574,6 +621,82 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   return (
     <Stack direction="row" height="100%">
+      <Box>
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          aria-labelledby="svg-fullscreen-modal"
+          aria-describedby="svg-fullscreen-description"
+        >
+          {/* Full-screen container */}
+          <Box
+            sx={{
+              position: "fixed",
+              inset: 0, // top:0, left:0, bottom:0, right:0
+              display: "flex",
+              flexDirection: "column",
+              bgcolor: "background.paper",
+            }}
+          >
+            {/* Zoom controls at the top, centered */}
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="center"
+              // Add a semi-transparent background, padding, rounded corners, etc.
+              sx={{
+                p: 1,
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                borderRadius: 2,       // Slightly rounded corners
+                boxShadow: 4,          // Subtle shadow for contrast
+              }}
+            >
+              <IconButton sx={{ color: 'white' }} onClick={handleZoomOut}>
+                <Remove />
+              </IconButton>
+              <IconButton sx={{ color: 'white' }} onClick={handleResetZoom}>
+                <Autorenew />
+              </IconButton>
+              <IconButton sx={{ color: 'white' }} onClick={handleZoomIn}>
+                <Add />
+              </IconButton>
+              <IconButton sx={{ color: 'white' }} onClick={() => setOpen(false)}>
+                <Close />
+              </IconButton>
+            </Stack>
+
+            {/* Main flex area for the SVG */}
+            <Box
+              sx={{
+                flex: 1,                 // Fill remaining space
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                overflow: "auto",
+              }}
+            >
+              {/* Container that holds the raw SVG markup */}
+              <Box
+                sx={{
+                  // Give it an initial width so it doesn't render tiny
+                  width: "80%",
+                  maxWidth: 800, // you can pick any max width you like
+                  // Force the <svg> inside to scale to 100% width by default
+                  "& svg": {
+                    width: "100%",
+                    height: "auto",
+                  },
+                  // Zoom transform
+                  transform: `scale(${zoomScale})`,
+                  transformOrigin: "center center",
+                  overflow: "auto",
+                }}
+                dangerouslySetInnerHTML={{ __html: modalSVG }}
+              />
+            </Box>
+          </Box>
+        </Modal>
+      </Box>
       <Box
         width="100%"
         padding={3}
