@@ -108,6 +108,8 @@ export interface ModuleSettings extends ProjectSettings {
   calculations: string[];
   cardTypes: string[];
   fieldTypes: string[];
+  graphModels: string[];
+  graphViews: string[];
   linkTypes: string[];
   reports: string[];
   templates: string[];
@@ -141,6 +143,8 @@ export type RemovableResourceTypes =
   | 'card'
   | 'cardType'
   | 'fieldType'
+  | 'graphModel'
+  | 'graphView'
   | 'link'
   | 'linkType'
   | 'module'
@@ -160,6 +164,8 @@ export type ResourceFolderType =
   | 'calculations'
   | 'cardTypes'
   | 'fieldTypes'
+  | 'graphModels'
+  | 'graphViews'
   | 'linkTypes'
   | 'modules'
   | 'reports'
@@ -175,6 +181,8 @@ export type ResourceTypes =
   | 'cards'
   | 'cardTypes'
   | 'fieldTypes'
+  | 'graphModels'
+  | 'graphViews'
   | 'label'
   | 'labels'
   | 'links'

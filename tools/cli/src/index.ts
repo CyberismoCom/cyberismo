@@ -76,6 +76,12 @@ const additionalHelpForCreate = `Sub-command help:
       <name> Name for fieldType. ${nameGuideline}
       <dataType> Type of field. You can list field types in a project with "show fieldTypes" command.
 
+  create graphModel <name>, where
+      <name> Name for graph model. ${nameGuideline}
+
+  create graphView <name>, where
+      <name> Name for graph view. ${nameGuideline}
+
   create label <cardKey> <labelName>, where
       <cardKey> Card key of the label
       <labelName> Name for the new label
@@ -272,6 +278,8 @@ program
         !resourceName &&
         !parameter1 &&
         type !== 'card' &&
+        type !== 'graphModel' &&
+        type !== 'graphView' &&
         type !== 'linkType' &&
         type !== 'report' &&
         type !== 'template' &&

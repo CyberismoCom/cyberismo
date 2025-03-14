@@ -24,6 +24,8 @@ import { Template } from './containers/template.js';
 
 import { CardTypeResource } from './resources/card-type-resource.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
+import { GraphModelResource } from './resources/graph-model-resource.js';
+import { GraphViewResource } from './resources/graph-view-resource.js';
 import { LinkTypeResource } from './resources/link-type-resource.js';
 import { ReportResource } from './resources/report-resource.js';
 import { TemplateResource } from './resources/template-resource.js';
@@ -200,6 +202,7 @@ export class Rename extends EventEmitter {
       : name;
   }
 
+  // @todo: merge all update-functions
   // Updates card type's metadata.
   private async updateCardTypeMetadata(cardTypeName: string) {
     const cardType = new CardTypeResource(
@@ -217,6 +220,28 @@ export class Rename extends EventEmitter {
     );
     return fieldType.rename(
       resourceName(this.updateResourceName(fieldTypeName)),
+    );
+  }
+
+  // Updates graph model's metadata.
+  private async updateGraphModelMetadata(graphModelName: string) {
+    const graphModel = new GraphModelResource(
+      this.project,
+      resourceName(graphModelName),
+    );
+    return graphModel.rename(
+      resourceName(this.updateResourceName(graphModelName)),
+    );
+  }
+
+  // Updates graph view's metadata.
+  private async updateGraphViewMetadata(graphViewName: string) {
+    const graphView = new GraphViewResource(
+      this.project,
+      resourceName(graphViewName),
+    );
+    return graphView.rename(
+      resourceName(this.updateResourceName(graphViewName)),
     );
   }
 
@@ -285,7 +310,7 @@ export class Rename extends EventEmitter {
     this.project.collectLocalResources();
 
     // Rename local resources.
-    // It is better to rename the resources in this order: card types, field types
+    // It is better to rename the resources in this order: card types, field types, then others
 
     // Rename all card types and custom fields in them.
     const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
@@ -305,6 +330,18 @@ export class Rename extends EventEmitter {
       await this.updateFieldTypeMetadata(fieldType.name);
     }
     console.info('Updated field types');
+
+    const graphModels = await this.project.graphModels(ResourcesFrom.localOnly);
+    for (const graphModel of graphModels) {
+      await this.updateGraphModelMetadata(graphModel.name);
+    }
+    console.info('Updated graph models');
+
+    const graphViews = await this.project.graphViews(ResourcesFrom.localOnly);
+    for (const graphView of graphViews) {
+      await this.updateGraphViewMetadata(graphView.name);
+    }
+    console.info('Updated graph views');
 
     const linkTypes = await this.project.linkTypes(ResourcesFrom.localOnly);
     for (const linkType of linkTypes) {
