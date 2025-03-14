@@ -10,8 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { join } from 'node:path';
-import { mkdir, rm } from 'node:fs/promises';
+import { basename, join } from 'node:path';
+import { mkdir, rename, rm } from 'node:fs/promises';
 
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
@@ -20,6 +20,7 @@ import {
   FileResource,
   Operation,
   Project,
+  resourceName,
   ResourceName,
   resourceNameToString,
   sortCards,
@@ -118,6 +119,15 @@ export class FolderResource extends FileResource {
    * Writes resource content to disk.
    */
   protected async write() {
+    const folderName = basename(this.internalFolder);
+
+    // Check if "name" has changed. Changing "name" means renaming the file.
+    const nameInContent = resourceName(this.content.name).identifier;
+    if (folderName !== nameInContent) {
+      const newFolderName = join(this.resourceFolder, nameInContent);
+      await rename(this.internalFolder, newFolderName);
+      this.internalFolder = newFolderName;
+    }
     return super.write();
   }
 
