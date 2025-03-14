@@ -67,7 +67,9 @@ export class FieldTypeResource extends FileResource {
   // Converts clingo array: "(option1, option2)" => ['option1', 'option2']
   private static parseClingoArray(value: string) {
     const itemsFromParenthesesList = /([^,()]+)/g;
-    return value.match(itemsFromParenthesesList);
+    const results = value.match(itemsFromParenthesesList);
+    if (!results) return [];
+    return results.map((item) => item.trim());
   }
 
   // Card types that use field type.
@@ -190,6 +192,7 @@ export class FieldTypeResource extends FileResource {
         case 'dateTime':
           return new Date(value).toISOString();
         case 'integer':
+          return Math.trunc(Number(value));
         case 'number':
           return Number(value);
         case 'person':
