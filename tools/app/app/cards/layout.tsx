@@ -40,7 +40,12 @@ import {
 import { CssVarsProvider as JoyCssVarsProvider } from '@mui/joy/styles';
 import { NewCardModal } from '../components/modals';
 import StoreProvider from '../providers/StoreProvider';
-import { useAppDispatch, useAppSelector, useAppRouter } from '../lib/hooks';
+import {
+  useAppDispatch,
+  useAppSelector,
+  useAppRouter,
+  useKeyboardShortcut,
+} from '../lib/hooks';
 import { CloseRounded } from '@mui/icons-material';
 import {
   closeNotification,
@@ -57,6 +62,19 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
 
   const router = useAppRouter();
+
+  useKeyboardShortcut(
+    {
+      key: 'home',
+    },
+    () => {
+      const key = tree?.[0]?.key;
+      if (key) {
+        router.safePush(`/cards/${key}`);
+      }
+    },
+    [router, tree],
+  );
 
   const notifications = useAppSelector(
     (state) => state.notifications.notifications,
@@ -167,6 +185,15 @@ function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
   const params = useParams<{
     key?: string;
   }>();
+
+  useKeyboardShortcut(
+    {
+      key: 'c',
+    },
+    () => {
+      setIsCreateDialogOpen(true);
+    },
+  );
 
   return (
     <Stack>
