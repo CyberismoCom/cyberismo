@@ -91,7 +91,13 @@ describe('template', () => {
       fetchCardDetails,
     );
     expect(cardBefore?.children?.length).to.equal(0);
-    await template.createCards(cardBefore);
+
+    // Check that created cards are mapped from template cards.
+    const createdCards = await template.createCards(cardBefore);
+    const templateCards = await template.cards();
+    expect(
+      createdCards.map((item) => item.metadata?.templateCardKey),
+    ).to.have.same.members(templateCards.map((item) => item.key));
 
     // Two direct children should have been created
     const cardAfter = await project.findSpecificCard(

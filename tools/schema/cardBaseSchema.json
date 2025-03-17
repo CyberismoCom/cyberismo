@@ -66,6 +66,10 @@
         "required": ["cardKey", "linkType"],
         "additionalProperties": false
       }
+    },
+    "templateCardKey": {
+      "type": "string",
+      "description": "Card key from which this card has been instantiated"
     }
   },
   "required": ["title", "cardType", "workflowState", "rank"]
