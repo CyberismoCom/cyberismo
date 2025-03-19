@@ -3,6 +3,7 @@
 #script (python)
 from clingo import Number, String, SymbolType
 from datetime import date, datetime, timezone
+from html import escape
 import textwrap
 
 class Functions:
@@ -53,12 +54,13 @@ class Functions:
         return String(date.today().isoformat())
 
     def wrap(self, original_text):
-        """ Adds line break tags <br/> in a string to make the strings work better as titles in graphs
+        """ Adds line break tags <br/> and HTML escaping in a string
+        to make the string work better as a title in graphs
 
         Args:
-            original_text: A Clingo string that needs to be wrapped
+            original_text: A Clingo string that needs to be wrapped and escaped
         Returns:
-            A Clingo string that has been wrapped to fit better in diagrams
+            A Clingo string that has been wrapped and escaped to work in diagrams
 
         """
         try:
@@ -71,9 +73,9 @@ class Functions:
             for line in lines:
                 counter += 1
                 if counter == numlines:
-                    result = result + line
+                    result = result + escape(line)
                 else:
-                    result = result + line + "<br/>"
+                    result = result + escape(line) + "<br/>"
             return String(result)
         except:
             return String("")
