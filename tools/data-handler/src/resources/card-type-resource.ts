@@ -95,29 +95,29 @@ export class CardTypeResource extends FileResource {
       content: true,
     };
 
+    if (op && op.name === 'rank') return;
+
+    // Collect both project cards and template cards.
+    const cards = await this.collectCards(cardContent);
+
     if (op && op.name === 'change') {
       const from = (op as ChangeOperation<string>).target;
       const to = (op as ChangeOperation<string>).to;
 
-      // Collect both project cards and template cards.
-      const cards = await this.collectCards(cardContent);
       // Then update them all parallel.
       const promises: Promise<void>[] = [];
       for (const card of cards) {
         promises.push(this.updateCardMetadata(card, from, to));
       }
       await Promise.all(promises);
-    } else if (op && (op.name === 'add' || op.name === 'remove')) {
-      const cards = await this.collectCards(cardContent);
-      if (op.name === 'add') {
-        // todo: target can be string here as well? Fix at some point
-        const item = (op as AddOperation<Type>).target as CustomField;
-        await this.handleAddNewField(cards, item);
-      } else {
-        // todo: target can be string here as well? Fix at some point
-        const item = (op as RemoveOperation<Type>).target as CustomField;
-        await this.handleRemoveField(cards, item);
-      }
+    } else if (op && op.name === 'add') {
+      // todo: target can be string here as well? Fix at some point
+      const item = (op as AddOperation<Type>).target as CustomField;
+      await this.handleAddNewField(cards, item);
+    } else if (op && op.name === 'remove') {
+      // todo: target can be string here as well? Fix at some point
+      const item = (op as RemoveOperation<Type>).target as CustomField;
+      await this.handleRemoveField(cards, item);
     }
   }
 

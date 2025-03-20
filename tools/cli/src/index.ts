@@ -603,7 +603,10 @@ program
   )
   .argument('<key>', 'Detail to be changed')
   .argument('<value>', 'Value for a detail')
-  .argument('[newValue]', 'When using "change" define new value for detail')
+  .argument(
+    '[newValue]',
+    'When using "change" define new value for detail.\nWhen using "remove" provide optional replacement value for removed value',
+  )
   .action(
     async (
       resourceName: string,
