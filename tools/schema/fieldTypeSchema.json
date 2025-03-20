@@ -38,7 +38,8 @@
           "enumDescription": {
             "type": "string"
           }
-        }
+        },
+        "required": ["enumValue"]
       }
     }
   },

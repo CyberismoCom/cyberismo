@@ -65,6 +65,9 @@ export class Update {
       (op as RankOperation<Type>).target = value;
     } else if (operation === 'remove') {
       (op as RemoveOperation<Type>).target = value;
+      (op as RemoveOperation<Type>).replacementValue = optionalDetail
+        ? optionalDetail
+        : undefined;
     }
 
     await resource?.update(key, op);
