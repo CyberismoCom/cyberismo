@@ -172,5 +172,11 @@ describe('calculate', () => {
       });
       expect(res.results[0].key).to.equal('');
     });
+    it('wrapping a string with &', async () => {
+      const res = await calculate.runLogicProgram({
+        query: 'result(@wrap("this & that")).',
+      });
+      expect(res.results[0].key).to.equal('this &amp; that');
+    });
   });
 });
