@@ -195,6 +195,7 @@ export class TemplateResource extends FolderResource {
    */
   public async write() {
     await super.write();
+    this.cardsFolder = join(this.internalFolder, 'c');
 
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.cardsFolder, '.schema');
