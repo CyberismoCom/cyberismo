@@ -43,6 +43,7 @@ import {
   createLinkTypeFacts,
   createWorkflowFacts,
 } from './utils/clingo-facts.js';
+import { CardMetadataUpdater } from './card-metadata-updater.js';
 import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
 import { generateRandomString } from './utils/random.js';
 import {
@@ -400,6 +401,13 @@ export class Calculate {
     });
   }
 
+  // Wrapper to run onCreation query.
+  private async creationQuery(cardKeys: string[]) {
+    if (!cardKeys) return undefined;
+    return this.runQuery('onCreation', {
+      cardKeys,
+    });
+  }
   /**
    * When new cards are added, automatically calculate card-specific values.
    * @param {Card[]} cards Added cards.
@@ -427,6 +435,19 @@ export class Calculate {
       await this.generateCardTreeContent(undefined);
       await this.generateCardTree();
     });
+
+    const cardKeys = cards.map((item) => item.key);
+    const queryResult = await this.creationQuery(cardKeys);
+    if (
+      !queryResult ||
+      queryResult.at(0) === undefined ||
+      queryResult.at(0)?.updateFields === undefined
+    ) {
+      return;
+    }
+
+    const fieldsToUpdate = queryResult.at(0)!.updateFields;
+    await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
   }
 
   /**

@@ -30,6 +30,7 @@ import {
   FieldType,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
+import * as EmailValidator from 'email-validator';
 
 /**
  * Field type resource class.
@@ -61,6 +62,14 @@ export class FieldTypeResource extends FileResource {
     ]);
     // Finally, write updated content.
     await this.write();
+  }
+
+  // Converts clingo array: "(option1, option2)" => ['option1', 'option2']
+  private static parseClingoArray(value: string) {
+    const itemsFromParenthesesList = /([^,()]+)/g;
+    const results = value.match(itemsFromParenthesesList);
+    if (!results) return [];
+    return results.map((item) => item.trim());
   }
 
   // Card types that use field type.
@@ -143,6 +152,7 @@ export class FieldTypeResource extends FileResource {
   /**
    * Returns all possible field types.
    * @returns all possible field types.
+   * todo: should return 'DataType' array instead of string array
    */
   public static fieldDataTypes(): string[] {
     return [
@@ -157,6 +167,48 @@ export class FieldTypeResource extends FileResource {
       'dateTime',
       'person',
     ];
+  }
+
+  /**
+   * Converts a given 'value' from Clingo result set to a type defined in 'typeName'.
+   * @param value Clingo result value (as string) to be converted.
+   * @param typeName To which type the 'value' needs to be converted to.
+   * @returns converted value.
+   */
+  public static fromClingoResult(value: string, typeName: DataType) {
+    if (!value) return value;
+    if (value === 'null') return JSON.parse(value);
+
+    try {
+      switch (typeName) {
+        case 'list':
+          return FieldTypeResource.parseClingoArray(value);
+        case 'boolean':
+          return value === 'true';
+        case 'date': {
+          const date = new Date(value).toISOString();
+          return date.substring(0, date.indexOf('T'));
+        }
+        case 'dateTime':
+          return new Date(value).toISOString();
+        case 'integer':
+          return Math.trunc(Number(value));
+        case 'number':
+          return Number(value);
+        case 'person':
+          return EmailValidator.validate(value) ? value : null;
+        case 'enum':
+        case 'shortText':
+        case 'longText':
+        default:
+          return value;
+      }
+    } catch (error) {
+      console.error(
+        `Failed to convert value '${value}' to field '${typeName}': ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
   }
 
   /**
