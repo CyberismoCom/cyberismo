@@ -45,6 +45,7 @@ export interface PredefinedCardMetadata {
   rank: string;
   lastTransitioned?: string;
   lastUpdated?: string;
+  templateCardKey?: string;
 }
 
 // todo: do we need in the future separation between module-template-cards and local template-cards

@@ -225,6 +225,9 @@ export class Template extends CardContainer {
       const newMetadata = {
         ...card.metadata,
         ...customFields,
+        templateCardKey: [...templateIDMap]
+          .find(([, value]) => value === card.key)!
+          .at(0),
         workflowState: initialWorkflowState.toState,
         cardType: cardType.name,
         rank: cardWithRank?.metadata?.rank || card.metadata.rank || EMPTY_RANK,
