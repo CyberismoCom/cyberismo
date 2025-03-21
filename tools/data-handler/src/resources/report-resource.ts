@@ -56,7 +56,7 @@ export class ReportResource extends FolderResource {
   // @todo: create the files' content dynamically.
   private defaultReportLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../../content/defaultReport',
+    '../../../../../resources/defaultReport',
   );
 
   // When resource name changes.

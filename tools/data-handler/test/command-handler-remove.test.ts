@@ -7,13 +7,12 @@ import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
+import { Calculate, Remove } from '../src/commands/index.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { Calculate } from '../src/calculate.js';
-import { Project } from '../src/containers/project.js';
-import { Remove } from '../src/remove.js';
-import { copyDir } from '../src/utils/file-utils.js';
-import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 import { Card } from '../src/interfaces/project-interfaces.js';
+import { copyDir } from '../src/utils/file-utils.js';
+import { Project } from '../src/containers/project.js';
+import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));

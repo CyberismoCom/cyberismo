@@ -11,20 +11,24 @@
 */
 
 import cardBaseSchema from '../../../schema/cardBaseSchema.json' with { type: 'json' };
-import cardTypeSchema from '../../../schema/cardTypeSchema.json' with { type: 'json' };
 import cardsConfigSchema from '../../../schema/cardsConfigSchema.json' with { type: 'json' };
-import createCardsMacroSchema from '../../../schema/createCardsMacroSchema.json' with { type: 'json' };
+import cardTreeDirectorySchema from '../../../schema/cardTreeDirectorySchema.json' with { type: 'json' };
 import csvSchema from '../../../schema/csvSchema.json' with { type: 'json' };
 import dotSchema from '../../../schema/dotSchema.json' with { type: 'json' };
-import fieldTypeSchema from '../../../schema/fieldTypeSchema.json' with { type: 'json' };
-import graphMacroBaseSchema from '../../../schema/graphMacroBaseSchema.json' with { type: 'json' };
-import linkTypeSchema from '../../../schema/linkTypeSchema.json' with { type: 'json' };
-import reportMacroBaseSchema from '../../../schema/reportMacroBaseSchema.json' with { type: 'json' };
-import reportSchema from '../../../schema/reportSchema.json' with { type: 'json' };
-import scoreCardMacroSchema from '../../../schema/scoreCardMacroSchema.json' with { type: 'json' };
-import templateSchema from '../../../schema/templateSchema.json' with { type: 'json' };
-import workflowSchema from '../../../schema/workflowSchema.json' with { type: 'json' };
-import cardTreeDirectorySchema from '../../../schema/cardTreeDirectorySchema.json' with { type: 'json' };
+
+// macros
+import createCardsMacroSchema from '../../../schema/macros/createCardsMacroSchema.json' with { type: 'json' };
+import graphMacroBaseSchema from '../../../schema/macros/graphMacroBaseSchema.json' with { type: 'json' };
+import reportMacroBaseSchema from '../../../schema/macros/reportMacroBaseSchema.json' with { type: 'json' };
+import scoreCardMacroSchema from '../../../schema/macros/scoreCardMacroSchema.json' with { type: 'json' };
+
+// resources
+import cardTypeSchema from '../../../schema/resources/cardTypeSchema.json' with { type: 'json' };
+import fieldTypeSchema from '../../../schema/resources/fieldTypeSchema.json' with { type: 'json' };
+import linkTypeSchema from '../../../schema/resources/linkTypeSchema.json' with { type: 'json' };
+import reportSchema from '../../../schema/resources/reportSchema.json' with { type: 'json' };
+import templateSchema from '../../../schema/resources/templateSchema.json' with { type: 'json' };
+import workflowSchema from '../../../schema/resources/workflowSchema.json' with { type: 'json' };
 
 export const schemas = [
   cardBaseSchema,

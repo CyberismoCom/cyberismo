@@ -16,7 +16,7 @@ import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { Card } from './interfaces/project-interfaces.js';
+import { Card } from '../interfaces/project-interfaces.js';
 import {
   copyDir,
   deleteDir,
@@ -24,34 +24,34 @@ import {
   getFilesSync,
   pathExists,
   writeFileSafe,
-} from './utils/file-utils.js';
-import { Project, ResourcesFrom } from './containers/project.js';
-import ClingoParser from './utils/clingo-parser.js';
+} from '../utils/file-utils.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
+import ClingoParser from '../utils/clingo-parser.js';
 import {
   BaseResult,
   ParseResult,
   QueryName,
   QueryResult,
-} from './types/queries.js';
+} from '../types/queries.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
-import { logger } from './utils/log-utils.js';
+import { logger } from '../utils/log-utils.js';
 import {
   createCardFacts,
   createCardTypeFacts,
   createFieldTypeFacts,
   createLinkTypeFacts,
   createWorkflowFacts,
-} from './utils/clingo-facts.js';
-import { CardMetadataUpdater } from './card-metadata-updater.js';
-import { ClingoProgramBuilder } from './utils/clingo-program-builder.js';
-import { generateRandomString } from './utils/random.js';
+} from '../utils/clingo-facts.js';
+import { CardMetadataUpdater } from '../card-metadata-updater.js';
+import { ClingoProgramBuilder } from '../utils/clingo-program-builder.js';
+import { generateRandomString } from '../utils/random.js';
 import {
   CardType,
   FieldType,
   LinkType,
   Workflow,
-} from './interfaces/resource-interfaces.js';
+} from '../interfaces/resource-interfaces.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -66,14 +66,14 @@ export class Calculate {
   private static queryLanguageFileName: string = 'queryLanguage.lp';
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../calculations/common',
+    '../../../../../resources/calculations/common',
   );
 
   constructor(private project: Project) {}
 
   private static queryFolderLocation: string = join(
     fileURLToPath(import.meta.url),
-    '../../../../calculations/queries',
+    '../../../../../resources/calculations/queries',
   );
 
   private async generateCardTypes() {

@@ -17,9 +17,9 @@ import {
   RankOperation,
   RemoveOperation,
   UpdateOperations,
-} from './resources/resource-object.js';
-import { Project } from './containers/project.js';
-import { resourceName } from './utils/resource-utils.js';
+} from '../resources/resource-object.js';
+import { Project } from '../containers/project.js';
+import { resourceName } from '../utils/resource-utils.js';
 
 /**
  * Class that handles 'update' commands.

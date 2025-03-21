@@ -13,9 +13,11 @@
 // node
 import { join, sep } from 'node:path';
 
-import { copyDir, deleteDir } from './utils/file-utils.js';
-import { Card, FetchCardDetails } from './interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from './containers/project.js';
+import { ActionGuard } from '../permissions/action-guard.js';
+import { copyDir, deleteDir } from '../utils/file-utils.js';
+import { Calculate } from './index.js';
+import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -23,12 +25,9 @@ import {
   getRankBetween,
   rebalanceRanks,
   sortItems,
-} from './utils/lexorank.js';
-import { ActionGuard } from './permissions/action-guard.js';
-import { Calculate } from './calculate.js';
-
-import { resourceName } from './utils/resource-utils.js';
-import { TemplateResource } from './resources/template-resource.js';
+} from '../utils/lexorank.js';
+import { resourceName } from '../utils/resource-utils.js';
+import { TemplateResource } from '../resources/template-resource.js';
 
 // @todo - we should have project wide constants, so that if we need them, only the const value needs to be changed.
 const ROOT: string = 'root';

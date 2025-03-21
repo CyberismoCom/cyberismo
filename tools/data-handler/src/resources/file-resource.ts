@@ -45,7 +45,7 @@ import {
   resourceObjectToResource,
 } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
-import { Validate } from '../validate.js';
+import { Validate } from '../commands/index.js';
 
 export {
   AddOperation,

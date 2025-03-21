@@ -22,14 +22,12 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-import { Calculate } from './calculate.js';
-import { Card } from './interfaces/project-interfaces.js';
-import { CardType } from '../src/interfaces/resource-interfaces.js';
-import { errorFunction } from './utils/log-utils.js';
-import { Export } from './export.js';
-import { Project } from './containers/project.js';
-import { sortItems } from './utils/lexorank.js';
-import { Show } from './show.js';
+import { Calculate, Export, Show } from './index.js';
+import { Card } from '../interfaces/project-interfaces.js';
+import { CardType } from '../interfaces/resource-interfaces.js';
+import { errorFunction } from '../utils/log-utils.js';
+import { Project } from '../containers/project.js';
+import { sortItems } from '../utils/lexorank.js';
 
 interface ExportOptions {
   silent: boolean;

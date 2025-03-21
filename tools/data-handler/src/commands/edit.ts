@@ -15,11 +15,11 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-import type { MetadataContent } from './interfaces/project-interfaces.js';
-import { Project } from './containers/project.js';
-import { UserPreferences } from './utils/user-preferences.js';
-import { ActionGuard } from './permissions/action-guard.js';
-import { Calculate } from './calculate.js';
+import { ActionGuard } from '../permissions/action-guard.js';
+import { Calculate } from './index.js';
+import type { MetadataContent } from '../interfaces/project-interfaces.js';
+import { Project } from '../containers/project.js';
+import { UserPreferences } from '../utils/user-preferences.js';
 
 export class Edit {
   private project: Project;

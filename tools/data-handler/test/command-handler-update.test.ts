@@ -6,13 +6,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, rmSync } from 'node:fs';
 
+import { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
-
-import { Show } from '../src/show.js';
-import { Update } from '../src/update.js';
-import { CardType } from '../src/interfaces/resource-interfaces.js';
+import { Show, Update } from '../src/commands/index.js';
 
 describe('Update command tests', async () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));

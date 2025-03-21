@@ -9,7 +9,7 @@ import { describe, it } from 'mocha';
 
 // data-handler
 import { readJsonFile } from '../src/utils/json.js';
-import { Validate } from '../src/validate.js';
+import { Validate } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import { ResourceTypes } from '../src/interfaces/project-interfaces.js';

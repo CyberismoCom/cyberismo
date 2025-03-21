@@ -8,11 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { Project } from '../src/containers/project.js';
-import { Show } from '../src/show.js';
+import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import { ModuleSettings } from '../src/interfaces/project-interfaces.js';
-import { copyDir } from '../src/utils/file-utils.js';
+import { Project } from '../src/containers/project.js';
+import { Show } from '../src/commands/index.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = dirname(fileURLToPath(import.meta.url));
