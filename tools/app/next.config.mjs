@@ -2,6 +2,7 @@ import path from 'path';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   webpack: (config) => {
     config.resolve.alias.handlebars = path.resolve(
       './node_modules/handlebars/dist/handlebars.js',

@@ -571,13 +571,13 @@ export class Commands {
 
     // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
     const baseDir = dirname(fileURLToPath(import.meta.url));
-    const appPath = resolve(baseDir, '../../app');
+    const appPath = resolve(baseDir, '../../app/standalone');
 
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(this.projectPath);
 
-    const args = [`start`];
-    execFileSync(`npm`, args, {
+    const args = [`server.js`];
+    execFileSync(`node`, args, {
       shell: true,
       cwd: appPath,
       stdio: 'ignore',
