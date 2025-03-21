@@ -17,7 +17,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
-import { Card, ResourceFolderType } from '../interfaces/project-interfaces.js';
+import {
+  type Card,
+  ResourceFolderType,
+} from '../interfaces/project-interfaces.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import { ResourceContent } from '../interfaces/resource-interfaces.js';
 import { ResourceName } from '../utils/resource-utils.js';

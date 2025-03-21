@@ -17,12 +17,15 @@ import { basename, join } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 
-import { Card, ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
-  AddOperation,
-  ChangeOperation,
-  Operation,
-  RemoveOperation,
+  type Card,
+  ResourceFolderType,
+} from '../interfaces/project-interfaces.js';
+import {
+  type AddOperation,
+  type ChangeOperation,
+  type Operation,
+  type RemoveOperation,
   ResourceObject,
 } from './resource-object.js';
 import { DefaultContent } from './create-defaults.js';
@@ -38,7 +41,7 @@ import {
   ResourceContent,
 } from '../interfaces/resource-interfaces.js';
 import {
-  ResourceName,
+  type ResourceName,
   resourceName,
   resourceNameToPath,
   resourceNameToString,
@@ -48,16 +51,16 @@ import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../validate.js';
 
 export {
-  AddOperation,
-  Card,
-  ChangeOperation,
+  type AddOperation,
+  type Card,
+  type ChangeOperation,
   DefaultContent,
-  Operation,
+  type Operation,
   Project,
   RemoveOperation,
   ResourcesFrom,
   resourceName,
-  ResourceName,
+  type ResourceName,
   resourceNameToString,
   sortCards,
 };

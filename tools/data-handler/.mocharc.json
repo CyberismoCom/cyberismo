@@ -1,7 +1,7 @@
 {
   "extension": ["ts"],
   "spec": "test/**/*.test.ts",
-  "require": ["ts-node/register"],
-  "loader": "ts-node/esm",
+  "$schema": "https://json.schemastore.org/mocharc.json",
+  "require": "tsx",
   "timeout": 5000
 }
