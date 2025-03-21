@@ -47,7 +47,7 @@ import {
   ResourceCollector,
 } from './project/resource-collector.js';
 import { Template } from './template.js';
-import { Validate } from '../validate.js';
+import { Validate } from '../commands/validate.js';
 
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';

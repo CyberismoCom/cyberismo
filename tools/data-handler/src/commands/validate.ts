@@ -26,7 +26,7 @@ import {
   DotSchemaContent,
   ProjectSettings,
   ResourceTypes,
-} from './interfaces/project-interfaces.js';
+} from '../interfaces/project-interfaces.js';
 import {
   CardType,
   CustomField,
@@ -34,19 +34,19 @@ import {
   ReportMetadata,
   ResourceContent,
   Workflow,
-} from './interfaces/resource-interfaces.js';
-import { errorFunction } from './utils/log-utils.js';
-import { pathExists } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
-import { readJsonFile, readJsonFileSync } from './utils/json.js';
-import { resourceName } from './utils/resource-utils.js';
+} from '../interfaces/resource-interfaces.js';
+import { errorFunction } from '../utils/log-utils.js';
+import { pathExists } from '../utils/file-utils.js';
+import { Project } from '../containers/project.js';
+import { readJsonFile, readJsonFileSync } from '../utils/json.js';
+import { resourceName } from '../utils/resource-utils.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
 );
 
 import * as EmailValidator from 'email-validator';
-import { evaluateMacros } from './macros/index.js';
+import { evaluateMacros } from '../macros/index.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const subFoldersToValidate = ['.cards', 'cardRoot'];
@@ -81,10 +81,10 @@ export class Validate {
 
   constructor() {
     Validate.baseFolder = pathExists(
-      join(process.cwd(), '../schema', 'cardTreeDirectorySchema.json'),
+      join(process.cwd(), '../../schema', 'cardTreeDirectorySchema.json'),
     )
-      ? join(process.cwd(), '../schema')
-      : join(baseDir, '../../schema');
+      ? join(process.cwd(), '../../schema')
+      : join(baseDir, '../../../schema');
     Validate.parentSchemaFile = join(
       Validate.baseFolder,
       'cardTreeDirectorySchema.json',
@@ -105,8 +105,9 @@ export class Validate {
 
   // Loads child schemas to validator.
   private addChildSchemas() {
-    readdirSync(Validate.baseFolder, { withFileTypes: true })
+    readdirSync(Validate.baseFolder, { withFileTypes: true, recursive: true })
       .filter((dirent) => dirent.name !== Validate.parentSchemaFile)
+      .filter((dirent) => dirent.isFile())
       .forEach((file) => {
         const schema = readJsonFileSync(this.fullPath(file)) as Schema;
         this.validator.addSchema(schema, schema.$id);

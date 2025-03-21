@@ -15,7 +15,7 @@ import { open } from 'node:fs/promises';
 
 import { ProjectSettings } from './interfaces/project-interfaces.js';
 import { readJsonFileSync, writeJsonFile } from './utils/json.js';
-import { Validate } from './validate.js';
+import { Validate } from './commands/index.js';
 
 /**
  * Represents Project's cardsConfig.json file.
