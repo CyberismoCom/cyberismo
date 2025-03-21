@@ -8,11 +8,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 
-import { Calculate } from '../src/calculate.js';
-import { Create } from '../src/create.js';
-import { Import } from '../src/import.js';
-import { Remove } from '../src/remove.js';
-
+import { Calculate, Create, Import, Remove } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { resourceName } from '../src/utils/resource-utils.js';

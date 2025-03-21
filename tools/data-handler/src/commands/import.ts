@@ -13,15 +13,14 @@
 // node
 import { join } from 'node:path';
 
-import { CardType } from './interfaces/resource-interfaces.js';
-import { copyDir } from './utils/file-utils.js';
-import { Create } from './create.js';
-import { Project } from './containers/project.js';
-import { pathExists } from './utils/file-utils.js';
-import { readCsvFile } from './utils/csv.js';
-import { resourceName } from './utils/resource-utils.js';
-import { TemplateResource } from './resources/template-resource.js';
-import { Validate } from './validate.js';
+import { CardType } from '../interfaces/resource-interfaces.js';
+import { copyDir } from '../utils/file-utils.js';
+import { Create, Validate } from './index.js';
+import { Project } from '../containers/project.js';
+import { pathExists } from '../utils/file-utils.js';
+import { readCsvFile } from '../utils/csv.js';
+import { resourceName } from '../utils/resource-utils.js';
+import { TemplateResource } from '../resources/template-resource.js';
 
 export class Import {
   constructor(

@@ -13,15 +13,15 @@
 // node
 import { EventEmitter } from 'node:events';
 
-import { ActionGuard } from './permissions/action-guard.js';
-import { Calculate } from './calculate.js';
+import { ActionGuard } from '../permissions/action-guard.js';
+import { Calculate } from './index.js';
 import {
   CardType,
   Workflow,
   WorkflowState,
-} from './interfaces/resource-interfaces.js';
-import { CardMetadataUpdater } from './card-metadata-updater.js';
-import { Project } from './containers/project.js';
+} from '../interfaces/resource-interfaces.js';
+import { CardMetadataUpdater } from '../card-metadata-updater.js';
+import { Project } from '../containers/project.js';
 
 export class Transition extends EventEmitter {
   constructor(

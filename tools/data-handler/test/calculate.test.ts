@@ -3,7 +3,7 @@ import chaiAsPromised from 'chai-as-promised';
 
 import { dirname, join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
-import { Calculate } from '../src/calculate.js';
+import { Calculate } from '../src/commands/index.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
@@ -94,7 +94,7 @@ describe('calculate', () => {
   it('run clingraph successfully', async () => {
     const res = await calculate.runGraph({
       query: 'viewAll.',
-      file: '../../calculations/test/model.lp',
+      file: '../../resources/calculations/test/model.lp',
     });
 
     expect(res).to.not.equal('');

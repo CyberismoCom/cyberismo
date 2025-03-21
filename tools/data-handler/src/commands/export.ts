@@ -17,14 +17,13 @@ import { dirname, join } from 'node:path';
 // asciidoctor
 import Processor from '@asciidoctor/core';
 
-import { Calculate } from './calculate.js';
-import { Card, FetchCardDetails } from './interfaces/project-interfaces.js';
-import { CardType } from './interfaces/resource-interfaces.js';
-import { pathExists } from './utils/file-utils.js';
-import { Project } from './containers/project.js';
-import { QueryResult } from './types/queries.js';
-import { Show } from './show.js';
-import { sortItems } from './utils/lexorank.js';
+import { Calculate, Show } from './index.js';
+import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
+import { CardType } from '../interfaces/resource-interfaces.js';
+import { pathExists } from '../utils/file-utils.js';
+import { Project } from '../containers/project.js';
+import { QueryResult } from '../types/queries.js';
+import { sortItems } from '../utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
 
@@ -172,7 +171,7 @@ export class Export {
     let asciiDocContent = '';
     const projectPath = this.project.basePath;
     try {
-      const { evaluateMacros } = await import('./macros/index.js');
+      const { evaluateMacros } = await import('../macros/index.js');
       asciiDocContent = await evaluateMacros(
         cardDetailsResponse.content || '',
         {

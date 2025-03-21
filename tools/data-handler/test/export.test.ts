@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { ExportSite } from '../src/export-site.js';
+import { ExportSite } from '../src/commands/index.js';
 import { fileURLToPath } from 'node:url';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));

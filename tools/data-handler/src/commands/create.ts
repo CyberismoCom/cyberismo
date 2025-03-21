@@ -20,25 +20,24 @@ import {
 } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 
-import { Calculate } from './calculate.js';
-import { errorFunction } from './utils/log-utils.js';
-import { Project } from './containers/project.js';
-import { EMPTY_RANK, sortItems } from './utils/lexorank.js';
-import { Link, LinkType } from './interfaces/resource-interfaces.js';
-import { pathExists } from './utils/file-utils.js';
-import { ProjectFile } from './interfaces/project-interfaces.js';
-import { resourceName, resourceNameToString } from './utils/resource-utils.js';
-import { Validate } from './validate.js';
-import { writeJsonFile } from './utils/json.js';
+import { Calculate, Validate } from './index.js';
+import { errorFunction } from '../utils/log-utils.js';
+import { Project } from '../containers/project.js';
+import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
+import { Link, LinkType } from '../interfaces/resource-interfaces.js';
+import { pathExists } from '../utils/file-utils.js';
+import { ProjectFile } from '../interfaces/project-interfaces.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
+import { writeJsonFile } from '../utils/json.js';
 
-import { CardTypeResource } from './resources/card-type-resource.js';
-import { FieldTypeResource } from './resources/field-type-resource.js';
-import { GraphModelResource } from './resources/graph-model-resource.js';
-import { GraphViewResource } from './resources/graph-view-resource.js';
-import { LinkTypeResource } from './resources/link-type-resource.js';
-import { ReportResource } from './resources/report-resource.js';
-import { TemplateResource } from './resources/template-resource.js';
-import { WorkflowResource } from './resources/workflow-resource.js';
+import { CardTypeResource } from '../resources/card-type-resource.js';
+import { FieldTypeResource } from '../resources/field-type-resource.js';
+import { GraphModelResource } from '../resources/graph-model-resource.js';
+import { GraphViewResource } from '../resources/graph-view-resource.js';
+import { LinkTypeResource } from '../resources/link-type-resource.js';
+import { ReportResource } from '../resources/report-resource.js';
+import { TemplateResource } from '../resources/template-resource.js';
+import { WorkflowResource } from '../resources/workflow-resource.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts

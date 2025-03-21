@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { Show } from '../src/show.js';
 import { Project } from '../src/containers/project.js';
+import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));

@@ -4,7 +4,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
-import { Edit } from '../src/edit.js';
+import { Edit } from '../src/commands/index.js';
 import { fileURLToPath } from 'node:url';
 
 describe('edit card', () => {

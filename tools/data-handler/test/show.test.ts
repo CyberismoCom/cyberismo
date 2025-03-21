@@ -4,10 +4,10 @@ import { dirname, join } from 'node:path';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
-import { Show } from '../src/show.js';
+import { errorFunction } from '../src/utils/log-utils.js';
 import { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
-import { errorFunction } from '../src/utils/log-utils.js';
+import { Show } from '../src/commands/index.js';
 import { writeJsonFile } from '../src/utils/json.js';
 
 describe('show', () => {

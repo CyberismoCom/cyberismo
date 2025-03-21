@@ -16,20 +16,20 @@ import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
-import { Calculate } from './calculate.js';
-import { Card } from './interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from './containers/project.js';
-import { resourceName } from './utils/resource-utils.js';
-import { Template } from './containers/template.js';
+import { Calculate } from './index.js';
+import { Card } from '../interfaces/project-interfaces.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
+import { resourceName } from '../utils/resource-utils.js';
+import { Template } from '../containers/template.js';
 
-import { CardTypeResource } from './resources/card-type-resource.js';
-import { FieldTypeResource } from './resources/field-type-resource.js';
-import { GraphModelResource } from './resources/graph-model-resource.js';
-import { GraphViewResource } from './resources/graph-view-resource.js';
-import { LinkTypeResource } from './resources/link-type-resource.js';
-import { ReportResource } from './resources/report-resource.js';
-import { TemplateResource } from './resources/template-resource.js';
-import { WorkflowResource } from './resources/workflow-resource.js';
+import { CardTypeResource } from '../resources/card-type-resource.js';
+import { FieldTypeResource } from '../resources/field-type-resource.js';
+import { GraphModelResource } from '../resources/graph-model-resource.js';
+import { GraphViewResource } from '../resources/graph-view-resource.js';
+import { LinkTypeResource } from '../resources/link-type-resource.js';
+import { ReportResource } from '../resources/report-resource.js';
+import { TemplateResource } from '../resources/template-resource.js';
+import { WorkflowResource } from '../resources/workflow-resource.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 

@@ -7,11 +7,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import { Calculate } from '../src/calculate.js';
+import { Calculate, Show } from '../src/commands/index.js';
+import { copyDir } from '../src/utils/file-utils.js';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
-import { Show } from '../src/show.js';
-import { copyDir } from '../src/utils/file-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
