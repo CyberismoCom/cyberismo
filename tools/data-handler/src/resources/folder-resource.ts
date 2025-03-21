@@ -15,20 +15,20 @@ import { mkdir, rename, rm } from 'node:fs/promises';
 
 import { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
-  Card,
+  type Card,
   DefaultContent,
   FileResource,
-  Operation,
+  type Operation,
   Project,
   resourceName,
-  ResourceName,
+  type ResourceName,
   resourceNameToString,
   sortCards,
 } from './file-resource.js';
 import { ResourceContent } from '../interfaces/resource-interfaces.js';
 
 export {
-  Card,
+  type Card,
   DefaultContent,
   FileResource,
   type Operation,
