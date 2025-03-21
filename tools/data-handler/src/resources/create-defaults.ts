@@ -15,6 +15,8 @@ import {
   CardType,
   DataType,
   FieldType,
+  GraphModelMetadata,
+  GraphViewMetadata,
   Link,
   LinkType,
   ReportMetadata,
@@ -98,6 +100,32 @@ export abstract class DefaultContent {
       value.enumValues = [{ enumValue: 'value1' }, { enumValue: 'value2' }];
     }
     return value;
+  }
+
+  /**
+   * Default content for graph model.
+   * @param graphModelName graph model name
+   * @returns Default content for graph model.
+   */
+  static graphModel(graphModelName: string): GraphModelMetadata {
+    return {
+      name: graphModelName,
+      displayName: '',
+      description: '',
+    };
+  }
+
+  /**
+   * Default content for graph view.
+   * @param graphViewName graph view name
+   * @returns Default content for graph view.
+   */
+  static graphView(graphViewName: string): GraphViewMetadata {
+    return {
+      name: graphViewName,
+      displayName: '',
+      description: '',
+    };
   }
 
   /**

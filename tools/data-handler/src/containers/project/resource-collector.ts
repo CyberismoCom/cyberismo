@@ -41,6 +41,8 @@ class ResourceCollection {
   public calculations: Resource[] = [];
   public cardTypes: Resource[] = [];
   public fieldTypes: Resource[] = [];
+  public graphModels: Resource[] = [];
+  public graphViews: Resource[] = [];
   public linkTypes: Resource[] = [];
   public reports: Resource[] = [];
   public templates: Resource[] = [];
@@ -55,6 +57,8 @@ class ResourceCollection {
     if (type === 'calculations') return this.calculations;
     if (type === 'cardTypes') return this.cardTypes;
     if (type === 'fieldTypes') return this.fieldTypes;
+    if (type === 'graphViews') return this.graphViews;
+    if (type === 'graphModels') return this.graphModels;
     if (type === 'linkTypes') return this.linkTypes;
     if (type === 'reports') return this.reports;
     if (type === 'templates') return this.templates;
@@ -132,6 +136,12 @@ export class ResourceCollector {
       ];
       this.modules.fieldTypes = [
         ...(await this.addResources(modules, 'fieldTypes')),
+      ];
+      this.modules.graphModels = [
+        ...(await this.addResources(modules, 'graphModels')),
+      ];
+      this.modules.graphViews = [
+        ...(await this.addResources(modules, 'graphViews')),
       ];
       this.modules.linkTypes = [
         ...(await this.addResources(modules, 'linkTypes')),
@@ -230,6 +240,8 @@ export class ResourceCollector {
       'calculations',
       'cardTypes',
       'fieldTypes',
+      'graphModels',
+      'graphViews',
       'linkTypes',
       'reports',
       'templates',
@@ -272,6 +284,12 @@ export class ResourceCollector {
         break;
       case 'fieldTypes':
         addItem(this.local.fieldTypes, resource);
+        break;
+      case 'graphModels':
+        addItem(this.local.graphModels, resource);
+        break;
+      case 'graphViews':
+        addItem(this.local.graphViews, resource);
         break;
       case 'linkTypes':
         addItem(this.local.linkTypes, resource);

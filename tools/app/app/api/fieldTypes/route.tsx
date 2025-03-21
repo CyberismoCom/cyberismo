@@ -46,7 +46,7 @@ export async function GET() {
     });
   }
 
-  const response = await commands.showCmd.showFieldTypes();
+  const response = await commands.showCmd.showResources('fieldTypes');
   if (response) {
     const fieldTypes = await Promise.all(
       response.map((fieldType: string) =>

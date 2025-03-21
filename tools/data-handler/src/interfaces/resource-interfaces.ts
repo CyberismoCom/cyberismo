@@ -65,14 +65,27 @@ export interface FieldType extends ResourceBaseMetadata {
   enumValues?: Array<EnumDefinition>;
 }
 
-// File-based resources metadata content.
-export type ResourceContent =
-  | CardType
-  | FieldType
-  | LinkType
-  | ReportMetadata
-  | TemplateMetadata
-  | Workflow;
+// Graph model content.
+export interface GraphModelMetadata extends ResourceBaseMetadata {
+  category?: string;
+  description?: string;
+  displayName: string;
+}
+
+export interface GraphModel extends GraphModelMetadata {
+  calculationFile: string;
+}
+
+// Graph view content.
+export interface GraphViewMetadata extends ResourceBaseMetadata {
+  category?: string;
+  description?: string;
+  displayName: string;
+}
+
+export interface GraphView extends GraphViewMetadata {
+  handleBarFile: string;
+}
 
 // Link content.
 export interface Link {
@@ -111,6 +124,17 @@ export interface ResourceBaseMetadata {
   name: string;
   usedIn?: string[];
 }
+
+// All resources metadata content.
+export type ResourceContent =
+  | CardType
+  | FieldType
+  | GraphModel
+  | GraphView
+  | LinkType
+  | ReportMetadata
+  | TemplateMetadata
+  | Workflow;
 
 // Template configuration details.
 export interface TemplateConfiguration {

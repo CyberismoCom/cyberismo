@@ -28,6 +28,8 @@ export class ProjectPaths {
       ['calculations', this.calculationProjectFolder],
       ['cardTypes', this.cardTypesFolder],
       ['fieldTypes', this.fieldTypesFolder],
+      ['graphModels', this.graphModelsFolder],
+      ['graphViews', this.graphViewsFolder],
       ['linkTypes', this.linkTypesFolder],
       ['modules', this.modulesFolder],
       ['reports', this.reportsFolder],
@@ -62,6 +64,14 @@ export class ProjectPaths {
 
   public get fieldTypesFolder(): string {
     return join(this.resourcesFolder, 'fieldTypes');
+  }
+
+  public get graphModelsFolder(): string {
+    return join(this.resourcesFolder, 'graphModels');
+  }
+
+  public get graphViewsFolder(): string {
+    return join(this.resourcesFolder, 'graphViews');
   }
 
   public get linkTypesFolder(): string {
