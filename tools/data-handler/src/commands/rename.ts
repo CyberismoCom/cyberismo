@@ -1,18 +1,18 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
 import { assert } from 'node:console';
-import { EventEmitter } from 'node:events';
 import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
@@ -36,21 +36,14 @@ const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 /**
  * Class that handles 'rename' command.
  */
-export class Rename extends EventEmitter {
+export class Rename {
   private from: string = '';
   private to: string = '';
 
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
-  ) {
-    super();
-
-    this.addListener(
-      'renamed',
-      this.calculateCmd.generate.bind(this.calculateCmd),
-    );
-  }
+  ) {}
 
   // Renames a card and all of its attachments (if it is a project card).
   private async renameCard(re: RegExp, card: Card): Promise<void> {
@@ -384,6 +377,6 @@ export class Rename extends EventEmitter {
     this.project.collectLocalResources();
     console.info('Collected renamed resources');
 
-    this.emit('renamed');
+    return this.calculateCmd.generate();
   }
 }
