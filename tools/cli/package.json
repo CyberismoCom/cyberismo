@@ -21,7 +21,8 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "commander": "^13.1.0"
+    "commander": "^13.1.0",
+    "@inquirer/confirm": "^5.1.8"
   },
   "devDependencies": {
     "@cyberismocom/data-handler": "workspace:*"
