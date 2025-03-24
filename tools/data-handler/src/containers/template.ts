@@ -506,6 +506,17 @@ export class Template extends CardContainer {
     cardKey: string,
     details: FetchCardDetails = {},
   ): Promise<Card | undefined> {
+    const cardPrefix = cardKey.split('_').at(0);
+    const moduleCardFromProject =
+      this.basePath.includes('local') &&
+      this.project.projectPrefix !== cardPrefix;
+    const projectCardFromModule =
+      this.basePath.includes('modules') &&
+      this.project.projectPrefix === cardPrefix;
+    // If the result is impossible, return undefined.
+    if (moduleCardFromProject || projectCardFromModule) {
+      return undefined;
+    }
     return super.findCard(this.templateCardsPath, cardKey, details);
   }
 
