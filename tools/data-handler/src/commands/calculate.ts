@@ -386,6 +386,7 @@ export class Calculate {
       let cardTreeContent = calculationsForTreeExist
         ? await readFile(cardTreeFile, 'utf-8')
         : '';
+      const lines = cardTreeContent.split('\n');
       for (const card of affectedCards) {
         // First, delete card specific files.
         const cardCalculationsFile = join(
@@ -396,11 +397,10 @@ export class Calculate {
           await deleteFile(cardCalculationsFile);
         }
         // Then, delete rows from cardTree.lp.
-        const removeRow = `#include "cards/${card.key}.lp".\n`.replace(
-          /\\/g,
-          '/',
+        const filteredLines = lines.filter(
+          (line) => !line.includes(`cards/${card.key}.lp`),
         );
-        cardTreeContent = cardTreeContent.replace(removeRow, '');
+        cardTreeContent = filteredLines.join('\n');
       }
       if (calculationsForTreeExist) {
         await writeFileSafe(cardTreeFile, cardTreeContent);
