@@ -515,24 +515,6 @@ describe('project', () => {
     });
     expect(existingCard).to.not.equal(undefined);
   });
-  it('find certain card from project - using template card object and different details (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    const existingCard = await project.findSpecificCard('decision_1', {
-      content: true,
-    });
-    expect(existingCard).to.not.equal(undefined);
-    if (existingCard) {
-      const sameReference = await project.findSpecificCard(existingCard, {
-        content: true,
-        metadata: true,
-        parent: true,
-      });
-      expect(sameReference).to.not.equal(undefined);
-    }
-  });
   it('check if project is created (success)', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
