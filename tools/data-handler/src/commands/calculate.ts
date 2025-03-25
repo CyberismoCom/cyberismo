@@ -64,6 +64,7 @@ export class Calculate {
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
   private static queryLanguageFileName: string = 'queryLanguage.lp';
+  private queryCache = new Map<string, string>();
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../../resources/calculations/common',
@@ -293,9 +294,24 @@ export class Calculate {
   }
 
   // Return path to query file if it exists, else return null.
-  private async getQuery(queryName: string) {
+  private async queryPath(queryName: string) {
     const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
     return pathExists(location) ? location : null;
+  }
+
+  // Returns query content from cache.
+  // If the query is not yet used; reads it from disk and puts into cache.
+  private async getQuery(queryName: string): Promise<string | undefined> {
+    if (this.queryCache.has(queryName)) {
+      return this.queryCache.get(queryName);
+    }
+    const query = await this.queryPath(queryName);
+    if (!query) {
+      throw new Error(`Query file ${queryName} not found`);
+    }
+    const content = (await readFile(query)).toString();
+    this.queryCache.set(queryName, content);
+    return content;
   }
 
   // Checks that Clingo successfully returned result.
@@ -460,13 +476,7 @@ export class Calculate {
     queryName: T,
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    const query = await this.getQuery(queryName);
-    if (!query) {
-      throw new Error(`Query file ${queryName} not found`);
-    }
-
-    let content = (await readFile(query)).toString();
-
+    let content = await this.getQuery(queryName);
     if (options && typeof options === 'object') {
       const handlebars = Handlebars.create();
       const compiled = handlebars.compile(content);
