@@ -136,6 +136,14 @@ export interface ProjectMetadata {
 export interface ProjectSettings {
   cardKeyPrefix: string;
   name: string;
+  modules: ModuleSetting[];
+}
+
+//
+export interface ModuleSetting {
+  name: string;
+  url: string;
+  branch: string;
 }
 
 // Resources that are possible to remove.

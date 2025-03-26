@@ -23,6 +23,7 @@ import { Rename } from './rename.js';
 import { Show } from './show.js';
 import { Transition } from './transition.js';
 import { Update } from './update.js';
+import { UpdateModules } from './update-modules.js';
 import { Validate } from './validate.js';
 
 export {
@@ -38,5 +39,6 @@ export {
   Show,
   Transition,
   Update,
+  UpdateModules,
   Validate,
 };

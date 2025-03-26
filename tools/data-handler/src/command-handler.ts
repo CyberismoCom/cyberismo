@@ -62,6 +62,7 @@ export enum Cmd {
   start = 'start',
   transition = 'transition',
   update = 'update',
+  updateModules = 'update-modules',
   validate = 'validate',
 }
 
@@ -314,6 +315,8 @@ export class Commands {
           parsedValue,
           newValue ? JSON.parse(newValue) : undefined,
         );
+      } else if (command === Cmd.updateModules) {
+        await this.commands?.updateModulesCmd.update();
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {

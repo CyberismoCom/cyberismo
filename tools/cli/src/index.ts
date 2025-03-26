@@ -11,7 +11,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Argument, Command } from 'commander';
+import { Argument, Command, Option } from 'commander';
 import {
   CardsOptions,
   Cmd,
@@ -641,6 +641,16 @@ program
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
     const result = await commandHandler.command(Cmd.start, [], options);
+    handleResponse(result);
+  });
+
+//
+program
+  .command('update-modules')
+  .description('Updates all imported modules with latest versions')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (options: CardsOptions) => {
+    const result = await commandHandler.command(Cmd.updateModules, [], options);
     handleResponse(result);
   });
 

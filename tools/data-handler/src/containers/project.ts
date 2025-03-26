@@ -722,6 +722,7 @@ export class Project extends CardContainer {
       )) as ModuleSettings;
       return {
         name: moduleConfig.name,
+        modules: [], // todo
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
         calculations: [

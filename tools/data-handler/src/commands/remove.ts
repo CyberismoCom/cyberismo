@@ -184,12 +184,20 @@ export class Remove extends EventEmitter {
   }
 
   // Removes modules from project
-  private async removeModule(moduleName: string) {
+  public async removeModule(moduleName: string) {
     const module = await this.project.module(moduleName);
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
     await deleteDir(module.path);
+
+    // Remove module from project settings
+    await this.project.configuration.removeModule({
+      name: moduleName,
+      branch: '',
+      url: '',
+    });
+
     await this.project.collectModuleResources();
   }
 

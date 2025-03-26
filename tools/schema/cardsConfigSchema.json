@@ -17,6 +17,28 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z ._-]+$"
+    },
+    "modules": {
+      "description": "",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "",
+            "type": "string"
+          },
+          "url": {
+            "description": "",
+            "type": "string"
+          },
+          "branch": {
+            "description": "",
+            "type": "string"
+          }
+        },
+        "required": ["name", "url"]
+      }
     }
   },
   "required": ["cardKeyPrefix"]

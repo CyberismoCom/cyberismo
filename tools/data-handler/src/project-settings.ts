@@ -13,7 +13,10 @@
 // node
 import { open } from 'node:fs/promises';
 
-import { ProjectSettings } from './interfaces/project-interfaces.js';
+import {
+  ModuleSetting,
+  ProjectSettings,
+} from './interfaces/project-interfaces.js';
 import { readJsonFileSync, writeJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';
 
@@ -25,12 +28,14 @@ export class ProjectConfiguration implements ProjectSettings {
 
   name: string;
   cardKeyPrefix: string;
+  modules: ModuleSetting[];
   private settingPath: string;
 
   constructor(path: string) {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
+    this.modules = [];
     this.readSettings();
   }
 
@@ -70,10 +75,12 @@ export class ProjectConfiguration implements ProjectSettings {
     }
 
     const valid = 'cardKeyPrefix' in settings && 'name' in settings;
+    // todo: validate 'modules'
 
     if (valid) {
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
+      this.modules = settings.modules;
     } else {
       throw new Error(`Invalid configuration file '${this.settingPath}'`);
     }
@@ -84,7 +91,30 @@ export class ProjectConfiguration implements ProjectSettings {
     return {
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
+      modules: this.modules,
     };
+  }
+
+  /**
+   * Adds new module to imported modules property.
+   * @param module
+   * @returns
+   */
+  public async addModule(module: ModuleSetting) {
+    const exists = this.modules.find((item) => item.name === module.name);
+    if (exists) return;
+    this.modules.push(module);
+  }
+
+  /**
+   * Removes module from imported modules property.
+   * @param module
+   * @returns
+   */
+  public async removeModule(module: ModuleSetting) {
+    const exists = this.modules.find((item) => item.name === module.name);
+    if (!exists) return;
+    this.modules = this.modules.filter((item) => item.name !== module.name);
   }
 
   /**

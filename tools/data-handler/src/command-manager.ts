@@ -23,6 +23,7 @@ import {
   Show,
   Transition,
   Update,
+  UpdateModules,
   Validate,
 } from './commands/index.js';
 import { Project } from './containers/project.js';
@@ -44,6 +45,7 @@ export class CommandManager {
   public showCmd: Show;
   public transitionCmd: Transition;
   public updateCmd: Update;
+  public updateModulesCmd: UpdateModules;
   public validateCmd: Validate;
 
   constructor(path: string) {
@@ -66,6 +68,11 @@ export class CommandManager {
     this.renameCmd = new Rename(this.project, this.calculateCmd);
     this.transitionCmd = new Transition(this.project, this.calculateCmd);
     this.updateCmd = new Update(this.project);
+    this.updateModulesCmd = new UpdateModules(
+      this.project,
+      this.importCmd,
+      this.removeCmd,
+    );
   }
 
   /**

@@ -154,6 +154,13 @@ export class Import {
     // Copy files.
     await copyDir(sourcePath, destinationPath);
 
+    // Modify project settings
+    await this.project.configuration.addModule({
+      name: modulePrefix,
+      branch: '', //todo: this needs to be set - add parameter to the import command
+      url: '', //todo: this needs to be set - add parameter to the import command
+    });
+
     // Update the resources.
     await this.project.collectModuleResources();
   }
