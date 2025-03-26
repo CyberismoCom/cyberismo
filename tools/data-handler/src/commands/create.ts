@@ -62,6 +62,7 @@ export class Create {
       content: {
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
+        modules: [],
       },
       name: Project.projectConfigFileName,
     },

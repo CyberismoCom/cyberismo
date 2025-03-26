@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { dirname, join, resolve } from 'node:path';
@@ -19,7 +20,7 @@ import {
   CardAttachment,
   CardListContainer,
   FileContentType,
-  ModuleSettings,
+  ModuleContent,
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
@@ -63,6 +64,7 @@ export enum Cmd {
   start = 'start',
   transition = 'transition',
   update = 'update',
+  updateModules = 'update-modules',
   validate = 'validate',
 }
 
@@ -249,8 +251,8 @@ export class Commands {
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
-          const [source] = args;
-          await this.import(source);
+          const [source, branch] = args;
+          await this.import(source, branch);
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -317,6 +319,8 @@ export class Commands {
           parsedValue,
           newValue ? JSON.parse(newValue) : undefined,
         );
+      } else if (command === Cmd.updateModules) {
+        await this.commands?.importCmd.updateAllModules();
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -446,8 +450,12 @@ export class Commands {
   }
 
   // Imports another project to the 'destination' project as a module.
-  private async import(source: string): Promise<void> {
-    return this.commands?.importCmd.importProject(source, this.projectPath);
+  private async import(source: string, branch?: string) {
+    return this.commands?.importCmd.importModule(
+      source,
+      this.projectPath,
+      branch,
+    );
   }
 
   // Imports cards from a CSV file to a project.
@@ -501,7 +509,7 @@ export class Commands {
       | Card
       | CardAttachment[]
       | CardListContainer[]
-      | ModuleSettings
+      | ModuleContent
       | ProjectMetadata
       | ResourceContent
       | string[]

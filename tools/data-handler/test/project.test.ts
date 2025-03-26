@@ -124,7 +124,7 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = ProjectConfiguration.getInstance(configFile);
+    const projectSettings = new ProjectConfiguration(configFile);
     expect(projectSettings).to.not.equal(undefined);
 
     const prefix = projectSettings.cardKeyPrefix;
@@ -132,39 +132,6 @@ describe('project', () => {
 
     const prefixes = await project.projectPrefixes();
     expect(prefixes).to.contain(prefix);
-  });
-
-  it('multiple instances of settings class', () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const emptyProjectPath = join(testDir, 'valid/minimal');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    // Create three instances of project settings, of which two are instances of the same settings; and one is unique.
-    const configFile1 = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const configFile2 = join(
-      emptyProjectPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings1 = ProjectConfiguration.getInstance(configFile1);
-    const projectSettings2 = ProjectConfiguration.getInstance(configFile2);
-    const projectSettings3 = ProjectConfiguration.getInstance(configFile2);
-
-    expect(projectSettings1.name).to.not.equal(projectSettings2.name);
-    expect(projectSettings2.name).to.equal(projectSettings3.name);
-    expect(projectSettings1.cardKeyPrefix).to.not.equal(
-      projectSettings2.cardKeyPrefix,
-    );
-    expect(projectSettings2.cardKeyPrefix).to.equal(
-      projectSettings3.cardKeyPrefix,
-    );
   });
 
   it('create class - card operation (success)', async () => {
@@ -712,6 +679,53 @@ describe('project', () => {
       resourceName('decision/workflows/decision'),
     );
     expect((wf as WorkflowResource).data).not.to.equal(undefined);
+  });
+
+  it('add module to project', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    //const minimalPath = join(testDir, 'valid/minimal');
+    const project = new Project(decisionRecordsPath);
+    expect(project).to.not.equal(undefined);
+
+    const configFile = join(
+      decisionRecordsPath,
+      '.cards',
+      'local',
+      Project.projectConfigFileName,
+    );
+    const projectSettings = new ProjectConfiguration(configFile);
+    expect(projectSettings).to.not.equal(undefined);
+    expect(projectSettings.modules.length).to.equal(0);
+
+    // Add module
+    await projectSettings
+      .addModule({
+        name: 'mini',
+        location: `file:../valid/minimal`,
+      })
+      .then(() => expect(projectSettings.modules.length).to.equal(1))
+      .catch(() => expect(true).to.equal(false));
+
+    // try to add the same module again
+    await projectSettings
+      .addModule({
+        name: 'mini',
+        location: `file:../valid/minimal`,
+      })
+      .then(() => expect(true).to.equal(false))
+      .catch(() => expect(projectSettings.modules.length).to.equal(1));
+
+    // Remove module
+    await projectSettings
+      .removeModule('mini')
+      .then(() => expect(projectSettings.modules.length).to.equal(0))
+      .catch(() => expect(true).to.equal(false));
+
+    // try to remove the same module again
+    await projectSettings
+      .removeModule('mini')
+      .then(() => expect(true).to.equal(false))
+      .catch(() => expect(projectSettings.modules.length).to.equal(0));
   });
 
   // @todo: tests needed:

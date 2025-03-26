@@ -1,20 +1,23 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { open } from 'node:fs/promises';
+import { writeJsonFile as atomicWrite } from 'write-json-file';
 
-import { ProjectSettings } from './interfaces/project-interfaces.js';
-import { readJsonFileSync, writeJsonFile } from './utils/json.js';
+import {
+  ModuleSetting,
+  ProjectSettings,
+} from './interfaces/project-interfaces.js';
+import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './commands/index.js';
 
 /**
@@ -25,12 +28,14 @@ export class ProjectConfiguration implements ProjectSettings {
 
   name: string;
   cardKeyPrefix: string;
+  modules: ModuleSetting[];
   private settingPath: string;
 
   constructor(path: string) {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
+    this.modules = [];
     this.readSettings();
   }
 
@@ -39,23 +44,20 @@ export class ProjectConfiguration implements ProjectSettings {
     if (this.cardKeyPrefix === '') {
       throw new Error('wrong configuration');
     }
-    await open(this.settingPath, 'w').then(async (file) => {
-      try {
-        await writeJsonFile(file, this.toJSON());
-        file.close();
-      } catch (error) {
-        if (error instanceof Error) {
-          console.error(error.message);
-        }
+    try {
+      await atomicWrite(this.settingPath, this.toJSON(), { indent: 4 });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error.message);
       }
-    });
+    }
   }
 
   // Sets configuration values from file.
   private readSettings() {
     let settings;
     try {
-      settings = readJsonFileSync(this.settingPath) as ProjectSettings;
+      settings = readJsonFileSync(this.settingPath) as ProjectConfiguration;
     } catch {
       throw new Error(
         `Invalid path '${this.settingPath}' to configuration file`,
@@ -67,11 +69,14 @@ export class ProjectConfiguration implements ProjectSettings {
       );
     }
 
-    const valid = 'cardKeyPrefix' in settings && 'name' in settings;
+    const valid =
+      Object.prototype.hasOwnProperty.call(settings, 'cardKeyPrefix') &&
+      Object.prototype.hasOwnProperty.call(settings, 'name');
 
     if (valid) {
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
+      this.modules = settings.modules || [];
     } else {
       throw new Error(`Invalid configuration file '${this.settingPath}'`);
     }
@@ -82,22 +87,40 @@ export class ProjectConfiguration implements ProjectSettings {
     return {
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
+      modules: this.modules,
     };
   }
 
   /**
-   * Possibly creates (if no instance exists, or path is different) and returns an instance of ProjectSettings.
-   * @returns instance of ProjectSettings.
+   * Adds new module to imported modules property.
+   * @param module Module to add as dependency
    */
-  public static getInstance(path: string): ProjectConfiguration {
-    // If there is no instance, or if path is not the same as current instance's path; create a new one.
-    if (
-      !ProjectConfiguration.instance ||
-      path !== ProjectConfiguration.instance.settingPath
-    ) {
-      ProjectConfiguration.instance = new ProjectConfiguration(path);
+  public async addModule(module: ModuleSetting) {
+    if (!module) {
+      throw new Error(`Module must have 'name' and 'url'`);
     }
-    return ProjectConfiguration.instance;
+    const exists = this.modules.find((item) => item.name === module.name);
+    if (exists) {
+      throw new Error(`Module '${module.name}' already imported`);
+    }
+    this.modules.push(module);
+    return this.save();
+  }
+
+  /**
+   * Removes module from imported modules property.
+   * @param moduleName Name of the module to remove.
+   */
+  public async removeModule(moduleName: string) {
+    if (!moduleName) {
+      throw new Error(`Name must be provided to remove module`);
+    }
+    const exists = this.modules.find((item) => item.name === moduleName);
+    if (!exists) {
+      throw new Error(`Module '${moduleName}' is not imported`);
+    }
+    this.modules = this.modules.filter((item) => item.name !== moduleName);
+    return this.save();
   }
 
   /**

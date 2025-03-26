@@ -60,3 +60,6 @@ jobs:
     - run: pnpm build
     - run: pnpm link --global
     - run: pnpm test
+      env:
+        CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
+        CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
