@@ -18,7 +18,7 @@ import { spawn } from 'node:child_process';
 
 import mime from 'mime-types';
 
-import { attachmentPayload } from './interfaces/request-status-interfaces.js';
+import { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import {
   CardAttachment,
   Card,
@@ -27,17 +27,17 @@ import {
   ProjectFetchCardDetails,
   ProjectMetadata,
   Resource,
-} from './interfaces/project-interfaces.js';
+} from '../interfaces/project-interfaces.js';
 import {
   CardType,
   ResourceContent,
   TemplateConfiguration,
   Workflow,
-} from './interfaces/resource-interfaces.js';
-import { Project, ResourcesFrom } from './containers/project.js';
-import { resourceName } from './utils/resource-utils.js';
-import { TemplateResource } from './resources/template-resource.js';
-import { UserPreferences } from './utils/user-preferences.js';
+} from '../interfaces/resource-interfaces.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
+import { resourceName } from '../utils/resource-utils.js';
+import { TemplateResource } from '../resources/template-resource.js';
+import { UserPreferences } from '../utils/user-preferences.js';
 
 /**
  * Show command.

@@ -32,7 +32,7 @@ import {
 } from './file-resource.js';
 import { LinkTypeResource } from './link-type-resource.js';
 import { Template } from '../containers/template.js';
-import { Validate } from '../validate.js';
+import { Validate } from '../commands/index.js';
 
 /**
  * Card type resource class.

@@ -15,7 +15,7 @@ import { registerEmptyMacros, validateMacroContent } from '../index.js';
 import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
-import { Calculate } from '../../calculate.js';
+import { Calculate } from '../../commands/index.js';
 import Handlebars from 'handlebars';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';

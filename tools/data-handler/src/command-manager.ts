@@ -10,20 +10,22 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from './calculate.js';
-import { Create } from './create.js';
-import { Edit } from './edit.js';
-import { Export } from './export.js';
-import { ExportSite } from './export-site.js';
-import { Import } from './import.js';
-import { Move } from './move.js';
+import {
+  Calculate,
+  Create,
+  Edit,
+  Export,
+  ExportSite,
+  Import,
+  Move,
+  Remove,
+  Rename,
+  Show,
+  Transition,
+  Update,
+  Validate,
+} from './commands/index.js';
 import { Project } from './containers/project.js';
-import { Remove } from './remove.js';
-import { Rename } from './rename.js';
-import { Show } from './show.js';
-import { Transition } from './transition.js';
-import { Update } from './update.js';
-import { Validate } from './validate.js';
 
 // Handles commands and ensures that no extra instances are created.
 export class CommandManager {

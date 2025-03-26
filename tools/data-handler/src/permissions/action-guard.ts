@@ -10,8 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Calculate } from '../calculate.js';
-
+import { Calculate } from '../commands/index.js';
 import { DeniedOperationCollection } from '../types/queries.js';
 
 export type Action = keyof DeniedOperationCollection;

@@ -28,11 +28,10 @@ import { ResourceContent } from './interfaces/resource-interfaces.js';
 
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 
-import { Create } from './create.js';
+import { Create, Validate } from './commands/index.js';
 import { CommandManager } from './command-manager.js';
 import { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
-import { Validate } from './validate.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/log-utils.js';
