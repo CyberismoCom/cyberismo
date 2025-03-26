@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
-import { ModuleSettings } from '../src/interfaces/project-interfaces.js';
+import { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
 
@@ -338,7 +338,7 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       expect(result.payload).to.not.equal(undefined);
-      const module = result.payload as ModuleSettings;
+      const module = result.payload as ModuleContent;
       expect(module.cardKeyPrefix).to.equal('mini');
       expect(module.name).to.equal('minimal');
       expect(module.path).to.equal(

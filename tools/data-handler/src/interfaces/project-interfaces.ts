@@ -105,7 +105,7 @@ export type MetadataContent =
   | undefined;
 
 // Module content
-export interface ModuleSettings extends ProjectSettings {
+export interface ModuleContent extends ProjectSettings {
   path: string;
   calculations: string[];
   cardTypes: string[];
@@ -130,6 +130,7 @@ export interface ProjectMetadata {
   name: string;
   path: string;
   prefix: string;
+  modules: string[];
   numberOfCards: number;
 }
 
@@ -137,6 +138,14 @@ export interface ProjectMetadata {
 export interface ProjectSettings {
   cardKeyPrefix: string;
   name: string;
+  modules: ModuleSetting[];
+}
+
+// Module configuration.
+export interface ModuleSetting {
+  name: string;
+  location: string;
+  branch?: string;
 }
 
 // Resources that are possible to remove.
