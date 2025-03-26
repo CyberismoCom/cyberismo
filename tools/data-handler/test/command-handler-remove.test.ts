@@ -311,21 +311,6 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    // todo: at some point move to own test file
-    it('Remove - remove card (success)', async () => {
-      const cardId = 'decision_5';
-      const project = new Project(decisionRecordsPath);
-      const calculateCmd = new Calculate(project);
-      const removeCmd = new Remove(project, calculateCmd);
-      await removeCmd
-        .remove('card', cardId)
-        .then(() => {
-          expect(true);
-        })
-        .catch(() => {
-          expect(false);
-        });
-    });
   });
 
   describe('removal attempts', () => {

@@ -387,6 +387,7 @@ export class Calculate {
         ? await readFile(cardTreeFile, 'utf-8')
         : '';
       const lines = cardTreeContent.split('\n');
+      let filteredLines = lines;
       for (const card of affectedCards) {
         // First, delete card specific files.
         const cardCalculationsFile = join(
@@ -397,7 +398,7 @@ export class Calculate {
           await deleteFile(cardCalculationsFile);
         }
         // Then, delete rows from cardTree.lp.
-        const filteredLines = lines.filter(
+        filteredLines = filteredLines.filter(
           (line) => !line.includes(`cards/${card.key}.lp`),
         );
         cardTreeContent = filteredLines.join('\n');
