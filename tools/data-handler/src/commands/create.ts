@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -18,7 +19,6 @@ import {
   mkdir,
   writeFile,
 } from 'node:fs/promises';
-import { EventEmitter } from 'node:events';
 
 import { Calculate, Validate } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
@@ -45,18 +45,11 @@ import { WorkflowResource } from '../resources/workflow-resource.js';
 /**
  * Handles all create commands.
  */
-export class Create extends EventEmitter {
+export class Create {
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
-  ) {
-    super();
-
-    this.addListener(
-      'created',
-      this.calculateCmd.handleNewCards.bind(this.calculateCmd),
-    );
-  }
+  ) {}
 
   static JSONFileContent: ProjectFile[] = [
     {
@@ -242,7 +235,7 @@ export class Create extends EventEmitter {
 
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
-      this.emit('created', createdCards);
+      await this.calculateCmd.handleNewCards(createdCards);
       // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
       const sorted = sortItems(createdCards, (item) => {
         return `${item.parent === 'root' ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
