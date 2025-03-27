@@ -77,7 +77,7 @@ export class Export {
           let escapedValue = 'N/A';
 
           if (value) {
-            escapedValue = value.toString().replace(/\|/g, '\\|');
+            escapedValue = value.toString().replaceAll('|', '\\|');
           }
 
           content += `|${nameToShow}|${escapedValue}\n`;
