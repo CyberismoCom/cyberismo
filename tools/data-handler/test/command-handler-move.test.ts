@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
@@ -25,6 +26,8 @@ describe('move command', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    // Initialize the project and create calculations
+    await CommandManager.getInstance(decisionRecordsPath);
   });
 
   after(() => {

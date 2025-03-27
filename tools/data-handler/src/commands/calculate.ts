@@ -65,8 +65,8 @@ export class Calculate {
   private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
   private static mainLogicFileName: string = 'main.lp';
-  private static queryLanguageFileName: string = 'queryLanguage.lp';
   private queryCache = new Map<string, string>();
+  private static queryLanguageFileName: string = 'queryLanguage.lp';
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../../resources/calculations/common',
@@ -448,9 +448,6 @@ export class Calculate {
    */
   public async generate(cardKey?: string) {
     await Calculate.mutex.runExclusive(async () => {
-      // Cleanup old calculations before starting new ones.
-      await deleteDir(this.project.paths.calculationFolder);
-
       let card: Card | undefined;
       if (cardKey) {
         card = await this.project.findSpecificCard(cardKey, {
@@ -464,17 +461,36 @@ export class Calculate {
         }
       }
 
-      const promiseContainer = [
-        this.generateCommonFiles(),
-        this.generateCardTreeContent(card).then(
-          this.generateCardTree.bind(this),
-        ),
-        this.generateModules(),
-        this.generateWorkFlows(),
-        this.generateCardTypes(),
-        this.generateFieldTypes(),
-        this.generateLinkTypes(),
-      ];
+      // If instructed to calculate non-card specific calculations, OR
+      // if the calculations do not exist, generate all the files.
+      const calculateAll =
+        !cardKey || !pathExists(this.project.paths.calculationFolder);
+      const promiseContainer = [];
+      if (calculateAll) {
+        // Cleanup old calculations before starting new ones.
+        await deleteDir(this.project.paths.calculationFolder);
+        promiseContainer.push(
+          ...[
+            this.generateCommonFiles(),
+            this.generateCardTreeContent(card).then(
+              this.generateCardTree.bind(this),
+            ),
+            this.generateModules(),
+            this.generateWorkFlows(),
+            this.generateCardTypes(),
+            this.generateFieldTypes(),
+            this.generateLinkTypes(),
+          ],
+        );
+      } else {
+        promiseContainer.push(
+          ...[
+            this.generateCardTreeContent(card).then(
+              this.generateCardTree.bind(this),
+            ),
+          ],
+        );
+      }
 
       await Promise.all(promiseContainer).then(
         this.generateResourceImports.bind(this),
@@ -486,9 +502,18 @@ export class Calculate {
    * When card changes, update the card specific calculations.
    * @param changedCard Card that was changed.
    */
-  public async handleCardChanged(changedCard: Card) {
-    await this.generate(changedCard.key);
-    return { statusCode: 200 };
+  public async handleCardChanged(changedCard?: Card | string) {
+    if (changedCard) {
+      const card =
+        typeof changedCard === 'string'
+          ? await this.project.findSpecificCard(changedCard)
+          : changedCard;
+      if (!card) return;
+      await Calculate.mutex.runExclusive(async () => {
+        await this.generateCardTreeContent(card);
+        await this.generateCardTree();
+      });
+    }
   }
 
   /**
@@ -540,7 +565,7 @@ export class Calculate {
    * @param cards Added cards.
    */
   public async handleNewCards(cards: Card[]) {
-    if (!cards) {
+    if (!cards || cards.length === 0) {
       return;
     }
 
@@ -552,16 +577,14 @@ export class Calculate {
       pathExists(cardTreeFile) &&
       pathExists(this.project.paths.calculationFolder);
     if (!calculationsForTreeExist) {
-      // No calculations done, ignore update.
-      return;
+      // generate everything, if calculations are missing
+      await this.generate();
+    } else {
+      await Calculate.mutex.runExclusive(async () => {
+        await this.generateCardTreeContent(undefined);
+        await this.generateCardTree();
+      });
     }
-
-    await Calculate.mutex.runExclusive(async () => {
-      // @todo - should only generate card-tree for created cards' common ancestor (or root)
-      //         this might in some cases (sub-tree created) improve performance
-      await this.generateCardTreeContent(undefined);
-      await this.generateCardTree();
-    });
 
     const cardKeys = cards.map((item) => item.key);
     const queryResult = await this.creationQuery(cardKeys);

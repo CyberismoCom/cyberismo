@@ -155,7 +155,6 @@ export class Commands {
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
     }
-    await this.commands.initialize();
   }
 
   // Handles actual command. Sets returns values correctly.
@@ -579,6 +578,9 @@ export class Commands {
 
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(this.projectPath);
+
+    // generate calculations before starting the app
+    await this.generateLogicProgram();
 
     if (!forceStart) {
       const validationErrors = await this.validateCmd.validate(projectPath);

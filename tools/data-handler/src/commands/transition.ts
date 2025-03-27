@@ -93,6 +93,8 @@ export class Transition {
       );
     }
 
+    // todo: This should be removed in the long run
+    await this.calculateCmd.generate();
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 

@@ -29,7 +29,6 @@ const router = new Hono();
 router.get('/', async (c) => {
   const commands = c.get('commands');
   try {
-    await commands.calculateCmd.generate();
     const tree = await commands.calculateCmd.runQuery('tree');
     return c.json(tree);
   } catch (e) {

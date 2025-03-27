@@ -16,7 +16,7 @@
     "clean": "rm -rf node_modules",
     "lint": "eslint .",
     "posttest": "pnpm lint",
-    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
+    "test": "mocha --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
     "test-coverage": "c8 pnpm test",
     "watch": "tsc --watch -p tsconfig.build.json"
   },

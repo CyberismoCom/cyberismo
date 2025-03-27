@@ -15,13 +15,12 @@ describe('show', () => {
   const testDir = join(baseDir, 'tmp-show-tests');
   mkdirSync(testDir, { recursive: true });
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  let commands: CommandManager;
   let showCmd: Show;
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
+    const commands = await CommandManager.getInstance(decisionRecordsPath);
     showCmd = commands.showCmd;
   });
 
