@@ -136,6 +136,7 @@ export class ExportSite extends Export {
             '..',
             '..',
             '..',
+            '..',
             'resources/ui-bundle',
           ),
           snapshot: true,
