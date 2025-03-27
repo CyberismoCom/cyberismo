@@ -480,23 +480,16 @@ export class Project extends CardContainer {
         }
       } else {
         const templates = await this.templates();
-        for (const template of templates) {
-          templateObject = new TemplateResource(
+        const searchPromises = templates.map((template) => {
+          const templateObj = new TemplateResource(
             this,
             resourceName(template.name),
           ).templateObject();
+          return templateObj.findSpecificCard(cardToFind as string, details);
+        });
 
-          // optimize: execute each find in template parallel
-          if (templateObject) {
-            card = await templateObject.findSpecificCard(
-              cardToFind as string,
-              details,
-            );
-            if (card) {
-              break;
-            }
-          }
-        }
+        const results = await Promise.all(searchPromises);
+        card = results.find((result) => result != null);
       }
     }
     return card;
