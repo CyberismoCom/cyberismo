@@ -17,6 +17,7 @@ import {
   FileResource,
   Operation,
   Project,
+  RemoveOperation,
   ResourcesFrom,
   resourceName,
   resourceNameToString,
@@ -52,6 +53,86 @@ export class FieldTypeResource extends FileResource {
     return cards
       .filter((card) => card.metadata?.[resourceName])
       .map((card) => card.key);
+  }
+
+  // Collects affected cards.
+  private async collectCards(cardContent: object, cardTypeName: string) {
+    async function filteredCards(
+      cardSource: Promise<Card[]>,
+      cardTypeName: string,
+    ): Promise<Card[]> {
+      const cards = await cardSource;
+      return cards.filter((card) => card.metadata?.cardType === cardTypeName);
+    }
+    return filteredCards(
+      this.project.cards(this.project.paths.cardRootFolder, cardContent),
+      cardTypeName,
+    );
+  }
+
+  // Checks that enum with 'enumValue' exists.
+  private enumValueExists<Type>(op: Operation<Type>, values: Type[]) {
+    const targetValue = (op as Operation<EnumDefinition>).target;
+    const foundTarget = values.find(
+      (item) => (item as EnumDefinition).enumValue === targetValue.enumValue,
+    );
+    if (op.name === 'add' && foundTarget) {
+      throw new Error(
+        `Cannot perform operation on 'enumValues'. Enum with value '${(op.target as EnumDefinition).enumValue}' already exists`,
+      );
+    }
+    if (op.name === 'remove' && !foundTarget) {
+      throw new Error(
+        `Cannot perform operation on 'enumValues'. Enum with value '${(op.target as EnumDefinition).enumValue}' does not exist`,
+      );
+    }
+    if (op.name === 'change') {
+      if (!foundTarget) {
+        throw new Error(
+          `Cannot perform operation on 'enumValues'. Enum with value '${(op.target as EnumDefinition).enumValue}' does not exist`,
+        );
+      }
+      const newValue = (op as ChangeOperation<EnumDefinition>).to;
+      const foundTo = values.find(
+        (item) => (item as EnumDefinition).enumValue === newValue.enumValue,
+      );
+      if (foundTo) {
+        throw new Error(
+          `Cannot perform operation on 'enumValues'. Enum with value '${(op.to as EnumDefinition).enumValue}' already exists`,
+        );
+      }
+    }
+    // Return the whole object; caller can just provide 'enumValue'.
+    return foundTarget;
+  }
+
+  // If enum value is removed, and replacement value is given; replace all
+  // references to removed enum value with the given replacement value.
+  private async handleEnumValueReplacements<Type>(op: Operation<Type>) {
+    const removeOp = op as RemoveOperation<Type>;
+    const newValue = removeOp.replacementValue as EnumDefinition;
+    if (!newValue) return;
+
+    const removedValue = (op.target as EnumDefinition).enumValue;
+    const cardTypes = await this.relevantCardTypes();
+    const allCards = await Promise.all(
+      cardTypes.map((cardType) =>
+        this.collectCards({ metadata: true }, cardType),
+      ),
+    );
+    const cardsToUpdate = allCards
+      .flat()
+      .filter((card) => card.metadata?.[this.content.name] === removedValue);
+
+    await Promise.all(
+      cardsToUpdate.map((card) =>
+        this.project.updateCardMetadataKey(
+          card.key,
+          this.content.name,
+          newValue.enumValue,
+        ),
+      ),
+    );
   }
 
   // When resource name changes.
@@ -237,6 +318,7 @@ export class FieldTypeResource extends FileResource {
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';
     const typeChange = key === 'dataType';
+    const enumChange = key === 'enumValues';
     const existingName = this.content.name;
     const existingType = (this.content as FieldType).dataType;
 
@@ -271,6 +353,13 @@ export class FieldTypeResource extends FileResource {
     } else if (key === 'displayName') {
       content.displayName = super.handleScalar(op) as string;
     } else if (key === 'enumValues') {
+      if (op.name === 'add' || op.name === 'change' || op.name === 'remove') {
+        const existingValue = this.enumValueExists<EnumDefinition>(
+          op as Operation<EnumDefinition>,
+          content.enumValues as EnumDefinition[],
+        ) as Type;
+        op.target = existingValue ?? op.target;
+      }
       content.enumValues = super.handleArray(
         op,
         key,
@@ -284,8 +373,11 @@ export class FieldTypeResource extends FileResource {
 
     await super.postUpdate(content, key, op);
 
-    // Renaming this field type causes that references to its name must be updated.
+    if (enumChange && op.name === 'remove') {
+      await this.handleEnumValueReplacements(op);
+    }
     if (nameChange) {
+      // Renaming this field type causes that references to its name must be updated.
       await this.handleNameChange(existingName);
       await this.updateCardTypes(existingName);
     } else if (typeChange) {

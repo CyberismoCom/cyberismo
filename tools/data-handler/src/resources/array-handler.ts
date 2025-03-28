@@ -48,6 +48,7 @@ export class ArrayHandler<T> {
     if (index === -1) {
       index = array.findIndex((element) => {
         const nameOnlyElement = { name: element['name' as keyof T] };
+        if (nameOnlyElement.name === undefined) return false;
         return deepCompare(nameOnlyElement as object, item as object);
       });
     }

@@ -55,6 +55,7 @@ export type RankOperation<T> = BaseOperation<T> & {
 // Remove item from an array.
 export type RemoveOperation<T> = BaseOperation<T> & {
   name: 'remove';
+  replacementValue?: T;
 };
 
 export type Operation<T> =
