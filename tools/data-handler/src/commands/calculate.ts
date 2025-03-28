@@ -386,8 +386,7 @@ export class Calculate {
       let cardTreeContent = calculationsForTreeExist
         ? await readFile(cardTreeFile, 'utf-8')
         : '';
-      const lines = cardTreeContent.split('\n');
-      let filteredLines = lines;
+      let filteredLines = cardTreeContent.split('\n');
       for (const card of affectedCards) {
         // First, delete card specific files.
         const cardCalculationsFile = join(
