@@ -12,6 +12,8 @@
 */
 
 import { Argument, Command } from 'commander';
+import confirm from '@inquirer/confirm';
+
 import {
   CardsOptions,
   Cmd,
@@ -22,10 +24,34 @@ import {
 } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 
+// How many validation errors are shown when staring app, if any.
+const VALIDATION_ERROR_ROW_LIMIT = 10;
+
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
 const packageDef = (await import('../package.json', { with: { type: 'json' } }))
   .default;
+
+// Truncates a multi-row message to an array of items.
+// Logs maximum of 'limit' items to console. If there are more items than
+// 'limit', the last element is replaced with "..." to indicate truncation.
+// Returns the potentially truncated array.
+function truncateMessage(
+  messages: string,
+  limit: number = VALIDATION_ERROR_ROW_LIMIT,
+): string[] {
+  const array = messages.split('\n');
+  if (array.length < limit) {
+    return [...array];
+  }
+  if (limit <= 0) {
+    return [];
+  }
+  if (limit === 1) {
+    return ['...'];
+  }
+  return [...array.slice(0, limit - 1), '...'];
+}
 
 // Handle the response object from data-handler
 function handleResponse(response: requestStatus) {
@@ -635,7 +661,11 @@ program
     handleResponse(result);
   });
 
-// Start app command
+// Start app command.
+// If there are validation errors, user is prompted to continue or not.
+// There is 10 sec timeout on the prompt. If user does not reply, then
+// it is assumed that validation errors do not matter and application
+// start is resumed.
 program
   .command('app')
   .description(
@@ -643,7 +673,24 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.start, [], options);
+    let result = await commandHandler.command(Cmd.start, [], options);
+    if (result.statusCode !== 200 && result.message) {
+      truncateMessage(result.message).forEach((item) => console.error(item));
+      console.error('\n'); // The output looks nicer with one extra row.
+      result.message = '';
+      const userConfirmation = await confirm(
+        {
+          message: 'There are validation errors. Do you want to continue?',
+        },
+        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+      ).catch((error) => {
+        return error.name === 'AbortPromptError';
+      });
+      if (userConfirmation) {
+        options.forceStart = true;
+        result = await commandHandler.command(Cmd.start, [], options);
+      }
+    }
     handleResponse(result);
   });
 

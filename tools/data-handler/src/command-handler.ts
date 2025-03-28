@@ -40,6 +40,7 @@ import { resourceName } from './utils/resource-utils.js';
 // Generic options interface
 export interface CardsOptions {
   details?: boolean;
+  forceStart?: boolean;
   projectPath?: string;
   repeat?: number;
   showUse?: boolean;
@@ -291,7 +292,7 @@ export class Commands {
           options,
         );
       } else if (command === Cmd.start) {
-        await this.startApp();
+        return this.startApp(options.forceStart);
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
         await this.commands?.transitionCmd.cardTransition(cardKey, {
@@ -564,16 +565,23 @@ export class Commands {
   }
 
   // Starts the Cyberismo app by running npm start in the app project folder
-  private async startApp(): Promise<void> {
-    console.log('Running Cyberismo app on http://localhost:3000/');
-    console.log('Press Control+C to stop.');
-
+  private async startApp(forceStart: boolean = false): Promise<requestStatus> {
     // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
     const baseDir = dirname(fileURLToPath(import.meta.url));
     const appPath = resolve(baseDir, '../../app');
 
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(this.projectPath);
+
+    if (!forceStart) {
+      const validationErrors = await this.validateCmd.validate(projectPath);
+      if (validationErrors) {
+        return { statusCode: 400, message: validationErrors };
+      }
+    }
+
+    console.log('Running Cyberismo app on http://localhost:3000/');
+    console.log('Press Control+C to stop.');
 
     const args = [`start`];
     execFileSync(`npm`, args, {
@@ -582,6 +590,8 @@ export class Commands {
       stdio: 'ignore',
       env: { ...process.env, npm_config_project_path: projectPath },
     });
+
+    return { statusCode: 200 };
   }
 
   // Validates that a given path conforms to schema. Validates both file/folder structure and file content.
