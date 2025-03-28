@@ -1,3 +1,11 @@
+% Copyright © Cyberismo Ltd and contributors 2025
+%
+% License: https://github.com/CyberismoCom/cyberismo/blob/main/LICENSE
+% The use of the Cyberismo trademark: https://cyberismo.com/trademark-policy/
+% This content is distributed in the hope that it will be useful, but
+% WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+% FITNESS FOR A PARTICULAR PURPOSE.
+
 %
 % Common definitions for all Cards projects
 %
@@ -60,7 +68,7 @@ link(Source, Destination, LinkType, LinkDescription) :- userLink(Source, Destina
 calculatedLink(Source, Destination, LinkType) :-
     link(Source, Destination, LinkType),
     not userLink(Source, Destination, LinkType).
-    
+
 calculatedLink(Source, Destination, LinkType, LinkDescription) :-
     link(Source, Destination, LinkType, LinkDescription),
     not userLink(Source, Destination, LinkType, LinkDescription).
