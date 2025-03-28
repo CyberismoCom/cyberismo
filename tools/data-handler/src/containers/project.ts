@@ -442,13 +442,12 @@ export class Project extends CardContainer {
 
   /**
    * Returns specific card.
-   * It is also possible to change current card details if you provide card and different details.
-   * @param cardToFind Card key to find, or Card object
+   * @param cardToFind Card key to find
    * @param details Defines which card details are included in the return values.
    * @returns specific card details, or undefined if card is not part of the project.
    */
   public async findSpecificCard(
-    cardToFind: string | Card,
+    cardToFind: string,
     details: ProjectFetchCardDetails = {},
   ): Promise<Card | undefined> {
     let card;
@@ -472,24 +471,23 @@ export class Project extends CardContainer {
         !details.location)
     ) {
       let templateObject;
+      const templates = await this.templates();
+      for (const template of templates) {
+        templateObject = new TemplateResource(
+          this,
+          resourceName(template.name),
+        ).templateObject();
 
-      if (typeof cardToFind == 'object') {
-        templateObject = this.createTemplateObjectFromCard(cardToFind as Card);
+        // optimize: execute each find in template parallel
         if (templateObject) {
-          card = await templateObject.findSpecificCard(cardToFind.key, details);
+          card = await templateObject.findSpecificCard(
+            cardToFind as string,
+            details,
+          );
+          if (card) {
+            break;
+          }
         }
-      } else {
-        const templates = await this.templates();
-        const searchPromises = templates.map((template) => {
-          const templateObj = new TemplateResource(
-            this,
-            resourceName(template.name),
-          ).templateObject();
-          return templateObj.findSpecificCard(cardToFind as string, details);
-        });
-
-        const results = await Promise.all(searchPromises);
-        card = results.find((result) => result != null);
       }
     }
     return card;
