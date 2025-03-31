@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
@@ -19,6 +19,7 @@ import {
   FormProvider,
   useForm,
   useFormContext,
+  UseFormReturn,
 } from 'react-hook-form';
 import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
@@ -27,7 +28,7 @@ import { getDefaultValue } from '../lib/utils';
 
 interface FieldItemProps {
   expanded?: boolean;
-  control?: Control;
+  context?: UseFormReturn;
   defaultValue: MetadataValue | null;
   editableFieldProps: Omit<Omit<EditableFieldProps, 'onChange'>, 'value'>;
   name: string;
@@ -43,7 +44,7 @@ interface FieldItemProps {
 
 function FieldItem({
   expanded,
-  control,
+  context,
   name,
   defaultValue,
   editableFieldProps,
@@ -52,13 +53,21 @@ function FieldItem({
   handleChange,
   focus,
 }: FieldItemProps) {
+  useEffect(() => {
+    if (context && context.getValues(name) !== defaultValue)
+      context.resetField(name, {
+        defaultValue: defaultValue,
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultValue]);
+
   return (
     <Accordion expanded={expanded}>
       <AccordionDetails>
-        {control ? (
+        {context?.control ? (
           <Controller
             name={name}
-            control={control}
+            control={context.control}
             defaultValue={defaultValue}
             render={({ field: { value, onChange } }: any) => {
               return (
@@ -105,8 +114,7 @@ function MetadataView({
 }: MetadataViewProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(initialExpanded);
-
-  const context = useFormContext(); // must be inside a <FormProvider>
+  const context = useFormContext();
 
   // TODO: replace with yup schemas
   const handleChange = useCallback(
@@ -180,7 +188,7 @@ function MetadataView({
         <FieldItem
           name="__labels__"
           defaultValue={card.labels}
-          control={context.control}
+          context={context}
           handleChange={handleChange}
           expanded={true}
           editableFieldProps={{
@@ -211,7 +219,7 @@ function MetadataView({
               disabled={card.deniedOperations.editField
                 .map((field) => field.fieldName)
                 .includes(key)}
-              control={context.control}
+              context={context}
               description={fieldDescription}
               editableFieldProps={{
                 dataType,
