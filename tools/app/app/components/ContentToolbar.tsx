@@ -86,7 +86,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
             size="sm"
             variant="plain"
             style={{ marginRight: 8, minWidth: 40 }}
-            disabled={linkButtonDisabled}
+            disabled={linkButtonDisabled || isUpdating()}
           >
             <InsertLink />
           </IconButton>
@@ -97,7 +97,8 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         currentState={currentState}
         workflow={workflow}
         onTransition={(transition) => onStateTransition(transition)}
-        isLoading={isUpdating}
+        isLoading={isUpdating('updateState')}
+        disabled={isUpdating() && !isUpdating('updateState')}
       />
 
       {mode === CardMode.VIEW && (
@@ -109,6 +110,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           startDecorator={<EditIcon />}
           style={{ marginLeft: 8, minWidth: 80 }}
           onClick={() => router.push(`/cards/${card!.key}/edit`)}
+          disabled={isUpdating()}
         >
           {t('edit')}
         </Button>
@@ -123,6 +125,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           color="neutral"
           style={{ marginLeft: 8, minWidth: 80 }}
           onClick={() => router.safePush(`/cards/${cardKey}`)}
+          disabled={isUpdating()}
         >
           {t('cancel')}
         </Button>
@@ -136,7 +139,8 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
           data-cy="updateButton"
           style={{ marginLeft: 8, minWidth: 80 }}
           onClick={onUpdate}
-          loading={isUpdating}
+          loading={isUpdating('update')}
+          disabled={isUpdating() && !isUpdating('update')}
         >
           {t('update')}
         </Button>

@@ -16,6 +16,7 @@ import { useUpdating } from '../hooks';
 import { addAttachments, removeAttachment } from './actions';
 import { mutate } from 'swr';
 import { apiPaths } from '../swr';
+import { AttachmentAction } from './action-types';
 
 export const useAttachments = (
   key: string | null,
@@ -34,12 +35,16 @@ export const useAttachments = (
         return addAttachments(key, formData).then(() =>
           mutate(apiPaths.card(key)),
         );
-      }),
+      }, 'add'),
     removeAttachment: (fileName: string) =>
       key &&
-      call(() =>
-        removeAttachment(key, fileName).then(() => mutate(apiPaths.card(key))),
+      call(
+        () =>
+          removeAttachment(key, fileName).then(() =>
+            mutate(apiPaths.card(key)),
+          ),
+        'remove',
       ),
-    isUpdating,
+    isUpdating: (action?: AttachmentAction) => isUpdating(action),
   };
 };

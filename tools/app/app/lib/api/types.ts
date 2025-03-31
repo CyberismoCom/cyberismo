@@ -41,11 +41,11 @@ export type Resources = {
 export type ResourceName = keyof Resources;
 
 export type AdditionalState = {
-  isUpdating: boolean;
+  isUpdating: (key2?: string) => boolean;
 };
 
 export type AdditionalProperties = {
-  callUpdate: <T>(fn: () => Promise<T>) => Promise<T>;
+  callUpdate: <T>(fn: () => Promise<T>, key2?: string) => Promise<T>;
 };
 
 export type SwrResult<T extends ResourceName> = {
