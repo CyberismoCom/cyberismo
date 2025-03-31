@@ -248,8 +248,8 @@ export function createHtmlPlaceholder(
     .map((key) => `${key}="${options[key]}"`)
     .join(' ');
 
-  // start with a line change to ensure that passthrough ++++ is on its own line
-  return `\n++++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''} key="macro-${macroCounter++}"></${macro.tagName}>\n++++`;
+  // start with a line change to ensure that inline passthrough +++ is on its own line
+  return `\n+++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''} key="macro-${macroCounter++}"></${macro.tagName}>\n+++\n`;
 }
 
 /**
