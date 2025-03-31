@@ -10,23 +10,16 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import useSWR, { SWRConfiguration } from 'swr';
+export type CardAction =
+  | 'update'
+  | 'delete'
+  | 'create'
+  | 'updateState'
+  | 'createLink'
+  | 'deleteLink'
+  | 'editLink'
+  | 'move';
 
-import { Resources, ResourceName, SwrResult } from './types';
-import { useUpdating } from '../hooks';
+export type AttachmentAction = 'add' | 'remove';
 
-export function useSWRHook<T extends ResourceName>(
-  swrKey: string | null,
-  name: T,
-  options?: SWRConfiguration,
-) {
-  const { data, ...rest } = useSWR<Resources[T]>(swrKey, options);
-  const { isUpdating, call } = useUpdating(swrKey);
-
-  return {
-    ...rest,
-    [name]: data || null,
-    isUpdating,
-    callUpdate: (fn: () => Promise<any>, key2?: string) => call(fn, key2),
-  } as unknown as SwrResult<T>;
-}
+export type Action = CardAction | AttachmentAction;
