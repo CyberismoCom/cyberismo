@@ -10,24 +10,18 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-import { evaluateMacros } from './macros/index.js';
+import { Typography } from '@mui/joy';
+import { useTranslation } from 'react-i18next';
+import { useTree } from '../lib/api';
 
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  requestStatus,
-  UpdateOperations,
-  evaluateMacros,
-};
+export const dynamic = 'force-dynamic';
+
+export default function CardsPage() {
+  const { t } = useTranslation();
+  const { tree } = useTree();
+  return (
+    <Typography level="title-md">
+      {tree && tree.length > 0 ? t('selectCard') : t('emptyProject')}
+    </Typography>
+  );
+}

@@ -10,24 +10,14 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-import { evaluateMacros } from './macros/index.js';
+//import { evaluateMacros } from '@cyberismocom/data-handler';
+import { callApi } from '../../swr';
 
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  requestStatus,
-  UpdateOperations,
-  evaluateMacros,
-};
+export async function parseContent(key: string, content: string) {
+  const result = await callApi<{ parsedContent: string }>(
+    `/api/cards/${key}/parse`,
+    'POST',
+    { content },
+  );
+  return result.parsedContent;
+}

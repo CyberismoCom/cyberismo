@@ -21,7 +21,10 @@
     "watch": "tsc --watch -p tsconfig.build.json"
   },
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./interfaces/*": "./dist/interfaces/*.js",
+    "./types/*": "./dist/types/*.js",
+    "./macros/*": "./dist/macros/*.js"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

@@ -10,24 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-import { evaluateMacros } from './macros/index.js';
+import { extendTheme } from '@mui/joy/styles';
 
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  requestStatus,
-  UpdateOperations,
-  evaluateMacros,
-};
+const theme = extendTheme({});
+
+export default theme;

@@ -10,24 +10,30 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-import { evaluateMacros } from './macros/index.js';
+import { callApi } from '../../swr';
 
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  requestStatus,
-  UpdateOperations,
-  evaluateMacros,
-};
+export async function createLink(
+  fromCard: string,
+  toCard: string,
+  linkType: string,
+  linkDescription?: string,
+) {
+  return callApi(`/api/cards/${fromCard}/links`, 'POST', {
+    toCard,
+    linkType,
+    description: linkDescription,
+  });
+}
+
+export async function removeLink(
+  fromCard: string,
+  toCard: string,
+  linkType: string,
+  linkDescription?: string,
+) {
+  return callApi(`/api/cards/${fromCard}/links`, 'DELETE', {
+    toCard,
+    linkType,
+    description: linkDescription,
+  });
+}

@@ -10,24 +10,22 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  CardsOptions,
-  Cmd,
-  Commands,
-  CommandManager,
-  ExportFormats,
-} from './command-handler.js';
-import { requestStatus } from './interfaces/request-status-interfaces.js';
-import { UpdateOperations } from './resources/resource-object.js';
-import { evaluateMacros } from './macros/index.js';
+import { callApi } from '../../swr';
 
-export {
-  CardsOptions,
-  Cmd,
-  CommandManager,
-  Commands,
-  ExportFormats,
-  requestStatus,
-  UpdateOperations,
-  evaluateMacros,
-};
+export async function addAttachments(key: string, formData: FormData) {
+  return callApi(`/api/cards/${key}/attachments`, 'POST', formData);
+}
+
+export async function removeAttachment(key: string, filename: string) {
+  return callApi(`/api/cards/${key}/attachments/${filename}`, 'DELETE');
+}
+
+/**
+ * Opens an attachment using the operating system's default application.
+ * @param key
+ * @param filename
+ * @returns
+ */
+export async function openAttachment(key: string, filename: string) {
+  return callApi(`/api/cards/${key}/attachments/${filename}/open`, 'POST');
+}
