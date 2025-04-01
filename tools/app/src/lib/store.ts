@@ -27,7 +27,7 @@ import storage from 'redux-persist/lib/storage';
 const persistConfig = {
   key: 'root',
   storage,
-  blacklist: ['notifications', 'swr', 'page'],
+  blacklist: ['notifications', 'swr', 'page', 'card'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -22,8 +22,13 @@ import { createLink, removeLink } from './actions';
 import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 import { CardAction } from './action-types';
 
+import { setRecentlyCreated } from '../slices/card';
+import { addNotification } from '../slices/notifications';
+import { useTranslation } from 'react-i18next';
+
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const { callUpdate, isUpdating, ...rest } = useSWRHook(
     key ? apiPaths.card(key) : null,
     'card',
@@ -41,8 +46,13 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       await callUpdate(() => deleteCard(key), 'delete');
       dispatch(cardDeleted(key));
     },
-    createCard: async (template: string) =>
-      await callUpdate(() => createCard(key ?? 'root', template), 'create'),
+    createCard: async (template: string) => {
+      const result = await callUpdate(() =>
+        createCard(key ?? 'root', template),
+      );
+      dispatch(setRecentlyCreated(result));
+      return result;
+    },
     moveCard: async (target: string, index?: number) =>
       key &&
       (await callUpdate(
