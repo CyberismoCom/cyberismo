@@ -10,6 +10,20 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { sep } from 'node:path';
+
+// Helper function to find the parent path from a card path
+export const findParentPath = (cardPath: string): string | null => {
+  const pathParts = cardPath.split(sep);
+  const hasChildren = pathParts.lastIndexOf('c');
+
+  if (hasChildren <= 0) return null;
+
+  const parentPathParts = [...pathParts];
+  parentPathParts.splice(hasChildren, 1);
+  return parentPathParts.slice(0, hasChildren).join(sep);
+};
+
 /**
  * Sorts array of cards first using prefix and then using ID.
  * Prefixes are returned in alphabetical order, and then in numeric order within same prefix.
