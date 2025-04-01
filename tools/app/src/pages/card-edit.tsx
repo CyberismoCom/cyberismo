@@ -78,6 +78,8 @@ import { parseContent } from '@/lib/api/actions/card';
 
 const asciiDoctor = AsciiDoctor();
 
+const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
+
 function AttachmentPreviewCard({
   name,
   children,
@@ -209,8 +211,6 @@ function AttachmentPreviewCard({
     </Card>
   );
 }
-
-const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
 
 export default function Page() {
   const key = useKeyParam();
