@@ -258,7 +258,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             <Button
               data-cy="confirmCreateButton"
               disabled={chosenTemplate === null}
-              loading={isUpdating}
+              loading={isUpdating('create')}
               onClick={async () => {
                 if (chosenTemplate) {
                   try {
@@ -288,7 +288,12 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
             >
               {t('create')}
             </Button>
-            <Button onClick={onClose} variant="plain" color="neutral">
+            <Button
+              onClick={onClose}
+              variant="plain"
+              color="neutral"
+              disabled={isUpdating()}
+            >
               {t('cancel')}
             </Button>
             <Box flexGrow={1} />
