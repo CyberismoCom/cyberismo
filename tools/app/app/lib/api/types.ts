@@ -41,18 +41,18 @@ export type Resources = {
 export type ResourceName = keyof Resources;
 
 export type AdditionalState = {
-  isUpdating: (key2?: string) => boolean;
+  isUpdating: boolean;
 };
 
 export type AdditionalProperties = {
   callUpdate: <T>(fn: () => Promise<T>, key2?: string) => Promise<T>;
+  isUpdating: (key2?: string) => boolean;
 };
 
 export type SwrResult<T extends ResourceName> = {
   [key in T]: Resources[T] | null;
 } & Omit<SWRResponse<Resources[T]>, 'data'> &
-  AdditionalProperties &
-  AdditionalState;
+  AdditionalProperties;
 
 export type FullCardUpdate = {
   content: string;
