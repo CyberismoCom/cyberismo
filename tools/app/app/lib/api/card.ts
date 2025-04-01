@@ -20,9 +20,13 @@ import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
 import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
+import { setRecentlyCreated } from '../slices/card';
+import { addNotification } from '../slices/notifications';
+import { useTranslation } from 'react-i18next';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const { callUpdate, ...rest } = useSWRHook(
     key ? apiPaths.card(key) : null,
     'card',
@@ -34,12 +38,34 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
     updateCard: async (update: CardUpdate) =>
       (key && (await callUpdate(() => updateCard(key, update)))) || null,
     deleteCard: async () => {
-      if (!key) return;
-      await callUpdate(() => deleteCard(key));
-      dispatch(cardDeleted(key));
+      if (!key) return false;
+      try {
+        await callUpdate(() => deleteCard(key));
+        dispatch(cardDeleted(key));
+        dispatch(
+          addNotification({
+            message: t('deleteCardModal.success', { card: key }),
+            type: 'success',
+          }),
+        );
+        return true;
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message: error instanceof Error ? error.message : '',
+            type: 'error',
+          }),
+        );
+        return false;
+      }
     },
-    createCard: async (template: string) =>
-      await callUpdate(() => createCard(key ?? 'root', template)),
+    createCard: async (template: string) => {
+      const result = await callUpdate(() =>
+        createCard(key ?? 'root', template),
+      );
+      dispatch(setRecentlyCreated(result));
+      return result;
+    },
     updateWorkFlowState: async (state: string) =>
       (key &&
         (await callUpdate(() =>
