@@ -79,6 +79,8 @@ import { parseContent } from '@/app/lib/api/actions/card';
 
 const asciiDoctor = AsciiDoctor();
 
+const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
+
 function AttachmentPreviewCard({
   name,
   children,
@@ -214,18 +216,6 @@ function AttachmentPreviewCard({
 export default function Page(props: { params: Promise<{ key: string }> }) {
   const [content, setContent] = useState<string>();
 
-  const extensions = useMemo(
-    () => [
-      StreamLanguage.define(asciidoc),
-      EditorView.lineWrapping,
-      /*  EditorView.updateListener.of((v) => {
-        if (v.docChanged) {
-          setContent(v.state.doc.toString());
-        }
-      }),*/
-    ],
-    [],
-  );
   const params = use(props.params);
   const { t } = useTranslation();
 
