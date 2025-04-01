@@ -128,7 +128,7 @@ export function AddAttachmentModal({
           <DialogActions>
             <Button
               data-cy="confirmAddAttachmentButton"
-              disabled={files.length === 0 || isUpdating}
+              disabled={files.length === 0 || isUpdating()}
               color="primary"
               onClick={async () => {
                 try {

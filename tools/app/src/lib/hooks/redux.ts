@@ -95,7 +95,11 @@ export function useUpdating(key: string | null) {
         ([k, v]) => k.startsWith(`${key ?? 'root'}:`) && v.isUpdating,
       );
     }
-    return additionalProps[`${key ?? 'root'}:${key2}`]?.isUpdating ?? false;
+    const updating = additionalProps[`${key ?? 'root'}:${key2}`]?.isUpdating;
+    if (!updating) {
+      return false;
+    }
+    return true;
   };
 
   return {
