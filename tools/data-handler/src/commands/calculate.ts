@@ -271,25 +271,16 @@ export class Calculate {
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private async getCards(parentCard: Card | undefined): Promise<Card[]> {
+  private async getCards(card: Card | undefined): Promise<Card[]> {
     let cards: Card[] = [];
-    if (parentCard) {
-      const card = await this.project.findSpecificCard(parentCard, {
-        metadata: true,
-        children: true,
-        content: false,
-        parent: false,
-      });
-      if (card && card.children) {
-        cards = Project.flattenCardArray(card.children);
-      }
-      if (card) {
-        card.children = [];
-        cards.unshift(card);
-      }
-    } else {
-      cards = await this.project.cards();
+    if (!card) {
+      return this.project.cards();
     }
+    if (card.children) {
+      cards = Project.flattenCardArray(card.children);
+    }
+    card.children = [];
+    cards.unshift(card);
     return cards;
   }
 
@@ -340,7 +331,12 @@ export class Calculate {
 
       let card: Card | undefined;
       if (cardKey) {
-        card = await this.project.findSpecificCard(cardKey);
+        card = await this.project.findSpecificCard(cardKey, {
+          metadata: true,
+          children: true,
+          content: false,
+          parent: false,
+        });
         if (!card) {
           throw new Error(`Card '${cardKey}' not found`);
         }
