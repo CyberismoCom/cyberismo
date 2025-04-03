@@ -10,19 +10,26 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { combineReducers } from '@reduxjs/toolkit';
-import recentlyViewed from './recentlyViewed';
-import notifications from './notifications';
-import swr from './swr';
-import page from './pageState';
-import card from './card';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-const rootReducer = combineReducers({
-  recentlyViewed,
-  notifications,
-  swr,
-  page,
-  card,
+export interface CardState {
+  recentlyCreated: string[];
+}
+
+export const initialState: CardState = {
+  recentlyCreated: [],
+};
+
+export const cardSlice = createSlice({
+  name: 'card',
+  initialState,
+  reducers: {
+    setRecentlyCreated: (state, action: PayloadAction<string[]>) => {
+      state.recentlyCreated = action.payload;
+    },
+  },
 });
 
-export default rootReducer;
+export const { setRecentlyCreated } = cardSlice.actions;
+
+export default cardSlice.reducer;

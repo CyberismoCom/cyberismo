@@ -11,8 +11,8 @@
 */
 
 'use client';
-import React, { useCallback, useEffect, useState, use } from 'react';
-import { CardDetails, CardMode, MetadataValue } from '@/app/lib/definitions';
+import React, { useCallback, useEffect, useState, use, useMemo } from 'react';
+import { CardMode, MetadataValue } from '@/app/lib/definitions';
 
 import {
   Box,
@@ -214,6 +214,8 @@ function AttachmentPreviewCard({
 }
 
 export default function Page(props: { params: Promise<{ key: string }> }) {
+  const [content, setContent] = useState<string>();
+
   const params = use(props.params);
   const { t } = useTranslation();
 
@@ -257,11 +259,12 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
 
-  const [content, setContent] = useState<string>();
-
   const { setContainer, view, state } = useCodeMirror({
     extensions,
-    value: content,
+    value: card?.rawContent || '',
+    onChange: (value) => {
+      setContent(value);
+    },
     basicSetup: {
       lineNumbers: false,
     },
@@ -273,14 +276,6 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   });
 
   const [tab, setTab] = React.useState(0);
-
-  const getContent = () => {
-    return view?.state.doc.toString() || '';
-  };
-  useEffect(() => {
-    setContent(getContent());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   useEffect(() => {
     if (editor) {
@@ -294,8 +289,6 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   const preview = watch();
 
-  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-
   const { __title__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
@@ -303,18 +296,16 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
   const [parsed, setParsed] = useState<string | null>(null);
 
   useEffect(() => {
-    setContent(card?.rawContent || '');
-  }, [card]);
-
-  useEffect(() => {
-    const content = getContent();
-    if (!content) {
+    if (!content && !card?.rawContent) {
       return;
     }
     setParsed(null);
     let mounted = true;
     async function parse() {
-      const res = await parseContent(params.key, content);
+      const res = await parseContent(
+        params.key,
+        content || card?.rawContent || '',
+      );
       if (mounted) {
         setParsed(res);
       }
@@ -326,12 +317,29 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  // Mark as edited when content changes
+  useEffect(() => {
+    if (content !== undefined) {
+      dispatch(isEdited(true));
+    }
+  }, [content, dispatch]);
+
+  watch(() => {
+    dispatch(isEdited(true));
+  });
+
+  useEffect(() => {
+    return () => {
+      dispatch(isEdited(false));
+    };
+  }, [dispatch]);
+
   const previewCard =
     card && parsed
       ? {
           ...card,
           title: __title__ ?? card.title,
-          rawContent: getContent() ?? card.rawContent,
+          rawContent: content ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
         }
@@ -345,36 +353,6 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
       }
     }
   }
-
-  useEffect(() => {
-    if (!card || Object.keys(preview).length === 0) {
-      return;
-    }
-    const { __title__, ...metadata } = preview;
-
-    const content = getContent();
-
-    if (
-      content === card.rawContent &&
-      __title__ === card.title &&
-      Object.keys(metadata).every((key) => card?.[key] === metadata[key])
-    ) {
-      setHasUnsavedChanges(false);
-      return;
-    }
-    setHasUnsavedChanges(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, card, setHasUnsavedChanges]);
-
-  useEffect(() => {
-    dispatch(isEdited(hasUnsavedChanges));
-  }, [dispatch, hasUnsavedChanges]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(isEdited(false));
-    };
-  }, [dispatch]);
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
@@ -418,9 +396,9 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
 
   // save the last title when user scrolls
   const handleScroll = () => {
-    if (!view || !editor) return;
+    if (!view || !editor || !content) return;
 
-    const doc = asciiDoctor.load(getContent());
+    const doc = asciiDoctor.load(content);
 
     const title = findCurrentTitleFromADoc(view, editor, doc);
 
@@ -479,8 +457,6 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
         update.metadata.title = __title__;
       }
 
-      const content = getContent();
-
       if (content !== card.rawContent) {
         update.content = content;
       }
@@ -496,7 +472,6 @@ export default function Page(props: { params: Promise<{ key: string }> }) {
           type: 'success',
         }),
       );
-      dispatch(isEdited(false));
       router.push(`/cards/${card!.key}`);
     } catch (error) {
       dispatch(
