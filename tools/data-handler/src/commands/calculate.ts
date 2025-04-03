@@ -35,6 +35,7 @@ import {
 } from '../types/queries.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
+import { flattenCardArray } from '../utils/card-utils.js';
 import { logger } from '../utils/log-utils.js';
 import {
   createCardFacts,
@@ -277,7 +278,7 @@ export class Calculate {
       return this.project.cards();
     }
     if (card.children) {
-      cards = Project.flattenCardArray(card.children);
+      cards = flattenCardArray(card.children);
     }
     card.children = [];
     cards.unshift(card);
