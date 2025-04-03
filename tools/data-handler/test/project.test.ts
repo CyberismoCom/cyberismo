@@ -206,9 +206,6 @@ describe('project', () => {
       expect(card.metadata?.title).to.equal('Decision Records');
       expect(card.metadata?.cardType).to.equal('decision/cardTypes/simplepage');
       expect(card.metadata?.workflowState).to.equal('Created');
-
-      const templatePath = Project.templatePathFromCardPath(card);
-      expect(templatePath).to.equal('');
     }
     const details = {
       contentType: 'adoc' as FileContentType,

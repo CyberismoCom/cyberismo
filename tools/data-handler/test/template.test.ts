@@ -245,8 +245,6 @@ describe('template', () => {
       expect(card.metadata?.title).to.equal('Untitled');
       expect(card.metadata?.cardType).to.equal('decision/cardTypes/decision');
       expect(card.metadata?.workflowState).to.equal('Draft');
-      const templatePath = Project.templatePathFromCardPath(card);
-      expect(templatePath).to.not.equal('');
     }
     const details = {
       contentType: 'adoc' as FileContentType,

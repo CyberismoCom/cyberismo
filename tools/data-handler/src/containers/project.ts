@@ -1024,24 +1024,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns path from a template card
-   * @param card template card item
-   * @returns path of template card
-   */
-  public static templatePathFromCardPath(card: Card): string {
-    if (Project.isTemplateCard(card)) {
-      const parts = card.path.split(sep);
-      const index = parts.indexOf('c');
-
-      if (index !== -1) {
-        return parts.slice(0, index).join(sep) + sep;
-      }
-    }
-
-    return '';
-  }
-
-  /**
    * Array of templates in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all templates in the project.
