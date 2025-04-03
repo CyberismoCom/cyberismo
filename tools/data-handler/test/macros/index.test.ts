@@ -2,7 +2,6 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-// ismo
 import {
   createAdmonition,
   createHtmlPlaceholder,
@@ -123,7 +122,6 @@ describe('macros', () => {
         expect(result).to.not.contain('<create-cards>');
       });
     });
-
     describe('scoreCard', () => {
       it('scoreCard inject (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
@@ -204,14 +202,14 @@ describe('macros', () => {
         test: 'test-data',
       });
       expect(result).to.match(
-        /^\n\+{4}\n<test-tag-name test="test-data" key="macro-\d+"><\/test-tag-name>\n\+{4}$/,
+        /^\n\+{3}\n<test-tag-name test="test-data" key="macro-\d+"><\/test-tag-name>\n\+{3}\n$/,
       );
     });
     it('createHtmlPlaceholder (success) without data', () => {
       // note: depends on the order of execution
       const result = createHtmlPlaceholder(macro.metadata, {});
       expect(result).to.match(
-        /^\n\+{4}\n<test-tag-name key="macro-\d+"><\/test-tag-name>\n\+{4}$/,
+        /^\n\+{3}\n<test-tag-name key="macro-\d+"><\/test-tag-name>\n\+{3}\n$/,
       );
     });
     it('createAdmonition (success)', () => {
