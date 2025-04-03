@@ -19,7 +19,7 @@ const dirname = path.dirname(filename);
 
 export function startServer(projectPath?: string) {
   const app = express();
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3000;
 
   app.use(express.static(path.join(dirname, 'public')));
 

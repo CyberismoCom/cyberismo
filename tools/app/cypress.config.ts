@@ -9,7 +9,7 @@ const baseModulePath = '../../.tmp/module-base';
 
 export default defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:5173',
+    baseUrl: 'http://localhost:3000',
     setupNodeEvents(on, config) {
       on('task', {
         deleteTestProject() {
