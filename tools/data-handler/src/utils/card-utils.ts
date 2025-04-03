@@ -10,6 +10,38 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { sep } from 'node:path';
+import { Card } from '../interfaces/project-interfaces.js';
+
+/**
+ * Flattens card tree so that children are shown on same level regardless of nesting level.
+ * @param array card tree
+ * @returns flattened card tree.
+ */
+export const flattenCardArray = (array: Card[]) => {
+  const result: Card[] = [];
+  array.forEach((item) => {
+    const { key, path, children, attachments, metadata } = item;
+    result.push({ key, path, children, attachments, metadata });
+    if (children) {
+      result.push(...flattenCardArray(children));
+    }
+  });
+  return result;
+};
+
+/**
+ * Checks if given card is in some template.
+ * @param card card object to check
+ * @returns true if card exists in a template; false otherwise
+ */
+export const isTemplateCard = (card: Card) => {
+  return (
+    card.path.includes(`${sep}templates${sep}`) ||
+    card.path.includes(`${sep}modules${sep}`)
+  );
+};
+
 /**
  * Sorts array of cards first using prefix and then using ID.
  * Prefixes are returned in alphabetical order, and then in numeric order within same prefix.
