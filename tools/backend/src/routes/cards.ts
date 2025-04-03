@@ -42,49 +42,31 @@ const router: Router = express.Router();
 router.get('/', async (req, res) => {
   const commands = req.commands;
 
-  let projectResponse: ProjectMetadata;
-  try {
-    projectResponse = await commands.showCmd.showProject();
-  } catch (error) {
-    return res
-      .status(500)
-      .send(
-        `No project found from path ${process.env.npm_config_project_path}`,
-      );
-  }
+  const projectResponse = await commands.showCmd.showProject();
 
   const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
   if (!workflowsResponse) {
-    return res
-      .status(500)
-      .send(
-        `No workflows found from path ${process.env.npm_config_project_path}`,
-      );
+    throw new Error(`No workflows found from path ${req.projectPath}`);
   }
 
   const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
   if (!cardTypesResponse) {
-    return res
-      .status(500)
-      .send(
-        `No card types found from path ${process.env.npm_config_project_path}`,
-      );
+    throw new Error(`No card types found from path ${req.projectPath}`);
   }
 
   const cardsResponse = await commands.showCmd.showProjectCards();
-  if (cardsResponse) {
-    const response = {
-      name: (projectResponse! as any).name,
-      cards: cardsResponse,
-      workflows: workflowsResponse,
-      cardTypes: cardTypesResponse,
-    };
-    return res.json(response);
-  } else {
-    return res
-      .status(500)
-      .send(`No cards found from path ${process.env.npm_config_project_path}`);
+
+  if (!cardsResponse) {
+    throw new Error(`No cards found from path ${req.projectPath}`);
   }
+
+  const response = {
+    name: (projectResponse! as any).name,
+    cards: cardsResponse,
+    workflows: workflowsResponse,
+    cardTypes: cardTypesResponse,
+  };
+  return res.json(response);
 });
 
 async function getCardDetails(commands: any, key: string): Promise<any> {
@@ -98,62 +80,56 @@ async function getCardDetails(commands: any, key: string): Promise<any> {
     location: CardLocation.projectOnly,
   };
 
-  try {
-    const cardDetailsResponse = await commands.showCmd.showCardDetails(
-      fetchCardDetails,
-      key,
-    );
-    let asciidocContent = '';
-    try {
-      asciidocContent = await evaluateMacros(
-        cardDetailsResponse.content || '',
-        {
-          mode: 'inject',
-          projectPath: process.env.npm_config_project_path || '',
-          cardKey: key,
-        },
-      );
-    } catch (error) {
-      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
-    }
+  const cardDetailsResponse = await commands.showCmd.showCardDetails(
+    fetchCardDetails,
+    key,
+  );
 
-    const htmlContent = Processor()
-      .convert(asciidocContent, {
-        safe: 'safe',
-        attributes: {
-          imagesdir: `/api/cards/${key}/a`,
-          icons: 'font',
-        },
-      })
-      .toString();
-
-    // always parse for now
-    await commands.calculateCmd.generate();
-
-    const card = await commands.calculateCmd.runQuery('card', {
-      cardKey: key,
-    });
-
-    if (card.length !== 1) {
-      return { status: 500, message: 'Query failed. Check card-query syntax' };
-    }
-
-    if (cardDetailsResponse) {
-      return {
-        status: 200,
-        data: {
-          ...card[0],
-          rawContent: cardDetailsResponse.content || '',
-          parsedContent: htmlContent,
-          attachments: cardDetailsResponse.attachments,
-        },
-      };
-    } else {
-      return { status: 400, message: `Card ${key} not found from project` };
-    }
-  } catch (error) {
+  if (!cardDetailsResponse) {
     return { status: 400, message: `Card ${key} not found from project` };
   }
+
+  let asciidocContent = '';
+  try {
+    asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
+      mode: 'inject',
+      projectPath: process.env.npm_config_project_path || '',
+      cardKey: key,
+    });
+  } catch (error) {
+    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
+  }
+
+  const htmlContent = Processor()
+    .convert(asciidocContent, {
+      safe: 'safe',
+      attributes: {
+        imagesdir: `/api/cards/${key}/a`,
+        icons: 'font',
+      },
+    })
+    .toString();
+
+  // always parse for now
+  await commands.calculateCmd.generate();
+
+  const card = await commands.calculateCmd.runQuery('card', {
+    cardKey: key,
+  });
+
+  if (card.length !== 1) {
+    throw new Error('Query failed. Check card-query syntax');
+  }
+
+  return {
+    status: 200,
+    data: {
+      ...card[0],
+      rawContent: cardDetailsResponse.content || '',
+      parsedContent: htmlContent,
+      attachments: cardDetailsResponse.attachments,
+    },
+  };
 }
 
 /**

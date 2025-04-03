@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';

@@ -18,28 +18,27 @@ declare global {
   namespace Express {
     interface Request {
       commands: CommandManager;
+      projectPath: string;
     }
   }
 }
 
-export const attachCommandManager = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const projectPath = process.env.npm_config_project_path;
-  if (!projectPath) {
-    return res.status(500).send('project_path environment variable not set.');
-  }
+export const attachCommandManager =
+  (projectPath?: string) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    if (!projectPath) {
+      return res.status(500).send('project_path environment variable not set.');
+    }
 
-  try {
-    req.commands = await CommandManager.getInstance(projectPath);
-    next();
-  } catch (error) {
-    return res
-      .status(500)
-      .send(
-        `Failed to initialize CommandManager: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-  }
-};
+    try {
+      req.commands = await CommandManager.getInstance(projectPath);
+      req.projectPath = projectPath;
+      next();
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          `Failed to initialize CommandManager: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+    }
+  };

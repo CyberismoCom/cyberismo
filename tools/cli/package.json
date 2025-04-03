@@ -21,11 +21,16 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "commander": "^13.1.0",
-    "@inquirer/confirm": "^5.1.8"
+    "@inquirer/confirm": "^5.1.8",
+    "commander": "^13.1.0"
   },
   "devDependencies": {
-    "@cyberismocom/data-handler": "workspace:*"
+    "@cyberismocom/backend": "workspace:*",
+    "@cyberismocom/data-handler": "workspace:*",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.39.0"
   },
   "types": "dist/index.d.ts",
   "type": "module",
