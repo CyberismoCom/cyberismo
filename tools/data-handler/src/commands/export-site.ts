@@ -289,7 +289,7 @@ export class ExportSite extends Export {
           this.project.pathToCard(cardKey),
         )
       : this.project.paths.cardRootFolder;
-    const cards: Card[] = [];
+    let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
     if (cardKey) {
@@ -309,8 +309,17 @@ export class ExportSite extends Export {
 
     await this.calculateCmd.generate();
     const tree = await this.calculateCmd.runQuery('tree');
-    for (const treeQueryResult of tree) {
-      cards.push(await this.treeQueryResultToCard(treeQueryResult));
+
+    if (cardKey) {
+      const targetCard = this.findCardInTree(tree, cardKey);
+      if (!targetCard) {
+        throw new Error(`Cannot find card '${cardKey}' in the tree hierarchy`);
+      }
+      cards = [await this.treeQueryResultToCard(targetCard)];
+    } else {
+      for (const treeQueryResult of tree) {
+        cards.push(await this.treeQueryResultToCard(treeQueryResult));
+      }
     }
 
     if (!cards.length) {
