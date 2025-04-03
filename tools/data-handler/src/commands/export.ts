@@ -16,7 +16,6 @@ import { dirname, join } from 'node:path';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
-
 import { Calculate, Show } from './index.js';
 import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
 import { CardType } from '../interfaces/resource-interfaces.js';
@@ -139,6 +138,30 @@ export class Export {
   }
 
   /**
+   * Recursively searches for a card with the specified key in the tree hierarchy.
+   * @param treeItems Array of tree query results to search through
+   * @param targetKey The key of the card to find
+   * @returns The found tree item or null if not found
+   */
+  protected findCardInTree(
+    treeItems: QueryResult<'tree'>[],
+    targetKey: string,
+  ): QueryResult<'tree'> | null {
+    for (const item of treeItems) {
+      if (item.key === targetKey) {
+        return item;
+      }
+      if (item.children && item.children.length > 0) {
+        const foundInChildren = this.findCardInTree(item.children, targetKey);
+        if (foundInChildren) {
+          return foundInChildren;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Convert treeQueryResult object into a Card object and add content, metadata & attachments
    * Handles card children recursively
    * @param treeQueryResult tree query result object
@@ -228,8 +251,17 @@ export class Export {
 
     await this.calculateCmd.generate();
     const tree = await this.calculateCmd.runQuery('tree');
-    for (const treeQueryResult of tree) {
-      cards.push(await this.treeQueryResultToCard(treeQueryResult));
+
+    if (cardKey) {
+      const targetCard = this.findCardInTree(tree, cardKey);
+      if (!targetCard) {
+        throw new Error(`Cannot find card '${cardKey}' in the tree hierarchy`);
+      }
+      cards = [await this.treeQueryResultToCard(targetCard)];
+    } else {
+      for (const treeQueryResult of tree) {
+        cards.push(await this.treeQueryResultToCard(treeQueryResult));
+      }
     }
 
     // Sort the cards by rank
