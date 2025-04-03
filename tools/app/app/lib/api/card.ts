@@ -20,10 +20,11 @@ import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
 import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
+import { CardAction } from './action-types';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
-  const { callUpdate, ...rest } = useSWRHook(
+  const { callUpdate, isUpdating, ...rest } = useSWRHook(
     key ? apiPaths.card(key) : null,
     'card',
     options,
@@ -31,21 +32,36 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
 
   return {
     ...rest,
+    isUpdating: (action?: CardAction) => isUpdating(action),
     updateCard: async (update: CardUpdate) =>
-      (key && (await callUpdate(() => updateCard(key, update)))) || null,
+      (key && (await callUpdate(() => updateCard(key, update), 'update'))) ||
+      null,
     deleteCard: async () => {
       if (!key) return;
-      await callUpdate(() => deleteCard(key));
+      await callUpdate(() => deleteCard(key), 'delete');
       dispatch(cardDeleted(key));
     },
     createCard: async (template: string) =>
-      await callUpdate(() => createCard(key ?? 'root', template)),
+      await callUpdate(() => createCard(key ?? 'root', template), 'create'),
+    moveCard: async (target: string, index?: number) =>
+      key &&
+      (await callUpdate(
+        () =>
+          updateCard(key, {
+            parent: target,
+            index,
+          }),
+        'move',
+      )),
+
     updateWorkFlowState: async (state: string) =>
       (key &&
-        (await callUpdate(() =>
-          updateCard(key, {
-            state: { name: state },
-          }),
+        (await callUpdate(
+          () =>
+            updateCard(key, {
+              state: { name: state },
+            }),
+          'updateState',
         ))) ||
       null,
     createLink: async (
@@ -55,15 +71,17 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       direction: LinkDirection = 'outbound',
     ) =>
       (key &&
-        (await callUpdate(() =>
-          createLink(
-            direction === 'outbound' ? key : target,
-            direction === 'outbound' ? target : key,
-            type,
-            linkDescription,
-          ).then(() => {
-            mutate(apiPaths.card(key));
-          }),
+        (await callUpdate(
+          () =>
+            createLink(
+              direction === 'outbound' ? key : target,
+              direction === 'outbound' ? target : key,
+              type,
+              linkDescription,
+            ).then(() => {
+              mutate(apiPaths.card(key));
+            }),
+          'createLink',
         ))) ||
       null,
     deleteLink: async (
@@ -73,15 +91,17 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       linkDescription?: string,
     ) =>
       (key &&
-        (await callUpdate(() =>
-          removeLink(
-            direction === 'outbound' ? key : target,
-            direction === 'outbound' ? target : key,
-            linkType,
-            linkDescription,
-          ).then(() => {
-            mutate(apiPaths.card(key));
-          }),
+        (await callUpdate(
+          () =>
+            removeLink(
+              direction === 'outbound' ? key : target,
+              direction === 'outbound' ? target : key,
+              linkType,
+              linkDescription,
+            ).then(() => {
+              mutate(apiPaths.card(key));
+            }),
+          'deleteLink',
         ))) ||
       null,
     editLink: async (
@@ -119,7 +139,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
                 createLink(sourceKey, destKey, linkType, linkDescription),
               )
               .then(() => mutate(apiPaths.card(key)));
-          }))) ||
+          }, 'editLink'))) ||
         null
       );
     },

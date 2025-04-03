@@ -121,6 +121,7 @@ interface LinkFormProps {
   inModal?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
   isLoading?: boolean;
+  isUpdating?: boolean;
 }
 
 const NO_LINK_TYPE = -1;
@@ -142,6 +143,7 @@ export function LinkForm({
   formRef,
   onCancel,
   isLoading,
+  isUpdating,
 }: LinkFormProps) {
   const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
     defaultValues: {
@@ -305,7 +307,8 @@ export function LinkForm({
               sx={{
                 width: '100px',
               }}
-              loading={isLoading}
+              loading={isUpdating}
+              disabled={isLoading}
             >
               {data ? t('linkForm.buttonEdit') : t('linkForm.button')}
             </Button>
@@ -824,7 +827,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         onCancel={() =>
                           onLinkFormChange && onLinkFormChange('hidden')
                         }
-                        isLoading={isUpdating}
+                        isLoading={isUpdating()}
+                        isUpdating={isUpdating('createLink')}
                       />
                     </Box>
                   )}

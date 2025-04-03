@@ -22,6 +22,7 @@ import {
   DialogActions,
   Button,
   Alert,
+  CircularProgress,
 } from '@mui/joy';
 import { Trans, useTranslation } from 'react-i18next';
 import { Warning } from '@mui/icons-material';
@@ -121,7 +122,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
                 variant="outlined"
                 checked={checked}
                 onChange={(e) => setChecked(e.target.checked)}
-                disabled={isUpdating}
+                disabled={isUpdating('delete')}
               />
             </Alert>
           )}
@@ -130,8 +131,8 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
               data-cy="confirmDeleteButton"
               onClick={handleDelete}
               color="danger"
-              loading={isUpdating}
-              disabled={(warning != null && !checked) || isUpdating}
+              loading={isUpdating('delete')}
+              disabled={(warning != null && !checked) || isUpdating()}
             >
               {t('delete')}
             </Button>
@@ -139,7 +140,7 @@ export function DeleteModal({ open, onClose, cardKey }: DeleteModalProps) {
               onClick={onClose}
               variant="plain"
               color="neutral"
-              disabled={isUpdating}
+              disabled={isUpdating()}
             >
               {t('cancel')}
             </Button>
