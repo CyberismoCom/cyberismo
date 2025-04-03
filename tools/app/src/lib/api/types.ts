@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Project, CardDetails, FieldTypes } from '../definitions';
+import { Project, FieldTypes } from '../definitions';
 import {
   CardType,
   LinkType,

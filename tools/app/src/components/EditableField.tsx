@@ -11,7 +11,6 @@
 */
 
 import { Box, Chip, Stack, Tooltip, Typography } from '@mui/joy';
-import React from 'react';
 import { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';

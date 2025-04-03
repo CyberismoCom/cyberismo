@@ -24,7 +24,7 @@ import {
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import { Add, Person } from '@mui/icons-material';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 export interface FieldEditorProps {
   value: MetadataValue;
@@ -71,7 +71,7 @@ export default function FieldEditor({
         <Select
           value={value?.toString() ?? ''}
           disabled={disabled}
-          onChange={(e, value) => onChange?.(value)}
+          onChange={(_, value) => onChange?.(value)}
           color="primary"
           sx={{
             width: '100%',
@@ -90,7 +90,7 @@ export default function FieldEditor({
         <Select
           value={(value as string | null) ?? ''}
           disabled={disabled}
-          onChange={(e, value) => onChange?.(value)}
+          onChange={(_, value) => onChange?.(value)}
           color="primary"
           sx={{
             width: '100%',
@@ -114,7 +114,7 @@ export default function FieldEditor({
         <Select
           value={(value as string[] | null) ?? []}
           multiple
-          onChange={(e, value) => onChange?.(value)}
+          onChange={(_, value) => onChange?.(value)}
           color="primary"
           sx={{
             width: '100%',

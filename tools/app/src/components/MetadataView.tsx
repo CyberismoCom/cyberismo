@@ -10,11 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
-  Control,
   Controller,
   FormProvider,
   useForm,

@@ -145,13 +145,13 @@ const RenderTree = (
     );
   };
 
-export const TreeMenu: React.FC<TreeMenuProps> = ({
+export const TreeMenu = ({
   selectedCardKey,
   title,
   onMove,
   onCardSelect,
   tree,
-}) => {
+}: TreeMenuProps) => {
   const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();

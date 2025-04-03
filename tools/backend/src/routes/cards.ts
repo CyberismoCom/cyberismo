@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express from 'express';
+import express, { Router } from 'express';
 import Processor from '@asciidoctor/core';
 import {
   CardLocation,
@@ -24,7 +24,7 @@ import multer from 'multer';
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-const router = express.Router();
+const router: Router = express.Router();
 /**
  * @swagger
  * /api/cards:

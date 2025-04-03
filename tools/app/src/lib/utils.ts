@@ -46,6 +46,10 @@ export function flattenTree(
   return result;
 }
 
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
 /**
  * Finds the path to the card, if exists
  * @param cardKey: card to search for

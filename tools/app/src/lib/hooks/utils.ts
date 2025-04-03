@@ -13,6 +13,15 @@
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
+import { useParams } from 'react-router';
+
+export function useKeyParam() {
+  const params = useParams<{ key: string }>();
+  if (!params.key || typeof params.key !== 'string') {
+    return null;
+  }
+  return params.key as string;
+}
 
 export function useParentCard(key: string | null) {
   const { tree } = useTree();

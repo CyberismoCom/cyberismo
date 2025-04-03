@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Modal,
   ModalDialog,
@@ -218,7 +218,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
           ) : (
             <Tabs
               value={currentTab}
-              onChange={(e, newValue) => setCurrentTab(newValue as TabEnum)}
+              onChange={(_, newValue) => setCurrentTab(newValue as TabEnum)}
               sx={{
                 flex: '1 1 auto',
                 flexDirection: 'column',

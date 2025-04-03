@@ -10,12 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
 import { Link } from 'react-router';
 
-import { Stack, Button, Box, Typography } from '@mui/joy';
+import { Stack, Button, Box } from '@mui/joy';
 
 interface AppToolbarProps {
   onNewCard: () => void;

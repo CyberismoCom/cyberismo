@@ -28,7 +28,6 @@ import DnDFile from '../DnDFile';
 import { useAttachments } from '@/lib/api/attachments';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import { ApiCallError } from '@/lib/swr';
 import { useAppRouter } from '@/lib/hooks';
 
 interface AddAttachmentModalProps {

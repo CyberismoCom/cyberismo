@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useEffect, useState, use } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CardMode, MetadataValue } from '@/lib/definitions';
 
 import {
@@ -38,7 +38,7 @@ import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
 
 import ContentToolbar from '@/components/ContentToolbar';
-import { useParams, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { ContentArea } from '@/components/ContentArea';
 import { useCard, useLinkTypes, useTree } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
@@ -72,6 +72,7 @@ import { openAttachment } from '@/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
 import { deepCopy, expandLinkTypes, useModals } from '@/lib/utils';
+import { useKeyParam } from '@/lib/hooks';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
 
@@ -212,13 +213,12 @@ function AttachmentPreviewCard({
 }
 
 export default function Page() {
-  const params = useParams();
+  const key = useKeyParam();
+  const { t } = useTranslation();
 
-  if (!params.key) {
+  if (!key) {
     return <Box>{t('failedToLoad')}</Box>;
   }
-
-  const { t } = useTranslation();
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -234,7 +234,7 @@ export default function Page() {
     updateCard,
     isLoading: isLoadingCard,
     error: errorCard,
-  } = useCard(params.key);
+  } = useCard(key);
 
   const {
     linkTypes,
@@ -317,7 +317,7 @@ export default function Page() {
     setParsed(null);
     let mounted = true;
     async function parse() {
-      const res = await parseContent(params.key, content);
+      const res = await parseContent(key!, content);
       if (mounted) {
         setParsed(res);
       }
@@ -384,8 +384,7 @@ export default function Page() {
 
   // Scroll to the last title when the tab is switched
   useEffect(() => {
-    if (!lastTitle || !editor || !view || !state || cardKey !== params.key)
-      return;
+    if (!lastTitle || !editor || !view || !state || cardKey !== key) return;
 
     let lineNum: number | null = null;
 
@@ -428,14 +427,14 @@ export default function Page() {
     const title = findCurrentTitleFromADoc(view, editor, doc);
 
     // making sure the title actually changed to not spam redux
-    if (!title || (title === lastTitle && cardKey === params.key)) {
+    if (!title || (title === lastTitle && cardKey === key)) {
       return;
     }
 
     dispatch(
       viewChanged({
         title,
-        cardKey: params.key,
+        cardKey: key,
       }),
     );
   };
@@ -555,7 +554,7 @@ export default function Page() {
       <Stack height="100%">
         <FormProvider {...formMethods}>
           <ContentToolbar
-            cardKey={params.key}
+            cardKey={key}
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
             linkButtonDisabled={true}
@@ -563,7 +562,7 @@ export default function Page() {
           <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
             <Tabs
               value={tab}
-              onChange={(e, newValue) =>
+              onChange={(_, newValue) =>
                 typeof newValue === 'number' && setTab(newValue)
               }
               sx={{
@@ -678,7 +677,7 @@ export default function Page() {
                         >
                           <AttachmentPreviewCard
                             name={attachment.fileName}
-                            cardKey={params.key}
+                            cardKey={key}
                             onInsert={() => {
                               if (view && card) {
                                 addAttachment(view, attachment, card.key);

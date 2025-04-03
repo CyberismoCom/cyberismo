@@ -111,7 +111,7 @@ interface LinkFormProps {
   state: LinkFormState;
   data?: LinkFormData;
   inModal?: boolean;
-  formRef?: React.RefObject<HTMLFormElement>;
+  formRef?: React.RefObject<HTMLFormElement | null>;
   isLoading?: boolean;
 }
 

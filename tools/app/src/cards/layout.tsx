@@ -45,19 +45,19 @@ import {
   useAppSelector,
   useAppRouter,
   useKeyboardShortcut,
+  useKeyParam,
 } from '../lib/hooks';
 import { CloseRounded } from '@mui/icons-material';
 import {
   closeNotification,
   removeNotification,
 } from '../lib/slices/notifications';
-import { useParams } from 'react-router';
 import { findParentCard } from '../lib/utils';
 import { useTree } from '../lib/api/tree';
 
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
-  const params = useParams<{ key?: string }>();
+  const key = useKeyParam();
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
 
@@ -109,7 +109,7 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
             <TreeMenu
               title={project.name}
               tree={tree}
-              selectedCardKey={params.key ?? null}
+              selectedCardKey={key ?? null}
               onMove={async (
                 cardKey: string,
                 newParent: string,
@@ -182,9 +182,7 @@ const Main = styled('main')(() => ({
 
 function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const params = useParams<{
-    key?: string;
-  }>();
+  const key = useKeyParam();
 
   useKeyboardShortcut(
     {
@@ -204,7 +202,7 @@ function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
       <NewCardModal
         open={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        cardKey={params.key ?? null}
+        cardKey={key}
       />
     </Stack>
   );

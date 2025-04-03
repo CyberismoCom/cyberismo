@@ -27,23 +27,23 @@ import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
+import { useKeyParam } from '@/lib/hooks';
 
 export const dynamic = 'force-dynamic';
 
 export default function Page() {
   // use params from the url, it should always have a key
-  const params = useParams();
+  const key = useKeyParam();
 
-  if (!params.key) {
-    throw new Error('Key is required');
+  if (!key) {
+    return <Typography level="title-md">Key is required</Typography>;
   }
 
-  const { card, error, createLink, deleteLink, editLink } = useCard(params.key);
+  const { card, error, createLink, deleteLink, editLink } = useCard(key);
 
   const { tree } = useTree();
 
-  const listCard = useListCard(params.key);
+  const listCard = useListCard(key);
 
   const { linkTypes } = useLinkTypes();
 
@@ -55,8 +55,8 @@ export default function Page() {
     {
       key: 'e',
     },
-    () => router.safePush(`/cards/${params.key}/edit`),
-    [params.key, router],
+    () => router.safePush(`/cards/${key}/edit`),
+    [key, router],
   );
 
   const { t } = useTranslation();
@@ -91,7 +91,7 @@ export default function Page() {
   return (
     <Stack height="100%">
       <ContentToolbar
-        cardKey={params.key}
+        cardKey={key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
         onInsertLink={() => setLinkFormState('add-from-toolbar')}
@@ -103,7 +103,7 @@ export default function Page() {
             cards={tree!}
             card={card!}
             onMetadataClick={() =>
-              router.push(`/cards/${params.key}/edit?expand=true`)
+              router.push(`/cards/${key}/edit?expand=true`)
             }
             linkTypes={expandedLinkTypes}
             onLinkFormSubmit={async (data) => {

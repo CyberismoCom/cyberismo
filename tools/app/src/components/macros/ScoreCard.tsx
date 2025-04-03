@@ -12,7 +12,6 @@
 
 import { Box, Card, Typography } from '@mui/joy';
 import { MacroContext } from '.';
-import React from 'react';
 
 export type CreateCardsProps = {
   title?: string;
