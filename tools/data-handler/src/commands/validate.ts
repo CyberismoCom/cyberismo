@@ -36,6 +36,7 @@ import {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/log-utils.js';
+import { isTemplateCard } from '../utils/card-utils.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { readJsonFile, readJsonFileSync } from '../utils/json.js';
@@ -556,7 +557,7 @@ export class Validate {
         for (const card of cards) {
           if (card.metadata) {
             // validate card's workflow
-            if (!Project.isTemplateCard(card)) {
+            if (!isTemplateCard(card)) {
               const validWorkflow = await this.validateWorkflowState(
                 project,
                 card,
@@ -918,7 +919,7 @@ export class Validate {
     }
 
     const cardState = card.metadata?.workflowState;
-    if (!Project.isTemplateCard(card)) {
+    if (!isTemplateCard(card)) {
       const found = workflow.states.find((item) => item.name === cardState);
       if (!found) {
         validationErrors.push(

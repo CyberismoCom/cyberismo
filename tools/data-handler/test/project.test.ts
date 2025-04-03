@@ -5,6 +5,7 @@ import { after, before, describe, it } from 'mocha';
 // node
 import { mkdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import {
@@ -16,7 +17,8 @@ import {
   TemplateMetadata,
   Workflow,
 } from '../src/interfaces/resource-interfaces.js';
-import { fileURLToPath } from 'node:url';
+
+import { isTemplateCard } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -398,7 +400,7 @@ describe('project', () => {
         expect(projectCard.metadata).to.not.equal(undefined);
         expect(projectCard.metadata?.title).to.equal('Decision Records');
         expect(projectCard.metadata?.workflowState).to.equal('Created');
-        expect(Project.isTemplateCard(projectCard)).to.equal(false);
+        expect(isTemplateCard(projectCard)).to.equal(false);
       }
     }
   });

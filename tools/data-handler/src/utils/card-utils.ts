@@ -12,6 +12,8 @@
 
 import { sep } from 'node:path';
 
+import { Card } from '../interfaces/project-interfaces.js';
+
 // Helper function to find the parent path from a card path
 export const findParentPath = (cardPath: string): string | null => {
   const pathParts = cardPath.split(sep);
@@ -22,6 +24,35 @@ export const findParentPath = (cardPath: string): string | null => {
   const parentPathParts = [...pathParts];
   parentPathParts.splice(hasChildren, 1);
   return parentPathParts.slice(0, hasChildren).join(sep);
+};
+
+/**
+ * Flattens card tree so that children are shown on same level regardless of nesting level.
+ * @param array card tree
+ * @returns flattened card tree.
+ */
+export const flattenCardArray = (array: Card[]) => {
+  const result: Card[] = [];
+  array.forEach((item) => {
+    const { key, path, children, attachments, metadata } = item;
+    result.push({ key, path, children, attachments, metadata });
+    if (children) {
+      result.push(...flattenCardArray(children));
+    }
+  });
+  return result;
+};
+
+/**
+ * Checks if given card is in some template.
+ * @param card card object to check
+ * @returns true if card exists in a template; false otherwise
+ */
+export const isTemplateCard = (card: Card) => {
+  return (
+    card.path.includes(`${sep}templates${sep}`) ||
+    card.path.includes(`${sep}modules${sep}`)
+  );
 };
 
 /**
