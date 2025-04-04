@@ -17,6 +17,8 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { writeJsonFile } from '../utils/json.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 
+import { logger } from '../utils/log-utils.js';
+
 // interfaces
 import {
   CardAttachment,
@@ -129,6 +131,7 @@ export class CardContainer {
     details: FetchCardDetails = {},
     foundCards: Card[],
   ): Promise<Card[]> {
+    logger.error(`readdir from doFindCard ${cardKey} ${path}`);
     const entries = await readdir(path, { withFileTypes: true });
     let asciiDocProcessor;
     // optimization: do not create AsciiDoctor Processor, unless it is needed.
@@ -190,6 +193,7 @@ export class CardContainer {
   ): Promise<CardAttachment[]> {
     const currentPaths: string[] = [];
     if (pathExists(folder)) {
+      logger.error(`readdir from doCollectAttachments`);
       const entries = (await readdir(folder, { withFileTypes: true })).filter(
         (item) => item.isDirectory(),
       );
@@ -227,6 +231,7 @@ export class CardContainer {
   }
 
   // Collects all cards from container.
+  // @todo; this needs to be optimized
   private async doCollectCards(
     path: string,
     cards: Card[],
@@ -235,6 +240,7 @@ export class CardContainer {
   ): Promise<Card[]> {
     let entries = [];
     try {
+      //logger.error(`readdir from doCollectCards: ${path}`);
       entries = await readdir(path, { withFileTypes: true });
     } catch {
       return cards;
@@ -352,6 +358,7 @@ export class CardContainer {
   // Persists card metadata.
   protected async saveCardContent(card: Card) {
     if (card.content != null) {
+      logger.error(`writeFile from saveCardContent`);
       const contentFile = join(card.path, CardContainer.cardContentFile);
       await writeFile(contentFile, card.content);
     }
@@ -360,6 +367,7 @@ export class CardContainer {
   // Persists card metadata.
   protected async saveCardMetadata(card: Card) {
     if (card.metadata != null) {
+      logger.error(`writeJsonFile from saveCardMetadata() : ${card.key}`);
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       await writeJsonFile(metadataFile, card.metadata);
     }

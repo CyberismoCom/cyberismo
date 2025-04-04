@@ -17,6 +17,8 @@ import { ProjectSettings } from './interfaces/project-interfaces.js';
 import { readJsonFileSync, writeJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';
 
+import { logger } from './utils/log-utils.js';
+
 /**
  * Represents Project's cardsConfig.json file.
  */
@@ -41,6 +43,7 @@ export class ProjectConfiguration implements ProjectSettings {
     }
     await open(this.settingPath, 'w').then(async (file) => {
       try {
+        logger.error(`writeJsonFile from save() : ${this.settingPath}`);
         await writeJsonFile(file, this.toJSON());
         file.close();
       } catch (error) {
@@ -55,6 +58,7 @@ export class ProjectConfiguration implements ProjectSettings {
   private readSettings() {
     let settings;
     try {
+      logger.error(`readJsonFileSync from readSettings : ${this.settingPath}`);
       settings = readJsonFileSync(this.settingPath) as ProjectSettings;
     } catch (error) {
       if (error instanceof Error) {

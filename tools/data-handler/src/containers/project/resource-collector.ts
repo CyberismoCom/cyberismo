@@ -13,6 +13,8 @@ import { Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { logger } from '../../utils/log-utils.js';
+
 import { CardContainer } from '../card-container.js';
 import { pathExists, stripExtension } from '../../utils/file-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
@@ -108,6 +110,7 @@ export class ResourceCollector {
         return [];
       }
 
+      logger.error(`readdir from addResources: ${resourcePath}`);
       const files = await readdir(resourcePath, { withFileTypes: true });
       return files.filter(isValidFile).map((item) => ({
         name: `${resource.name}/${requestedType}/${stripExtension(item.name)}`,
@@ -123,6 +126,7 @@ export class ResourceCollector {
   // Collects all module resources.
   private async addModuleResources() {
     if (!this.modulesCollected) {
+      logger.error(`readdir from addModuleResources`);
       const moduleDirectories = await readdir(this.paths.modulesFolder, {
         withFileTypes: true,
       });
@@ -166,6 +170,7 @@ export class ResourceCollector {
     }
     // 'modules' is a bit special; it is collected separately from actual resources.
     if (type === 'modules') {
+      logger.error(`readdir from addResourcesFromModules ${type}`);
       const moduleDirectories = await readdir(this.paths.modulesFolder, {
         withFileTypes: true,
       });
@@ -208,6 +213,7 @@ export class ResourceCollector {
     if (!pathExists(resourceFolder)) {
       return [];
     }
+    logger.error(`readdirSync from resourcesSync ${resourceFolder}`);
     const entries = readdirSync(resourceFolder, { withFileTypes: true });
     resources.push(
       ...entries

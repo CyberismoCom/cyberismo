@@ -16,6 +16,8 @@ import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
+import { logger } from '../utils/log-utils.js';
+
 // dependencies
 import { Validator as JSONValidator, Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
@@ -91,6 +93,7 @@ export class Validate {
     );
     this.validator = new JSONValidator();
     this.directoryValidator = new DirectoryValidator();
+    logger.error(`readJsonFileSync from Validate`);
     this.parentSchema = readJsonFileSync(Validate.parentSchemaFile) as Schema;
     this.addChildSchemas();
     this.validatedFieldTypes = new Map();
@@ -105,10 +108,12 @@ export class Validate {
 
   // Loads child schemas to validator.
   private addChildSchemas() {
+    logger.error(`readdirSync from addChildSchemas`);
     readdirSync(Validate.baseFolder, { withFileTypes: true, recursive: true })
       .filter((dirent) => dirent.name !== Validate.parentSchemaFile)
       .filter((dirent) => dirent.isFile())
       .forEach((file) => {
+        logger.error(`readJsonFileSync from addChildSchemas ${file.name}`);
         const schema = readJsonFileSync(this.fullPath(file)) as Schema;
         this.validator.addSchema(schema, schema.$id);
       });
@@ -141,6 +146,7 @@ export class Validate {
   // Validate one subfolder.
   private async validateFolder(prefixes: string[], path: Dirent) {
     const messages: string[] = [];
+    logger.error(`readdir from validateFolder`);
     const files = await readdir(this.fullPath(path), {
       withFileTypes: true,
       recursive: true,
@@ -157,6 +163,7 @@ export class Validate {
       return messages;
     }
 
+    logger.error(`readJsonFile from validateFolder`);
     const schemaConfigs = (
       await Promise.all(
         schemaFiles.map(async (dirent) => ({
@@ -194,6 +201,7 @@ export class Validate {
         extname(dirent.name) === Validate.jsonFileExtension,
     )) {
       const fullPath = this.fullPath(file);
+      logger.error(`readJsonFile2 from validateFolder`);
       const content = await readJsonFile(fullPath);
       const nameErrors = this.checkResourceName(file, content, prefixes);
 
@@ -234,6 +242,7 @@ export class Validate {
     const message: string[] = [];
     try {
       const prefixes = await project.projectPrefixes();
+      logger.error(`readdir from readAndValidateContentFiles`);
       const files = await readdir(path, {
         withFileTypes: true,
       });
@@ -269,6 +278,7 @@ export class Validate {
     for (const file of files) {
       const fullPath = this.fullPath(file);
 
+      logger.error(`readJsonFile from validateSchemaFiles`);
       const result = this.validator.validate(
         await readJsonFile(fullPath),
         schema,
@@ -707,6 +717,7 @@ export class Validate {
       if (!pathExists(projectPath)) {
         throw new Error(`Path is not valid ${projectPath}`);
       } else {
+        logger.error(`readJsonFile from validateSchema`);
         const result = this.validator.validate(
           await readJsonFile(projectPath),
           activeJsonSchema,

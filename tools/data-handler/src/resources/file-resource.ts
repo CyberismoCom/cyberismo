@@ -17,6 +17,8 @@ import { basename, join } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 
+import { logger } from '../utils/log-utils.js';
+
 import {
   type Card,
   ResourceFolderType,
@@ -105,8 +107,22 @@ export class FileResource extends ResourceObject {
         : this.project.paths.resourcePath(this.type);
       this.fileName = resourceNameToPath(this.project, this.resourceName);
     }
+    // Read from cache, if entry exists...
+    if (this.project.resCache.has(resourceNameToString(this.resourceName))) {
+      logger.error(`cache! from initialize ${this.fileName}`);
+      this.content = this.project.resCache.get(
+        resourceNameToString(this.resourceName),
+      ) as unknown as ResourceBaseMetadata;
+      return;
+    }
+    //... otherwise read from disk and add to cache
     if (pathExists(this.fileName)) {
+      logger.error(`readJsonFileSync from initialize ${this.fileName}`);
       this.content = readJsonFileSync(this.fileName);
+      this.project.resCache.set(
+        resourceNameToString(this.resourceName),
+        this.content as unknown as JSON,
+      );
     }
   }
 
@@ -143,7 +159,10 @@ export class FileResource extends ResourceObject {
     await this.write();
 
     // Notify project & collector
-    this.project.addResource(resourceObjectToResource(this));
+    this.project.addResource(
+      resourceObjectToResource(this),
+      this.content as unknown as JSON,
+    );
   }
 
   // Calculations that use this resource.
@@ -268,6 +287,7 @@ export class FileResource extends ResourceObject {
 
   // Renames resource.
   protected async rename(newName: ResourceName) {
+    this.project.resCache.delete(resourceNameToString(this.resourceName));
     if (this.moduleResource) {
       throw new Error(`Cannot rename module resources`);
     }
@@ -295,6 +315,10 @@ export class FileResource extends ResourceObject {
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
+    this.project.resCache.set(
+      this.content.name,
+      this.content as unknown as JSON,
+    );
   }
 
   // Show resource data as JSON.
@@ -385,7 +409,12 @@ export class FileResource extends ResourceObject {
       this.fileName = newFileName;
     }
 
+    this.project.resCache.delete(resourceNameToString(this.resourceName));
     await writeJsonFile(this.fileName, this.content);
+    this.project.resCache.set(
+      resourceNameToString(this.resourceName),
+      this.content as unknown as JSON,
+    );
   }
 
   // Validate that current memory-based 'content' is valid.

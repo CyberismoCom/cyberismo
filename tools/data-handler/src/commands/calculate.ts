@@ -300,6 +300,7 @@ export class Calculate {
     if (!query) {
       throw new Error(`Query file ${queryName} not found`);
     }
+    logger.error(`readFile from getQuery`);
     const content = (await readFile(query)).toString();
     this.queryCache.set(queryName, content);
     return content;
@@ -342,6 +343,7 @@ export class Calculate {
         }
       }
 
+      logger.error('generate()');
       const promiseContainer = [
         this.generateCommonFiles(),
         this.generateCardTreeContent(card).then(
@@ -388,6 +390,7 @@ export class Calculate {
         pathExists(cardTreeFile) &&
         pathExists(this.project.paths.calculationFolder);
 
+      logger.error(`readFile from runExclusive`);
       let cardTreeContent = calculationsForTreeExist
         ? await readFile(cardTreeFile, 'utf-8')
         : '';
@@ -408,6 +411,7 @@ export class Calculate {
         cardTreeContent = filteredLines.join('\n');
       }
       if (calculationsForTreeExist) {
+        logger.error(`writeFileSafe from runExclusive`);
         await writeFileSafe(cardTreeFile, cardTreeContent);
       }
     });
@@ -547,19 +551,19 @@ export class Calculate {
         maxBuffer: 1024 * 1024 * 100,
       });
     });
-    logger.trace(
-      {
-        args,
-        query: data.query,
-      },
-      `Ran command`,
-    );
+    // logger.trace(
+    //   {
+    //     args,
+    //     query: data.query,
+    //   },
+    //   `Ran command`,
+    // );
 
     if (clingo.stdout) {
-      logger.trace({
-        stdout: clingo.stdout,
-        stderr: clingo.stderr,
-      });
+      // logger.trace({
+      //   stdout: clingo.stdout,
+      //   stderr: clingo.stderr,
+      // });
       return clingo.stdout;
     }
 
@@ -653,6 +657,7 @@ export class Calculate {
 
     let fileData;
     try {
+      logger.error(`readFile from runGraph`);
       fileData = await readFile(filePath + '.png');
     } catch (e) {
       throw new Error(

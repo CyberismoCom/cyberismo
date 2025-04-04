@@ -10,6 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { logger } from '../utils/log-utils.js';
+
 // node
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { readdir } from 'node:fs/promises';
@@ -70,6 +72,9 @@ export class Project extends CardContainer {
   private settings: ProjectConfiguration;
   private validator: Validate;
 
+  // name: content
+  public resCache = new Map<string, JSON>();
+
   constructor(path: string) {
     super(path, '');
 
@@ -100,6 +105,7 @@ export class Project extends CardContainer {
     }
 
     // Filter out the schema validation files.
+    //logger.error(`readdir from readCardTreeToMemory`);
     let entries = await readdir(cardRootPath, { withFileTypes: true });
     entries = entries.filter((entry) => {
       return entry.name !== Project.schemaContentFile;
@@ -208,8 +214,10 @@ export class Project extends CardContainer {
    * Add a given 'resource' to the local resource arrays.
    * @param resource Resource to add.
    */
-  public addResource(resource: Resource) {
+  public addResource(resource: Resource, data: JSON) {
     this.resources.add(resource);
+    logger.error(`Project add resource to cache ${resource.name}`);
+    this.resCache.set(resource.name, data);
   }
 
   /**
@@ -820,6 +828,9 @@ export class Project extends CardContainer {
    * @returns path to a given card.
    */
   public pathToCard(cardKey: string): string {
+    logger.error(
+      `getFilesSync from pathToCard ${this.paths.cardRootFolder} ${cardKey}`,
+    );
     const allFiles = getFilesSync(this.paths.cardRootFolder);
     const cardIndexJsonFile = join(cardKey, Project.cardMetadataFile);
     const foundFile = allFiles.find((file) => file.includes(cardIndexJsonFile));
@@ -849,6 +860,7 @@ export class Project extends CardContainer {
   public async projectPrefixes(): Promise<string[]> {
     const prefixes: string[] = [this.projectPrefix];
     if (pathExists(this.paths.modulesFolder)) {
+      logger.error(`readdir from projectPrefixes`);
       const files = await readdir(this.paths.modulesFolder, {
         withFileTypes: true,
         recursive: true,
@@ -858,6 +870,7 @@ export class Project extends CardContainer {
         .filter((dirent) => dirent.name === Project.projectConfigFileName);
 
       const configurationPromises = configurationFiles.map(async (file) => {
+        logger.error(`readJsonFile from projectPrefixes`);
         const configuration = (await readJsonFile(
           join(file.parentPath, file.name),
         )) as ProjectSettings;
@@ -904,6 +917,8 @@ export class Project extends CardContainer {
    */
   public removeResource(resource: Resource) {
     this.resources.remove(resource);
+    this.resCache.delete(resource.name);
+    logger.error(`delete resource from cache ${resource.name}`);
   }
 
   /**
@@ -913,6 +928,15 @@ export class Project extends CardContainer {
    */
   public async resource<Type>(name: string): Promise<Type | undefined> {
     const resName = resourceName(name);
+    if (this.resCache.has(resourceNameToString(resName))) {
+      // logger.error(
+      //   `read resource from cache: ${resourceNameToString(resName)}`,
+      // );
+      const val = this.resCache.get(
+        resourceNameToString(resName),
+      ) as unknown as Type;
+      return val;
+    }
     let resource = undefined;
     try {
       resource = Project.resourceObject(this, resName);
