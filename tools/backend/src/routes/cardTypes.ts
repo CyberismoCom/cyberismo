@@ -10,9 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express, { Router } from 'express';
+import { Hono } from 'hono';
 
-const router: Router = express.Router();
+const router = new Hono();
 
 /**
  * @swagger
@@ -33,21 +33,21 @@ const router: Router = express.Router();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (req, res) => {
-  const commands = req.commands;
+router.get('/', async (c) => {
+  const commands = c.get('commands');
 
   // Card type name delivered in url parameter 'name' because it usually contains a path
-  const cardType = req.query.name as string;
+  const cardType = c.req.query('name');
   if (!cardType) {
-    return res.status(400).send('No card type');
+    return c.text('No card type', 400);
   }
 
   const detailsResponse = await commands.showCmd.showResource(cardType);
 
   if (detailsResponse) {
-    return res.json(detailsResponse);
+    return c.json(detailsResponse);
   } else {
-    return res.status(500).send(`No card type details found for ${cardType}`);
+    return c.text(`No card type details found for ${cardType}`, 500);
   }
 });
 

@@ -10,9 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express, { Router } from 'express';
+import { Hono } from 'hono';
 
-const router: Router = express.Router();
+const router = new Hono();
 
 /**
  * @swagger
@@ -28,15 +28,16 @@ const router: Router = express.Router();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (req, res) => {
-  const commands = req.commands;
+router.get('/', async (c) => {
+  const commands = c.get('commands');
 
   try {
     commands.showCmd.showProject();
   } catch (error) {
-    return res
-      .status(500)
-      .send(`No project found at path ${process.env.npm_config_project_path}`);
+    return c.text(
+      `No project found at path ${process.env.npm_config_project_path}`,
+      500,
+    );
   }
 
   const response = await commands.showCmd.showResources('linkTypes');
@@ -47,13 +48,12 @@ router.get('/', async (req, res) => {
       ),
     );
 
-    return res.json(linkTypes);
+    return c.json(linkTypes);
   } else {
-    return res
-      .status(500)
-      .send(
-        `No link types found from path ${process.env.npm_config_project_path}`,
-      );
+    return c.text(
+      `No link types found from path ${process.env.npm_config_project_path}`,
+      500,
+    );
   }
 });
 

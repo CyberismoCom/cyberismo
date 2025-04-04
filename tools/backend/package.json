@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
-    "build": "tsc -p tsconfig.build.json && shx cp -r ../app/dist ./dist/public",
+    "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
     "test": "echo 'no tests yet'"
   },
   "keywords": [],
@@ -14,17 +14,11 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@cyberismocom/data-handler": "workspace:*",
     "@cyberismocom/app": "workspace:*",
-    "cors": "^2.8.5",
+    "@cyberismocom/data-handler": "workspace:*",
+    "@hono/node-server": "^1.14.0",
     "dotenv": "^16.4.7",
-    "express": "^4.18.2",
-    "multer": "1.4.5-lts.2"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/multer": "^1.4.12"
+    "hono": "^4.7.5"
   },
   "types": "dist/index.d.ts",
   "exports": {

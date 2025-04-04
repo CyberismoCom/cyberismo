@@ -1,6 +1,6 @@
 /**
     Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+    Copyright © Cyberismo Ltd and contributors 2025
 
     This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
@@ -10,35 +10,34 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Request, Response, NextFunction } from 'express';
+import { Context, MiddlewareHandler } from 'hono';
 import { CommandManager } from '@cyberismocom/data-handler';
 
-// Extend Express Request type to include our custom properties
-declare global {
-  namespace Express {
-    interface Request {
-      commands: CommandManager;
-      projectPath: string;
-    }
+// Extend Hono Context type to include our custom properties
+declare module 'hono' {
+  interface ContextVariableMap {
+    commands: CommandManager;
+    projectPath: string;
   }
 }
 
-export const attachCommandManager =
-  (projectPath?: string) =>
-  async (req: Request, res: Response, next: NextFunction) => {
+export const attachCommandManager = (
+  projectPath?: string,
+): MiddlewareHandler => {
+  return async (c: Context, next) => {
     if (!projectPath) {
-      return res.status(500).send('project_path environment variable not set.');
+      return c.text('project_path environment variable not set.', 500);
     }
 
     try {
-      req.commands = await CommandManager.getInstance(projectPath);
-      req.projectPath = projectPath;
-      next();
+      c.set('commands', await CommandManager.getInstance(projectPath));
+      c.set('projectPath', projectPath);
+      await next();
     } catch (error) {
-      return res
-        .status(500)
-        .send(
-          `Failed to initialize CommandManager: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
+      return c.text(
+        `Failed to initialize CommandManager: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500,
+      );
     }
   };
+};

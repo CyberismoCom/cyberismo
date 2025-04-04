@@ -30,7 +30,7 @@ export const useAttachments = (
       key &&
       call(() => {
         const formData = new FormData();
-        files.forEach((file) => formData.append('file', file));
+        files.forEach((file) => formData.append('files', file));
         return addAttachments(key, formData).then(() =>
           mutate(apiPaths.card(key)),
         );

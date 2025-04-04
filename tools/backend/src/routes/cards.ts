@@ -10,21 +10,18 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express, { Router } from 'express';
+import { Hono } from 'hono';
 import Processor from '@asciidoctor/core';
 import {
   CardLocation,
   MetadataContent,
   ProjectFetchCardDetails,
-  ProjectMetadata,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { evaluateMacros } from '@cyberismocom/data-handler';
-import multer from 'multer';
+import { HTTPException } from 'hono/http-exception';
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const router = new Hono();
 
-const router: Router = express.Router();
 /**
  * @swagger
  * /api/cards:
@@ -39,25 +36,27 @@ const router: Router = express.Router();
  *       500:
  *         description: project_path not set.
  */
-router.get('/', async (req, res) => {
-  const commands = req.commands;
+router.get('/', async (c) => {
+  const commands = c.get('commands');
 
   const projectResponse = await commands.showCmd.showProject();
 
   const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
   if (!workflowsResponse) {
-    throw new Error(`No workflows found from path ${req.projectPath}`);
+    throw new HTTPException(500, {
+      message: `No workflows found from path ${c.get('projectPath')}`,
+    });
   }
 
   const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
   if (!cardTypesResponse) {
-    throw new Error(`No card types found from path ${req.projectPath}`);
+    throw new Error(`No card types found from path ${c.get('projectPath')}`);
   }
 
   const cardsResponse = await commands.showCmd.showProjectCards();
 
   if (!cardsResponse) {
-    throw new Error(`No cards found from path ${req.projectPath}`);
+    throw new Error(`No cards found from path ${c.get('projectPath')}`);
   }
 
   const response = {
@@ -66,7 +65,7 @@ router.get('/', async (req, res) => {
     workflows: workflowsResponse,
     cardTypes: cardTypesResponse,
   };
-  return res.json(response);
+  return c.json(response);
 });
 
 async function getCardDetails(commands: any, key: string): Promise<any> {
@@ -151,17 +150,17 @@ async function getCardDetails(commands: any, key: string): Promise<any> {
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key', async (req, res) => {
-  const key = req.params.key;
+router.get('/:key', async (c) => {
+  const key = c.req.param('key');
   if (!key) {
-    return res.status(400).send('No search key');
+    return c.text('No search key', 400);
   }
 
-  const result = await getCardDetails(req.commands, key);
+  const result = await getCardDetails(c.get('commands'), key);
   if (result.status === 200) {
-    return res.json(result.data);
+    return c.json(result.data);
   } else {
-    return res.status(result.status).send(result.message);
+    return c.text(result.message, result.status);
   }
 });
 
@@ -195,14 +194,14 @@ router.get('/:key', async (req, res) => {
  *       500:
  *         description: project_path not set.
  */
-router.patch('/:key', async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
+router.patch('/:key', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
   if (!key) {
-    return res.status(400).send('No search key');
+    return c.text('No search key', 400);
   }
 
-  const body = req.body;
+  const body = await c.req.json();
   let successes = 0;
   const errors = [];
 
@@ -255,14 +254,14 @@ router.patch('/:key', async (req, res) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).send(errors.join('\n'));
+    return c.text(errors.join('\n'), 400);
   }
 
   const result = await getCardDetails(commands, key);
   if (result.status === 200) {
-    return res.json(result.data);
+    return c.json(result.data);
   } else {
-    return res.status(result.status).send(result.message);
+    return c.text(result.message, result.status);
   }
 });
 
@@ -286,20 +285,21 @@ router.patch('/:key', async (req, res) => {
  *       500:
  *         description: project_path not set.
  */
-router.delete('/:key', async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
+router.delete('/:key', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
   if (!key) {
-    return res.status(400).send('No search key');
+    return c.text('No search key', 400);
   }
 
   try {
     await commands.removeCmd.remove('card', key);
-    return res.status(204).send();
+    return new Response(null, { status: 204 });
   } catch (error) {
-    return res
-      .status(400)
-      .send(error instanceof Error ? error.message : 'Unknown error');
+    return c.text(
+      error instanceof Error ? error.message : 'Unknown error',
+      400,
+    );
   }
 });
 
@@ -326,32 +326,32 @@ router.delete('/:key', async (req, res) => {
  *       500:
  *         description: project_path not set
  */
-router.post('/:key', async (req, res) => {
+router.post('/:key', async (c) => {
   const projectPath = process.env.npm_config_project_path;
   if (!projectPath) {
-    return res.status(500).send('project_path not set');
+    return c.text('project_path not set', 500);
   }
 
-  const key = req.params.key;
+  const key = c.req.param('key');
   if (!key) {
-    return res.status(400).send('No search key');
+    return c.text('No search key', 400);
   }
 
-  if (!req.body.template) {
-    return res.status(400).send('template is required');
+  const body = await c.req.json();
+  if (!body.template) {
+    return c.text('template is required', 400);
   }
 
   try {
-    const result = await req.commands.createCmd.createCard(
-      req.body.template,
-      key === 'root' ? undefined : key,
-    );
-    return res.json(result);
+    const result = await c
+      .get('commands')
+      .createCmd.createCard(body.template, key === 'root' ? undefined : key);
+    return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
-      return res.status(400).send(error.message);
+      return c.text(error.message, 400);
     }
-    return res.status(500).send('Unknown error occurred');
+    return c.text('Unknown error occurred', 500);
   }
 });
 
@@ -385,54 +385,44 @@ router.post('/:key', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments', upload.any(), async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
+router.post('/:key/attachments', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
 
   try {
-    const files = req.files;
-    if (!files || files.length === 0 || !Array.isArray(files)) {
-      return res.status(400).json({ error: 'No files uploaded' });
+    const formData = await c.req.formData();
+    const files = formData.getAll('files');
+    if (!files || files.length === 0) {
+      return c.json({ error: 'No files uploaded' }, 400);
     }
 
     const succeeded = [];
-    let error: Error | null = null;
-
     for (const file of files) {
-      try {
+      if (file instanceof File) {
+        const buffer = await file.arrayBuffer();
         await commands.createCmd.createAttachment(
           key,
-          file.originalname,
-          file.buffer,
+          file.name,
+          Buffer.from(buffer),
         );
-        succeeded.push(file.originalname);
-      } catch (err) {
-        error =
-          err instanceof Error ? err : new Error('Failed to upload attachment');
-        break;
+        succeeded.push(file.name);
       }
     }
 
-    if (error) {
-      for (const filename of succeeded) {
-        try {
-          await commands.removeCmd.remove('attachment', key, filename);
-        } catch (err) {
-          console.error('Failed to remove attachment:', err);
-        }
-      }
-      throw error;
-    }
-
-    res.json({
+    return c.json({
       message: 'Attachments uploaded successfully',
       files: succeeded,
     });
   } catch (error) {
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : 'Failed to upload attachments',
-    });
+    return c.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to upload attachments',
+      },
+      500,
+    );
   }
 });
 
@@ -460,18 +450,23 @@ router.post('/:key/attachments', upload.any(), async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/attachments/:filename', async (req, res) => {
-  const commands = req.commands;
-  const { key, filename } = req.params;
+router.delete('/:key/attachments/:filename', async (c) => {
+  const commands = c.get('commands');
+  const { key, filename } = c.req.param();
 
   try {
     await commands.removeCmd.remove('attachment', key, filename);
-    res.json({ message: 'Attachment removed successfully' });
+    return c.json({ message: 'Attachment removed successfully' });
   } catch (error) {
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : 'Failed to remove attachment',
-    });
+    return c.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to remove attachment',
+      },
+      500,
+    );
   }
 });
 
@@ -499,18 +494,21 @@ router.delete('/:key/attachments/:filename', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments/:filename/open', async (req, res) => {
-  const commands = req.commands;
-  const { key, filename } = req.params;
+router.post('/:key/attachments/:filename/open', async (c) => {
+  const commands = c.get('commands');
+  const { key, filename } = c.req.param();
 
   try {
     await commands.showCmd.openAttachment(key, filename);
-    res.json({ message: 'Attachment opened successfully' });
+    return c.json({ message: 'Attachment opened successfully' });
   } catch (error) {
-    res.status(500).json({
-      error:
-        error instanceof Error ? error.message : 'Failed to open attachment',
-    });
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to open attachment',
+      },
+      500,
+    );
   }
 });
 
@@ -541,13 +539,13 @@ router.post('/:key/attachments/:filename/open', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/parse', async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
-  const { content } = req.body;
+router.post('/:key/parse', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
+  const { content } = await c.req.json();
 
   if (!content) {
-    return res.status(400).json({ error: 'Content is required' });
+    return c.json({ error: 'Content is required' }, 400);
   }
 
   try {
@@ -562,7 +560,8 @@ router.post('/:key/parse', async (req, res) => {
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
     }
 
-    const parsedContent = Processor()
+    const processor = Processor();
+    const parsedContent = processor
       .convert(asciidocContent, {
         safe: 'safe',
         attributes: {
@@ -572,11 +571,15 @@ router.post('/:key/parse', async (req, res) => {
       })
       .toString();
 
-    res.json({ parsedContent });
+    return c.json({ parsedContent });
   } catch (error) {
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to parse content',
-    });
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to parse content',
+      },
+      500,
+    );
   }
 });
 
@@ -611,22 +614,25 @@ router.post('/:key/parse', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/links', async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
-  const { toCard, linkType, description } = req.body;
+router.post('/:key/links', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
+  const { toCard, linkType, description } = await c.req.json();
 
   if (!toCard || !linkType) {
-    return res.status(400).json({ error: 'toCard and linkType are required' });
+    return c.json({ error: 'toCard and linkType are required' }, 400);
   }
 
   try {
     await commands.createCmd.createLink(key, toCard, linkType, description);
-    res.json({ message: 'Link created successfully' });
+    return c.json({ message: 'Link created successfully' });
   } catch (error) {
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to create link',
-    });
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to create link',
+      },
+      500,
+    );
   }
 });
 
@@ -661,22 +667,25 @@ router.post('/:key/links', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/links', async (req, res) => {
-  const commands = req.commands;
-  const key = req.params.key;
-  const { toCard, linkType, description } = req.body;
+router.delete('/:key/links', async (c) => {
+  const commands = c.get('commands');
+  const key = c.req.param('key');
+  const { toCard, linkType, description } = await c.req.json();
 
   if (!toCard || !linkType) {
-    return res.status(400).json({ error: 'toCard and linkType are required' });
+    return c.json({ error: 'toCard and linkType are required' }, 400);
   }
 
   try {
     await commands.removeCmd.remove('link', key, toCard, linkType, description);
-    res.json({ message: 'Link removed successfully' });
+    return c.json({ message: 'Link removed successfully' });
   } catch (error) {
-    res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to remove link',
-    });
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to remove link',
+      },
+      500,
+    );
   }
 });
 
@@ -704,13 +713,13 @@ router.delete('/:key/links', async (req, res) => {
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key/a/:attachment', async (req, res) => {
-  const commands = req.commands;
-  const { key, attachment } = req.params;
+router.get('/:key/a/:attachment', async (c) => {
+  const commands = c.get('commands');
+  const { key, attachment } = c.req.param();
   const filename = decodeURI(attachment);
 
   if (!filename || !key) {
-    return res.status(400).send('Missing cardKey or filename');
+    return c.text('Missing cardKey or filename', 400);
   }
 
   try {
@@ -720,21 +729,26 @@ router.get('/:key/a/:attachment', async (req, res) => {
     );
 
     if (!attachmentResponse) {
-      return res
-        .status(404)
-        .send(`No attachment found from card ${key} and filename ${filename}`);
+      return c.text(
+        `No attachment found from card ${key} and filename ${filename}`,
+        404,
+      );
     }
 
     const payload = attachmentResponse as any;
 
-    res.setHeader('Content-Type', payload.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Cache-Control', 'no-store');
-    res.send(payload.fileBuffer);
+    return new Response(payload.fileBuffer, {
+      headers: {
+        'Content-Type': payload.mimeType,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
   } catch (error) {
-    return res
-      .status(404)
-      .send(`No attachment found from card ${key} and filename ${filename}`);
+    return c.text(
+      `No attachment found from card ${key} and filename ${filename}`,
+      404,
+    );
   }
 });
 

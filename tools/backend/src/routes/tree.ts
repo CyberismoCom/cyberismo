@@ -10,9 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import express, { Router } from 'express';
+import { Hono } from 'hono';
 
-const router: Router = express.Router();
+const router = new Hono();
 
 /**
  * @swagger
@@ -26,14 +26,14 @@ const router: Router = express.Router();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (req, res) => {
-  const commands = req.commands;
+router.get('/', async (c) => {
+  const commands = c.get('commands');
   try {
     await commands.calculateCmd.generate();
     const tree = await commands.calculateCmd.runQuery('tree');
-    return res.json(tree);
+    return c.json(tree);
   } catch (e) {
-    return res.status(500).send((e instanceof Error && e.message) || '');
+    return c.text((e instanceof Error && e.message) || '', 500);
   }
 });
 
