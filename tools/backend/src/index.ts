@@ -20,9 +20,8 @@ import { readFile } from 'node:fs/promises';
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-export function startServer(projectPath?: string) {
+export function createApp(projectPath?: string) {
   const app = new Hono();
-  const port = process.env.PORT || 3000;
 
   app.use('/api', cors());
 
@@ -46,6 +45,9 @@ export function startServer(projectPath?: string) {
 
   // serve index.html for all other routes
   app.notFound(async (c) => {
+    if (c.req.path.startsWith('/api')) {
+      return c.text('Not Found', 400);
+    }
     const file = await readFile(path.join(dirname, 'public', 'index.html'));
     return c.html(file.toString());
   });
@@ -54,6 +56,14 @@ export function startServer(projectPath?: string) {
     console.error(err.stack);
     return c.text('Internal Server Error', 500);
   });
+
+  return app;
+}
+
+export function startServer(projectPath?: string) {
+  const port = process.env.PORT || 3000;
+
+  const app = createApp(projectPath);
   // Start server
   serve(
     {

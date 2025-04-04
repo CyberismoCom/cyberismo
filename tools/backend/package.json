@@ -7,7 +7,7 @@
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
-    "test": "echo 'no tests yet'"
+    "test": "pnpm build && vitest run"
   },
   "keywords": [],
   "author": "",
@@ -24,5 +24,8 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "vitest": "^3.1.1"
+  }
 }
