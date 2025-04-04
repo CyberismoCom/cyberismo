@@ -326,6 +326,10 @@ export class Commands {
     return { statusCode: 200 };
   }
 
+  public async getProjectPath(path?: string): Promise<string> {
+    return this.setProjectPath(path);
+  }
+
   /**
    * Returns project path, if running operation within project folder.
    * Implementation will automatically look for valid project path starting from 'path' and moving upwards in the

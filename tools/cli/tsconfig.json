@@ -9,8 +9,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "target": "es2023",
-    "lib": ["es2023"],
-    "types": ["node", "mocha"]
+    "lib": ["es2023"]
   },
   "include": ["src/**/*", "test/**/*.ts"]
 }

@@ -1,5 +1,6 @@
 /// <reference types="cypress" />
-import t from '../../app/locales/en/translation.json';
+const t = require('../../src/locales/en/translation.json');
+
 // These e2e tests use a 'cyberismo-bat' project that is created
 // upon test run start based on the module-base repository content.
 // Run these tests with ´npm run e2e:headless´

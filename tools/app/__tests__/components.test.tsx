@@ -1,39 +1,42 @@
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { TreeMenu } from '../app/components/TreeMenu';
-import { Project } from '@/app/lib/definitions';
-import StateSelector from '@/app/components/StateSelector';
+import { TreeMenu } from '../src/components/TreeMenu';
+import { Project } from '@/lib/definitions';
+import StateSelector from '@/components/StateSelector';
 import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-interfaces';
-import { useTranslation } from 'react-i18next';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import { expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router';
 
 // mock useAppRouter and useResizeObserver
-jest.mock('../app/lib/hooks', () => {
+vi.mock('../src/lib/hooks', () => {
   let callCount = 0;
   return {
-    useAppRouter: jest.fn(() => ({
-      push: jest.fn(),
+    useAppRouter: vi.fn(() => ({
+      push: vi.fn(),
     })),
-    useResizeObserver: jest.fn(() => {
+    useResizeObserver: vi.fn(() => {
       if (callCount++ % 2 === 0) {
-        return { width: 800, height: 2000, ref: jest.fn() }; // Main container height
+        return { width: 800, height: 2000, ref: vi.fn() }; // Main container height
       }
-      return { width: 800, height: 50, ref: jest.fn() }; // Title bar height
+      return { width: 800, height: 50, ref: vi.fn() }; // Title bar height
     }),
   };
 });
-jest.mock('react-i18next', () => ({
-  useTranslation: jest.fn(),
+vi.mock('react-i18next', () => ({
+  useTranslation: vi.fn(),
 }));
 
 describe('TreeMenu', () => {
   it('renders with test data', () => {
     render(
-      <TreeMenu
-        title={testProject.name}
-        selectedCardKey={null}
-        tree={treeQueryResult}
-      />,
+      <BrowserRouter>
+        <TreeMenu
+          title={testProject.name}
+          selectedCardKey={null}
+          tree={treeQueryResult}
+        />
+      </BrowserRouter>,
     );
 
     const heading = screen.getByText('SDL Decision');
@@ -44,11 +47,13 @@ describe('TreeMenu', () => {
 describe('TreeMenu', () => {
   it('parameter card key is visible and selected in UI', () => {
     render(
-      <TreeMenu
-        title={testProject.name}
-        selectedCardKey={'usdl_46'}
-        tree={treeQueryResult}
-      />,
+      <BrowserRouter>
+        <TreeMenu
+          title={testProject.name}
+          selectedCardKey={'usdl_46'}
+          tree={treeQueryResult}
+        />
+      </BrowserRouter>,
     );
     const node = screen.getByText('Demand phase').parentNode?.parentNode;
     expect(node).toBeVisible();
@@ -58,11 +63,12 @@ describe('TreeMenu', () => {
 
 describe('StateSelector', () => {
   it('renders with test data', () => {
-    const useTranslationSpy = useTranslation as jest.Mock;
-    const tSpy = jest.fn((str, { state }) => `${str} ${state}`);
-    useTranslationSpy.mockReturnValue({
-      t: tSpy,
-    });
+    vi.mock('react-i18next', () => ({
+      useTranslation: vi.fn(() => ({
+        t: vi.fn((str, { state }) => `${str} ${state}`),
+      })),
+    }));
+
     render(
       <StateSelector
         currentState={testProject.workflows[0].states[1]}

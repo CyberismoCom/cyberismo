@@ -23,7 +23,7 @@ import {
   UpdateOperations,
 } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-
+import { startServer } from '@cyberismocom/backend';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 
@@ -673,11 +673,13 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
-    let result = await commandHandler.command(Cmd.start, [], options);
+    // validate project
+    const result = await commandHandler.command(Cmd.validate, [], options);
     if (result.statusCode !== 200 && result.message) {
       truncateMessage(result.message).forEach((item) => console.error(item));
       console.error('\n'); // The output looks nicer with one extra row.
       result.message = '';
+      program.error(result.message);
       const userConfirmation = await confirm(
         {
           message: 'There are validation errors. Do you want to continue?',
@@ -686,12 +688,11 @@ program
       ).catch((error) => {
         return error.name === 'AbortPromptError';
       });
-      if (userConfirmation) {
-        options.forceStart = true;
-        result = await commandHandler.command(Cmd.start, [], options);
+      if (!userConfirmation) {
+        handleResponse(result);
       }
     }
-    handleResponse(result);
+    startServer(await commandHandler.getProjectPath(options.projectPath));
   });
 
 export default program;
