@@ -8,7 +8,6 @@
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "target": "es2023",
     "lib": ["es2023"],
     "types": ["node"]
