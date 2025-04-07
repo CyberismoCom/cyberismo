@@ -675,11 +675,14 @@ program
   .action(async (options: CardsOptions) => {
     // validate project
     const result = await commandHandler.command(Cmd.validate, [], options);
-    if (result.statusCode !== 200 && result.message) {
+    if (!result.message) {
+      program.error('Expected validation result, but got none');
+      return;
+    }
+    if (result.message !== 'Project structure validated') {
       truncateMessage(result.message).forEach((item) => console.error(item));
       console.error('\n'); // The output looks nicer with one extra row.
       result.message = '';
-      program.error(result.message);
       const userConfirmation = await confirm(
         {
           message: 'There are validation errors. Do you want to continue?',
@@ -690,6 +693,7 @@ program
       });
       if (!userConfirmation) {
         handleResponse(result);
+        return;
       }
     }
     startServer(await commandHandler.getProjectPath(options.projectPath));
