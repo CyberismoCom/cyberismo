@@ -662,7 +662,7 @@ export default function Page() {
                             alt="Add attachment"
                             width={24}
                             height={24}
-                            src="/static/images/attach_file_add.svg"
+                            src="/images/attach_file_add.svg"
                           />
                         </IconButton>
                       </Tooltip>
