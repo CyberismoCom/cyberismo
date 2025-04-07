@@ -98,17 +98,6 @@ export class Project extends CardContainer {
     );
   }
 
-  // This function should be called after card is updated.
-  // Updates lastUpdated metadata key.
-  private async onCardUpdate(cardKey: string, skipValidation: boolean = false) {
-    return this.updateMetadataKey(
-      cardKey,
-      'lastUpdated',
-      new Date().toISOString(),
-      skipValidation,
-    );
-  }
-
   // Returns (local or all) resources of a given type.
   // @todo: if this would be public, we could remove cardTypes(), fieldTypes(), ... and similar APIs
   private async resourcesOfType(
@@ -116,50 +105,6 @@ export class Project extends CardContainer {
     from: ResourcesFrom = ResourcesFrom.localOnly,
   ): Promise<Resource[]> {
     return this.resources.resources(type, from);
-  }
-
-  /**
-   * Updates metadata key.
-   * @param cardKey card that is updated.
-   * @param changedKey changed metadata key
-   * @param newValue changed value for the key
-   * @param skipValidation Optional, if set to true, new card content is not validated.
-   * @returns true if metadata key was updated, false otherwise.
-   */
-  private async updateMetadataKey(
-    cardKey: string,
-    changedKey: string,
-    newValue: MetadataContent,
-    skipValidation: boolean = false,
-  ) {
-    const templateCard = await this.isTemplateCard(cardKey);
-    const card = await this.findCard(
-      templateCard ? this.paths.templatesFolder : this.paths.cardRootFolder,
-      cardKey,
-      {
-        metadata: true,
-      },
-    );
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-
-    if (!card.metadata || card.metadata[changedKey] === newValue) {
-      return false;
-    }
-    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
-    cardAsRecord[changedKey] = newValue;
-
-    const invalidCard =
-      Project.isTemplateCard(card) || skipValidation
-        ? ''
-        : await this.validateCard(card);
-    if (invalidCard.length !== 0) {
-      throw new Error(invalidCard);
-    }
-
-    await this.saveCardMetadata(card);
-    return true;
   }
 
   /**
@@ -1067,20 +1012,17 @@ export class Project extends CardContainer {
    * Update card content.
    * @param cardKey card's ID that is updated.
    * @param content changed content
-   * @param skipValidation Optional, if set to true, new card content is not validated.
    */
-  public async updateCardContent(
-    cardKey: string,
-    content: string,
-    skipValidation: boolean = false,
-  ) {
-    const card = await this.findCard(this.basePath, cardKey);
+  public async updateCardContent(cardKey: string, content: string) {
+    const card = await this.findCard(this.basePath, cardKey, {
+      metadata: true,
+      content: true,
+    });
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
     card.content = content;
     await this.saveCard(card);
-    await this.onCardUpdate(cardKey, skipValidation);
   }
 
   /**
@@ -1094,30 +1036,42 @@ export class Project extends CardContainer {
     changedKey: string,
     newValue: MetadataContent,
   ) {
-    if (await this.updateMetadataKey(cardKey, changedKey, newValue)) {
-      await this.onCardUpdate(cardKey);
+    const templateCard = await this.isTemplateCard(cardKey);
+    const card = await this.findCard(
+      templateCard ? this.paths.templatesFolder : this.paths.cardRootFolder,
+      cardKey,
+      {
+        metadata: true,
+      },
+    );
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
+
+    if (!card.metadata || card.metadata[changedKey] === newValue) {
+      return;
+    }
+    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
+    cardAsRecord[changedKey] = newValue;
+
+    const invalidCard = Project.isTemplateCard(card)
+      ? ''
+      : await this.validateCard(card);
+    if (invalidCard.length !== 0) {
+      throw new Error(invalidCard);
+    }
+
+    await this.saveCardMetadata(card);
   }
 
   /**
    * Updates card metadata.
    * @param card affected card
    * @param changedMetadata changed content for the card
-   * @param skipValidation Optional, if set does not validate the card
    */
-  public async updateCardMetadata(
-    card: Card,
-    changedMetadata: CardMetadata,
-    skipValidation: boolean = false,
-  ) {
+  public async updateCardMetadata(card: Card, changedMetadata: CardMetadata) {
     card.metadata = changedMetadata;
-    // In some mass operations cannot make single card validation while making the whole op (e.g. rename).
-    if (skipValidation) {
-      card.metadata.lastUpdated = new Date().toISOString();
-      return await this.saveCardMetadata(card);
-    }
-    await this.saveCardMetadata(card);
-    return this.onCardUpdate(card.key);
+    return this.saveCardMetadata(card);
   }
 
   /**
