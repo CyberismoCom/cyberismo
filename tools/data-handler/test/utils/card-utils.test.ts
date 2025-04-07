@@ -11,9 +11,17 @@
 */
 
 import { expect } from 'chai';
-import { sortCards } from '../../src/utils/card-utils.js';
+import { findParentPath, sortCards } from '../../src/utils/card-utils.js';
+import { sep } from 'path';
 
 describe('card utils', () => {
+  it('findParentPath', () => {
+    const parent = findParentPath(`cardRoot${sep}card_1${sep}c${sep}card_2`);
+    expect(parent).to.equal(`cardRoot${sep}card_1`);
+    const noChildren = findParentPath(`cardRoot${sep}card_1`);
+    expect(noChildren).to.equal(null);
+  });
+
   it('sort cards', () => {
     const cards = ['aaa_999', 'aaa_111', 'zzz_111', 'zzz_999', 'aaa_999'];
     cards.sort(sortCards);
