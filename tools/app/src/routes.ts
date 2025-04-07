@@ -1,8 +1,8 @@
 import { createBrowserRouter, redirect } from 'react-router';
-import CardsLayout from './cards/layout';
-import CardsPage from './cards/page';
-import CardPage from './cards/[key]/page';
-import CardEditPage from './cards/[key]/edit/page';
+import CardsLayout from './pages/layout';
+import CardsPage from './pages/cards';
+import CardPage from './pages/card-view';
+import CardEditPage from './pages/card-edit';
 
 // wrap all the routes in a cards layout
 export const router = createBrowserRouter([
