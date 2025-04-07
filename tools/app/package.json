@@ -17,7 +17,8 @@
     "preview": "vite preview",
     "test": "pnpm run unit && pnpm e2e:headless"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/language": "6.10.6",
     "@codemirror/view": "6.35.2",
@@ -43,9 +44,7 @@
     "react-resizable-panels": "^2.1.6",
     "react-router": "^7.4.1",
     "redux-persist": "^6.0.0",
-    "swr": "^2.3.3"
-  },
-  "devDependencies": {
+    "swr": "^2.3.3",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.0.10",
