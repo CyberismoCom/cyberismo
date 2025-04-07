@@ -13,11 +13,12 @@
 import { Hono } from 'hono';
 import Processor from '@asciidoctor/core';
 import {
+  Card,
   CardLocation,
   MetadataContent,
   ProjectFetchCardDetails,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { evaluateMacros } from '@cyberismocom/data-handler';
+import { CommandManager, evaluateMacros } from '@cyberismocom/data-handler';
 import { HTTPException } from 'hono/http-exception';
 
 const router = new Hono();
@@ -68,7 +69,10 @@ router.get('/', async (c) => {
   return c.json(response);
 });
 
-async function getCardDetails(commands: any, key: string): Promise<any> {
+async function getCardDetails(
+  commands: CommandManager,
+  key: string,
+): Promise<any> {
   const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
     children: false,
@@ -79,10 +83,15 @@ async function getCardDetails(commands: any, key: string): Promise<any> {
     location: CardLocation.projectOnly,
   };
 
-  const cardDetailsResponse = await commands.showCmd.showCardDetails(
-    fetchCardDetails,
-    key,
-  );
+  let cardDetailsResponse: Card | undefined;
+  try {
+    cardDetailsResponse = await commands.showCmd.showCardDetails(
+      fetchCardDetails,
+      key,
+    );
+  } catch (error) {
+    return { status: 400, message: `Card ${key} not found from project` };
+  }
 
   if (!cardDetailsResponse) {
     return { status: 400, message: `Card ${key} not found from project` };
@@ -327,11 +336,6 @@ router.delete('/:key', async (c) => {
  *         description: project_path not set
  */
 router.post('/:key', async (c) => {
-  const projectPath = process.env.npm_config_project_path;
-  if (!projectPath) {
-    return c.text('project_path not set', 500);
-  }
-
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
