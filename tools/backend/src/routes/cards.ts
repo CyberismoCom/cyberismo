@@ -44,20 +44,18 @@ router.get('/', async (c) => {
 
   const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
   if (!workflowsResponse) {
-    throw new HTTPException(500, {
-      message: `No workflows found from path ${c.get('projectPath')}`,
-    });
+    return c.text(`No workflows found from path ${c.get('projectPath')}`, 500);
   }
 
   const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
   if (!cardTypesResponse) {
-    throw new Error(`No card types found from path ${c.get('projectPath')}`);
+    return c.text(`No card types found from path ${c.get('projectPath')}`, 500);
   }
 
   const cardsResponse = await commands.showCmd.showProjectCards();
 
   if (!cardsResponse) {
-    throw new Error(`No cards found from path ${c.get('projectPath')}`);
+    return c.text(`No cards found from path ${c.get('projectPath')}`, 500);
   }
 
   const response = {

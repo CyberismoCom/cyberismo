@@ -31,23 +31,11 @@ const router = new Hono();
 router.get('/', async (c) => {
   const commands = c.get('commands');
 
-  try {
-    commands.showCmd.showProject();
-  } catch (error) {
-    return c.text(
-      `No project found at path ${process.env.npm_config_project_path}`,
-      500,
-    );
-  }
-
   const response = await commands.showCmd.showTemplatesWithDetails();
   if (response) {
     return c.json(response);
   } else {
-    return c.text(
-      `No templates found from path ${process.env.npm_config_project_path}`,
-      500,
-    );
+    return c.text(`No templates found from path ${c.get('projectPath')}`, 500);
   }
 });
 
