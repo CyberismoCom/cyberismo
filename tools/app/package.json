@@ -23,7 +23,7 @@
     "@codemirror/language": "6.10.6",
     "@codemirror/view": "6.35.2",
     "@cyberismocom/data-handler": "workspace:*",
-    "@fontsource/inter": "^5.0.18",
+    "@fontsource/inter": "^5.2.5",
     "@mui/icons-material": "^6.0.1",
     "@mui/joy": "5.0.0-beta.51",
     "@mui/material": "^6.1.8",
