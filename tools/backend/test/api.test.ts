@@ -52,7 +52,7 @@ test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async
 test('invalid card key returns error', async () => {
   const response = await app.request('/api/cards/bogus');
   expect(response).not.toBe(null);
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(400);
 });
 
 test('test invalid api path returns not found', async () => {
