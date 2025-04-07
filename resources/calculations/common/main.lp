@@ -10,4 +10,5 @@
 #include "cardTree.lp".
 #include "resourceImports.lp".
 #include "modules.lp".
-#include "pythonFunctions.lp".
+% #include "pythonFunctions.lp".
+#include "luaFunctions.lp".
