@@ -11,4 +11,5 @@
 #include "resourceImports.lp".
 #include "calculations.lp".
 #include "modules.lp".
-#include "pythonFunctions.lp".
+% #include "pythonFunctions.lp".
+#include "luaFunctions.lp".
