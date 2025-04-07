@@ -1,4 +1,4 @@
-import { Project } from '@/app/lib/definitions';
+import { Project } from '@/lib/definitions';
 import {
   countChildren,
   deepCopy,
@@ -9,8 +9,10 @@ import {
   flattenTree,
   getDefaultValue,
   getMoveableCards,
-} from '@/app/lib/utils';
+} from '@/lib/utils';
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+
+import { expect, test } from 'vitest';
 
 test('flattenTree works with test data', async () => {
   const result = flattenTree(treeQueryResult);

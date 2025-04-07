@@ -19,6 +19,7 @@ import {
 } from './command-handler.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
+import { evaluateMacros } from './macros/index.js';
 
 export {
   CardsOptions,
@@ -28,4 +29,5 @@ export {
   ExportFormats,
   requestStatus,
   UpdateOperations,
+  evaluateMacros,
 };

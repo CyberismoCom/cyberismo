@@ -11,7 +11,6 @@ RUN pnpm install --ignore-scripts \
     && pnpm build \
     && pnpm link -g \
     && pnpm store prune \
-    && rm -rf /cyberismo/tools/app/.next/cache/ \
     && pnpm prune --prod \
     && find /cyberismo -path /cyberismo/node_modules -prune -o -exec chmod 777 {} \;
 

@@ -21,10 +21,11 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "commander": "^13.1.0",
-    "@inquirer/confirm": "^5.1.8"
+    "@inquirer/confirm": "^5.1.8",
+    "commander": "^13.1.0"
   },
   "devDependencies": {
+    "@cyberismocom/backend": "workspace:*",
     "@cyberismocom/data-handler": "workspace:*"
   },
   "types": "dist/index.d.ts",

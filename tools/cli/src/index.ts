@@ -23,7 +23,7 @@ import {
   UpdateOperations,
 } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-
+import { startServer } from '@cyberismocom/backend';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 
@@ -673,8 +673,13 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
-    let result = await commandHandler.command(Cmd.start, [], options);
-    if (result.statusCode !== 200 && result.message) {
+    // validate project
+    const result = await commandHandler.command(Cmd.validate, [], options);
+    if (!result.message) {
+      program.error('Expected validation result, but got none');
+      return;
+    }
+    if (result.message !== 'Project structure validated') {
       truncateMessage(result.message).forEach((item) => console.error(item));
       console.error('\n'); // The output looks nicer with one extra row.
       result.message = '';
@@ -686,12 +691,12 @@ program
       ).catch((error) => {
         return error.name === 'AbortPromptError';
       });
-      if (userConfirmation) {
-        options.forceStart = true;
-        result = await commandHandler.command(Cmd.start, [], options);
+      if (!userConfirmation) {
+        handleResponse(result);
+        return;
       }
     }
-    handleResponse(result);
+    startServer(await commandHandler.getProjectPath(options.projectPath));
   });
 
 export default program;

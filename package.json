@@ -20,9 +20,12 @@
     "mocha": "^11.0.1",
     "mocha-suppress-logs": "^0.5.1",
     "prettier": "^3.3.2",
+    "shx": "^0.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5",
-    "typescript-eslint": "^8.26.0"
+    "typescript-eslint": "^8.26.0",
+    "vitest": "^3.1.1",
+    "vitest-browser-react": "^0.1.1"
   },
   "main": "src/index.ts",
   "overrides": {
@@ -38,14 +41,15 @@
     "build": "pnpm -r run build",
     "clean": "rm -rf node_modules && pnpm -r run clean",
     "lint": "pnpm -r run lint",
-    "test": "pnpm test-data-handler && pnpm test-cli && pnpm test-app",
+    "test": "pnpm test-data-handler && pnpm test-cli && pnpm test-app && pnpm test-backend",
     "test-app": "pnpm --filter app test",
     "test-cli": "pnpm --filter cli test",
     "test-data-handler": "pnpm --filter data-handler test",
+    "test-backend": "pnpm --filter backend test",
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "script:schemas": "node scripts/generateSchemaImports && prettier --write tools/data-handler/src/utils/schemas.ts",
-    "dev": "concurrently \"pnpm --filter app dev\" \"pnpm --filter data-handler watch\"",
+    "dev": "concurrently \"pnpm --filter app dev\" \"pnpm --filter data-handler watch\" \"pnpm --filter backend dev\"",
     "build-docker": "docker build -t cyberismo .",
     "install-dev-packages": "node scripts/install-dev-packages.js"
   }
