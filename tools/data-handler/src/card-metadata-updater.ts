@@ -175,7 +175,7 @@ export class CardMetadataUpdater {
     }
 
     if (result.success) {
-      project.updateCardMetadata(card, card.metadata, true);
+      project.updateCardMetadata(card, card.metadata);
     }
     return result;
   }

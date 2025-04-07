@@ -138,12 +138,7 @@ export class Rename {
             })[oldKey];
           }
         }
-        const skipValidation = true;
-        await this.project.updateCardMetadata(
-          card,
-          card.metadata,
-          skipValidation,
-        );
+        await this.project.updateCardMetadata(card, card.metadata);
       }
     }
   }
