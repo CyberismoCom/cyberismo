@@ -71,7 +71,8 @@ export function startServer(projectPath?: string) {
       port: Number(port),
     },
     (info) => {
-      console.log(`Server running on port ${info.port}`);
+      console.log(`Running Cyberismo app on http://localhost:${info.port}`);
+      console.log('Press Control+C to stop.');
     },
   );
 }
