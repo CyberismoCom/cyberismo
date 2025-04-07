@@ -234,6 +234,9 @@ describe('resources', () => {
       const collector = new ResourceCollector(project);
       collector.collectLocalResources();
 
+      // Initially, there are no resources in the cache.
+      expect(project.resourceCache.size).to.equal(0);
+
       const workflowsCount = (await collector.resources('workflows')).length;
       const nameForWorkflow = `${project.projectPrefix}/workflows/newOne`;
       const fileName = nameForWorkflow;
@@ -249,6 +252,9 @@ describe('resources', () => {
         .length;
       expect(workflowsCount + 1).to.equal(workflowsCountAgain);
 
+      // Creating a resource puts it automatically to cache.
+      expect(project.resourceCache.size).to.equal(1);
+
       // Removing resources automatically updates collector arrays, but only for
       // instance that is owned by the Project (and it is not public).
       // The tested 'collector' instance needs to be updated by calling 'collectLocalResources()'.
@@ -256,6 +262,10 @@ describe('resources', () => {
       collector.collectLocalResources();
       exists = await collector.resourceExists('workflows', fileName);
       expect(exists).to.equal(false);
+
+      // We are not checking cache after remove, since workflow depends on
+      // card type resource and removing workflow, means that all card types
+      // are cached, which in turn makes all field types to be cached.
     });
 
     it('add and remove other file based resources', async () => {

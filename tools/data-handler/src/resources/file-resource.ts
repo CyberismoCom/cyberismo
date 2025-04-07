@@ -71,6 +71,7 @@ export {
 export class FileResource extends ResourceObject {
   public fileName: string = '';
   protected content: ResourceBaseMetadata = { name: '' };
+  private cache: Map<string, JSON>;
 
   constructor(
     project: Project,
@@ -78,11 +79,19 @@ export class FileResource extends ResourceObject {
     protected type: ResourceFolderType,
   ) {
     super(project, resourceName);
+    this.cache = this.project.resourceCache;
   }
 
   // Type of resource.
   private resourceType(): ResourceFolderType {
     return this.type as ResourceFolderType;
+  }
+
+  private toCache() {
+    this.cache.set(
+      resourceNameToString(this.resourceName),
+      this.content as unknown as JSON,
+    );
   }
 
   // Initialize the resource.
@@ -105,8 +114,17 @@ export class FileResource extends ResourceObject {
         : this.project.paths.resourcePath(this.type);
       this.fileName = resourceNameToPath(this.project, this.resourceName);
     }
+    // Read from cache, if entry exists...
+    if (this.cache.has(resourceNameToString(this.resourceName))) {
+      this.content = this.cache.get(
+        resourceNameToString(this.resourceName),
+      ) as unknown as ResourceBaseMetadata;
+      return;
+    }
+    //... otherwise read from disk and add to cache
     if (pathExists(this.fileName)) {
       this.content = readJsonFileSync(this.fileName);
+      this.toCache();
     }
   }
 
@@ -143,7 +161,10 @@ export class FileResource extends ResourceObject {
     await this.write();
 
     // Notify project & collector
-    this.project.addResource(resourceObjectToResource(this));
+    this.project.addResource(
+      resourceObjectToResource(this),
+      this.content as unknown as JSON,
+    );
   }
 
   // Calculations that use this resource.
@@ -268,6 +289,7 @@ export class FileResource extends ResourceObject {
 
   // Renames resource.
   protected async rename(newName: ResourceName) {
+    this.cache.delete(resourceNameToString(this.resourceName));
     if (this.moduleResource) {
       throw new Error(`Cannot rename module resources`);
     }
@@ -295,6 +317,8 @@ export class FileResource extends ResourceObject {
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
+    this.resourceName = newName;
+    this.toCache();
   }
 
   // Show resource data as JSON.
@@ -386,6 +410,7 @@ export class FileResource extends ResourceObject {
     }
 
     await writeJsonFile(this.fileName, this.content);
+    this.toCache();
   }
 
   // Validate that current memory-based 'content' is valid.

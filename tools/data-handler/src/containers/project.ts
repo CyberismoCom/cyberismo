@@ -72,6 +72,10 @@ export class Project extends CardContainer {
   private settings: ProjectConfiguration;
   private validator: Validate;
 
+  // Created resources are held in a cache.
+  // In the cache, key is resource name, and data is resource metadata (as JSON).
+  private createdResources = new Map<string, JSON>();
+
   constructor(path: string) {
     super(path, '');
 
@@ -162,8 +166,9 @@ export class Project extends CardContainer {
    * Add a given 'resource' to the local resource arrays.
    * @param resource Resource to add.
    */
-  public addResource(resource: Resource) {
+  public addResource(resource: Resource, data: JSON) {
     this.resources.add(resource);
+    this.createdResources.set(resource.name, data);
   }
 
   /**
@@ -858,6 +863,7 @@ export class Project extends CardContainer {
    */
   public removeResource(resource: Resource) {
     this.resources.remove(resource);
+    this.createdResources.delete(resource.name);
   }
 
   /**
@@ -867,6 +873,12 @@ export class Project extends CardContainer {
    */
   public async resource<Type>(name: string): Promise<Type | undefined> {
     const resName = resourceName(name);
+    if (this.createdResources.has(resourceNameToString(resName))) {
+      const value = this.createdResources.get(
+        resourceNameToString(resName),
+      ) as unknown as Type;
+      return value;
+    }
     let resource = undefined;
     try {
       resource = Project.resourceObject(this, resName);
@@ -878,6 +890,10 @@ export class Project extends CardContainer {
       return undefined;
     }
     return data;
+  }
+
+  public get resourceCache(): Map<string, JSON> {
+    return this.createdResources;
   }
 
   /**
