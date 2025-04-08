@@ -260,23 +260,12 @@ export default function Page() {
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
 
-  const [content, setContent] = useState<string>();
+  const [content, setContent] = useState<string>(card?.rawContent || '');
 
   const [tab, setTab] = React.useState(0);
 
   const [state, setState] = useState<EditorState | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
-
-  const getContent = () => {
-    if (!state) {
-      return '';
-    }
-    return state?.doc.toString() || '';
-  };
-  useEffect(() => {
-    setContent(getContent());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   const formMethods = useForm();
 
@@ -297,19 +286,18 @@ export default function Page() {
   }, [card]);
 
   useEffect(() => {
-    const content = getContent();
     if (!content) {
       return;
     }
     setParsed(null);
     let mounted = true;
-    async function parse() {
+    async function parse(content: string) {
       const res = await parseContent(key!, content);
       if (mounted) {
         setParsed(res);
       }
     }
-    parse();
+    parse(content);
     return () => {
       mounted = false;
     };
@@ -321,7 +309,7 @@ export default function Page() {
       ? {
           ...card,
           title: __title__ ?? card.title,
-          rawContent: getContent() ?? card.rawContent,
+          rawContent: content ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
         }
@@ -341,8 +329,6 @@ export default function Page() {
       return;
     }
     const { __title__, ...metadata } = preview;
-
-    const content = getContent();
 
     if (
       content === card.rawContent &&
@@ -409,7 +395,7 @@ export default function Page() {
   const handleScroll = () => {
     if (!view || !editor) return;
 
-    const doc = asciiDoctor.load(getContent());
+    const doc = asciiDoctor.load(content || '');
 
     const title = findCurrentTitleFromADoc(view, editor, doc);
 
@@ -476,8 +462,6 @@ export default function Page() {
       if (__title__ !== card.title) {
         update.metadata.title = __title__;
       }
-
-      const content = getContent();
 
       if (content !== card.rawContent) {
         update.content = content;
@@ -620,6 +604,9 @@ export default function Page() {
                       extensions={extensions}
                       value={content}
                       onDrop={handleDragDrop}
+                      onChange={(value) => {
+                        setContent(value);
+                      }}
                       basicSetup={{
                         lineNumbers: false,
                       }}
