@@ -747,7 +747,7 @@ function Page() {
 export default function Gate() {
   const key = useKeyParam();
   const { t } = useTranslation();
-  const { card, isLoading, error } = useCard(key);
+  const { isLoading, error } = useCard(key);
 
   if (!key) {
     return <Box>{t('failedToLoad')}</Box>;

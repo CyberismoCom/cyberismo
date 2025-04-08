@@ -43,8 +43,25 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       null,
     deleteCard: async () => {
       if (!key) return;
-      await callUpdate(() => deleteCard(key), 'delete');
-      dispatch(cardDeleted(key));
+      try {
+        await callUpdate(() => deleteCard(key), 'delete');
+        dispatch(cardDeleted(key));
+        dispatch(
+          addNotification({
+            message: t('deleteCardSuccess'),
+            type: 'success',
+          }),
+        );
+        return true;
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message: error instanceof Error ? error.message : '',
+            type: 'error',
+          }),
+        );
+        return false;
+      }
     },
     createCard: async (template: string) => {
       const result = await callUpdate(() =>

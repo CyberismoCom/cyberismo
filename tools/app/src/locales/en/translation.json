@@ -11,7 +11,6 @@
   },
   "deleteCardModal": {
     "title": "Delete card",
-    "success": "Card deleted successfully",
     "warning": "I acknowledge I want to delete {{cardAmount}} cards",
     "delete": "Delete",
     "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
@@ -45,6 +44,7 @@
       "preview": "Creating cards with this macro is not supported in the preview mode"
     }
   },
+  "deleteCardSuccess": "Card deleted successfully",
   "deleteCard": "Delete card",
   "delete": "Delete",
   "cardKey": "Card key",
