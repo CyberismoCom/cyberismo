@@ -219,7 +219,6 @@ function AttachmentPreviewCard({
 
 function Page() {
   const key = useKeyParam();
-  const [content, setContent] = useState<string>();
 
   const { t } = useTranslation();
 
