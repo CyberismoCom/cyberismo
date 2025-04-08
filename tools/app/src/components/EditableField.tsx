@@ -16,7 +16,7 @@ import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 import { EnumDefinition } from '@cyberismocom/data-handler/types/queries';
-import { InfoOutlined } from '@mui/icons-material';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
 
 export type EditableFieldProps = {
   value: MetadataValue;

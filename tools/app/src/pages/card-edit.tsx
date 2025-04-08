@@ -52,13 +52,13 @@ import {
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import MetadataView from '@/components/MetadataView';
-import {
-  AddLink,
-  Delete,
-  Download,
-  Edit,
-  InsertDriveFile,
-} from '@mui/icons-material';
+
+import AddLink from '@mui/icons-material/AddLink';
+import Delete from '@mui/icons-material/Delete';
+import Download from '@mui/icons-material/Download';
+import Edit from '@mui/icons-material/Edit';
+import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
+
 import {
   addAttachment,
   findCurrentTitleFromADoc,

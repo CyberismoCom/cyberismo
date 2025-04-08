@@ -24,7 +24,7 @@ import {
   Alert,
 } from '@mui/joy';
 import { Trans, useTranslation } from 'react-i18next';
-import { Warning } from '@mui/icons-material';
+import Warning from '@mui/icons-material/Warning';
 import { useCard } from '../../lib/api';
 import { useAppDispatch, useChildAmount, useParentCard } from '@/lib/hooks';
 import { useAppRouter } from '@/lib/hooks';
