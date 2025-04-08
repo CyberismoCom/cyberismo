@@ -34,7 +34,7 @@
     "html-react-parser": "^5.2.2",
     "i18next": "^24.2.3",
     "moment": "^2.30.1",
-    "node-html-parser": "^6.1.13",
+    "node-html-parser": "^7.0.1",
     "react": "^19.0.0",
     "react-arborist": "^3.4.3",
     "react-dom": "^19.0.0",
