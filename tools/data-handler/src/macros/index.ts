@@ -107,7 +107,7 @@ export function registerMacros(
  * @param input
  */
 export function macroCount(input: string): number {
-  const regex = /{{#.+}}/g;
+  const regex = /{{#[\w\s-]+?}}/g;
   const match = input.match(regex);
   return match ? match.length : 0;
 }
