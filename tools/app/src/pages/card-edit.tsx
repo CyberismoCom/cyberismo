@@ -32,7 +32,7 @@ import {
   Tooltip,
 } from '@mui/joy';
 
-import { useCodeMirror } from '@uiw/react-codemirror';
+import CodeMirror, { EditorState } from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
@@ -262,34 +262,21 @@ export default function Page() {
 
   const [content, setContent] = useState<string>();
 
-  const { setContainer, view, state } = useCodeMirror({
-    extensions,
-    value: content,
-    basicSetup: {
-      lineNumbers: false,
-    },
-    style: {
-      border: '1px solid',
-      borderColor: 'rgba(0,0,0,0.23)',
-      borderRadius: 4,
-    },
-  });
-
   const [tab, setTab] = React.useState(0);
 
+  const [state, setState] = useState<EditorState | null>(null);
+  const [view, setView] = useState<EditorView | null>(null);
+
   const getContent = () => {
-    return view?.state.doc.toString() || '';
+    if (!state) {
+      return '';
+    }
+    return state?.doc.toString() || '';
   };
   useEffect(() => {
     setContent(getContent());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
-
-  useEffect(() => {
-    if (editor) {
-      setContainer(editor);
-    }
-  }, [editor, setContainer]);
 
   const formMethods = useForm();
 
@@ -439,8 +426,14 @@ export default function Page() {
     );
   };
 
-  const setRef = useCallback((ref: HTMLDivElement) => {
-    setEditor(ref);
+  // ref not provided, let's just use any
+  const setRef = useCallback((ref: any) => {
+    if (!ref?.view || !ref?.state || !ref?.editor) {
+      return;
+    }
+    setView(ref.view);
+    setState(ref.state);
+    setEditor(ref.editor);
   }, []);
 
   // For now, simply show loading if any of the data is loading
@@ -619,7 +612,20 @@ export default function Page() {
                         focusField={focusField}
                       />
                     </Box>
-                    <div ref={setRef} onDrop={handleDragDrop} />
+                    <CodeMirror
+                      ref={setRef}
+                      extensions={extensions}
+                      value={content}
+                      onDrop={handleDragDrop}
+                      basicSetup={{
+                        lineNumbers: false,
+                      }}
+                      style={{
+                        border: '1px solid',
+                        borderColor: 'rgba(0,0,0,0.23)',
+                        borderRadius: 4,
+                      }}
+                    />
                   </Box>
                   <Box
                     flexGrow={1}

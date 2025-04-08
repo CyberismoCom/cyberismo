@@ -1005,7 +1005,7 @@ function renderTableOfContents(
   // Parse the HTML content
   const root = parse(htmlContent);
   // Find all header tags
-  const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
+  const headers = root.querySelectorAll('h1, h2, h3').map((header: any) => ({
     id:
       header.getAttribute('id') ||
       header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist
@@ -1025,21 +1025,26 @@ function renderTableOfContents(
           </Typography>
         )}
         <ul>
-          {headers.map((header, index) => (
-            <li key={index} data-level={header.level - 1}>
-              <a
-                id={`toc_${header.id}`}
-                className={
-                  highlightedHeaders.includes(header.id)
-                    ? 'is-active'
-                    : undefined
-                }
-                href={`#${header.id}`}
-              >
-                {header.text}
-              </a>
-            </li>
-          ))}
+          {headers.map(
+            (
+              header: { id: string; text: string; level: number },
+              index: number,
+            ) => (
+              <li key={index} data-level={header.level - 1}>
+                <a
+                  id={`toc_${header.id}`}
+                  className={
+                    highlightedHeaders.includes(header.id)
+                      ? 'is-active'
+                      : undefined
+                  }
+                  href={`#${header.id}`}
+                >
+                  {header.text}
+                </a>
+              </li>
+            ),
+          )}
         </ul>
       </div>
     </aside>
