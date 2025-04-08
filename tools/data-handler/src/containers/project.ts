@@ -36,6 +36,7 @@ import {
 import { findParentPath } from '../utils/card-utils.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
+import { isTemplateCard } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
@@ -151,7 +152,7 @@ export class Project extends CardContainer {
     cardAsRecord[changedKey] = newValue;
 
     const invalidCard =
-      Project.isTemplateCard(card) || skipValidation
+      isTemplateCard(card) || skipValidation
         ? ''
         : await this.validateCard(card);
     if (invalidCard.length !== 0) {
@@ -362,7 +363,7 @@ export class Project extends CardContainer {
    * @returns Template object, or undefined if card is not part of template.
    */
   public createTemplateObjectFromCard(card: Card): Template | undefined {
-    if (!card || !card.path || !Project.isTemplateCard(card)) {
+    if (!card || !card.path || !isTemplateCard(card)) {
       return undefined;
     }
     const { template } = this.cardPathParts(card.path);
@@ -448,23 +449,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Flattens card tree so that children are shown on same level regardless of nesting level.
-   * @param array card tree
-   * @returns flattened card tree.
-   */
-  public static flattenCardArray(array: Card[]): Card[] {
-    const result: Card[] = [];
-    array.forEach((item) => {
-      const { key, path, children, attachments, metadata } = item;
-      result.push({ key, path, children, attachments, metadata });
-      if (children) {
-        result.push(...Project.flattenCardArray(children));
-      }
-    });
-    return result;
-  }
-
-  /**
    * Returns an array of all the graph models in the project.
    * @param from  Defines where resources are collected from.
    * @returns array of all the graph models in the project.
@@ -502,18 +486,6 @@ export class Project extends CardContainer {
    */
   static isCreated(path: string): boolean {
     return pathExists(join(path, 'cardRoot'));
-  }
-
-  /**
-   * Checks if given card is in some template.
-   * @param card card object to check
-   * @returns true if card exists in a template; false otherwise
-   */
-  static isTemplateCard(card: Card): boolean {
-    return (
-      card.path.includes(`${sep}templates${sep}`) ||
-      card.path.includes(`${sep}modules${sep}`)
-    );
   }
 
   /**

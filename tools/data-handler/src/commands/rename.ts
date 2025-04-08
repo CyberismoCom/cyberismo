@@ -18,6 +18,7 @@ import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
 import { Calculate } from './index.js';
 import { Card } from '../interfaces/project-interfaces.js';
+import { isTemplateCard } from '../utils/card-utils.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { Template } from '../containers/template.js';
@@ -97,7 +98,7 @@ export class Rename {
 
   // Update card's attachments (both the files and the references to them)
   private async updateCardAttachments(re: RegExp, card: Card) {
-    if (!Project.isTemplateCard(card)) {
+    if (!isTemplateCard(card)) {
       const attachments = card.attachments ? card.attachments : [];
       await Promise.all(
         attachments.map(async (attachment) => {
