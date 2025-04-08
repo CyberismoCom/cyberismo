@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
 import {
@@ -23,12 +23,12 @@ import {
 import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
 import { CardResponse } from '../lib/api/types';
-import { getDefaultValue } from '../lib/utils';
+import { getDefaultValue } from '@/lib/utils';
 
 interface FieldItemProps {
   expanded?: boolean;
   context?: UseFormReturn;
-  defaultValue: MetadataValue | null;
+  forceValue?: MetadataValue | null;
   editableFieldProps: Omit<Omit<EditableFieldProps, 'onChange'>, 'value'>;
   name: string;
   handleChange?: (
@@ -45,21 +45,13 @@ function FieldItem({
   expanded,
   context,
   name,
-  defaultValue,
+  forceValue,
   editableFieldProps,
   disabled,
   description,
   handleChange,
   focus,
 }: FieldItemProps) {
-  useEffect(() => {
-    if (context && context.getValues(name) !== defaultValue)
-      context.resetField(name, {
-        defaultValue: defaultValue,
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultValue]);
-
   return (
     <Accordion expanded={expanded}>
       <AccordionDetails>
@@ -67,11 +59,10 @@ function FieldItem({
           <Controller
             name={name}
             control={context.control}
-            defaultValue={defaultValue}
             render={({ field: { value, onChange } }: any) => {
               return (
                 <EditableField
-                  value={value}
+                  value={forceValue ?? value}
                   disabled={disabled}
                   description={description}
                   focus={focus}
@@ -86,7 +77,7 @@ function FieldItem({
           />
         ) : (
           <EditableField
-            value={defaultValue}
+            value={forceValue ?? ''}
             {...editableFieldProps}
             focus={focus}
           />
@@ -166,7 +157,7 @@ function MetadataView({
       <Stack flexGrow={1} spacing={1} paddingY={2}>
         <FieldItem
           name="__key__"
-          defaultValue={card.key}
+          forceValue={card.key}
           expanded={true}
           editableFieldProps={{
             label: t('cardKey'),
@@ -176,7 +167,7 @@ function MetadataView({
         />
         <FieldItem
           name="__cardtype__"
-          defaultValue={card.cardType}
+          forceValue={card.cardType}
           expanded={true}
           editableFieldProps={{
             label: t('cardType'),
@@ -186,7 +177,6 @@ function MetadataView({
         />
         <FieldItem
           name="__labels__"
-          defaultValue={card.labels}
           context={context}
           handleChange={handleChange}
           expanded={true}
@@ -211,7 +201,9 @@ function MetadataView({
               key={key}
               name={key}
               handleChange={handleChange}
-              defaultValue={getDefaultValue(value)}
+              forceValue={
+                !editMode || isCalculated ? getDefaultValue(value) : undefined
+              }
               expanded={
                 visibility === 'always' || expanded || key === focusField
               }
