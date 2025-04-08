@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CardMode, MetadataValue } from '@/lib/definitions';
 
 import {
@@ -71,7 +71,12 @@ import LoadingGate from '@/components/LoadingGate';
 import { openAttachment } from '@/lib/api/actions';
 
 import AsciiDoctor from '@asciidoctor/core';
-import { deepCopy, expandLinkTypes, useModals } from '@/lib/utils';
+import {
+  deepCopy,
+  expandLinkTypes,
+  getDefaultValue,
+  useModals,
+} from '@/lib/utils';
 import { useKeyParam } from '@/lib/hooks';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
@@ -212,13 +217,10 @@ function AttachmentPreviewCard({
   );
 }
 
-export default function Page() {
+function Page() {
   const key = useKeyParam();
-  const { t } = useTranslation();
 
-  if (!key) {
-    return <Box>{t('failedToLoad')}</Box>;
-  }
+  const { t } = useTranslation();
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -260,56 +262,80 @@ export default function Page() {
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
 
-  const [content, setContent] = useState<string>(card?.rawContent || '');
+  const contentRef = useRef(card?.rawContent || '');
 
   const [tab, setTab] = React.useState(0);
 
   const [state, setState] = useState<EditorState | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
 
-  const formMethods = useForm();
+  const formMethods = useForm<Record<string, MetadataValue>>({
+    defaultValues: {
+      __title__: card?.title,
+      __labels__: card?.labels,
+      ...card?.fields?.reduce(
+        (acc, field) => {
+          acc[field.key] = getDefaultValue(field.value);
+          return acc;
+        },
+        {} as Record<string, MetadataValue>,
+      ),
+    },
+  });
 
-  const { handleSubmit, control, watch } = formMethods;
-
+  const {
+    handleSubmit,
+    control,
+    watch,
+    formState: { isDirty },
+  } = formMethods;
   const preview = watch();
 
-  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-
-  const { __title__, ...metadata } = preview;
+  const { __title__, __labels__, ...metadata } = preview;
 
   // Here we assume that metadata contains valid metadata values
 
   const [parsed, setParsed] = useState<string | null>(null);
 
-  useEffect(() => {
-    setContent(card?.rawContent || '');
-  }, [card]);
+  const isEditedValue = useAppSelector((state) => state.page.isEdited);
 
   useEffect(() => {
-    if (!content) {
+    if (!contentRef.current) {
       return;
     }
     setParsed(null);
     let mounted = true;
     async function parse(content: string) {
-      const res = await parseContent(key!, content);
+      const res = await parseContent(key!, content || card?.rawContent || '');
       if (mounted) {
         setParsed(res);
       }
     }
-    parse(content);
+    parse(contentRef.current);
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  useEffect(() => {
+    if (isDirty) {
+      dispatch(isEdited(true));
+    }
+  }, [isDirty, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(isEdited(false));
+    };
+  }, [dispatch]);
+
   const previewCard =
     card && parsed
       ? {
           ...card,
-          title: __title__ ?? card.title,
-          rawContent: content ?? card.rawContent,
+          title: (__title__ as string) ?? card.title,
+          rawContent: contentRef.current ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
         }
@@ -318,39 +344,12 @@ export default function Page() {
   if (previewCard) {
     for (const [key, value] of Object.entries(metadata)) {
       const field = previewCard.fields.find((card) => card.key === key);
-      if (field) {
+      // These types shouldn't exist
+      if (field && !Array.isArray(value) && !(value instanceof Date)) {
         field.value = value;
       }
     }
   }
-
-  useEffect(() => {
-    if (!card || Object.keys(preview).length === 0) {
-      return;
-    }
-    const { __title__, ...metadata } = preview;
-
-    if (
-      content === card.rawContent &&
-      __title__ === card.title &&
-      Object.keys(metadata).every((key) => card?.[key] === metadata[key])
-    ) {
-      setHasUnsavedChanges(false);
-      return;
-    }
-    setHasUnsavedChanges(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, card, setHasUnsavedChanges]);
-
-  useEffect(() => {
-    dispatch(isEdited(hasUnsavedChanges));
-  }, [dispatch, hasUnsavedChanges]);
-
-  useEffect(() => {
-    return () => {
-      dispatch(isEdited(false));
-    };
-  }, [dispatch]);
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
@@ -393,9 +392,9 @@ export default function Page() {
 
   // save the last title when user scrolls
   const handleScroll = () => {
-    if (!view || !editor) return;
+    if (!view || !editor || !contentRef.current) return;
 
-    const doc = asciiDoctor.load(content || '');
+    const doc = asciiDoctor.load(contentRef.current || '');
 
     const title = findCurrentTitleFromADoc(view, editor, doc);
 
@@ -443,7 +442,9 @@ export default function Page() {
     );
   }
 
-  const handleSave = async (data: Record<string, MetadataValue>) => {
+  const handleSave = async (
+    data: Record<string, MetadataValue | undefined>,
+  ) => {
     try {
       const { __title__, __labels__, ...metadata } = data;
       const update: {
@@ -455,19 +456,27 @@ export default function Page() {
 
       for (const key of Object.keys(metadata)) {
         const field = card?.fields?.find((field) => field.key === key);
-        if (field && metadata[key] !== field.value && !field.isCalculated) {
+        if (
+          field &&
+          metadata[key] !== field.value &&
+          !field.isCalculated &&
+          metadata[key] !== undefined
+        ) {
           update.metadata[key] = metadata[key];
         }
       }
-      if (__title__ !== card.title) {
+      if (__title__ !== card.title && __title__ !== undefined) {
         update.metadata.title = __title__;
       }
 
-      if (content !== card.rawContent) {
-        update.content = content;
+      if (contentRef.current !== card.rawContent) {
+        update.content = contentRef.current;
       }
 
-      if (JSON.stringify(card.labels) !== JSON.stringify(__labels__)) {
+      if (
+        JSON.stringify(__labels__) !== JSON.stringify(card.labels) &&
+        __labels__ !== undefined
+      ) {
         update.metadata.labels = __labels__;
       }
 
@@ -478,7 +487,6 @@ export default function Page() {
           type: 'success',
         }),
       );
-      dispatch(isEdited(false));
       router.push(`/cards/${card!.key}`);
     } catch (error) {
       dispatch(
@@ -534,7 +542,7 @@ export default function Page() {
       <Stack height="100%">
         <FormProvider {...formMethods}>
           <ContentToolbar
-            cardKey={key}
+            cardKey={key!}
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
             linkButtonDisabled={true}
@@ -578,7 +586,6 @@ export default function Page() {
                     <Controller
                       name="__title__"
                       control={control}
-                      defaultValue={card.title}
                       render={({ field: { value, onChange } }: any) => (
                         <Textarea
                           sx={{
@@ -602,10 +609,13 @@ export default function Page() {
                     <CodeMirror
                       ref={setRef}
                       extensions={extensions}
-                      value={content}
+                      value={contentRef.current}
                       onDrop={handleDragDrop}
                       onChange={(value) => {
-                        setContent(value);
+                        if (!isEditedValue) {
+                          dispatch(isEdited(true));
+                        }
+                        contentRef.current = value;
                       }}
                       basicSetup={{
                         lineNumbers: false,
@@ -673,7 +683,7 @@ export default function Page() {
                         >
                           <AttachmentPreviewCard
                             name={attachment.fileName}
-                            cardKey={key}
+                            cardKey={key!}
                             onInsert={() => {
                               if (view && card) {
                                 addAttachment(view, attachment, card.key);
@@ -730,4 +740,22 @@ export default function Page() {
       />
     </>
   );
+}
+
+export default function Gate() {
+  const key = useKeyParam();
+  const { t } = useTranslation();
+  const { isLoading, error } = useCard(key);
+
+  if (!key) {
+    return <Box>{t('failedToLoad')}</Box>;
+  }
+
+  if (isLoading) {
+    return <Box>{t('loading')}</Box>;
+  }
+  if (error) {
+    return <Box>{t('failedToLoad')}</Box>;
+  }
+  return <Page />;
 }

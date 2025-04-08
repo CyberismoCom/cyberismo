@@ -31,7 +31,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="contextMenuButton"]').click(); // Click dropdown menu with multiple options
     cy.get('[data-cy="deleteCardButton"]').click(); // Select Delete card option
     cy.get('[data-cy="confirmDeleteButton"]').click(); // confirm dialog
-    cy.get('[role="presentation"]').contains(t.deleteCardModal['success']); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t['deleteCardSuccess']); // Verify text in popup infobox
 
     cy.get('p').contains(t['emptyProject']); // Verify text on cards page
   });
@@ -265,6 +265,6 @@ describe('Navigation', () => {
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[data-cy="deleteCardButton"]').click();
     cy.get('[data-cy="confirmDeleteButton"]').click();
-    cy.get('[role="presentation"]').contains(t.deleteCardModal['success']); // Verify text in popup infobox
+    cy.get('[role="presentation"]').contains(t['deleteCardSuccess']); // Verify text in popup infobox
   });
 });

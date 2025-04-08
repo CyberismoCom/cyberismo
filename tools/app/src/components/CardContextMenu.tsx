@@ -24,6 +24,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useModals } from '../lib/utils';
 import { MoveCardModal, DeleteModal, AddAttachmentModal } from './modals';
+import { useAppSelector, useAppRouter } from '../lib/hooks';
+import { useCard } from '../lib/api';
+import { useParentCard } from '../lib/hooks';
 
 interface CardContextMenuProps {
   cardKey: string;
@@ -38,6 +41,25 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
   });
 
   const { t } = useTranslation();
+  const router = useAppRouter();
+  const { deleteCard } = useCard(cardKey);
+  const parent = useParentCard(cardKey);
+  const recentlyCreated = useAppSelector((state) => state.card.recentlyCreated);
+
+  const handleDeleteClick = async () => {
+    if (recentlyCreated.includes(cardKey)) {
+      const success = await deleteCard();
+      if (success) {
+        if (parent) {
+          router.push(`/cards/${parent.key}`);
+        } else {
+          router.push('/cards');
+        }
+      }
+    } else {
+      openModal('delete')();
+    }
+  };
 
   return (
     <>
@@ -63,7 +85,7 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
             <Typography>{t('addAttachment')}</Typography>
           </MenuItem>
           <Divider />
-          <MenuItem data-cy="deleteCardButton" onClick={openModal('delete')}>
+          <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
             <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
         </Menu>
