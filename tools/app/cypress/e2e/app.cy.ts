@@ -79,9 +79,7 @@ describe('Navigation', () => {
     cy.get('h1').contains('Untitled decision');
 
     cy.get('[aria-level="2"]').should('not.exist');
-    cy.get('[aria-level="1"][data-testid="ExpandMoreIcon"]').should(
-      'not.exist',
-    ); // Verifies expand more icon does not exist in tree menu
+    cy.get('[aria-level="1"][data-cy="ExpandMoreIcon"]').should('not.exist'); // Verifies expand more icon does not exist in tree menu
 
     // moves Untitled decision card under Decision Records card with move function
     cy.get('[data-cy="contextMenuButton"]').click();
@@ -97,7 +95,7 @@ describe('Navigation', () => {
       .click();
     cy.get('[role="presentation"]').contains(t.moveCardModal['success']); // Verify text in popup infobox
     cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
-    cy.get('[data-testid="ExpandMoreIcon"]'); // Verifies expand more icon exists in tree menu
+    cy.get('[data-cy="ExpandMoreIcon"]'); // Verifies expand more icon exists in tree menu
   });
 
   it('view and edit metadata', () => {
@@ -227,7 +225,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="cardLink"]');
 
     cy.get('[data-cy="expandLinks"]').click();
-    cy.get('[data-testid="DeleteIcon"]').click(); // Delete link
+    cy.get('[data-cy="DeleteIcon"]').click(); // Delete link
     // Verify delete link dialog contents and click delete
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);
     cy.get('[role="dialog"] >>> button').contains(t['delete']).click();

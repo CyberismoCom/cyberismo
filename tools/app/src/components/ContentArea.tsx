@@ -914,7 +914,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                                 openModal('deleteLink')();
                               }}
                             >
-                              <Delete fontSize="inherit" />
+                              <Delete fontSize="inherit" data-cy="DeleteIcon" />
                             </IconButton>
                           </Box>
                         )}

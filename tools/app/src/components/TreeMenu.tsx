@@ -99,6 +99,7 @@ const RenderTree = (
         bgcolor={node.isSelected ? 'white' : 'transparent'}
       >
         <ExpandMoreIcon
+          data-cy="ExpandMoreIcon"
           visibility={
             node.children && node.children.length > 0 ? 'visible' : 'hidden'
           }
