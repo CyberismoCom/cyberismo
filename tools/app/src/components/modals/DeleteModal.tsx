@@ -22,7 +22,6 @@ import {
   DialogActions,
   Button,
   Alert,
-  CircularProgress,
 } from '@mui/joy';
 import { Trans, useTranslation } from 'react-i18next';
 import { Warning } from '@mui/icons-material';
