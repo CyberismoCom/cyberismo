@@ -12,11 +12,18 @@
 
 // node
 import path, { basename, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 
+import {
+  BaseResult,
+  ParseResult,
+  QueryName,
+  QueryResult,
+} from '../types/queries.js';
 import { Card } from '../interfaces/project-interfaces.js';
+import ClingoParser from '../utils/clingo-parser.js';
 import {
   copyDir,
   deleteDir,
@@ -25,16 +32,9 @@ import {
   pathExists,
   writeFileSafe,
 } from '../utils/file-utils.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
-import ClingoParser from '../utils/clingo-parser.js';
-import {
-  BaseResult,
-  ParseResult,
-  QueryName,
-  QueryResult,
-} from '../types/queries.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
+import { Project, ResourcesFrom } from '../containers/project.js';
 import { logger } from '../utils/log-utils.js';
 import {
   createCardFacts,
@@ -72,11 +72,49 @@ export class Calculate {
 
   constructor(private project: Project) {}
 
+  //
   private static queryFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../../resources/calculations/queries',
   );
 
+  // Wrapper to run onCreation query.
+  private async creationQuery(cardKeys: string[]) {
+    if (!cardKeys) return undefined;
+    return this.runQuery('onCreation', {
+      cardKeys,
+    });
+  }
+
+  //
+  private async generateCardTree() {
+    return this.generateImports(
+      this.project.paths.calculationCardsFolder,
+      join(this.project.paths.calculationFolder, Calculate.importCardsFileName),
+    );
+  }
+
+  // Write the cardTree.lp that contain data from the selected card-tree.
+  private async generateCardTreeContent(parentCard: Card | undefined) {
+    const destinationFileBase = this.project.paths.calculationCardsFolder;
+    const promiseContainer = [];
+    if (!pathExists(destinationFileBase)) {
+      await mkdir(destinationFileBase, { recursive: true });
+    }
+
+    const cards = await this.getCards(parentCard);
+    for (const card of cards) {
+      const content = await createCardFacts(card, this.project);
+
+      // write card-specific logic program file
+      const filename = join(destinationFileBase, card.key);
+      const cardLogicFile = `${filename}.lp`;
+      promiseContainer.push(writeFileSafe(cardLogicFile, content));
+    }
+    await Promise.all(promiseContainer);
+  }
+
+  //
   private async generateCardTypes() {
     const cardTypes = await this.project.cardTypes();
     const promises = [];
@@ -102,58 +140,6 @@ export class Calculate {
     await Promise.all(promises);
   }
 
-  private async generateWorkFlows() {
-    const workflows = await this.project.workflows();
-    const promises = [];
-    // loop through workflows
-    for (const workflow of await Promise.all(
-      workflows.map((m) => this.project.resource<Workflow>(m.name)),
-    )) {
-      if (!workflow) continue;
-
-      const content = createWorkflowFacts(workflow);
-
-      const workFlowFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${workflow.name}.lp`,
-      );
-
-      promises.push(
-        writeFileSafe(workFlowFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
-    }
-    await Promise.all(promises);
-  }
-  // Write the cardTree.lp that contain data from the selected card-tree.
-  private async generateCardTreeContent(parentCard: Card | undefined) {
-    const destinationFileBase = this.project.paths.calculationCardsFolder;
-    const promiseContainer = [];
-    if (!pathExists(destinationFileBase)) {
-      await mkdir(destinationFileBase, { recursive: true });
-    }
-
-    const cards = await this.getCards(parentCard);
-    for (const card of cards) {
-      const content = await createCardFacts(card, this.project);
-
-      // write card-specific logic program file
-      const filename = join(destinationFileBase, card.key);
-      const cardLogicFile = `${filename}.lp`;
-      promiseContainer.push(writeFileSafe(cardLogicFile, content));
-    }
-    await Promise.all(promiseContainer);
-  }
-
-  private async generateCardTree() {
-    return this.generateImports(
-      this.project.paths.calculationCardsFolder,
-      join(this.project.paths.calculationFolder, Calculate.importCardsFileName),
-    );
-  }
-
   // Write all common files which are not card specific.
   private async generateCommonFiles() {
     await copyDir(
@@ -162,6 +148,7 @@ export class Calculate {
     );
   }
 
+  //
   private async generateFieldTypes() {
     const fieldTypes = await this.project.fieldTypes();
     const promises = [];
@@ -207,6 +194,7 @@ export class Calculate {
     }
     await writeFileSafe(destinationFile, builder.buildAll());
   }
+
   // Collects all linkTypes from the project
   private async generateLinkTypes() {
     const linkTypes = await this.project.linkTypes();
@@ -260,6 +248,8 @@ export class Calculate {
     }
     await writeFileSafe(destinationFile, builder.buildAll());
   }
+
+  //
   private async generateResourceImports() {
     return this.generateImports(
       this.project.paths.calculationResourcesFolder,
@@ -268,6 +258,33 @@ export class Calculate {
         Calculate.importResourcesFileName,
       ),
     );
+  }
+
+  //
+  private async generateWorkFlows() {
+    const workflows = await this.project.workflows();
+    const promises = [];
+    // loop through workflows
+    for (const workflow of await Promise.all(
+      workflows.map((m) => this.project.resource<Workflow>(m.name)),
+    )) {
+      if (!workflow) continue;
+
+      const content = createWorkflowFacts(workflow);
+
+      const workFlowFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${workflow.name}.lp`,
+      );
+
+      promises.push(
+        writeFileSafe(workFlowFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
   }
 
   // Gets either all the cards (no parent), or a subtree.
@@ -282,12 +299,6 @@ export class Calculate {
     card.children = [];
     cards.unshift(card);
     return cards;
-  }
-
-  // Return path to query file if it exists, else return null.
-  private async queryPath(queryName: string) {
-    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
-    return pathExists(location) ? location : null;
   }
 
   // Returns query content from cache.
@@ -320,189 +331,13 @@ export class Calculate {
     return parser.parseInput(actual_result);
   }
 
-  /**
-   * Generates a logic program.
-   * @param {string} cardKey Optional, sub-card tree defining card
-   */
-  public async generate(cardKey?: string) {
-    await Calculate.mutex.runExclusive(async () => {
-      // Cleanup old calculations before starting new ones.
-      await deleteDir(this.project.paths.calculationFolder);
-
-      let card: Card | undefined;
-      if (cardKey) {
-        card = await this.project.findSpecificCard(cardKey, {
-          metadata: true,
-          children: true,
-          content: false,
-          parent: false,
-        });
-        if (!card) {
-          throw new Error(`Card '${cardKey}' not found`);
-        }
-      }
-
-      const promiseContainer = [
-        this.generateCommonFiles(),
-        this.generateCardTreeContent(card).then(
-          this.generateCardTree.bind(this),
-        ),
-        this.generateModules(),
-        this.generateWorkFlows(),
-        this.generateCardTypes(),
-        this.generateFieldTypes(),
-        this.generateLinkTypes(),
-      ];
-
-      await Promise.all(promiseContainer).then(
-        this.generateResourceImports.bind(this),
-      );
-    });
+  // Return path to query file if it exists, else return null.
+  private async queryPath(queryName: string) {
+    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
+    return pathExists(location) ? location : null;
   }
 
-  /**
-   * When card changes, update the card specific calculations.
-   * @param {Card} changedCard Card that was changed.
-   */
-  public async handleCardChanged(changedCard: Card) {
-    await this.generate(changedCard.key);
-    return { statusCode: 200 };
-  }
-
-  /**
-   * When cards are removed, automatically remove card-specific calculations.
-   * @param {Card} deletedCard Card that is to be removed.
-   */
-  public async handleDeleteCard(deletedCard: Card) {
-    if (!deletedCard) {
-      return;
-    }
-
-    await Calculate.mutex.runExclusive(async () => {
-      const affectedCards = await this.getCards(deletedCard);
-      const cardTreeFile = join(
-        this.project.paths.calculationFolder,
-        Calculate.importCardsFileName,
-      );
-      const calculationsForTreeExist =
-        pathExists(cardTreeFile) &&
-        pathExists(this.project.paths.calculationFolder);
-
-      let cardTreeContent = calculationsForTreeExist
-        ? await readFile(cardTreeFile, 'utf-8')
-        : '';
-      let filteredLines = cardTreeContent.split('\n');
-      for (const card of affectedCards) {
-        // First, delete card specific files.
-        const cardCalculationsFile = join(
-          this.project.paths.calculationCardsFolder,
-          `${card.key}.lp`,
-        );
-        if (pathExists(cardCalculationsFile)) {
-          await deleteFile(cardCalculationsFile);
-        }
-        // Then, delete rows from cardTree.lp.
-        filteredLines = filteredLines.filter(
-          (line) => !line.includes(`cards/${card.key}.lp`),
-        );
-        cardTreeContent = filteredLines.join('\n');
-      }
-      if (calculationsForTreeExist) {
-        await writeFileSafe(cardTreeFile, cardTreeContent);
-      }
-    });
-  }
-
-  // Wrapper to run onCreation query.
-  private async creationQuery(cardKeys: string[]) {
-    if (!cardKeys) return undefined;
-    return this.runQuery('onCreation', {
-      cardKeys,
-    });
-  }
-  /**
-   * When new cards are added, automatically calculate card-specific values.
-   * @param {Card[]} cards Added cards.
-   */
-  public async handleNewCards(cards: Card[]) {
-    if (!cards) {
-      return;
-    }
-
-    const cardTreeFile = join(
-      this.project.paths.calculationFolder,
-      Calculate.importCardsFileName,
-    );
-    const calculationsForTreeExist =
-      pathExists(cardTreeFile) &&
-      pathExists(this.project.paths.calculationFolder);
-    if (!calculationsForTreeExist) {
-      // No calculations done, ignore update.
-      return;
-    }
-
-    await Calculate.mutex.runExclusive(async () => {
-      // @todo - should only generate card-tree for created cards' common ancestor (or root)
-      //         this might in some cases (sub-tree created) improve performance
-      await this.generateCardTreeContent(undefined);
-      await this.generateCardTree();
-    });
-
-    const cardKeys = cards.map((item) => item.key);
-    const queryResult = await this.creationQuery(cardKeys);
-    if (
-      !queryResult ||
-      queryResult.at(0) === undefined ||
-      queryResult.at(0)?.updateFields === undefined
-    ) {
-      return;
-    }
-
-    const fieldsToUpdate = queryResult.at(0)!.updateFields;
-    await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
-  }
-
-  /**
-   * Runs a pre-defined query.
-   * @param queryName Name of the query file without extension
-   * @param options Any object that contains state for handlebars
-   * @returns parsed program output
-   */
-  public async runQuery<T extends QueryName>(
-    queryName: T,
-    options?: unknown,
-  ): Promise<QueryResult<T>[]> {
-    let content = await this.getQuery(queryName);
-    if (options && typeof options === 'object') {
-      const handlebars = Handlebars.create();
-      const compiled = handlebars.compile(content);
-      content = compiled(options);
-    }
-
-    const clingoOutput = await this.run({
-      query: content,
-    });
-
-    const result = await this.parseClingoResult(clingoOutput);
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    return result.results as QueryResult<T>[];
-  }
-  /**
-   * Runs a logic program using clingo.
-   *
-   * @param filePath Path to a query file to be run in relation to current working directory
-   * @param timeout Specifies the time clingo is allowed to run
-   * @returns parsed program output
-   */
-  public async runLogicProgram(data: { query?: string; file?: string }) {
-    const clingoOutput = await this.run(data);
-
-    return this.parseClingoResult(clingoOutput);
-  }
-
+  //
   private async run(
     data: {
       query?: string;
@@ -606,6 +441,141 @@ export class Calculate {
   }
 
   /**
+   * Generates a logic program.
+   * @param cardKey Optional, sub-card tree defining card
+   */
+  public async generate(cardKey?: string) {
+    await Calculate.mutex.runExclusive(async () => {
+      // Cleanup old calculations before starting new ones.
+      await deleteDir(this.project.paths.calculationFolder);
+
+      let card: Card | undefined;
+      if (cardKey) {
+        card = await this.project.findSpecificCard(cardKey, {
+          metadata: true,
+          children: true,
+          content: false,
+          parent: false,
+        });
+        if (!card) {
+          throw new Error(`Card '${cardKey}' not found`);
+        }
+      }
+
+      const promiseContainer = [
+        this.generateCommonFiles(),
+        this.generateCardTreeContent(card).then(
+          this.generateCardTree.bind(this),
+        ),
+        this.generateModules(),
+        this.generateWorkFlows(),
+        this.generateCardTypes(),
+        this.generateFieldTypes(),
+        this.generateLinkTypes(),
+      ];
+
+      await Promise.all(promiseContainer).then(
+        this.generateResourceImports.bind(this),
+      );
+    });
+  }
+
+  /**
+   * When card changes, update the card specific calculations.
+   * @param changedCard Card that was changed.
+   */
+  public async handleCardChanged(changedCard: Card) {
+    await this.generate(changedCard.key);
+    return { statusCode: 200 };
+  }
+
+  /**
+   * When cards are removed, automatically remove card-specific calculations.
+   * @param deletedCard Card that is to be removed.
+   */
+  public async handleDeleteCard(deletedCard: Card) {
+    if (!deletedCard) {
+      return;
+    }
+
+    await Calculate.mutex.runExclusive(async () => {
+      const affectedCards = await this.getCards(deletedCard);
+      const cardTreeFile = join(
+        this.project.paths.calculationFolder,
+        Calculate.importCardsFileName,
+      );
+      const calculationsForTreeExist =
+        pathExists(cardTreeFile) &&
+        pathExists(this.project.paths.calculationFolder);
+
+      let cardTreeContent = calculationsForTreeExist
+        ? await readFile(cardTreeFile, 'utf-8')
+        : '';
+      let filteredLines = cardTreeContent.split('\n');
+      for (const card of affectedCards) {
+        // First, delete card specific files.
+        const cardCalculationsFile = join(
+          this.project.paths.calculationCardsFolder,
+          `${card.key}.lp`,
+        );
+        if (pathExists(cardCalculationsFile)) {
+          await deleteFile(cardCalculationsFile);
+        }
+        // Then, delete rows from cardTree.lp.
+        filteredLines = filteredLines.filter(
+          (line) => !line.includes(`cards/${card.key}.lp`),
+        );
+        cardTreeContent = filteredLines.join('\n');
+      }
+      if (calculationsForTreeExist) {
+        await writeFileSafe(cardTreeFile, cardTreeContent);
+      }
+    });
+  }
+
+  /**
+   * When new cards are added, automatically calculate card-specific values.
+   * @param cards Added cards.
+   */
+  public async handleNewCards(cards: Card[]) {
+    if (!cards) {
+      return;
+    }
+
+    const cardTreeFile = join(
+      this.project.paths.calculationFolder,
+      Calculate.importCardsFileName,
+    );
+    const calculationsForTreeExist =
+      pathExists(cardTreeFile) &&
+      pathExists(this.project.paths.calculationFolder);
+    if (!calculationsForTreeExist) {
+      // No calculations done, ignore update.
+      return;
+    }
+
+    await Calculate.mutex.runExclusive(async () => {
+      // @todo - should only generate card-tree for created cards' common ancestor (or root)
+      //         this might in some cases (sub-tree created) improve performance
+      await this.generateCardTreeContent(undefined);
+      await this.generateCardTree();
+    });
+
+    const cardKeys = cards.map((item) => item.key);
+    const queryResult = await this.creationQuery(cardKeys);
+    if (
+      !queryResult ||
+      queryResult.at(0) === undefined ||
+      queryResult.at(0)?.updateFields === undefined
+    ) {
+      return;
+    }
+
+    const fieldsToUpdate = queryResult.at(0)!.updateFields;
+    await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+  }
+
+  /**
    * Runs given logic program and creates a graph using clingraph
    * @param data Provide a query or/and a file which can be given to clingraph
    * @param timeout Maximum amount of milliseconds clingraph is allowed to run
@@ -664,5 +634,46 @@ export class Calculate {
     }
 
     return fileData.toString('base64');
+  }
+
+  /**
+   * Runs a logic program using clingo.
+   * @param filePath Path to a query file to be run in relation to current working directory
+   * @param timeout Specifies the time clingo is allowed to run
+   * @returns parsed program output
+   */
+  public async runLogicProgram(data: { query?: string; file?: string }) {
+    const clingoOutput = await this.run(data);
+
+    return this.parseClingoResult(clingoOutput);
+  }
+
+  /**
+   * Runs a pre-defined query.
+   * @param queryName Name of the query file without extension
+   * @param options Any object that contains state for handlebars
+   * @returns parsed program output
+   */
+  public async runQuery<T extends QueryName>(
+    queryName: T,
+    options?: unknown,
+  ): Promise<QueryResult<T>[]> {
+    let content = await this.getQuery(queryName);
+    if (options && typeof options === 'object') {
+      const handlebars = Handlebars.create();
+      const compiled = handlebars.compile(content);
+      content = compiled(options);
+    }
+
+    const clingoOutput = await this.run({
+      query: content,
+    });
+
+    const result = await this.parseClingoResult(clingoOutput);
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result.results as QueryResult<T>[];
   }
 }
