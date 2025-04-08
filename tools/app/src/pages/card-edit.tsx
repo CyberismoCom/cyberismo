@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CardMode, MetadataValue } from '@/lib/definitions';
 
 import {
@@ -262,7 +262,7 @@ function Page() {
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
 
-  const [content, setContent] = useState<string>(card?.rawContent || '');
+  const contentRef = useRef(card?.rawContent || '');
 
   const [tab, setTab] = React.useState(0);
 
@@ -297,8 +297,10 @@ function Page() {
 
   const [parsed, setParsed] = useState<string | null>(null);
 
+  const isEditedValue = useAppSelector((state) => state.page.isEdited);
+
   useEffect(() => {
-    if (!content) {
+    if (!contentRef.current) {
       return;
     }
     setParsed(null);
@@ -309,19 +311,12 @@ function Page() {
         setParsed(res);
       }
     }
-    parse(content);
+    parse(contentRef.current);
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
-
-  // Mark as edited when content changes
-  useEffect(() => {
-    if (content !== undefined) {
-      dispatch(isEdited(true));
-    }
-  }, [content, dispatch]);
 
   useEffect(() => {
     if (isDirty) {
@@ -340,7 +335,7 @@ function Page() {
       ? {
           ...card,
           title: (__title__ as string) ?? card.title,
-          rawContent: content ?? card.rawContent,
+          rawContent: contentRef.current ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
         }
@@ -397,9 +392,9 @@ function Page() {
 
   // save the last title when user scrolls
   const handleScroll = () => {
-    if (!view || !editor || !content) return;
+    if (!view || !editor || !contentRef.current) return;
 
-    const doc = asciiDoctor.load(content || '');
+    const doc = asciiDoctor.load(contentRef.current || '');
 
     const title = findCurrentTitleFromADoc(view, editor, doc);
 
@@ -474,8 +469,8 @@ function Page() {
         update.metadata.title = __title__;
       }
 
-      if (content !== card.rawContent) {
-        update.content = content;
+      if (contentRef.current !== card.rawContent) {
+        update.content = contentRef.current;
       }
 
       if (
@@ -614,10 +609,13 @@ function Page() {
                     <CodeMirror
                       ref={setRef}
                       extensions={extensions}
-                      value={content}
+                      value={contentRef.current}
                       onDrop={handleDragDrop}
                       onChange={(value) => {
-                        setContent(value);
+                        if (!isEditedValue) {
+                          dispatch(isEdited(true));
+                        }
+                        contentRef.current = value;
                       }}
                       basicSetup={{
                         lineNumbers: false,
