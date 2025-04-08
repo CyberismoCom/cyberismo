@@ -21,7 +21,7 @@
   "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/language": "6.10.6",
-    "@codemirror/view": "6.35.2",
+    "@codemirror/view": "6.36.5",
     "@cyberismocom/data-handler": "workspace:*",
     "@mui/icons-material": "^6.0.1",
     "@mui/joy": "5.0.0-beta.51",
