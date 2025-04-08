@@ -23,7 +23,8 @@ import {
 } from '@mui/joy';
 import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
-import { Add, Person } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Person from '@mui/icons-material/Person';
 import { useState } from 'react';
 
 export interface FieldEditorProps {

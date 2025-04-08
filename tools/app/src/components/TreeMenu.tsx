@@ -11,11 +11,13 @@
 */
 
 import { useEffect, useRef } from 'react';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getStateColor } from '../lib/utils';
 import { Box, Chip, Stack, Typography } from '@mui/joy';
 import { Tree, NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
-import { FiberManualRecord, Error as ErrorIcon } from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
+import ErrorIcon from '@mui/icons-material/Error';
+
 import { QueryResult } from '@cyberismocom/data-handler/types/queries';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';

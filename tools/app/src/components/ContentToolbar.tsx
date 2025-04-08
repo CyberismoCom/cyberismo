@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useCard, useProject, useTree } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
 import { addNotification } from '../lib/slices/notifications';
-import { InsertLink } from '@mui/icons-material';
+import InsertLink from '@mui/icons-material/InsertLink';
 
 interface ContentToolbarProps {
   cardKey: string;

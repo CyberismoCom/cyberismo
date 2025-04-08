@@ -42,14 +42,13 @@ import { useTranslation } from 'react-i18next';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, useModals } from '../lib/utils';
 import { Link as RouterLink } from 'react-router';
-import {
-  Add,
-  Delete,
-  Edit,
-  ExpandMore,
-  Search,
-  Info,
-} from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
+import Edit from '@mui/icons-material/Edit';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import Search from '@mui/icons-material/Search';
+import Info from '@mui/icons-material/Info';
+
 import { Controller, useForm } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 

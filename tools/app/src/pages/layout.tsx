@@ -47,7 +47,7 @@ import {
   useKeyboardShortcut,
   useKeyParam,
 } from '../lib/hooks';
-import { CloseRounded } from '@mui/icons-material';
+import CloseRounded from '@mui/icons-material/CloseRounded';
 import {
   closeNotification,
   removeNotification,
