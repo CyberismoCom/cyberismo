@@ -32,12 +32,14 @@ interface StateSelectorProps {
   workflow: Workflow | null;
   onTransition: (transition: WorkflowTransition) => void;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 const StateSelector: React.FC<StateSelectorProps> = ({
   currentState,
   workflow,
   onTransition,
+  disabled,
   isLoading,
 }) => {
   const { t } = useTranslation();
@@ -76,9 +78,10 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     <Dropdown>
       <MenuButton
         size="sm"
-        disabled={availableTransitions.length === 0 || isLoading}
+        disabled={availableTransitions.length === 0 || disabled}
         variant="soft"
-        startDecorator={!isLoading && statusDot}
+        color="neutral"
+        endDecorator={!isLoading && statusDot}
       >
         {isLoading ? (
           <CircularProgress size="sm" />
@@ -95,6 +98,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
           <MenuItem
             key={transition.name}
             onClick={() => onTransition(transition)}
+            disabled={disabled}
           >
             <ListItemContent>{transition.name}</ListItemContent>
           </MenuItem>

@@ -40,7 +40,7 @@ export default function CreateCards({
   return (
     <Button
       loading={loading}
-      disabled={isUpdating}
+      disabled={isUpdating()}
       onClick={async () => {
         try {
           if (preview) {

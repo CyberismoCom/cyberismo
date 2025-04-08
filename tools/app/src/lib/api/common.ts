@@ -27,6 +27,6 @@ export function useSWRHook<T extends ResourceName>(
     ...rest,
     [name]: data || null,
     isUpdating,
-    callUpdate: call,
-  } as SwrResult<T>;
+    callUpdate: (fn: () => Promise<any>, key2?: string) => call(fn, key2),
+  } as unknown as SwrResult<T>;
 }

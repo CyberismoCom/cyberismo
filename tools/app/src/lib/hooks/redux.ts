@@ -87,16 +87,35 @@ export const useAppRouter = (): AppRouter => {
 export function useUpdating(key: string | null) {
   const dispatch = useAppDispatch();
 
+  const additionalProps = useAppSelector((state) => state.swr.additionalProps);
+
+  const isUpdating = (key2?: string) => {
+    if (!key2) {
+      return Object.entries(additionalProps).some(
+        ([k, v]) => k.startsWith(`${key ?? 'root'}:`) && v.isUpdating,
+      );
+    }
+    return additionalProps[`${key ?? 'root'}:${key2}`]?.isUpdating ?? false;
+  };
+
   return {
-    isUpdating: useAppSelector(
-      (state) => state.swr.additionalProps[key ?? 'root']?.isUpdating ?? false,
-    ),
-    call: async <T>(fn: () => Promise<T>) => {
-      dispatch(setIsUpdating({ key: key ?? 'root', isUpdating: true }));
+    isUpdating,
+    call: async <T>(fn: () => Promise<T>, key2?: string) => {
+      dispatch(
+        setIsUpdating({
+          key: `${key ?? 'root'}:${key2 ?? ''}`,
+          isUpdating: true,
+        }),
+      );
       try {
         return await fn();
       } finally {
-        dispatch(setIsUpdating({ key: key ?? 'root', isUpdating: false }));
+        dispatch(
+          setIsUpdating({
+            key: `${key ?? 'root'}:${key2 ?? ''}`,
+            isUpdating: false,
+          }),
+        );
       }
     },
   };

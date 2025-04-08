@@ -111,11 +111,16 @@ export function EditLinkModal({
             onClick={() => formRef.current?.requestSubmit()}
             color="primary"
             data-cy="editLinkConfirmButton"
-            loading={isUpdating}
+            loading={isUpdating('update')}
           >
             {t('update')}
           </Button>
-          <Button onClick={onClose} variant="plain" color="neutral">
+          <Button
+            onClick={onClose}
+            variant="plain"
+            color="neutral"
+            disabled={isUpdating()}
+          >
             {t('cancel')}
           </Button>
         </DialogActions>

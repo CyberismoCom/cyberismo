@@ -66,19 +66,17 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   // TODO: get rid of this dependency
   const { project, isLoading: isLoadingProject } = useProject();
 
-  const { updateCard, isUpdating } = useCard(cardKey);
+  const { moveCard, isUpdating } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
 
   const dispatch = useDispatch();
 
   const [currentTab, setCurrentTab] = useState(TabEnum.RECENTS);
 
-  const moveCard = useCallback(async () => {
+  const move = useCallback(async () => {
     if (selected) {
       try {
-        await updateCard({
-          parent: selected,
-        });
+        await moveCard(selected);
         dispatch(
           addNotification({
             message: t('moveCardModal.success'),
@@ -95,7 +93,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
         );
       }
     }
-  }, [selected, updateCard, t, onClose, dispatch]);
+  }, [selected, moveCard, t, onClose, dispatch]);
 
   useEffect(() => {
     setSelected(null);
@@ -326,9 +324,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
             }}
           >
             <Button
-              onClick={moveCard}
-              disabled={selected === null || isUpdating}
-              loading={isUpdating}
+              onClick={move}
+              disabled={selected === null || isUpdating()}
+              loading={isUpdating('move')}
             >
               {t('move')}
             </Button>
@@ -336,7 +334,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
               onClick={onClose}
               variant="plain"
               color="neutral"
-              disabled={isUpdating}
+              disabled={isUpdating()}
             >
               {t('cancel')}
             </Button>
