@@ -429,6 +429,9 @@ export default function Page() {
   // ref not provided, let's just use any
   const setRef = useCallback((ref: any) => {
     if (!ref?.view || !ref?.state || !ref?.editor) {
+      setView(null);
+      setState(null);
+      setEditor(null);
       return;
     }
     setView(ref.view);
