@@ -48,139 +48,11 @@ export class CardContainer {
     this.containerName = name;
   }
 
-  // Finds parent
-  private parentCard(cardPath: string) {
-    const pathParts = cardPath.split(sep);
-    if (
-      pathParts.at(pathParts.length - 2) === 'cardRoot' ||
-      (pathParts.length > 3 &&
-        pathParts.at(pathParts.length - 4) === 'templates')
-    ) {
-      return 'root';
-    } else {
-      return pathParts.at(pathParts.length - 3);
-    }
-  }
-
   // Lists all direct children.
   private async childrenCards(cardPath: string, details?: FetchCardDetails) {
     const containerCards: Card[] = [];
     await this.doCollectCards(cardPath, containerCards, details, true);
     return containerCards;
-  }
-
-  // Gets conditionally content
-  private async getContent(
-    currentPath: string,
-    include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include
-      ? readFile(join(currentPath, CardContainer.cardContentFile), {
-          encoding: 'utf-8',
-        })
-      : '';
-  }
-
-  // Gets conditionally metadata
-  private async getMetadata(
-    currentPath: string,
-    include?: boolean,
-  ): Promise<string> {
-    let metadata = include
-      ? await readFile(join(currentPath, CardContainer.cardMetadataFile), {
-          encoding: 'utf-8',
-        })
-      : '';
-    metadata = this.injectLinksIfMissing(metadata);
-    return metadata;
-  }
-
-  // Gets conditionally attachments
-  private async getAttachments(
-    currentPath: string,
-    files: CardAttachment[],
-    include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include ? this.doCollectAttachments(currentPath, files) : [];
-  }
-
-  // Gets conditionally children
-  private async getChildren(
-    currentPath: string,
-    details: FetchCardDetails = {},
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return details.children ? this.childrenCards(currentPath, details) : [];
-  }
-
-  // Injects 'links' member - if it is missing - to a string representation of a card.
-  private injectLinksIfMissing(metadata: string): string {
-    if (metadata !== '' && !metadata.includes('"links":')) {
-      const end = metadata.lastIndexOf('}');
-      metadata = metadata.slice(0, end - 1) + ',\n    "links": []\n' + '}';
-    }
-    return metadata;
-  }
-
-  // Find specific card
-  // todo: combine doFind & doCollect
-  private async doFindCard(
-    path: string,
-    cardKey: string,
-    details: FetchCardDetails = {},
-    foundCards: Card[],
-  ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
-    let asciiDocProcessor;
-    // optimization: do not create AsciiDoctor Processor, unless it is needed.
-    if (details.contentType && details.contentType === 'html') {
-      asciiDocProcessor = asciidoctor();
-    }
-
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        // todo: from hereon, this could be shared with doCollect
-        if (entry.name === cardKey) {
-          const attachmentFiles: CardAttachment[] = [];
-          const promiseContainer = [
-            this.getContent(currentPath, details.content),
-            this.getMetadata(currentPath, details.metadata),
-            this.getChildren(currentPath, details),
-            this.getAttachments(
-              currentPath,
-              attachmentFiles,
-              details.attachments,
-            ),
-          ];
-          const [cardContent, cardMetadata, cardChildren] =
-            await Promise.all(promiseContainer);
-
-          const content =
-            details.contentType && details.contentType === 'html'
-              ? asciiDocProcessor?.convert(cardContent as string)
-              : cardContent;
-
-          foundCards.push({
-            key: entry.name,
-            path: currentPath,
-            children: details.children ? (cardChildren as Card[]) : [],
-            attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: content as string }),
-            ...(details.metadata && {
-              metadata: JSON.parse(cardMetadata as string),
-            }),
-            ...(details.parent && { parent: this.parentCard(currentPath) }),
-            ...(details.calculations && { calculations: [] }),
-          });
-          break; //optimization - there can only be one.
-        }
-        // Only continue, if the card has not been found.
-        if (foundCards.length === 0) {
-          await this.doFindCard(currentPath, cardKey, details, foundCards);
-        }
-      }
-    }
-    return foundCards;
   }
 
   // Function collects attachments from all cards in one folder.
@@ -289,6 +161,132 @@ export class CardContainer {
       await Promise.all(promises);
     }
     return cards;
+  }
+
+  // Find specific card
+  private async doFindCard(
+    path: string,
+    cardKey: string,
+    details: FetchCardDetails = {},
+    foundCards: Card[],
+  ): Promise<Card[]> {
+    const entries = await readdir(path, { withFileTypes: true });
+    let asciiDocProcessor;
+    // optimization: do not create AsciiDoctor Processor, unless it is needed.
+    if (details.contentType && details.contentType === 'html') {
+      asciiDocProcessor = asciidoctor();
+    }
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const currentPath = join(entry.parentPath, entry.name);
+        if (entry.name === cardKey) {
+          const attachmentFiles: CardAttachment[] = [];
+          const promiseContainer = [
+            this.getContent(currentPath, details.content),
+            this.getMetadata(currentPath, details.metadata),
+            this.getChildren(currentPath, details),
+            this.getAttachments(
+              currentPath,
+              attachmentFiles,
+              details.attachments,
+            ),
+          ];
+          const [cardContent, cardMetadata, cardChildren] =
+            await Promise.all(promiseContainer);
+
+          const content =
+            details.contentType && details.contentType === 'html'
+              ? asciiDocProcessor?.convert(cardContent as string)
+              : cardContent;
+
+          foundCards.push({
+            key: entry.name,
+            path: currentPath,
+            children: details.children ? (cardChildren as Card[]) : [],
+            attachments: details.attachments ? [...attachmentFiles] : [],
+            ...(details.content && { content: content as string }),
+            ...(details.metadata && {
+              metadata: JSON.parse(cardMetadata as string),
+            }),
+            ...(details.parent && { parent: this.parentCard(currentPath) }),
+            ...(details.calculations && { calculations: [] }),
+          });
+          break; //optimization - there can only be one.
+        }
+        // Only continue, if the card has not been found.
+        if (foundCards.length === 0) {
+          await this.doFindCard(currentPath, cardKey, details, foundCards);
+        }
+      }
+    }
+    return foundCards;
+  }
+
+  // Gets conditionally attachments
+  private async getAttachments(
+    currentPath: string,
+    files: CardAttachment[],
+    include?: boolean,
+  ): Promise<string | CardAttachment[] | Card[]> {
+    return include ? this.doCollectAttachments(currentPath, files) : [];
+  }
+
+  // Gets conditionally children
+  private async getChildren(
+    currentPath: string,
+    details: FetchCardDetails = {},
+  ): Promise<string | CardAttachment[] | Card[]> {
+    return details.children ? this.childrenCards(currentPath, details) : [];
+  }
+
+  // Gets conditionally content
+  private async getContent(
+    currentPath: string,
+    include?: boolean,
+  ): Promise<string | CardAttachment[] | Card[]> {
+    return include
+      ? readFile(join(currentPath, CardContainer.cardContentFile), {
+          encoding: 'utf-8',
+        })
+      : '';
+  }
+
+  // Gets conditionally metadata
+  private async getMetadata(
+    currentPath: string,
+    include?: boolean,
+  ): Promise<string> {
+    let metadata = include
+      ? await readFile(join(currentPath, CardContainer.cardMetadataFile), {
+          encoding: 'utf-8',
+        })
+      : '';
+    metadata = this.injectLinksIfMissing(metadata);
+    return metadata;
+  }
+
+  // Injects 'links' member - if it is missing - to a string representation of a card.
+  private injectLinksIfMissing(metadata: string): string {
+    if (metadata !== '' && !metadata.includes('"links":')) {
+      const end = metadata.lastIndexOf('}');
+      metadata = metadata.slice(0, end - 1) + ',\n    "links": []\n' + '}';
+    }
+    return metadata;
+  }
+
+  // Finds parent
+  private parentCard(cardPath: string) {
+    const pathParts = cardPath.split(sep);
+    if (
+      pathParts.at(pathParts.length - 2) === 'cardRoot' ||
+      (pathParts.length > 3 &&
+        pathParts.at(pathParts.length - 4) === 'templates')
+    ) {
+      return 'root';
+    } else {
+      return pathParts.at(pathParts.length - 3);
+    }
   }
 
   // Lists all attachments from container.

@@ -114,6 +114,55 @@ export class Validate {
       });
   }
 
+  // Validates that 'name' in resources matches filename, location and project prefix.
+  private checkResourceName(
+    file: Dirent,
+    content:
+      | ResourceContent
+      | CustomField
+      | DotSchemaContent
+      | ProjectSettings
+      | ReportMetadata,
+    projectPrefixes: string[],
+  ): string[] {
+    const errors: string[] = [];
+    const fullFileNameWithPath = this.fullPath(file);
+    // Exclude cardsConfig.json, .schemas and resource specific JSON files.
+    if (
+      file.name !== Validate.projectConfigurationFile &&
+      file.name !== Validate.cardMetadataFile &&
+      file.name !== Validate.dotSchemaSchemaId &&
+      file.name !== Validate.parameterSchemaFile
+    ) {
+      const namedContent = content as ResourceContent | ReportMetadata;
+      if (!namedContent.name) {
+        errors.push(
+          `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,
+        );
+        return errors;
+      }
+      const { identifier, prefix, type } = resourceName(namedContent.name);
+      const filenameWithoutExtension = parse(file.name).name;
+
+      if (!projectPrefixes.includes(prefix)) {
+        errors.push(
+          `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
+        );
+      }
+      if (identifier !== filenameWithoutExtension) {
+        errors.push(
+          `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
+        );
+      }
+      if (!fullFileNameWithPath.includes(type)) {
+        errors.push(
+          `Wrong type name in resource '${namedContent.name}'. Should match filename path: '${fullFileNameWithPath}'`,
+        );
+      }
+    }
+    return errors;
+  }
+
   // Return full path and filename.
   private fullPath(file: Dirent): string {
     return join(file.parentPath, file.name);
@@ -136,6 +185,88 @@ export class Validate {
         return resource;
       })
     );
+  }
+
+  private parseValidatorMessage(errorObject: object[]): string {
+    let parsedErrorMessage = '';
+    // todo: get schema name here?
+    for (const error of errorObject) {
+      let instancePath = '';
+      let params = '';
+      let message = '';
+      let fileError = false;
+      if (Object.prototype.hasOwnProperty.call(error, 'instancePath')) {
+        const temp = Object(error)['instancePath'];
+        if (temp.endsWith('files')) fileError = true;
+        instancePath = temp;
+        instancePath = instancePath.replace(/\/directories/g, '');
+        instancePath = instancePath.replace(/\/files/g, '');
+        if (instancePath === '') {
+          instancePath = 'project root';
+        }
+        if (instancePath[0] === '/') {
+          instancePath = instancePath.slice(1);
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'params')) {
+        params = Object(error)['params']['additionalProperty'];
+      }
+      if (Object.prototype.hasOwnProperty.call(error, 'message')) {
+        message = Object(error)['message'];
+        message = message.replace(
+          'must have required property',
+          fileError ? 'must have file' : 'must have subdirectory',
+        );
+        if (message === 'must NOT have additional properties') {
+          message = message.replace(
+            'must NOT have additional properties',
+            'non-allowed additional property',
+          );
+          message = message + `: ${params}`;
+        }
+      }
+      parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
+    }
+    return parsedErrorMessage;
+  }
+
+  // Handles reading and validating 'contentSchema' in a directory.
+  private async readAndValidateContentFiles(
+    project: Project,
+    path: string,
+  ): Promise<string[]> {
+    const message: string[] = [];
+    try {
+      const prefixes = await project.projectPrefixes();
+      const files = await readdir(path, {
+        withFileTypes: true,
+      });
+
+      const foldersToValidate = files.filter(
+        (dirent) =>
+          dirent.isDirectory() && subFoldersToValidate.includes(dirent.name),
+      );
+
+      // Validate subfolders parallel.
+      const promises: Promise<string[]>[] = [];
+      foldersToValidate.forEach((folder) => {
+        promises.push(this.validateFolder(prefixes, folder));
+      });
+      const result = await Promise.all(promises);
+      message.push(...result.flat(1));
+    } catch (error) {
+      throw new Error(errorFunction(error));
+    }
+    return message;
+  }
+
+  // Removes same items from an array.
+  private removeDuplicateEntries(
+    value: string,
+    index: number,
+    array: string[],
+  ) {
+    return array.indexOf(value) === index;
   }
 
   // Validate one subfolder.
@@ -226,36 +357,6 @@ export class Validate {
     return messages;
   }
 
-  // Handles reading and validating 'contentSchema' in a directory.
-  private async readAndValidateContentFiles(
-    project: Project,
-    path: string,
-  ): Promise<string[]> {
-    const message: string[] = [];
-    try {
-      const prefixes = await project.projectPrefixes();
-      const files = await readdir(path, {
-        withFileTypes: true,
-      });
-
-      const foldersToValidate = files.filter(
-        (dirent) =>
-          dirent.isDirectory() && subFoldersToValidate.includes(dirent.name),
-      );
-
-      // Validate subfolders parallel.
-      const promises: Promise<string[]>[] = [];
-      foldersToValidate.forEach((folder) => {
-        promises.push(this.validateFolder(prefixes, folder));
-      });
-      const result = await Promise.all(promises);
-      message.push(...result.flat(1));
-    } catch (error) {
-      throw new Error(errorFunction(error));
-    }
-    return message;
-  }
-
   // Handles validating .schema files
   private async validateSchemaFiles(files: Dirent[]) {
     const schema = this.validator.schemas[Validate.dotSchemaSchemaId];
@@ -279,58 +380,6 @@ export class Validate {
       }
     }
     return message;
-  }
-
-  private parseValidatorMessage(errorObject: object[]): string {
-    let parsedErrorMessage = '';
-    // todo: get schema name here?
-    for (const error of errorObject) {
-      let instancePath = '';
-      let params = '';
-      let message = '';
-      let fileError = false;
-      if (Object.prototype.hasOwnProperty.call(error, 'instancePath')) {
-        const temp = Object(error)['instancePath'];
-        if (temp.endsWith('files')) fileError = true;
-        instancePath = temp;
-        instancePath = instancePath.replace(/\/directories/g, '');
-        instancePath = instancePath.replace(/\/files/g, '');
-        if (instancePath === '') {
-          instancePath = 'project root';
-        }
-        if (instancePath[0] === '/') {
-          instancePath = instancePath.slice(1);
-        }
-      }
-      if (Object.prototype.hasOwnProperty.call(error, 'params')) {
-        params = Object(error)['params']['additionalProperty'];
-      }
-      if (Object.prototype.hasOwnProperty.call(error, 'message')) {
-        message = Object(error)['message'];
-        message = message.replace(
-          'must have required property',
-          fileError ? 'must have file' : 'must have subdirectory',
-        );
-        if (message === 'must NOT have additional properties') {
-          message = message.replace(
-            'must NOT have additional properties',
-            'non-allowed additional property',
-          );
-          message = message + `: ${params}`;
-        }
-      }
-      parsedErrorMessage += `\nAt '${instancePath}' ${message}`;
-    }
-    return parsedErrorMessage;
-  }
-
-  // Removes same items from an array.
-  private removeDuplicateEntries(
-    value: string,
-    index: number,
-    array: string[],
-  ) {
-    return array.indexOf(value) === index;
   }
 
   // Validate array of custom field names
@@ -362,96 +411,15 @@ export class Validate {
     return errors;
   }
 
-  // Validates that 'name' in resources matches filename, location and project prefix.
-  // @todo: Can be removed when INTDEV-463 is implemented.
-  private checkResourceName(
-    file: Dirent,
-    content:
-      | ResourceContent
-      | CustomField
-      | DotSchemaContent
-      | ProjectSettings
-      | ReportMetadata,
-    projectPrefixes: string[],
-  ): string[] {
-    const errors: string[] = [];
-    const fullFileNameWithPath = this.fullPath(file);
-    // Exclude cardsConfig.json, .schemas and resource specific JSON files.
-    if (
-      file.name !== Validate.projectConfigurationFile &&
-      file.name !== Validate.cardMetadataFile &&
-      file.name !== Validate.dotSchemaSchemaId &&
-      file.name !== Validate.parameterSchemaFile
-    ) {
-      const namedContent = content as ResourceContent | ReportMetadata;
-      if (!namedContent.name) {
-        errors.push(
-          `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,
-        );
-        return errors;
+  // Validates that arrays have only string elements.
+  private validateListValues(list: string[]): boolean {
+    let valid = true;
+    list.forEach((value) => {
+      if (typeof value !== 'string') {
+        valid = false;
       }
-      const { identifier, prefix, type } = resourceName(namedContent.name);
-      const filenameWithoutExtension = parse(file.name).name;
-
-      if (!projectPrefixes.includes(prefix)) {
-        errors.push(
-          `Wrong prefix in resource '${namedContent.name}'. Project prefixes are '[${projectPrefixes.join(', ')}]'`,
-        );
-      }
-      if (identifier !== filenameWithoutExtension) {
-        errors.push(
-          `Resource 'name' ${namedContent.name} mismatch with file path '${fullFileNameWithPath}'`,
-        );
-      }
-      if (!fullFileNameWithPath.includes(type)) {
-        errors.push(
-          `Wrong type name in resource '${namedContent.name}'. Should match filename path: '${fullFileNameWithPath}'`,
-        );
-      }
-    }
-    return errors;
-  }
-
-  /**
-   * Validates that new identifier of a resource is according to naming convention.
-   * @param identifier: resource identifier
-   * returns true if identifier is valid, and false otherwise.
-   */
-  public static isValidIdentifierName(identifier: string): boolean {
-    const validIdentifier = new RegExp('^[A-Za-z0-9 ._-]+$');
-    const contentValidated = validIdentifier.test(identifier);
-    const lengthValidated = identifier.length > 0 && identifier.length < 256;
-    const notInvalidIdentifier = !invalidNames.test(identifier);
-    return contentValidated && lengthValidated && notInvalidIdentifier;
-  }
-
-  /**
-   * Validates that 'name' can be used as a project name.
-   * @param name project name
-   * @returns true if name is valid, and false otherwise.
-   * @note that on Windows, if path + filename is longer than 256 characters, some file operations
-   *       are not possible. Thus, setting the maximum length of project name to 64 characters.
-   *       The 192 characters usually should be enough for the path.
-   */
-  public static isValidProjectName(name: string): boolean {
-    const validName = new RegExp('^[A-Za-z ._-]+$');
-    const contentValidated = validName.test(name);
-    const lengthValidated = name.length > 0 && name.length < 64;
-    const notInvalidName = !invalidNames.test(name);
-    return contentValidated && lengthValidated && notInvalidName;
-  }
-
-  /**
-   * Validates that 'name' can be used as label name.
-   * Labels are less restricted than other names, as they are never file names.
-   * @param name label name
-   * @returns true if name is valid, and false otherwise.
-   */
-  public static isValidLabelName(name: string): boolean {
-    const validName = new RegExp('^[-a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$');
-    const contentValidated = validName.test(name);
-    const lengthValidated = name.length > 0 && name.length < 256;
-    return contentValidated && lengthValidated;
+    });
+    return valid;
   }
 
   // Validates that card's dataType can be used with JS types.
@@ -500,15 +468,46 @@ export class Validate {
     return false;
   }
 
-  // Validates that arrays have only string elements.
-  private validateListValues(list: string[]): boolean {
-    let valid = true;
-    list.forEach((value) => {
-      if (typeof value !== 'string') {
-        valid = false;
-      }
-    });
-    return valid;
+  /**
+   * Validates that new identifier of a resource is according to naming convention.
+   * @param identifier: resource identifier
+   * returns true if identifier is valid, and false otherwise.
+   */
+  public static isValidIdentifierName(identifier: string): boolean {
+    const validIdentifier = new RegExp('^[A-Za-z0-9 ._-]+$');
+    const contentValidated = validIdentifier.test(identifier);
+    const lengthValidated = identifier.length > 0 && identifier.length < 256;
+    const notInvalidIdentifier = !invalidNames.test(identifier);
+    return contentValidated && lengthValidated && notInvalidIdentifier;
+  }
+
+  /**
+   * Validates that 'name' can be used as a project name.
+   * @param name project name
+   * @returns true if name is valid, and false otherwise.
+   * @note that on Windows, if path + filename is longer than 256 characters, some file operations
+   *       are not possible. Thus, setting the maximum length of project name to 64 characters.
+   *       The 192 characters usually should be enough for the path.
+   */
+  public static isValidProjectName(name: string): boolean {
+    const validName = new RegExp('^[A-Za-z ._-]+$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 64;
+    const notInvalidName = !invalidNames.test(name);
+    return contentValidated && lengthValidated && notInvalidName;
+  }
+
+  /**
+   * Validates that 'name' can be used as label name.
+   * Labels are less restricted than other names, as they are never file names.
+   * @param name label name
+   * @returns true if name is valid, and false otherwise.
+   */
+  public static isValidLabelName(name: string): boolean {
+    const validName = new RegExp('^[-a-zA-Z0-9._-]+(?: [a-zA-Z0-9._-]+)*$');
+    const contentValidated = validName.test(name);
+    const lengthValidated = name.length > 0 && name.length < 256;
+    return contentValidated && lengthValidated;
   }
 
   /**
@@ -639,7 +638,7 @@ export class Validate {
   }
 
   /**
-   * Validate that long and short resource names are valid.
+   * Validate that resource names and identifiers are valid.
    * @param resourceType Type of resource
    * @param name Name of resource
    * @param prefixes currently used project prefixes
@@ -694,6 +693,7 @@ export class Validate {
    * @param projectPath path to schema
    * @param schemaId schema's id
    * @returns string containing all validation errors
+   * @todo - unused; remove?
    */
   public async validateSchema(
     projectPath: string,

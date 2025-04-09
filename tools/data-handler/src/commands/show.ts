@@ -60,6 +60,55 @@ export class Show {
     ]);
   }
 
+  // Collect all labels from cards.
+  private collectLabels = (cards: Card[]): string[] => {
+    return cards.reduce<string[]>((labels, card) => {
+      // Add the labels from the current card
+      if (card.metadata?.labels) {
+        labels.push(...card.metadata.labels);
+      }
+      // Recursively collect labels from subcards, if they exist
+      if (card.children) {
+        labels.push(...this.collectLabels(card.children));
+      }
+      return labels;
+    }, []);
+  };
+
+  // Returns attachment details
+  private async getAttachment(cardKey: string, filename: string) {
+    const details = {
+      content: false,
+      metadata: true,
+      children: false,
+      parent: false,
+      attachments: true,
+    };
+    const card = await this.project.cardDetailsById(cardKey, details);
+    if (card === undefined) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+
+    const attachment =
+      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
+    return attachment;
+  }
+
+  // Opens the given path using the operating system's default application. Doesn't block the main thread.
+  // @todo: Move away from Show.
+  private openUsingDefaultApplication(path: string) {
+    if (process.platform === 'win32') {
+      // This is a workaround to get windows to open the file in foreground
+      spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
+        shell: true,
+      });
+    } else if (process.platform === 'darwin') {
+      spawn('open', [path]);
+    } else {
+      spawn('xdg-open', [path]);
+    }
+  }
+
   /**
    * Shows all attachments (either template or project attachments) from a project.
    * @returns array of card attachments
@@ -173,55 +222,6 @@ export class Show {
     }
   }
 
-  // Collect all labels from cards.
-  private collectLabels = (cards: Card[]): string[] => {
-    return cards.reduce<string[]>((labels, card) => {
-      // Add the labels from the current card
-      if (card.metadata?.labels) {
-        labels.push(...card.metadata.labels);
-      }
-      // Recursively collect labels from subcards, if they exist
-      if (card.children) {
-        labels.push(...this.collectLabels(card.children));
-      }
-      return labels;
-    }, []);
-  };
-
-  // Returns attachment details
-  private async getAttachment(cardKey: string, filename: string) {
-    const details = {
-      content: false,
-      metadata: true,
-      children: false,
-      parent: false,
-      attachments: true,
-    };
-    const card = await this.project.cardDetailsById(cardKey, details);
-    if (card === undefined) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-
-    const attachment =
-      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
-    return attachment;
-  }
-
-  // Opens the given path using the operating system's default application. Doesn't block the main thread.
-  // @todo: Move away from Show.
-  private openUsingDefaultApplication(path: string) {
-    if (process.platform === 'win32') {
-      // This is a workaround to get windows to open the file in foreground
-      spawn(`start`, ['cmd.exe', '/c', 'start', '""', `"${path}"`], {
-        shell: true,
-      });
-    } else if (process.platform === 'darwin') {
-      spawn('open', [path]);
-    } else {
-      spawn('xdg-open', [path]);
-    }
-  }
-
   /**
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
@@ -249,16 +249,6 @@ export class Show {
    */
   public async showCards(): Promise<CardListContainer[]> {
     return this.project.listCards();
-  }
-
-  /**
-   * Returns all project cards in the project. Cards don't have content and nor metadata.
-   * @note AppUi uses this method.
-   * @returns array of cards
-   */
-  public async showProjectCards(): Promise<Card[]> {
-    const projectCards = await this.project.showProjectCards();
-    return projectCards;
   }
 
   /**
@@ -306,6 +296,16 @@ export class Show {
   }
 
   /**
+   * Returns all project cards in the project. Cards don't have content and nor metadata.
+   * @note AppUi uses this method.
+   * @returns array of cards
+   */
+  public async showProjectCards(): Promise<Card[]> {
+    const projectCards = await this.project.showProjectCards();
+    return projectCards;
+  }
+
+  /**
    * Shows all modules (if any) in a project.
    * @returns all modules in a project.
    */
@@ -316,6 +316,7 @@ export class Show {
   /**
    * Shows all modules with full details in a project.
    * @returns all modules with full details in a project.
+   * @todo: unused; remove?
    */
   public async showModulesWithDetails(): Promise<
     (ModuleSettings | undefined)[]

@@ -38,6 +38,88 @@ export class Move {
     private calculateCmd: Calculate,
   ) {}
 
+  // Fetches a card (either template or project card).
+  private async getCard(cardKey: string, options: FetchCardDetails) {
+    let card: Card | undefined;
+    const templateCard = await this.project.isTemplateCard(cardKey);
+    if (templateCard) {
+      card = (await this.project.templateCards(options)).find(
+        (card) => card.key === cardKey,
+      );
+    } else {
+      card = await this.project.findSpecificCard(cardKey, options);
+    }
+    if (!card) {
+      throw new Error('Card was not found from the project');
+    }
+    return card;
+  }
+
+  // Returns children of a parent card or root cards
+  private async getSiblings(card: Card) {
+    const parentCardKey = card.parent || ROOT;
+
+    // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
+    if (parentCardKey === ROOT) {
+      if (Project.isTemplateCard(card)) {
+        const template = this.project.createTemplateObjectFromCard(card);
+        if (!template) {
+          throw new Error(
+            `Cannot find template for the template card '${card.key}'`,
+          );
+        }
+        if (card?.path.includes(`${sep}modules${sep}`)) {
+          throw new Error(`Cannot rank module cards`);
+        }
+        return template.cards();
+      }
+    }
+
+    let parentCard;
+    if (parentCardKey !== ROOT) {
+      parentCard = await this.project.findSpecificCard(parentCardKey, {
+        children: true,
+        metadata: true,
+      });
+      if (!parentCard) {
+        throw new Error(`Card ${parentCardKey} not found from project`);
+      }
+    }
+
+    if (parentCard) {
+      return parentCard.children || [];
+    }
+
+    return this.project.showProjectCards();
+  }
+
+  //
+  private async rebalanceCards(cards: Card[]) {
+    const ranks = rebalanceRanks(cards.length);
+
+    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
+
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
+    }
+  }
+
+  // Rebalances the project recursively.
+  private async rebalanceProjectRecursively(cards: Card[]) {
+    const ranks = rebalanceRanks(cards.length);
+
+    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
+
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
+      if (card.children && card.children.length > 0) {
+        await this.rebalanceProjectRecursively(card.children);
+      }
+    }
+  }
+
   /**
    * Moves card from 'destination' to 'source'.
    * @param source source card to move
@@ -143,6 +225,44 @@ export class Move {
   }
 
   /**
+   * Ranks card using position given as 'index'.
+   * @param cardKey card key
+   * @param index to which position should card be ranked to
+   */
+  public async rankByIndex(cardKey: string, index: number) {
+    if (index < 0) {
+      throw new Error(`Index must be greater than 0`);
+    }
+    if (index === 0) {
+      await this.rankFirst(cardKey);
+      return;
+    }
+
+    const card = await this.project.findSpecificCard(cardKey, {
+      metadata: true,
+      parent: true,
+    });
+
+    if (!card || !card.parent) {
+      throw new Error(`Card ${cardKey} not found from project`);
+    }
+
+    const children = sortItems(
+      await this.getSiblings(card),
+      (item) => item.metadata?.rank || EMPTY_RANK,
+    );
+
+    if (!children || children.length === 0) {
+      throw new Error(`Children not found from card ${card.parent}`);
+    }
+
+    if (children.length < index) {
+      throw new Error(`Index ${index} is out of bounds`);
+    }
+    await this.rankCard(cardKey, children[index - 1].key);
+  }
+
+  /**
    * Sets the rank of a card to be after another card.
    * @param cardKey Card to rank
    * @param beforeCardKey Card key after which the card will be ranked
@@ -214,44 +334,6 @@ export class Move {
   }
 
   /**
-   * Ranks card using position given as 'index'.
-   * @param cardKey card key
-   * @param index to which position should card be ranked to
-   */
-  public async rankByIndex(cardKey: string, index: number) {
-    if (index < 0) {
-      throw new Error(`Index must be greater than 0`);
-    }
-    if (index === 0) {
-      await this.rankFirst(cardKey);
-      return;
-    }
-
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-      parent: true,
-    });
-
-    if (!card || !card.parent) {
-      throw new Error(`Card ${cardKey} not found from project`);
-    }
-
-    const children = sortItems(
-      await this.getSiblings(card),
-      (item) => item.metadata?.rank || EMPTY_RANK,
-    );
-
-    if (!children || children.length === 0) {
-      throw new Error(`Children not found from card ${card.parent}`);
-    }
-
-    if (children.length < index) {
-      throw new Error(`Index ${index} is out of bounds`);
-    }
-    await this.rankCard(cardKey, children[index - 1].key);
-  }
-
-  /**
    * Ranks card first.
    * @param cardKey card key
    */
@@ -301,6 +383,21 @@ export class Move {
   }
 
   /**
+   *  Rebalances the ranks of the children of a card.
+   * @param parentCardKey parent card key
+   */
+  public async rebalanceChildren(parentCardKey: string) {
+    const parentCard = await this.project.findSpecificCard(parentCardKey, {
+      children: true,
+      metadata: true,
+    });
+    if (!parentCard || !parentCard.children) {
+      throw new Error(`Card ${parentCardKey} not found from project`);
+    }
+    await this.rebalanceCards(parentCard.children);
+  }
+
+  /**
    * Rebalances the ranks of the cards in the whole project, including templates
    * Can be used even if the ranks do not exist
    */
@@ -344,105 +441,8 @@ export class Move {
       );
 
       for (const [, cards] of Object.entries(cardGroups)) {
-        // todo: this could be done parallel
         await this.rebalanceCards(cards);
       }
     }
-  }
-
-  /**
-   *  Rebalances the ranks of the children of a card.
-   * @param parentCardKey
-   */
-  public async rebalanceChildren(parentCardKey: string) {
-    const parentCard = await this.project.findSpecificCard(parentCardKey, {
-      children: true,
-      metadata: true,
-    });
-    if (!parentCard || !parentCard.children) {
-      throw new Error(`Card ${parentCardKey} not found from project`);
-    }
-    await this.rebalanceCards(parentCard.children);
-  }
-
-  private async rebalanceCards(cards: Card[]) {
-    const ranks = rebalanceRanks(cards.length);
-
-    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
-    }
-  }
-
-  // Rebalances the project recursively.
-  private async rebalanceProjectRecursively(cards: Card[]) {
-    const ranks = rebalanceRanks(cards.length);
-
-    cards = sortItems(cards, (item) => item.metadata?.rank || 'z');
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      await this.project.updateCardMetadataKey(card.key, 'rank', ranks[i]);
-      if (card.children && card.children.length > 0) {
-        await this.rebalanceProjectRecursively(card.children);
-      }
-    }
-  }
-
-  // Fetches a card (either template or project card).
-  private async getCard(cardKey: string, options: FetchCardDetails) {
-    let card: Card | undefined;
-    const templateCard = await this.project.isTemplateCard(cardKey);
-    if (templateCard) {
-      card = (await this.project.templateCards(options)).find(
-        (card) => card.key === cardKey,
-      );
-    } else {
-      card = await this.project.findSpecificCard(cardKey, options);
-    }
-    if (!card) {
-      throw new Error('Card was not found from the project');
-    }
-    return card;
-  }
-
-  // Returns children of a parent card or root cards
-  private async getSiblings(card: Card) {
-    const parentCardKey = card.parent || ROOT;
-
-    // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
-    if (parentCardKey === ROOT) {
-      if (Project.isTemplateCard(card)) {
-        const template = this.project.createTemplateObjectFromCard(card);
-        if (!template) {
-          throw new Error(
-            `Cannot find template for the template card '${card.key}'`,
-          );
-        }
-        if (card?.path.includes(`${sep}modules${sep}`)) {
-          throw new Error(`Cannot rank module cards`);
-        }
-        return template.cards();
-      }
-    }
-
-    let parentCard;
-    if (parentCardKey !== ROOT) {
-      parentCard = await this.project.findSpecificCard(parentCardKey, {
-        children: true,
-        metadata: true,
-      });
-      if (!parentCard) {
-        throw new Error(`Card ${parentCardKey} not found from project`);
-      }
-    }
-
-    if (parentCard) {
-      return parentCard.children || [];
-    }
-
-    return this.project.showProjectCards();
   }
 }
