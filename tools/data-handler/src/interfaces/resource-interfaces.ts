@@ -39,16 +39,16 @@ export interface CustomField {
 
 // Supported data types.
 export type DataType =
-  | 'shortText'
-  | 'longText'
-  | 'enum'
-  | 'number'
-  | 'integer'
   | 'boolean'
-  | 'list'
   | 'date'
   | 'dateTime'
-  | 'person';
+  | 'enum'
+  | 'integer'
+  | 'list'
+  | 'longText'
+  | 'number'
+  | 'person'
+  | 'shortText';
 
 // Custom field enum value
 export interface EnumDefinition {

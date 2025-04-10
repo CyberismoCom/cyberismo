@@ -24,7 +24,7 @@ import { Calculate, Validate } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
-import { Link, LinkType } from '../interfaces/resource-interfaces.js';
+import { DataType, Link, LinkType } from '../interfaces/resource-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
 import { ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
@@ -264,7 +264,7 @@ export class Create {
    * @param fieldTypeName name for the field type.
    * @param dataType data type for the field type
    */
-  public async createFieldType(fieldTypeName: string, dataType: string) {
+  public async createFieldType(fieldTypeName: string, dataType: DataType) {
     const fieldType = new FieldTypeResource(
       this.project,
       resourceName(fieldTypeName),

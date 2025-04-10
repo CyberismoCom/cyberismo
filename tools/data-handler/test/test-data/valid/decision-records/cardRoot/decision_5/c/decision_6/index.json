@@ -9,7 +9,7 @@
     "decision/fieldTypes/finished": null,
     "decision/fieldTypes/lastChangedDate": null,
     "decision/fieldTypes/lastChangedTimestamp": null,
-    "decision/fieldTypes/numberOfCommits": null,
+    "decision/fieldTypes/numberOfCommits": 1.5,
     "decision/fieldTypes/percentageReady": null,
     "decision/fieldTypes/responsible": null
 }
