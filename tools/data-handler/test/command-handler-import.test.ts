@@ -154,6 +154,13 @@ describe('import module', () => {
         optionsMini,
       );
       expect(result.statusCode).to.equal(200);
+
+      // Remove the module so that it won't affect other tests
+      result = await commandHandler.command(
+        Cmd.remove,
+        ['module', 'decision'],
+        optionsMini,
+      );
     });
     it('create empty project and import two modules', async () => {
       const prefix = 'proj';
@@ -175,7 +182,6 @@ describe('import module', () => {
             ['module', minimalPath],
             testOptions,
           );
-
           expect(result.statusCode).to.equal(200);
           result = await commandHandler.command(
             Cmd.show,
