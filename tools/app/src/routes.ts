@@ -18,6 +18,12 @@ export const router = createBrowserRouter([
         Component: CardsPage,
       },
       {
+        path: '/cards/:key.html',
+        loader: ({ params }) => {
+          return redirect(`/cards/${params.key}`);
+        },
+      },
+      {
         path: '/cards/:key',
         Component: CardPage,
       },
