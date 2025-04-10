@@ -32,11 +32,9 @@ export const router = createBrowserRouter([
         Component: CardPage,
       },
       {
-        {
-          path: '/cards/:key/edit.html',
-          loader: ({ params }) => {
-            return redirect(`/cards/${params.key}/edit`);
-          },
+        path: '/cards/:key/edit.html',
+        loader: ({ params }) => {
+          return redirect(`/cards/${params.key}/edit`);
         },
       },
       {
