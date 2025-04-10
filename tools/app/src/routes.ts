@@ -14,6 +14,10 @@ export const router = createBrowserRouter([
     Component: CardsLayout,
     children: [
       {
+        path: '/cards.html',
+        loader: () => redirect('/cards'),
+      },
+      {
         path: '/cards',
         Component: CardsPage,
       },
@@ -26,6 +30,14 @@ export const router = createBrowserRouter([
       {
         path: '/cards/:key',
         Component: CardPage,
+      },
+      {
+        {
+          path: '/cards/:key/edit.html',
+          loader: ({ params }) => {
+            return redirect(`/cards/${params.key}/edit`);
+          },
+        },
       },
       {
         path: '/cards/:key/edit',
