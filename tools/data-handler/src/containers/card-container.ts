@@ -359,6 +359,7 @@ export class CardContainer {
   protected async saveCardMetadata(card: Card) {
     if (card.metadata != null) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
+      card.metadata!.lastUpdated = new Date().toISOString();
       await writeJsonFile(metadataFile, card.metadata);
     }
   }
