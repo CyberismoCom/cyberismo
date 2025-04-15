@@ -54,21 +54,17 @@ const commonFolderLocation = join(
   fileURLToPath(import.meta.url),
   '../../../../../resources/calculations/common',
 );
-let commonFiles = '';
 
 const baseProgramPath = join(commonFolderLocation, 'base.lp');
 const queryLanguagePath = join(commonFolderLocation, 'queryLanguage.lp');
 
+// Read base and query language files
 const baseContent = await readFile(baseProgramPath, 'utf-8');
 const queryLanguageContent = await readFile(queryLanguagePath, 'utf-8');
 
-commonFiles =
-  '% SECTION: BASE_START\n' +
-  baseContent +
-  '\n% SECTION: BASE_END\n\n' +
-  '% SECTION: QUERY_LANGUAGE_START\n' +
-  queryLanguageContent +
-  '\n% SECTION: QUERY_LANGUAGE_END';
+// Define names for the base programs
+const BASE_PROGRAM_KEY = 'base';
+const QUERY_LANGUAGE_KEY = 'queryLanguage';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -144,12 +140,6 @@ export class Calculate {
     }
 
     return content;
-  }
-
-  // Generate common files content
-  private async generateCommonFiles() {
-    // Base program is already loaded in constructor
-    return commonFiles;
   }
 
   //
@@ -294,8 +284,14 @@ export class Calculate {
     }
 
     const res = await Calculate.mutex.runExclusive(async () => {
+      // For queries, use both base and queryLanguage
+      const basePrograms =
+        argMode === 'query'
+          ? [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY]
+          : BASE_PROGRAM_KEY;
+
       // Then solve with the program - need to pass the program as parameter
-      return solve(data.query as string);
+      return solve(data.query as string, basePrograms);
     });
 
     logger.trace(
@@ -353,10 +349,11 @@ export class Calculate {
         linkTypes +
         '% SECTION: RESOURCES_END';
 
-      // Combine all content into the main logic program
-      this.logicProgram =
-        commonFiles +
-        '\n\n' +
+      // Create base program content
+      const baseProgram =
+        '% SECTION: BASE_START\n' +
+        baseContent +
+        '\n% SECTION: BASE_END\n\n' +
         this.modules +
         '\n\n' +
         cardTreeContent +
@@ -364,8 +361,17 @@ export class Calculate {
         resourcesProgram +
         '\n\n';
 
-      // Set the base program whenever logicProgram changes
-      setBaseProgram(this.logicProgram);
+      // Set the base programs separately
+      setBaseProgram(baseProgram, BASE_PROGRAM_KEY);
+      setBaseProgram(
+        '% SECTION: QUERY_LANGUAGE_START\n' +
+          queryLanguageContent +
+          '\n% SECTION: QUERY_LANGUAGE_END',
+        QUERY_LANGUAGE_KEY,
+      );
+
+      // Also store the base program (without query language) for updates
+      this.logicProgram = baseProgram;
     });
   }
 
@@ -401,7 +407,7 @@ export class Calculate {
       }
 
       // Update the base program after modifying logicProgram
-      setBaseProgram(this.logicProgram);
+      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
   }
 
@@ -435,7 +441,7 @@ export class Calculate {
       }
 
       // Update the base program after modifying logicProgram
-      setBaseProgram(this.logicProgram);
+      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
 
     const cardKeys = cards.map((item) => item.key);
@@ -462,7 +468,9 @@ export class Calculate {
     data: { query?: string; file?: string },
     timeout?: number,
   ) {
-    const clingoOutput = await this.run(data);
+    const clingoOutput = await this.run(data, 'graph');
+
+    console.log(clingoOutput);
 
     // const firstLine = clingoOutput.split('\n')[0];
 
@@ -487,7 +495,7 @@ export class Calculate {
 
     const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
       encoding: 'utf8',
-      input: clingoOutput.join('.'),
+      input: clingoOutput.join('\n').replaceAll('\n', '. ') + '.',
       timeout,
       maxBuffer: 1024 * 1024 * 100,
     });
@@ -542,9 +550,12 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const clingoOutput = await this.run({
-      query: content,
-    });
+    const clingoOutput = await this.run(
+      {
+        query: content,
+      },
+      'query',
+    );
 
     const result = await this.parseClingoResult(clingoOutput);
 

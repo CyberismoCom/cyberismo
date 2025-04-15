@@ -9,11 +9,12 @@
 #include <ctime>
 #include <iomanip>
 #include <fstream>
+#include <unordered_map>
 #include "helpers.h"
 #include "function_handlers.h"
 
-// Store the base program as a global variable
-std::string g_baseProgram = "";
+// Store base programs in a map, keyed by name
+std::unordered_map<std::string, std::string> g_basePrograms;
 
 // Helper function to handle Clingo errors
 void HandleClingoError(const Napi::Env& env) {
@@ -123,17 +124,61 @@ Napi::Value SetBaseProgram(const Napi::CallbackInfo& info) {
     
     try {
         // Check arguments
-        if (info.Length() < 1 || !info[0].IsString()) {
-            throw Napi::TypeError::New(env, "String argument expected for base program");
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString()) {
+            throw Napi::TypeError::New(env, "Expected arguments: program (string), key (string)");
         }
 
-        // Update the global base program
-        g_baseProgram = info[0].As<Napi::String>().Utf8Value();
+        std::string program = info[0].As<Napi::String>().Utf8Value();
+        std::string key = info[1].As<Napi::String>().Utf8Value();
+
+        // Update the named base program
+        g_basePrograms[key] = program;
         
         return Napi::Boolean::New(env, true);
         
     } catch (const Napi::Error& e) {
         // Let Napi errors propagate as they are
+        throw;
+    } catch (const std::exception& e) {
+        throw Napi::Error::New(env, e.what());
+    } catch (...) {
+        throw Napi::Error::New(env, "Unknown error occurred");
+    }
+}
+
+// Clear a specific base program
+Napi::Value ClearBaseProgram(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    try {
+        // Check arguments
+        if (info.Length() < 1 || !info[0].IsString()) {
+            throw Napi::TypeError::New(env, "Expected argument: key (string)");
+        }
+
+        std::string key = info[0].As<Napi::String>().Utf8Value();
+        g_basePrograms.erase(key);
+        
+        return Napi::Boolean::New(env, true);
+        
+    } catch (const Napi::Error& e) {
+        throw;
+    } catch (const std::exception& e) {
+        throw Napi::Error::New(env, e.what());
+    } catch (...) {
+        throw Napi::Error::New(env, "Unknown error occurred");
+    }
+}
+
+// Clear all base programs
+Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    
+    try {
+        g_basePrograms.clear();
+        return Napi::Boolean::New(env, true);
+        
+    } catch (const Napi::Error& e) {
         throw;
     } catch (const std::exception& e) {
         throw Napi::Error::New(env, e.what());
@@ -155,11 +200,37 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         auto start = std::chrono::high_resolution_clock::now();
         
         // Create the program string once
-        std::string program;
-        if (g_baseProgram.empty()) {
-            program = info[0].As<Napi::String>().Utf8Value();
-        } else {
-            program = g_baseProgram + "\n" + info[0].As<Napi::String>().Utf8Value();
+        std::string program = info[0].As<Napi::String>().Utf8Value();
+        
+        // Apply base programs if specified
+        if (info.Length() >= 2) {
+            if (info[1].IsString()) {
+                // If a single base program name is provided
+                std::string key = info[1].As<Napi::String>().Utf8Value();
+                auto it = g_basePrograms.find(key);
+                if (it != g_basePrograms.end()) {
+                    program = it->second + "\n" + program;
+                }
+            }
+            else if (info[1].IsArray()) {
+                // If an array of base program names is provided
+                Napi::Array basePrograms = info[1].As<Napi::Array>();
+                std::string combinedBase = "";
+                for (uint32_t i = 0; i < basePrograms.Length(); ++i) {
+                    Napi::Value val = basePrograms[i];
+                    if (val.IsString()) {
+                        std::string key = val.As<Napi::String>().Utf8Value();
+                        auto it = g_basePrograms.find(key);
+                        if (it != g_basePrograms.end()) {
+                            if (!combinedBase.empty()) combinedBase += "\n";
+                            combinedBase += it->second;
+                        }
+                    }
+                }
+                if (!combinedBase.empty()) {
+                    program = combinedBase + "\n" + program;
+                }
+            }
         }
         
         // Create control object with no arguments
@@ -252,6 +323,16 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(
         Napi::String::New(env, "setBaseProgram"),
         Napi::Function::New(env, SetBaseProgram)
+    );
+    
+    exports.Set(
+        Napi::String::New(env, "clearBaseProgram"),
+        Napi::Function::New(env, ClearBaseProgram)
+    );
+    
+    exports.Set(
+        Napi::String::New(env, "clearAllBasePrograms"),
+        Napi::Function::New(env, ClearAllBasePrograms)
     );
     
     return exports;
