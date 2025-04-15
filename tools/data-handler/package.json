@@ -50,7 +50,8 @@
     "mime-types": "^3.0.1",
     "pino": "^9.6.0",
     "tslib": "^2.6.2",
-    "write-json-file": "^6.0.0"
+    "write-json-file": "^6.0.0",
+    "@cyberismocom/node-clingo": "workspace:*"
   },
   "type": "module"
 }
