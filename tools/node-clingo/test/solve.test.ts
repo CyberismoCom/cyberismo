@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { solve, setBaseProgram } from '../lib/index.js';
+import { solve, setBaseProgram, clearBaseProgram } from '../lib/index.js';
 
 describe('Clingo solver', () => {
   afterEach(() => {
-    // Reset base program after each test
-    setBaseProgram('');
+    // Reset all base programs after each test
+    clearBaseProgram();
   });
 
   it('should solve a simple logic program', async () => {
@@ -18,7 +18,7 @@ describe('Clingo solver', () => {
     expect(result.executionTime).toBeGreaterThan(0);
   });
 
-  it('should use the base program when solving', async () => {
+  it('should use the default base program when solving', async () => {
     // Set up a base program
     const baseProgram = 'base(1).';
     setBaseProgram(baseProgram);
@@ -26,19 +26,21 @@ describe('Clingo solver', () => {
     // Solve with additional rules
     const program = 'derived :- base(X).';
     const result = await solve(program);
+    console.log('Result with default base:', result);
 
     expect(result.answers.length).toBeGreaterThan(0);
     expect(result.answers[0]).toContain('derived');
     expect(result.answers[0]).toContain('base(1)');
   });
 
-  it('should reuse base program across multiple solves', async () => {
+  it('should reuse default base program across multiple solves', async () => {
     // Set base program once
     const baseProgram = 'common(value).';
     setBaseProgram(baseProgram);
 
     // First solve
     const result1 = await solve('a.');
+    console.log('First solve result:', result1);
     expect(result1.answers[0]).toContain('common(value)');
     expect(result1.answers[0]).toContain('a');
 
@@ -51,5 +53,50 @@ describe('Clingo solver', () => {
     const result3 = await solve('c.');
     expect(result3.answers[0]).toContain('common(value)');
     expect(result3.answers[0]).toContain('c');
+  });
+
+  describe('Named base programs', () => {
+    it('should use a specified named base program', async () => {
+      setBaseProgram('type(query).', 'query');
+      setBaseProgram('type(graph).', 'graph');
+
+      // Use query base program
+      const result1 = await solve('valid :- type(query).', 'query');
+      expect(result1.answers[0]).toContain('valid');
+      expect(result1.answers[0]).toContain('type(query)');
+      expect(result1.answers[0]).not.toContain('type(graph)');
+
+      // Use graph base program
+      const result2 = await solve('valid :- type(graph).', 'graph');
+      expect(result2.answers[0]).toContain('valid');
+      expect(result2.answers[0]).toContain('type(graph)');
+      expect(result2.answers[0]).not.toContain('type(query)');
+    });
+
+    it('should combine multiple base programs', async () => {
+      setBaseProgram('color(red).', 'colors');
+      setBaseProgram('shape(circle).', 'shapes');
+      setBaseProgram('size(large).', 'sizes');
+
+      // Combine multiple base programs
+      const result = await solve('valid :- color(X), shape(Y), size(Z).', [
+        'colors',
+        'shapes',
+        'sizes',
+      ]);
+
+      expect(result.answers[0]).toContain('valid');
+      expect(result.answers[0]).toContain('color(red)');
+      expect(result.answers[0]).toContain('shape(circle)');
+      expect(result.answers[0]).toContain('size(large)');
+    });
+
+    it('should handle non-existent base program gracefully', async () => {
+      // Solve with non-existent base program
+      const result = await solve('a.', 'non_existent');
+
+      // Should still solve normally
+      expect(result.answers[0]).toBe('a');
+    });
   });
 });

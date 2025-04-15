@@ -27,29 +27,13 @@ describe('remove card', () => {
   });
 
   it('Remove - remove card that has children', async () => {
-    const calcDir = join(decisionRecordsPath, '.calc');
-    const cardTreeCalcFile = join(calcDir, 'cardTree.lp');
-    let cardTreeFileContent = (await readFile(cardTreeCalcFile)).toString();
-    const cardsCalcFile = join(calcDir, 'cards', 'decision_5.lp');
-    expect(pathExists(cardsCalcFile)).to.equal(true);
-    expect(cardTreeFileContent.includes('cards/decision_5.lp')).to.equal(true);
-
     const cardId = 'decision_5';
     const removeCmd = new Remove(commands.project, commands.calculateCmd);
-    await removeCmd
-      .remove('card', cardId)
-      .then(() => {
-        expect(true);
-      })
-      .catch(() => {
-        expect(false);
-      });
+    await removeCmd.remove('card', cardId);
 
-    // After deleting the card, check that calculations files are correctly updated.
-    cardTreeFileContent = (await readFile(cardTreeCalcFile)).toString();
-    expect(cardTreeFileContent.includes('cards/decision_5.lp')).to.equal(false);
-    // Since decision_6 is decision_5's child, it should have been removed as well.
-    expect(cardTreeFileContent.includes('cards/decision_6.lp')).to.equal(false);
-    expect(pathExists(cardsCalcFile)).to.equal(false);
+    const card = await commands.project.findSpecificCard(cardId);
+    expect(card).to.equal(undefined);
+    const card6 = await commands.project.findSpecificCard('decision_6');
+    expect(card6).to.equal(undefined);
   });
 });
