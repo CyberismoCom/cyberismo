@@ -182,24 +182,23 @@ jobs:
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/samutoljamo/wasm-test')
         run: |
           mkdir -p release-assets
+          # Navigate to prebuilds directory correctly
           cd tools/node-clingo/prebuilds
           
-          # List all platform directories
-          for platform_dir in */; do
-            platform=${platform_dir%/}
-            echo "Packaging $platform"
-            
-            # Create platform-specific tarballs
-            for arch_dir in $platform/*; do
-              if [ -d "$arch_dir" ]; then
-                arch=$(basename $arch_dir)
-                echo "Creating tarball for $platform-$arch"
-                tar -czf ../../../release-assets/$platform-$arch.tar.gz -C $platform/$arch .
-              fi
-            done
+          # List all platform-arch directories
+          for platform_arch_dir in */; do
+            # Ensure that only directories are being processed
+            if [ -d "$platform_arch_dir" ]; then
+              platform_arch=${platform_arch_dir%/}
+              echo "Packaging $platform_arch"
+              
+              # Create tarballs directly from platform-arch directories
+              tar -czf ../../release-assets/${platform_arch}.tar.gz -C "$platform_arch_dir" .
+            fi
           done
           
-          cd ../../..
+          # Navigate to the base directory before listing assets
+          cd ../../
           ls -la release-assets
 
       - name: Get package version
