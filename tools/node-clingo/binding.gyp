@@ -38,11 +38,31 @@
           ]
         }],
         ["OS=='mac'", {
-          "libraries": [
-            "-lclingo"
+          "conditions": [
+            ["target_arch=='arm64'", {
+              "libraries": [
+                "-L/opt/homebrew/lib",
+                "-lclingo"
+              ],
+              "include_dirs": [
+                "/opt/homebrew/include"
+              ]
+            }],
+            ["target_arch!='arm64'", {
+              "libraries": [
+                "-L/usr/local/lib",
+                "-lclingo"
+              ],
+              "include_dirs": [
+                "/usr/local/include"
+              ]
+            }]
           ],
           "xcode_settings": {
-            "GCC_ENABLE_CPP_EXCEPTIONS": "YES"
+            "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+            "OTHER_LDFLAGS": [
+              "-Wl,-rpath,@loader_path"
+            ]
           }
         }],
         ["OS!='win' and OS!='mac'", {
