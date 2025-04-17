@@ -37,7 +37,15 @@
             }
           ]
         }],
-        ["OS!='win'", {
+        ["OS=='mac'", {
+          "libraries": [
+            "-lclingo"
+          ],
+          "xcode_settings": {
+            "GCC_ENABLE_CPP_EXCEPTIONS": "YES"
+          }
+        }],
+        ["OS!='win' and OS!='mac'", {
           "libraries": [
             "-lclingo"
           ]
