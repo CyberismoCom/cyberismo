@@ -126,7 +126,7 @@ export class CardTypeResource extends FileResource {
     for (const card of cards) {
       if (card.metadata) {
         card.metadata[item.name] = null;
-        await this.project.updateCardMetadata(card, card.metadata, true);
+        await this.project.updateCardMetadata(card, card.metadata);
       }
     }
   }
@@ -168,7 +168,7 @@ export class CardTypeResource extends FileResource {
     for (const card of cards) {
       if (card.metadata) {
         delete card.metadata[item.name];
-        await this.project.updateCardMetadata(card, card.metadata, true);
+        await this.project.updateCardMetadata(card, card.metadata);
       }
     }
   }
@@ -298,12 +298,7 @@ export class CardTypeResource extends FileResource {
           [to]: card.metadata[from],
         })[from];
 
-        const skipValidation = true;
-        await this.project.updateCardMetadata(
-          card,
-          card.metadata,
-          skipValidation,
-        );
+        await this.project.updateCardMetadata(card, card.metadata);
       }
     }
   }
