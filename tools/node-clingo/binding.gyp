@@ -1,6 +1,7 @@
 {
   "variables": {
-      "openssl_fips": ""
+      "openssl_fips": "",
+      "conda_prefix": "<!(echo %CONDA_PREFIX%)"
   },
   "targets": [
     {
@@ -13,12 +14,27 @@
         "src/function_handlers.cc"
       ],
       "include_dirs": [
-        "<!@(node -p \"require('node-addon-api').include\")"
+        "<!@(node -p \"require('node-addon-api').include\")",
+        "<(conda_prefix)/Library/include"
       ],
       "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS" ],
-      "libraries": [
-        "-lclingo",
-      ],
+      "conditions": [
+        ["OS=='win'", {
+          "libraries": [
+            "<(conda_prefix)/Library/lib/import_clingo.lib"
+          ],
+          "msvs_settings": {
+            "VCCLCompilerTool": {
+              "ExceptionHandling": 1
+            }
+          }
+        }],
+        ["OS!='win'", {
+          "libraries": [
+            "-lclingo"
+          ]
+        }]
+      ]
     }
   ]
 } 
