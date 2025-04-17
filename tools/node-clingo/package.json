@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
-    "install": "node-gyp-build",
+    "install": "prebuild-install || node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi --strip",
     "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi --strip",
@@ -26,5 +26,12 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.js"
+  },
+  "binary": {
+    "module_name": "node-clingo",
+    "host": "https://github.com",
+    "remote_path": "cyberismocom/cyberismo/releases/download/node-clingo-{version}",
+    "package_name": "{platform}-{arch}.tar.gz",
+    "package_json": "package.json"
   }
 }
