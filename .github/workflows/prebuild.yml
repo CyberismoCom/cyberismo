@@ -146,6 +146,9 @@ jobs:
   collect-prebuilds:
     needs: [check-version-change, build-prebuilds]
     if: ${{ needs.check-version-change.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -206,8 +209,9 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/samutoljamo/wasm-test')
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: node-clingo-${{ steps.package_version.outputs.version }}
           name: Node Clingo v${{ steps.package_version.outputs.version }}
