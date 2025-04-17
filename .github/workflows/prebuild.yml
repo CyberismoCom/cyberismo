@@ -104,14 +104,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Install dependencies
-        working-directory: tools/node-clingo
-        run: pnpm install
 
       - name: Download all prebuilds
         uses: actions/download-artifact@v4
