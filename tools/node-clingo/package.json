@@ -4,7 +4,7 @@
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node-gyp-build",
-    "build": "tsc -p tsconfig.build.json && node-gyp-build",
+    "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "tsc -p tsconfig.build.json && prebuildify",
     "test": "vitest run",
     "test:watch": "vitest"
