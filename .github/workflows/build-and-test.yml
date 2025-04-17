@@ -28,13 +28,10 @@ jobs:
         shell: bash -el {0}
     steps:
     - uses: actions/checkout@v4
-    - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        python-version: 3.12
-        auto-update-conda: true
-        activate-environment: cyberismo
-        environment-file: environment.yml
+    - name: Install clingo
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clingo
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
