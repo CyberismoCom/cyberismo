@@ -5,7 +5,8 @@
   "scripts": {
     "install": "node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
-    "build-prebuildify": "tsc -p tsconfig.build.json && prebuildify",
+    "build-prebuildify": "prebuildify --napi --strip",
+    "build-arm64": "prebuildify-cross --arch arm64 --napi --strip",
     "test": "vitest run",
     "test:watch": "vitest"
   },

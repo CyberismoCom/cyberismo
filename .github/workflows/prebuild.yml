@@ -1,0 +1,137 @@
+name: Build Native Prebuilds
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tools/node-clingo/**'
+  pull_request:
+    paths:
+      - 'tools/node-clingo/**'
+  workflow_dispatch:
+
+jobs:
+  build-prebuilds:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native builds
+          - os: ubuntu-latest
+            arch: x64
+            cross: false
+          - os: macos-13
+            arch: x64
+            cross: false
+          - os: macos-latest # Apple Silicon runner
+            arch: arm64
+            cross: false
+          - os: windows-latest
+            arch: x64
+            cross: false
+          
+          # Cross-compilation builds
+          - os: ubuntu-latest
+            arch: arm64
+            cross: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: matrix.cross
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && runner.os != 'macOS' && 'x64' || matrix.arch }}
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: 3.10
+          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == true && 'x64' || matrix.arch }}
+
+      - name: Install Clingo on Linux/macOS
+        if: runner.os != 'Windows'
+        shell: bash -el {0}
+        run: |
+          conda install -c potassco clingo
+
+      - name: Install Clingo on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          conda install -c potassco clingo
+
+      - name: Install dependencies
+        working-directory: tools/node-clingo
+        run: pnpm install
+
+      - name: Build native prebuilds
+        if: matrix.cross == false
+        working-directory: tools/node-clingo
+        run: npm run build-prebuildify
+        env:
+          PREBUILD_ARCH: ${{ matrix.arch }}
+
+      - name: Build ARM64 prebuilds (cross-compilation)
+        if: matrix.cross == true && matrix.arch == 'arm64'
+        working-directory: tools/node-clingo
+        run: npm run build-arm64
+
+      - name: Upload prebuilds as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-clingo-prebuild-${{ runner.os }}-${{ matrix.arch }}
+          path: tools/node-clingo/prebuilds/
+
+  collect-prebuilds:
+    needs: build-prebuilds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        working-directory: tools/node-clingo
+        run: npm ci
+
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: all-prebuilds
+
+      - name: Organize prebuilds
+        shell: bash
+        run: |
+          mkdir -p tools/node-clingo/prebuilds/
+          cp -r all-prebuilds/*/* tools/node-clingo/prebuilds/
+          ls -la tools/node-clingo/prebuilds/
+          node tools/node-clingo/scripts/collect-prebuilds.js
+
+      - name: Upload combined prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-clingo-prebuilds-all
+          path: tools/node-clingo/prebuilds/ 
