@@ -11,7 +11,11 @@ if (!fs.existsSync(targetDir)) {
 
 // Find and copy .node files
 fs.readdirSync(sourceDir).forEach((file) => {
-  if (file.endsWith('.node')) {
+  if (
+    file.endsWith('.node') ||
+    file.endsWith('.dll') ||
+    file.endsWith('.dylib')
+  ) {
     const sourceFile = path.join(sourceDir, file);
     const targetFile = path.join(targetDir, file);
     fs.copyFileSync(sourceFile, targetFile);
