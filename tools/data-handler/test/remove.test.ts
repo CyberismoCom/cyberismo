@@ -1,9 +1,8 @@
 import { expect } from 'chai';
 import { dirname, join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 
-import { copyDir, pathExists } from '../src/utils/file-utils.js';
+import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { Remove } from '../src/commands/remove.js';
 

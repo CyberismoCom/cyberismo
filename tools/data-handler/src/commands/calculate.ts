@@ -15,6 +15,7 @@
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFile, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 import {
@@ -68,8 +69,8 @@ const baseProgramPath = join(commonFolderLocation, 'base.lp');
 const queryLanguagePath = join(commonFolderLocation, 'queryLanguage.lp');
 
 // Read base and query language files
-const baseContent = await readFile(baseProgramPath, 'utf-8');
-const queryLanguageContent = await readFile(queryLanguagePath, 'utf-8');
+const baseContent = readFileSync(baseProgramPath, 'utf-8');
+const queryLanguageContent = readFileSync(queryLanguagePath, 'utf-8');
 
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';
@@ -340,7 +341,6 @@ export class Calculate {
       query?: string;
     },
     argMode: 'graph' | 'query' = 'query',
-    timeout: number = 5000,
   ): Promise<string[]> {
     if (!data.query) {
       throw new Error('Must provide query to run a clingo program');
@@ -592,7 +592,6 @@ export class Calculate {
   /**
    * Runs a logic program using clingo.
    * @param filePath Path to a query file to be run in relation to current working directory
-   * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
   public async runLogicProgram(data: { query?: string; file?: string }) {
