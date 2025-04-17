@@ -11,7 +11,7 @@ on:
       - 'tools/node-clingo/**'
   workflow_dispatch:
 
-jobs://
+jobs:
   build-prebuilds:
     strategy:
       fail-fast: false
