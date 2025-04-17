@@ -11,7 +11,7 @@ on:
       - 'tools/node-clingo/**'
   workflow_dispatch:
 
-jobs:
+jobs://
   build-prebuilds:
     strategy:
       fail-fast: false
@@ -21,20 +21,20 @@ jobs:
           - os: ubuntu-latest
             arch: x64
             cross: false
-          - os: macos-13
-            arch: x64
-            cross: false
-          - os: macos-latest # Apple Silicon runner
-            arch: arm64
-            cross: false
-          - os: windows-latest
-            arch: x64
-            cross: false
+ #         - os: macos-13
+  #          arch: x64
+  #          cross: false
+  #      - os: macos-latest # Apple Silicon runner
+  #        arch: arm64
+  #        cross: false
+      #    - os: windows-latest
+      #      arch: x64
+      #      cross: false
           
           # Cross-compilation builds
-          - os: ubuntu-latest
-            arch: arm64
-            cross: true
+     #     - os: ubuntu-latest
+      #      arch: arm64
+      #      cross: true
 
     runs-on: ${{ matrix.os }}
 
@@ -42,20 +42,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        if: matrix.cross
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && runner.os != 'macOS' && 'x64' || matrix.arch }}
-
-      - name: Enable corepack
-        run: corepack enable
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -110,12 +101,9 @@ jobs:
         with:
           node-version: 22
 
-      - name: Enable corepack
-        run: corepack enable
-
       - name: Install dependencies
         working-directory: tools/node-clingo
-        run: npm ci
+        run: pnpm install
 
       - name: Download all prebuilds
         uses: actions/download-artifact@v4
