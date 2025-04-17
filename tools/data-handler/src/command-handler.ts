@@ -24,7 +24,7 @@ import {
   RemovableResourceTypes,
   ResourceTypes,
 } from './interfaces/project-interfaces.js';
-import { ResourceContent } from './interfaces/resource-interfaces.js';
+import { DataType, ResourceContent } from './interfaces/resource-interfaces.js';
 
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 
@@ -197,7 +197,10 @@ export class Commands {
           await this.commands?.createCmd.createCardType(name, workflow);
         } else if (target === 'fieldType') {
           const [name, datatype] = rest;
-          await this.commands?.createCmd.createFieldType(name, datatype);
+          await this.commands?.createCmd.createFieldType(
+            name,
+            datatype as DataType,
+          );
         } else if (target === 'graphModel') {
           const [name] = rest;
           await this.commands?.createCmd.createGraphModel(name);

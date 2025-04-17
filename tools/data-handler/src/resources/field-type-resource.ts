@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
@@ -31,13 +32,25 @@ import {
   FieldType,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
+import {
+  allowed,
+  fromDate,
+  fromNumber,
+  fromString,
+} from '../utils/value-utils.js';
 import * as EmailValidator from 'email-validator';
+
+const SHORT_TEXT_MAX_LENGTH = 80;
 
 /**
  * Field type resource class.
- *
  */
 export class FieldTypeResource extends FileResource {
+  // Initialize data type change helpers (fromType, toType) to some values.
+  // The actual types are set, if this Field Type's dataType is changed.
+  private fromType: DataType = 'integer';
+  private toType: DataType = 'integer';
+
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'fieldTypes');
 
@@ -68,6 +81,102 @@ export class FieldTypeResource extends FileResource {
       this.project.cards(this.project.paths.cardRootFolder, cardContent),
       cardTypeName,
     );
+  }
+
+  // Converts values.
+  // The allowed conversions are:
+  // - shortText/longText --> person, if valid email
+  // - shortText/longText --> integer/number, if can be parseNumber/parseInt'd
+  // - shortText/longText --> list, if text can be split with comma
+  // - shortText/longText --> date / datetime (if it can be parsed as date)
+  // - shortText/longText --> boolean, if string is "false" or "true"
+  // - number --> integer, drop fractions
+  // - integer --> number
+  // - date --> dateTime
+  // - dateTime --> date
+  // - any --> shortText, unless too long
+  // - any --> longText
+  // Other cases are forbidden.
+  private doConvertValue<T>(value: T) {
+    if (this.fromType === 'date' || this.fromType === 'dateTime') {
+      return fromDate(value, this.toType);
+    }
+    if (this.fromType === 'integer' || this.fromType === 'number') {
+      return fromNumber(value, this.toType);
+    }
+    if (this.fromType === 'shortText' || this.fromType === 'longText') {
+      return fromString(value, this.toType);
+    }
+    if (this.toType === 'shortText' || this.toType === 'longText') {
+      let tempValue = String(value);
+      tempValue = tempValue.replace(/(\\")/g, '');
+      if (
+        this.toType === 'shortText' &&
+        tempValue.length > SHORT_TEXT_MAX_LENGTH
+      ) {
+        return null;
+      }
+      return tempValue;
+    }
+  }
+
+  // Converts value 'fromType' to 'toType'. If value cannot be converted returns null.
+  private convertValue<T>(value: T) {
+    if (value === null) return null;
+    if (value === undefined) return undefined;
+
+    const tempValue = this.doConvertValue(value);
+    if (tempValue === null) {
+      throw new Error(
+        `Cannot convert from '${this.fromType}' to '${this.toType}' value '${value}'`,
+      );
+    }
+    return tempValue;
+  }
+
+  // If dataType has changed, convert all the cards with affected data.
+  private async dataTypeChanged() {
+    const cardTypesThatUseThisFieldType: string[] = [];
+
+    // Helper to filter out the unwanted cards.
+    function affectedCard(card: Card): boolean {
+      if (!card.metadata) return false;
+      return cardTypesThatUseThisFieldType.some(
+        (item) => item === card.metadata!.cardType,
+      );
+    }
+
+    // First collect the cardTypes that need to be updated.
+    const cardTypes = await this.relevantCardTypes(ResourcesFrom.localOnly);
+    cardTypesThatUseThisFieldType.push(...cardTypes);
+
+    // Then collect cards (both project and local template) that use those card types.
+    const projectCards = (
+      await this.project.cards(this.project.paths.cardRootFolder, {
+        metadata: true,
+      })
+    ).filter((card) => affectedCard(card));
+    const templateCards = (await this.project.templateCards())
+      .filter((card) => !card.path.includes('modules'))
+      .filter((card) => affectedCard(card));
+    const allCards = [...projectCards, ...templateCards];
+
+    // Finally, convert values and update the cards.
+    allCards.forEach(async (card) => {
+      const metadata = card.metadata!;
+      const fieldName = resourceNameToString(this.resourceName);
+      try {
+        metadata[fieldName] = this.convertValue(metadata[fieldName]);
+        // Either value was already null, or couldn't convert.
+        if (metadata[fieldName] === null) return;
+
+        await this.project.updateCardMetadata(card, metadata);
+      } catch (error) {
+        console.error(
+          `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    });
   }
 
   // Checks that enum with 'enumValue' exists.
@@ -114,7 +223,7 @@ export class FieldTypeResource extends FileResource {
     if (!newValue) return;
 
     const removedValue = (op.target as EnumDefinition).enumValue;
-    const cardTypes = await this.relevantCardTypes();
+    const cardTypes = await this.relevantCardTypes(ResourcesFrom.localOnly);
     const allCards = await Promise.all(
       cardTypes.map((cardType) =>
         this.collectCards({ metadata: true }, cardType),
@@ -141,8 +250,16 @@ export class FieldTypeResource extends FileResource {
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
-    // Finally, write updated content.
     await this.write();
+  }
+
+  // Checks if value 'from' can be converted 'to' value.
+  private isConversionValid(from: DataType, to: DataType) {
+    // Set helpers to avoid dragging 'Operation' object everywhere.
+    this.fromType = from;
+    this.toType = to;
+
+    return allowed(from, to);
   }
 
   // Converts clingo array: "(option1, option2)" => ['option1', 'option2']
@@ -154,9 +271,9 @@ export class FieldTypeResource extends FileResource {
   }
 
   // Card types that use field type.
-  private async relevantCardTypes(): Promise<string[]> {
+  private async relevantCardTypes(from: ResourcesFrom): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.all);
+    const cardTypes = await this.project.cardTypes(from);
 
     const references = await Promise.all(
       cardTypes.map(async (cardType) => {
@@ -201,14 +318,14 @@ export class FieldTypeResource extends FileResource {
    * Creates a new field type object. Base class writes the object to disk automatically.
    * @param dataType Type for the new field type.
    */
-  public async createFieldType(dataType: string) {
+  public async createFieldType(dataType: DataType) {
     if (!FieldTypeResource.fieldDataTypes().includes(dataType)) {
       throw new Error(
         `Field type '${dataType}' not supported. Supported types ${FieldTypeResource.fieldDataTypes().join(', ')}`,
       );
     }
 
-    const useDataType = dataType as DataType;
+    const useDataType = dataType;
     const content = DefaultContent.fieldType(
       resourceNameToString(this.resourceName),
       useDataType,
@@ -233,9 +350,8 @@ export class FieldTypeResource extends FileResource {
   /**
    * Returns all possible field types.
    * @returns all possible field types.
-   * todo: should return 'DataType' array instead of string array
    */
-  public static fieldDataTypes(): string[] {
+  public static fieldDataTypes(): DataType[] {
     return [
       'shortText',
       'longText',
@@ -328,27 +444,20 @@ export class FieldTypeResource extends FileResource {
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'dataType') {
-      const toType = op as ChangeOperation<string>;
+      const toType = op as ChangeOperation<DataType>;
       if (!FieldTypeResource.fieldDataTypes().includes(toType.to)) {
         throw new Error(
           `Cannot change '${key}' to unknown type '${toType.to}'`,
         );
       }
-      if (existingType === content.dataType) {
+      if (existingType === toType.to) {
         throw new Error(`'${key}' is already '${toType.to}'`);
       }
-      // @todo: handle supported datatype changes:
-      // shortText/longText --> person (if valid email)
-      // shortText/longText --> integer/number (if can be parseNumber/parseInt'd)
-      // shortText/longText --> list, if text can be split with comma (we could potentially bring the separator character as additional detail)
-      // shortText/longText --> date / datetime (if it can be parsed as date)
-      // shortText/longText --> boolean ?  if string is "false" or "true"
-      // number --> integer (drop fractions)
-      // integer --> number
-      // any --> shortText (unless too long)
-      // any --> longText
-      // other cases are verboten
-
+      if (!this.isConversionValid(content.dataType, toType.to)) {
+        throw new Error(
+          `Cannot change data type from '${content.dataType}' to '${toType.to}'`,
+        );
+      }
       content.dataType = super.handleScalar(op) as DataType;
     } else if (key === 'displayName') {
       content.displayName = super.handleScalar(op) as string;
@@ -373,16 +482,14 @@ export class FieldTypeResource extends FileResource {
 
     await super.postUpdate(content, key, op);
 
-    if (enumChange && op.name === 'remove') {
-      await this.handleEnumValueReplacements(op);
-    }
     if (nameChange) {
       // Renaming this field type causes that references to its name must be updated.
       await this.handleNameChange(existingName);
       await this.updateCardTypes(existingName);
     } else if (typeChange) {
-      // @todo: fetch all cardTypes that use this FT, then fetch all cards that use those CTs and update ALL the values.
-      console.error('all affected card types cards should be updated');
+      await this.dataTypeChanged();
+    } else if (enumChange && op.name === 'remove') {
+      await this.handleEnumValueReplacements(op);
     }
   }
 
@@ -399,7 +506,7 @@ export class FieldTypeResource extends FileResource {
     const [cardContentReferences, relevantLinkTypes, calculations] =
       await Promise.all([
         super.usage(allCards),
-        this.relevantCardTypes(),
+        this.relevantCardTypes(ResourcesFrom.all),
         super.calculations(),
       ]);
 

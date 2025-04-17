@@ -389,6 +389,7 @@ export class FileResource extends ResourceObject {
     }
 
     // Create folder for resources and add correct .schema file.
+    //todo: pathExists + mkdir
     if (!pathExists(this.resourceFolder)) {
       await mkdir(this.resourceFolder);
       await writeJsonFile(

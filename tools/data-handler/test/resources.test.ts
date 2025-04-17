@@ -910,22 +910,6 @@ describe('resources', () => {
           }
         });
     });
-    it('try to create field type with invalid content', async () => {
-      const res = new FieldTypeResource(
-        project,
-        resourceName('decision/cardTypes/new-one'),
-      );
-      await res
-        .createFieldType('data-type-that-does-not-exist') // invalid data type
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Field type 'data-type-that-does-not-exist' not supported. Supported types shortText, longText, number, integer, boolean, enum, list, date, dateTime, person",
-            );
-          }
-        });
-    });
     it('data of card type', async () => {
       const res = new CardTypeResource(
         project,
@@ -1723,8 +1707,37 @@ describe('resources', () => {
           );
         });
     });
-    // @todo:
-    //it('update field type - change data type', async () => {});
+    it('update field type - change data type (number -> integer)', async () => {
+      let card6 = await project.cardDetailsById('decision_6', {
+        metadata: true,
+      });
+      if (card6 && card6.metadata) {
+        expect(card6.metadata['decision/fieldTypes/numberOfCommits']).equals(
+          1.5,
+        );
+      } else {
+        expect(false).equals(true);
+      }
+      const res = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/numberOfCommits'),
+      );
+      await res.update('dataType', {
+        name: 'change',
+        target: '',
+        to: 'integer',
+      });
+      expect((res.data as FieldType).dataType).to.equal('integer');
+      card6 = await project.cardDetailsById('decision_6', {
+        metadata: true,
+      });
+      // Since data type was changed from number to integer, value has changed from 1.5 -> 1
+      if (card6 && card6.metadata) {
+        expect(card6.metadata['decision/fieldTypes/numberOfCommits']).equals(1);
+      } else {
+        expect(false).equals(true);
+      }
+    });
     it('update field type - change displayName and fieldDescription', async () => {
       const res = new FieldTypeResource(
         project,

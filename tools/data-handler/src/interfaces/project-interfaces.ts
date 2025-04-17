@@ -95,6 +95,7 @@ export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.
 export type MetadataContent =
+  | bigint
   | number
   | boolean
   | string

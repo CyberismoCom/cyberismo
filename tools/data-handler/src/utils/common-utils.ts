@@ -39,3 +39,17 @@ export function deepCompare(arg1: object, arg2: object): boolean {
   }
   return false;
 }
+
+/**
+ * Checks if string could be represented as BigInt.
+ * @param value String value
+ * @returns true, if 'value' can be represented as BigInt; false otherwise.
+ */
+export function isBigInt(value: string): boolean {
+  try {
+    return BigInt(parseInt(value, 10)) !== BigInt(value);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (e) {
+    return false;
+  }
+}
