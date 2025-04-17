@@ -4,6 +4,7 @@
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "prebuild-install || node-gyp-build",
+    "postinstall": "node scripts/post-install.js",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi --strip",
     "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi --strip",
