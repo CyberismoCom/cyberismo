@@ -48,12 +48,14 @@ jobs:
           node-version: 22
           architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && runner.os != 'macOS' && 'x64' || matrix.arch }}
 
-      - name: Install Conda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
+          python-version: 3.12
           auto-update-conda: true
-          python-version: 3.10
-          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == true && 'x64' || matrix.arch }}
+          activate-environment: cyberismo
+          environment-file: environment.yml
+          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && 'x64' || matrix.arch }}
 
       - name: Install Clingo on Linux/macOS
         if: runner.os != 'Windows'
