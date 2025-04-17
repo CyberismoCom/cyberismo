@@ -5,6 +5,7 @@ let binding: any;
 try {
   binding = build(path.resolve(import.meta.dirname, '..'));
 } catch (error) {
+  console.error('Error building clingo:', error);
   binding = build(import.meta.dirname);
 }
 
