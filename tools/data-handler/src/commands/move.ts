@@ -26,6 +26,7 @@ import {
   rebalanceRanks,
   sortItems,
 } from '../utils/lexorank.js';
+import { isTemplateCard } from '../utils/card-utils.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
 
@@ -61,7 +62,7 @@ export class Move {
 
     // since we don't know if 'root' is templateRoot or cardRoot, we need to check the card
     if (parentCardKey === ROOT) {
-      if (Project.isTemplateCard(card)) {
+      if (isTemplateCard(card)) {
         const template = this.project.createTemplateObjectFromCard(card);
         if (!template) {
           throw new Error(
@@ -167,8 +168,7 @@ export class Move {
     }
 
     const bothTemplateCards =
-      Project.isTemplateCard(sourceCard) &&
-      Project.isTemplateCard(destinationCard);
+      isTemplateCard(sourceCard) && isTemplateCard(destinationCard);
     const bothProjectCards =
       this.project.hasCard(sourceCard.key) &&
       this.project.hasCard(destinationCard.key);
