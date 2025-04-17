@@ -1,0 +1,219 @@
+name: Build Native Prebuilds
+
+on:
+  push:
+    branches:
+      - main
+      - feature/samutoljamo/wasm-test
+
+jobs:
+  check-version-change:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    outputs:
+      version_changed: ${{ steps.check.outputs.version_changed }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout current code
+        uses: actions/checkout@v4
+        with:
+          path: current
+
+      - name: Checkout previous code
+        uses: actions/checkout@v4
+        with:
+          path: previous
+          ref: ${{ github.event.before }}
+
+      - name: Check if version changed
+        id: check
+        run: |
+          if [ ! -f "previous/tools/node-clingo/package.json" ]; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+            VERSION=$(node -p "require('./current/tools/node-clingo/package.json').version")
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CURRENT_VERSION=$(node -p "require('./current/tools/node-clingo/package.json').version")
+          PREVIOUS_VERSION=$(node -p "require('./previous/tools/node-clingo/package.json').version")
+          
+          echo "Current version: $CURRENT_VERSION"
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+  build-prebuilds:
+    needs: check-version-change
+    if: ${{ needs.check-version-change.outputs.version_changed == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native builds
+          - os: ubuntu-latest
+            arch: x64
+            cross: false
+          - os: macos-13
+            arch: x64
+            cross: false
+          - os: macos-latest # Apple Silicon runner
+            arch: arm64
+            cross: false
+          - os: windows-latest
+            arch: x64
+            cross: false
+          
+         # Cross-compilation builds
+          - os: ubuntu-latest
+            arch: arm64
+            cross: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: 3.12
+          auto-update-conda: true
+          activate-environment: cyberismo
+          environment-file: environment.yml
+
+      - name: Install clingo
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      
+      - name: Install homebrew
+        if: runner.os == 'macOS'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+      - name: Install clingo
+        if: runner.os == 'macOS'
+        run: |
+          brew install clingo
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@cyberismocom'
+
+      - name: Install dependencies
+        working-directory: tools/node-clingo
+        run: pnpm install
+
+      - name: Build native prebuilds
+        if: matrix.cross == false
+        working-directory: tools/node-clingo
+        run: npm run build-prebuildify
+        env:
+          PREBUILD_ARCH: ${{ matrix.arch }}
+
+      - name: Build ARM64 prebuilds (cross-compilation)
+        if: matrix.cross == true && matrix.arch == 'arm64'
+        working-directory: tools/node-clingo
+        run: npm run build-arm64
+
+      - name: Upload prebuilds as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-clingo-prebuild-${{ runner.os }}-${{ matrix.arch }}
+          path: tools/node-clingo/prebuilds/
+
+  collect-prebuilds:
+    needs: [check-version-change, build-prebuilds]
+    if: ${{ needs.check-version-change.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: all-prebuilds
+
+      - name: Organize prebuilds
+        shell: bash
+        run: |
+          mkdir -p tools/node-clingo/prebuilds/
+          cp -r all-prebuilds/*/* tools/node-clingo/prebuilds/
+          ls -la tools/node-clingo/prebuilds/
+          node tools/node-clingo/scripts/collect-prebuilds.js
+
+      - name: Upload combined prebuilds
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-clingo-prebuilds-all
+          path: tools/node-clingo/prebuilds/
+
+      - name: Package prebuilds for each platform
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/samutoljamo/wasm-test')
+        run: |
+          mkdir -p release-assets
+          # Navigate to prebuilds directory correctly
+          cd tools/node-clingo/prebuilds
+          
+          # List all platform-arch directories
+          for platform_arch_dir in */; do
+            # Ensure that only directories are being processed
+            if [ -d "$platform_arch_dir" ]; then
+              platform_arch=${platform_arch_dir%/}
+              echo "Packaging $platform_arch"
+              
+              # Create tarballs directly from platform-arch directories
+              tar -czf ../../../release-assets/${platform_arch}.tar.gz -C "$platform_arch_dir" .
+            fi
+          done
+          
+          # Navigate to the base directory before listing assets
+          cd ../../../
+          ls -la release-assets
+
+      - name: Get package version
+        id: package_version
+        run: |
+          VERSION=${{ needs.check-version-change.outputs.version }}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: node-clingo-${{ steps.package_version.outputs.version }}
+          name: Node Clingo v${{ steps.package_version.outputs.version }}
+          files: release-assets/*
+          draft: false
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          generate_release_notes: true 
