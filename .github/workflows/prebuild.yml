@@ -63,6 +63,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gringo
 
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+        registry-url: 'https://npm.pkg.github.com'
+        scope: '@cyberismocom'
+
       - name: Install dependencies
         working-directory: tools/node-clingo
         run: pnpm install
