@@ -21,20 +21,20 @@ jobs:
           - os: ubuntu-latest
             arch: x64
             cross: false
- #         - os: macos-13
-  #          arch: x64
-  #          cross: false
-  #      - os: macos-latest # Apple Silicon runner
-  #        arch: arm64
-  #        cross: false
-      #    - os: windows-latest
-      #      arch: x64
-      #      cross: false
+          - os: macos-13
+            arch: x64
+            cross: false
+          - os: macos-latest # Apple Silicon runner
+            arch: arm64
+            cross: false
+          - os: windows-latest
+            arch: x64
+            cross: false
           
-          # Cross-compilation builds
-     #     - os: ubuntu-latest
-      #      arch: arm64
-      #      cross: true
+         # Cross-compilation builds
+          - os: ubuntu-latest
+            arch: arm64
+            cross: true
 
     runs-on: ${{ matrix.os }}
 
