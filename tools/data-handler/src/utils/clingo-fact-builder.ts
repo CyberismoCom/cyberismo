@@ -80,7 +80,7 @@ export class ClingoFactBuilder {
    * @returns this for chaining
    */
   addLiteralArgument(literal: string): ClingoFactBuilder {
-    this.arguments.push(new LiteralBuildler(literal));
+    this.arguments.push(new LiteralBuilder(literal));
     return this;
   }
 
@@ -160,7 +160,7 @@ export class ClingoFactBuilder {
   }
 }
 
-class LiteralBuildler extends ClingoFactBuilder {
+class LiteralBuilder extends ClingoFactBuilder {
   build() {
     return this.predicate;
   }

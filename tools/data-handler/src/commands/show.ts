@@ -274,7 +274,7 @@ export class Show {
    */
   public async showLabels(): Promise<string[]> {
     const cards = await this.project.showProjectCards();
-    const templateCards = await this.project.templateCards({
+    const templateCards = await this.project.allTemplateCards({
       metadata: true,
       children: true,
     });

@@ -43,6 +43,10 @@ import {
   createCardTypeFacts,
   createFieldTypeFacts,
   createLinkTypeFacts,
+  createModuleFacts,
+  createProjectFacts,
+  createReportFacts,
+  createTemplateFacts,
   createWorkflowFacts,
 } from '../utils/clingo-facts.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
@@ -52,6 +56,8 @@ import {
   CardType,
   FieldType,
   LinkType,
+  ReportMetadata,
+  TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 
@@ -61,6 +67,7 @@ export class Calculate {
 
   private logicBinaryName: string = 'clingo';
   private pythonBinary: string = 'python';
+  private static calculationsFileName: string = 'calculations.lp';
   private static importResourcesFileName: string = 'resourceImports.lp';
   private static importCardsFileName: string = 'cardTree.lp';
   private static modulesFileName: string = 'modules.lp';
@@ -219,18 +226,43 @@ export class Calculate {
     await Promise.all(promises);
   }
 
-  // Collects all logic calculation files from project (local and imported modules)
+  // Generates logic programs related to modules (and project itself).
   private async generateModules() {
     const destinationFile = join(
       this.project.paths.calculationFolder,
       Calculate.modulesFileName,
+    );
+
+    const modules = await this.project.modules();
+    let content = '';
+    for (const module of await Promise.all(
+      modules.map((mod) => this.project.module(mod.name)),
+    )) {
+      if (!module) continue;
+      const moduleContent = createModuleFacts(module);
+      content = content.concat(moduleContent);
+    }
+    const projectContent = createProjectFacts(this.project.projectPrefix);
+    content = content.concat(projectContent);
+
+    writeFileSafe(destinationFile, content, {
+      encoding: 'utf-8',
+      flag: 'w',
+    });
+  }
+
+  // Collects all logic calculation files from project (local and imported modules)
+  private async generateCalculations() {
+    const destinationFile = join(
+      this.project.paths.calculationFolder,
+      Calculate.calculationsFileName,
     );
     // Collect all available calculations
     const calculations = await this.project.calculations(ResourcesFrom.all);
 
     const builder = new ClingoProgramBuilder();
 
-    // write the modules.lp
+    // write the calculations.lp
     for (const calculationFile of calculations) {
       if (calculationFile.path) {
         // modules resources are always prefixed with module name (to ensure uniqueness), remove module name
@@ -246,6 +278,32 @@ export class Calculate {
     await writeFileSafe(destinationFile, builder.buildAll());
   }
 
+  // Generates logic programs related to reports.
+  private async generateReports() {
+    const reports = await this.project.reports();
+    const promises = [];
+
+    for (const report of await Promise.all(
+      reports.map((r) => this.project.resource<ReportMetadata>(r.name)),
+    )) {
+      if (!report) continue;
+
+      const content = createReportFacts(report);
+      const reportFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${report.name}.lp`,
+      );
+
+      promises.push(
+        writeFileSafe(reportFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
+  }
+
   //
   private async generateResourceImports() {
     return this.generateImports(
@@ -255,6 +313,38 @@ export class Calculate {
         Calculate.importResourcesFileName,
       ),
     );
+  }
+
+  // Generates logic programs related to templates (including their cards).
+  private async generateTemplates() {
+    const templates = await this.project.templates();
+    const promises = [];
+
+    for (const template of await Promise.all(
+      templates.map((r) => this.project.resource<TemplateMetadata>(r.name)),
+    )) {
+      if (!template) continue;
+
+      let content = createTemplateFacts(template);
+      const cards = await this.getCards(undefined, template.name);
+      for (const card of cards) {
+        const cardContent = await createCardFacts(card, this.project);
+        content = content.concat(cardContent);
+      }
+
+      const templateFile = join(
+        this.project.paths.calculationResourcesFolder,
+        `${template.name}.lp`,
+      );
+
+      promises.push(
+        writeFileSafe(templateFile, content, {
+          encoding: 'utf-8',
+          flag: 'w',
+        }),
+      );
+    }
+    await Promise.all(promises);
   }
 
   //
@@ -285,10 +375,15 @@ export class Calculate {
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private async getCards(card: Card | undefined): Promise<Card[]> {
+  private async getCards(
+    card: Card | undefined,
+    templateName?: string,
+  ): Promise<Card[]> {
     let cards: Card[] = [];
     if (!card) {
-      return this.project.cards();
+      return templateName
+        ? this.project.templateCards(templateName)
+        : this.project.cards();
     }
     if (card.children) {
       cards = flattenCardArray(card.children);
@@ -464,11 +559,14 @@ export class Calculate {
         this.generateCardTreeContent(card).then(
           this.generateCardTree.bind(this),
         ),
-        this.generateModules(),
+        this.generateCalculations(),
         this.generateWorkFlows(),
         this.generateCardTypes(),
         this.generateFieldTypes(),
         this.generateLinkTypes(),
+        this.generateModules(),
+        this.generateReports(),
+        this.generateTemplates(),
       ];
 
       await Promise.all(promiseContainer).then(
