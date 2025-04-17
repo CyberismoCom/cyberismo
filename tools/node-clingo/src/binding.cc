@@ -16,6 +16,11 @@
 // Store base programs in a map, keyed by name
 std::unordered_map<std::string, std::string> g_basePrograms;
 
+// Silent logger function that discards all messages
+void silent_logger(clingo_warning_t code, char const *message, void *data) {
+    // Do nothing - this silences all Clingo output
+}
+
 // Helper function to handle Clingo errors
 void HandleClingoError(const Napi::Env& env) {
     // If clingo returns an error, we throw an error to the javascript side
@@ -233,15 +238,15 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
             }
         }
         
-        // Create control object with no arguments
+        // Create control object with silent logger
         clingo_control_t *ctl = nullptr;
-        if (!clingo_control_new(nullptr, 0, nullptr, nullptr, 20, &ctl)) {
+        if (!clingo_control_new(nullptr, 0, silent_logger, nullptr, 20, &ctl)) {
             HandleClingoError(env);
         }
         
         std::unique_ptr<clingo_control_t, void(*)(clingo_control_t*)> ctl_guard(ctl, clingo_control_free);
         
-      // Add the program
+        // Add the program
         if (!clingo_control_add(ctl, "base", nullptr, 0, program.c_str())) {
             HandleClingoError(env);
         }
