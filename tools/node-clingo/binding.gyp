@@ -27,7 +27,15 @@
             "VCCLCompilerTool": {
               "ExceptionHandling": 1
             }
-          }
+          },
+          "copies": [
+            {
+              "destination": "<(PRODUCT_DIR)",
+              "files": [
+                "<(conda_prefix)/Library/bin/clingo.dll"
+              ]
+            }
+          ]
         }],
         ["OS!='win'", {
           "libraries": [
