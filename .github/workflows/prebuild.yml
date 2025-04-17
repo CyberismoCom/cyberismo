@@ -64,6 +64,16 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+      
+      - name: Install homebrew
+        if: runner.os == 'macOS'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+      - name: Install clingo
+        if: runner.os == 'macOS'
+        run: |
+          brew install clingo
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
