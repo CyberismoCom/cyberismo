@@ -6,7 +6,7 @@
     "install": "node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi --strip",
-    "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-armv7 --napi --strip",
+    "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi --strip",
     "test": "vitest run",
     "test:watch": "vitest"
   },
