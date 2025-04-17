@@ -193,12 +193,12 @@ jobs:
               echo "Packaging $platform_arch"
               
               # Create tarballs directly from platform-arch directories
-              tar -czf ../../release-assets/${platform_arch}.tar.gz -C "$platform_arch_dir" .
+              tar -czf ../../../release-assets/${platform_arch}.tar.gz -C "$platform_arch_dir" .
             fi
           done
           
           # Navigate to the base directory before listing assets
-          cd ../../
+          cd ../../../
           ls -la release-assets
 
       - name: Get package version
