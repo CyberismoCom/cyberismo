@@ -503,17 +503,16 @@ export class Calculate {
    * @param changedCard Card that was changed.
    */
   public async handleCardChanged(changedCard?: Card | string) {
-    if (changedCard) {
-      const card =
-        typeof changedCard === 'string'
-          ? await this.project.findSpecificCard(changedCard)
-          : changedCard;
-      if (!card) return;
-      await Calculate.mutex.runExclusive(async () => {
-        await this.generateCardTreeContent(card);
-        await this.generateCardTree();
-      });
-    }
+    if (!changedCard) return;
+    const card =
+      typeof changedCard === 'string'
+        ? await this.project.findSpecificCard(changedCard)
+        : changedCard;
+    if (!card) return;
+    await Calculate.mutex.runExclusive(async () => {
+      await this.generateCardTreeContent(card);
+      await this.generateCardTree();
+    });
   }
 
   /**
@@ -521,9 +520,7 @@ export class Calculate {
    * @param deletedCard Card that is to be removed.
    */
   public async handleDeleteCard(deletedCard: Card) {
-    if (!deletedCard) {
-      return;
-    }
+    if (!deletedCard) return;
 
     await Calculate.mutex.runExclusive(async () => {
       const affectedCards = await this.getCards(deletedCard);
