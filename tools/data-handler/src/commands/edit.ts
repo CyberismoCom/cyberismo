@@ -91,8 +91,8 @@ export class Edit {
 
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('editContent', cardKey);
-
     await this.project.updateCardContent(cardKey, changedContent);
+    await this.calculateCmd.handleCardChanged(cardKey);
   }
 
   /**
@@ -119,5 +119,6 @@ export class Edit {
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
     await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    await this.calculateCmd.handleCardChanged(cardKey);
   }
 }

@@ -17,7 +17,7 @@ describe('edit card', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
+    commands = await CommandManager.getInstance(decisionRecordsPath);
     editCmd = commands.editCmd;
   });
 

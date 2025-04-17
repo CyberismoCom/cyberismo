@@ -190,6 +190,7 @@ export class Create {
           flag: 'wx',
         });
       });
+      await this.calculateCmd.handleCardChanged(cardKey);
     } catch (error) {
       throw new Error(errorFunction(error));
     }

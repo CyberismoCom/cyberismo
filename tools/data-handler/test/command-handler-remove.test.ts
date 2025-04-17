@@ -8,8 +8,9 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { Calculate, Remove } from '../src/commands/index.js';
-import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Card } from '../src/interfaces/project-interfaces.js';
+import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -52,6 +53,7 @@ describe('remove command', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data', testDir);
+      await CommandManager.getInstance(decisionRecordsPath);
     });
 
     afterEach(() => {
@@ -317,6 +319,7 @@ describe('remove command', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data', testDir);
+      await CommandManager.getInstance(decisionRecordsPath);
     });
 
     afterEach(() => {

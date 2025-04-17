@@ -108,8 +108,6 @@ export class Remove {
     const card = await this.project.findSpecificCard(cardKey, {
       metadata: true,
       children: true,
-      content: false,
-      parent: false,
     });
     if (card) {
       await this.calculateCmd.handleDeleteCard(card);

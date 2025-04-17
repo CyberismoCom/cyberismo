@@ -18,8 +18,7 @@ describe('remove card', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
-    await commands.calculateCmd.generate();
+    commands = await CommandManager.getInstance(decisionRecordsPath);
   });
 
   after(() => {

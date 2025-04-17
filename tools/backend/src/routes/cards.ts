@@ -116,8 +116,8 @@ async function getCardDetails(
     })
     .toString();
 
-  // always parse for now
-  await commands.calculateCmd.generate();
+  // always parse for now (for the specific card)
+  await commands.calculateCmd.generate(cardDetailsResponse.key);
 
   const card = await commands.calculateCmd.runQuery('card', {
     cardKey: key,
