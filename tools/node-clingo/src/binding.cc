@@ -236,7 +236,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         // Create control object with no arguments
         clingo_control_t *ctl = nullptr;
         if (!clingo_control_new(nullptr, 0, nullptr, nullptr, 20, &ctl)) {
-            std::cerr << "Creating control object failed" << std::endl;
             HandleClingoError(env);
         }
         
@@ -244,7 +243,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         
       // Add the program
         if (!clingo_control_add(ctl, "base", nullptr, 0, program.c_str())) {
-            std::cerr << "Adding program failed" << std::endl;
             HandleClingoError(env);
         }
 
@@ -253,7 +251,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         clingo_part_t parts[] = {{ "base", nullptr, 0 }};
 
         if (!clingo_control_ground(ctl, parts, 1, ground_callback, nullptr)) {
-            std::cerr << "Grounding program failed" << std::endl;
             HandleClingoError(env);
         }
         
@@ -263,7 +260,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         
         // Use clingo_solve_mode_yield to get all answer sets
         if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle)){
-            std::cerr << "Solving program failed" << std::endl;
             HandleClingoError(env);
         }
     
@@ -279,7 +275,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         // Wait for solving to finish
         clingo_solve_result_bitset_t result;
         if (!clingo_solve_handle_get(handle, &result)) {
-            std::cerr << "Getting solve result failed" << std::endl;
             HandleClingoError(env);
         }
         
@@ -300,15 +295,12 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         
     } catch (const Napi::Error& e) {
         // Let Napi errors propagate as they are
-        std::cerr << "Error: " << e.Message() << std::endl;
         e.ThrowAsJavaScriptException();
         return Napi::Value();
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
         Napi::Error::New(env, e.what()).ThrowAsJavaScriptException();
         return Napi::Value();
     } catch (...) {
-        std::cerr << "Unknown error occurred" << std::endl;
         Napi::Error::New(env, "Unknown error occurred").ThrowAsJavaScriptException();
         return Napi::Value();
     }

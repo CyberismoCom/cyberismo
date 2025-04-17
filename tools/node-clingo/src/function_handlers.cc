@@ -15,13 +15,10 @@ bool handle_concatenate(
     clingo_symbol_callback_t symbol_callback,
     void* symbol_callback_data) 
 {
-    std::cerr << "Concatenate function called" << std::endl;
     std::string result;
     
     for (size_t i = 0; i < arguments_size; ++i) {
         clingo_symbol_type_t type = clingo_symbol_type(arguments[i]);
-
-        std::cerr << "Argument " << i << " type: " << type << std::endl;
         
         if (type == clingo_symbol_type_string) {
             const char* str;
@@ -52,7 +49,6 @@ bool handle_days_since(
     clingo_symbol_callback_t symbol_callback,
     void* symbol_callback_data) 
 {
-    std::cerr << "DaysSince function called" << std::endl;
     if (arguments_size != 1) {
         return false;
     }
@@ -99,7 +95,6 @@ bool handle_today(
     clingo_symbol_callback_t symbol_callback,
     void* symbol_callback_data) 
 {
-    std::cerr << "Today function called" << std::endl;
     if (arguments_size != 0) {
         return false;
     }
@@ -125,7 +120,6 @@ bool handle_wrap(
     clingo_symbol_callback_t symbol_callback,
     void* symbol_callback_data) 
 {
-    std::cerr << "Wrap function called" << std::endl;
     if (arguments_size != 1) {
         return false;
     }
