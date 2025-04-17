@@ -13,16 +13,12 @@
         "src/function_handlers.cc"
       ],
       "include_dirs": [
-        "<!@(node -p \"require('node-addon-api').include\")",
-        "<!@(echo $CONDA_PREFIX/include)"
-      ],
-      "library_dirs": [
-        "<!@(echo $CONDA_PREFIX/lib)"
+        "<!@(node -p \"require('node-addon-api').include\")"
       ],
       "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS" ],
       "libraries": [
-        "-lclingo"
-      ]
+        "-lclingo",
+      ],
     }
   ]
 } 
