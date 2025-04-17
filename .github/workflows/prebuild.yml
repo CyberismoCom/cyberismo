@@ -46,7 +46,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && runner.os != 'macOS' && 'x64' || matrix.arch }}
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
@@ -55,7 +54,6 @@ jobs:
           auto-update-conda: true
           activate-environment: cyberismo
           environment-file: environment.yml
-          architecture: ${{ matrix.arch == 'arm64' && matrix.cross == false && 'x64' || matrix.arch }}
 
       - name: Install clingo
         if: runner.os == 'Linux'
