@@ -44,7 +44,7 @@ export class Move {
     let card: Card | undefined;
     const templateCard = await this.project.isTemplateCard(cardKey);
     if (templateCard) {
-      card = (await this.project.templateCards(options)).find(
+      card = (await this.project.allTemplateCards(options)).find(
         (card) => card.key === cardKey,
       );
     } else {
