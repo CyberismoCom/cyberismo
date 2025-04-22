@@ -100,9 +100,7 @@ export class Calculate {
   private async generateCardTreeContent(parentCard: Card | undefined) {
     const destinationFileBase = this.project.paths.calculationCardsFolder;
     const promiseContainer = [];
-    if (!pathExists(destinationFileBase)) {
-      await mkdir(destinationFileBase, { recursive: true });
-    }
+    await mkdir(destinationFileBase, { recursive: true });
 
     const cards = await this.getCards(parentCard);
     for (const card of cards) {
@@ -179,9 +177,6 @@ export class Calculate {
 
   // Once card specific files have been done, write the the imports
   private async generateImports(folder: string, destinationFile: string) {
-    if (!pathExists(folder)) {
-      return;
-    }
     const files: string[] = getFilesSync(folder);
 
     const builder = new ClingoProgramBuilder().addComment(folder);
@@ -520,9 +515,7 @@ export class Calculate {
           this.project.paths.calculationCardsFolder,
           `${card.key}.lp`,
         );
-        if (pathExists(cardCalculationsFile)) {
-          await deleteFile(cardCalculationsFile);
-        }
+        await deleteFile(cardCalculationsFile);
         // Then, delete rows from cardTree.lp.
         filteredLines = filteredLines.filter(
           (line) => !line.includes(`cards/${card.key}.lp`),
@@ -631,8 +624,8 @@ export class Calculate {
         `Graph: Failed to read image file after generating graph: ${e}`,
       );
     } finally {
-      if (pathExists(filePath)) await rm(filePath);
-      if (pathExists(filePath + '.png')) await rm(filePath + '.png');
+      await rm(filePath, { force: true });
+      await rm(filePath + '.png', { force: true });
     }
 
     return fileData.toString('base64');

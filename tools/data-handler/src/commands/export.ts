@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -19,7 +21,6 @@ import Processor from '@asciidoctor/core';
 import { Calculate, Show } from './index.js';
 import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
 import { CardType } from '../interfaces/resource-interfaces.js';
-import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { QueryResult } from '../types/queries.js';
 import { sortItems } from '../utils/lexorank.js';
@@ -276,14 +277,10 @@ export class Export {
     );
     let message = '';
     try {
-      if (pathExists(resultDocumentPath)) {
-        await truncate(resultDocumentPath, 0);
-      }
+      await truncate(resultDocumentPath, 0);
       message = `Using existing output file '${resultDocumentPath}'`;
-    } catch (error) {
-      if (error instanceof Error) {
-        message = `Creating output file '${resultDocumentPath}'`;
-      }
+    } catch {
+      message = `Creating output file '${resultDocumentPath}'`;
     }
 
     await this.toAdocFile(resultDocumentPath, cards);

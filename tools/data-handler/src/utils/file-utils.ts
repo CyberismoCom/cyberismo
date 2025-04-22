@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
@@ -78,10 +80,8 @@ export async function deleteFile(path: string): Promise<boolean> {
   }
   try {
     await unlink(path);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(`Cannot delete file '${path}'`);
-    }
+  } catch {
+    console.error(`Cannot delete file '${path}'`);
     return false;
   }
   return true;
@@ -132,14 +132,20 @@ export function getFilesSync(
   pathPrefix: string = '',
   files: string[] = [],
 ): string[] {
-  for (const entry of readdirSync(path, { withFileTypes: true })) {
-    const relativePath = pathPrefix ? join(pathPrefix, entry.name) : entry.name;
+  try {
+    for (const entry of readdirSync(path, { withFileTypes: true })) {
+      const relativePath = pathPrefix
+        ? join(pathPrefix, entry.name)
+        : entry.name;
 
-    if (entry.isFile()) {
-      files.push(relativePath);
-    } else if (entry.isDirectory()) {
-      getFilesSync(join(path, entry.name), relativePath, files);
+      if (entry.isFile()) {
+        files.push(relativePath);
+      } else if (entry.isDirectory()) {
+        getFilesSync(join(path, entry.name), relativePath, files);
+      }
     }
+  } catch {
+    // do nothing, wrong path, or no permissions to read the files
   }
   return files;
 }

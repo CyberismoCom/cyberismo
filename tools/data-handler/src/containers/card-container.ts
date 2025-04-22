@@ -1,21 +1,24 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
 import { basename, join, sep } from 'node:path';
+import { Dirent } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
 import { writeJsonFile } from '../utils/json.js';
-import { getFilesSync, pathExists } from '../utils/file-utils.js';
+import { getFilesSync } from '../utils/file-utils.js';
 
 // interfaces
 import {
@@ -61,34 +64,43 @@ export class CardContainer {
     attachments: CardAttachment[],
   ): Promise<CardAttachment[]> {
     const currentPaths: string[] = [];
-    if (pathExists(folder)) {
-      const entries = (await readdir(folder, { withFileTypes: true })).filter(
+    let entries: Dirent[] = [];
+    try {
+      entries = (await readdir(folder, { withFileTypes: true })).filter(
         (item) => item.isDirectory(),
       );
-      for (const entry of entries) {
-        // Investigate the content of card folders' attachment folders, but do not continue to children cards.
-        // For each attachment folder, collect all files.
-        if (CardNameRegEx.test(entry.name)) {
-          currentPaths.push(join(entry.parentPath, entry.name));
-        } else if (entry.name === 'c') {
-          continue;
-        } else if (entry.name === 'a') {
-          const attachmentFolder = join(entry.parentPath, entry.name);
-          const cardItem = basename(entry.parentPath) || '';
-          const entryAttachments = await readdir(attachmentFolder, {
+    } catch {
+      // ignore throws, if currentPaths does not have more values, recursion will stop
+    }
+    for (const entry of entries) {
+      // Investigate the content of card folders' attachment folders, but do not continue to children cards.
+      // For each attachment folder, collect all files.
+      if (CardNameRegEx.test(entry.name)) {
+        currentPaths.push(join(entry.parentPath, entry.name));
+      } else if (entry.name === 'c') {
+        continue;
+      } else if (entry.name === 'a') {
+        const attachmentFolder = join(entry.parentPath, entry.name);
+        const cardItem = basename(entry.parentPath) || '';
+        let entryAttachments: Dirent[] = [];
+        try {
+          entryAttachments = await readdir(attachmentFolder, {
             withFileTypes: true,
           });
-          entryAttachments.forEach((attachment) =>
-            attachments.push({
-              card: cardItem,
-              fileName: attachment.name,
-              path: attachment.parentPath,
-              mimeType: mime.lookup(attachment.name) || null,
-            }),
-          );
+        } catch {
+          // ignore readdir errors
         }
+        entryAttachments.forEach((attachment) =>
+          attachments.push({
+            card: cardItem,
+            fileName: attachment.name,
+            path: attachment.parentPath,
+            mimeType: mime.lookup(attachment.name) || null,
+          }),
+        );
       }
     }
+
     if (currentPaths) {
       const promises = currentPaths.map((item) =>
         this.doCollectAttachments(item, attachments),

@@ -379,7 +379,7 @@ describe('project', () => {
     if (card) {
       const previousContent = card.content;
       card.content += '\naddition';
-      await project.updateCardContent(card.key, card.content!, true);
+      await project.updateCardContent(card.key, card.content!);
       expect(card.content).not.to.equal(previousContent);
     }
   });
@@ -657,8 +657,7 @@ describe('project', () => {
     try {
       project.cardPathParts('decision_99');
       expect(false);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
       expect(true);
     }
   });

@@ -48,8 +48,7 @@ export function deepCompare(arg1: object, arg2: object): boolean {
 export function isBigInt(value: string): boolean {
   try {
     return BigInt(parseInt(value, 10)) !== BigInt(value);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (e) {
+  } catch {
     return false;
   }
 }

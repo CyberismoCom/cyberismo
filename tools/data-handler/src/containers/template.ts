@@ -14,7 +14,7 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { copyFile, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
-import { readdirSync } from 'node:fs';
+import { Dirent, readdirSync } from 'node:fs';
 
 // Base class
 import { CardContainer } from './card-container.js';
@@ -279,27 +279,28 @@ export class Template extends CardContainer {
 
   // fetches path to module.
   private moduleTemplatePath(templateName: string): string {
-    if (!pathExists(this.project.paths.modulesFolder)) {
-      return '';
-    }
     // If template path has already been deduced, return it.
     if (pathExists(this.templatePath)) {
       return this.templatePath;
     }
-    const modules = readdirSync(this.project.paths.modulesFolder, {
-      withFileTypes: true,
-    }).filter((item) => item.isDirectory());
+    let modules: Dirent[] = [];
+    try {
+      modules = readdirSync(this.project.paths.modulesFolder, {
+        withFileTypes: true,
+      }).filter((item) => item.isDirectory());
+    } catch {
+      // do nothing, if modules folder does not exist
+    }
     for (const module of modules) {
-      const exists = pathExists(
-        join(module?.parentPath, module?.name, 'templates', templateName),
+      const templateFolderInModule = join(
+        module.parentPath,
+        module.name,
+        'templates',
+        templateName,
       );
+      const exists = pathExists(templateFolderInModule);
       if (exists) {
-        return join(
-          module?.parentPath,
-          module?.name,
-          'templates',
-          templateName,
-        );
+        return templateFolderInModule;
       }
     }
     return '';

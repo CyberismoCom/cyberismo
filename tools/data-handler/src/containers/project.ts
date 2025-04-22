@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -768,8 +770,9 @@ export class Project extends CardContainer {
    */
   public async projectPrefixes(): Promise<string[]> {
     const prefixes: string[] = [this.projectPrefix];
-    if (pathExists(this.paths.modulesFolder)) {
-      const files = await readdir(this.paths.modulesFolder, {
+    let files;
+    try {
+      files = await readdir(this.paths.modulesFolder, {
         withFileTypes: true,
         recursive: true,
       });
@@ -786,6 +789,8 @@ export class Project extends CardContainer {
 
       const configurationPrefixes = await Promise.all(configurationPromises);
       prefixes.push(...configurationPrefixes);
+    } catch {
+      // do nothing if readdir throws
     }
 
     return prefixes;

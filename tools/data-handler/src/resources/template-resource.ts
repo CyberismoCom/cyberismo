@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { basename, dirname, join } from 'node:path';
@@ -23,7 +25,6 @@ import {
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import { pathExists } from '../utils/file-utils.js';
 import {
   TemplateConfiguration,
   TemplateMetadata,
@@ -200,10 +201,8 @@ export class TemplateResource extends FolderResource {
     // Create folder for cards and put proper content schema file there
     const schemaContentFile = join(this.cardsFolder, '.schema');
     await mkdir(this.cardsFolder, { recursive: true });
-    if (!pathExists(schemaContentFile)) {
-      await writeJsonFile(schemaContentFile, this.cardsSchema, {
-        flag: 'wx',
-      });
-    }
+    await writeJsonFile(schemaContentFile, this.cardsSchema, {
+      flag: 'wx',
+    });
   }
 }

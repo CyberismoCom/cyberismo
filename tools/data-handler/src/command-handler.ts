@@ -306,8 +306,7 @@ export class Commands {
         let parsedValue = '';
         try {
           parsedValue = JSON.parse(value);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (error) {
+        } catch {
           parsedValue = value;
         }
 

@@ -143,8 +143,7 @@ export function fromString<T>(value: T, to: DataType) {
       try {
         const tempDate = new Date((value as string) + 'Z').toUTCString();
         return new Date(tempDate).toISOString().slice(0, 10);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
+      } catch {
         return null;
       }
     }
@@ -152,8 +151,7 @@ export function fromString<T>(value: T, to: DataType) {
       try {
         const tempDate = new Date((value as string) + 'Z').toUTCString();
         return new Date(tempDate).toISOString();
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (error) {
+      } catch {
         return null;
       }
     }

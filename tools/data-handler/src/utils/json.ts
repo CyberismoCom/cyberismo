@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { readFileSync } from 'node:fs';
@@ -99,11 +101,18 @@ export function formatJson(json: object) {
  * @param filename file name (and path) to write.
  * @param json JSON object to format.
  * @param options Optional, write options
+ * @return true if write succeeded, false otherwise.
  */
 export async function writeJsonFile(
   filename: string | FileHandle,
   json: object,
   options?: object,
 ) {
-  await writeFile(filename, formatJson(json), options);
+  try {
+    await writeFile(filename, formatJson(json), options);
+    return true;
+  } catch {
+    // do nothing, file didn't exist, or no permissions to write
+  }
+  return false;
 }
