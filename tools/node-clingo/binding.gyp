@@ -46,6 +46,14 @@
               ],
               "include_dirs": [
                 "/opt/homebrew/include"
+              ],
+              "copies": [
+                {
+                  "destination": "<(PRODUCT_DIR)",
+                  "files": [
+                    "/opt/homebrew/lib/libclingo.dylib"
+                  ]
+                }
               ]
             }],
             ["target_arch!='arm64'", {
@@ -55,6 +63,14 @@
               ],
               "include_dirs": [
                 "/usr/local/include"
+              ],
+              "copies": [
+                {
+                  "destination": "<(PRODUCT_DIR)",
+                  "files": [
+                    "/usr/local/lib/libclingo.dylib"
+                  ]
+                }
               ]
             }]
           ],
