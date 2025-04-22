@@ -71,7 +71,6 @@ const url = `${binary.host}/${remotePath}/${packageName}`;
 console.log(`Attempting to download prebuilt binary from: ${url}`);
 
 try {
-  throw new Error('Just a fake throw');
   // Clean and ensure target directory exists before download/extraction
   console.log(`Ensuring clean target directory: ${targetDir}`);
   fs.rmSync(targetDir, { recursive: true, force: true });
