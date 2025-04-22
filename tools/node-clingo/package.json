@@ -1,12 +1,12 @@
 {
   "name": "@cyberismocom/node-clingo",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node scripts/download-prebuild.js || node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi",
-    "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi --strip",
+    "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi",
     "test": "vitest run",
     "test:watch": "vitest"
   },
