@@ -19,34 +19,37 @@ jobs:
         with:
           path: current
 
-      - name: Checkout previous code
-        uses: actions/checkout@v4
-        with:
-          path: previous
-          ref: ${{ github.event.before }}
-
-      - name: Check if version changed
+      - name: Check if version changed against latest release
         id: check
         run: |
-          if [ ! -f "previous/tools/node-clingo/package.json" ]; then
-            echo "version_changed=true" >> $GITHUB_OUTPUT
-            VERSION=$(node -p "require('./current/tools/node-clingo/package.json').version")
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
+          # Get current version
           CURRENT_VERSION=$(node -p "require('./current/tools/node-clingo/package.json').version")
-          PREVIOUS_VERSION=$(node -p "require('./previous/tools/node-clingo/package.json').version")
-          
           echo "Current version: $CURRENT_VERSION"
-          echo "Previous version: $PREVIOUS_VERSION"
-          
-          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+
+          # Get latest release tag name for node-clingo
+          # We filter tags starting with 'node-clingo-'
+          # Note: This might need adjustment if your tagging strategy changes or if other tags exist
+          LATEST_TAG=$(gh release list --repo $GITHUB_REPOSITORY --limit 1 --json tagName --jq '.[0].tagName // ""')
+
+          if [ -z "$LATEST_TAG" ] || [[ ! "$LATEST_TAG" == node-clingo-* ]]; then
+            echo "No previous node-clingo release found. Assuming version changed."
             echo "version_changed=true" >> $GITHUB_OUTPUT
           else
-            echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "Latest release tag: $LATEST_TAG"
+            # Extract version from tag (assuming format node-clingo-x.y.z)
+            PREVIOUS_VERSION=$(echo $LATEST_TAG | sed 's/^node-clingo-//')
+            echo "Previous release version: $PREVIOUS_VERSION"
+
+            if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+              echo "version_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "version_changed=false" >> $GITHUB_OUTPUT
+            fi
           fi
+
           echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-prebuilds:
     needs: check-version-change
