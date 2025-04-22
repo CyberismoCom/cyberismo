@@ -220,4 +220,3 @@ jobs:
           files: release-assets/*
           draft: false
           prerelease: ${{ github.ref != 'refs/heads/main' }}
-          generate_release_notes: true 

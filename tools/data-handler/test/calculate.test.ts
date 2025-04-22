@@ -80,17 +80,6 @@ describe('calculate', () => {
     delete res[0].lastUpdated;
     delete res[0].children?.[0].lastUpdated;
     expect(res).to.deep.equal(expectedTree);
-
-    // todo: run also 'card' query
-
-    // Run onTransition and onCreation queries even if they don't return anything.
-    /*
-    const onTransitionQuery = 'onTransition';
-    let changes = await calculate.runQuery(onTransitionQuery);
-    expect(changes.length).to.equal(0);
-    const onCreationQuery = 'onCreation';
-    changes = await calculate.runQuery(onCreationQuery);
-    expect(changes.length).to.equal(0);*/
   });
   it('run clingraph successfully', async () => {
     // load file
