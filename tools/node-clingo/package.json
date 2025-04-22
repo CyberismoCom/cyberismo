@@ -3,8 +3,7 @@
   "version": "0.0.5",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
-    "install": "prebuild-install || node-gyp-build",
-    "postinstall": "node scripts/post-install.js",
+    "install": "node scripts/download-prebuild.js || node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi --strip",
     "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi --strip",
@@ -17,7 +16,7 @@
   "dependencies": {
     "node-addon-api": "^7.1.0",
     "node-gyp-build": "^4.8.4",
-    "prebuild-install": "^7.1.3"
+    "tar-stream": "^3.1.7"
   },
   "devDependencies": {
     "node-gyp": "^11.2.0",
