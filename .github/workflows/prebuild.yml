@@ -89,6 +89,7 @@ jobs:
           node-version: 22
 
       - name: Setup Miniconda
+        if: runner.os == 'Windows'
         uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: 3.12
@@ -114,7 +115,7 @@ jobs:
       - name: Install clingo
         if: runner.os == 'macOS'
         run: |
-          brew install clingo
+          brew install clingo --ignore-dependencies
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
