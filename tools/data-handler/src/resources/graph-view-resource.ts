@@ -29,7 +29,7 @@ import {
   GraphView,
   GraphViewMetadata,
 } from '../interfaces/resource-interfaces.js';
-import { pathExists, writeFileSafe } from '../utils/file-utils.js';
+import { writeFileSafe } from '../utils/file-utils.js';
 
 /**
  * Graph view resource class.
@@ -70,7 +70,11 @@ export class GraphViewResource extends FolderResource {
       await this.validate(newContent);
     }
 
-    return super.create(newContent);
+    await super.create(newContent);
+    const handleBarFile = join(this.internalFolder, 'view.lp.hbs');
+    await writeFileSafe(handleBarFile, '', {
+      flag: 'wx',
+    });
   }
 
   /**
@@ -189,12 +193,5 @@ export class GraphViewResource extends FolderResource {
    */
   public async write() {
     await super.write();
-
-    const handleBarFile = join(this.internalFolder, 'view.lp.hbs');
-    if (!pathExists(handleBarFile)) {
-      await writeFileSafe(handleBarFile, '', {
-        flag: 'wx',
-      });
-    }
   }
 }

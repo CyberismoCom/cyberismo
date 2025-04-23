@@ -29,7 +29,7 @@ import {
   GraphModel,
   GraphModelMetadata,
 } from '../interfaces/resource-interfaces.js';
-import { pathExists, writeFileSafe } from '../utils/file-utils.js';
+import { writeFileSafe } from '../utils/file-utils.js';
 
 /**
  * Graph model resource class.
@@ -70,7 +70,17 @@ export class GraphModelResource extends FolderResource {
       await this.validate(newContent);
     }
 
-    return super.create(newContent);
+    await super.create(newContent);
+
+    // Create the internal folder in 'create', instead of 'write'.
+    const calculationsFile = join(this.internalFolder, 'model.lp');
+    await writeFileSafe(
+      calculationsFile,
+      `% add your calculations here for '${this.resourceName.identifier}'`,
+      {
+        flag: 'wx',
+      },
+    );
   }
 
   /**
@@ -189,16 +199,5 @@ export class GraphModelResource extends FolderResource {
    */
   public async write() {
     await super.write();
-
-    const calculationsFile = join(this.internalFolder, 'model.lp');
-    if (!pathExists(calculationsFile)) {
-      await writeFileSafe(
-        calculationsFile,
-        `% add your calculations here for '${this.resourceName.identifier}'`,
-        {
-          flag: 'wx',
-        },
-      );
-    }
   }
 }

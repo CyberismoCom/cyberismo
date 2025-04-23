@@ -41,10 +41,8 @@ describe('file utils', () => {
     try {
       await access(destination);
       expect(true);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(false);
-      }
+    } catch {
+      expect(false);
     }
   });
   it('copyDir with hierarchy (success)', async () => {
@@ -56,10 +54,8 @@ describe('file utils', () => {
     try {
       await access(destination);
       expect(true);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(false);
-      }
+    } catch {
+      expect(false);
     }
   });
   it('deleteDir (success)', async () => {
@@ -69,10 +65,8 @@ describe('file utils', () => {
     try {
       await access(targetDir);
       expect(false);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(true);
-      }
+    } catch {
+      expect(true);
     }
   });
   it('deleteFile (success)', async () => {
@@ -88,10 +82,8 @@ describe('file utils', () => {
     try {
       await access(target);
       expect(false);
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(true);
-      }
+    } catch {
+      expect(true);
     }
   });
   it('deleteFile - file missing', async () => {
@@ -102,6 +94,10 @@ describe('file utils', () => {
   it('getFilesSync (success)', () => {
     const files = getFilesSync('test/test-data/valid/minimal');
     expect(files.length).to.be.greaterThan(0);
+  });
+  it('getFilesSync - wrong path', () => {
+    const files = getFilesSync('test/test-data/valid/non-existing');
+    expect(files.length).to.equal(0);
   });
   it('pathExists (success)', () => {
     const path = '/';

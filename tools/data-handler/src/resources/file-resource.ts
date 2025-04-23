@@ -1,16 +1,16 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // node
 import { basename, join } from 'node:path';
@@ -122,9 +122,11 @@ export class FileResource extends ResourceObject {
       return;
     }
     //... otherwise read from disk and add to cache
-    if (pathExists(this.fileName)) {
+    try {
       this.content = readJsonFileSync(this.fileName);
       this.toCache();
+    } catch {
+      // do nothing, it is possible that file has not been created yet.
     }
   }
 
@@ -282,9 +284,7 @@ export class FileResource extends ResourceObject {
 
   // Reads content from file to memory.
   protected async read() {
-    if (pathExists(this.fileName)) {
-      this.content = await readJsonFile(this.fileName);
-    }
+    this.content = await readJsonFile(this.fileName);
   }
 
   // Renames resource.
@@ -336,6 +336,7 @@ export class FileResource extends ResourceObject {
   // Update resource; the base class makes some checks only.
   protected async update<Type>(
     key: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _op: Operation<Type>,
   ): Promise<void> {
     const content = this.data;
@@ -389,17 +390,14 @@ export class FileResource extends ResourceObject {
     }
 
     // Create folder for resources and add correct .schema file.
-    //todo: pathExists + mkdir
-    if (!pathExists(this.resourceFolder)) {
-      await mkdir(this.resourceFolder);
-      await writeJsonFile(
-        join(this.resourceFolder, '.schema'),
-        this.contentSchema,
-        {
-          flag: 'wx',
-        },
-      );
-    }
+    await mkdir(this.resourceFolder, { recursive: true });
+    await writeJsonFile(
+      join(this.resourceFolder, '.schema'),
+      this.contentSchema,
+      {
+        flag: 'wx',
+      },
+    );
     // Check if "name" has changed. Changing "name" means renaming the file.
     const nameInContent = resourceName(this.content.name).identifier + '.json';
     const currentFileName = basename(this.fileName);

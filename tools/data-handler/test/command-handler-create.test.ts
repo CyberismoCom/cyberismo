@@ -636,10 +636,8 @@ describe('create command', () => {
     );
     try {
       await access(projectDir, fsConstants.R_OK);
-    } catch (error) {
-      if (error instanceof Error) {
-        assert(false, 'project folder could not be created');
-      }
+    } catch {
+      assert(false, 'project folder could not be created');
     }
     expect(result.statusCode).to.equal(200);
   });
@@ -657,10 +655,8 @@ describe('create command', () => {
     try {
       // nodeJS does not automatically expand paths with tilde
       await access(resolveTilde(path), fsConstants.F_OK);
-    } catch (error) {
-      if (error instanceof Error) {
-        assert(false, 'project folder could not be created');
-      }
+    } catch {
+      assert(false, 'project folder could not be created');
     }
     expect(result.statusCode).to.equal(200);
   });

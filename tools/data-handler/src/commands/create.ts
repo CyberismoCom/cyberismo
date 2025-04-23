@@ -506,10 +506,8 @@ export class Create {
 
     try {
       await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Failed to create project');
-      }
+    } catch {
+      console.error('Failed to create project');
     }
   }
 

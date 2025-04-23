@@ -78,11 +78,9 @@ describe('transition command', () => {
         {},
       );
       assert(false, 'this should not be reached as the above throws');
-    } catch (error) {
-      if (error instanceof Error) {
-        // missing path (if the project location cannot be deduced) throws
-        expect(true);
-      }
+    } catch {
+      // missing path (if the project location cannot be deduced) throws
+      expect(true);
     }
     stubProjectPath.restore();
   });

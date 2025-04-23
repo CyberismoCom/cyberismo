@@ -87,7 +87,7 @@ async function getCardDetails(
       fetchCardDetails,
       key,
     );
-  } catch (error) {
+  } catch {
     return { status: 400, message: `Card ${key} not found from project` };
   }
 
@@ -746,7 +746,7 @@ router.get('/:key/a/:attachment', async (c) => {
         'Cache-Control': 'no-store',
       },
     });
-  } catch (error) {
+  } catch {
     return c.text(
       `No attachment found from card ${key} and filename ${filename}`,
       404,

@@ -1,28 +1,30 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+
 import { Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
-import { pathExists, stripExtension } from '../../utils/file-utils.js';
-import { resourceName } from '../../utils/resource-utils.js';
+import { Project } from '../project.js';
 import { ProjectPaths } from './project-paths.js';
 import {
   Resource,
   ResourceFolderType,
 } from '../../interfaces/project-interfaces.js';
-
-import { Project } from '../project.js';
+import { resourceName } from '../../utils/resource-utils.js';
+import { stripExtension } from '../../utils/file-utils.js';
 
 /**
  * Defines where resources are collected from.
@@ -104,15 +106,15 @@ export class ResourceCollector {
         requestedType,
       );
 
-      if (!pathExists(resourcePath)) {
+      try {
+        const files = await readdir(resourcePath, { withFileTypes: true });
+        return files.filter(isValidFile).map((item) => ({
+          name: `${resource.name}/${requestedType}/${stripExtension(item.name)}`,
+          path: item.parentPath,
+        }));
+      } catch {
         return [];
       }
-
-      const files = await readdir(resourcePath, { withFileTypes: true });
-      return files.filter(isValidFile).map((item) => ({
-        name: `${resource.name}/${requestedType}/${stripExtension(item.name)}`,
-        path: item.parentPath,
-      }));
     };
 
     const results = await Promise.all(resources.map(processResource));
@@ -161,20 +163,21 @@ export class ResourceCollector {
   private async addResourcesFromModules(
     type: ResourceFolderType,
   ): Promise<Resource[]> {
-    if (!pathExists(this.paths.modulesFolder)) {
+    try {
+      // 'modules' is a bit special; it is collected separately from actual resources.
+      if (type === 'modules') {
+        const moduleDirectories = await readdir(this.paths.modulesFolder, {
+          withFileTypes: true,
+        });
+        const modules = moduleDirectories.filter((item) => item.isDirectory());
+        return [...(await this.addResources(modules, 'modules'))];
+      }
+
+      await this.addModuleResources();
+      return this.modules.resourceArray(type);
+    } catch {
       return [];
     }
-    // 'modules' is a bit special; it is collected separately from actual resources.
-    if (type === 'modules') {
-      const moduleDirectories = await readdir(this.paths.modulesFolder, {
-        withFileTypes: true,
-      });
-      const modules = moduleDirectories.filter((item) => item.isDirectory());
-      return [...(await this.addResources(modules, 'modules'))];
-    }
-
-    await this.addModuleResources();
-    return this.modules.resourceArray(type);
   }
 
   // Joins local resources and module resources together to one array.
@@ -205,10 +208,12 @@ export class ResourceCollector {
   private resourcesSync(type: ResourceFolderType): Resource[] {
     const resourceFolder = this.project.paths.resourcePath(type);
     const resources: Resource[] = [];
-    if (!pathExists(resourceFolder)) {
+    let entries = [];
+    try {
+      entries = readdirSync(resourceFolder, { withFileTypes: true });
+    } catch {
       return [];
     }
-    const entries = readdirSync(resourceFolder, { withFileTypes: true });
     resources.push(
       ...entries
         .filter((entry) => {

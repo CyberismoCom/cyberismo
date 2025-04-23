@@ -216,10 +216,8 @@ describe('import module', () => {
           invalidOptions,
         );
         assert(false, 'this should not be reached as the above throws');
-      } catch (error) {
-        if (error instanceof Error) {
-          // this block is here for linter
-        }
+      } catch {
+        // do nothing
       }
       expect(result.statusCode).to.equal(400);
       stubProjectPath.restore();

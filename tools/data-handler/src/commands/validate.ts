@@ -711,17 +711,17 @@ export class Validate {
     if (activeJsonSchema === undefined) {
       throw new Error(`Unknown schema '${schemaId}'`);
     } else {
-      if (!pathExists(projectPath)) {
+      let contentFile = '';
+      try {
+        contentFile = await readJsonFile(projectPath);
+      } catch {
         throw new Error(`Path is not valid ${projectPath}`);
-      } else {
-        const result = this.validator.validate(
-          await readJsonFile(projectPath),
-          activeJsonSchema,
-        );
-        for (const error of result.errors) {
-          const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-          validationErrors.push(msg);
-        }
+      }
+
+      const result = this.validator.validate(contentFile, activeJsonSchema);
+      for (const error of result.errors) {
+        const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
+        validationErrors.push(msg);
       }
     }
     return validationErrors.join('\n');

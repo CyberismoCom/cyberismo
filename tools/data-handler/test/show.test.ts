@@ -119,10 +119,11 @@ describe('show', () => {
     // Parent
     const cardIdParent = 'decision_mycard';
     await writeFileSafe(join(cardRoot, cardIdParent, 'index.adoc'), '');
-    await writeJsonFile(
+    const parentWrite = await writeJsonFile(
       join(cardRoot, cardIdParent, 'index.json'),
       cardMetadata,
     );
+    expect(parentWrite).to.equal(true);
     mkdirSync(join(decisionRecordsPath, 'cardRoot', cardIdParent, 'a'));
 
     // Child
@@ -131,10 +132,11 @@ describe('show', () => {
       join(cardRoot, cardIdParent, 'c', cardIChild, 'index.adoc'),
       '',
     );
-    await writeJsonFile(
+    const childWrite = await writeJsonFile(
       join(cardRoot, cardIdParent, 'c', cardIChild, 'index.json'),
       cardMetadata,
     );
+    expect(childWrite).to.equal(true);
     await writeFileSafe(
       join(cardRoot, cardIdParent, 'c', cardIChild, 'a', 'image.png'),
       '',
