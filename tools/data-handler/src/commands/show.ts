@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -23,7 +24,7 @@ import {
   CardAttachment,
   Card,
   CardListContainer,
-  ModuleSettings,
+  ModuleContent,
   ProjectFetchCardDetails,
   ProjectMetadata,
   Resource,
@@ -287,7 +288,7 @@ export class Show {
    * @param moduleName name of a module
    * @returns details of a module.
    */
-  public async showModule(moduleName: string): Promise<ModuleSettings> {
+  public async showModule(moduleName: string): Promise<ModuleContent> {
     const moduleDetails = await this.project.module(moduleName);
     if (!moduleDetails) {
       throw new Error(`Module '${moduleName}' does not exist in the project`);
@@ -311,22 +312,6 @@ export class Show {
    */
   public async showModules(): Promise<string[]> {
     return (await this.project.modules()).map((item) => item.name).sort();
-  }
-
-  /**
-   * Shows all modules with full details in a project.
-   * @returns all modules with full details in a project.
-   * @todo: unused; remove?
-   */
-  public async showModulesWithDetails(): Promise<
-    (ModuleSettings | undefined)[]
-  > {
-    const promiseContainer = [];
-    for (const module of await this.project.modules()) {
-      promiseContainer.push(this.project.module(module.name));
-    }
-    const results = await Promise.all(promiseContainer);
-    return results.filter((item) => item);
   }
 
   /**

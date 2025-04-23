@@ -235,10 +235,6 @@ describe('show', () => {
     const results = await showCmd.showModules();
     expect(results).to.not.equal(undefined);
   });
-  it('showModulesWithDetails (success)', async () => {
-    const results = await showCmd.showModulesWithDetails();
-    expect(results).to.not.equal(undefined);
-  });
   it('showProject (success)', async () => {
     const results = await showCmd.showProject();
     expect(results).to.not.equal(undefined);

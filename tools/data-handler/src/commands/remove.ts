@@ -189,7 +189,7 @@ export class Remove {
       throw new Error(`Module '${moduleName}' not found`);
     }
     await deleteDir(module.path);
-    await this.project.collectModuleResources();
+    await this.project.removeModule(moduleName);
   }
 
   /**

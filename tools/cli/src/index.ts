@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { Argument, Command } from 'commander';
 import confirm from '@inquirer/confirm';
-
 import {
   CardsOptions,
   Cmd,
@@ -390,13 +390,16 @@ const importCmd = program.command('import');
 // Import module
 importCmd
   .command('module')
-  .description('Imports another project to this project as a module.')
+  .description(
+    'Imports another project to this project as a module. Source can be local relative file path, or git HTTPS URL.',
+  )
   .argument('<source>', 'Path to import from')
+  .argument('[branch]', 'When using git URL defines the branch. Default: main')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (source: string, options: CardsOptions) => {
+  .action(async (source: string, branch: string, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.import,
-      ['module', source],
+      ['module', source, branch],
       options,
     );
     handleResponse(result);
@@ -650,6 +653,16 @@ program
       handleResponse(result);
     },
   );
+
+// Updates all modules in the project.
+program
+  .command('update-modules')
+  .description('Updates all imported modules with latest versions')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (options: CardsOptions) => {
+    const result = await commandHandler.command(Cmd.updateModules, [], options);
+    handleResponse(result);
+  });
 
 // Validate command
 program

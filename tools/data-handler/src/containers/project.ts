@@ -28,7 +28,8 @@ import {
   CardNameRegEx,
   FetchCardDetails,
   MetadataContent,
-  ModuleSettings,
+  ModuleContent,
+  ModuleSetting,
   ProjectFetchCardDetails,
   ProjectMetadata,
   ProjectSettings,
@@ -82,7 +83,7 @@ export class Project extends CardContainer {
   constructor(path: string) {
     super(path, '');
 
-    this.settings = ProjectConfiguration.getInstance(
+    this.settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
     this.projectPaths = new ProjectPaths(path, this.projectPrefix);
@@ -471,6 +472,16 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Adds a module from project.
+   * @param moduleName Name of the module
+   */
+  public async importModule(module: ModuleSetting) {
+    // Add module as a dependency.
+    await this.configuration.addModule(module);
+    await this.collectModuleResources();
+  }
+
+  /**
    * Checks if given path is a project.
    * @param path Path to a project
    * @returns true, if in the given path there is a project; false otherwise
@@ -621,15 +632,16 @@ export class Project extends CardContainer {
    * @param moduleName Name of the module.
    * @returns module details, or undefined if workflow cannot be found.
    */
-  public async module(moduleName: string): Promise<ModuleSettings | undefined> {
+  public async module(moduleName: string): Promise<ModuleContent | undefined> {
     const module = await this.findModule(moduleName);
     if (module && module.path) {
       const modulePath = join(module.path, module.name);
       const moduleConfig = (await readJsonFile(
         join(modulePath, Project.projectConfigFileName),
-      )) as ModuleSettings;
+      )) as ModuleContent;
       return {
         name: moduleConfig.name,
+        modules: moduleConfig.modules,
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
         calculations: [
@@ -797,6 +809,15 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Removes a module from project.
+   * @param moduleName Name of the module
+   */
+  public async removeModule(moduleName: string) {
+    await this.configuration.removeModule(moduleName);
+    await this.collectModuleResources();
+  }
+
+  /**
    * Array of reports in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all reports in the project.
@@ -921,6 +942,7 @@ export class Project extends CardContainer {
       name: this.containerName,
       path: this.basePath,
       prefix: this.projectPrefix,
+      modules: (await this.modules()).map((item) => item.name),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
         .length,
     };

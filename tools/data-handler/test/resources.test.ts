@@ -213,7 +213,7 @@ describe('resources', () => {
       const templatesCount = (await collector.resources('templates')).length;
       const workflowsCount = (await collector.resources('workflows')).length;
 
-      await importCmd.importProject(minimalPath, project.basePath);
+      await importCmd.importModule(minimalPath, project.basePath);
       await collector.moduleImported();
 
       const calcCountAgain = (await collector.resources('calculations')).length;
@@ -1147,7 +1147,7 @@ describe('resources', () => {
       const createCmdMini = new Create(projectMini, calculateCmdMini);
       const importCmdMini = new Import(projectMini, createCmdMini);
       const collectorMini = new ResourceCollector(projectMini);
-      await importCmdMini.importProject(
+      await importCmdMini.importModule(
         decisionRecordsPath,
         projectMini.basePath,
       );

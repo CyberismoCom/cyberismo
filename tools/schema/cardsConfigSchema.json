@@ -17,6 +17,28 @@
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z ._-]+$"
+    },
+    "modules": {
+      "description": "List of modules that have been included in the project",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Module name (project prefix). Must be unique.",
+            "type": "string"
+          },
+          "location": {
+            "description": "URI that is either a git URL with HTTPS, or relative file reference",
+            "type": "string"
+          },
+          "branch": {
+            "description": "If using git URL in 'location' defines git branch. If empty, assumed to be 'main'. ",
+            "type": "string"
+          }
+        },
+        "required": ["name", "location"]
+      }
     }
   },
   "required": ["cardKeyPrefix"]
