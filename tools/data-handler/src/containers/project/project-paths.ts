@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { join } from 'node:path';
@@ -20,10 +21,7 @@ import { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 export class ProjectPaths {
   private pathMap: Map<ResourceFolderType, string>;
 
-  constructor(
-    private path: string,
-    private prefix: string,
-  ) {
+  constructor(private path: string) {
     this.pathMap = new Map([
       ['calculations', this.calculationProjectFolder],
       ['cardTypes', this.cardTypesFolder],
@@ -62,6 +60,10 @@ export class ProjectPaths {
     return join(this.resourcesFolder, 'cardTypes');
   }
 
+  public get configurationFile(): string {
+    return join(this.resourcesFolder, 'cardsConfig.json');
+  }
+
   public get fieldTypesFolder(): string {
     return join(this.resourcesFolder, 'fieldTypes');
   }
@@ -77,8 +79,9 @@ export class ProjectPaths {
   public get linkTypesFolder(): string {
     return join(this.resourcesFolder, 'linkTypes');
   }
+
   public get logPath(): string {
-    return join(this.path, '.cards', 'local', 'dh.log');
+    return join(this.resourcesFolder, 'dh.log');
   }
 
   public get modulesFolder(): string {
