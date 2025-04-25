@@ -54,7 +54,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "global-jsdom": "^26.0.0",
     "globals": "^15.15.0",
-    "jsdom": "^26.0.0",
+    "jsdom": "^26.1.0",
     "start-server-and-test": "^2.0.11",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
