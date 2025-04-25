@@ -112,50 +112,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Updates metadata key.
-   * @param cardKey card that is updated.
-   * @param changedKey changed metadata key
-   * @param newValue changed value for the key
-   * @param skipValidation Optional, if set to true, new card content is not validated.
-   * @returns true if metadata key was updated, false otherwise.
-   */
-  private async updateMetadataKey(
-    cardKey: string,
-    changedKey: string,
-    newValue: MetadataContent,
-    skipValidation: boolean = false,
-  ) {
-    const templateCard = await this.isTemplateCard(cardKey);
-    const card = await this.findCard(
-      templateCard ? this.paths.templatesFolder : this.paths.cardRootFolder,
-      cardKey,
-      {
-        metadata: true,
-      },
-    );
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-
-    if (!card.metadata || card.metadata[changedKey] === newValue) {
-      return false;
-    }
-    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
-    cardAsRecord[changedKey] = newValue;
-
-    const invalidCard =
-      isTemplateCard(card) || skipValidation
-        ? ''
-        : await this.validateCard(card);
-    if (invalidCard.length !== 0) {
-      throw new Error(invalidCard);
-    }
-
-    await this.saveCardMetadata(card);
-    return true;
-  }
-
-  /**
    * Add a given 'resource' to the local resource arrays.
    * @param resource Resource to add.
    */
