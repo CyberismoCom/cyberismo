@@ -201,7 +201,7 @@ export class FileResource extends ResourceObject {
         content: true,
         metadata: true,
       })),
-      ...(await this.project.templateCards({
+      ...(await this.project.allTemplateCards({
         content: true,
         metadata: true,
       })),

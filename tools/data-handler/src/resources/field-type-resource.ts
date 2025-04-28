@@ -156,7 +156,7 @@ export class FieldTypeResource extends FileResource {
         metadata: true,
       })
     ).filter((card) => affectedCard(card));
-    const templateCards = (await this.project.templateCards())
+    const templateCards = (await this.project.allTemplateCards())
       .filter((card) => !card.path.includes('modules'))
       .filter((card) => affectedCard(card));
     const allCards = [...projectCards, ...templateCards];

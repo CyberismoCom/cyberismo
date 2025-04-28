@@ -452,7 +452,7 @@ export class Project extends CardContainer {
    * @todo: This is only used from 'remove'. Could it use the static checker?
    */
   public async isTemplateCard(cardKey: string): Promise<boolean> {
-    const templateCards = await this.templateCards();
+    const templateCards = await this.allTemplateCards();
     return templateCards.find((card) => card.key === cardKey) != null;
   }
 
@@ -978,22 +978,36 @@ export class Project extends CardContainer {
    * @param cardDetails which details to fetch. Optional.
    * @returns all the template cards from the project
    */
-  public async templateCards(cardDetails?: FetchCardDetails): Promise<Card[]> {
+  public async allTemplateCards(
+    cardDetails?: FetchCardDetails,
+  ): Promise<Card[]> {
     const templates = await this.templates();
     const cards: Card[] = [];
     for (const template of templates) {
-      const templateObject = new TemplateResource(
-        this,
-        resourceName(template.name),
-      ).templateObject();
-      const templateCards = await templateObject?.cards('', cardDetails);
-      if (templateCards) {
-        for (const card of templateCards) {
-          cards.push(card);
-        }
-      }
+      const templateCards = await this.templateCards(
+        template.name,
+        cardDetails,
+      );
+      if (templateCards) cards.push(...templateCards);
     }
     return cards;
+  }
+
+  /**
+   * Returns cards from single template.
+   * @param templateName Name of the template
+   * @param cardDetails Card information
+   * @returns List of cards from template.
+   */
+  public async templateCards(
+    templateName: string,
+    cardDetails?: FetchCardDetails,
+  ): Promise<Card[]> {
+    const templateObject = new TemplateResource(
+      this,
+      resourceName(templateName),
+    ).templateObject();
+    return await templateObject?.cards('', cardDetails);
   }
 
   /**

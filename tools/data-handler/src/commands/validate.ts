@@ -558,7 +558,7 @@ export class Validate {
 
         // Finally, validate that each card is correct
         const cards = await project.cards();
-        cards.push(...(await project.templateCards()));
+        cards.push(...(await project.allTemplateCards()));
 
         for (const card of cards) {
           if (card.metadata) {

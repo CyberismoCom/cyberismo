@@ -10,40 +10,35 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import { sep } from 'node:path';
-import { Card } from '../interfaces/project-interfaces.js';
+
+import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
+import { Card, ModuleContent } from '../interfaces/project-interfaces.js';
 import {
   CardType,
   FieldType,
   Link,
   LinkType,
+  ReportMetadata,
+  TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
-import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
-import { Project } from '../containers/project.js';
 import { isPredefinedField } from './constants.js';
+import { isTemplateCard } from '../utils/card-utils.js';
+import { Project } from '../containers/project.js';
 
-// I think namespace syntax is valid for this purpose
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {
-  export enum Workflow {
-    WORKFLOW = 'workflow',
-    WORKFLOW_STATE = 'workflowState',
-    WORKFLOW_TRANSITION = 'workflowTransition',
-  }
   export enum Card {
     LABEL = 'label',
     LINK = 'userLink',
     PARENT = 'parent',
   }
 
-  export enum FieldType {
-    ENUM_VALUE = 'enumValue',
-    FIELD_TYPE = 'fieldType',
-  }
-
   export enum Common {
     FIELD = 'field',
+    MODULE = 'module',
+    PROJECT = 'project',
   }
 
   export enum CardType {
@@ -54,13 +49,49 @@ export namespace Facts {
     OPTIONALLY_VISIBLE_FIELD = 'optionallyVisibleField',
   }
 
+  export enum FieldType {
+    ENUM_VALUE = 'enumValue',
+    FIELD_TYPE = 'fieldType',
+  }
+
   export enum LinkType {
     LINK_DESTINATION_CARD_TYPE = 'linkDestinationCardType',
     LINK_SOURCE_CARD_TYPE = 'linkSourceCardType',
     LINK_TYPE = 'linkType',
   }
+
+  export enum Report {
+    REPORT = 'report',
+  }
+
+  export enum Template {
+    TEMPLATE = 'template',
+  }
+
+  export enum Workflow {
+    WORKFLOW = 'workflow',
+    WORKFLOW_STATE = 'workflowState',
+    WORKFLOW_TRANSITION = 'workflowTransition',
+  }
 }
 
+// Compares two index values.
+function compareIndex(a: number, b: number): number {
+  if (a === -1 && b === -1) {
+    return 0;
+  } else if (a === -1) {
+    return 1;
+  } else if (b === -1) {
+    return -1;
+  }
+  return a - b;
+}
+
+/**
+ * Creates Clingo facts for a workflow.
+ * @param workflow Workflow metadata
+ * @returns clingo facts as a string
+ */
 export const createWorkflowFacts = (workflow: Workflow) => {
   const builder = new ClingoProgramBuilder().addFact(
     Facts.Workflow.WORKFLOW,
@@ -104,6 +135,12 @@ export const createWorkflowFacts = (workflow: Workflow) => {
   return builder.buildAll();
 };
 
+/**
+ * Creates Clingo facts for a card.
+ * @param card Card information
+ * @param project Project information
+ * @returns clingo facts as a string
+ */
 export const createCardFacts = async (card: Card, project: Project) => {
   // Small helper to deduce parent path
   function parentPath(cardPath: string) {
@@ -114,7 +151,34 @@ export const createCardFacts = async (card: Card, project: Project) => {
       return pathParts.at(pathParts.length - 3);
     }
   }
-  const parentsPath = parentPath(card.path);
+
+  // Helper to deduce template parent path.
+  function parentPathFromTemplate(card: Card) {
+    const cardPath = card.path;
+    const pathParts = cardPath.split(sep);
+    if (pathParts.length <= 6) {
+      // template or module template paths should have a minimum of seven parts.
+      return '';
+    }
+    if (isTemplateCard(card)) {
+      // Parent is a card
+      if (pathParts.at(pathParts.length - 4) === 'c') {
+        return pathParts.at(pathParts.length - 3);
+      }
+      // Parent is a template
+      const prefix =
+        pathParts.at(pathParts.length - 5) === 'local'
+          ? project.projectPrefix
+          : pathParts.at(pathParts.length - 5);
+      const resourceType = pathParts.at(pathParts.length - 4);
+      const templateName = pathParts.at(pathParts.length - 3);
+      return `"${prefix}/${resourceType}/${templateName}"`;
+    }
+  }
+
+  const parentsPath = isTemplateCard(card)
+    ? parentPathFromTemplate(card)
+    : parentPath(card.path);
   const builder = new ClingoProgramBuilder().addComment(card.key);
 
   if (card.metadata) {
@@ -186,6 +250,11 @@ export const createCardFacts = async (card: Card, project: Project) => {
   return builder.buildAll();
 };
 
+/**
+ * Creates Clingo facts for a field type.
+ * @param fieldType Field type metadata
+ * @returns clingo facts as a string
+ */
 export const createFieldTypeFacts = (fieldType: FieldType) => {
   const builder = new ClingoProgramBuilder();
   builder.addFact(Facts.FieldType.FIELD_TYPE, fieldType.name);
@@ -252,17 +321,11 @@ export const createFieldTypeFacts = (fieldType: FieldType) => {
   return builder.buildAll();
 };
 
-function compareIndex(a: number, b: number): number {
-  if (a === -1 && b === -1) {
-    return 0;
-  } else if (a === -1) {
-    return 1;
-  } else if (b === -1) {
-    return -1;
-  }
-  return a - b;
-}
-
+/**
+ * Creates Clingo facts for a card type.
+ * @param cardType Card type metadata
+ * @returns clingo facts as a string
+ */
 export const createCardTypeFacts = (cardType: CardType) => {
   const builder = new ClingoProgramBuilder();
 
@@ -343,6 +406,11 @@ export const createCardTypeFacts = (cardType: CardType) => {
   return builder.buildAll();
 };
 
+/**
+ * Creates Clingo facts for a link type.
+ * @param linkType Link type metadata
+ * @returns clingo facts as a string
+ */
 export const createLinkTypeFacts = (linkType: LinkType) => {
   const builder = new ClingoProgramBuilder()
     .addFact(Facts.LinkType.LINK_TYPE, linkType.name)
@@ -381,5 +449,99 @@ export const createLinkTypeFacts = (linkType: LinkType) => {
     );
   }
 
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a module.
+ * @param module Module metadata
+ * @returns clingo facts as a string
+ */
+export const createModuleFacts = (module: ModuleContent) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Common.MODULE, module.cardKeyPrefix);
+  builder.addFact(
+    Facts.Common.FIELD,
+    module.cardKeyPrefix,
+    'name',
+    module.name,
+  );
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a project.
+ * @param projectPrefix Card prefix of the project
+ * @returns clingo facts as a string
+ */
+export const createProjectFacts = (projectPrefix: string) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Common.PROJECT, projectPrefix);
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts for a report.
+ * @param report Report metadata
+ * @returns clingo facts as a string
+ */
+export const createReportFacts = (report: ReportMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Report.REPORT, report.name);
+
+  if (report.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'displayName',
+      report.displayName,
+    );
+  if (report.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'description',
+      report.description,
+    );
+  if (report.category)
+    builder.addFact(
+      Facts.Common.FIELD,
+      report.name,
+      'category',
+      report.category,
+    );
+  return builder.buildAll();
+};
+
+/**
+ * Creates Clingo facts about template.
+ * @param template Template metadata
+ * @returns clingo facts as a string
+ */
+export const createTemplateFacts = (template: TemplateMetadata) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(Facts.Template.TEMPLATE, template.name);
+
+  if (template.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'displayName',
+      template.displayName,
+    );
+  if (template.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'description',
+      template.description,
+    );
+  if (template.category)
+    builder.addFact(
+      Facts.Common.FIELD,
+      template.name,
+      'category',
+      template.category,
+    );
   return builder.buildAll();
 };

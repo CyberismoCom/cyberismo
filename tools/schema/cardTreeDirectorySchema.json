@@ -144,6 +144,10 @@
                   "description": "A logic program that contains basic common definitions that are the same in all cards projects",
                   "type": "object"
                 },
+                "calculations.lp": {
+                  "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
+                  "type": "object"
+                },
                 "cardTree.lp": {
                   "description": "A logic program that only includes all the card-specific logic programs",
                   "type": "object"
@@ -152,12 +156,12 @@
                   "description": "A logic program that only includes all the logic programs generated from resources",
                   "type": "object"
                 },
-                "modules.lp": {
-                  "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
-                  "type": "object"
-                },
                 "main.lp": {
                   "description": "The main logic program",
+                  "type": "object"
+                },
+                "modules.lp": {
+                  "description": "",
                   "type": "object"
                 },
                 "queryLanguage.lp": {

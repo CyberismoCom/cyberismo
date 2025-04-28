@@ -435,7 +435,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);
     expect(project).to.not.equal(undefined);
-    const templateCards = await project.templateCards();
+    const templateCards = await project.allTemplateCards();
     expect(templateCards.length).to.be.greaterThan(0);
     if (templateCards && templateCards.at(0)) {
       const template = project.createTemplateObjectFromCard(
@@ -488,6 +488,20 @@ describe('project', () => {
     expect(Project.isCreated(decisionRecordsPath)).to.equal(true);
     expect(Project.isCreated('idontexist')).to.equal(false);
     expect(Project.isCreated('')).to.equal(false);
+  });
+  it('fetch template cards', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = new Project(decisionRecordsPath);
+    // You get the same cards if you fetch all template cards in one call...
+    let templateCards = await project.allTemplateCards();
+    expect(templateCards.length).to.be.greaterThan(0);
+    // ...or fetch all templates, and then all cards for that template.
+    const templates = await project.templates();
+    for (const template of templates) {
+      const cards = await project.templateCards(template.name);
+      templateCards = templateCards.filter((item) => cards.includes(item));
+    }
+    expect(templateCards.length).to.equal(0);
   });
   it('list project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
