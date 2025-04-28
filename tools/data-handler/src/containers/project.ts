@@ -86,7 +86,7 @@ export class Project extends CardContainer {
     this.settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
     );
-    this.projectPaths = new ProjectPaths(path, this.projectPrefix);
+    this.projectPaths = new ProjectPaths(path);
     this.resources = new ResourceCollector(this);
 
     this.containerName = this.settings.name;
