@@ -28,12 +28,23 @@
 // Store base programs in a map, keyed by name
 std::unordered_map<std::string, std::string> g_basePrograms;
 
-// Silent logger function that discards all messages
+/**
+ * A logger function for Clingo that does nothing.
+ * Used to silence Clingo's output (warnings, info messages).
+ * @param code The warning code.
+ * @param message The warning message.
+ * @param data User data (unused).
+ */
 void silent_logger(clingo_warning_t code, char const *message, void *data) {
     // Do nothing - this silences all Clingo output
 }
 
-// Helper function to handle Clingo errors
+/**
+ * Helper function to check for and handle Clingo errors.
+ * If a Clingo error has occurred (clingo_error_code() != 0),
+ * it throws a Napi::Error with the Clingo error message.
+ * @param env The N-API environment.
+ */
 void HandleClingoError(const Napi::Env& env) {
     // If clingo returns an error, we throw an error to the javascript side
     if (clingo_error_code() != 0) {
@@ -41,7 +52,19 @@ void HandleClingoError(const Napi::Env& env) {
     }
 }
 
-// Callback for Clingo's ground function
+/**
+ * Callback function provided to clingo_control_ground.
+ * This function is called by Clingo for each external function encountered during grounding.
+ * It looks up the function name in the registered handlers and executes the corresponding handler.
+ * @param location Location information (unused).
+ * @param name The name of the external function (e.g., "concatenate").
+ * @param arguments Array of clingo symbols representing the function arguments.
+ * @param arguments_size Number of arguments.
+ * @param data User data (unused).
+ * @param symbol_callback Callback function to return result symbols to Clingo.
+ * @param symbol_callback_data User data for the symbol_callback.
+ * @returns True on success, false on error (propagated from the handler).
+ */
 bool ground_callback(clingo_location_t const *location, char const *name, 
                     clingo_symbol_t const *arguments, size_t arguments_size, 
                     void *data, clingo_symbol_callback_t symbol_callback, 
@@ -59,7 +82,15 @@ bool ground_callback(clingo_location_t const *location, char const *name,
     return true;
 }
 
-// Callback for Clingo's solve function
+/**
+ * Callback function provided to clingo_control_solve (via solve_event_callback).
+ * This function is called by Clingo for each model (answer set) found.
+ * It extracts the symbols from the model, converts them to strings, and stores them.
+ * @param model The clingo model object.
+ * @param data User data pointer (cast to std::vector<std::string>* to store answers).
+ * @param goon Output parameter; set to true to continue solving, false to stop.
+ * @returns True on success, false on error (e.g., allocation failure).
+ */
 bool on_model(clingo_model_t const *model, void *data, bool *goon) {
     if (!model || !data || !goon) {
         return false;
@@ -123,7 +154,16 @@ bool on_model(clingo_model_t const *model, void *data, bool *goon) {
     return success;
 }
 
-// Wrapper for the solve event callback
+/**
+ * Wrapper callback for clingo_control_solve.
+ * This function receives different types of solve events from Clingo.
+ * If the event type is a model (clingo_solve_event_type_model), it calls the on_model handler.
+ * @param type The type of the solve event.
+ * @param event Pointer to the event data (e.g., clingo_model_t* for models).
+ * @param data User data pointer (passed through to on_model).
+ * @param goon Output parameter (passed through to on_model).
+ * @returns True on success or if the event is not a model, false on error from on_model.
+ */
 bool solve_event_callback(uint32_t type, void* event, void* data, bool* goon) {
     if (!event || !data || !goon) {
         return false;
@@ -135,7 +175,14 @@ bool solve_event_callback(uint32_t type, void* event, void* data, bool* goon) {
     return true;
 }
 
-
+/**
+ * N-API function exposed to JavaScript as `setBaseProgram`.
+ * Stores or updates a named base logic program string.
+ * @param info N-API callback info containing arguments (program string, key string).
+ * @returns Napi::Boolean(true) on success.
+ * @throws Napi::TypeError if arguments are invalid.
+ * @throws Napi::Error on other errors.
+ */
 Napi::Value SetBaseProgram(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     
@@ -163,7 +210,14 @@ Napi::Value SetBaseProgram(const Napi::CallbackInfo& info) {
     }
 }
 
-// Clear a specific base program
+/**
+ * N-API function exposed to JavaScript as `clearBaseProgram`.
+ * Removes a specific named base program.
+ * @param info N-API callback info containing arguments (key string).
+ * @returns Napi::Boolean(true) on success.
+ * @throws Napi::TypeError if the argument is invalid.
+ * @throws Napi::Error on other errors.
+ */
 Napi::Value ClearBaseProgram(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     
@@ -187,7 +241,13 @@ Napi::Value ClearBaseProgram(const Napi::CallbackInfo& info) {
     }
 }
 
-// Clear all base programs
+/**
+ * N-API function exposed to JavaScript as `clearAllBasePrograms`.
+ * Removes all stored base programs.
+ * @param info N-API callback info (no arguments expected).
+ * @returns Napi::Boolean(true) on success.
+ * @throws Napi::Error on errors.
+ */
 Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     
@@ -204,6 +264,17 @@ Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo& info) {
     }
 }
 
+/**
+ * N-API function exposed to JavaScript as `solve`.
+ * Solves a given logic program, optionally combining it with stored base programs.
+ * Handles grounding with external functions and collects answer sets.
+ * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
+ * @returns A Napi::Object containing:
+ *   - `answers`: A Napi::Array of strings, each representing an answer set.
+ *   - `executionTime`: A Napi::Number representing the solve time in microseconds.
+ * @throws Napi::TypeError if arguments are invalid.
+ * @throws Napi::Error on Clingo errors or other exceptions.
+ */
 Napi::Value Solve(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     
@@ -323,6 +394,13 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
     }
 }
 
+/**
+ * N-API module initialization function.
+ * Exports the `solve`, `setBaseProgram`, `clearBaseProgram`, and `clearAllBasePrograms` functions to JavaScript.
+ * @param env The N-API environment.
+ * @param exports The N-API exports object.
+ * @returns The populated exports object.
+ */
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(
         Napi::String::New(env, "solve"),

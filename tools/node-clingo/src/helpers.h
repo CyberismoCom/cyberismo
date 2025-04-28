@@ -21,16 +21,34 @@
 
 namespace node_clingo {
 
-// Get the string representation of a clingo symbol
+/**
+ * Get the string representation of a clingo symbol.
+ * @param symbol The clingo symbol.
+ * @returns The string representation of the symbol.
+ */
 std::string get_symbol_string(clingo_symbol_t symbol);
 
-// HTML escape function for wrap implementation
+/**
+ * Escapes HTML special characters in a string.
+ * Used for the @wrap function implementation.
+ * @param input The input string.
+ * @returns The HTML-escaped string.
+ */
 std::string html_escape(const std::string& input);
 
-// Improved text wrap function that matches Python's textwrap behavior
+/**
+ * Wraps text to a specified line width, similar to Python's textwrap.
+ * @param text The text to wrap.
+ * @param line_width The maximum width of each line.
+ * @returns A vector of strings, each representing a line of the wrapped text.
+ */
 std::vector<std::string> text_wrap(const std::string& text, size_t line_width);
 
-// Parse an ISO 8601 date string to a time_t value
+/**
+ * Parses an ISO 8601 date string into a time_t value.
+ * @param iso_date The date string in ISO 8601 format (YYYY-MM-DD).
+ * @returns The time_t value representing the date, or 0 on error.
+ */
 std::time_t parse_iso_date(const std::string& iso_date);
 
 }

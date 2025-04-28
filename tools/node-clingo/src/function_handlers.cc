@@ -11,6 +11,7 @@
 */
 #include "function_handlers.h"
 #include "helpers.h"
+
 #include <ctime>
 #include <cstring>
 #include <iostream>
@@ -173,7 +174,6 @@ bool handle_wrap(
     return symbol_callback(&sym, 1, symbol_callback_data);
 }
 
-// Global function handlers map
 const std::unordered_map<std::string, FunctionHandler>& get_function_handlers() {
     static const std::unordered_map<std::string, FunctionHandler> handlers = {
         {"concatenate", handle_concatenate},

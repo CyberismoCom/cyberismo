@@ -17,7 +17,6 @@
 
 namespace node_clingo {
 
-
 std::string get_symbol_string(clingo_symbol_t symbol) {
   char *string = nullptr;
   size_t n;
