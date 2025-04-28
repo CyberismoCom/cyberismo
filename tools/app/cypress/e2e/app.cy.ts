@@ -106,7 +106,7 @@ describe('Navigation', () => {
     cy.get('p').contains('Untitled decision').click(); // Navigate tree menu
     cy.get('h1').contains('Untitled decision');
 
-    // Verify meatdata
+    // Verify metadata
     cy.get('[data-cy="metadataView"]').contains(t['cardKey']);
     cy.get('[data-cy="metadataView"]').contains(t['cardType']);
     cy.get('[data-cy="metadataView"]').contains('base/cardTypes/decision');

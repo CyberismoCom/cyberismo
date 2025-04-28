@@ -68,12 +68,11 @@ export class CommandManager {
     this.updateCmd = new Update(this.project);
   }
 
-  /**
-   * Some commands needs initialization that cannot be performed inside constructor.
-   * Add such calls here.
-   */
-  public async initialize() {
+  // Some commands needs initialization that cannot be performed inside constructor.
+  // Add such calls here.
+  private async initialize() {
     await this.project.collectModuleResources();
+    await this.calculateCmd.generate();
   }
 
   /**

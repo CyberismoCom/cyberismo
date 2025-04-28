@@ -33,6 +33,13 @@ import { TemplateResource } from '../resources/template-resource.js';
 // @todo - we should have project wide constants, so that if we need them, only the const value needs to be changed.
 const ROOT: string = 'root';
 
+// Ensure that the same details are fetched when moving the card(s)
+const cardDetails = {
+  children: true,
+  metadata: true,
+  parent: true,
+};
+
 export class Move {
   constructor(
     private project: Project,
@@ -134,9 +141,11 @@ export class Move {
       throw new Error(`Card cannot be moved to itself`);
     }
     const promiseContainer = [];
-    promiseContainer.push(this.project.findSpecificCard(source));
+    promiseContainer.push(this.project.findSpecificCard(source, cardDetails));
     if (destination !== ROOT) {
-      promiseContainer.push(this.project.findSpecificCard(destination));
+      promiseContainer.push(
+        this.project.findSpecificCard(destination, cardDetails),
+      );
     } else {
       const returnObject: Card = {
         key: '',
@@ -196,10 +205,10 @@ export class Move {
     // it will be the last one in the new location
     let children;
     if (destination !== ROOT) {
-      const parent = await this.project.findSpecificCard(destination, {
-        children: true,
-        metadata: true,
-      });
+      const parent = await this.project.findSpecificCard(
+        destination,
+        cardDetails,
+      );
       if (!parent) {
         throw new Error(`Parent card ${destination} not found from project`);
       }
@@ -268,18 +277,15 @@ export class Move {
    * @param beforeCardKey Card key after which the card will be ranked
    */
   public async rankCard(cardKey: string, beforeCardKey: string) {
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-      parent: true,
-    });
+    const card = await this.project.findSpecificCard(cardKey, cardDetails);
     if (!card) {
       throw new Error(`Card ${cardKey} not found from project`);
     }
 
-    const beforeCard = await this.project.findSpecificCard(beforeCardKey, {
-      metadata: true,
-      parent: true,
-    });
+    const beforeCard = await this.project.findSpecificCard(
+      beforeCardKey,
+      cardDetails,
+    );
 
     if (!beforeCard) {
       throw new Error(`Card ${beforeCardKey} not found from project`);
@@ -338,10 +344,7 @@ export class Move {
    * @param cardKey card key
    */
   public async rankFirst(cardKey: string) {
-    const card = await this.getCard(cardKey, {
-      metadata: true,
-      parent: true,
-    });
+    const card = await this.getCard(cardKey, cardDetails);
 
     const children = sortItems(
       await this.getSiblings(card),
@@ -419,10 +422,7 @@ export class Move {
         throw new Error(`Template '${template.name}' not found`);
       }
 
-      const templateCards = await templateObject.cards('', {
-        parent: true,
-        metadata: true,
-      });
+      const templateCards = await templateObject.cards('', cardDetails);
 
       const cardGroups = templateCards.reduce(
         (result, card) => {
