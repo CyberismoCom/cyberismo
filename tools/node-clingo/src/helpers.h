@@ -1,6 +1,6 @@
 /**
     Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+    Copyright © Cyberismo Ltd and contributors 2025
 
     This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
@@ -12,12 +12,13 @@
 #ifndef NODE_CLINGO_HELPERS_H
 #define NODE_CLINGO_HELPERS_H
 
-#include <string>
-#include <vector>
-#include <sstream>
+#include <clingo.h>
 #include <ctime>
 #include <iomanip>
-#include <clingo.h>
+#include <sstream>
+#include <string>
+#include <vector>
+
 namespace node_clingo {
 
 // Get the string representation of a clingo symbol

@@ -9,20 +9,21 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include <napi.h>
-#include <clingo.h>
-#include <string>
-#include <vector>
-#include <sstream>
-#include <chrono>
-#include <iostream>
-#include <cstring>
-#include <ctime>
-#include <iomanip>
-#include <fstream>
-#include <unordered_map>
-#include "helpers.h"
 #include "function_handlers.h"
+#include "helpers.h"
+
+#include <chrono>
+#include <clingo.h>
+#include <ctime>
+#include <cstring>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <napi.h>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 // Store base programs in a map, keyed by name
 std::unordered_map<std::string, std::string> g_basePrograms;

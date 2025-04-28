@@ -10,9 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "helpers.h"
+
+#include <algorithm>
 #include <chrono>
 #include <iostream>
-#include <algorithm>
 
 namespace node_clingo {
 
