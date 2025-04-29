@@ -75,17 +75,19 @@ export class ModuleManager {
       module.name = this.repositoryName(module.location);
     }
     const repoUrl = new URL(module.location);
-    repoUrl.username = process.env.CYBERISMO_GIT_USER ?? '';
-    repoUrl.password = process.env.CYBERISMO_GIT_TOKEN ?? '';
-    if (!repoUrl.username) {
-      throw new Error(
-        `No user defined. Cannot clone git repo. Set CYBERISMO_GIT_USER environment variable`,
-      );
-    }
-    if (!repoUrl.password) {
-      throw new Error(
-        `No git token defined. Cannot clone git repo. Set CYBERISMO_GIT_TOKEN environment variable`,
-      );
+    if (process.env.CYBERISMO_GIT_USER && process.env.CYBERISMO_GIT_TOKEN) {
+      repoUrl.username = process.env.CYBERISMO_GIT_USER ?? '';
+      repoUrl.password = process.env.CYBERISMO_GIT_TOKEN;
+      if (!repoUrl.username) {
+        throw new Error(
+          `No user defined. Cannot clone git repo. Set CYBERISMO_GIT_USER environment variable`,
+        );
+      }
+      if (!repoUrl.password) {
+        throw new Error(
+          `No git token defined. Cannot clone git repo. Set CYBERISMO_GIT_TOKEN environment variable`,
+        );
+      }
     }
     await git.clone({
       fs,

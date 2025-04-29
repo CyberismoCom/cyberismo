@@ -86,9 +86,7 @@ describe('module-manager', () => {
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
       .then(() => expect(false).to.equal(true))
-      .catch((error) =>
-        expect(error.message).to.equal('HTTP Error: 404 Not Found'),
-      );
+      .catch((error) => expect(error.message).to.includes('HTTP Error:'));
   });
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
