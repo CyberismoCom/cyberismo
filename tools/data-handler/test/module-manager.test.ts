@@ -84,7 +84,7 @@ describe('module-manager', () => {
         ),
       );
   });
-  it('try to import from incorrect local path', async () => {
+  it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
@@ -98,7 +98,7 @@ describe('module-manager', () => {
           expect(false).to.equal(true);
         }
       });
-  });
+  }).timeout(10000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
     expect(modules.length).equals(0);
@@ -117,5 +117,5 @@ describe('module-manager', () => {
     await commands.importCmd.updateAllModules();
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
-  });
+  }).timeout(10000);
 });
