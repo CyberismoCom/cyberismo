@@ -6,6 +6,9 @@ import { describe, it } from 'mocha';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+// git client
+import { Errors } from 'isomorphic-git';
+
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '../src/command-manager.js';
@@ -86,7 +89,15 @@ describe('module-manager', () => {
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
       .then(() => expect(false).to.equal(true))
-      .catch((error) => expect(error.message).to.includes('HTTP Error:'));
+      .catch((error) => {
+        if (error instanceof Errors.HttpError) {
+          expect(error).to.have.property('data');
+          expect(error.data).to.have.property('statusCode');
+          expect(error.data.statusCode).to.equal(404);
+        } else {
+          expect(false).to.equal(true);
+        }
+      });
   });
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
