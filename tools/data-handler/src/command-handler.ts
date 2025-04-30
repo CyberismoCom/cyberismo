@@ -36,6 +36,7 @@ import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
 import { errorFunction } from './utils/log-utils.js';
+import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
 // Generic options interface
@@ -60,6 +61,7 @@ export enum Cmd {
   rank = 'rank',
   remove = 'remove',
   rename = 'rename',
+  report = 'report',
   show = 'show',
   start = 'start',
   transition = 'transition',
@@ -296,6 +298,9 @@ export class Commands {
           this.commandTarget(type, detail),
           options,
         );
+      } else if (command === Cmd.report) {
+        const [parameters, outputPath] = args;
+        return this.runReport(parameters, outputPath);
       } else if (command === Cmd.start) {
         return this.startApp(options.forceStart);
       } else if (command === Cmd.transition) {
@@ -332,6 +337,10 @@ export class Commands {
     return { statusCode: 200 };
   }
 
+  /**
+   * Returns project path, if running operation within project folder.
+   * @param path Initial path from where the project path search is started.
+   */
   public async getProjectPath(path?: string): Promise<string> {
     return this.setProjectPath(path);
   }
@@ -496,6 +505,50 @@ export class Commands {
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
     }
+  }
+
+  // Runs a report using Handlebars and the provided parameters.
+  private async runReport(parametersPath: string, outputPath?: string) {
+    const parametersFile = await readJsonFile(parametersPath);
+
+    // Validate the parameters file.
+    if (!parametersFile.name) {
+      return {
+        statusCode: 500,
+        message:
+          'The parameters file must include a "name" field (report name).',
+      };
+    }
+    if (!parametersFile.parameters) {
+      return {
+        statusCode: 500,
+        message:
+          'The parameters file must include a "parameters" field (report parameters).',
+      };
+    }
+    if (!parametersFile.parameters.cardKey) {
+      return {
+        statusCode: 500,
+        message:
+          'The parameters file must include a "cardKey" field included in the "parameters".',
+      };
+    }
+
+    const { name, parameters } = parametersFile;
+    let result: string | undefined = '';
+    try {
+      result = await this.commands?.showCmd.showReportResults(
+        name,
+        parameters.cardKey,
+        parameters,
+        outputPath,
+      );
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
+
+    const message = !result && !outputPath ? 'No report results' : result;
+    return { statusCode: 200, message: message };
   }
 
   // Shows wanted resources from a project / template.

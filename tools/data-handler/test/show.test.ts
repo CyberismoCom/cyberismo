@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
@@ -117,7 +118,7 @@ describe('show', () => {
       workflowState: 'Approved',
     };
     // Parent
-    const cardIdParent = 'decision_mycard';
+    const cardIdParent = 'decision_my_card';
     await writeFileSafe(join(cardRoot, cardIdParent, 'index.adoc'), '');
     const parentWrite = await writeJsonFile(
       join(cardRoot, cardIdParent, 'index.json'),
@@ -319,5 +320,74 @@ describe('show', () => {
   it('showWorkflowsWithDetails (success)', async () => {
     const results = await showCmd.showWorkflowsWithDetails();
     expect(results).to.not.equal(undefined);
+  });
+  it('show report results', async () => {
+    const parameters = {
+      name: 'decision/reports/anotherReport',
+      parameters: {
+        cardKey: 'decision_5',
+      },
+    };
+    await commands.calculateCmd.generate();
+    const results = await showCmd.showReportResults(
+      parameters.name,
+      parameters.parameters.cardKey,
+      parameters,
+    );
+    expect(results).to.not.equal(undefined);
+    expect(results).to.include('xref');
+  });
+  it('show report results - results to a file', async () => {
+    const parameters = {
+      name: 'decision/reports/anotherReport',
+      parameters: {
+        cardKey: 'decision_5',
+      },
+    };
+    await commands.calculateCmd.generate();
+    const results = await showCmd.showReportResults(
+      parameters.name,
+      parameters.parameters.cardKey,
+      parameters,
+      join(testDir, 'report-results.txt'),
+    );
+    expect(results).equal('');
+    const fileContent = await readFile(join(testDir, 'report-results.txt'));
+    expect(fileContent.toString()).to.include('xref');
+  });
+  it('show report results - results to a file', async () => {
+    const parameters = {
+      name: 'decision/reports/anotherReport',
+      parameters: {
+        cardKey: 'decision_5',
+      },
+    };
+    await commands.calculateCmd.generate();
+    const results = await showCmd.showReportResults(
+      parameters.name,
+      parameters.parameters.cardKey,
+      parameters,
+      join(testDir, 'report-results.txt'),
+    );
+    expect(results).equal('');
+    const fileContent = await readFile(join(testDir, 'report-results.txt'));
+    expect(fileContent.toString()).to.include('xref');
+  });
+  it('try show report results - report does not exist', async () => {
+    const parameters = {
+      name: 'decision/reports/wrongReport',
+      parameters: {
+        wrongKey: 'blaah',
+      },
+    };
+    await commands.calculateCmd.generate();
+    showCmd
+      .showReportResults(parameters.name, 'wrong', parameters)
+      .then(() => expect(false).equal(true))
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Report 'decision/reports/wrongReport' does not exist in the project`,
+        ),
+      );
   });
 });
