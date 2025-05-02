@@ -86,6 +86,7 @@ describe('module-manager', () => {
   });
   it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
+    const expectedHttpCode = process.env.CYBERISMO_GIT_USER ? 404 : 401;
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
       .then(() => expect(false).to.equal(true))
@@ -93,7 +94,7 @@ describe('module-manager', () => {
         if (error instanceof Errors.HttpError) {
           expect(error).to.have.property('data');
           expect(error.data).to.have.property('statusCode');
-          expect(error.data.statusCode).to.equal(404);
+          expect(error.data.statusCode).to.equal(expectedHttpCode);
         } else {
           expect(false).to.equal(true);
         }
