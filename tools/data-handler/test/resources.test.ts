@@ -492,7 +492,7 @@ describe('resources', function () {
         .catch((error) => {
           // note that there is sometimes extra whitespace at the end of error messages.
           expect(error.message.trim()).to.equal(
-            `Invalid content JSON: Schema 'linkTypeSchema' validation Error: requires property "enableLinkDescription"`,
+            `Invalid content JSON: Schema '/linkTypeSchema' validation Error: requires property "enableLinkDescription"`,
           );
         });
     });
@@ -563,7 +563,7 @@ describe('resources', function () {
         .catch((error) => {
           // note that there is sometimes extra whitespace at the end of error messages.
           expect(error.message.trim()).to.equal(
-            `Invalid content JSON: Schema 'templateSchema' validation Error: requires property "name"`,
+            `Invalid content JSON: Schema '/templateSchema' validation Error: requires property "name"`,
           );
         });
     });

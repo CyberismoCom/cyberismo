@@ -193,7 +193,7 @@ describe('validate cmd tests', () => {
       .validateSchema(path, schemaId)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          "Unknown schema 'i-do-not-exists'",
+          "Unknown schema '/i-do-not-exists'",
         ),
       );
   });
