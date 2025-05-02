@@ -81,7 +81,7 @@ export class Validate {
   static schemaConfigurationFile = '.schema';
   static projectConfigurationFile = 'cardsConfig.json';
   static cardMetadataFile = 'index.json';
-  static dotSchemaSchemaId = 'dotSchema';
+  static dotSchemaSchemaId = '/dotSchema';
   static parameterSchemaFile = 'parameterSchema.json';
 
   constructor() {
@@ -345,9 +345,13 @@ export class Validate {
         continue;
       }
 
+      if (!fileSchema.id.startsWith('/')) {
+        fileSchema.id = '/' + fileSchema.id;
+      }
+
       const schema = this.validator.schemas[fileSchema.id];
       if (!schema) {
-        throw new Error(`Unknown schema name ${fileSchema.id}, aborting.`);
+        throw new Error(`Unknown schema name '${fileSchema.id}', aborting.`);
       }
       const result = this.validator.validate(content, schema);
       for (const error of result.errors) {
@@ -363,7 +367,7 @@ export class Validate {
     const schema = this.validator.schemas[Validate.dotSchemaSchemaId];
 
     if (!schema) {
-      throw new Error(`.schema schema not found`);
+      throw new Error(`'${Validate.dotSchemaSchemaId}' schema not found`);
     }
 
     const message: string[] = [];
@@ -626,6 +630,9 @@ export class Validate {
    */
   public validateJson(content: object, schemaId: string): string {
     const validationErrors: string[] = [];
+    if (!schemaId.startsWith('/')) {
+      schemaId = '/' + schemaId;
+    }
     if (this.validator.schemas[schemaId] === undefined) {
       validationErrors.push(`Unknown schema ${schemaId}`);
     } else {
@@ -704,6 +711,9 @@ export class Validate {
     schemaId: string,
   ): Promise<string> {
     const validationErrors: string[] = [];
+    if (!schemaId.startsWith('/')) {
+      schemaId = '/' + schemaId;
+    }
     const activeJsonSchema = this.validator.schemas[schemaId];
     if (activeJsonSchema === undefined) {
       throw new Error(`Unknown schema '${schemaId}'`);
