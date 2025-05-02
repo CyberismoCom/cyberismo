@@ -6,6 +6,9 @@ import { describe, it } from 'mocha';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+// git client
+import { Errors } from 'isomorphic-git';
+
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '../src/command-manager.js';
@@ -81,15 +84,21 @@ describe('module-manager', () => {
         ),
       );
   });
-  it('try to import from incorrect local path', async () => {
+  it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
       .then(() => expect(false).to.equal(true))
-      .catch((error) =>
-        expect(error.message).to.equal('HTTP Error: 404 Not Found'),
-      );
-  });
+      .catch((error) => {
+        if (error instanceof Errors.HttpError) {
+          expect(error).to.have.property('data');
+          expect(error.data).to.have.property('statusCode');
+          expect(error.data.statusCode).to.equal(404);
+        } else {
+          expect(false).to.equal(true);
+        }
+      });
+  }).timeout(10000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
     expect(modules.length).equals(0);
@@ -108,5 +117,5 @@ describe('module-manager', () => {
     await commands.importCmd.updateAllModules();
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
-  });
+  }).timeout(10000);
 });

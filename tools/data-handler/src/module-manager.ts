@@ -74,18 +74,17 @@ export class ModuleManager {
     if (!module.name || module.name === '') {
       module.name = this.repositoryName(module.location);
     }
-    const repoUrl = new URL(module.location);
-    repoUrl.username = process.env.CYBERISMO_GIT_USER ?? '';
-    repoUrl.password = process.env.CYBERISMO_GIT_TOKEN ?? '';
-    if (!repoUrl.username) {
-      throw new Error(
-        `No user defined. Cannot clone git repo. Set CYBERISMO_GIT_USER environment variable`,
-      );
+
+    let repoUrl: URL;
+    try {
+      repoUrl = new URL(module.location);
+    } catch {
+      throw new Error(`Invalid repository URL: ${module.location}`);
     }
-    if (!repoUrl.password) {
-      throw new Error(
-        `No git token defined. Cannot clone git repo. Set CYBERISMO_GIT_TOKEN environment variable`,
-      );
+
+    if (process.env.CYBERISMO_GIT_USER && process.env.CYBERISMO_GIT_TOKEN) {
+      repoUrl.username = process.env.CYBERISMO_GIT_USER;
+      repoUrl.password = process.env.CYBERISMO_GIT_TOKEN;
     }
     await git.clone({
       fs,
@@ -93,7 +92,21 @@ export class ModuleManager {
       dir: join(this.tempModulesDir, module.name),
       url: repoUrl.toString(),
       depth: 1,
+      onAuth: () => {
+        // Return undefined for public repos when credentials aren't available
+        if (
+          !process.env.CYBERISMO_GIT_USER ||
+          !process.env.CYBERISMO_GIT_TOKEN
+        ) {
+          return undefined;
+        }
+        return {
+          username: process.env.CYBERISMO_GIT_USER,
+          password: process.env.CYBERISMO_GIT_TOKEN,
+        };
+      },
     });
+
     if (verbose) {
       console.log(`... Cloned '${module.name}' to a temporary folder`);
     }
