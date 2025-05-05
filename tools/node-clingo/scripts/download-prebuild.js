@@ -9,30 +9,40 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import fs from 'fs';
-import path from 'path';
-import zlib from 'zlib';
-import tarStream from 'tar-stream';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  mkdir,
+  dirname,
+  createWriteStream,
+} from 'node:fs';
+import { resolve, join, sep } from 'node:path';
+import { createGunzip } from 'node:zlib';
+import { extract } from 'tar-stream';
 import { pipeline } from 'node:stream/promises';
 
-const packageJsonPath = path.join(import.meta.dirname, '..', 'package.json');
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const packageJsonPath = resolve(import.meta.dirname, '..', 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const { binary, version } = packageJson;
 
 const platform = process.platform;
 const arch = process.arch;
 
-const prebuildsDir = path.join(import.meta.dirname, '..', 'prebuilds');
-const targetDir = path.join(prebuildsDir, `${platform}-${arch}`);
-const versionFilePath = path.join(targetDir, '.version');
+const prebuildsDir = join(import.meta.dirname, '..', 'prebuilds');
+const targetDir = join(prebuildsDir, `${platform}-${arch}`);
+const versionFilePath = join(targetDir, '.version');
 
 // --- Check if correct prebuilt binary version already exists ---
 let needsDownload = true;
-if (fs.existsSync(targetDir) && fs.existsSync(versionFilePath)) {
+if (existsSync(targetDir) && existsSync(versionFilePath)) {
   try {
-    const installedVersion = fs.readFileSync(versionFilePath, 'utf8').trim();
+    const installedVersion = readFileSync(versionFilePath, 'utf8').trim();
     if (installedVersion === version) {
-      const files = fs.readdirSync(targetDir);
+      const files = readdirSync(targetDir);
       const hasBinary = files.some(
         (file) =>
           file.endsWith('.node') ||
@@ -84,8 +94,8 @@ console.log(`Attempting to download prebuilt binary from: ${url}`);
 try {
   // Clean and ensure target directory exists before download/extraction
   console.log(`Ensuring clean target directory: ${targetDir}`);
-  fs.rmSync(targetDir, { recursive: true, force: true });
-  fs.mkdirSync(targetDir, { recursive: true });
+  rmSync(targetDir, { recursive: true, force: true });
+  mkdirSync(targetDir, { recursive: true });
 
   const response = await fetchUrl(url);
 
@@ -95,24 +105,24 @@ try {
 
   console.log('Download successful. Extracting with tar-stream...');
 
-  const extract = tarStream.extract();
+  const extractor = extract();
 
-  extract.on('entry', (header, stream, next) => {
-    const nameParts = header.name.split(/[\/]/).filter((p) => p);
-    const strippedName = nameParts.slice(1).join(path.sep);
+  extractor.on('entry', (header, stream, next) => {
+    const nameParts = header.name.split(/[\/]/).filter((part) => part);
+    const strippedName = nameParts.slice(1).join(sep);
 
     if (header.type !== 'file' || !strippedName) {
       stream.resume(); // Consume the stream for non-files or root entries
       return next();
     }
 
-    const targetPath = path.join(targetDir, strippedName);
+    const targetPath = join(targetDir, strippedName);
 
     // Ensure parent directory exists
-    fs.mkdir(path.dirname(targetPath), { recursive: true }, (mkdirErr) => {
+    mkdir(dirname(targetPath), { recursive: true }, (mkdirErr) => {
       if (mkdirErr) return next(mkdirErr);
 
-      const fileWriteStream = fs.createWriteStream(targetPath, {
+      const fileWriteStream = createWriteStream(targetPath, {
         mode: header.mode,
       });
 
@@ -127,17 +137,17 @@ try {
   });
 
   // Error handling for the extractor itself
-  extract.on('error', (err) => {
+  extractor.on('error', (err) => {
     console.error('Error during tar-stream extraction:', err);
     // Let pipeline handle the rejection
   });
 
-  await pipeline(response.body, zlib.createGunzip(), extract);
+  await pipeline(response.body, createGunzip(), extractor);
 
   console.log('Extraction complete.');
 
   // Write version file
-  fs.writeFileSync(versionFilePath, version);
+  writeFileSync(versionFilePath, version);
   console.log(`Wrote version ${version} to ${versionFilePath}`);
 
   console.log(`Prebuilt binary should be available at ${targetDir}`);
