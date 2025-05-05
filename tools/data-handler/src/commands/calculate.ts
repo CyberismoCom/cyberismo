@@ -92,7 +92,7 @@ export class Calculate {
   private logicProgram: string = '';
   private modules: string = '';
 
-  private modulesInited = false;
+  private modulesInitialized = false;
 
   // Initialize modules during construction
   private async initializeModules() {
@@ -380,9 +380,9 @@ export class Calculate {
    */
   public async generate(cardKey?: string) {
     await Calculate.mutex.runExclusive(async () => {
-      if (!this.modulesInited) {
+      if (!this.modulesInitialized) {
         await this.initializeModules();
-        this.modulesInited = true;
+        this.modulesInitialized = true;
       }
 
       let card: Card | undefined;
