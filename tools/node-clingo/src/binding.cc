@@ -21,6 +21,7 @@
 #include <iostream>
 #include <napi.h>
 #include <sstream>
+#include <stdint.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
