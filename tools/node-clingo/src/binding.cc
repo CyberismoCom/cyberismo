@@ -65,8 +65,10 @@ void HandleClingoError(const Napi::Env& env) {
  * @param symbol_callback_data User data for the symbol_callback.
  * @returns True on success, false on error (propagated from the handler).
  */
-bool ground_callback(clingo_location_t const *location, char const *name, 
-                    clingo_symbol_t const *arguments, size_t arguments_size, 
+bool ground_callback(clingo_location_t const *location,
+                    char const *name, 
+                    clingo_symbol_t const *arguments,
+                    size_t arguments_size, 
                     void *data, clingo_symbol_callback_t symbol_callback, 
                     void *symbol_callback_data) {
     
@@ -88,11 +90,11 @@ bool ground_callback(clingo_location_t const *location, char const *name,
  * It extracts the symbols from the model, converts them to strings, and stores them.
  * @param model The clingo model object.
  * @param data User data pointer (cast to std::vector<std::string>* to store answers).
- * @param goon Output parameter; set to true to continue solving, false to stop.
+ * @param go_on Output parameter; set to true to continue solving, false to stop.
  * @returns True on success, false on error (e.g., allocation failure).
  */
-bool on_model(clingo_model_t const *model, void *data, bool *goon) {
-    if (!model || !data || !goon) {
+bool on_model(clingo_model_t const *model, void *data, bool *go_on) {
+    if (!model || !data || !go_on) {
         return false;
     }
     
@@ -109,7 +111,7 @@ bool on_model(clingo_model_t const *model, void *data, bool *goon) {
     
     if (atoms_size == 0) {
         answers->push_back("");
-        *goon = true;
+        *go_on = true;
         return true;
     }
     
@@ -150,7 +152,7 @@ bool on_model(clingo_model_t const *model, void *data, bool *goon) {
     }
     
     delete[] atoms;
-    *goon = success;
+    *go_on = success;
     return success;
 }
 
@@ -161,16 +163,16 @@ bool on_model(clingo_model_t const *model, void *data, bool *goon) {
  * @param type The type of the solve event.
  * @param event Pointer to the event data (e.g., clingo_model_t* for models).
  * @param data User data pointer (passed through to on_model).
- * @param goon Output parameter (passed through to on_model).
+ * @param go_on Output parameter (passed through to on_model).
  * @returns True on success or if the event is not a model, false on error from on_model.
  */
-bool solve_event_callback(uint32_t type, void* event, void* data, bool* goon) {
-    if (!event || !data || !goon) {
+bool solve_event_callback(uint32_t type, void* event, void* data, bool* go_on) {
+    if (!event || !data || !go_on) {
         return false;
     }
     
     if (type == clingo_solve_event_type_model) {
-        return on_model(static_cast<const clingo_model_t*>(event), data, goon);
+        return on_model(static_cast<const clingo_model_t*>(event), data, go_on);
     }
     return true;
 }
