@@ -127,7 +127,10 @@ export class Calculate {
 
     for (const card of cards) {
       const cardContent = await createCardFacts(card, this.project);
-      content += `% SECTION: CARD_${card.key}_START\n% Card ${card.key}\n${cardContent}\n% SECTION: CARD_${card.key}_END\n\n`;
+      content += `% SECTION: CARD_${card.key}_START\n`;
+      content += `% Card ${card.key}\n`;
+      content += `${cardContent}\n`;
+      content += `% SECTION: CARD_${card.key}_END\n\n`;
     }
 
     content += '% SECTION: CARDS_END';
@@ -221,7 +224,10 @@ export class Calculate {
         if (pathExists(filePath)) {
           try {
             const moduleContent = await readFile(filePath, 'utf-8');
-            content += `% SECTION: MODULE_${calculationFile.name}_START\n% Module ${calculationFile.name}\n${moduleContent}\n% SECTION: MODULE_${calculationFile.name}_END\n\n`;
+            content += `% SECTION: MODULE_${calculationFile.name}_START\n`;
+            content += `% Module ${calculationFile.name}\n`;
+            content += `${moduleContent}\n`;
+            content += `% SECTION: MODULE_${calculationFile.name}_END\n\n`;
           } catch (error) {
             logger.warn(
               `Failed to read module ${calculationFile.name}: ${error}`,
@@ -538,10 +544,6 @@ export class Calculate {
   ) {
     const clingoOutput = await this.run(data, 'graph');
 
-    console.log(clingoOutput);
-
-    // const firstLine = clingoOutput.split('\n')[0];
-
     // unlikely we ever get a collision
     const randomId = generateRandomString(36, 20);
 
@@ -563,7 +565,7 @@ export class Calculate {
 
     const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
       encoding: 'utf8',
-      input: clingoOutput.join('\n').replaceAll('\n', '. ') + '.',
+      input: clingoOutput.join('.') + '.',
       timeout,
       maxBuffer: 1024 * 1024 * 100,
     });
