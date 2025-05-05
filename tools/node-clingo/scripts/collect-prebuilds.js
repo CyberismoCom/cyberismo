@@ -12,33 +12,33 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import fs from 'fs';
-import path from 'path';
+import { readdirSync, statSync, existsSync, mkdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 
-const rootDir = path.resolve(import.meta.dirname, '..');
-const prebuildsDir = path.join(rootDir, 'prebuilds');
+const rootDir = resolve(import.meta.dirname, '..');
+const prebuildsDir = join(rootDir, 'prebuilds');
 
 // Ensure prebuilds directory exists
-if (!fs.existsSync(prebuildsDir)) {
-  fs.mkdirSync(prebuildsDir, { recursive: true });
+if (!existsSync(prebuildsDir)) {
+  mkdirSync(prebuildsDir, { recursive: true });
 }
 
 console.log('Prebuilds directory:', prebuildsDir);
 console.log('Found prebuilds:');
 
 // List all prebuilds
-const files = fs.readdirSync(prebuildsDir);
+const files = readdirSync(prebuildsDir);
 
 files.forEach((file) => {
-  const filePath = path.join(prebuildsDir, file);
-  const stats = fs.statSync(filePath);
+  const filePath = join(prebuildsDir, file);
+  const stats = statSync(filePath);
   console.log(`  ${file} (${(stats.size / 1024).toFixed(2)} KB)`);
 });
 
 // Calculate total size
 const totalSize = files.reduce((acc, file) => {
-  const filePath = path.join(prebuildsDir, file);
-  const stats = fs.statSync(filePath);
+  const filePath = join(prebuildsDir, file);
+  const stats = statSync(filePath);
   return acc + stats.size;
 }, 0);
 
