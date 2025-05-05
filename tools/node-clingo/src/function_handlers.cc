@@ -68,7 +68,6 @@ bool handle_days_since(
     // get type
     clingo_symbol_type_t type = clingo_symbol_type(arguments[0]);
     if (type != clingo_symbol_type_string) {
-        // return 0
         clingo_symbol_t sym;
         clingo_symbol_create_number(0, &sym);
         return symbol_callback(&sym, 1, symbol_callback_data);
