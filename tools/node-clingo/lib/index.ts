@@ -10,11 +10,11 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import build from 'node-gyp-build';
-import path from 'path';
+import { resolve } from 'node:path';
 
 let binding: any;
 try {
-  binding = build(path.resolve(import.meta.dirname, '..'));
+  binding = build(resolve(import.meta.dirname, '..'));
 } catch (error) {
   console.error('Error building clingo:', error);
   binding = build(import.meta.dirname);
