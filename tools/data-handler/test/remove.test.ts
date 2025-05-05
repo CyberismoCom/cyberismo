@@ -32,6 +32,7 @@ describe('remove card', () => {
 
     const card = await commands.project.findSpecificCard(cardId);
     expect(card).to.equal(undefined);
+    // Since decision_6 is decision_5's child, it should have been removed as well.
     const card6 = await commands.project.findSpecificCard('decision_6');
     expect(card6).to.equal(undefined);
   });
