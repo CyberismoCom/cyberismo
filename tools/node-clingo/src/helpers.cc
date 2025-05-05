@@ -66,6 +66,7 @@ std::vector<std::string> text_wrap(const std::string& text, size_t line_width) {
     // Split input text into words
     std::istringstream iss(text);
     std::vector<std::string> words;
+    words.reserve(text.size() / 3);
     std::string word;
     while (iss >> word) {
         words.push_back(word);
