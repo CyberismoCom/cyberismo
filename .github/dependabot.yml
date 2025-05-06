@@ -9,18 +9,22 @@ updates:
     directory: "/tools/data-handler" # Location of package manifests
     schedule:
       interval: "monthly"
+    rebase-strategy: "auto"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/cli" # Location of package manifests
     schedule:
       interval: "monthly"
+    rebase-strategy: "auto"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/tools/app" # Location of package manifests
     schedule:
       interval: "monthly"
+    rebase-strategy: "auto"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
+      rebase-strategy: "auto"
     groups:
       chai-dependencies: # Update all Chai dependencies in one PR
         patterns:
