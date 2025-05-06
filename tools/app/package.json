@@ -26,7 +26,7 @@
     "@mui/icons-material": "^7.0.1",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.0.2",
-    "@reduxjs/toolkit": "^2.6.1",
+    "@reduxjs/toolkit": "^2.7.0",
     "@uiw/react-codemirror": "^4.23.12",
     "codemirror-asciidoc": "^2.0.1",
     "cypress": "^14.3.2",
