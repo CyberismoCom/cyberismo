@@ -419,6 +419,7 @@ export class Commands {
     if (!this.commands) {
       return { statusCode: 500 };
     }
+    process.env.EXPORT_FORMAT = format;
     let message = '';
     if (format === 'adoc') {
       message = await this.commands?.exportCmd.exportToADoc(
@@ -436,6 +437,7 @@ export class Commands {
         parentCardKey,
       );
     }
+    process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
   }
 

@@ -16,6 +16,7 @@ import path, { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { sanitizeSvgBase64 } from '../utils/sanitizeSvg.js';
 
 import {
   BaseResult,
@@ -687,7 +688,7 @@ export class Calculate {
 
     const clingGraphArgs = [
       '--out=render',
-      '--format=png',
+      '--format=svg',
       '--type=digraph',
       `--name-format=${randomId}`,
       `--dir=${this.project.paths.tempFolder}`,
@@ -716,17 +717,18 @@ export class Calculate {
 
     let fileData;
     try {
-      fileData = await readFile(filePath + '.png');
+      fileData = await readFile(filePath + '.svg');
     } catch (e) {
       throw new Error(
         `Graph: Failed to read image file after generating graph: ${e}`,
       );
     } finally {
       await rm(filePath, { force: true });
-      await rm(filePath + '.png', { force: true });
+      await rm(filePath + '.svg', { force: true });
     }
 
-    return fileData.toString('base64');
+    // Sanitizing SVG before returning it
+    return sanitizeSvgBase64(fileData);
   }
 
   /**
