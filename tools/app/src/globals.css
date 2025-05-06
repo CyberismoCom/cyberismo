@@ -24,6 +24,10 @@
   background-color: #0b6bcb;
 }
 
+.cyberismo-svg-wrapper svg {
+  max-height: 100vh;
+}
+
 /* Add margin for inline macro buttons */
 .doc .MuiButton-root {
   margin-top: 12px;
