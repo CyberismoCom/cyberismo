@@ -20,13 +20,11 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import { Calculate, Validate } from './index.js';
+import { Validate } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
-import { DataType, Link, LinkType } from '../interfaces/resource-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
-import { ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
@@ -38,6 +36,14 @@ import { LinkTypeResource } from '../resources/link-type-resource.js';
 import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
+
+import type { Calculate } from './index.js';
+import type {
+  DataType,
+  Link,
+  LinkType,
+} from '../interfaces/resource-interfaces.js';
+import type { ProjectFile } from '../interfaces/project-interfaces.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts

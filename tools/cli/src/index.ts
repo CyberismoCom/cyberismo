@@ -14,14 +14,12 @@
 
 import { Argument, Command } from 'commander';
 import confirm from '@inquirer/confirm';
-import {
+import type {
   CardsOptions,
-  Cmd,
-  Commands,
-  ExportFormats,
   requestStatus,
   UpdateOperations,
 } from '@cyberismocom/data-handler';
+import { Cmd, Commands, ExportFormats } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer } from '@cyberismocom/backend';
 // How many validation errors are shown when staring app, if any.

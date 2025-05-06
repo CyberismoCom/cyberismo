@@ -12,7 +12,7 @@ import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/log-utils.js';
-import { ResourceTypes } from '../src/interfaces/project-interfaces.js';
+import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 
 describe('validate cmd tests', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));

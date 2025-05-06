@@ -6,9 +6,10 @@ import { describe, it } from 'mocha';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type {
+  ResourceName} from '../../src/utils/resource-utils.js';
 import {
   pathToResourceName,
-  ResourceName,
   resourceNameToPath,
   resourceName,
   resourceNameToString,

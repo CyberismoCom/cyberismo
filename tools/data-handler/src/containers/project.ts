@@ -1,40 +1,24 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
-import { Dirent } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
 import { CardContainer } from './card-container.js'; // base class
-
 import {
-  Card,
-  CardAttachment,
   CardLocation,
-  CardListContainer,
-  CardMetadata,
   CardNameRegEx,
-  FetchCardDetails,
-  MetadataContent,
-  ModuleContent,
-  ModuleSetting,
-  ProjectFetchCardDetails,
-  ProjectMetadata,
-  ProjectSettings,
-  Resource,
-  ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import { findParentPath } from '../utils/card-utils.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
@@ -43,16 +27,11 @@ import { isTemplateCard } from '../utils/card-utils.js';
 import { ProjectConfiguration } from '../project-settings.js';
 import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
-import {
-  resourceName,
-  ResourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import {
   ResourcesFrom,
   ResourceCollector,
 } from './project/resource-collector.js';
-import { Template } from './template.js';
 import { Validate } from '../commands/validate.js';
 
 import { CardTypeResource } from '../resources/card-type-resource.js';
@@ -63,6 +42,25 @@ import { LinkTypeResource } from '../resources/link-type-resource.js';
 import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
+
+import type { Dirent } from 'node:fs';
+import type {
+  Card,
+  CardAttachment,
+  CardListContainer,
+  CardMetadata,
+  FetchCardDetails,
+  MetadataContent,
+  ModuleContent,
+  ModuleSetting,
+  ProjectFetchCardDetails,
+  ProjectMetadata,
+  ProjectSettings,
+  Resource,
+  ResourceFolderType,
+} from '../interfaces/project-interfaces.js';
+import type { ResourceName } from '../utils/resource-utils.js';
+import type { Template } from './template.js';
 
 // Re-export this, so that classes that use Project do not need to have separate import.
 export { ResourcesFrom };

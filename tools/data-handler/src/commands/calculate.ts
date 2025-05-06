@@ -17,13 +17,6 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 
-import {
-  BaseResult,
-  ParseResult,
-  QueryName,
-  QueryResult,
-} from '../types/queries.js';
-import { Card } from '../interfaces/project-interfaces.js';
 import ClingoParser from '../utils/clingo-parser.js';
 import {
   copyDir,
@@ -35,7 +28,7 @@ import {
 } from '../utils/file-utils.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
-import { Project, ResourcesFrom } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project.js';
 import { flattenCardArray } from '../utils/card-utils.js';
 import { logger } from '../utils/log-utils.js';
 import {
@@ -52,7 +45,15 @@ import {
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import { ClingoProgramBuilder } from '../utils/clingo-program-builder.js';
 import { generateRandomString } from '../utils/random.js';
-import {
+
+import type {
+  BaseResult,
+  ParseResult,
+  QueryName,
+  QueryResult,
+} from '../types/queries.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type {
   CardType,
   FieldType,
   LinkType,
@@ -60,6 +61,7 @@ import {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
+import type { Project } from '../containers/project.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {

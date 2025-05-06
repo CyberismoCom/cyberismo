@@ -1,30 +1,31 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Dirent, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
-import { Project } from '../project.js';
-import { ProjectPaths } from './project-paths.js';
-import {
+import { resourceName } from '../../utils/resource-utils.js';
+import { stripExtension } from '../../utils/file-utils.js';
+
+import type { Dirent } from 'node:fs';
+import type { Project } from '../project.js';
+import type { ProjectPaths } from './project-paths.js';
+import type {
   Resource,
   ResourceFolderType,
 } from '../../interfaces/project-interfaces.js';
-import { resourceName } from '../../utils/resource-utils.js';
-import { stripExtension } from '../../utils/file-utils.js';
 
 /**
  * Defines where resources are collected from.

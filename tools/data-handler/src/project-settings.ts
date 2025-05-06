@@ -13,12 +13,13 @@
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 
-import {
+import { readJsonFileSync } from './utils/json.js';
+import { Validate } from './commands/index.js';
+
+import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
-import { readJsonFileSync } from './utils/json.js';
-import { Validate } from './commands/index.js';
 
 /**
  * Represents Project's cardsConfig.json file.

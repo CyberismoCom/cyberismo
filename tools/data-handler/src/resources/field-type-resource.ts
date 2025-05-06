@@ -12,25 +12,13 @@
 */
 
 import {
-  Card,
-  ChangeOperation,
   DefaultContent,
   FileResource,
-  Operation,
-  Project,
-  RemoveOperation,
   ResourcesFrom,
   resourceName,
   resourceNameToString,
-  ResourceName,
   sortCards,
 } from './file-resource.js';
-import {
-  CardType,
-  DataType,
-  EnumDefinition,
-  FieldType,
-} from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
 import {
   allowed,
@@ -39,6 +27,21 @@ import {
   fromString,
 } from '../utils/value-utils.js';
 import * as EmailValidator from 'email-validator';
+
+import type {
+  Card,
+  ChangeOperation,
+  Operation,
+  Project,
+  RemoveOperation,
+  ResourceName,
+} from './file-resource.js';
+import type {
+  CardType,
+  DataType,
+  EnumDefinition,
+  FieldType,
+} from '../interfaces/resource-interfaces.js';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 

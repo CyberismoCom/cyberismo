@@ -12,14 +12,15 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { Calculate } from './calculate.js';
-import {
+import { CardMetadataUpdater } from '../card-metadata-updater.js';
+
+import type { Calculate } from './calculate.js';
+import type {
   CardType,
   Workflow,
   WorkflowState,
 } from '../interfaces/resource-interfaces.js';
-import { CardMetadataUpdater } from '../card-metadata-updater.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 
 export class Transition {
   constructor(

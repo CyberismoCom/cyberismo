@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands } from '../src/command-handler.js';
-import { requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 
 const commandHandler: Commands = new Commands();
 

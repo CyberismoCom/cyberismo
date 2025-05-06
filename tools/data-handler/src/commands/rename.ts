@@ -16,10 +16,8 @@ import { assert } from 'node:console';
 import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
-import { Calculate } from './index.js';
-import { Card } from '../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../utils/card-utils.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
+import { ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { Template } from '../containers/template.js';
 
@@ -31,6 +29,10 @@ import { LinkTypeResource } from '../resources/link-type-resource.js';
 import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
+
+import type { Calculate } from './index.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { Project } from '../containers/project.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 

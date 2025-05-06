@@ -1,37 +1,35 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
 import { basename, join, sep } from 'node:path';
-import { Dirent } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
-import { writeJsonFile } from '../utils/json.js';
+import { CardNameRegEx } from '../interfaces/project-interfaces.js';
 import { getFilesSync } from '../utils/file-utils.js';
-
-// interfaces
-import {
-  CardAttachment,
-  Card,
-  CardNameRegEx,
-  FetchCardDetails,
-} from '../interfaces/project-interfaces.js';
+import { writeJsonFile } from '../utils/json.js';
 
 // asciidoctor
 import asciidoctor from '@asciidoctor/core';
 
 import mime from 'mime-types';
+
+import type { Dirent } from 'node:fs';
+import type {
+  CardAttachment,
+  Card,
+  FetchCardDetails,
+} from '../interfaces/project-interfaces.js';
 
 /**
  * Card container base class. Used for both Project and Template.

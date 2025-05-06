@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -15,9 +16,6 @@ import { join, sep } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
-import { Calculate } from './index.js';
-import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -28,7 +26,15 @@ import {
 } from '../utils/lexorank.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { resourceName } from '../utils/resource-utils.js';
+import { ResourcesFrom } from '../containers/project.js';
 import { TemplateResource } from '../resources/template-resource.js';
+
+import type { Calculate } from './index.js';
+import type {
+  Card,
+  FetchCardDetails,
+} from '../interfaces/project-interfaces.js';
+import type { Project } from '../containers/project.js';
 
 // @todo - we should have project wide constants, so that if we need them, only the const value needs to be changed.
 const ROOT: string = 'root';

@@ -1,23 +1,22 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2025
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardMetadata } from './interfaces/project-interfaces.js';
-import { FieldType } from './interfaces/resource-interfaces.js';
+import { type CardMetadata } from './interfaces/project-interfaces.js';
+import { type FieldType } from './interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { logger } from './utils/log-utils.js';
-import { Project } from './containers/project.js';
-import { UpdateField } from './types/queries.js';
+import { type Project } from './containers/project.js';
+import { type UpdateField } from './types/queries.js';
 
 /**
  * Card metadata update result.

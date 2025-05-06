@@ -14,20 +14,12 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { copyFile, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
-import { Dirent, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 
 // Base class
 import { CardContainer } from './card-container.js';
 
-import {
-  Card,
-  CardAttachment,
-  CardNameRegEx,
-  FetchCardDetails,
-  FileContentType,
-  Resource,
-} from '../interfaces/project-interfaces.js';
-import { CardType, Workflow } from '../interfaces/resource-interfaces.js';
+import { CardNameRegEx } from '../interfaces/project-interfaces.js';
 import { pathExists, stripExtension } from '../utils/file-utils.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 
@@ -41,6 +33,16 @@ import { logger } from '../utils/log-utils.js';
 import { readJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 import { resourceName } from '../utils/resource-utils.js';
+
+import type { Dirent } from 'node:fs';
+import type {
+  Card,
+  CardAttachment,
+  FetchCardDetails,
+  FileContentType,
+  Resource,
+} from '../interfaces/project-interfaces.js';
+import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
 
 // creates template instance based on a project path and name
 export class Template extends CardContainer {

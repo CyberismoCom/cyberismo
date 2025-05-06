@@ -1,14 +1,13 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -18,12 +17,16 @@ import { dirname, join } from 'node:path';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
-import { Calculate, Show } from './index.js';
-import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
-import { CardType } from '../interfaces/resource-interfaces.js';
 import { Project } from '../containers/project.js';
-import { QueryResult } from '../types/queries.js';
 import { sortItems } from '../utils/lexorank.js';
+
+import type { Calculate, Show } from './index.js';
+import type {
+  Card,
+  FetchCardDetails,
+} from '../interfaces/project-interfaces.js';
+import type { CardType } from '../interfaces/resource-interfaces.js';
+import type { QueryResult } from '../types/queries.js';
 
 const attachmentFolder: string = 'a';
 

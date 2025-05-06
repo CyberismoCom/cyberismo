@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -17,13 +18,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
-import {
-  type Card,
-  ResourceFolderType,
-} from '../interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
-import { ResourceContent } from '../interfaces/resource-interfaces.js';
-import { ResourceName } from '../utils/resource-utils.js';
+import { ResourcesFrom } from '../containers/project.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import type { ResourceContent } from '../interfaces/resource-interfaces.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';

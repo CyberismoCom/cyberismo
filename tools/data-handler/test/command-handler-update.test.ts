@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { CardType } from '../src/interfaces/resource-interfaces.js';
+import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';

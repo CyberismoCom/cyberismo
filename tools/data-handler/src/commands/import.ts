@@ -11,13 +11,15 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardType } from '../interfaces/resource-interfaces.js';
-import { Create, Validate } from './index.js';
 import { ModuleManager } from '../module-manager.js';
-import { Project } from '../containers/project.js';
 import { readCsvFile } from '../utils/csv.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
+import { Validate } from './index.js';
+
+import type { CardType } from '../interfaces/resource-interfaces.js';
+import type { Create } from './index.js';
+import type { Project } from '../containers/project.js';
 
 export class Import {
   private moduleManager: ModuleManager;
