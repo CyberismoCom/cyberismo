@@ -8,11 +8,8 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import type {
-  FileContentType} from '../src/interfaces/project-interfaces.js';
-import {
-  CardLocation
-} from '../src/interfaces/project-interfaces.js';
+import type { FileContentType } from '../src/interfaces/project-interfaces.js';
+import { CardLocation } from '../src/interfaces/project-interfaces.js';
 import type {
   CardType,
   TemplateMetadata,

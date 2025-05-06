@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { Calculate, Remove } from '../src/commands/index.js';
-import type { CardsOptions} from '../src/command-handler.js';
+import type { CardsOptions } from '../src/command-handler.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';

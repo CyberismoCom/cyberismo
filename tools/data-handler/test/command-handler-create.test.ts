@@ -9,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import type { CardsOptions} from '../src/command-handler.js';
+import type { CardsOptions } from '../src/command-handler.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Calculate } from '../src/commands/index.js';
