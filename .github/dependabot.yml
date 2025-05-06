@@ -24,7 +24,7 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "monthly"
-      rebase-strategy: "auto"
+    rebase-strategy: "auto"
     groups:
       chai-dependencies: # Update all Chai dependencies in one PR
         patterns:
