@@ -99,7 +99,7 @@ async function getCardDetails(
   try {
     asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
       mode: 'inject',
-      projectPath: process.env.npm_config_project_path || '',
+      projectPath: commands.project.basePath || '',
       cardKey: key,
     });
   } catch (error) {
@@ -555,7 +555,7 @@ router.post('/:key/parse', async (c) => {
     try {
       asciidocContent = await evaluateMacros(content, {
         mode: 'inject',
-        projectPath: process.env.npm_config_project_path || '',
+        projectPath: commands.project.basePath || '',
         cardKey: key,
       });
     } catch (error) {
