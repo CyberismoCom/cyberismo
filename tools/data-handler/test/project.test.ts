@@ -8,11 +8,9 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import {
-  CardLocation,
-  FileContentType,
-} from '../src/interfaces/project-interfaces.js';
-import {
+import type { FileContentType } from '../src/interfaces/project-interfaces.js';
+import { CardLocation } from '../src/interfaces/project-interfaces.js';
+import type {
   CardType,
   TemplateMetadata,
   Workflow,
@@ -23,11 +21,11 @@ import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
-import { CardTypeResource } from '../src/resources/card-type-resource.js';
-import { FieldTypeResource } from '../src/resources/field-type-resource.js';
-import { LinkTypeResource } from '../src/resources/link-type-resource.js';
+import type { CardTypeResource } from '../src/resources/card-type-resource.js';
+import type { FieldTypeResource } from '../src/resources/field-type-resource.js';
+import type { LinkTypeResource } from '../src/resources/link-type-resource.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
-import { WorkflowResource } from '../src/resources/workflow-resource.js';
+import type { WorkflowResource } from '../src/resources/workflow-resource.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.

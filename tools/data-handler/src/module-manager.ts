@@ -3,11 +3,11 @@
   Copyright © Cyberismo Ltd and contributors 2025
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -19,13 +19,14 @@ import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.js';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
-import { Import } from './commands/index.js';
-import { ModuleSetting } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
-import { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';
+
+import type { Import } from './commands/index.js';
+import type { ModuleSetting } from './interfaces/project-interfaces.js';
+import type { ProjectConfiguration } from './project-settings.js';
 
 const FILE_PROTOCOL = 'file:';
 // todo: add support for git's default branch.

@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -22,12 +23,14 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-import { Calculate, Export, Show } from './index.js';
-import { Card } from '../interfaces/project-interfaces.js';
-import { CardType } from '../interfaces/resource-interfaces.js';
+import { Export } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
-import { Project } from '../containers/project.js';
 import { sortItems } from '../utils/lexorank.js';
+
+import type { Calculate, Show } from './index.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { CardType } from '../interfaces/resource-interfaces.js';
+import type { Project } from '../containers/project.js';
 
 interface ExportOptions {
   silent: boolean;

@@ -1,19 +1,25 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { sep } from 'node:path';
 
-import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
-import { Card, ModuleContent } from '../interfaces/project-interfaces.js';
-import {
+import { ClingoFactBuilder } from './clingo-fact-builder.js';
+import { ClingoProgramBuilder } from './clingo-program-builder.js';
+import { isPredefinedField } from './constants.js';
+import { isTemplateCard } from '../utils/card-utils.js';
+
+import type { AllowedClingoType } from './clingo-fact-builder.js';
+import type { Card, ModuleContent } from '../interfaces/project-interfaces.js';
+import type {
   CardType,
   FieldType,
   Link,
@@ -22,10 +28,7 @@ import {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { ClingoProgramBuilder } from './clingo-program-builder.js';
-import { isPredefinedField } from './constants.js';
-import { isTemplateCard } from '../utils/card-utils.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {

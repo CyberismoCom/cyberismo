@@ -1,14 +1,13 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -18,15 +17,16 @@ import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
 import { logger } from '../../utils/log-utils.js';
-import { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { Project } from '../../containers/project.js';
 import { readFile } from 'node:fs/promises';
 import { resourceName } from '../../utils/resource-utils.js';
-import { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
-import TaskQueue from '../task-queue.js';
+
+import type { MacroGenerationContext } from '../../interfaces/macros.js';
+import type { Schema } from 'jsonschema';
+import type TaskQueue from '../task-queue.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;

@@ -12,7 +12,7 @@ import { Calculate, Create, Import, Remove } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import {
+import type {
   RemovableResourceTypes,
   ResourceFolderType,
 } from '../src/interfaces/project-interfaces.js';
@@ -26,7 +26,7 @@ import { ReportResource } from '../src/resources/report-resource.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
 import { WorkflowResource } from '../src/resources/workflow-resource.js';
 
-import {
+import type {
   CardType,
   CustomField,
   EnumDefinition,
@@ -41,7 +41,7 @@ import {
   WorkflowTransition,
 } from '../src/interfaces/resource-interfaces.js';
 
-import {
+import type {
   AddOperation,
   ChangeOperation,
   RemoveOperation,

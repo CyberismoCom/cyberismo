@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DataType } from '../interfaces/resource-interfaces.js';
+import { type DataType } from '../interfaces/resource-interfaces.js';
 import { isBigInt } from '../utils/common-utils.js';
 import * as EmailValidator from 'email-validator';
 

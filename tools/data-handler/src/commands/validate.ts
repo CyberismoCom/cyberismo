@@ -12,23 +12,32 @@
 */
 
 // node
-import { Dirent, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
 // dependencies
-import { Validator as JSONValidator, Schema } from 'jsonschema';
+import { Validator as JSONValidator } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 
 // data-handler
-import {
+import { errorFunction } from '../utils/log-utils.js';
+import { isTemplateCard } from '../utils/card-utils.js';
+import { pathExists } from '../utils/file-utils.js';
+import { Project } from '../containers/project.js';
+import { readJsonFile, readJsonFileSync } from '../utils/json.js';
+import { resourceName } from '../utils/resource-utils.js';
+
+import type { Dirent } from 'node:fs';
+import type { Schema } from 'jsonschema';
+import type {
   Card,
   DotSchemaContent,
   ProjectSettings,
   ResourceTypes,
 } from '../interfaces/project-interfaces.js';
-import {
+import type {
   CardType,
   CustomField,
   FieldType,
@@ -36,12 +45,6 @@ import {
   ResourceContent,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { errorFunction } from '../utils/log-utils.js';
-import { isTemplateCard } from '../utils/card-utils.js';
-import { pathExists } from '../utils/file-utils.js';
-import { Project } from '../containers/project.js';
-import { readJsonFile, readJsonFileSync } from '../utils/json.js';
-import { resourceName } from '../utils/resource-utils.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex

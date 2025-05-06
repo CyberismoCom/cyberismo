@@ -1,14 +1,13 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -17,10 +16,6 @@ import { basename, join } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 
-import {
-  type Card,
-  ResourceFolderType,
-} from '../interfaces/project-interfaces.js';
 import {
   type AddOperation,
   type ChangeOperation,
@@ -37,10 +32,6 @@ import {
   writeJsonFile,
 } from '../utils/json.js';
 import {
-  ResourceBaseMetadata,
-  ResourceContent,
-} from '../interfaces/resource-interfaces.js';
-import {
   type ResourceName,
   resourceName,
   resourceNameToPath,
@@ -49,6 +40,13 @@ import {
 } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/index.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
+import type {
+  ResourceBaseMetadata,
+  ResourceContent,
+} from '../interfaces/resource-interfaces.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 
 export {
   type AddOperation,

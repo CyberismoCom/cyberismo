@@ -19,8 +19,13 @@ import { spawn } from 'node:child_process';
 
 import mime from 'mime-types';
 
-import { attachmentPayload } from '../interfaces/request-status-interfaces.js';
-import {
+import { Project } from '../containers/project.js';
+import { resourceName } from '../utils/resource-utils.js';
+import { TemplateResource } from '../resources/template-resource.js';
+import { UserPreferences } from '../utils/user-preferences.js';
+
+import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
+import type {
   CardAttachment,
   Card,
   CardListContainer,
@@ -29,16 +34,13 @@ import {
   ProjectMetadata,
   Resource,
 } from '../interfaces/project-interfaces.js';
-import {
+import type {
   CardType,
   ResourceContent,
   TemplateConfiguration,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
-import { resourceName } from '../utils/resource-utils.js';
-import { TemplateResource } from '../resources/template-resource.js';
-import { UserPreferences } from '../utils/user-preferences.js';
+import type { ResourcesFrom } from '../containers/project.js';
 
 /**
  * Show command.
