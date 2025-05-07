@@ -8,6 +8,8 @@ on:
 
 jobs:
   check-version-change:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     outputs:
