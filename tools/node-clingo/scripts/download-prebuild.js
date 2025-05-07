@@ -17,10 +17,9 @@ import {
   readdirSync,
   rmSync,
   mkdir,
-  dirname,
   createWriteStream,
 } from 'node:fs';
-import { resolve, join, sep } from 'node:path';
+import { resolve, join, sep, dirname } from 'node:path';
 import { createGunzip } from 'node:zlib';
 import { extract } from 'tar-stream';
 import { pipeline } from 'node:stream/promises';

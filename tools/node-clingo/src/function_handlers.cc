@@ -12,10 +12,11 @@
 #include "function_handlers.h"
 #include "helpers.h"
 
-#include <ctime>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <format>
 
 
 
@@ -78,21 +79,22 @@ bool handle_days_since(
         return false;
     }
     
-    // Parse ISO date string with improved function
-    std::time_t date_time = parse_iso_date(date_str);
+    std::chrono::utc_clock::time_point date_point = parse_iso_date(date_str);
     
-    if (date_time == 0) {
+    // Check if parsing failed (returned epoch)
+    if (date_point == std::chrono::utc_clock::time_point{}) {
         // Return 0 on failure
         clingo_symbol_t sym;
         clingo_symbol_create_number(0, &sym);
         return symbol_callback(&sym, 1, symbol_callback_data);
     }
     
-    // Calculate days difference
-    std::time_t now = std::time(nullptr);
+    auto now_point = std::chrono::utc_clock::now();
     
-    // Calculate difference in seconds, then convert to days
-    int days = static_cast<int>(std::difftime(now, date_time) / (60 * 60 * 24));
+    // Calculate difference and cast to days
+    auto duration = now_point - date_point;
+
+    int days = std::chrono::duration_cast<std::chrono::duration<int, std::ratio<86400>>>(duration).count();
     
     clingo_symbol_t sym;
     clingo_symbol_create_number(days, &sym);
@@ -110,12 +112,14 @@ bool handle_today(
         return false;
     }
     
-    std::time_t now = std::time(nullptr);
-    std::tm* tm = std::localtime(&now);
-    
-    std::ostringstream oss;
-    oss << std::put_time(tm, "%Y-%m-%d");
-    std::string today_str = oss.str();
+    // Get current time using chrono, truncated to days for "today"
+    const std::chrono::zoned_time now_point {
+        std::chrono::current_zone(),
+        std::chrono::system_clock::now()
+    };
+
+    // Format using C++20 std::format
+    std::string today_str = std::format("{:%Y-%m-%d}", now_point);
     
     clingo_symbol_t sym;
     if (!clingo_symbol_create_string(today_str.c_str(), &sym)) {

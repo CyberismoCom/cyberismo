@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <sstream>
+#include <string>
 
 namespace node_clingo {
 
@@ -96,48 +98,29 @@ std::vector<std::string> text_wrap(const std::string& text, size_t line_width) {
     return result;
 }
 
-std::time_t parse_iso_date(const std::string& iso_date) {
-    std::tm tm = {};
-    std::string format;
-    std::string date_copy = iso_date;
-    
-    // Remove trailing 'Z' if present (UTC indicator)
-    if (!date_copy.empty() && date_copy.back() == 'Z') {
-        date_copy.pop_back();
-    }
-    
-    // Handle different ISO date formats
-    if (date_copy.find('T') != std::string::npos) {
-        // Format with time component: YYYY-MM-DDTHH:MM:SS
-        if (date_copy.find(':') != std::string::npos) {
-            // Has time with colons
-            size_t colon_count = std::count(date_copy.begin(), date_copy.end(), ':');
-            if (colon_count == 1) {
-                format = "%Y-%m-%dT%H:%M";
-            } else {
-                format = "%Y-%m-%dT%H:%M:%S";
-            }
-        } else {
-            // Has time without colons
-            format = "%Y-%m-%dT%H%M%S";
-        }
-    } else {
-        // Simple date format: YYYY-MM-DD
-        format = "%Y-%m-%d";
-    }
-    
-    std::istringstream ss(date_copy);
-    ss >> std::get_time(&tm, format.c_str());
-    
-    if (ss.fail()) {
-        // Return epoch time on failure
-        return 0;
-    }
-    
-    // Set to UTC as per the Python implementation
-    tm.tm_isdst = 0;
-    
-    return std::mktime(&tm);
-}
+std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date) {
+    std::istringstream ss(iso_date);
+    std::chrono::utc_clock::time_point date_point;
 
+    // List of ISO date formats to try
+    const std::vector<std::string> date_formats = {
+        "%FT%T%Ez", // e.g., 2023-10-26T12:00:00-05:00 (ISO 8601 with extended offset)
+        "%FT%TZ",   // e.g., 2023-10-26T12:00:00Z (Explicit UTC)
+        "%FT%T",    // e.g., 2023-10-26T12:00:00 (Assumed UTC if no TZ info)
+        "%F"        // e.g., 2023-10-26 (Assumed 00:00:00 UTC)
+    };
+
+    for (const auto& fmt : date_formats) {
+        // Reset the stringstream state for each attempt
+        ss.clear();
+        ss.str(iso_date);
+        if (std::chrono::from_stream(ss, fmt.c_str(), date_point)) {
+            // Successfully parsed
+            return date_point;
+        }
+    }
+
+    // Return epoch time_point on parsing failure for all formats
+    return std::chrono::utc_clock::time_point{};
+}
 } // namespace node_clingo 

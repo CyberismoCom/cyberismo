@@ -18,6 +18,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <chrono>
+#include <format>
 
 namespace node_clingo {
 
@@ -45,11 +47,11 @@ std::string html_escape(const std::string& input);
 std::vector<std::string> text_wrap(const std::string& text, size_t line_width);
 
 /**
- * Parses an ISO 8601 date string into a time_t value.
+ * Parses an ISO 8601 date string into a time_point. Returns epoch on failure.
  * @param iso_date The date string in ISO 8601 format (YYYY-MM-DD).
- * @returns The time_t value representing the date, or 0 on error.
+ * @returns The time_point value representing the date, or epoch on error.
  */
-std::time_t parse_iso_date(const std::string& iso_date);
+std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date);
 
 }
 
