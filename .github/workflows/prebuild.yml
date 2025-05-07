@@ -77,9 +77,9 @@ jobs:
             cross: false
           
          # Cross-compilation builds
-          - os: ubuntu-latest
-            arch: arm64
-            cross: true
+          # - os: ubuntu-latest
+          #   arch: arm64
+          #   cross: true
 
     runs-on: ${{ matrix.os }}
 
@@ -136,7 +136,12 @@ jobs:
       - name: Build native prebuilds
         if: matrix.cross == false
         working-directory: tools/node-clingo
-        run: npm run build-prebuildify
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            npm run build-prebuildify-gcc14
+          else
+            npm run build-prebuildify
+          fi
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
 
