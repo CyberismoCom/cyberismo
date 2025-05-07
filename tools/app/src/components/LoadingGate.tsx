@@ -26,8 +26,9 @@ const LoadingGate: React.FC<LoadingGateProps> = ({
   loadingIndicator,
   children,
 }) => {
+  const { t } = useTranslation();
+
   if (isLoading || values?.some((value) => value === null)) {
-    const { t } = useTranslation();
     return loadingIndicator ? loadingIndicator : <div>{t('loading')}</div>;
   }
 
