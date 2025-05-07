@@ -565,7 +565,10 @@ export class Calculate {
 
     const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
       encoding: 'utf8',
-      input: clingoOutput.join('.') + '.',
+      // below looks like it could be replaced by just joining dots, but
+      // it breaks it because elements contain newlines, which must be
+      // replaced by dots
+      input: clingoOutput.join('\n').replaceAll('\n', '.') + '.',
       timeout,
       maxBuffer: 1024 * 1024 * 100,
     });
