@@ -89,9 +89,13 @@ export class ArrayHandler<T> {
       return parsedTo as T[];
     }
 
-    return array.map((item) =>
+    const updatedArray = array.map((item) =>
       deepCompare(item as object, target as object) ? parsedTo : item,
     );
+    if (deepCompare(updatedArray, array)) {
+      throw new Error('Cannot change value. Target was not found.');
+    }
+    return updatedArray;
   }
 
   private handleRank(operation: RankOperation<T>, array: T[]): T[] {
