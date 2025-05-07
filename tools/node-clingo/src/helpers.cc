@@ -114,9 +114,9 @@ std::vector<std::string> text_wrap(const std::string& text, size_t line_width) {
     return result;
 }
 
-std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date) {
+std::chrono::system_clock::time_point parse_iso_date(const std::string& iso_date) {
     std::istringstream ss(iso_date);
-    std::chrono::utc_clock::time_point date_point;
+    std::chrono::system_clock::time_point date_point;
 
     // List of ISO date formats to try, notice that fallback does not support extended offset for now
 #if USE_CHRONO_FROM_STREAM_FALLBACK
@@ -149,7 +149,7 @@ std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date) {
             // Note: timegm interprets struct tm as UTC
             std::time_t tt = timegm(&t);
             if (tt != (std::time_t)-1) { // timegm returns -1 on error
-                return std::chrono::clock_cast<std::chrono::utc_clock>(std::chrono::system_clock::from_time_t(tt));
+                return std::chrono::system_clock::from_time_t(tt);
             }
         }
 #else
@@ -161,6 +161,6 @@ std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date) {
     }
 
     // Return epoch time_point on parsing failure for all formats
-    return std::chrono::utc_clock::time_point{};
+    return std::chrono::system_clock::time_point{};
 }
 } // namespace node_clingo 

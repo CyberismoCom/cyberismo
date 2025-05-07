@@ -51,7 +51,7 @@ std::vector<std::string> text_wrap(const std::string& text, size_t line_width);
  * @param iso_date The date string in ISO 8601 format (YYYY-MM-DD).
  * @returns The time_point value representing the date, or epoch on error.
  */
-std::chrono::utc_clock::time_point parse_iso_date(const std::string& iso_date);
+std::chrono::system_clock::time_point parse_iso_date(const std::string& iso_date);
 
 }
 
