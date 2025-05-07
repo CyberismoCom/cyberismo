@@ -83,15 +83,20 @@ export class ArrayHandler<T> {
     if (targetIndex === -1) {
       throw new Error(`Item '${JSON.stringify(target)}' not found`);
     }
+    const actualTarget = array[targetIndex];
     const parsedTo = this.tryParseJSON(to);
 
     if (typeof to === 'string' && (to.startsWith('[') || to.startsWith('{'))) {
       return parsedTo as T[];
     }
 
-    return array.map((item) =>
-      deepCompare(item as object, target as object) ? parsedTo : item,
+    const updatedArray = array.map((item) =>
+      deepCompare(item as object, actualTarget as object) ? parsedTo : item,
     );
+    if (deepCompare(updatedArray, array)) {
+      throw new Error('Cannot change value. Target was not found.');
+    }
+    return updatedArray;
   }
 
   private handleRank(operation: RankOperation<T>, array: T[]): T[] {

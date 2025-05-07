@@ -71,21 +71,6 @@ export class FieldTypeResource extends FileResource {
       .map((card) => card.key);
   }
 
-  // Collects affected cards.
-  private async collectCards(cardContent: object, cardTypeName: string) {
-    async function filteredCards(
-      cardSource: Promise<Card[]>,
-      cardTypeName: string,
-    ): Promise<Card[]> {
-      const cards = await cardSource;
-      return cards.filter((card) => card.metadata?.cardType === cardTypeName);
-    }
-    return filteredCards(
-      this.project.cards(this.project.paths.cardRootFolder, cardContent),
-      cardTypeName,
-    );
-  }
-
   // Converts values.
   // The allowed conversions are:
   // - shortText/longText --> person, if valid email
