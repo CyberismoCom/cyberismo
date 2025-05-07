@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -45,6 +47,17 @@ export class ExportSite extends Export {
 
   constructor(project: Project, calculateCmd: Calculate, showCmd: Show) {
     super(project, calculateCmd, showCmd);
+  }
+
+  // Writes index.html file into cards folder that just redirects to the first card.
+  private createCardsIndex(destination: string, cardKey: string) {
+    const indexFile = join(destination, 'cards', 'index.html');
+    const indexContent = `<meta http-equiv="refresh" content="0; url=${cardKey}.html">`;
+    try {
+      fs.writeFileSync(indexFile, indexContent);
+    } catch (error) {
+      throw new Error(errorFunction(error));
+    }
   }
 
   // todo: change this so that split temp folder creation to its own method.
@@ -337,6 +350,12 @@ export class ExportSite extends Export {
     }
 
     await this.export(destination, cards);
+    if (cards.length > 0 && cards.at(0)) {
+      const firstCard = cards.at(0);
+      if (firstCard && firstCard.key) {
+        this.createCardsIndex(destination, firstCard.key);
+      }
+    }
     return '';
   }
 }
