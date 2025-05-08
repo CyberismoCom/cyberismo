@@ -133,14 +133,21 @@ jobs:
         working-directory: tools/node-clingo
         run: pnpm install
 
-      - name: Build native prebuilds
-        if: matrix.cross == false
+      - name: Prebuild linux
+        if: runner.os == 'Linux'
         working-directory: tools/node-clingo
         run: pnpm build-prebuildify
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
-          CC: ${{ if(runner.os == 'Linux') then 'gcc-14' }}
-          CXX: ${{ if(runner.os == 'Linux') then 'g++-14' }}
+          CC: gcc-14
+          CXX: g++-14
+
+      - name: Prebuild macos/windows
+        if: runner.os == 'macOS' || runner.os == 'Windows'
+        working-directory: tools/node-clingo
+        run: pnpm build-prebuildify
+        env:
+          PREBUILD_ARCH: ${{ matrix.arch }}
 
 
       - name: Build ARM64 prebuilds (cross-compilation)
