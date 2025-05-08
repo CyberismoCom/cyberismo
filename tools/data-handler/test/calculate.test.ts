@@ -2,7 +2,7 @@ import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 import { dirname, join } from 'node:path';
-import { mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { Calculate } from '../src/commands/index.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
@@ -80,13 +80,21 @@ describe('calculate', () => {
     delete res[0].lastUpdated;
     delete res[0].children?.[0].lastUpdated;
     expect(res).to.deep.equal(expectedTree);
+
+    // todo: run also 'card' query
+
+    // Run onTransition and onCreation queries even if they don't return anything.
+    const onTransitionQuery = 'onTransition';
+    let changes = await calculate.runQuery(onTransitionQuery);
+    expect(changes.length).to.equal(0);
+    const onCreationQuery = 'onCreation';
+    changes = await calculate.runQuery(onCreationQuery);
+    expect(changes.length).to.equal(0);
   });
   it('run clingraph successfully', async () => {
-    // load file
-    const file = join(baseDir, '../../../resources/calculations/test/model.lp');
-    const content = readFileSync(file, 'utf8');
     const res = await calculate.runGraph({
-      query: 'viewAll.\n' + content,
+      query: 'viewAll.',
+      file: '../../resources/calculations/test/model.lp',
     });
 
     expect(res).to.not.equal('');
