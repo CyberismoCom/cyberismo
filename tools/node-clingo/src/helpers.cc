@@ -61,14 +61,20 @@ std::string get_symbol_string(clingo_symbol_t symbol) {
 std::string html_escape(const std::string& input) {
     std::string result;
     result.reserve(input.size());
+
+    static const std::string amp = "&amp;";
+    static const std::string quot = "&quot;";
+    static const std::string apos = "&apos;";
+    static const std::string lt = "&lt;";
+    static const std::string gt = "&gt;";
     
     for (char c : input) {
         switch (c) {
-            case '&': result += "&amp;"; break;
-            case '\"': result += "&quot;"; break;
-            case '\'': result += "&apos;"; break;
-            case '<': result += "&lt;"; break;
-            case '>': result += "&gt;"; break;
+            case '&': result += amp; break;
+            case '"': result += quot; break;
+            case ''': result += apos; break;
+            case '<': result += lt; break;
+            case '>': result += gt; break;
             default: result += c; break;
         }
     }
