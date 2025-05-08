@@ -25,6 +25,8 @@ import scoreCardMacroSchema from '../../../schema/macros/scoreCardMacroSchema.js
 // resources
 import cardTypeSchema from '../../../schema/resources/cardTypeSchema.json' with { type: 'json' };
 import fieldTypeSchema from '../../../schema/resources/fieldTypeSchema.json' with { type: 'json' };
+import graphModelSchema from '../../../schema/resources/graphModelSchema.json' with { type: 'json' };
+import graphViewSchema from '../../../schema/resources/graphViewSchema.json' with { type: 'json' };
 import linkTypeSchema from '../../../schema/resources/linkTypeSchema.json' with { type: 'json' };
 import reportSchema from '../../../schema/resources/reportSchema.json' with { type: 'json' };
 import templateSchema from '../../../schema/resources/templateSchema.json' with { type: 'json' };
@@ -39,6 +41,8 @@ export const schemas = [
   dotSchema,
   fieldTypeSchema,
   graphMacroBaseSchema,
+  graphModelSchema,
+  graphViewSchema,
   linkTypeSchema,
   reportMacroBaseSchema,
   reportSchema,

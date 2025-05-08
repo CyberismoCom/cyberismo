@@ -12,7 +12,7 @@
 */
 
 // node
-import { Dirent, readdirSync } from 'node:fs';
+import { Dirent } from 'node:fs';
 import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
@@ -20,6 +20,7 @@ import { readdir } from 'node:fs/promises';
 // dependencies
 import { Validator as JSONValidator, Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
+import { parentSchema, schemas } from '../utils/schemas.js';
 
 // data-handler
 import {
@@ -40,7 +41,7 @@ import { errorFunction } from '../utils/log-utils.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
-import { readJsonFile, readJsonFileSync } from '../utils/json.js';
+import { readJsonFile } from '../utils/json.js';
 import { resourceName } from '../utils/resource-utils.js';
 
 const invalidNames = new RegExp(
@@ -95,7 +96,7 @@ export class Validate {
     );
     this.validator = new JSONValidator();
     this.directoryValidator = new DirectoryValidator();
-    this.parentSchema = readJsonFileSync(Validate.parentSchemaFile) as Schema;
+    this.parentSchema = parentSchema;
     this.addChildSchemas();
     this.validatedFieldTypes = new Map();
     this.validatedWorkflows = new Map();
@@ -109,13 +110,9 @@ export class Validate {
 
   // Loads child schemas to validator.
   private addChildSchemas() {
-    readdirSync(Validate.baseFolder, { withFileTypes: true, recursive: true })
-      .filter((dirent) => dirent.name !== Validate.parentSchemaFile)
-      .filter((dirent) => dirent.isFile())
-      .forEach((file) => {
-        const schema = readJsonFileSync(this.fullPath(file)) as Schema;
-        this.validator.addSchema(schema, schema.$id);
-      });
+    schemas.forEach((schema) => {
+      this.validator.addSchema(schema, schema.$id);
+    });
   }
 
   // Validates that 'name' in resources matches filename, location and project prefix.
