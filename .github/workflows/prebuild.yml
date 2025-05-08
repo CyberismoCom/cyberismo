@@ -139,6 +139,8 @@ jobs:
         run: pnpm build-prebuildify
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
+          CC: ${{ runner.os == 'Linux' && 'gcc-14' || '' }}
+          CXX: ${{ runner.os == 'Linux' && 'g++-14' || '' }}
 
       - name: Build ARM64 prebuilds (cross-compilation)
         if: matrix.cross == true && matrix.arch == 'arm64'
