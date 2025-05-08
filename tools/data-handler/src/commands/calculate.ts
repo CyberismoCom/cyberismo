@@ -54,7 +54,6 @@ import {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { solve, setBaseProgram } from '@cyberismocom/node-clingo';
-import { ClingoProgramBuilder } from '../utils/clingo-program-builder.js';
 
 /**
  * This will done in a different way when build for npmjs is done
