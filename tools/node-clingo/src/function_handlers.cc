@@ -130,7 +130,9 @@ bool handle_today(
 #else
     time_t now = time(nullptr);
     std::string today_str;
-    std::put_time(std::localtime(&now), "%Y-%m-%d", &today_str);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
+    today_str = ss.str();
 #endif
     
     clingo_symbol_t sym;
