@@ -2,7 +2,7 @@ name: Build and Publish Multi-Arch Image
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "bugfix/docker-container"]
 
 jobs:
   build-and-publish:
