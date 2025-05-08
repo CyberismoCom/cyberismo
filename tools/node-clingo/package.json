@@ -5,7 +5,7 @@
   "scripts": {
     "install": "node scripts/download-prebuild.js || node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
-    "build-prebuildify": "prebuildify --napi",
+    "build-prebuildify": "shx rm -rf prebuilds && prebuildify --napi",
     "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi",
     "test": "vitest run",
     "test:watch": "vitest"
