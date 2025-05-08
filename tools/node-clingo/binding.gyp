@@ -8,6 +8,7 @@
       "target_name": "node-clingo",
       "cflags!": [ "-fno-exceptions" ],
       "cflags_cc!": [ "-fno-exceptions" ],
+      "cflags_cc": [ "-std=c++20" ],
       "sources": [ 
         "src/binding.cc",
         "src/helpers.cc",

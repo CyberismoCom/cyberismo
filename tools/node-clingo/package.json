@@ -6,7 +6,6 @@
     "install": "node scripts/download-prebuild.js || node-gyp-build",
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "prebuildify --napi",
-    "build-prebuildify-gcc14": "CC=gcc-14 CXX=g++-14 prebuildify --napi --platform",
     "build-arm64": "prebuildify-cross --modules ../../node_modules -i linux-arm64 --napi",
     "test": "vitest run",
     "test:watch": "vitest"
