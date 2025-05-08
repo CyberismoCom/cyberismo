@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/samutoljamo/wasm-test
 
 jobs:
   check-version-change:
@@ -196,7 +195,7 @@ jobs:
           path: tools/node-clingo/prebuilds/
 
       - name: Package prebuilds for each platform
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/samutoljamo/wasm-test')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           mkdir -p release-assets
           # Navigate to prebuilds directory correctly
