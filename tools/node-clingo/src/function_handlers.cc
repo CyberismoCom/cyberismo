@@ -176,6 +176,9 @@ bool handle_wrap(
     
     // Create result with HTML escaping and <br/> tags
     std::string result;
+
+    result.reserve(lines.size() * (27 + 5));
+
     for (size_t i = 0; i < lines.size(); ++i) { 
         result += html_escape(lines[i]);
         if (i < lines.size() - 1) {
