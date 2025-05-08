@@ -17,80 +17,81 @@
 #include <string>
 #include <unordered_map>
 
-namespace node_clingo {
+namespace node_clingo
+{
 
-using FunctionHandler = std::function<bool(
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data)>;
+    using FunctionHandler = std::function<bool(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)>;
 
-/**
- * Handler for the @concatenate function.
- * Concatenates string arguments.
- * @param arguments Array of clingo symbols representing the arguments.
- * @param arguments_size Number of arguments.
- * @param symbol_callback Callback function to return the result symbol.
- * @param symbol_callback_data User data for the callback.
- * @returns True on success, false on error.
- */
-bool handle_concatenate(
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data);
+    /**
+     * Handler for the @concatenate function.
+     * Concatenates string arguments.
+     * @param arguments Array of clingo symbols representing the arguments.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_concatenate(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
 
-/**
- * Handler for the @days_since function.
- * Calculates the number of days between two dates.
- * @param arguments Array of clingo symbols representing the date arguments.
- * @param arguments_size Number of arguments.
- * @param symbol_callback Callback function to return the result symbol.
- * @param symbol_callback_data User data for the callback.
- * @returns True on success, false on error.
- */
-bool handle_days_since(
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data);
+    /**
+     * Handler for the @days_since function.
+     * Calculates the number of days between two dates.
+     * @param arguments Array of clingo symbols representing the date arguments.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_days_since(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
 
-/**
- * Handler for the @today function.
- * Returns the current date.
- * @param arguments Array of clingo symbols (expected to be empty).
- * @param arguments_size Number of arguments.
- * @param symbol_callback Callback function to return the result symbol.
- * @param symbol_callback_data User data for the callback.
- * @returns True on success, false on error.
- */
-bool handle_today(
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data);
+    /**
+     * Handler for the @today function.
+     * Returns the current date.
+     * @param arguments Array of clingo symbols (expected to be empty).
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_today(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
 
-/**
- * Handler for the @wrap function.
- * Wraps a value within a specified range.
- * @param arguments Array of clingo symbols representing the value, min, and max.
- * @param arguments_size Number of arguments.
- * @param symbol_callback Callback function to return the result symbol.
- * @param symbol_callback_data User data for the callback.
- * @returns True on success, false on error.
- */
-bool handle_wrap(
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data);
+    /**
+     * Handler for the @wrap function.
+     * Wraps a value within a specified range.
+     * @param arguments Array of clingo symbols representing the value, min, and max.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_wrap(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
 
-/**
- * Get the map of function names to their handlers.
- * @returns A constant reference to the unordered map containing function handlers.
- */
-const std::unordered_map<std::string, FunctionHandler>& get_function_handlers();
+    /**
+     * Get the map of function names to their handlers.
+     * @returns A constant reference to the unordered map containing function handlers.
+     */
+    const std::unordered_map<std::string, FunctionHandler> &get_function_handlers();
 
 }
 
-#endif // NODE_CLINGO_FUNCTION_HANDLERS_H 
+#endif // NODE_CLINGO_FUNCTION_HANDLERS_H
