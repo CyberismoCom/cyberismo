@@ -71,8 +71,8 @@ std::string html_escape(const std::string& input) {
     for (char c : input) {
         switch (c) {
             case '&': result += amp; break;
-            case '"': result += quot; break;
-            case ''': result += apos; break;
+            case '\"': result += quot; break;
+            case '\'': result += apos; break;
             case '<': result += lt; break;
             case '>': result += gt; break;
             default: result += c; break;
