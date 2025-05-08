@@ -273,5 +273,17 @@ export function createAdmonition(
  * @returns valid asciidoc with the image
  */
 export function createImage(image: string) {
-  return `image::data:image/png;base64,${image}[]\n`;
+  if (process.env.EXPORT_FORMAT) {
+    return `image::data:image/svg+xml;base64,${image}[]\n`;
+  } else {
+    return `++++
+<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper">
+${Buffer.from(image, 'base64').toString('utf-8')}
+</div>
+++++
+`;
+  }
 }
+
+// To make the links work with SVGs, this needs to be added to model.lp
+// attr(node, X, href, @concatenate("/cards/", X)) :- node(X, _), not invisible(X).
