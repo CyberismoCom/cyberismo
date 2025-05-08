@@ -108,9 +108,9 @@ class ReportMacro extends BaseMacro {
     const handlebars = Handlebars.create();
     const view = handlebars.compile(viewContent)(handlebarsContext);
 
-    const modelContent = await readFile(modelLocation, { encoding: 'utf-8' });
     const result = await calculate.runGraph({
-      query: view + '\n' + modelContent,
+      query: view,
+      file: modelLocation,
     });
 
     if (typeof result !== 'string') {
