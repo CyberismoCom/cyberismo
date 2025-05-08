@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 #include <chrono>
-#include <format>
 
 namespace node_clingo {
 

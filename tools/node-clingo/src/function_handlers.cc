@@ -16,7 +16,15 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+
+
+#if !defined(__clang__)
 #include <format>
+#else
+#include <ctime>
+#include <time.h>
+#include <iomanip>
+#endif
 
 
 
@@ -111,14 +119,19 @@ bool handle_today(
     if (arguments_size != 0) {
         return false;
     }
-    
-    // Get current time using chrono, truncated to days for "today"
+
+// clang used on mac does not support
+// current_zone and zoned_time
+#if !defined(__clang__)
     const auto now_point = std::chrono::system_clock::now();
     const auto current_zone = std::chrono::current_zone();
     const std::chrono::zoned_time zt {current_zone, now_point};
-
-    // Format using C++20 std::format
-    std::string today_str = std::format("{:%Y-%m-%d}", zt);
+        std::string today_str = std::format("{:%Y-%m-%d}", zt);
+#else
+    time_t now = time(nullptr);
+    std::string today_str;
+    std::put_time(std::localtime(&now), "%Y-%m-%d", &today_str);
+#endif
     
     clingo_symbol_t sym;
     if (!clingo_symbol_create_string(today_str.c_str(), &sym)) {

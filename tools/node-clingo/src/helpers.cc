@@ -17,11 +17,10 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <locale>
 
 
 // Use fallback if GCC version is defined and less than 14
-// Let's delete this once GCC 14 default
+// Let's delete this once GCC 14 is default
 #if defined(__GNUC__) && (__GNUC__ < 14)
     #define USE_CHRONO_FROM_STREAM_FALLBACK 1
 #else

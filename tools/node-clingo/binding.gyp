@@ -77,7 +77,6 @@
           ],
           "xcode_settings": {
             "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
-            "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
             "OTHER_LDFLAGS": [
               "-Wl,-rpath,@loader_path"
             ]
