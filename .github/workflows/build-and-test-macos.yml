@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Build & test (Ubuntu)
+name: Build & test (macOS)
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     strategy:
       matrix:
@@ -35,10 +35,16 @@ jobs:
         auto-update-conda: true
         activate-environment: cyberismo
         environment-file: environment.yml
-    - name: Install clingo
+    - name: Install homebrew
+      if: runner.os == 'macOS'
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gringo
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    - name: Install clingo
+      if: runner.os == 'macOS'
+      run: |
+        brew install clingo --ignore-dependencies
+  
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:
@@ -68,6 +74,3 @@ jobs:
     - run: pnpm build
     - run: pnpm link --global
     - run: pnpm test
-      env:
-        CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
-        CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
