@@ -46,7 +46,7 @@ void silent_logger(clingo_warning_t code, char const *message, void *data) {
  * it throws a Napi::Error with the Clingo error message.
  * @param env The N-API environment.
  */
-void HandleClingoError(const Napi::Env& env) {
+void handle_clingo_error(const Napi::Env& env) {
     // If clingo returns an error, we throw an error to the javascript side
     if (clingo_error_code() != 0) {
         throw Napi::Error::New(env, clingo_error_message());
@@ -205,7 +205,7 @@ Napi::Value SetBaseProgram(const Napi::CallbackInfo& info) {
         
     } catch (const Napi::Error& e) {
         // Let Napi errors propagate as they are
-        throw;
+        throw e;
     } catch (const std::exception& e) {
         throw Napi::Error::New(env, e.what());
     } catch (...) {
@@ -236,7 +236,7 @@ Napi::Value ClearBaseProgram(const Napi::CallbackInfo& info) {
         return Napi::Boolean::New(env, true);
         
     } catch (const Napi::Error& e) {
-        throw;
+        throw e;
     } catch (const std::exception& e) {
         throw Napi::Error::New(env, e.what());
     } catch (...) {
@@ -259,7 +259,7 @@ Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo& info) {
         return Napi::Boolean::New(env, true);
         
     } catch (const Napi::Error& e) {
-        throw;
+        throw e;
     } catch (const std::exception& e) {
         throw Napi::Error::New(env, e.what());
     } catch (...) {
@@ -327,14 +327,14 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         // Create control object with silent logger
         clingo_control_t *ctl = nullptr;
         if (!clingo_control_new(nullptr, 0, silent_logger, nullptr, 20, &ctl)) {
-            HandleClingoError(env);
+            handle_clingo_error(env);
         }
         
         std::unique_ptr<clingo_control_t, void(*)(clingo_control_t*)> ctl_guard(ctl, clingo_control_free);
         
         // Add the program
         if (!clingo_control_add(ctl, "base", nullptr, 0, program.c_str())) {
-            HandleClingoError(env);
+            handle_clingo_error(env);
         }
 
         
@@ -342,7 +342,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         clingo_part_t parts[] = {{ "base", nullptr, 0 }};
 
         if (!clingo_control_ground(ctl, parts, 1, ground_callback, nullptr)) {
-            HandleClingoError(env);
+            handle_clingo_error(env);
         }
         
         // Solve the program
@@ -351,7 +351,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         
         // Use clingo_solve_mode_yield to get all answer sets
         if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle)){
-            HandleClingoError(env);
+            handle_clingo_error(env);
         }
     
         std::unique_ptr<clingo_solve_handle_t, void(*)(clingo_solve_handle_t*)> handle_guard(
@@ -366,7 +366,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         // Wait for solving to finish
         clingo_solve_result_bitset_t result;
         if (!clingo_solve_handle_get(handle, &result)) {
-            HandleClingoError(env);
+            handle_clingo_error(env);
         }
         
         auto end = std::chrono::high_resolution_clock::now();
@@ -386,14 +386,11 @@ Napi::Value Solve(const Napi::CallbackInfo& info) {
         
     } catch (const Napi::Error& e) {
         // Let Napi errors propagate as they are
-        e.ThrowAsJavaScriptException();
-        return Napi::Value();
+        throw e;
     } catch (const std::exception& e) {
-        Napi::Error::New(env, e.what()).ThrowAsJavaScriptException();
-        return Napi::Value();
+        throw Napi::Error::New(env, e.what());
     } catch (...) {
-        Napi::Error::New(env, "Unknown error occurred").ThrowAsJavaScriptException();
-        return Napi::Value();
+        throw Napi::Error::New(env, "Unknown error occurred");
     }
 }
 
