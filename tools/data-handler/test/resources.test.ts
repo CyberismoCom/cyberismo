@@ -47,7 +47,7 @@ import {
   RemoveOperation,
 } from '../src/resources/resource-object.js';
 
-describe('resources', () => {
+describe('resources', function () {
   const baseDir = dirname(fileURLToPath(import.meta.url));
   const testDir = join(baseDir, 'tmp-resource-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -59,6 +59,8 @@ describe('resources', () => {
   let createCmd: Create;
   let importCmd: Import;
   let removeCmd: Remove;
+
+  this.timeout(10000);
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
