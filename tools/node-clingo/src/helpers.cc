@@ -85,6 +85,7 @@ std::string html_escape(const std::string& input) {
 std::vector<std::string> text_wrap(const std::string& text, size_t line_width) {
     std::vector<std::string> result;
     std::string line;
+    line.reserve(line_width);
     
     // Split input text into words
     std::istringstream iss(text);
@@ -103,7 +104,8 @@ std::vector<std::string> text_wrap(const std::string& text, size_t line_width) {
     for (size_t i = 1; i < words.size(); ++i) {
         if (line.length() + 1 + words[i].length() <= line_width) {
             // Word fits on current line with a space
-            line += " " + words[i];
+            line.push_back(' ');
+            line.append(words[i]);
         } else {
             // Word doesn't fit, add current line to result and start a new line
             result.push_back(line);
