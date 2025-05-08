@@ -4,13 +4,15 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   check-version-change:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     outputs:
       version_changed: ${{ steps.check.outputs.version_changed }}
       version: ${{ steps.check.outputs.version }}
@@ -56,7 +58,9 @@ jobs:
     permissions:
       contents: read
     needs: check-version-change
-    if: ${{ needs.check-version-change.outputs.version_changed == 'true' }}
+    if: |
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-version-change.outputs.version_changed == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -162,7 +166,9 @@ jobs:
 
   collect-prebuilds:
     needs: [check-version-change, build-prebuilds]
-    if: ${{ needs.check-version-change.outputs.version_changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' }}
+    if: |
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-version-change.outputs.version_changed == 'true')
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -195,7 +201,7 @@ jobs:
           path: tools/node-clingo/prebuilds/
 
       - name: Package prebuilds for each platform
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-version-change.outputs.version_changed == 'true'
         run: |
           mkdir -p release-assets
           # Navigate to prebuilds directory correctly
@@ -224,6 +230,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-version-change.outputs.version_changed == 'true'
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -232,4 +239,4 @@ jobs:
           name: Node Clingo v${{ steps.package_version.outputs.version }}
           files: release-assets/*
           draft: false
-          prerelease: ${{ github.ref != 'refs/heads/main' }}
+          prerelease: false
