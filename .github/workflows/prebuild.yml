@@ -136,12 +136,7 @@ jobs:
       - name: Build native prebuilds
         if: matrix.cross == false
         working-directory: tools/node-clingo
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            npm run build-prebuildify-gcc14
-          else
-            npm run build-prebuildify
-          fi
+        run: pnpm build-prebuildify
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
 
