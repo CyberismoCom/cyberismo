@@ -23,7 +23,7 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
-        languages: "typescript, javascript" # do not scan for C++
+        languages: "actions, typescript, javascript" # do not scan for C++
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
