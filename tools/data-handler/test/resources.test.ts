@@ -2106,6 +2106,7 @@ describe('resources', function () {
       await res.delete();
       const after = await project.workflows();
       found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
     });
     it('delete field type', async () => {
       const name = 'decision/fieldTypes/newFT';
@@ -2116,6 +2117,7 @@ describe('resources', function () {
       await res.delete();
       const after = await project.fieldTypes();
       found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
     });
     it('delete graph model', async () => {
       const name = 'decision/graphModels/newGM';
@@ -2126,6 +2128,7 @@ describe('resources', function () {
       await res.delete();
       const after = await project.graphModels();
       found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
     });
     it('delete graph view', async () => {
       const name = 'decision/graphViews/newGV';
@@ -2136,6 +2139,7 @@ describe('resources', function () {
       await res.delete();
       const after = await project.graphViews();
       found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
     });
     it('delete link type', async () => {
       const name = 'decision/linkTypes/newLT';
@@ -2146,6 +2150,7 @@ describe('resources', function () {
       await res.delete();
       const after = await project.linkTypes();
       found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
     });
     it('delete report', async () => {
       const name = 'decision/reports/newREP';

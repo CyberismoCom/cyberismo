@@ -157,12 +157,12 @@ describe('create command', () => {
   it('attachment exists already', async () => {
     const attachmentPath = join(testDir, 'attachments/the-needle.heic');
     const cardId = 'decision_6';
-    let result = await commandHandler.command(
+    await commandHandler.command(
       Cmd.create,
       ['attachment', cardId, attachmentPath],
       options,
     );
-    result = await commandHandler.command(
+    const result = await commandHandler.command(
       Cmd.create,
       ['attachment', cardId, attachmentPath],
       options,
@@ -334,12 +334,12 @@ describe('create command', () => {
   it('cardType create existing card type', async () => {
     const cardType = 'test';
     const workflow = 'mini/workflows/default';
-    let result = await commandHandler.command(
+    await commandHandler.command(
       Cmd.create,
       ['cardType', cardType, workflow],
       optionsMini,
     );
-    result = await commandHandler.command(
+    const result = await commandHandler.command(
       Cmd.create,
       ['cardType', cardType, workflow],
       optionsMini,

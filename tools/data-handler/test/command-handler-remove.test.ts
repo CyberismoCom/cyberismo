@@ -214,13 +214,13 @@ describe('remove command', () => {
       // First create a cardType, then remove it
       const name = 'testForCreation';
       const workflow = 'decision/workflows/decision';
-      let result = await commandHandler.command(
+      await commandHandler.command(
         Cmd.create,
         ['cardType', name, workflow],
         options,
       );
       const cardTypeName = `decision/cardTypes/${name}`;
-      result = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['cardType', cardTypeName],
         options,
@@ -232,12 +232,12 @@ describe('remove command', () => {
       const name = 'testForCreationWithOutName';
       const cardTypeName = `decision/cardTypes/${name}`;
       const workflow = 'decision/workflows/decision';
-      let result = await commandHandler.command(
+      await commandHandler.command(
         Cmd.create,
         [cardTypeName, workflow],
         options,
       );
-      result = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         [cardTypeName],
         options,
@@ -248,13 +248,13 @@ describe('remove command', () => {
       // First create a fieldType, then remove it
       const name = 'testForCreation';
       const dataType = 'integer';
-      let result = await commandHandler.command(
+      await commandHandler.command(
         Cmd.create,
         ['fieldType', name, dataType],
         options,
       );
       const fieldTypeName = `decision/fieldTypes/${name}`;
-      result = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['fieldType', fieldTypeName],
         options,
@@ -264,13 +264,9 @@ describe('remove command', () => {
     it('remove report (success)', async () => {
       // First create a report, then remove it
       const name = 'testForCreation';
-      let result = await commandHandler.command(
-        Cmd.create,
-        ['report', name],
-        options,
-      );
+      await commandHandler.command(Cmd.create, ['report', name], options);
       const report = `decision/reports/${name}`;
-      result = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['report', report],
         options,
@@ -289,13 +285,9 @@ describe('remove command', () => {
     it('remove workflow (success)', async () => {
       // First create a workflow, then remove it
       const name = 'testForCreation';
-      let result = await commandHandler.command(
-        Cmd.create,
-        ['workflow', name],
-        options,
-      );
+      await commandHandler.command(Cmd.create, ['workflow', name], options);
       const workflowName = `decision/workflows/${name}`;
-      result = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['workflow', workflowName],
         options,
