@@ -70,21 +70,14 @@ jobs:
           # Native builds
           - os: ubuntu-latest
             arch: x64
-            cross: false
           - os: macos-13
             arch: x64
-            cross: false
           - os: macos-latest # Apple Silicon runner
             arch: arm64
-            cross: false
           - os: windows-latest
             arch: x64
-            cross: false
-          
-         # Cross-compilation builds
-          # - os: ubuntu-latest
-          #   arch: arm64
-          #   cross: true
+          - os: ubuntu-24.04-arm
+            arch: arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -138,14 +131,55 @@ jobs:
         working-directory: tools/node-clingo
         run: pnpm install
 
-      - name: Prebuild linux
+      - name: Prebuild Linux (glibc)
         if: runner.os == 'Linux'
         working-directory: tools/node-clingo
-        run: pnpm build-prebuildify
+        run: |
+          pnpm build-prebuildify
+          # Rename the glibc build
+          if [ -f prebuilds/linux-x64/@cyberismocom+node-clingo.node ]; then
+            mv prebuilds/linux-x64/@cyberismocom+node-clingo.node prebuilds/linux-x64/@cyberismocom+node-clingo.glibc.node
+            echo "Renamed glibc prebuild to @cyberismocom+node-clingo.glibc.node"
+          else
+            echo "ERROR: Glibc prebuild file not found at prebuilds/linux-x64/@cyberismocom+node-clingo.node"
+            exit 1
+          fi
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
           CC: gcc-14
           CXX: g++-14
+
+      - name: Build and extract prebuilds for Linux (musl via Docker)
+        if: runner.os == 'Linux'
+        run: |
+          echo "Building Linux x64 (musl) prebuilds using Docker..."
+          docker build -t node-clingo-builder-musl -f tools/node-clingo/alpine.Dockerfile .
+          
+          echo "Creating musl output directory on runner: ./docker-prebuilds-musl-output"
+          mkdir -p ./docker-prebuilds-musl-output
+          
+          echo "Running Docker container to generate musl prebuilds..."
+          docker run --rm -v "$(pwd)/docker-prebuilds-musl-output:/output" node-clingo-builder-musl
+          
+          echo "Copying and renaming musl prebuilds from ./docker-prebuilds-musl-output to tools/node-clingo/prebuilds/linux-x64/"
+          MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-x64/@cyberismocom+node-clingo.node"
+          TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-x64/@cyberismocom+node-clingo.musl.node"
+
+          if [ -f "$MUSL_PREBUILD_PATH" ]; then
+            # Ensure the target directory exists (it should have been created by the glibc build step)
+            mkdir -p tools/node-clingo/prebuilds/linux-x64/
+            cp "$MUSL_PREBUILD_PATH" "$TARGET_MUSL_PREBUILD_PATH"
+            echo "Copied and renamed musl prebuild to $TARGET_MUSL_PREBUILD_PATH"
+          else
+            echo "ERROR: Musl prebuild file not found at $MUSL_PREBUILD_PATH"
+            # List contents for debugging
+            echo "--- Listing contents of ./docker-prebuilds-musl-output/ ---"
+            ls -LR ./docker-prebuilds-musl-output/
+            exit 1
+          fi
+          
+          echo "--- Listing final contents of tools/node-clingo/prebuilds/linux-x64/ ---"
+          ls -L tools/node-clingo/prebuilds/linux-x64/
 
       - name: Prebuild macos/windows
         if: runner.os == 'macOS' || runner.os == 'Windows'
@@ -153,12 +187,6 @@ jobs:
         run: pnpm build-prebuildify
         env:
           PREBUILD_ARCH: ${{ matrix.arch }}
-
-
-      - name: Build ARM64 prebuilds (cross-compilation)
-        if: matrix.cross == true && matrix.arch == 'arm64'
-        working-directory: tools/node-clingo
-        run: npm run build-arm64
 
       - name: Upload prebuilds as artifacts
         uses: actions/upload-artifact@v4
