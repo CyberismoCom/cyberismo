@@ -137,11 +137,11 @@ jobs:
         run: |
           pnpm build-prebuildify
           # Rename the glibc build
-          if [ -f prebuilds/linux-x64/@cyberismocom+node-clingo.node ]; then
-            mv prebuilds/linux-x64/@cyberismocom+node-clingo.node prebuilds/linux-x64/@cyberismocom+node-clingo.glibc.node
-            echo "Renamed glibc prebuild to @cyberismocom+node-clingo.glibc.node"
+          if [ -f prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node ]; then
+            mv prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.glibc.node
+            echo "Renamed glibc prebuild to @cyberismocom+node-clingo.glibc.node for linux-${{ matrix.arch }}"
           else
-            echo "ERROR: Glibc prebuild file not found at prebuilds/linux-x64/@cyberismocom+node-clingo.node"
+            echo "ERROR: Glibc prebuild file not found at prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node"
             exit 1
           fi
         env:
@@ -161,13 +161,13 @@ jobs:
           echo "Running Docker container to generate musl prebuilds..."
           docker run --rm -v "$(pwd)/docker-prebuilds-musl-output:/output" node-clingo-builder-musl
           
-          echo "Copying and renaming musl prebuilds from ./docker-prebuilds-musl-output to tools/node-clingo/prebuilds/linux-x64/"
-          MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-x64/@cyberismocom+node-clingo.node"
-          TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-x64/@cyberismocom+node-clingo.musl.node"
+          echo "Copying and renaming musl prebuilds from ./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/ to tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/"
+          MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node"
+          TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.musl.node"
 
           if [ -f "$MUSL_PREBUILD_PATH" ]; then
-            # Ensure the target directory exists (it should have been created by the glibc build step)
-            mkdir -p tools/node-clingo/prebuilds/linux-x64/
+            # Ensure the target directory exists (it should have been created by the glibc build step or needs to be created for musl)
+            mkdir -p tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/
             cp "$MUSL_PREBUILD_PATH" "$TARGET_MUSL_PREBUILD_PATH"
             echo "Copied and renamed musl prebuild to $TARGET_MUSL_PREBUILD_PATH"
           else
@@ -178,8 +178,8 @@ jobs:
             exit 1
           fi
           
-          echo "--- Listing final contents of tools/node-clingo/prebuilds/linux-x64/ ---"
-          ls -L tools/node-clingo/prebuilds/linux-x64/
+          echo "--- Listing final contents of tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/ ---"
+          ls -L tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/
 
       - name: Prebuild macos/windows
         if: runner.os == 'macOS' || runner.os == 'Windows'
