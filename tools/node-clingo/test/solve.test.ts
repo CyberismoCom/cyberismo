@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { solve, setBaseProgram, clearBaseProgram } from '../lib/index.js';
 
 describe('Clingo solver', () => {

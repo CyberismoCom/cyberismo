@@ -259,7 +259,9 @@ export class Show {
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
     const promiseContainer = [];
     for (const cardType of await this.project.cardTypes()) {
-      const cardTypeDetails = this.project.resource<CardType>(cardType.name);
+      const cardTypeDetails = await this.project.resource<CardType>(
+        cardType.name,
+      );
       if (cardTypeDetails) {
         promiseContainer.push(cardTypeDetails);
       }

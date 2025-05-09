@@ -19,7 +19,6 @@ import {
   ProjectFetchCardDetails,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismocom/data-handler';
-import { HTTPException } from 'hono/http-exception';
 
 const router = new Hono();
 

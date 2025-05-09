@@ -534,8 +534,9 @@ function Page() {
     });
   };
 
-  const expandedLinkTypes =
-    linkTypes && card.cardType ? expandLinkTypes(linkTypes, card.cardType) : [];
+  const expandedLinkTypes = card.cardType
+    ? expandLinkTypes(linkTypes, card.cardType)
+    : [];
 
   return (
     <>

@@ -156,7 +156,7 @@ describe('import module', () => {
       expect(result.statusCode).to.equal(200);
 
       // Remove the module so that it won't affect other tests
-      result = await commandHandler.command(
+      await commandHandler.command(
         Cmd.remove,
         ['module', 'decision'],
         optionsMini,
