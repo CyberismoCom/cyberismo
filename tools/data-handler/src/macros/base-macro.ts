@@ -95,7 +95,15 @@ abstract class BaseMacro {
     let input = '{' + rawInput + '}';
 
     if (context.mode === 'validate') {
-      this.handleValidate(JSON.parse(input));
+      try {
+        this.handleValidate(JSON.parse(input));
+      } catch (error) {
+        if (error instanceof Error) {
+          const errorMessage = `From card '${context.cardKey}' a macro validation error:\n\n${error.message}.\n\nCard content:\n ${input}`;
+          throw new Error(errorMessage);
+        }
+        throw error;
+      }
       return;
     }
 
