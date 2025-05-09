@@ -3,7 +3,6 @@ const { execFileSync } = require('child_process');
 const https = require('https');
 const path = require('path');
 const crypto = require('crypto');
-const os = require('os');
 
 /**
  * Dependencies for the project.
@@ -91,7 +90,6 @@ async function installCondaMacOS() {
   const filename = dependencies[platform].conda.name;
   const url = dependencies[platform].conda.repo + filename;
 
-  let condaCommand = 'conda';
   // Check if the file already exists in the current directory
   if (fs.existsSync(filename)) {
     console.log('Miniconda installer already exists');
@@ -130,7 +128,7 @@ async function installCondaMacOS() {
   fs.unlinkSync(filename);
 
   // Set the condaCommand to the path of the installed conda executable
-  condaCommand = path.join(vendorDir, 'miniconda3', 'bin', 'conda');
+  let condaCommand = path.join(vendorDir, 'miniconda3', 'bin', 'conda');
 
   return condaCommand;
 }

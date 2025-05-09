@@ -240,7 +240,7 @@ export class ExportSite extends Export {
       if (card.content) {
         tempContent += '\n' + card.content;
       }
-      if (tempContent !== undefined) {
+      if (tempContent !== '') {
         await writeFile(cardPath, tempContent);
       }
 
