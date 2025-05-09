@@ -11,6 +11,7 @@
 */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingGateProps {
   values?: any[];
@@ -25,8 +26,10 @@ const LoadingGate: React.FC<LoadingGateProps> = ({
   loadingIndicator,
   children,
 }) => {
+  const { t } = useTranslation();
+
   if (isLoading || values?.some((value) => value === null)) {
-    return loadingIndicator ? loadingIndicator : <div>Loading...</div>;
+    return loadingIndicator ? loadingIndicator : <div>{t('loading')}</div>;
   }
 
   return <>{children}</>;
