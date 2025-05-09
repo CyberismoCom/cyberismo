@@ -102,6 +102,7 @@ abstract class BaseMacro {
           const errorMessage = `From card '${context.cardKey}' a macro validation error:\n\n${error.message}.\n\nCard content:\n ${input}`;
           throw new Error(errorMessage);
         }
+        throw error;
       }
       return;
     }
