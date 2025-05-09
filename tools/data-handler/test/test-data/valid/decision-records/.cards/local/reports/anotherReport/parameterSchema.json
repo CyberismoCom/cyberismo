@@ -7,10 +7,7 @@
       "name": {
         "description": "The name of the report",
         "type": "string"
-      },
-      "key3": {
-        "type": "string"
       }
     },
-    "required": ["name", "key3"]
+    "required": ["name"]
   }

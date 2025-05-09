@@ -567,6 +567,28 @@ program
     handleResponse(result);
   });
 
+// Report command
+program
+  .command('report')
+  .description('Runs a report')
+  .argument(
+    '<parameters>',
+    'Path to parameters file. This file defines which report to run and what parameters to use.',
+  )
+  .argument(
+    '[output]',
+    'Optional output file; if omitted output will be directed to stdout',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (parameters: string, output: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.report,
+      [parameters, output],
+      options,
+    );
+    handleResponse(result);
+  });
+
 // Show command
 program
   .command('show')
