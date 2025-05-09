@@ -27,6 +27,7 @@ jobs:
       with:
         languages: "actions, typescript, javascript" # do not scan for C++
         queries: +security-and-quality # use the default queries
+        config-file: .github/codeql/codeql-config.yml # use the custom config file
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
