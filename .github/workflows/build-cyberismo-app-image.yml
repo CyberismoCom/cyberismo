@@ -1,12 +1,16 @@
 name: Build and Publish Multi-Arch Image
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build Native Prebuilds"]
+    types:
+      - completed
     branches: [ "main" ]
 
 jobs:
   build-and-publish:
     runs-on: cyberismo_ubuntu_x64
+    if: github.event.workflow_run.conclusion == 'success'
     
     permissions:
       contents: read

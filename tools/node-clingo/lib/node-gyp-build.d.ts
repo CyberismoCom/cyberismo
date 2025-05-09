@@ -1,6 +1,6 @@
 /**
     Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+    Copyright © Cyberismo Ltd and contributors 2025
 
     This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
@@ -10,23 +10,17 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import en from '../locales/en/translation.json';
-i18n.use(initReactI18next).init({
-  lng: 'en',
-  fallbackLng: 'en',
-  interpolation: {
-    escapeValue: false,
-  },
-  // load resources from ../locales
-  resources: {
-    en: {
-      translation: en,
-    },
-  },
-  debug: false,
-  parseMissingKeyHandler: (key) => {
-    return `__${key}__`; // show missing keys so it's easier to spot
-  },
-});
+/**
+ * Type definitions for node-gyp-build
+ */
+
+declare module 'node-gyp-build' {
+  /**
+   * Loads native addons that have been compiled using node-gyp-build.
+   * @param directory The directory containing the compiled addon
+   * @returns The native addon module
+   */
+  function build(directory: string): any;
+
+  export default build;
+}

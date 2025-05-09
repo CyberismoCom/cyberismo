@@ -12,9 +12,10 @@
 */
 
 // node
-import path, { basename, join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 import {
@@ -25,14 +26,7 @@ import {
 } from '../types/queries.js';
 import { Card } from '../interfaces/project-interfaces.js';
 import ClingoParser from '../utils/clingo-parser.js';
-import {
-  copyDir,
-  deleteDir,
-  deleteFile,
-  getFilesSync,
-  pathExists,
-  writeFileSafe,
-} from '../utils/file-utils.js';
+import { pathExists } from '../utils/file-utils.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
 import { Project, ResourcesFrom } from '../containers/project.js';
@@ -50,7 +44,6 @@ import {
   createWorkflowFacts,
 } from '../utils/clingo-facts.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
-import { ClingoProgramBuilder } from '../utils/clingo-program-builder.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   CardType,
@@ -60,26 +53,56 @@ import {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
+import { solve, setBaseProgram } from '@cyberismocom/node-clingo';
+
+/**
+ * This will done in a different way when build for npmjs is done
+ */
+
+const commonFolderLocation = join(
+  fileURLToPath(import.meta.url),
+  '../../../../../resources/calculations/common',
+);
+
+const baseProgramPath = join(commonFolderLocation, 'base.lp');
+const queryLanguagePath = join(commonFolderLocation, 'queryLanguage.lp');
+
+// Read base and query language files
+const baseContent = readFileSync(baseProgramPath, 'utf-8');
+const queryLanguageContent = readFileSync(queryLanguagePath, 'utf-8');
+
+// Define names for the base programs
+const BASE_PROGRAM_KEY = 'base';
+const QUERY_LANGUAGE_KEY = 'queryLanguage';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
   private static mutex = new Mutex();
 
-  private logicBinaryName: string = 'clingo';
   private pythonBinary: string = 'python';
-  private static calculationsFileName: string = 'calculations.lp';
-  private static importResourcesFileName: string = 'resourceImports.lp';
-  private static importCardsFileName: string = 'cardTree.lp';
-  private static modulesFileName: string = 'modules.lp';
-  private static mainLogicFileName: string = 'main.lp';
-  private static queryLanguageFileName: string = 'queryLanguage.lp';
   private queryCache = new Map<string, string>();
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
     '../../../../../resources/calculations/common',
   );
-
   constructor(private project: Project) {}
+
+  // Storage for in-memory program content
+  private logicProgram: string = '';
+  private modules: string = '';
+
+  private modulesInitialized = false;
+
+  // Initialize modules during construction
+  private async initializeModules() {
+    try {
+      // Collect all available calculations at initialization time
+      const modules = await this.generateModules();
+      this.modules = modules; // Store initial modules in logicProgram
+    } catch (error) {
+      logger.error(`Failed to initialize modules: ${error}`);
+    }
+  }
 
   //
   private static queryFolderLocation: string = join(
@@ -95,144 +118,77 @@ export class Calculate {
     });
   }
 
-  //
-  private async generateCardTree() {
-    return this.generateImports(
-      this.project.paths.calculationCardsFolder,
-      join(this.project.paths.calculationFolder, Calculate.importCardsFileName),
-    );
-  }
-
-  // Write the cardTree.lp that contain data from the selected card-tree.
+  // Generate card tree content
   private async generateCardTreeContent(parentCard: Card | undefined) {
-    const destinationFileBase = this.project.paths.calculationCardsFolder;
-    const promiseContainer = [];
-    await mkdir(destinationFileBase, { recursive: true });
-
     const cards = await this.getCards(parentCard);
-    for (const card of cards) {
-      const content = await createCardFacts(card, this.project);
 
-      // write card-specific logic program file
-      const filename = join(destinationFileBase, card.key);
-      const cardLogicFile = `${filename}.lp`;
-      promiseContainer.push(writeFileSafe(cardLogicFile, content));
+    let content = '% SECTION: CARDS_START\n';
+
+    for (const card of cards) {
+      const cardContent = await createCardFacts(card, this.project);
+      content += `% SECTION: CARD_${card.key}_START\n`;
+      content += `% Card ${card.key}\n`;
+      content += `${cardContent}\n`;
+      content += `% SECTION: CARD_${card.key}_END\n\n`;
     }
-    await Promise.all(promiseContainer);
+
+    content += '% SECTION: CARDS_END';
+
+    return content;
   }
 
   //
   private async generateCardTypes() {
     const cardTypes = await this.project.cardTypes();
-    const promises = [];
+    let content = '';
 
     for (const cardType of await Promise.all(
       cardTypes.map((c) => this.project.resource<CardType>(c.name)),
     )) {
       if (!cardType) continue;
 
-      const content = createCardTypeFacts(cardType);
-
-      const cardTypeFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${cardType.name}.lp`,
-      );
-      promises.push(
-        writeFileSafe(cardTypeFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      const cardTypeContent = createCardTypeFacts(cardType);
+      content += `% CardType ${cardType.name}\n${cardTypeContent}\n\n`;
     }
-    await Promise.all(promises);
-  }
 
-  // Write all common files which are not card specific.
-  private async generateCommonFiles() {
-    await copyDir(
-      Calculate.commonFolderLocation,
-      this.project.paths.calculationFolder,
-    );
+    return content;
   }
 
   //
   private async generateFieldTypes() {
     const fieldTypes = await this.project.fieldTypes();
-    const promises = [];
+    let content = '';
 
     for (const fieldType of await Promise.all(
       fieldTypes.map((m) => this.project.resource<FieldType>(m.name)),
     )) {
       if (!fieldType) continue;
 
-      const content = createFieldTypeFacts(fieldType);
-
-      const fieldTypeFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${fieldType.name}.lp`,
-      );
-
-      promises.push(
-        writeFileSafe(fieldTypeFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      const fieldTypeContent = createFieldTypeFacts(fieldType);
+      content += `% FieldType ${fieldType.name}\n${fieldTypeContent}\n\n`;
     }
-    await Promise.all(promises);
-  }
-
-  // Once card specific files have been done, write the the imports
-  private async generateImports(folder: string, destinationFile: string) {
-    const files: string[] = getFilesSync(folder);
-
-    const builder = new ClingoProgramBuilder().addComment(folder);
-    for (const file of files) {
-      const parsedFile = path.parse(file);
-      builder.addImport(
-        resolve(join(folder, parsedFile.dir, parsedFile.name + '.lp')).replace(
-          /\\/g,
-          '/',
-        ),
-      );
-    }
-    await writeFileSafe(destinationFile, builder.buildAll());
+    return content;
   }
 
   // Collects all linkTypes from the project
   private async generateLinkTypes() {
     const linkTypes = await this.project.linkTypes();
-    const promises = [];
+    let content = '';
 
     for (const linkType of await Promise.all(
       linkTypes.map((c) => this.project.resource<LinkType>(c.name)),
     )) {
       if (!linkType) continue;
 
-      const linkTypeFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${linkType.name}.lp`,
-      );
-
-      const content = createLinkTypeFacts(linkType);
-
-      promises.push(
-        writeFileSafe(linkTypeFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      const linkTypeContent = createLinkTypeFacts(linkType);
+      content += `% LinkType ${linkType.name}\n${linkTypeContent}\n\n`;
     }
-    await Promise.all(promises);
+
+    return content;
   }
 
   // Generates logic programs related to modules (and project itself).
   private async generateModules() {
-    const destinationFile = join(
-      this.project.paths.calculationFolder,
-      Calculate.modulesFileName,
-    );
-
     const modules = await this.project.modules();
     let content = '';
     for (const module of await Promise.all(
@@ -244,134 +200,96 @@ export class Calculate {
     }
     const projectContent = createProjectFacts(this.project.projectPrefix);
     content = content.concat(projectContent);
-
-    writeFileSafe(destinationFile, content, {
-      encoding: 'utf-8',
-      flag: 'w',
-    });
+    return content;
   }
 
   // Collects all logic calculation files from project (local and imported modules)
   private async generateCalculations() {
-    const destinationFile = join(
-      this.project.paths.calculationFolder,
-      Calculate.calculationsFileName,
-    );
     // Collect all available calculations
     const calculations = await this.project.calculations(ResourcesFrom.all);
+    let content = '% SECTION: MODULES_START\n';
 
-    const builder = new ClingoProgramBuilder();
-
-    // write the calculations.lp
+    // Process modules content
     for (const calculationFile of calculations) {
       if (calculationFile.path) {
-        // modules resources are always prefixed with module name (to ensure uniqueness), remove module name
-        let moduleLogicFile = resolve(
+        const moduleLogicFile = resolve(
           join(calculationFile.path, basename(calculationFile.name)),
         );
-        if (!moduleLogicFile.endsWith('.lp')) {
-          moduleLogicFile = moduleLogicFile + '.lp';
+
+        const filePath = moduleLogicFile.endsWith('.lp')
+          ? moduleLogicFile
+          : moduleLogicFile + '.lp';
+
+        if (pathExists(filePath)) {
+          try {
+            const moduleContent = await readFile(filePath, 'utf-8');
+            content += `% SECTION: MODULE_${calculationFile.name}_START\n`;
+            content += `% Module ${calculationFile.name}\n`;
+            content += `${moduleContent}\n`;
+            content += `% SECTION: MODULE_${calculationFile.name}_END\n\n`;
+          } catch (error) {
+            logger.warn(
+              `Failed to read module ${calculationFile.name}: ${error}`,
+            );
+          }
         }
-        builder.addImport(moduleLogicFile.replace(/\\/g, '/'));
       }
     }
-    await writeFileSafe(destinationFile, builder.buildAll());
+    content += '% SECTION: MODULES_END';
+    return content;
   }
 
   // Generates logic programs related to reports.
   private async generateReports() {
     const reports = await this.project.reports();
-    const promises = [];
+    let content = '';
 
     for (const report of await Promise.all(
       reports.map((r) => this.project.resource<ReportMetadata>(r.name)),
     )) {
       if (!report) continue;
-
-      const content = createReportFacts(report);
-      const reportFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${report.name}.lp`,
-      );
-
-      promises.push(
-        writeFileSafe(reportFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      content += createReportFacts(report);
     }
-    await Promise.all(promises);
-  }
-
-  //
-  private async generateResourceImports() {
-    return this.generateImports(
-      this.project.paths.calculationResourcesFolder,
-      join(
-        this.project.paths.calculationFolder,
-        Calculate.importResourcesFileName,
-      ),
-    );
+    return content;
   }
 
   // Generates logic programs related to templates (including their cards).
   private async generateTemplates() {
     const templates = await this.project.templates();
-    const promises = [];
+    let content = '';
 
     for (const template of await Promise.all(
       templates.map((r) => this.project.resource<TemplateMetadata>(r.name)),
     )) {
       if (!template) continue;
 
-      let content = createTemplateFacts(template);
+      let templateContent = createTemplateFacts(template);
       const cards = await this.getCards(undefined, template.name);
       for (const card of cards) {
         const cardContent = await createCardFacts(card, this.project);
-        content = content.concat(cardContent);
+        templateContent = templateContent.concat(cardContent);
       }
-
-      const templateFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${template.name}.lp`,
-      );
-
-      promises.push(
-        writeFileSafe(templateFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      content = content.concat(templateContent);
     }
-    await Promise.all(promises);
+    return content;
   }
 
   //
   private async generateWorkFlows() {
     const workflows = await this.project.workflows();
-    const promises = [];
+    let content = '';
+
     // loop through workflows
     for (const workflow of await Promise.all(
       workflows.map((m) => this.project.resource<Workflow>(m.name)),
     )) {
       if (!workflow) continue;
 
-      const content = createWorkflowFacts(workflow);
-
-      const workFlowFile = join(
-        this.project.paths.calculationResourcesFolder,
-        `${workflow.name}.lp`,
-      );
-
-      promises.push(
-        writeFileSafe(workFlowFile, content, {
-          encoding: 'utf-8',
-          flag: 'w',
-        }),
-      );
+      const workflowContent = createWorkflowFacts(workflow);
+      content += `% Workflow ${workflow.name}\n${workflowContent}\n\n`;
     }
-    await Promise.all(promises);
+
+    return content;
   }
 
   // Gets either all the cards (no parent), or a subtree.
@@ -410,17 +328,10 @@ export class Calculate {
 
   // Checks that Clingo successfully returned result.
   private async parseClingoResult(
-    data: string,
+    data: string[],
   ): Promise<ParseResult<BaseResult>> {
-    const actual_result = data.substring(0, data.indexOf('SATISFIABLE'));
-    if (actual_result.length === 0 || !actual_result) {
-      return {
-        results: [],
-        error: null,
-      };
-    }
     const parser = new ClingoParser();
-    return parser.parseInput(actual_result);
+    return parser.parseInput(data.join('\n'));
   }
 
   // Return path to query file if it exists, else return null.
@@ -433,103 +344,39 @@ export class Calculate {
   private async run(
     data: {
       query?: string;
-      file?: string;
     },
     argMode: 'graph' | 'query' = 'query',
-    timeout: number = 5000,
-  ): Promise<string> {
-    const main = join(
-      this.project.paths.calculationFolder,
-      Calculate.mainLogicFileName,
-    );
-    const queryLanguage = join(
-      this.project.paths.calculationFolder,
-      Calculate.queryLanguageFileName,
-    );
-
-    if (!data.file && !data.query) {
-      throw new Error(
-        'Must provide either query or file to run a clingo program',
-      );
+  ): Promise<string[]> {
+    if (!data.query) {
+      throw new Error('Must provide query to run a clingo program');
     }
 
-    const args = ['-', '--outf=0', '-V0', '--warn=none'];
+    const res = await Calculate.mutex.runExclusive(async () => {
+      // For queries, use both base and queryLanguage
+      const basePrograms =
+        argMode === 'query'
+          ? [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY]
+          : BASE_PROGRAM_KEY;
 
-    if (argMode === 'graph') {
-      args.push('--out-atomf=%s.');
-    } else {
-      args.push('--out-ifs=\\n');
-      args.push(queryLanguage);
-    }
-    args.push(main);
-
-    if (data.file) {
-      args.push(data.file);
-    }
-    const clingo = await Calculate.mutex.runExclusive(async () => {
-      return spawnSync(this.logicBinaryName, args, {
-        encoding: 'utf8',
-        input: data.query,
-        timeout,
-        maxBuffer: 1024 * 1024 * 100,
-      });
+      // Then solve with the program - need to pass the program as parameter
+      return solve(data.query as string, basePrograms);
     });
+
     logger.trace(
       {
-        args,
         query: data.query,
       },
-      `Ran command`,
+      `Ran Clingo solve command`,
     );
 
-    if (clingo.stdout) {
+    if (res && res.answers && res.answers.length > 0) {
       logger.trace({
-        stdout: clingo.stdout,
-        stderr: clingo.stderr,
+        result: res.answers,
       });
-      return clingo.stdout;
+      return res.answers;
     }
 
-    if (clingo.stderr && clingo.status) {
-      const code = clingo.status;
-      // clingo's exit codes are bitfields. todo: move these somewhere
-      const clingo_process_exit = {
-        E_UNKNOWN: 0,
-        E_INTERRUPT: 1,
-        E_SAT: 10,
-        E_EXHAUST: 20,
-        E_MEMORY: 33,
-        E_ERROR: 65,
-        E_NO_RUN: 128,
-      };
-      // "satisfied" && "exhaust" mean that everything was inspected and a solution was found.
-      if (
-        !(
-          code & clingo_process_exit.E_SAT &&
-          code & clingo_process_exit.E_EXHAUST
-        )
-      ) {
-        if (code & clingo_process_exit.E_ERROR) {
-          console.error('Error');
-        }
-        if (code & clingo_process_exit.E_INTERRUPT) {
-          console.error('Interrupted');
-        }
-        if (code & clingo_process_exit.E_MEMORY) {
-          console.error('Out of memory');
-        }
-        if (code & clingo_process_exit.E_NO_RUN) {
-          console.error('Not run');
-        }
-        if (code & clingo_process_exit.E_UNKNOWN) {
-          console.error('Unknown error');
-        }
-      }
-      throw new Error(clingo.stderr);
-    }
-    throw new Error(
-      'Cannot find "Clingo". Please check "Clingo" installation. See installation instructions at https://docs.cyberismo.com/cards/docs_17.html',
-    );
+    throw new Error('Failed to run Clingo solve. No answers returned.');
   }
 
   /**
@@ -538,8 +385,10 @@ export class Calculate {
    */
   public async generate(cardKey?: string) {
     await Calculate.mutex.runExclusive(async () => {
-      // Cleanup old calculations before starting new ones.
-      await deleteDir(this.project.paths.calculationFolder);
+      if (!this.modulesInitialized) {
+        await this.initializeModules();
+        this.modulesInitialized = true;
+      }
 
       let card: Card | undefined;
       if (cardKey) {
@@ -553,25 +402,49 @@ export class Calculate {
           throw new Error(`Card '${cardKey}' not found`);
         }
       }
+      const calculations = await this.generateCalculations();
+      const cardTreeContent = await this.generateCardTreeContent(card);
+      const workFlows = await this.generateWorkFlows();
+      const cardTypes = await this.generateCardTypes();
+      const fieldTypes = await this.generateFieldTypes();
+      const linkTypes = await this.generateLinkTypes();
+      const reports = await this.generateReports();
+      const templates = await this.generateTemplates();
 
-      const promiseContainer = [
-        this.generateCommonFiles(),
-        this.generateCardTreeContent(card).then(
-          this.generateCardTree.bind(this),
-        ),
-        this.generateCalculations(),
-        this.generateWorkFlows(),
-        this.generateCardTypes(),
-        this.generateFieldTypes(),
-        this.generateLinkTypes(),
-        this.generateModules(),
-        this.generateReports(),
-        this.generateTemplates(),
-      ];
+      // Combine all resources
+      const resourcesProgram =
+        '% SECTION: RESOURCES_START\n' +
+        calculations +
+        workFlows +
+        cardTypes +
+        fieldTypes +
+        linkTypes +
+        reports +
+        templates +
+        '% SECTION: RESOURCES_END';
 
-      await Promise.all(promiseContainer).then(
-        this.generateResourceImports.bind(this),
+      // Create base program content
+      const baseProgram =
+        '% SECTION: BASE_START\n' +
+        baseContent +
+        '\n% SECTION: BASE_END\n\n' +
+        this.modules +
+        '\n\n' +
+        cardTreeContent +
+        '\n\n' +
+        resourcesProgram;
+
+      // Set the base programs separately
+      setBaseProgram(baseProgram, BASE_PROGRAM_KEY);
+      setBaseProgram(
+        '% SECTION: QUERY_LANGUAGE_START\n' +
+          queryLanguageContent +
+          '\n% SECTION: QUERY_LANGUAGE_END',
+        QUERY_LANGUAGE_KEY,
       );
+
+      // Also store the base program (without query language) for updates
+      this.logicProgram = baseProgram;
     });
   }
 
@@ -595,34 +468,19 @@ export class Calculate {
 
     await Calculate.mutex.runExclusive(async () => {
       const affectedCards = await this.getCards(deletedCard);
-      const cardTreeFile = join(
-        this.project.paths.calculationFolder,
-        Calculate.importCardsFileName,
-      );
-      const calculationsForTreeExist =
-        pathExists(cardTreeFile) &&
-        pathExists(this.project.paths.calculationFolder);
 
-      let cardTreeContent = calculationsForTreeExist
-        ? await readFile(cardTreeFile, 'utf-8')
-        : '';
-      let filteredLines = cardTreeContent.split('\n');
+      // Filter out deleted cards' content from the cardsProgram string
       for (const card of affectedCards) {
-        // First, delete card specific files.
-        const cardCalculationsFile = join(
-          this.project.paths.calculationCardsFolder,
-          `${card.key}.lp`,
+        // Remove card-specific content from the in-memory program using section markers
+        const cardSectionPattern = new RegExp(
+          `% SECTION: CARD_${card.key}_START[\\s\\S]*?% SECTION: CARD_${card.key}_END\\n\\n`,
+          'g',
         );
-        await deleteFile(cardCalculationsFile);
-        // Then, delete rows from cardTree.lp.
-        filteredLines = filteredLines.filter(
-          (line) => !line.includes(`cards/${card.key}.lp`),
-        );
-        cardTreeContent = filteredLines.join('\n');
+        this.logicProgram = this.logicProgram.replace(cardSectionPattern, '');
       }
-      if (calculationsForTreeExist) {
-        await writeFileSafe(cardTreeFile, cardTreeContent);
-      }
+
+      // Update the base program after modifying logicProgram
+      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
   }
 
@@ -635,23 +493,28 @@ export class Calculate {
       return;
     }
 
-    const cardTreeFile = join(
-      this.project.paths.calculationFolder,
-      Calculate.importCardsFileName,
-    );
-    const calculationsForTreeExist =
-      pathExists(cardTreeFile) &&
-      pathExists(this.project.paths.calculationFolder);
-    if (!calculationsForTreeExist) {
-      // No calculations done, ignore update.
+    // Only proceed if we already have a logic program
+    if (!this.logicProgram) {
       return;
     }
 
     await Calculate.mutex.runExclusive(async () => {
-      // @todo - should only generate card-tree for created cards' common ancestor (or root)
-      //         this might in some cases (sub-tree created) improve performance
-      await this.generateCardTreeContent(undefined);
-      await this.generateCardTree();
+      // Generate content for all cards (including new ones)
+      const cardTreeContent = await this.generateCardTreeContent(undefined);
+
+      // Update the main logic program with the new cards program
+      if (
+        this.logicProgram.includes('% SECTION: CARDS_START') &&
+        this.logicProgram.includes('% SECTION: CARDS_END')
+      ) {
+        this.logicProgram = this.logicProgram.replace(
+          /% SECTION: CARDS_START[\s\S]*?% SECTION: CARDS_END/,
+          cardTreeContent,
+        );
+      }
+
+      // Update the base program after modifying logicProgram
+      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
 
     const cardKeys = cards.map((item) => item.key);
@@ -680,8 +543,6 @@ export class Calculate {
   ) {
     const clingoOutput = await this.run(data, 'graph');
 
-    const firstLine = clingoOutput.split('\n')[0];
-
     // unlikely we ever get a collision
     const randomId = generateRandomString(36, 20);
 
@@ -703,7 +564,10 @@ export class Calculate {
 
     const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
       encoding: 'utf8',
-      input: firstLine,
+      // below looks like it could be replaced by just joining dots, but
+      // it breaks it because elements contain newlines, which must be
+      // replaced by dots
+      input: clingoOutput.join('\n').replaceAll('\n', '.') + '.',
       timeout,
       maxBuffer: 1024 * 1024 * 100,
     });
@@ -732,7 +596,6 @@ export class Calculate {
   /**
    * Runs a logic program using clingo.
    * @param filePath Path to a query file to be run in relation to current working directory
-   * @param timeout Specifies the time clingo is allowed to run
    * @returns parsed program output
    */
   public async runLogicProgram(data: { query?: string; file?: string }) {
@@ -758,9 +621,12 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const clingoOutput = await this.run({
-      query: content,
-    });
+    const clingoOutput = await this.run(
+      {
+        query: content,
+      },
+      'query',
+    );
 
     const result = await this.parseClingoResult(clingoOutput);
 
