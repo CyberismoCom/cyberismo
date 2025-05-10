@@ -31,7 +31,7 @@
     "codemirror-asciidoc": "^2.0.1",
     "cypress": "^14.3.3",
     "html-react-parser": "^5.2.2",
-    "i18next": "^25.0.1",
+    "i18next": "^25.1.2",
     "moment": "^2.30.1",
     "node-html-parser": "^7.0.1",
     "react": "^19.0.0",
