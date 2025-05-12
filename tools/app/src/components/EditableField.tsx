@@ -75,6 +75,7 @@ const EditableField = ({
               key={label}
               variant="soft"
               color="primary"
+              data-cy="labelChip"
               sx={{
                 marginX: 0.2,
                 marginBottom: 0.4,
