@@ -179,6 +179,7 @@ function MetadataView({
           name="__labels__"
           context={context}
           handleChange={handleChange}
+          forceValue={!editMode ? card.labels : undefined}
           expanded={true}
           editableFieldProps={{
             label: t('labels'),
