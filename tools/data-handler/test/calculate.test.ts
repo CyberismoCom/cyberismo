@@ -85,9 +85,7 @@ describe('calculate', () => {
     // load file
     const file = join(baseDir, '../../../resources/calculations/test/model.lp');
     const content = readFileSync(file, 'utf8');
-    const res = await calculate.runGraph({
-      query: content,
-    });
+    const res = await calculate.runGraph(content, 'viewAll(3).');
 
     expect(res).to.not.equal('');
   }).timeout(20000);
