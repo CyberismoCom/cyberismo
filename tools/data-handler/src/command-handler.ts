@@ -14,7 +14,7 @@
 import { dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-
+import { readFileSync } from 'node:fs';
 import {
   Card,
   CardAttachment,
@@ -487,7 +487,7 @@ export class Commands {
   private async runLogicProgram(filePath: string): Promise<requestStatus> {
     try {
       const res = await this.commands?.calculateCmd.runLogicProgram({
-        file: join(process.cwd(), filePath),
+        query: readFileSync(filePath, 'utf-8'),
       });
       return {
         statusCode: 200,
