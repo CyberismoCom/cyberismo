@@ -16,6 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
+import { writeFile } from 'node:fs/promises';
 
 import mime from 'mime-types';
 
@@ -39,6 +40,9 @@ import { Project, type ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { UserPreferences } from '../utils/user-preferences.js';
+
+import ReportMacro from '../macros/report/index.js';
+import TaskQueue from '../macros/task-queue.js';
 
 /**
  * Show command.
@@ -322,6 +326,54 @@ export class Show {
    */
   public async showProject(): Promise<ProjectMetadata> {
     return this.project.show();
+  }
+
+  /**
+   * Shows report results for a given report name and card key.
+   * @param reportName Name of the report to show
+   * @param cardKey Card key to use for the report
+   * @param parameters Additional parameters for the report
+   * @param outputPath Optional output path for the report
+   * @returns Report results as a string
+   * @throws Error if the report does not exist
+   */
+  public async showReportResults(
+    reportName: string,
+    cardKey: string,
+    parameters: object,
+    outputPath?: string,
+  ): Promise<string> {
+    if (
+      !(await this.project.reports()).some(
+        (report) => report.name === reportName,
+      )
+    ) {
+      throw new Error(`Report '${reportName}' does not exist`);
+    }
+
+    const reportMacro = new ReportMacro(new TaskQueue());
+    const result = await reportMacro.handleInject(
+      {
+        projectPath: this.project.basePath,
+        cardKey: cardKey,
+        mode: 'static',
+      },
+      { name: reportName, ...parameters },
+    );
+
+    // Show the results either in the console or write to a file.
+    if (outputPath) {
+      try {
+        await writeFile(outputPath, result ?? '', 'utf-8');
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new Error(
+            `Failed to write report to ${outputPath}: ${error.message}`,
+          );
+        }
+      }
+    }
+    return outputPath ? '' : (result ?? '');
   }
 
   /**

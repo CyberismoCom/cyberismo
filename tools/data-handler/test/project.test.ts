@@ -648,8 +648,8 @@ describe('project', () => {
     const projectDecision = new Project(decisionRecordsPath);
     const miniDecision = new Project(miniRecordsPath);
     let files = await projectDecision.reportHandlerBarFiles();
-    // There are two handlebar files in the test project
-    expect(files.length).to.equal(2);
+    // There are four handlebar files in the test project
+    expect(files.length).to.equal(4);
     files = await miniDecision.reportHandlerBarFiles();
     // There are no handlebar files in the minimal report
     expect(files.length).to.equal(0);
