@@ -200,11 +200,13 @@ export default function FieldEditor({
               size="sm"
               fullWidth
               placeholder={t('placeholder.label')}
+              data-cy="labelInput"
             />
             <IconButton
               size="sm"
               color="primary"
               variant="soft"
+              data-cy="labelAddButton"
               onClick={() => {
                 if (!label) {
                   return;

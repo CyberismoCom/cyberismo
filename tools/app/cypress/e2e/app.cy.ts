@@ -130,6 +130,9 @@ describe('Navigation', () => {
       .contains('Untitled decision')
       .clear()
       .type('Updated title');
+
+    cy.get('[data-cy="labelInput"]').type('testLabel');
+    cy.get('[data-cy="labelAddButton"]').click();
     cy.get('[role="textbox"]').invoke('text', '== Updated content'); // Edit content
     cy.get('[data-cy="updateButton"]').click(); // Clicks update button
     cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
@@ -137,6 +140,7 @@ describe('Navigation', () => {
     cy.get('p').contains('Updated title'); // Title in tree menu
     cy.get('h1').contains('Updated title'); // Title in content area
     cy.get('h2').contains('Updated content'); // Text in asciidoc content
+    cy.get('[data-cy="labelChip"]').contains('testLabel'); // Label in asciidoc content
   });
 
   it('adds an attachment image to card', () => {
