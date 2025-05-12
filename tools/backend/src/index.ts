@@ -61,7 +61,10 @@ export function createApp(projectPath?: string) {
   return app;
 }
 
-export async function startServer(projectPath?: string, findPort: boolean = true) {
+export async function startServer(
+  projectPath?: string,
+  findPort: boolean = true,
+) {
   let port = parseInt(process.env.PORT || '3000', 10);
 
   if (findPort) {
@@ -82,7 +85,10 @@ export async function startServer(projectPath?: string, findPort: boolean = true
   );
 }
 
-async function findFreePort(port: number, maxAttempts: number = 100): Promise<number> {
+async function findFreePort(
+  port: number,
+  maxAttempts: number = 100,
+): Promise<number> {
   for (let i = port; i < port + maxAttempts; i++) {
     try {
       await testPort(i);
