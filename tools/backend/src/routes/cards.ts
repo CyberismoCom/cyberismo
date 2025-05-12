@@ -545,7 +545,7 @@ router.post('/:key/parse', async (c) => {
   const key = c.req.param('key');
   const { content } = await c.req.json();
 
-  if (!content) {
+  if (content == null) {
     return c.json({ error: 'Content is required' }, 400);
   }
 

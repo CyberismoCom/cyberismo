@@ -300,7 +300,7 @@ function Page() {
   const isEditedValue = useAppSelector((state) => state.page.isEdited);
 
   useEffect(() => {
-    if (!contentRef.current) {
+    if (!contentRef.current == null) {
       return;
     }
     setParsed(null);
@@ -331,7 +331,7 @@ function Page() {
   }, [dispatch]);
 
   const previewCard =
-    card && parsed
+    card && parsed != null
       ? {
           ...card,
           title: (__title__ as string) ?? card.title,
