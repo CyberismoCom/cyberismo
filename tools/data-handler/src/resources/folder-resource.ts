@@ -13,7 +13,7 @@
 import { basename, join } from 'node:path';
 import { mkdir, rename, rm } from 'node:fs/promises';
 
-import { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
   type Card,
   DefaultContent,
@@ -25,7 +25,7 @@ import {
   resourceNameToString,
   sortCards,
 } from './file-resource.js';
-import { ResourceContent } from '../interfaces/resource-interfaces.js';
+import type { ResourceContent } from '../interfaces/resource-interfaces.js';
 
 export {
   type Card,

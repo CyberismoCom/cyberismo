@@ -12,7 +12,7 @@ import {
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/base-macro.js';
-import { MacroGenerationContext } from '../../src/interfaces/macros.js';
+import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import TaskQueue from '../../src/macros/task-queue.js';
 
 class TestMacro extends BaseMacro {

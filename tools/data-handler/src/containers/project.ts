@@ -13,28 +13,28 @@
 */
 
 // node
-import { Dirent } from 'node:fs';
+import { type Dirent } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
 import { CardContainer } from './card-container.js'; // base class
 
 import {
-  Card,
-  CardAttachment,
+  type Card,
+  type CardAttachment,
   CardLocation,
-  CardListContainer,
-  CardMetadata,
+  type CardListContainer,
+  type CardMetadata,
   CardNameRegEx,
-  FetchCardDetails,
-  MetadataContent,
-  ModuleContent,
-  ModuleSetting,
-  ProjectFetchCardDetails,
-  ProjectMetadata,
-  ProjectSettings,
-  Resource,
-  ResourceFolderType,
+  type FetchCardDetails,
+  type MetadataContent,
+  type ModuleContent,
+  type ModuleSetting,
+  type ProjectFetchCardDetails,
+  type ProjectMetadata,
+  type ProjectSettings,
+  type Resource,
+  type ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import { findParentPath } from '../utils/card-utils.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
@@ -45,14 +45,14 @@ import { ProjectPaths } from './project/project-paths.js';
 import { readJsonFile } from '../utils/json.js';
 import {
   resourceName,
-  ResourceName,
+  type ResourceName,
   resourceNameToString,
 } from '../utils/resource-utils.js';
 import {
   ResourcesFrom,
   ResourceCollector,
 } from './project/resource-collector.js';
-import { Template } from './template.js';
+import type { Template } from './template.js';
 import { Validate } from '../commands/validate.js';
 
 import { CardTypeResource } from '../resources/card-type-resource.js';

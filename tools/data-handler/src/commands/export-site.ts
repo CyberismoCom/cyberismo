@@ -24,11 +24,11 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-import { Calculate, Export, Show } from './index.js';
-import { Card } from '../interfaces/project-interfaces.js';
-import { CardType } from '../interfaces/resource-interfaces.js';
+import { type Calculate, Export, type Show } from './index.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { CardType } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/log-utils.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 import { sortItems } from '../utils/lexorank.js';
 
 interface ExportOptions {

@@ -9,7 +9,7 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { Schema, Validator } from 'jsonschema';
+import { type Schema, Validator } from 'jsonschema';
 import { DHValidationError, SchemaNotFound } from '../exceptions/index.js';
 import { schemas } from './schemas.js';
 

@@ -16,7 +16,7 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { Calculate } from './index.js';
+import type { Calculate } from './index.js';
 import type { MetadataContent } from '../interfaces/project-interfaces.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';

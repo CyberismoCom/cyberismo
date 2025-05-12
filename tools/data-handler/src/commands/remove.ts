@@ -15,10 +15,10 @@
 import { join, sep } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import { Calculate } from './index.js';
+import type { Calculate } from './index.js';
 import { deleteDir, deleteFile } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
-import { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
+import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 import { resourceName } from '../utils/resource-utils.js';
 
 const MODULES_PATH = `${sep}modules${sep}`;

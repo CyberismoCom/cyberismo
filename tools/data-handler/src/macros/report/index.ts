@@ -12,14 +12,14 @@
 
 import { registerEmptyMacros, validateMacroContent } from '../index.js';
 
-import { MacroGenerationContext } from '../../interfaces/macros.js';
+import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
 import { Calculate } from '../../commands/index.js';
 import Handlebars from 'handlebars';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
-import TaskQueue from '../task-queue.js';
+import type TaskQueue from '../task-queue.js';
 import { ReportResource } from '../../resources/report-resource.js';
 import { resourceName } from '../../utils/resource-utils.js';
 

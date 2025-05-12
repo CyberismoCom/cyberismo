@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { macroMetadata } from '../macros/common.js';
+import type { macroMetadata } from '../macros/common.js';
 
 type Mode = 'validate' | 'static' | 'inject';
 

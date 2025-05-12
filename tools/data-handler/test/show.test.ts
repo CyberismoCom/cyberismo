@@ -5,9 +5,9 @@ import { dirname, join } from 'node:path';
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
-import { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
+import type { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
-import { Show } from '../src/commands/index.js';
+import type { Show } from '../src/commands/index.js';
 import { writeJsonFile } from '../src/utils/json.js';
 
 describe('show', () => {

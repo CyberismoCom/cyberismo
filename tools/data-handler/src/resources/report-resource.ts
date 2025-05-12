@@ -18,18 +18,23 @@ import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../utils/file-utils.js';
-import {
+import type {
   Card,
-  DefaultContent,
-  FolderResource,
   Operation,
   Project,
   ResourceName,
+} from './folder-resource.js';
+import {
+  DefaultContent,
+  FolderResource,
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import { Report, ReportMetadata } from '../interfaces/resource-interfaces.js';
-import { Schema } from 'jsonschema';
+import type {
+  Report,
+  ReportMetadata,
+} from '../interfaces/resource-interfaces.js';
+import type { Schema } from 'jsonschema';
 
 const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
 const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';

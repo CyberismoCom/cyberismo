@@ -19,14 +19,14 @@ import scoreCard from './scoreCard/index.js';
 
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError } from '../exceptions/index.js';
-import { AdmonitionType } from '../interfaces/adoc.js';
-import { Validator } from 'jsonschema';
-import {
+import type { AdmonitionType } from '../interfaces/adoc.js';
+import type { Validator } from 'jsonschema';
+import type {
   MacroGenerationContext,
   MacroMetadata,
   MacroName,
 } from '../interfaces/macros.js';
-import BaseMacro from './base-macro.js';
+import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 
 const CURLY_LEFT = '&#123;';

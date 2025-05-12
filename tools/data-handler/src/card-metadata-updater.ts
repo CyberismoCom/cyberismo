@@ -12,12 +12,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardMetadata } from './interfaces/project-interfaces.js';
-import { FieldType } from './interfaces/resource-interfaces.js';
+import type { CardMetadata } from './interfaces/project-interfaces.js';
+import type { FieldType } from './interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { logger } from './utils/log-utils.js';
-import { Project } from './containers/project.js';
-import { UpdateField } from './types/queries.js';
+import type { Project } from './containers/project.js';
+import type { UpdateField } from './types/queries.js';
 
 /**
  * Card metadata update result.

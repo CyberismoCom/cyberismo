@@ -15,17 +15,19 @@
 import { basename, dirname, join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
-import {
+import type {
   Card,
-  DefaultContent,
-  FolderResource,
   Operation,
   Project,
   ResourceName,
+} from './folder-resource.js';
+import {
+  DefaultContent,
+  FolderResource,
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import {
+import type {
   TemplateConfiguration,
   TemplateMetadata,
 } from '../interfaces/resource-interfaces.js';

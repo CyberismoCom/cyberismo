@@ -12,7 +12,7 @@
 
 import { sep } from 'node:path';
 
-import { Card } from '../interfaces/project-interfaces.js';
+import type { Card } from '../interfaces/project-interfaces.js';
 
 // Helper function to find the parent path from a card path
 export const findParentPath = (cardPath: string): string | null => {

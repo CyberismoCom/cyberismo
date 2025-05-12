@@ -10,26 +10,28 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
+import type {
   CardType,
   Workflow,
   WorkflowState,
   WorkflowTransition,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
-import {
+import type {
   Card,
   ChangeOperation,
-  DefaultContent,
-  FileResource,
   Operation,
   Project,
-  ResourcesFrom,
   ResourceName,
-  resourceName,
+} from './file-resource.js';
+import {
+  DefaultContent,
+  FileResource,
   resourceNameToString,
   sortCards,
-} from './file-resource.js';
+} from './folder-resource.js';
+import { ResourcesFrom } from '../containers/project.js';
+import { resourceName } from './file-resource.js';
 
 /**
  * Workflow resource class.

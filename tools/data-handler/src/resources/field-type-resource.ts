@@ -11,21 +11,24 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
+import type {
   Card,
   ChangeOperation,
-  DefaultContent,
-  FileResource,
   Operation,
   Project,
   RemoveOperation,
+  ResourceName,
+} from './file-resource.js';
+import {
+  DefaultContent,
+  FileResource,
   ResourcesFrom,
   resourceName,
   resourceNameToString,
-  ResourceName,
   sortCards,
 } from './file-resource.js';
-import {
+
+import type {
   CardType,
   DataType,
   EnumDefinition,

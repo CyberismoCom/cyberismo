@@ -11,9 +11,12 @@
 */
 import { sep } from 'node:path';
 
-import { AllowedClingoType, ClingoFactBuilder } from './clingo-fact-builder.js';
-import { Card, ModuleContent } from '../interfaces/project-interfaces.js';
 import {
+  type AllowedClingoType,
+  ClingoFactBuilder,
+} from './clingo-fact-builder.js';
+import type { Card, ModuleContent } from '../interfaces/project-interfaces.js';
+import type {
   CardType,
   FieldType,
   Link,
@@ -25,7 +28,7 @@ import {
 import { ClingoProgramBuilder } from './clingo-program-builder.js';
 import { isPredefinedField } from './constants.js';
 import { isTemplateCard } from '../utils/card-utils.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Facts {

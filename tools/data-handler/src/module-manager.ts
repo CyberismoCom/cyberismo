@@ -19,10 +19,10 @@ import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.js';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
-import { Import } from './commands/index.js';
-import { ModuleSetting } from './interfaces/project-interfaces.js';
+import type { Import } from './commands/index.js';
+import type { ModuleSetting } from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
-import { ProjectConfiguration } from './project-settings.js';
+import type { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';

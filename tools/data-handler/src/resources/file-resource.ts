@@ -13,12 +13,12 @@
 */
 
 // node
-import { basename, join } from 'node:path';
+import { basename, join, sep } from 'node:path';
 import { mkdir, rename } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 
-import {
-  type Card,
+import type {
+  Card,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import {
@@ -36,7 +36,7 @@ import {
   readJsonFileSync,
   writeJsonFile,
 } from '../utils/json.js';
-import {
+import type {
   ResourceBaseMetadata,
   ResourceContent,
 } from '../interfaces/resource-interfaces.js';
@@ -45,8 +45,8 @@ import {
   resourceName,
   resourceNameToPath,
   resourceNameToString,
-  resourceObjectToResource,
 } from '../utils/resource-utils.js';
+import type { Resource } from '../interfaces/project-interfaces.js';
 import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/index.js';
 
@@ -85,6 +85,14 @@ export class FileResource extends ResourceObject {
   // Type of resource.
   private resourceType(): ResourceFolderType {
     return this.type as ResourceFolderType;
+  }
+
+  // Converts resource name to Resource object.
+  private resourceObjectToResource(object: FileResource): Resource {
+    return {
+      name: object.data ? object.data.name : '',
+      path: object.fileName.substring(0, object.fileName.lastIndexOf(sep)),
+    };
   }
 
   private toCache() {
@@ -164,7 +172,7 @@ export class FileResource extends ResourceObject {
 
     // Notify project & collector
     this.project.addResource(
-      resourceObjectToResource(this),
+      this.resourceObjectToResource(this),
       this.content as unknown as JSON,
     );
   }
@@ -234,7 +242,7 @@ export class FileResource extends ResourceObject {
       );
     }
     await deleteFile(this.fileName);
-    this.project.removeResource(resourceObjectToResource(this));
+    this.project.removeResource(this.resourceObjectToResource(this));
     this.fileName = '';
   }
 

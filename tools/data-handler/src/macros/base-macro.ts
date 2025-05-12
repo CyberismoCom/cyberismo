@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
+import type {
   HandlebarsOptions,
   MacroGenerationContext,
   MacroMetadata,
@@ -18,7 +18,7 @@ import {
 } from '../interfaces/macros.js';
 import { generateRandomString } from '../utils/random.js';
 import { handleMacroError } from './index.js';
-import TaskQueue from './task-queue.js';
+import type TaskQueue from './task-queue.js';
 
 abstract class BaseMacro {
   private globalId: string;

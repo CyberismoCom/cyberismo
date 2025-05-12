@@ -13,7 +13,7 @@
 */
 
 import { readFileSync } from 'node:fs';
-import { FileHandle, readFile, writeFile } from 'node:fs/promises';
+import { type FileHandle, readFile, writeFile } from 'node:fs/promises';
 
 /**
  * Handles reading of a JSON file.
