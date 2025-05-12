@@ -100,6 +100,21 @@ field(((node, Node), Field), "value", @concatenate("\"", Value, "\"")) :-
     attr(node, Node, Field, Value),
     not labelAttribute(Field).
 
+graph(default) :-
+    node(_).
+
+graph(default) :-
+    edge(_).
+
+node(X, default) :-
+    node(X).
+
+edge((XR, YR), default) :-
+    edge((XR, YR)).
+
+edge((XR, YR, ""), Graph) :-
+    edge((XR, YR), Graph).
+
 % edges
 childResult(Graph, (edge, (XR, YR, Description)), "edges") :-
     childResult(_, Graph, _),
