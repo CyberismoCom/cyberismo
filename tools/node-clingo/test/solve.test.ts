@@ -99,4 +99,7 @@ describe('Clingo solver', () => {
       expect(result.answers[0]).toBe('a');
     });
   });
+  it('should handle errors', async () => {
+    await expect(solve('not a program', 'non_existent')).rejects.toThrow();
+  });
 });
