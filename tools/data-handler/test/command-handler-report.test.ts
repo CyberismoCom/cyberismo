@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
