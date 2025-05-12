@@ -1,0 +1,36 @@
+{{#*inline "subgraph"}}
+subgraph cluster{{this.key}} {
+  graph [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{#each edges}}
+  {{this.[source]}} -> {{this.destination}} [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{/each}}
+{{#each children}}
+{{#if this.isNode}}
+  {{this.cardKey}} [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{/if}}
+{{#if this.isGraph}}
+  {{> subgraph}}
+{{/if}}
+{{/each}}
+}
+{{/inline}}
+....
+{{#each results}}
+{{#each digraphs}}
+digraph {{this.key}} {
+  graph [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{#each edges}}
+  {{this.[source]}} -> {{this.destination}} [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{/each}}
+{{#each children}}
+{{#if this.isNode}}
+  {{this.cardKey}} [{{#each attrs}}{{this.attr}}={{{this.value}}} {{/each}}]
+{{/if}}
+{{#if this.isGraph}}
+  {{> subgraph}}
+{{/if}}
+{{/each}}
+}
+{{/each}}
+{{/each}}
+....

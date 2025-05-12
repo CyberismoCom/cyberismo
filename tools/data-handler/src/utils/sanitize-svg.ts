@@ -25,19 +25,17 @@ const removeSvgWidthAndHeight = (node: Element) => {
 };
 
 /**
- * Sanitize an SVG Buffer and return a base64-encoded string
- * @param buffer - SVG content as a Buffer
+ * Sanitize an SVG string and return a base64-encoded string
+ * @param svg - SVG content as a string
  * @returns base64-encoded sanitized SVG string
  */
-export function sanitizeSvgBase64(buffer: Buffer): string {
+export function sanitizeSvgBase64(svg: string): string {
   const DOMPurify = createDOMPurify(window as unknown as WindowLike);
-
-  const dirty = buffer.toString('utf-8');
 
   DOMPurify.setConfig({ USE_PROFILES: { svg: true } });
   DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
 
-  let cleaned = DOMPurify.sanitize(dirty);
+  let cleaned = DOMPurify.sanitize(svg);
 
   // Remove link titles, quick fix for Clingraph/Graphviz generated titles for links that are quite strange
   cleaned = cleaned.replace(/\s*xlink:title=(["']).*?\1/g, '');

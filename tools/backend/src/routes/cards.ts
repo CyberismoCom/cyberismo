@@ -97,11 +97,15 @@ async function getCardDetails(
 
   let asciidocContent = '';
   try {
-    asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
-      mode: 'inject',
-      projectPath: commands.project.basePath || '',
-      cardKey: key,
-    });
+    asciidocContent = await evaluateMacros(
+      cardDetailsResponse.content || '',
+      {
+        mode: 'inject',
+        projectPath: commands.project.basePath || '',
+        cardKey: key,
+      },
+      commands.calculateCmd,
+    );
   } catch (error) {
     asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
   }
@@ -563,11 +567,15 @@ router.post('/:key/parse', async (c) => {
   try {
     let asciidocContent = '';
     try {
-      asciidocContent = await evaluateMacros(content, {
-        mode: 'inject',
-        projectPath: commands.project.basePath || '',
-        cardKey: key,
-      });
+      asciidocContent = await evaluateMacros(
+        content,
+        {
+          mode: 'inject',
+          projectPath: commands.project.basePath || '',
+          cardKey: key,
+        },
+        commands.calculateCmd,
+      );
     } catch (error) {
       asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
     }

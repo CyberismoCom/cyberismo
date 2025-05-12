@@ -52,7 +52,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
-
+import { Calculate } from './calculate.js';
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
@@ -547,6 +547,7 @@ export class Validate {
       } else {
         const errorMsg: string[] = [];
         const project = new Project(projectPath);
+        const calculate = new Calculate(project);
 
         // Then, validate that each 'contentSchema' children as well.
         const result = await this.readAndValidateContentFiles(
@@ -590,11 +591,15 @@ export class Validate {
 
           // Validate macros in content
           if (card.content) {
-            await evaluateMacros(card.content, {
-              mode: 'validate',
-              projectPath,
-              cardKey: card.key,
-            });
+            await evaluateMacros(
+              card.content,
+              {
+                mode: 'validate',
+                projectPath,
+                cardKey: card.key,
+              },
+              calculate,
+            );
           }
         }
         if (errorMsg.length) {

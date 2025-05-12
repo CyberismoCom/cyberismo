@@ -273,6 +273,9 @@ importers:
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
+      node-graphviz:
+        specifier: ^0.1.1
+        version: 0.1.1
       pino:
         specifier: ^9.6.0
         version: 9.6.0
@@ -3167,6 +3170,9 @@ packages:
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
+
+  node-graphviz@0.1.1:
+    resolution: {integrity: sha512-riY8/pFGSD1ipmyzqCwuN2M6W02ELfuLDjhJvTrQCUS/15tyU8ExkC96mlQrNLBK8Ws0z8PdH+ChBT6DuPFWWA==}
 
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
@@ -7496,6 +7502,8 @@ snapshots:
       semver: 7.7.1
 
   node-addon-api@7.1.1: {}
+
+  node-graphviz@0.1.1: {}
 
   node-gyp-build@4.8.4: {}
 
