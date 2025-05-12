@@ -176,6 +176,7 @@ export class Commands {
           if (!cardKey) {
             return { statusCode: 400, message: 'File path is missing' };
           }
+          await this.generateLogicProgram();
           return this.runLogicProgram(cardKey);
         }
         if (command === 'generate') {
