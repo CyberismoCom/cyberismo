@@ -15,9 +15,12 @@ import { join, sep } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
-import { Calculate } from './index.js';
-import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
+import type { Calculate } from './index.js';
+import type {
+  Card,
+  FetchCardDetails,
+} from '../interfaces/project-interfaces.js';
+import { type Project, ResourcesFrom } from '../containers/project.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,

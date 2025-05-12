@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Schema } from 'jsonschema';
+import type { Schema } from 'jsonschema';
 
 /**
  * Each resource represents a file (or a folder in some cases) with metadata stored

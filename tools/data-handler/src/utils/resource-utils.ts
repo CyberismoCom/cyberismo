@@ -10,9 +10,7 @@
 // node
 import { join, parse, sep } from 'node:path';
 
-import { FileResource } from '../resources/file-resource.js';
-import { Project } from '../containers/project.js';
-import { Resource } from '../interfaces/project-interfaces.js';
+import type { Project } from '../containers/project.js';
 import { stripExtension } from './file-utils.js';
 
 // Resource name parts are:
@@ -31,12 +29,6 @@ const TYPE_INDEX = 1;
 const IDENTIFIER_INDEX = 2;
 // Valid resource name has three parts
 const RESOURCE_NAME_PARTS = 3;
-
-const EMPTY_NAME = {
-  prefix: '',
-  type: '',
-  identifier: '',
-};
 
 // Checks if name is valid (3 parts, separated by '/').
 export function isResourceName(name: string): boolean {
@@ -185,27 +177,4 @@ export function resourceNameToString(resourceName: ResourceName): string {
   return resourceName.prefix && resourceName.type && resourceName.prefix
     ? `${resourceName.prefix}/${resourceName.type}/${resourceName.identifier}`
     : `${resourceName.identifier}`;
-}
-
-/**
- * Converts resource object to Resource. Resource is basically path + file for certain name.
- * @param object Resource object of any type.
- * @returns Resource information (file name and path)
- */
-export function resourceObjectToResource(object: FileResource): Resource {
-  return {
-    name: object.data ? object.data.name : '',
-    path: object.fileName.substring(0, object.fileName.lastIndexOf(sep)),
-  };
-}
-
-/**
- * Converts resource object to ResourceName.
- * @param object Resource object of any type.
- * @returns ResourceName information (prefix, type and identifier).
- */
-export function resourceObjectToResourceName(
-  object: FileResource,
-): ResourceName {
-  return object.data ? resourceName(object.data.name) : EMPTY_NAME;
 }

@@ -13,7 +13,7 @@
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 
-import {
+import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';

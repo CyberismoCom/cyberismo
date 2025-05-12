@@ -10,17 +10,19 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
+import type {
   Card,
-  DefaultContent,
-  FileResource,
   Operation,
   Project,
   ResourceName,
+} from './file-resource.js';
+import {
+  DefaultContent,
+  FileResource,
   resourceNameToString,
   sortCards,
-} from './file-resource.js';
-import { LinkType } from '../interfaces/resource-interfaces.js';
+} from './folder-resource.js';
+import type { LinkType } from '../interfaces/resource-interfaces.js';
 
 /**
  * Link Type resource class.

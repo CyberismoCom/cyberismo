@@ -16,10 +16,10 @@ import { assert } from 'node:console';
 import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
-import { Calculate } from './index.js';
-import { Card } from '../interfaces/project-interfaces.js';
+import type { Calculate } from './index.js';
+import type { Card } from '../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../utils/card-utils.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
+import { type Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { Template } from '../containers/template.js';
 

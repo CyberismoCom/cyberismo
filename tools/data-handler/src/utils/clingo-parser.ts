@@ -10,8 +10,12 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { DataType } from '../interfaces/resource-interfaces.js';
-import { BaseResult, LinkDirection, ParseResult } from '../types/queries.js';
+import type { DataType } from '../interfaces/resource-interfaces.js';
+import type {
+  BaseResult,
+  LinkDirection,
+  ParseResult,
+} from '../types/queries.js';
 
 /**
  * This function reverses the encoding made by the "encodeClingoValue" function

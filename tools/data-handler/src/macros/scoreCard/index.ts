@@ -12,10 +12,10 @@
 
 import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
-import { MacroGenerationContext } from '../../interfaces/macros.js';
+import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
-import TaskQueue from '../task-queue.js';
+import type TaskQueue from '../task-queue.js';
 
 export interface ScoreCardOptions {
   title?: string;

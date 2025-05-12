@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
-import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 
 // Create test artifacts in a temp folder.

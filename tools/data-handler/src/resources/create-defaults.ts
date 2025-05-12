@@ -10,8 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Card } from '../interfaces/project-interfaces.js';
-import {
+import type { Card } from '../interfaces/project-interfaces.js';
+import type {
   CardType,
   DataType,
   FieldType,
@@ -21,9 +21,9 @@ import {
   LinkType,
   ReportMetadata,
   TemplateMetadata,
-  WorkflowCategory,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
+import { WorkflowCategory } from '../interfaces/resource-interfaces.js';
 import { FIRST_RANK, getRankAfter, sortItems } from '../utils/lexorank.js';
 
 // Helper function to get latest card rank from a set of cards.

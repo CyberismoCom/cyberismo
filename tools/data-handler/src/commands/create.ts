@@ -20,13 +20,17 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import { Calculate, Validate } from './index.js';
+import { type Calculate, Validate } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
-import { DataType, Link, LinkType } from '../interfaces/resource-interfaces.js';
+import type {
+  DataType,
+  Link,
+  LinkType,
+} from '../interfaces/resource-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
-import { ProjectFile } from '../interfaces/project-interfaces.js';
+import type { ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 

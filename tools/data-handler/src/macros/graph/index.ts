@@ -18,15 +18,15 @@ import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
 import { logger } from '../../utils/log-utils.js';
-import { MacroGenerationContext } from '../../interfaces/macros.js';
+import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { Project } from '../../containers/project.js';
 import { readFile } from 'node:fs/promises';
 import { resourceName } from '../../utils/resource-utils.js';
-import { Schema } from 'jsonschema';
+import type { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
-import TaskQueue from '../task-queue.js';
+import type TaskQueue from '../task-queue.js';
 
 export interface GraphOptions extends Record<string, string> {
   model: string;

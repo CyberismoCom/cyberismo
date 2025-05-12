@@ -14,20 +14,20 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { copyFile, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
-import { Dirent, readdirSync } from 'node:fs';
+import { type Dirent, readdirSync } from 'node:fs';
 
 // Base class
 import { CardContainer } from './card-container.js';
 
 import {
-  Card,
-  CardAttachment,
+  type Card,
+  type CardAttachment,
   CardNameRegEx,
-  FetchCardDetails,
-  FileContentType,
-  Resource,
+  type FetchCardDetails,
+  type FileContentType,
+  type Resource,
 } from '../interfaces/project-interfaces.js';
-import { CardType, Workflow } from '../interfaces/resource-interfaces.js';
+import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
 import { pathExists, stripExtension } from '../utils/file-utils.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 

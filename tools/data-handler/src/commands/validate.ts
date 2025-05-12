@@ -12,24 +12,24 @@
 */
 
 // node
-import { Dirent } from 'node:fs';
+import { type Dirent } from 'node:fs';
 import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
 // dependencies
-import { Validator as JSONValidator, Schema } from 'jsonschema';
+import { Validator as JSONValidator, type Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
 import { parentSchema, schemas } from '../utils/schemas.js';
 
 // data-handler
-import {
+import type {
   Card,
   DotSchemaContent,
   ProjectSettings,
   ResourceTypes,
 } from '../interfaces/project-interfaces.js';
-import {
+import type {
   CardType,
   CustomField,
   FieldType,

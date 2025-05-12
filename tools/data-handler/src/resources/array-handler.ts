@@ -12,7 +12,7 @@
 
 import { deepCompare } from '../utils/common-utils.js';
 
-import {
+import type {
   AddOperation,
   ChangeOperation,
   Operation,

@@ -9,23 +9,23 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import {
+import type {
   CardType,
   CustomField,
   LinkType,
 } from '../interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './field-type-resource.js';
 import {
-  AddOperation,
-  Card,
-  ChangeOperation,
+  type AddOperation,
+  type Card,
+  type ChangeOperation,
   DefaultContent,
   FileResource,
-  Operation,
-  Project,
-  RemoveOperation,
+  type Operation,
+  type Project,
+  type RemoveOperation,
   ResourcesFrom,
-  ResourceName,
+  type ResourceName,
   resourceName,
   resourceNameToString,
   sortCards,

@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroMetadata } from '../../interfaces/macros.js';
+import type { MacroMetadata } from '../../interfaces/macros.js';
 
 const macroMetadata: MacroMetadata = {
   name: 'scoreCard',

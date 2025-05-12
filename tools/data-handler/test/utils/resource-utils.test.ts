@@ -8,16 +8,13 @@ import { fileURLToPath } from 'node:url';
 
 import {
   pathToResourceName,
-  ResourceName,
+  type ResourceName,
   resourceNameToPath,
   resourceName,
   resourceNameToString,
-  resourceObjectToResource,
-  resourceObjectToResourceName,
 } from '../../src/utils/resource-utils.js';
 
 import { Project } from '../../src/containers/project.js';
-import { WorkflowResource } from '../../src/resources/workflow-resource.js';
 
 describe('resource utils', () => {
   it('resourceName with valid resource name (success)', () => {
@@ -217,28 +214,5 @@ describe('resource utils with Project instance', () => {
         }
       }
     }
-  });
-  it('resourceObjectToResource with valid values', () => {
-    const resourceFullName = 'decision/workflows/decision';
-    const workflow = new WorkflowResource(
-      project,
-      resourceName(resourceFullName),
-    );
-    const resource = resourceObjectToResource(workflow);
-    expect(resource.name).to.equal(resourceFullName);
-    expect(resource.path).to.equal(
-      `${project.paths.resourcesFolder}${sep}workflows`,
-    );
-  });
-  it('resourceObjectToResourceName with valid values', () => {
-    const resourceFullName = 'decision/workflows/decision';
-    const workflow = new WorkflowResource(
-      project,
-      resourceName(resourceFullName),
-    );
-    const name = resourceObjectToResourceName(workflow);
-    expect(name.prefix).to.equal('decision');
-    expect(name.type).to.equal('workflows');
-    expect(name.identifier).to.equal('decision');
   });
 });

@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroTaskState } from '../interfaces/macros.js';
+import type { MacroTaskState } from '../interfaces/macros.js';
 
 export default class TaskQueue {
   private tasks: MacroTaskState[] = [];

@@ -15,17 +15,19 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import {
+import type {
   Card,
-  DefaultContent,
-  FolderResource,
   Operation,
   Project,
   ResourceName,
+} from './folder-resource.js';
+import {
+  DefaultContent,
+  FolderResource,
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import {
+import type {
   GraphView,
   GraphViewMetadata,
 } from '../interfaces/resource-interfaces.js';

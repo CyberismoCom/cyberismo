@@ -15,7 +15,8 @@ import { dirname, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import {
+
+import type {
   Card,
   CardAttachment,
   CardListContainer,
@@ -25,13 +26,16 @@ import {
   RemovableResourceTypes,
   ResourceTypes,
 } from './interfaces/project-interfaces.js';
-import { DataType, ResourceContent } from './interfaces/resource-interfaces.js';
+import type {
+  DataType,
+  ResourceContent,
+} from './interfaces/resource-interfaces.js';
 
-import { requestStatus } from './interfaces/request-status-interfaces.js';
+import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
 import { Create, Validate } from './commands/index.js';
 import { CommandManager } from './command-manager.js';
-import { UpdateOperations } from './resources/resource-object.js';
+import type { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';

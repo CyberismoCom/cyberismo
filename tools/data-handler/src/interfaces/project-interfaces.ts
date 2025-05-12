@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Link, type TemplateConfiguration } from './resource-interfaces.js';
+import type { Link, TemplateConfiguration } from './resource-interfaces.js';
 
 // Single card; either in project or in template.
 export interface Card {

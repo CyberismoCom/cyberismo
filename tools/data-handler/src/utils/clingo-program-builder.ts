@@ -9,7 +9,10 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { ClingoArgument, ClingoFactBuilder } from './clingo-fact-builder.js';
+import {
+  type ClingoArgument,
+  ClingoFactBuilder,
+} from './clingo-fact-builder.js';
 
 interface IBuilder {
   build(): string;

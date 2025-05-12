@@ -7,7 +7,7 @@ import { Calculate } from '../src/commands/index.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
-import { QueryResult } from '../src/types/queries.js';
+import type { QueryResult } from '../src/types/queries.js';
 
 use(chaiAsPromised);
 

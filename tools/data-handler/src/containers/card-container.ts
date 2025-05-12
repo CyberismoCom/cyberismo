@@ -14,7 +14,7 @@
 
 // node
 import { basename, join, sep } from 'node:path';
-import { Dirent } from 'node:fs';
+import type { Dirent } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
 import { writeJsonFile } from '../utils/json.js';
@@ -22,10 +22,10 @@ import { getFilesSync } from '../utils/file-utils.js';
 
 // interfaces
 import {
-  CardAttachment,
-  Card,
+  type CardAttachment,
+  type Card,
   CardNameRegEx,
-  FetchCardDetails,
+  type FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
 // asciidoctor

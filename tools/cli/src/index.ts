@@ -15,12 +15,12 @@
 import { Argument, Command } from 'commander';
 import confirm from '@inquirer/confirm';
 import {
-  CardsOptions,
+  type CardsOptions,
   Cmd,
   Commands,
   ExportFormats,
-  requestStatus,
-  UpdateOperations,
+  type requestStatus,
+  type UpdateOperations,
 } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer } from '@cyberismocom/backend';

@@ -9,11 +9,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import { CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { Calculate } from '../src/commands/index.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
-import {
+import type {
   Card,
   CardListContainer,
 } from '../src/interfaces/project-interfaces.js';

@@ -17,13 +17,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { ArrayHandler } from './array-handler.js';
-import {
-  type Card,
+import type {
+  Card,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
-import { ResourceContent } from '../interfaces/resource-interfaces.js';
-import { ResourceName } from '../utils/resource-utils.js';
+import { type Project, ResourcesFrom } from '../containers/project.js';
+import type { ResourceContent } from '../interfaces/resource-interfaces.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';

@@ -14,7 +14,7 @@
  * Types for query result
  */
 
-import {
+import type {
   DataType,
   WorkflowCategory,
 } from '../interfaces/resource-interfaces.js';

@@ -18,11 +18,14 @@ import { dirname, join } from 'node:path';
 
 // asciidoctor
 import Processor from '@asciidoctor/core';
-import { Calculate, Show } from './index.js';
-import { Card, FetchCardDetails } from '../interfaces/project-interfaces.js';
-import { CardType } from '../interfaces/resource-interfaces.js';
+import type { Calculate, Show } from './index.js';
+import type {
+  Card,
+  FetchCardDetails,
+} from '../interfaces/project-interfaces.js';
+import type { CardType } from '../interfaces/resource-interfaces.js';
 import { Project } from '../containers/project.js';
-import { QueryResult } from '../types/queries.js';
+import type { QueryResult } from '../types/queries.js';
 import { sortItems } from '../utils/lexorank.js';
 
 const attachmentFolder: string = 'a';

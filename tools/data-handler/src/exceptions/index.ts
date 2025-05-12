@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ValidationError } from 'json-schema';
+import type { ValidationError } from 'json-schema';
 
 export class DHValidationError extends Error {
   public errors?: ValidationError[];

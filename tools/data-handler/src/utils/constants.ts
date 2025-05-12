@@ -1,4 +1,4 @@
-import { PredefinedCardMetadata } from '../interfaces/project-interfaces.js';
+import type { PredefinedCardMetadata } from '../interfaces/project-interfaces.js';
 
 export const INT32_MAX = 2147483647; // 2^31-1
 /**

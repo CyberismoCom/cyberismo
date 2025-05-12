@@ -12,14 +12,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Dirent, readdirSync } from 'node:fs';
+import { type Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
-import { Project } from '../project.js';
-import { ProjectPaths } from './project-paths.js';
-import {
+import type { Project } from '../project.js';
+import type { ProjectPaths } from './project-paths.js';
+import type {
   Resource,
   ResourceFolderType,
 } from '../../interfaces/project-interfaces.js';

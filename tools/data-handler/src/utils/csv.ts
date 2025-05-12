@@ -12,7 +12,7 @@
 
 import { readFile } from 'fs/promises';
 import { parse } from 'csv-parse/sync';
-import { CSVRowRaw } from '../interfaces/project-interfaces.js';
+import type { CSVRowRaw } from '../interfaces/project-interfaces.js';
 
 /**
  * Reads a CSV file and returns its content as an array of objects.
