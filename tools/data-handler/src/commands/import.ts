@@ -14,6 +14,7 @@
 import type { CardType } from '../interfaces/resource-interfaces.js';
 import { type Create, Validate } from './index.js';
 import { ModuleManager } from '../module-manager.js';
+import type { ModuleSettingOptions } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import { readCsvFile } from '../utils/csv.js';
 import { resourceName } from '../utils/resource-utils.js';
@@ -121,16 +122,18 @@ export class Import {
    *
    * @param source Path to module that will be imported
    * @param destination Path to project that will receive the imported module
-   * @param branch Git branch for module from Git. Optional.
+   * @param options Additional options for module import. Optional.
+   *        branch: Git branch for module from Git.
+   *        private: If true, uses credentials to clone the repository
    */
   public async importModule(
     source: string,
     destination?: string,
-    branch?: string,
+    options?: ModuleSettingOptions,
   ) {
     const gitModule = source.startsWith('https');
     const modulePrefix = gitModule
-      ? await this.moduleManager.importGitModule(source)
+      ? await this.moduleManager.importGitModule(source, options)
       : await this.moduleManager.importFileModule(source, destination);
 
     if (!modulePrefix) {
@@ -142,7 +145,8 @@ export class Import {
     // Add module as a dependency.
     return this.project.importModule({
       name: modulePrefix,
-      branch: branch,
+      branch: options ? options.branch : undefined,
+      private: options ? options.private : undefined,
       location: gitModule ? source : `file:${source}`,
     });
   }

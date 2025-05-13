@@ -395,15 +395,26 @@ importCmd
   )
   .argument('<source>', 'Path to import from')
   .argument('[branch]', 'When using git URL defines the branch. Default: main')
+  .argument(
+    '[useCredentials]',
+    'When using git URL uses credentials for cloning. Default: false',
+  )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (source: string, branch: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.import,
-      ['module', source, branch],
-      options,
-    );
-    handleResponse(result);
-  });
+  .action(
+    async (
+      source: string,
+      branch: string,
+      useCredentials: boolean,
+      options: CardsOptions,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['module', source, branch, String(useCredentials)],
+        options,
+      );
+      handleResponse(result);
+    },
+  );
 
 // import csv
 importCmd

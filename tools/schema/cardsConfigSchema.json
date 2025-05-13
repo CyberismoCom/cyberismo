@@ -35,6 +35,10 @@
           "branch": {
             "description": "If using git URL in 'location' defines git branch. If empty, assumed to be 'main'. ",
             "type": "string"
+          },
+          "private": {
+            "description": "If true, the module is private and requires credentials (CYBERISMO_GIT_USER / CYBERISMO_GIT_TOKEN)",
+            "type": "boolean"
           }
         },
         "required": ["name", "location"]

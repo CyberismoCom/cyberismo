@@ -86,9 +86,26 @@ describe('module-manager', () => {
   });
   it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
-    const expectedHttpCode = process.env.CYBERISMO_GIT_USER ? 404 : 401;
+    const expectedHttpCode = 401;
     await commands.importCmd
       .importModule(gitModule, commands.project.basePath)
+      .then(() => expect(false).to.equal(true))
+      .catch((error) => {
+        if (error instanceof Errors.HttpError) {
+          expect(error).to.have.property('data');
+          expect(error.data).to.have.property('statusCode');
+          expect(error.data.statusCode).to.equal(expectedHttpCode);
+        } else {
+          expect(false).to.equal(true);
+        }
+      });
+  }).timeout(10000);
+  it('try to import from incorrect private git path', async () => {
+    const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
+    const expectedHttpCode = process.env.CYBERISMO_GIT_USER ? 404 : 401;
+    const options = { private: true };
+    await commands.importCmd
+      .importModule(gitModule, commands.project.basePath, options)
       .then(() => expect(false).to.equal(true))
       .catch((error) => {
         if (error instanceof Errors.HttpError) {
