@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import Handlebars from 'handlebars';
-import { Calculate } from '../commands/index.js';
+import type { Calculate } from '../commands/index.js';
 import { registerEmptyMacros } from '../macros/index.js';
 
 // Parameters for the core generation function

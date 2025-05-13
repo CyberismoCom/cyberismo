@@ -28,7 +28,7 @@ import type {
 } from '../interfaces/macros.js';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
-import { Calculate } from '../commands/index.js';
+import type { Calculate } from '../commands/index.js';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 

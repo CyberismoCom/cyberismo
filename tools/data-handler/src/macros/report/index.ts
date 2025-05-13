@@ -16,7 +16,7 @@ import type { MacroOptions } from '../index.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
-import { Calculate } from '../../commands/index.js';
+import type { Calculate } from '../../commands/index.js';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
