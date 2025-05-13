@@ -1,0 +1,21 @@
+#!/bin/bash
+# Workaround for testing to work with docker until
+# import has been fixed
+CURRENT_PWD=$(pwd)
+PARENT_OF_PWD=$(dirname "$CURRENT_PWD")
+BASENAME_OF_PWD=$(basename "$CURRENT_PWD")
+
+# Safety check: If current directory is root, exit with error
+if [ "$CURRENT_PWD" = "/" ]; then
+    echo "Error: Running from root ('/'). Please run from a subdirectory." >&2
+    exit 1
+fi
+
+docker run --init --rm -i \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -v "$PARENT_OF_PWD":/project:Z \
+  -w "/project/$BASENAME_OF_PWD" \
+  -p 3000:3000 \
+  cyberismo:latest \
+  cyberismo "$@" 

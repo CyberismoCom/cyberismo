@@ -194,9 +194,6 @@ importers:
       '@asciidoctor/core':
         specifier: ^3.0.4
         version: 3.0.4
-      '@cyberismocom/app':
-        specifier: workspace:*
-        version: link:../app
       '@cyberismocom/data-handler':
         specifier: workspace:*
         version: link:../data-handler
@@ -209,22 +206,25 @@ importers:
       hono:
         specifier: ^4.7.5
         version: 4.7.5
+    devDependencies:
+      '@cyberismocom/app':
+        specifier: workspace:*
+        version: link:../app
 
   tools/cli:
     dependencies:
-      '@inquirer/confirm':
-        specifier: ^5.1.9
-        version: 5.1.9(@types/node@22.15.1)
-      commander:
-        specifier: ^13.1.0
-        version: 13.1.0
-    devDependencies:
       '@cyberismocom/backend':
         specifier: workspace:*
         version: link:../backend
       '@cyberismocom/data-handler':
         specifier: workspace:*
         version: link:../data-handler
+      '@inquirer/confirm':
+        specifier: ^5.1.9
+        version: 5.1.9(@types/node@22.15.1)
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
 
   tools/data-handler:
     dependencies:

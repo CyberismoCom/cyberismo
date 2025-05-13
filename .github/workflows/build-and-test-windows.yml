@@ -25,8 +25,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Check for changes in node-clingo
+      uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          node_clingo:
+            - 'tools/node-clingo/**'
     - name: Setup Miniconda
       uses: conda-incubator/setup-miniconda@v3
+      if: steps.changes.outputs.node_clingo == 'true'
       with:
         python-version: 3.12
         auto-update-conda: true
