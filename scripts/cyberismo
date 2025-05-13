@@ -1,0 +1,2 @@
+#!/bin/bash
+docker run --init --rm -i --user $(id -u):$(id -g) -e HOME=/tmp -v $(pwd):/project:Z -p 3000:3000 cyberismo:latest cyberismo "$@"

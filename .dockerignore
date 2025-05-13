@@ -1,0 +1,81 @@
+# Copied from .gitignore
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+**/node_modules
+**/.pnp
+.pnp.js
+.yarn/install-state.gz
+vendor/
+
+# testing
+**/coverage
+.tmp/
+
+# next.js
+**/.next/
+**/out/
+
+# production
+**/build
+**/dist
+
+# misc
+.DS_Store
+*.pem
+
+# Vendor binary location
+vendor
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# all env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+**/.idea
+tools/*/.idea
+
+# Test screenshots
+**/cypress/screenshots
+
+#vscode
+**/.vscode/
+
+
+**/.calc
+
+
+logs
+
+prebuilds
+
+
+# Docker specific
+LICENSE
+README.adoc
+SECURITY.md
+TRADEMARK.adoc
+CONTRIBUTING
+environment.yml
+
+# Ignore top-level dot files
+.*
+
+# Ignore docker files
+Dockerfile
+docker-compose.yml
+*.dockerfile
+
+
+
