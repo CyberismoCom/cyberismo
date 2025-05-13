@@ -39,13 +39,16 @@ import {
   Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
+import { renderToStaticMarkup } from 'react-dom/server';
 import MetadataView from './MetadataView';
 import { findCard, flattenTree, useModals } from '../lib/utils';
-import { Link as RouterLink } from 'react-router';
+import { Link as RouterLink, useLocation } from 'react-router';
 import Add from '@mui/icons-material/Add';
 import Delete from '@mui/icons-material/Delete';
 import Edit from '@mui/icons-material/Edit';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import DownloadIcon from '@mui/icons-material/Download';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import Search from '@mui/icons-material/Search';
 import Info from '@mui/icons-material/Info';
 
@@ -69,6 +72,7 @@ import {
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
+import SvgViewerModal from './modals/svgViewerModal';
 
 export type LinkFormState = 'hidden' | 'add' | 'add-from-toolbar' | 'edit';
 
@@ -83,6 +87,10 @@ type ContentAreaProps = {
   linkFormState: LinkFormState;
   onLinkFormChange?: (state: LinkFormState) => void;
 };
+
+interface HTMLElementWithCleanup extends HTMLElement {
+  __cleanupSvgControls?: () => void;
+}
 
 interface LinkFormSubmitData {
   linkType: string;
@@ -624,6 +632,126 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentRef]);
 
+  const [modalSvg, setModalSvg] = useState<string>('');
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const fullScreenIcon = renderToStaticMarkup(<OpenInFullIcon />);
+  const downloadIcon = renderToStaticMarkup(<DownloadIcon />);
+
+  const makeIconButton = (icon: string, aria: string) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', aria);
+    Object.assign(btn.style, {
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      padding: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    } as CSSStyleDeclaration);
+    btn.innerHTML = icon;
+    return btn;
+  };
+
+  const handleFullScreen = (htmlElementWithSVG: HTMLElement) => {
+    const svgEl = htmlElementWithSVG.querySelector<SVGSVGElement>('svg');
+    if (!svgEl) return;
+
+    const xml = new XMLSerializer().serializeToString(svgEl);
+    const svgWithNs = xml.match(/^<svg[^>]+xmlns=/)
+      ? xml
+      : xml.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+
+    setModalSvg(svgWithNs);
+    setModalOpen(true);
+  };
+
+  const handleDownload = (htmlElementWithSVG: HTMLElement) => {
+    const svgEl = htmlElementWithSVG.querySelector<SVGSVGElement>('svg');
+    if (!svgEl) return;
+
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgEl);
+    if (!source.match(/^<svg[^>]+xmlns=/)) {
+      source = source.replace(
+        /^<svg/,
+        '<svg xmlns="http://www.w3.org/2000/svg"',
+      );
+    }
+
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (svgEl.id || card.title) + ' diagram.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    if (!contentRef) return;
+
+    const wrappers: NodeListOf<HTMLElement> =
+      contentRef.querySelectorAll<HTMLElement>(
+        '[data-type="cyberismo-svg-wrapper"]',
+      );
+
+    wrappers.forEach((wrapper) => {
+      if (wrapper.querySelector('[data-cy="svg-controls"]')) return;
+
+      if (wrapper.style.paddingTop === '') wrapper.style.paddingTop = '48px';
+      if (wrapper.style.position === '') wrapper.style.position = 'relative';
+
+      const controls = document.createElement('div');
+      controls.setAttribute('data-cy', 'svg-controls');
+      Object.assign(controls.style, {
+        position: 'absolute',
+        top: '8px',
+        right: '8px',
+        display: 'flex',
+        gap: '6px',
+        zIndex: 10,
+      } as unknown as CSSStyleDeclaration);
+
+      /* ---------- Buttons ---------- */
+      const fullScreenBtn = makeIconButton(fullScreenIcon, 'fullscreen');
+      const downloadBtn = makeIconButton(downloadIcon, 'download');
+
+      const handleFullScreenClick = () => handleFullScreen(wrapper);
+      const handleDownloadClick = () => handleDownload(wrapper);
+
+      fullScreenBtn.addEventListener('click', handleFullScreenClick);
+      downloadBtn.addEventListener('click', handleDownloadClick);
+
+      controls.appendChild(fullScreenBtn);
+      controls.appendChild(downloadBtn);
+      wrapper.appendChild(controls);
+
+      /* ---------- Cleanup for this wrapper ---------- */
+      const cleanup = () => {
+        fullScreenBtn.removeEventListener('click', handleFullScreenClick);
+        downloadBtn.removeEventListener('click', handleDownloadClick);
+        wrapper.querySelector('[data-cy="svg-controls"]')?.remove();
+      };
+      (wrapper as HTMLElementWithCleanup).__cleanupSvgControls = cleanup;
+    });
+
+    /* ---------- Global cleanup on effect teardown ---------- */
+    return () => {
+      wrappers.forEach((wrapper) => {
+        (wrapper as HTMLElementWithCleanup).__cleanupSvgControls?.();
+        delete (wrapper as HTMLElementWithCleanup).__cleanupSvgControls;
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentRef, useLocation().key]);
+
   const setRef = useCallback((node: HTMLDivElement | null) => {
     setContentRef(node);
   }, []);
@@ -721,6 +849,11 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   return (
     <Stack direction="row" height="100%">
+      <SvgViewerModal
+        open={isModalOpen}
+        svgMarkup={modalSvg}
+        onClose={() => setModalOpen(false)}
+      />
       <Box
         width="100%"
         padding={3}
@@ -753,6 +886,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                   indicator={<ExpandMore data-cy="expandLinks" />}
                   onClick={() => {
                     if (linksExpanded) {
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                       onLinkFormChange && onLinkFormChange('hidden');
                     }
                     setLinksExpanded(!linksExpanded);
@@ -797,6 +931,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                       onLinkFormChange && onLinkFormChange('add');
                     }}
                   >
