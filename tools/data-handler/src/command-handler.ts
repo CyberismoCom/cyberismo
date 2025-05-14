@@ -509,9 +509,9 @@ export class Commands {
   // Runs a given logic program along with the query-language
   private async runLogicProgram(filePath: string): Promise<requestStatus> {
     try {
-      const res = await this.commands?.calculateCmd.runLogicProgram({
-        query: readFileSync(filePath, 'utf-8'),
-      });
+      const res = await this.commands?.calculateCmd.runLogicProgram(
+        readFileSync(filePath, 'utf-8'),
+      );
       return {
         statusCode: 200,
         payload: res,

@@ -48,10 +48,7 @@ export async function generateReportContent(
     strict: true,
   });
 
-  const result = await calculate.runLogicProgram({
-    query: template(options),
-    graph: graph,
-  });
+  const result = await calculate.runLogicProgram(template(options));
 
   if (result.error) {
     throw new Error(result.error);
@@ -59,8 +56,24 @@ export async function generateReportContent(
   // register empty macros so that other macros aren't touched yet
   registerEmptyMacros(handlebars);
 
+  if (graph) {
+    handlebars.registerHelper('formatAttributeValue', formatAttributeValue);
+  }
+
   return handlebars.compile(contentTemplate)({
     ...options,
     ...result,
   });
+}
+
+export function formatAttributeValue(value?: string) {
+  if (!value) {
+    return '';
+  }
+  // value is an html-like string
+  if (value.length > 1 && value.startsWith('<') && value.endsWith('>')) {
+    return value;
+  }
+  // value is a normal string and needs to be wrapped in quotes
+  return `"${value}"`;
 }
