@@ -357,30 +357,18 @@ export class Calculate {
   }
 
   //
-  private async run(
-    data: {
-      query?: string;
-    },
-    argMode: 'graph' | 'query' = 'query',
-  ): Promise<string[]> {
-    if (!data.query) {
-      throw new Error('Must provide query to run a clingo program');
-    }
-
+  private async run(query: string): Promise<string[]> {
     const res = await Calculate.mutex.runExclusive(async () => {
       // For queries, use both base and queryLanguage
-      const basePrograms =
-        argMode === 'query'
-          ? [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY]
-          : BASE_PROGRAM_KEY;
+      const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
 
       // Then solve with the program - need to pass the program as parameter
-      return solve(data.query as string, basePrograms);
+      return solve(query as string, basePrograms);
     });
 
     logger.trace(
       {
-        query: data.query,
+        query,
       },
       `Ran Clingo solve command`,
     );
@@ -563,6 +551,7 @@ export class Calculate {
         model: model,
         view: view,
       },
+      graph: true,
     });
     return sanitizeSvgBase64(await graphviz.dot(result, 'svg'));
   }
@@ -572,12 +561,8 @@ export class Calculate {
    * @param filePath Path to a query file to be run in relation to current working directory
    * @returns parsed program output
    */
-  public async runLogicProgram(data: {
-    query?: string;
-    file?: string;
-    graph?: boolean;
-  }) {
-    const clingoOutput = await this.run(data, data.graph ? 'graph' : 'query');
+  public async runLogicProgram(query: string) {
+    const clingoOutput = await this.run(query);
 
     return this.parseClingoResult(clingoOutput);
   }
@@ -599,12 +584,11 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const clingoOutput = await this.run(
-      {
-        query: content,
-      },
-      'query',
-    );
+    if (!content) {
+      throw new Error(`Query file ${queryName} not found`);
+    }
+
+    const clingoOutput = await this.run(content);
 
     const result = await this.parseClingoResult(clingoOutput);
 

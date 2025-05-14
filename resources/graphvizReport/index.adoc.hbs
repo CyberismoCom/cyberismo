@@ -1,12 +1,12 @@
 {{#*inline "subgraph"}}
 subgraph cluster{{this.key}} {
-  graph [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+  graph [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
   {{#each edges}}
-    "{{this.[source]}}" -> "{{this.destination}}" [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+    "{{this.[source]}}" -> "{{this.destination}}" [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
   {{/each}}
   {{#each children}}
     {{#if this.isNode}}
-      "{{this.cardKey}}" [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+      "{{this.cardKey}}" [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
     {{/if}}
     {{#if this.isGraph}}
       {{> subgraph}}
@@ -17,13 +17,13 @@ subgraph cluster{{this.key}} {
 {{#each results}}
   {{#each digraphs}}
     digraph {{this.key}} {
-      graph [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+      graph [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
       {{#each edges}}
-        "{{this.[source]}}" -> "{{this.destination}}" [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+        "{{this.[source]}}" -> "{{this.destination}}" [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
       {{/each}}
       {{#each children}}
         {{#if this.isNode}}
-          "{{this.cardKey}}" [{{#each attrs}}{{this.attr}}="{{{this.value}}}" {{/each}}]
+          "{{this.cardKey}}" [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
         {{/if}}
         {{#if this.isGraph}}
           {{> subgraph}}
