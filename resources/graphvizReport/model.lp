@@ -1,5 +1,5 @@
 % model
-% note: not escapted
+% note: not escaped
 {{{model}}}
 
 % include the view:

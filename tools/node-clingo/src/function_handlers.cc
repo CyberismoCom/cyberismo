@@ -141,15 +141,14 @@ namespace node_clingo
 // current_zone and zoned_time
 #if USE_FORMAT_FALLBACK
         time_t now = time(nullptr);
-        std::string today_str;
         std::stringstream ss;
         ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
-        today_str = ss.str();
+        const auto today_str = ss.str();
 #else
         const auto now_point = std::chrono::system_clock::now();
         const auto current_zone = std::chrono::current_zone();
         const std::chrono::zoned_time zt{current_zone, now_point};
-        std::string today_str = std::format("{:%Y-%m-%d}", zt);
+        const auto today_str = std::format("{:%Y-%m-%d}", zt);
 #endif
 
         clingo_symbol_t sym;
