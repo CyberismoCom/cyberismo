@@ -32,7 +32,7 @@ field(((graph, Graph), Field), "value", Value) :-
     attr(graph, Graph, Field, Value),
     labelAttribute(Field).
 
-field(((graph, Graph), Field), "value", @concatenate("\"", Value, "\"")) :-
+field(((graph, Graph), Field), "value", Value) :-
     graph(Graph),
     attr(graph, Graph, Field, Value),
     not labelAttribute(Field).
@@ -58,7 +58,7 @@ field(((graph, Graph), Field), "value", Value) :-
     attr(graph, Graph, Field, Value),
     labelAttribute(Field).
 
-field(((graph, Graph), Field), "value", @concatenate("\"", Value, "\"")) :-
+field(((graph, Graph), Field), "value", Value) :-
     graph(Graph, _),
     attr(graph, Graph, Field, Value),
     not labelAttribute(Field).
@@ -95,7 +95,7 @@ field(((node, Node), Field), "value", Value) :-
     attr(node, Node, Field, Value),
     labelAttribute(Field).
 
-field(((node, Node), Field), "value", @concatenate("\"", Value, "\"")) :-
+field(((node, Node), Field), "value", Value) :-
     node(Node, Graph),
     attr(node, Node, Field, Value),
     not labelAttribute(Field).
