@@ -234,13 +234,13 @@ Napi::Value SetBaseProgram(const Napi::CallbackInfo &info)
     }
     catch (const std::exception &e)
     {
-        auto error = Napi::Error::New(env, e.what());
+        const auto error = Napi::Error::New(env, e.what());
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
     catch (...)
     {
-        auto error = Napi::Error::New(env, "Unknown error occurred");
+        const auto error = Napi::Error::New(env, "Unknown error occurred");
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
@@ -278,13 +278,13 @@ Napi::Value ClearBaseProgram(const Napi::CallbackInfo &info)
     }
     catch (const std::exception &e)
     {
-        auto error = Napi::Error::New(env, e.what());
+        const auto error = Napi::Error::New(env, e.what());
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
     catch (...)
     {
-        auto error = Napi::Error::New(env, "Unknown error occurred");
+        const auto error = Napi::Error::New(env, "Unknown error occurred");
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
@@ -313,13 +313,13 @@ Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo &info)
     }
     catch (const std::exception &e)
     {
-        auto error = Napi::Error::New(env, e.what());
+        const auto error = Napi::Error::New(env, e.what());
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
     catch (...)
     {
-        auto error = Napi::Error::New(env, "Unknown error occurred");
+        const auto error = Napi::Error::New(env, "Unknown error occurred");
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
@@ -467,13 +467,13 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
     }
     catch (const std::exception &e)
     {
-        auto error = Napi::Error::New(env, e.what());
+        const auto error = Napi::Error::New(env, e.what());
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
     catch (...)
     {
-        auto error = Napi::Error::New(env, "Unknown error occurred");
+        const auto error = Napi::Error::New(env, "Unknown error occurred");
         error.ThrowAsJavaScriptException();
         return env.Undefined();
     }
