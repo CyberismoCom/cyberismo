@@ -43,6 +43,7 @@ describe('Navigation', () => {
     cy.get('[data-cy="confirmCreateButton"]').click(); // confirm dialog
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
     cy.get('p').contains('Untitled page'); // Verify text on cards page
+    cy.get('[data-cy="linkIconButton"]').should('be.disabled');
   });
 
   it('Create a decision as a child of the page', () => {
@@ -59,6 +60,7 @@ describe('Navigation', () => {
     cy.get('p').contains(
       'Describe background information. What is motivating this decision. Which options were considered.',
     );
+    cy.get('[data-cy="linkIconButton"]').should('be.enabled');
 
     cy.get('h2').contains('Decision');
     cy.get('p').contains('Describe the change that we’re proposing or doing.');

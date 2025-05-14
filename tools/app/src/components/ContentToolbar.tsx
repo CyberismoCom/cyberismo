@@ -85,7 +85,15 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
             size="sm"
             variant="plain"
             style={{ marginRight: 8, minWidth: 40 }}
-            disabled={linkButtonDisabled || isUpdating()}
+            data-cy="linkIconButton"
+            disabled={
+              linkButtonDisabled ||
+              isUpdating() ||
+              !tree ||
+              tree.length === 0 ||
+              (tree.length === 1 &&
+                (!tree[0]?.children || tree[0]?.children.length === 0))
+            }
           >
             <InsertLink />
           </IconButton>
