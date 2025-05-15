@@ -10,18 +10,25 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import createDOMPurify, { type WindowLike } from 'dompurify';
 import { Buffer } from 'buffer';
-import { JSDOM } from 'jsdom';
 
-const window = new JSDOM('').window as unknown as Window;
-
-// Remove SVG size to make it scale in the application properly
-const removeSvgWidthAndHeight = (node: Element) => {
-  if (node.nodeName === 'svg') {
-    node.removeAttribute('width');
-    node.removeAttribute('height');
-  }
+/**
+ * Removes a specific attribute from an element in an SVG string
+ * @param svg - The SVG string to modify
+ * @param element - The element to target (e.g., 'svg')
+ * @param attribute - The attribute to remove (e.g., 'width')
+ * @returns Modified SVG string with the attribute removed
+ */
+const removeAttribute = (
+  svg: string,
+  element: string,
+  attribute: string,
+): string => {
+  const pattern = new RegExp(
+    `<${element}((?:[^>]*?(?!${attribute}=["']))*?)(\\s+${attribute}=["'][^"']*["'])([^>]*)>`,
+    'g',
+  );
+  return svg.replace(pattern, `<${element}$1$3>`);
 };
 
 /**
@@ -30,15 +37,9 @@ const removeSvgWidthAndHeight = (node: Element) => {
  * @returns base64-encoded sanitized SVG string
  */
 export function sanitizeSvgBase64(svg: string): string {
-  const DOMPurify = createDOMPurify(window as unknown as WindowLike);
+  // Remove SVG size attributes to make it scale in the application properly
+  svg = removeAttribute(svg, 'svg', 'width');
+  svg = removeAttribute(svg, 'svg', 'height');
 
-  DOMPurify.setConfig({ USE_PROFILES: { svg: true } });
-  DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
-
-  let cleaned = DOMPurify.sanitize(svg);
-
-  // Remove link titles, quick fix for Clingraph/Graphviz generated titles for links that are quite strange
-  cleaned = cleaned.replace(/\s*xlink:title=(["']).*?\1/g, '');
-
-  return Buffer.from(cleaned, 'utf-8').toString('base64');
+  return Buffer.from(svg, 'utf-8').toString('base64');
 }

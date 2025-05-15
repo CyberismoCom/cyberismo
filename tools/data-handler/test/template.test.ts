@@ -7,10 +7,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type {
-  Card,
-  FileContentType,
-} from '../src/interfaces/project-interfaces.js';
+import type { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -250,7 +247,6 @@ describe('template', () => {
       expect(card.metadata?.workflowState).to.equal('Draft');
     }
     const details = {
-      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,
@@ -345,7 +341,6 @@ describe('template', () => {
     expect(templateAttachments.length).to.equal(1);
 
     const details = {
-      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,

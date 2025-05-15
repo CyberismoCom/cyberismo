@@ -17,12 +17,17 @@
     "@cyberismocom/app": "workspace:*",
     "@cyberismocom/data-handler": "workspace:*",
     "@hono/node-server": "^1.14.1",
+    "dompurify": "^3.2.5",
     "dotenv": "^16.5.0",
-    "hono": "^4.7.5"
+    "hono": "^4.7.5",
+    "jsdom": "^26.1.0"
   },
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7"
+  }
 }

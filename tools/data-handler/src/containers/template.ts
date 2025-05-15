@@ -24,7 +24,6 @@ import {
   type CardAttachment,
   CardNameRegEx,
   type FetchCardDetails,
-  type FileContentType,
   type Resource,
 } from '../interfaces/project-interfaces.js';
 import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
@@ -471,7 +470,6 @@ export class Template extends CardContainer {
       ? details
       : {
           content: true,
-          contentType: 'adoc' as FileContentType,
           metadata: true,
         };
     return super.cards(this.templateCardsPath, cardDetails);
@@ -485,7 +483,6 @@ export class Template extends CardContainer {
   public async createCards(parentCard?: Card): Promise<Card[]> {
     const cards = await this.cards('', {
       content: true,
-      contentType: 'adoc',
       metadata: true,
       attachments: true,
       parent: true,

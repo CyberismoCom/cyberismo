@@ -20,7 +20,6 @@ import type {
   Card,
   CardAttachment,
   CardListContainer,
-  FileContentType,
   ModuleContent,
   ProjectMetadata,
   RemovableResourceTypes,
@@ -583,7 +582,6 @@ export class Commands {
       case 'card':
         {
           const cardDetails = {
-            contentType: 'adoc' as FileContentType,
             content: options?.details,
             metadata: true,
             children: options?.details,

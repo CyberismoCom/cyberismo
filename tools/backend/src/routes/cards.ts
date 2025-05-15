@@ -20,6 +20,12 @@ import {
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismocom/data-handler';
 
+import { JSDOM } from 'jsdom';
+import createDOMPurify, { WindowLike } from 'dompurify';
+
+const window = new JSDOM('').window as unknown as Window;
+const DOMPurify = createDOMPurify(window as unknown as WindowLike);
+
 const router = new Hono();
 
 /**
@@ -74,7 +80,6 @@ async function getCardDetails(
     attachments: true,
     children: false,
     content: true,
-    contentType: 'adoc',
     metadata: false,
     parent: false,
     location: CardLocation.projectOnly,
@@ -135,7 +140,7 @@ async function getCardDetails(
     data: {
       ...card[0],
       rawContent: cardDetailsResponse.content || '',
-      parsedContent: htmlContent,
+      parsedContent: DOMPurify.sanitize(htmlContent),
       attachments: cardDetailsResponse.attachments,
     },
   };
@@ -580,7 +585,9 @@ router.post('/:key/parse', async (c) => {
       })
       .toString();
 
-    return c.json({ parsedContent });
+    const sanitizedContent = DOMPurify.sanitize(parsedContent);
+
+    return c.json({ parsedContent: sanitizedContent });
   } catch (error) {
     return c.json(
       {

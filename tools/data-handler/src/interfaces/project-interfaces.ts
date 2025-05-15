@@ -83,15 +83,12 @@ export interface FetchCardDetails {
   calculations?: true;
   children?: boolean;
   content?: boolean;
-  contentType?: FileContentType;
   metadata?: boolean;
   parent?: boolean;
 }
 export interface ProjectFetchCardDetails extends FetchCardDetails {
   location?: CardLocation;
 }
-
-export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.
 export type MetadataContent =

@@ -8,10 +8,7 @@ import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import {
-  CardLocation,
-  type FileContentType,
-} from '../src/interfaces/project-interfaces.js';
+import { CardLocation } from '../src/interfaces/project-interfaces.js';
 import type {
   CardType,
   TemplateMetadata,
@@ -177,7 +174,6 @@ describe('project', () => {
       expect(card.metadata?.workflowState).to.equal('Created');
     }
     const details = {
-      contentType: 'adoc' as FileContentType,
       content: true,
       metadata: true,
       children: true,
@@ -454,21 +450,6 @@ describe('project', () => {
 
     const existingCard = await project.findSpecificCard('decision_5', {
       content: true,
-      contentType: 'adoc',
-    });
-    expect(existingCard).to.not.equal(undefined);
-  });
-  it('find certain card from project - content as html (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    expect(project).to.not.equal(undefined);
-
-    const nonExistingCard = await project.findSpecificCard('idontexist');
-    expect(nonExistingCard).to.equal(undefined);
-
-    const existingCard = await project.findSpecificCard('decision_5', {
-      content: true,
-      contentType: 'html',
     });
     expect(existingCard).to.not.equal(undefined);
   });

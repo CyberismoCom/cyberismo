@@ -28,9 +28,6 @@ import {
   type FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
-// asciidoctor
-import asciidoctor from '@asciidoctor/core';
-
 import mime from 'mime-types';
 
 /**
@@ -183,11 +180,6 @@ export class CardContainer {
     foundCards: Card[],
   ): Promise<Card[]> {
     const entries = await readdir(path, { withFileTypes: true });
-    let asciiDocProcessor;
-    // optimization: do not create AsciiDoctor Processor, unless it is needed.
-    if (details.contentType && details.contentType === 'html') {
-      asciiDocProcessor = asciidoctor();
-    }
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
@@ -207,17 +199,12 @@ export class CardContainer {
           const [cardContent, cardMetadata, cardChildren] =
             await Promise.all(promiseContainer);
 
-          const content =
-            details.contentType && details.contentType === 'html'
-              ? asciiDocProcessor?.convert(cardContent as string)
-              : cardContent;
-
           foundCards.push({
             key: entry.name,
             path: currentPath,
             children: details.children ? (cardChildren as Card[]) : [],
             attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: content as string }),
+            ...(details.content && { content: cardContent as string }),
             ...(details.metadata && {
               metadata: JSON.parse(cardMetadata as string),
             }),

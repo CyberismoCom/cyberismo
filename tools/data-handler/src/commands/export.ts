@@ -185,7 +185,6 @@ export class Export {
       attachments: true,
       children: false,
       content: true,
-      contentType: 'adoc',
       metadata: true,
       parent: false,
     };
@@ -305,11 +304,13 @@ export class Export {
       message = msg;
       const asciiDocProcessor = Processor();
       const adocFile = join(destination, Project.cardContentFile);
-      asciiDocProcessor.convertFile(adocFile, {
+      const document = asciiDocProcessor.convertFile(adocFile, {
         safe: 'safe',
         base_dir: '/',
         standalone: true,
       });
+
+      // C
     });
     return message;
   }
