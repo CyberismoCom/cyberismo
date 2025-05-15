@@ -13,6 +13,7 @@ import type {
   CardType,
   CustomField,
   LinkType,
+  Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './field-type-resource.js';
 import {
@@ -318,7 +319,7 @@ export class CardTypeResource extends FileResource {
       resourceNameToString(resourceName(workflowName)),
       await this.project.projectPrefixes(),
     );
-    const workflow = await this.project.resource(workflowName);
+    const workflow = await this.project.resource<Workflow>(workflowName);
     if (!workflow) {
       throw new Error(
         `Workflow '${workflowName}' does not exist in the project`,
@@ -378,12 +379,14 @@ export class CardTypeResource extends FileResource {
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'alwaysVisibleFields') {
+      // todo: should check that op.target is valid resource
       content.alwaysVisibleFields = super.handleArray(
         op,
         key,
         content.alwaysVisibleFields as Type[],
       ) as string[];
     } else if (key === 'optionallyVisibleFields') {
+      // todo: should check that op.target is valid resource
       content.optionallyVisibleFields = super.handleArray(
         op,
         key,
