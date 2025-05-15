@@ -797,6 +797,10 @@ program
   .description(
     'Starts the cyberismo app, accessible with a web browser at http://localhost:3000',
   )
+  .option(
+    '-w, --watch-resource-changes',
+    'Project watches changes in .cards folder resources',
+  )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
     // validate project

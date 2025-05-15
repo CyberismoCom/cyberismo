@@ -29,6 +29,11 @@ import { ProjectPaths } from './containers/project/project-paths.js';
 import pino, { type Level, type TransportTargetOptions } from 'pino';
 import { setLogger } from './utils/log-utils.js';
 
+export interface CommandManagerOptions {
+  watchResourceChanges?: boolean;
+  logLevel?: Level;
+}
+
 // Handles commands and ensures that no extra instances are created.
 export class CommandManager {
   private static instance: CommandManager;
@@ -49,8 +54,8 @@ export class CommandManager {
 
   private pathHandler: ProjectPaths;
 
-  constructor(path: string) {
-    this.project = new Project(path);
+  constructor(path: string, options?: CommandManagerOptions) {
+    this.project = new Project(path, options?.watchResourceChanges);
     this.validateCmd = Validate.getInstance();
 
     this.calculateCmd = new Calculate(this.project);
@@ -107,26 +112,28 @@ export class CommandManager {
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
+   * @param watchResourceChanges Optional. If true, file changes are watched.
    * @returns Instance of this class.
    */
   public static async getInstance(
     path: string,
-    level?: Level,
+    options?: CommandManagerOptions,
   ): Promise<CommandManager> {
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
     ) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance.project.dispose();
+      CommandManager.instance = new CommandManager(path, options);
       await CommandManager.instance.initialize();
     }
     if (!CommandManager.instance) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance = new CommandManager(path, options);
       await CommandManager.instance.initialize();
     }
 
-    if (level) {
-      await CommandManager.instance.setLogger(level);
+    if (options?.logLevel) {
+      await CommandManager.instance.setLogger(options?.logLevel);
     }
     return CommandManager.instance;
   }

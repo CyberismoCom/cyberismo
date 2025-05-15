@@ -178,39 +178,26 @@ describe('resource utils with Project instance', () => {
     }
   });
   it('pathToResourceName with invalid values', () => {
-    const validNames: Map<string, ResourceName> = new Map([
+    const invalidNames: Map<string, string> = new Map([
       [
         `${project.paths.resourcesFolder}${sep}cardTypes${sep}`,
-        {
-          prefix: project.projectPrefix,
-          type: 'cardTypes',
-          identifier: 'test',
-        },
+        `invalid path:`,
       ],
       [
         `${sep}path${sep}to${sep}somewhere${sep}that${sep}is${sep}not${sep}a${sep}project${sep}path`,
-        {
-          prefix: project.projectPrefix,
-          type: 'workflows',
-          identifier: 'decision',
-        },
+        `invalid path:`,
       ],
       [
         `${project.paths.resourcesFolder}${sep}base${sep}workflows${sep}decision.json`,
-        {
-          prefix: 'base',
-          type: 'workflows',
-          identifier: 'decision',
-        },
+        'not a resource path:',
       ],
     ]);
-    for (const name of validNames) {
+    for (const name of invalidNames) {
       try {
         pathToResourceName(project, name[0]);
       } catch (e) {
         if (e instanceof Error) {
-          expect(e.message).to.contain(`invalid path`);
-          expect(e.message).to.contain(`${name[0]}`);
+          expect(e.message).to.equal(`${name[1]} ${name[0]}`);
         }
       }
     }

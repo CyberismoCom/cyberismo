@@ -94,7 +94,9 @@ export async function exportSite(
     JSON.stringify(configJson),
   );
 
-  const commands = await CommandManager.getInstance(projectPath, level);
+  const commands = await CommandManager.getInstance(projectPath, {
+    logLevel: level,
+  });
   await toSsg(app, commands, exportDir, onProgress);
 }
 
