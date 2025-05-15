@@ -64,6 +64,9 @@ import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
 
+import { ContentWatcher } from './project/project-content-watcher.js';
+import { pathToResourceName } from '../utils/resource-utils.js';
+
 // Re-export this, so that classes that use Project do not need to have separate import.
 export { ResourcesFrom };
 
@@ -93,6 +96,48 @@ export class Project extends CardContainer {
     // todo: implement project validation
     this.validator = Validate.getInstance();
     this.resources.collectLocalResources();
+
+    const ignoreRenameFileChanges = true;
+
+    // Watch changes in .cards if there are multiple instances of Project being
+    // run concurrently.
+    if (process.env.CONCURRENT_APPS === 'true') {
+      new ContentWatcher(
+        ignoreRenameFileChanges,
+        this.paths.resourcesFolder,
+        async (fileName: string) => {
+          let resource;
+          try {
+            resource = pathToResourceName(
+              this,
+              join(this.paths.resourcesFolder, fileName),
+            );
+            if (!resource) {
+              return;
+            }
+          } catch {
+            // it wasn't a resource that changed, so ignore the change
+            return;
+          }
+          const resourceName = `${resource.prefix}/${resource.type}/${resource.identifier}`;
+          await this.replaceCacheValue(resourceName);
+          this.resources.collectLocalResources();
+        },
+      );
+    }
+  }
+
+  // Removes current version of resource from cache.
+  // Then re-creates the resource with current data and caches the value again.
+  // If the value wasn't in the cache before, it will be added.
+  private async replaceCacheValue(resourceName: string) {
+    if (this.createdResources.has(resourceName)) {
+      // First, remove the old version from cache
+      this.createdResources.delete(resourceName);
+    }
+    const resourceData = await this.resource(resourceName);
+    if (!resourceData) return;
+    this.createdResources.set(resourceName, resourceData as JSON);
   }
 
   // Finds specific module.

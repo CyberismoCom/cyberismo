@@ -47,6 +47,7 @@ import { resourceName } from './utils/resource-utils.js';
 export interface CardsOptions {
   details?: boolean;
   forceStart?: boolean;
+  concurrentApps?: boolean;
   projectPath?: string;
   repeat?: number;
   showUse?: boolean;
@@ -113,6 +114,9 @@ export class Commands {
     args: string[],
     options: CardsOptions,
   ): Promise<requestStatus> {
+    if (options.concurrentApps) {
+      process.env.CONCURRENT_APPS = 'true';
+    }
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
     if (!creatingNewProject) {
