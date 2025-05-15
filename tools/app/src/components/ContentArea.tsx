@@ -41,7 +41,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MetadataView from './MetadataView';
-import { findCard, flattenTree, useModals } from '../lib/utils';
+import {
+  canCreateLinkToCard,
+  createPredicate,
+  findCard,
+  flattenTree,
+  useModals,
+} from '../lib/utils';
 import { Link as RouterLink, useLocation } from 'react-router';
 import Add from '@mui/icons-material/Add';
 import Delete from '@mui/icons-material/Delete';
@@ -115,6 +121,7 @@ interface LinkFormProps {
   onSubmit?: (data: LinkFormSubmitData) => boolean | Promise<boolean>;
   onCancel?: () => void;
   cardKey: string;
+  currentCardLinks: CalculationLink[];
   state: LinkFormState;
   data?: LinkFormData;
   inModal?: boolean;
@@ -136,6 +143,7 @@ export function LinkForm({
   linkTypes,
   onSubmit,
   cardKey,
+  currentCardLinks,
   data,
   state,
   inModal = false,
@@ -164,23 +172,16 @@ export function LinkForm({
 
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
-  const usableCards = flattenTree(cards).filter((card) => {
-    if (!selectedLinkType || card.key === cardKey) return false;
-    if (selectedLinkType.direction === 'outbound') {
-      return (
-        selectedLinkType.destinationCardTypes.includes(card.cardType) ||
-        selectedLinkType.destinationCardTypes.length === 0
-      );
-    } else {
-      return (
-        selectedLinkType.sourceCardTypes.includes(card.cardType || '') ||
-        selectedLinkType.sourceCardTypes.length === 0
-      );
-    }
-  });
+  const usableCards = flattenTree(cards).filter(
+    createPredicate(
+      canCreateLinkToCard,
+      cardKey,
+      selectedLinkType,
+      currentCardLinks,
+    ),
+  );
 
   // If card is not in usable cards, reset the form
-
   const formCardKey = watch('cardKey');
   useEffect(() => {
     if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
@@ -949,6 +950,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                         linkTypes={linkTypes}
                         onSubmit={onLinkFormSubmit}
                         cardKey={card.key}
+                        currentCardLinks={card.links}
                         state={linkFormState}
                         onCancel={() =>
                           onLinkFormChange && onLinkFormChange('hidden')

@@ -68,7 +68,7 @@ export function EditLinkModal({
 }: EditLinkModalProps) {
   const { t } = useTranslation();
   const formRef = useRef<HTMLFormElement>(null);
-  const { isUpdating } = useCard(cardKey);
+  const { isUpdating, card } = useCard(cardKey);
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -85,6 +85,7 @@ export function EditLinkModal({
           <LinkForm
             linkTypes={linkTypes}
             cards={cards}
+            currentCardLinks={card?.links ?? []}
             onSubmit={async (data) => {
               // When submitting, include the original link information as well
               const result = await onSubmit({

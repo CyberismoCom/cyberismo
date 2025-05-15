@@ -24,7 +24,10 @@ import {
   LinkType,
   WorkflowCategory,
 } from '@cyberismocom/data-handler/interfaces/resource-interfaces';
-import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import {
+  QueryResult,
+  CalculationLink,
+} from '@cyberismocom/data-handler/types/queries';
 import { CardResponse } from './api/types';
 
 // Gets type of a child of an array
@@ -420,4 +423,89 @@ export function expandLinkTypes(
     }
   }
   return result;
+}
+/**
+ * Creates a predicate function from a base function and a list of initial arguments
+ * @param baseFunction: base function to create the predicate from
+ * @param args: initial arguments for the base function
+ * @returns predicate function
+ */
+export function createPredicate<
+  InitialArgs extends unknown[],
+  RemainingArgs extends unknown[],
+  R,
+>(
+  baseFunction: (...args: [...InitialArgs, ...RemainingArgs]) => R,
+  ...args: InitialArgs
+): (...remainingArgs: RemainingArgs) => R {
+  return (...remainingArgs: RemainingArgs): R =>
+    baseFunction(...args, ...remainingArgs);
+}
+
+/**
+ * Checks if a potential target card's type is permitted by the selected link type's rules.
+ * @param selectedLinkType The link type defining compatibility rules.
+ * @param potentialTargetCard The card to check.
+ * @returns True if the card's type is compatible with the link type, false otherwise.
+ */
+export function isCardTypePermittedForLinkType(
+  selectedLinkType: ExpandedLinkType,
+  potentialTargetCard: QueryResult<'tree'>,
+): boolean {
+  if (selectedLinkType.direction === 'outbound') {
+    return (
+      selectedLinkType.destinationCardTypes.includes(
+        potentialTargetCard.cardType,
+      ) || selectedLinkType.destinationCardTypes.length === 0
+    );
+  } else {
+    return (
+      selectedLinkType.sourceCardTypes.includes(potentialTargetCard.cardType) ||
+      selectedLinkType.sourceCardTypes.length === 0
+    );
+  }
+}
+
+/**
+ * Return true if card is already linked to the current card
+ * @param currentCardLinks: array of links for the current card
+ * @param potentialTargetCard: card to check if it is already linked to the current card
+ * @param selectedLinkType: link type to check if the card is already linked to the current card
+ * @returns true if the card is already linked to the current card
+ */
+export function isAlreadyLinked(
+  currentCardLinks: CalculationLink[],
+  potentialTargetCard: QueryResult<'tree'>,
+  selectedLinkType: ExpandedLinkType,
+): boolean {
+  return currentCardLinks.some(
+    (existingLink) =>
+      !selectedLinkType.enableLinkDescription &&
+      existingLink.key === potentialTargetCard.key &&
+      existingLink.linkType === selectedLinkType.name &&
+      existingLink.direction === selectedLinkType.direction,
+  );
+}
+
+/**
+ * Determines if a new link can be created between a current card and a target card.
+ * @param currentCardKey Key of the source card.
+ * @param selectedLinkType The type of link to create.
+ * @param currentCardLinks Existing links of the source card (to avoid duplicates).
+ * @param potentialTargetCard The potential target card for the new link.
+ * @returns True if the link is valid and can be created, false otherwise.
+ */
+export function canCreateLinkToCard(
+  currentCardKey: string,
+  selectedLinkType: ExpandedLinkType | undefined,
+  currentCardLinks: CalculationLink[],
+  potentialTargetCard: QueryResult<'tree'>,
+): boolean {
+  if (!selectedLinkType || potentialTargetCard.key === currentCardKey)
+    return false;
+  if (!isCardTypePermittedForLinkType(selectedLinkType, potentialTargetCard))
+    return false;
+  if (isAlreadyLinked(currentCardLinks, potentialTargetCard, selectedLinkType))
+    return false;
+  return true;
 }
