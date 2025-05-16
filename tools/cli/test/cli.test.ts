@@ -303,15 +303,17 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Generate calculations', function (done) {
+  it('Test calc run with tree query', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo calc generate&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo calc run ../../resources/calculations/queries/tree.lp &&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
         }
         expect(error).to.be.null;
-        expect(stdout).to.include('Done');
+        expect(stdout).to.include(decisionCardKey);
+        expect(stdout).to.include(pageCardKey);
+        expect(stdout).to.include(newPageCardKey);
         expect(stdout).to.include('Project structure validated');
         done();
       },
