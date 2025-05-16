@@ -79,7 +79,7 @@ const baseContent = readFileSync(baseProgramPath, 'utf-8');
 const queryLanguageContent = readFileSync(queryLanguagePath, 'utf-8');
 
 const reportQueryTemplate = readFileSync(
-  join(commonResourcesLocation, '/graphvizReport/model.lp'),
+  join(commonResourcesLocation, '/graphvizReport/query.lp.hbs'),
   'utf-8',
 );
 const reportContentTemplate = readFileSync(
@@ -356,14 +356,13 @@ export class Calculate {
     return pathExists(location) ? location : null;
   }
 
-  //
   private async run(query: string): Promise<string[]> {
     const res = await Calculate.mutex.runExclusive(async () => {
       // For queries, use both base and queryLanguage
       const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
 
       // Then solve with the program - need to pass the program as parameter
-      return solve(query as string, basePrograms);
+      return solve(query, basePrograms);
     });
 
     logger.trace(
@@ -558,7 +557,7 @@ export class Calculate {
 
   /**
    * Runs a logic program using clingo.
-   * @param filePath Path to a query file to be run in relation to current working directory
+   * @param query Logic program to be run
    * @returns parsed program output
    */
   public async runLogicProgram(query: string) {

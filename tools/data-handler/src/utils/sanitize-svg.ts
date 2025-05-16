@@ -35,10 +35,7 @@ export function sanitizeSvgBase64(svg: string): string {
   DOMPurify.setConfig({ USE_PROFILES: { svg: true } });
   DOMPurify.addHook('afterSanitizeAttributes', removeSvgWidthAndHeight);
 
-  let cleaned = DOMPurify.sanitize(svg);
-
-  // Remove link titles, quick fix for Clingraph/Graphviz generated titles for links that are quite strange
-  cleaned = cleaned.replace(/\s*xlink:title=(["']).*?\1/g, '');
+  const cleaned = DOMPurify.sanitize(svg);
 
   return Buffer.from(cleaned, 'utf-8').toString('base64');
 }
