@@ -32,14 +32,23 @@ import type { Calculate } from '../commands/index.js';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 
+/**
+ * Constructor for all macros except report macros
+ */
 export interface SimpleMacroConstructor {
-  new (tasks: TaskQueue): BaseMacro; // Constructor signature
+  new (tasks: TaskQueue): BaseMacro;
 }
 
+/**
+ * Constructor for report macros
+ */
 export interface ReportMacroConstructor {
   new (tasks: TaskQueue, calculate: Calculate): BaseMacro;
 }
 
+/**
+ * Constructor for all macros
+ */
 export type MacroConstructor = SimpleMacroConstructor | ReportMacroConstructor;
 
 export const macros: {
@@ -51,6 +60,13 @@ export const macros: {
   scoreCard,
 };
 
+/**
+ * Validates the content inside a macro
+ * @param macro - The macro to validate the content of
+ * @param data - The data to validate
+ * @param validator - The validator to use
+ * @returns The validated data
+ */
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: unknown,
