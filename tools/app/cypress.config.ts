@@ -26,7 +26,7 @@ export default defineConfig({
 
           // Create test project from module-base
           execSync(
-            'cd ../../.tmp&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat&&cd cyberismo-bat&&cyberismo import module ../module-base&&cyberismo create card base/templates/page',
+            'cd ../../.tmp&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat&&cd cyberismo-bat&&cyberismo import module https://github.com/CyberismoCom/module-base.git&&cyberismo create card base/templates/page',
           );
           return true;
         },
