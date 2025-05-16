@@ -28,21 +28,45 @@ import type {
 } from '../interfaces/macros.js';
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
-
+import type { Calculate } from '../commands/index.js';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 
-export interface MacroConstructor {
-  new (tasks: TaskQueue): BaseMacro; // Constructor signature
+/**
+ * Constructor for all macros except report macros
+ */
+export interface SimpleMacroConstructor {
+  new (tasks: TaskQueue): BaseMacro;
 }
 
-export const macros: { [K in MacroName]: MacroConstructor } = {
+/**
+ * Constructor for report macros
+ */
+export interface ReportMacroConstructor {
+  new (tasks: TaskQueue, calculate: Calculate): BaseMacro;
+}
+
+/**
+ * Constructor for all macros
+ */
+export type MacroConstructor = SimpleMacroConstructor | ReportMacroConstructor;
+
+export const macros: {
+  [K in MacroName]: MacroConstructor;
+} = {
   createCards,
   graph,
   report,
   scoreCard,
 };
 
+/**
+ * Validates the content inside a macro
+ * @param macro - The macro to validate the content of
+ * @param data - The data to validate
+ * @param validator - The validator to use
+ * @returns The validated data
+ */
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: unknown,
@@ -74,11 +98,12 @@ export function registerMacros(
   instance: typeof Handlebars,
   context: MacroGenerationContext,
   tasks: TaskQueue,
+  calculate: Calculate,
 ) {
   const macroInstances: BaseMacro[] = [];
   for (const macro of Object.keys(macros) as MacroName[]) {
     const MacroClass = macros[macro];
-    const macroInstance = new MacroClass(tasks);
+    const macroInstance = new MacroClass(tasks, calculate);
     instance.registerHelper(macro, function (this: unknown, options) {
       if (
         this != null &&
@@ -134,11 +159,12 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
 export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
+  calculate: Calculate,
   maxTries: number = 10,
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
-  registerMacros(handlebars, context, tasks);
+  registerMacros(handlebars, context, tasks, calculate);
   let result = content;
   while (maxTries-- > 0) {
     tasks.reset();
