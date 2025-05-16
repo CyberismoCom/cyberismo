@@ -24,6 +24,7 @@ import { DataType, MetadataValue } from '../lib/definitions';
 import EditableField, { EditableFieldProps } from './EditableField';
 import { CardResponse } from '../lib/api/types';
 import { getDefaultValue } from '@/lib/utils';
+import moment from 'moment';
 
 interface FieldItemProps {
   expanded?: boolean;
@@ -172,6 +173,16 @@ function MetadataView({
           editableFieldProps={{
             label: t('cardType'),
             dataType: 'shortText',
+            edit: false,
+          }}
+        />
+        <FieldItem
+          name="__lastUpdated__"
+          forceValue={moment(card.lastUpdated).format('lll')}
+          expanded={true}
+          editableFieldProps={{
+            label: t('lastUpdated'),
+            dataType: 'dateTime',
             edit: false,
           }}
         />
