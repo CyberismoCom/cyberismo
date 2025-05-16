@@ -1,4 +1,13 @@
 import { Project } from '@/lib/definitions';
+
+import {
+  QueryResult,
+  CalculationLink,
+} from '@cyberismocom/data-handler/types/queries';
+import { ExpandedLinkType } from '@/lib/definitions';
+
+import { expect, test, describe } from 'vitest';
+
 import {
   countChildren,
   deepCopy,
@@ -9,10 +18,11 @@ import {
   flattenTree,
   getDefaultValue,
   getMoveableCards,
+  createPredicate,
+  isCardTypePermittedForLinkType,
+  isAlreadyLinked,
+  canCreateLinkToCard,
 } from '@/lib/utils';
-import { QueryResult } from '@cyberismocom/data-handler/types/queries';
-
-import { expect, test } from 'vitest';
 
 test('flattenTree works with test data', async () => {
   const result = flattenTree(treeQueryResult);
@@ -477,3 +487,301 @@ const treeQueryResult: QueryResult<'tree'>[] = [
     ],
   },
 ];
+
+// Test data for link-related functions
+const mockExpandedLinkType: ExpandedLinkType = {
+  name: 'testLink',
+  outboundDisplayName: 'Test Link Out',
+  inboundDisplayName: 'Test Link In',
+  enableLinkDescription: false,
+  direction: 'outbound',
+  sourceCardTypes: ['typeA'],
+  destinationCardTypes: ['typeB'],
+  id: 1,
+};
+
+const mockPotentialTargetCard: QueryResult<'tree'> = {
+  key: 'card2',
+  cardType: 'typeB',
+  title: 'Card 2',
+  labels: [],
+  links: [],
+  notifications: [],
+  policyChecks: { successes: [], failures: [] },
+  deniedOperations: {
+    transition: [],
+    move: [],
+    delete: [],
+    editField: [],
+    editContent: [],
+  },
+  rank: '1',
+};
+
+const mockCurrentCardLinks: CalculationLink[] = [
+  {
+    key: 'card3',
+    linkType: 'anotherLink',
+    direction: 'outbound',
+    title: 'Card 3',
+    displayName: 'Card 3 Link',
+    linkSource: 'user',
+  },
+];
+
+test('createPredicate creates a working predicate function', () => {
+  const baseFunction = (a: number, b: number, c: number) => a + b + c;
+  const predicate = createPredicate(baseFunction, 1, 2);
+  expect(predicate(3)).toBe(6);
+});
+
+describe('isCardTypePermittedForLinkType', () => {
+  test('returns true for permitted outbound link', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'outbound',
+      destinationCardTypes: ['typeB'],
+    };
+    const card: QueryResult<'tree'> = {
+      ...mockPotentialTargetCard,
+      cardType: 'typeB',
+    };
+    expect(isCardTypePermittedForLinkType(linkType, card)).toBe(true);
+  });
+
+  test('returns false for non-permitted outbound link', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'outbound',
+      destinationCardTypes: ['typeC'],
+    };
+    const card: QueryResult<'tree'> = {
+      ...mockPotentialTargetCard,
+      cardType: 'typeB',
+    };
+    expect(isCardTypePermittedForLinkType(linkType, card)).toBe(false);
+  });
+
+  test('returns true for permitted inbound link', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'inbound',
+      sourceCardTypes: ['typeA'],
+    };
+    const card: QueryResult<'tree'> = {
+      ...mockPotentialTargetCard,
+      cardType: 'typeA',
+    };
+    expect(isCardTypePermittedForLinkType(linkType, card)).toBe(true);
+  });
+
+  test('returns false for non-permitted inbound link', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'inbound',
+      sourceCardTypes: ['typeC'],
+    };
+    const card: QueryResult<'tree'> = {
+      ...mockPotentialTargetCard,
+      cardType: 'typeA',
+    };
+    expect(isCardTypePermittedForLinkType(linkType, card)).toBe(false);
+  });
+
+  test('returns true if destinationCardTypes is empty for outbound', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'outbound',
+      destinationCardTypes: [],
+    };
+    expect(
+      isCardTypePermittedForLinkType(linkType, mockPotentialTargetCard),
+    ).toBe(true);
+  });
+
+  test('returns true if sourceCardTypes is empty for inbound', () => {
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'inbound',
+      sourceCardTypes: [],
+    };
+    expect(
+      isCardTypePermittedForLinkType(linkType, mockPotentialTargetCard),
+    ).toBe(true);
+  });
+});
+
+describe('isAlreadyLinked', () => {
+  test('returns true if card is already linked with same type and direction', () => {
+    const links: CalculationLink[] = [
+      {
+        key: 'card2',
+        linkType: 'testLink',
+        direction: 'outbound',
+        title: 'Card 2',
+        displayName: 'Card 2 Link',
+        linkSource: 'user',
+      },
+    ];
+    expect(
+      isAlreadyLinked(links, mockPotentialTargetCard, mockExpandedLinkType),
+    ).toBe(true);
+  });
+
+  test('returns false if card is linked but with different type', () => {
+    const links: CalculationLink[] = [
+      {
+        key: 'card2',
+        linkType: 'otherLink',
+        direction: 'outbound',
+        title: 'Card 2',
+        displayName: 'Card 2 Link',
+        linkSource: 'user',
+      },
+    ];
+    expect(
+      isAlreadyLinked(links, mockPotentialTargetCard, mockExpandedLinkType),
+    ).toBe(false);
+  });
+
+  test('returns false if card is linked but with different direction', () => {
+    const links: CalculationLink[] = [
+      {
+        key: 'card2',
+        linkType: 'testLink',
+        direction: 'inbound',
+        title: 'Card 2',
+        displayName: 'Card 2 Link',
+        linkSource: 'user',
+      },
+    ];
+    const linkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'outbound',
+    };
+    expect(isAlreadyLinked(links, mockPotentialTargetCard, linkType)).toBe(
+      false,
+    );
+  });
+
+  test('returns false if card is not linked', () => {
+    expect(
+      isAlreadyLinked(
+        mockCurrentCardLinks,
+        mockPotentialTargetCard,
+        mockExpandedLinkType,
+      ),
+    ).toBe(false);
+  });
+
+  test('returns false if card is linked with link description even if link exists', () => {
+    const links: CalculationLink[] = [
+      {
+        key: 'card2',
+        linkType: 'testLink',
+        direction: 'outbound',
+        title: 'Card 2',
+        displayName: 'Card 2 Link',
+        linkSource: 'user',
+        linkDescription: 'something',
+      },
+    ];
+    const linkTypeWithDescription: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      enableLinkDescription: true,
+    };
+    expect(
+      isAlreadyLinked(links, mockPotentialTargetCard, linkTypeWithDescription),
+    ).toBe(false);
+  });
+});
+
+describe('canCreateLinkToCard', () => {
+  const currentCardKey = 'card1';
+
+  test('returns false if selectedLinkType is undefined', () => {
+    expect(
+      canCreateLinkToCard(
+        currentCardKey,
+        undefined,
+        mockCurrentCardLinks,
+        mockPotentialTargetCard,
+      ),
+    ).toBe(false);
+  });
+
+  test('returns false if potentialTargetCard key is the same as currentCardKey', () => {
+    const card: QueryResult<'tree'> = {
+      ...mockPotentialTargetCard,
+      key: currentCardKey,
+    };
+    expect(
+      canCreateLinkToCard(
+        currentCardKey,
+        mockExpandedLinkType,
+        mockCurrentCardLinks,
+        card,
+      ),
+    ).toBe(false);
+  });
+
+  test('returns false if card type is not permitted', () => {
+    const nonPermittingLinkType: ExpandedLinkType = {
+      ...mockExpandedLinkType,
+      direction: 'outbound',
+      destinationCardTypes: ['typeX'],
+    };
+    expect(
+      canCreateLinkToCard(
+        currentCardKey,
+        nonPermittingLinkType,
+        mockCurrentCardLinks,
+        mockPotentialTargetCard,
+      ),
+    ).toBe(false);
+  });
+
+  test('returns false if card is already linked', () => {
+    const alreadyLinkedSetupLinks: CalculationLink[] = [
+      {
+        key: mockPotentialTargetCard.key,
+        linkType: mockExpandedLinkType.name,
+        direction: mockExpandedLinkType.direction,
+        title: 'Card 2',
+        displayName: 'Card 2 Link',
+        linkSource: 'user',
+      },
+    ];
+    expect(
+      canCreateLinkToCard(
+        currentCardKey,
+        mockExpandedLinkType,
+        alreadyLinkedSetupLinks,
+        mockPotentialTargetCard,
+      ),
+    ).toBe(false);
+  });
+
+  test('returns true if all conditions are met (linkable)', () => {
+    const linkableLinkType: ExpandedLinkType = {
+      name: 'testLink',
+      outboundDisplayName: 'Test Link Out',
+      inboundDisplayName: 'Test Link In',
+      enableLinkDescription: false,
+      direction: 'outbound',
+      sourceCardTypes: ['typeSomethingElse'],
+      destinationCardTypes: ['typeB'],
+      id: 1,
+    };
+    const noExistingLinks: CalculationLink[] = [];
+
+    expect(
+      canCreateLinkToCard(
+        currentCardKey,
+        linkableLinkType,
+        noExistingLinks,
+        mockPotentialTargetCard,
+      ),
+    ).toBe(true);
+  });
+});
