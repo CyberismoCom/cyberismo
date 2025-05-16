@@ -140,6 +140,10 @@ export function pathToResourceName(
   if (!identifier || !type || !prefix) {
     throw new Error(`invalid path: ${path}`);
   }
+  if (identifierIndex + 1 !== parts.length) {
+    throw new Error(`not a resource path: ${path}`);
+  }
+
   return {
     prefix: prefix,
     type: type,
