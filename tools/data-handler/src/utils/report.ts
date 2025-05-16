@@ -13,7 +13,26 @@ import Handlebars from 'handlebars';
 import type { Calculate } from '../commands/index.js';
 import { registerEmptyMacros } from '../macros/index.js';
 
-// Parameters for the core generation function
+/**
+ * Formats a value from a logic program for use to graphviz
+ * @param value - The value to format
+ * @returns The formatted value
+ */
+export function formatAttributeValue(value?: string) {
+  if (!value) {
+    return '';
+  }
+  // value is an html-like string
+  if (value.length > 1 && value.startsWith('<') && value.endsWith('>')) {
+    return value;
+  }
+  // value is a normal string and needs to be wrapped in quotes
+  return `"${value}"`;
+}
+
+/**
+ * Parameters for the core generation function
+ */
 interface GenerateReportContentParams {
   calculate: Calculate;
   contentTemplate: string;
@@ -64,16 +83,4 @@ export async function generateReportContent(
     ...options,
     ...result,
   });
-}
-
-export function formatAttributeValue(value?: string) {
-  if (!value) {
-    return '';
-  }
-  // value is an html-like string
-  if (value.length > 1 && value.startsWith('<') && value.endsWith('>')) {
-    return value;
-  }
-  // value is a normal string and needs to be wrapped in quotes
-  return `"${value}"`;
 }
