@@ -258,8 +258,12 @@ export class Commands {
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
-          const [source, branch] = args;
-          await this.import(source, branch);
+          const [source, branch, useCredentials] = args;
+          await this.import(
+            source,
+            branch,
+            useCredentials && useCredentials === 'true' ? true : false,
+          );
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
@@ -466,12 +470,15 @@ export class Commands {
   }
 
   // Imports another project to the 'destination' project as a module.
-  private async import(source: string, branch?: string) {
-    return this.commands?.importCmd.importModule(
-      source,
-      this.projectPath,
-      branch,
-    );
+  private async import(
+    source: string,
+    branch?: string,
+    useCredentials?: boolean,
+  ) {
+    return this.commands?.importCmd.importModule(source, this.projectPath, {
+      branch: branch,
+      private: useCredentials,
+    });
   }
 
   // Imports cards from a CSV file to a project.

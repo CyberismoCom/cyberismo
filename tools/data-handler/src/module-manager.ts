@@ -20,7 +20,10 @@ import http from 'isomorphic-git/http/node/index.js';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
 import type { Import } from './commands/index.js';
-import type { ModuleSetting } from './interfaces/project-interfaces.js';
+import type {
+  ModuleSetting,
+  ModuleSettingOptions,
+} from './interfaces/project-interfaces.js';
 import { Project } from './containers/project.js';
 import type { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
@@ -63,7 +66,9 @@ export class ModuleManager {
       dir: join(this.tempModulesDir, module.name),
       ref: module.branch,
     });
-    console.error(`... Switched to '${module.branch}' branch`);
+    console.error(
+      `... Switched to '${module.branch}' branch for module '${module.name}'`,
+    );
   }
 
   // Handles cloning of a repository.
@@ -82,7 +87,16 @@ export class ModuleManager {
       throw new Error(`Invalid repository URL: ${module.location}`);
     }
 
-    if (process.env.CYBERISMO_GIT_USER && process.env.CYBERISMO_GIT_TOKEN) {
+    if (
+      process.env.CYBERISMO_GIT_USER &&
+      process.env.CYBERISMO_GIT_TOKEN &&
+      module.private
+    ) {
+      if (verbose) {
+        console.log(
+          `... Using credentials '${process.env.CYBERISMO_GIT_USER}' for cloning '${module.name}'`,
+        );
+      }
       repoUrl.username = process.env.CYBERISMO_GIT_USER;
       repoUrl.password = process.env.CYBERISMO_GIT_TOKEN;
     }
@@ -93,11 +107,15 @@ export class ModuleManager {
       url: repoUrl.toString(),
       depth: 1,
       onAuth: () => {
-        // Return undefined for public repos when credentials aren't available
+        // Turn credentials 'off' when they are not available
         if (
           !process.env.CYBERISMO_GIT_USER ||
           !process.env.CYBERISMO_GIT_TOKEN
         ) {
+          return undefined;
+        }
+        // Turn credentials 'off' for public repos
+        if (!module.private) {
           return undefined;
         }
         return {
@@ -177,7 +195,9 @@ export class ModuleManager {
   // Handles importing a module from module settings 'location'
   private async importFromFolder(module: ModuleSetting) {
     await this.importCmd.updateExistingModule(module.location);
-    console.log(`... Imported module '${module.name}' to the project`);
+    console.log(
+      `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
+    );
   }
 
   // Handles importing a module from '.temp' folder
@@ -185,7 +205,9 @@ export class ModuleManager {
     await this.importCmd.updateExistingModule(
       join(this.tempModulesDir, module.name),
     );
-    console.log(`... Imported module '${module.name}' to the project`);
+    console.log(
+      `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
+    );
   }
 
   // Returns true if module is imported from file-system.
@@ -259,6 +281,13 @@ export class ModuleManager {
     for (const module of modules) {
       const existingModule = moduleMap.get(module.name);
       if (existingModule) {
+        if (existingModule.private !== module.private) {
+          throw new Error(
+            `Module conflict: '${module.name}' has different access:\n` +
+              `  - ${existingModule.private || 'undefined'}\n` +
+              `  - ${module.private || 'undefined'}`,
+          );
+        }
         if (existingModule.location !== module.location) {
           throw new Error(
             `Module conflict: '${module.name}' has different locations:\n` +
@@ -340,14 +369,16 @@ export class ModuleManager {
   /**
    * Imports module from gitUrl.
    * @param source Git URL to import from.
+   * @param options Modules setting options.
    * @returns module prefix as defined in its CardsConfig.json
    */
-  public async importGitModule(source: string) {
+  public async importGitModule(source: string, options?: ModuleSettingOptions) {
     const repoName = await this.clone({
       name: '',
       location: source,
+      ...options,
     });
-    await this.branch({ name: repoName, location: source });
+    await this.branch({ name: repoName, location: source, ...options });
     const clonePath = join(this.project.paths.tempFolder, 'modules', repoName);
     const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
     await this.validatePrefix(modulePrefix);

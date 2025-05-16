@@ -142,10 +142,14 @@ export interface ProjectSettings {
 }
 
 // Module configuration.
-export interface ModuleSetting {
+export interface ModuleSetting extends ModuleSettingOptions {
   name: string;
   location: string;
+}
+
+export interface ModuleSettingOptions {
   branch?: string;
+  private?: boolean;
 }
 
 // Resources that are possible to remove.
