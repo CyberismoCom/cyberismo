@@ -111,6 +111,7 @@ describe('Navigation', () => {
     // Verify meatdata
     cy.get('[data-cy="metadataView"]').contains(t['cardKey']);
     cy.get('[data-cy="metadataView"]').contains(t['cardType']);
+    cy.get('[data-cy="metadataView"]').contains(t['lastUpdated']);
     cy.get('[data-cy="metadataView"]').contains('base/cardTypes/decision');
 
     // Check that edit element is visible and clicks it
