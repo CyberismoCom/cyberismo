@@ -152,7 +152,7 @@ export default function Page() {
               } catch (error) {
                 dispatch(
                   addNotification({
-                    message: `Failed to handle link operation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    message: error instanceof Error ? error.message : '',
                     type: 'error',
                   }),
                 );
@@ -172,7 +172,7 @@ export default function Page() {
               } catch (error) {
                 dispatch(
                   addNotification({
-                    message: `Failed to delete link: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    message: error instanceof Error ? error.message : '',
                     type: 'error',
                   }),
                 );

@@ -145,11 +145,18 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
           sx={{
             marginBottom: index * 9,
           }}
-          autoHideDuration={4000}
+          autoHideDuration={notification.type === 'error' ? 10000 : 4000}
           color={notification.type === 'error' ? 'danger' : 'success'}
           variant="solid"
           onClose={(_, reason) => {
-            if (reason === 'clickaway') return;
+            // If the notification has been closed by clicking away, and it has been less than 2 seconds, don't close it
+            if (
+              reason === 'clickaway' &&
+              notification.createdAt + 2000 >= Date.now()
+            ) {
+              return;
+            }
+
             dispatch(closeNotification(notification.id));
           }}
           onUnmount={() => {
