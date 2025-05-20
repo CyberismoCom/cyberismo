@@ -46,8 +46,8 @@ export class CommandManager {
   public updateCmd: Update;
   public validateCmd: Validate;
 
-  constructor(path: string) {
-    this.project = new Project(path);
+  constructor(path: string, concurrentApps?: boolean) {
+    this.project = new Project(path, concurrentApps);
     this.validateCmd = Validate.getInstance();
 
     this.showCmd = new Show(this.project);
@@ -74,6 +74,16 @@ export class CommandManager {
    */
   public async initialize() {
     await this.project.collectModuleResources();
+
+    // If process has been killed, cleanup project.
+    process.on('SIGINT', () => {
+      this.project.dispose();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      this.project.dispose();
+      process.exit(0);
+    });
   }
 
   /**
@@ -82,16 +92,19 @@ export class CommandManager {
    * @param path Project path.
    * @returns Instance of this class.
    */
-  public static async getInstance(path: string): Promise<CommandManager> {
+  public static async getInstance(
+    path: string,
+    watchResourceChanges?: boolean,
+  ): Promise<CommandManager> {
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
     ) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance = new CommandManager(path, watchResourceChanges);
       await CommandManager.instance.initialize();
     }
     if (!CommandManager.instance) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance = new CommandManager(path, watchResourceChanges);
       await CommandManager.instance.initialize();
     }
     return CommandManager.instance;

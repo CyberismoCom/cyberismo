@@ -78,12 +78,16 @@ export class Project extends CardContainer {
   private projectPaths: ProjectPaths;
   private settings: ProjectConfiguration;
   private validator: Validate;
+  private resourceWatcher: ContentWatcher | undefined;
 
   // Created resources are held in a cache.
   // In the cache, key is resource name, and data is resource metadata (as JSON).
   private createdResources = new Map<string, JSON>();
 
-  constructor(path: string) {
+  constructor(
+    path: string,
+    private watchResourceChanges?: boolean,
+  ) {
     super(path, '');
 
     this.settings = new ProjectConfiguration(
@@ -101,8 +105,8 @@ export class Project extends CardContainer {
 
     // Watch changes in .cards if there are multiple instances of Project being
     // run concurrently.
-    if (process.env.CONCURRENT_APPS === 'true') {
-      new ContentWatcher(
+    if (this.watchResourceChanges) {
+      this.resourceWatcher = new ContentWatcher(
         ignoreRenameFileChanges,
         this.paths.resourcesFolder,
         async (fileName: string) => {
@@ -361,6 +365,16 @@ export class Project extends CardContainer {
     }
     const { template } = this.cardPathParts(card.path);
     return new TemplateResource(this, resourceName(template)).templateObject();
+  }
+
+  /**
+   * Cleanups project when it is being closed.
+   */
+  public dispose() {
+    if (this.resourceWatcher) {
+      this.resourceWatcher.close();
+      this.resourceWatcher = undefined;
+    }
   }
 
   /**

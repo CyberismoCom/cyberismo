@@ -47,7 +47,7 @@ import { resourceName } from './utils/resource-utils.js';
 export interface CardsOptions {
   details?: boolean;
   forceStart?: boolean;
-  concurrentApps?: boolean;
+  watchResourceChanges?: boolean;
   projectPath?: string;
   repeat?: number;
   showUse?: boolean;
@@ -114,14 +114,11 @@ export class Commands {
     args: string[],
     options: CardsOptions,
   ): Promise<requestStatus> {
-    if (options.concurrentApps) {
-      process.env.CONCURRENT_APPS = 'true';
-    }
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
     if (!creatingNewProject) {
       try {
-        await this.doSetProject(options.projectPath || '');
+        await this.doSetProject(options);
       } catch (error) {
         return { statusCode: 400, message: errorFunction(error) };
       }
@@ -147,7 +144,8 @@ export class Commands {
   }
 
   // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(path: string) {
+  private async doSetProject(options: CardsOptions) {
+    const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
       let errorMessage = '';
@@ -163,7 +161,10 @@ export class Commands {
       throw new Error(`Input validation error: cannot find project '${path}'`);
     }
 
-    this.commands = await CommandManager.getInstance(this.projectPath);
+    this.commands = await CommandManager.getInstance(
+      this.projectPath,
+      options.watchResourceChanges,
+    );
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
     }

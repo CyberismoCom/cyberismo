@@ -20,6 +20,7 @@ import { watch } from 'node:fs';
  */
 export class ContentWatcher {
   private watcher;
+  private abortController = new AbortController();
 
   constructor(
     ignoreRenames: boolean,
@@ -28,14 +29,29 @@ export class ContentWatcher {
   ) {
     this.watcher = watch(
       this.watchPath,
-      { persistent: true, recursive: true },
+      {
+        persistent: true,
+        recursive: true,
+        signal: this.abortController.signal,
+      },
       (eventType, filename) => {
         if ((ignoreRenames && eventType === 'rename') || !filename) {
           return;
         }
         callback(filename);
       },
-    );
+    ).on('error', (error) => {
+      console.error('Watch error:', error);
+      this.close();
+    });
     this.watcher.unref();
+  }
+
+  /**
+   * Close content watcher. Removes watchers.
+   */
+  public close(): void {
+    this.abortController.abort();
+    this.watcher?.close();
   }
 }
