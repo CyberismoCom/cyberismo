@@ -204,7 +204,7 @@ function MetadataView({
             dataType,
             enumValues,
             fieldDisplayName,
-            fieldDescription,
+            description,
             visibility,
             isCalculated,
             value,
@@ -223,7 +223,7 @@ function MetadataView({
                 .map((field) => field.fieldName)
                 .includes(key)}
               context={context}
-              description={fieldDescription}
+              description={description}
               editableFieldProps={{
                 dataType,
                 label: fieldDisplayName || key,

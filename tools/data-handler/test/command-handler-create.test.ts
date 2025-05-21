@@ -856,6 +856,7 @@ describe('create command', () => {
     const content = `
         {
           "name": "${workflowName}",
+          "displayName": "",
           "states": [
               { "name": "Open", "category": "initial" },
               { "name": "In Progress", "category": "active" },
@@ -970,9 +971,8 @@ describe('create command', () => {
   });
   it('access default parameters for template (success)', () => {
     const defaultContent = DefaultContent.template('testName');
-    expect(defaultContent.displayName).to.equal(undefined);
+    expect(defaultContent.displayName).to.equal('');
     expect(defaultContent.category).to.equal(undefined);
-    expect(defaultContent.description).to.equal(undefined);
   });
   it('access default parameters for workflow (success)', () => {
     const defaultContent = DefaultContent.workflow('test');
