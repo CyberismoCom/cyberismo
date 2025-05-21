@@ -1,3 +1,4 @@
 {
-  "name": "mini/templates/test-template"
+  "name": "mini/templates/test-template",
+  "displayName": "Test template"
 }

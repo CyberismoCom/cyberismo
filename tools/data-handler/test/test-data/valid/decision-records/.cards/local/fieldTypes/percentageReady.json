@@ -1,6 +1,6 @@
 {
     "name": "decision/fieldTypes/percentageReady",
     "displayName": "Percentage ready",
-    "fieldDescription": "How complete (in %) the task is",
+    "description": "How complete (in %) the task is",
     "dataType": "number"
 }

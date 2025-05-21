@@ -5,6 +5,14 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "description": {
+      "description": "A description that describes the link type",
+      "type": "string"
+    },
+    "displayName": {
+      "description": "A name by which the link type is referred to in the user interface",
+      "type": "string"
+    },
     "name": {
       "type": "string",
       "description": "The technical name by which the field is referred to in JSON files."
@@ -37,6 +45,7 @@
     }
   },
   "required": [
+    "displayName",
     "name",
     "outboundDisplayName",
     "inboundDisplayName",

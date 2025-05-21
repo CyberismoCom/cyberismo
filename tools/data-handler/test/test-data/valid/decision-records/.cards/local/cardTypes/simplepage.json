@@ -1,4 +1,5 @@
 {
     "name": "decision/cardTypes/simplepage",
+    "displayName": "Simple card type",
     "workflow": "decision/workflows/simple"
 }
