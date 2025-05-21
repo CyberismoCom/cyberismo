@@ -233,6 +233,16 @@ export function handleMacroError(
 // This is used to generate unique keys for macros
 // There might be a better way to do this
 let macroCounter = 0;
+
+type Value = string | number | boolean | undefined;
+
+/**
+ * Macro options can be a flat object or a nested object
+ * The nested object will be flattened into dot notation attributes
+ */
+export type MacroOptions = {
+  [key: string]: Value | MacroOptions;
+};
 /**
  * Creates an injectable placeholder for a macro
  * @param macro - The macro to create the placeholder for
@@ -240,13 +250,38 @@ let macroCounter = 0;
  */
 export function createHtmlPlaceholder(
   macro: MacroMetadata,
-  options: Record<string, string | number | undefined>,
+  options: MacroOptions,
 ) {
-  // Key value pairs are shown using the key as the attribute name and the value as the attribute value
-  // Values are wrapped in quotes to prevent issues with special characters
-  const optionString = Object.keys(options)
-    .map((key) => `${key}="${options[key]}"`)
-    .join(' ');
+  // Flatten nested objects into dot notation attributes
+  const flattenedOptions: Record<string, Value> = {};
+
+  // Helper function to flatten nested objects
+  const flatten = (obj: MacroOptions, prefix = ''): void => {
+    Object.entries(obj).forEach(([key, value]) => {
+      const newKey = prefix ? `${prefix}.${key}` : key;
+
+      if (
+        value !== null &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        // Recursively flatten nested objects
+        flatten(value, newKey);
+      } else {
+        // Add leaf values to flattened options
+        flattenedOptions[newKey] = value as Value;
+      }
+    });
+  };
+
+  flatten(options);
+
+  // Convert flattened options to attribute strings
+  const attributeStrings = Object.entries(flattenedOptions)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}="${value}"`);
+
+  const optionString = attributeStrings.join(' ');
 
   // start with a line change to ensure that inline passthrough +++ is on its own line
   return `\n+++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''} key="macro-${macroCounter++}"></${macro.tagName}>\n+++\n`;

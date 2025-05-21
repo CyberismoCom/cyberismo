@@ -19,6 +19,7 @@ import {
   ProjectFetchCardDetails,
 } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismocom/data-handler';
+import { ContentfulStatusCode } from 'hono/utils/http-status';
 
 const router = new Hono();
 
@@ -166,7 +167,10 @@ router.get('/:key', async (c) => {
   if (result.status === 200) {
     return c.json(result.data);
   } else {
-    return c.text(result.message, result.status);
+    return c.text(
+      result.message || 'Unknown error',
+      result.status as ContentfulStatusCode,
+    );
   }
 });
 
@@ -267,7 +271,10 @@ router.patch('/:key', async (c) => {
   if (result.status === 200) {
     return c.json(result.data);
   } else {
-    return c.text(result.message, result.status);
+    return c.text(
+      result.message || 'Unknown error',
+      result.status as ContentfulStatusCode,
+    );
   }
 });
 
@@ -347,6 +354,10 @@ router.post('/:key', async (c) => {
     const result = await c
       .get('commands')
       .createCmd.createCard(body.template, key === 'root' ? undefined : key);
+
+    if (result.length === 0) {
+      return c.json({ error: 'No cards created' }, 400);
+    }
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {

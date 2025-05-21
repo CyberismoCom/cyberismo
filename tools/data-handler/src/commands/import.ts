@@ -73,7 +73,7 @@ export class Import {
       if (cards.length !== 1) {
         throw new Error('Card not created');
       }
-      const cardKey = cards[0];
+      const cardKey = cards[0].key;
       const card = await this.project.findSpecificCard(cardKey, {
         metadata: true,
       });

@@ -271,7 +271,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                     );
 
                     if (cards && cards.length > 0) {
-                      router.push(`/cards/${cards[0]}`);
+                      router.push(`/cards/${cards[0].key}`);
                     }
                     onClose();
                   } catch (error) {

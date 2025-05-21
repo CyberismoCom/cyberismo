@@ -10,6 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import type { MacroOptions } from '../index.js';
 import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
@@ -17,12 +18,11 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 
-export interface ScoreCardOptions {
+export interface ScoreCardOptions extends MacroOptions {
   title?: string;
   value: number;
   unit?: string;
   legend?: string;
-  [key: string]: string | number | undefined;
 }
 
 class ScoreCardMacro extends BaseMacro {

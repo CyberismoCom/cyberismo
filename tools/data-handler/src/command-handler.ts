@@ -423,8 +423,8 @@ export class Commands {
     );
     return {
       statusCode: 200,
-      affectsCards: createdCards,
-      message: `Created cards ${JSON.stringify(createdCards)}`,
+      affectsCards: createdCards?.map((card) => card.key),
+      message: `Created cards ${JSON.stringify(createdCards?.map((card) => card.key))}`,
     };
   }
 

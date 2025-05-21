@@ -11,7 +11,7 @@
 */
 
 import { registerEmptyMacros, validateMacroContent } from '../index.js';
-
+import type { MacroOptions } from '../index.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
@@ -23,7 +23,7 @@ import type TaskQueue from '../task-queue.js';
 import { ReportResource } from '../../resources/report-resource.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
-export interface ReportOptions extends Record<string, string> {
+export interface ReportOptions extends MacroOptions {
   name: string;
 }
 

@@ -447,6 +447,35 @@ export function metadataValueToString(
 }
 
 /**
+ * Parses data attributes with dot notation back into a nested object structure
+ * @param attribs - The HTML element attributes object
+ * @returns An object with nested structure based on dot notation in data attributes
+ */
+export function parseNestedDataAttributes(
+  attribs: Record<string, string>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  Object.entries(attribs).forEach(([key, value]) => {
+    const parts = key.split('.');
+    let current = result;
+
+    // Navigate through all parts except the last one
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      current[part] = current[part] || {};
+      current = current[part] as Record<string, unknown>;
+    }
+
+    // Set the value at the last part
+    const lastPart = parts[parts.length - 1];
+    current[lastPart] = value;
+  });
+
+  return result;
+}
+
+/**
  * Hook that allows easy use of multiple modals at once
  * @param modals: object with keys as modal names and values as boolean whether the modal is open
  * @returns object with functions to open and close modals and an object with the current state of the modals

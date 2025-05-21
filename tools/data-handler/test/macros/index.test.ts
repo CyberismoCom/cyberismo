@@ -212,6 +212,23 @@ describe('macros', () => {
         /^\n\+{3}\n<test-tag-name key="macro-\d+"><\/test-tag-name>\n\+{3}\n$/,
       );
     });
+    it('createHtmlPlaceholder with nested objects (dot notation)', () => {
+      const result = createHtmlPlaceholder(macro.metadata, {
+        key: 'test',
+        anotherKey: {
+          key1: 'test',
+          key2: 'test2',
+          nested: {
+            deepValue: 'deep',
+          },
+        },
+      });
+
+      expect(result).to.contain('key="test"');
+      expect(result).to.contain('anotherKey.key1="test"');
+      expect(result).to.contain('anotherKey.key2="test2"');
+      expect(result).to.contain('anotherKey.nested.deepValue="deep"');
+    });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
       expect(result).to.equal(
