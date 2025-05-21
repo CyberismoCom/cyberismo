@@ -140,6 +140,7 @@ const testProject: Project = {
   workflows: [
     {
       name: 'test/workflows/controlledDocument',
+      displayName: '',
       states: [
         {
           name: 'Draft',
@@ -176,6 +177,7 @@ const testProject: Project = {
     },
     {
       name: 'test/workflows/internalControl',
+      displayName: '',
       states: [
         {
           name: 'Open',
@@ -220,6 +222,7 @@ const testProject: Project = {
     },
     {
       name: 'test/workflows/simple',
+      displayName: '',
       states: [
         {
           name: 'Created',
@@ -237,6 +240,7 @@ const testProject: Project = {
   cardTypes: [
     {
       name: 'test/cardTypes/controlledDocument',
+      displayName: '',
       workflow: 'test/workflows/controlledDocument',
       customFields: [],
       alwaysVisibleFields: [],
@@ -244,6 +248,7 @@ const testProject: Project = {
     },
     {
       name: 'test/cardTypes/internalControl',
+      displayName: '',
       workflow: 'test/workflows/internalControl',
       customFields: [],
       alwaysVisibleFields: [],
@@ -251,6 +256,7 @@ const testProject: Project = {
     },
     {
       name: 'test/cardTypes/simplePage',
+      displayName: '',
       workflow: 'test/workflows/simple',
       customFields: [],
       alwaysVisibleFields: [],
@@ -491,6 +497,7 @@ const treeQueryResult: QueryResult<'tree'>[] = [
 // Test data for link-related functions
 const mockExpandedLinkType: ExpandedLinkType = {
   name: 'testLink',
+  displayName: '',
   outboundDisplayName: 'Test Link Out',
   inboundDisplayName: 'Test Link In',
   enableLinkDescription: false,
@@ -765,6 +772,7 @@ describe('canCreateLinkToCard', () => {
   test('returns true if all conditions are met (linkable)', () => {
     const linkableLinkType: ExpandedLinkType = {
       name: 'testLink',
+      displayName: '',
       outboundDisplayName: 'Test Link Out',
       inboundDisplayName: 'Test Link In',
       enableLinkDescription: false,

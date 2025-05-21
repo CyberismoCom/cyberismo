@@ -19,8 +19,9 @@ describe('Cli BAT test', function () {
   this.timeout(20000);
   before(() => {
     if (!existsSync(baseModulePath)) {
+      // temp clone to a feature branch
       execSync(
-        'cd ../../&&git clone git@github.com:CyberismoCom/module-base.git .tmp/module-base',
+        'cd ../../&&git clone -b feature/samimerila/consistent-resources git@github.com:CyberismoCom/module-base.git .tmp/module-base',
       );
     }
   });
@@ -34,6 +35,10 @@ describe('Cli BAT test', function () {
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
+        }
+        // If test is about to fail, show the all of the errors in the log.
+        if (!stdout.includes('Project structure validated')) {
+          log(stdout);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -55,8 +60,9 @@ describe('Cli BAT test', function () {
     );
   });
   it('Import module-base', function (done) {
+    // temp use feature branch to make the tests pass
     exec(
-      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git&&cyberismo validate',
+      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git feature/samimerila/consistent-resources&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);

@@ -1,5 +1,6 @@
 {
     "name": "decision/cardTypes/decision",
+    "displayName": "Decision card type",
     "workflow": "decision/workflows/decision",
     "customFields": [
         {

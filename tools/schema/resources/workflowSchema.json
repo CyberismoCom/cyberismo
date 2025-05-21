@@ -5,6 +5,14 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "description": {
+      "description": "A description that describes the workflow",
+      "type": "string"
+    },
+    "displayName": {
+      "description": "A name by which the workflow is referred to in the user interface",
+      "type": "string"
+    },
     "name": {
       "description": "The name of this workflow",
       "type": "string",
@@ -63,5 +71,5 @@
       }
     }
   },
-  "required": ["name", "states", "transitions"]
+  "required": ["displayName", "name", "states", "transitions"]
 }
