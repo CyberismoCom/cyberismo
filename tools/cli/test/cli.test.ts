@@ -18,6 +18,10 @@ use(chaiAsPromised);
 describe('Cli BAT test', function () {
   this.timeout(20000);
   before(() => {
+    // Always clone the repo.
+    if (existsSync(baseModulePath)) {
+      rmSync(baseModulePath, { recursive: true, force: true });
+    }
     if (!existsSync(baseModulePath)) {
       // temp clone to a feature branch
       execSync(
