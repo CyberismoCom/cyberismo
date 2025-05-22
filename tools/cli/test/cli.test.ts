@@ -6,11 +6,7 @@ import { exec, execSync } from 'child_process';
 import { log } from 'console';
 import { existsSync, rmSync } from 'fs';
 
-// CI should clone the module-base to this path
-// Locally run test clone the repository to this path in before hook
 const baseModulePath = '../../.tmp/module-base';
-
-// Path for the test project that is created during tests
 const cliPath = '../../.tmp/cyberismo-cli';
 
 let pageCardKey = '';
