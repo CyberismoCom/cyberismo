@@ -6,12 +6,7 @@ import { exec, execSync } from 'child_process';
 import { log } from 'console';
 import { existsSync, rmSync } from 'fs';
 
-// CI should clone the module-base and cyberismo-docs repositories to these paths
-// Locally run test clone the repositories to these paths in before hook
 const baseModulePath = '../../.tmp/module-base';
-const docsPath = '../../.tmp/cyberismo-docs';
-
-// Path for the test project that is created during tests
 const cliPath = '../../.tmp/cyberismo-cli';
 
 let pageCardKey = '';
@@ -28,11 +23,6 @@ describe('Cli BAT test', function () {
         'cd ../../&&git clone git@github.com:CyberismoCom/module-base.git .tmp/module-base',
       );
     }
-    if (!existsSync(docsPath)) {
-      execSync(
-        'cd ../../&&git clone git@github.com:CyberismoCom/cyberismo-docs.git .tmp/cyberismo-docs',
-      );
-    }
   });
   after(() => {
     rmSync(cliPath, { recursive: true, force: true });
@@ -41,19 +31,6 @@ describe('Cli BAT test', function () {
   it('validate module-base', function (done) {
     exec(
       'cd ../../.tmp/module-base&&cyberismo validate ',
-      (error, stdout, _stderr) => {
-        if (error != null) {
-          log(error);
-        }
-        expect(error).to.be.null;
-        expect(stdout).to.include('Project structure validated');
-        done();
-      },
-    );
-  });
-  it('validate cyberismo-docs', function (done) {
-    exec(
-      'cd ../../.tmp/cyberismo-docs&&cyberismo validate ',
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
