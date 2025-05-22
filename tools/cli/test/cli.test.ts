@@ -79,7 +79,7 @@ describe('Cli BAT test', function () {
   });
   it('Import module-base', function (done) {
     exec(
-      'cd ../../.tmp/cyberismo-cli&&cyberismo import module ../module-base&&cyberismo validate',
+      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
