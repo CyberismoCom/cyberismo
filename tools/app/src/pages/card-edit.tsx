@@ -32,7 +32,10 @@ import {
   Tooltip,
 } from '@mui/joy';
 
-import CodeMirror, { EditorState } from '@uiw/react-codemirror';
+import CodeMirror, {
+  EditorState,
+  ReactCodeMirrorRef,
+} from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
@@ -77,7 +80,7 @@ import {
   getDefaultValue,
   useModals,
 } from '@/lib/utils';
-import { useKeyParam } from '@/lib/hooks';
+import { useRequiredKeyParam } from '@/lib/hooks';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
 
@@ -218,7 +221,7 @@ function AttachmentPreviewCard({
 }
 
 function Page() {
-  const key = useKeyParam();
+  const key = useRequiredKeyParam();
 
   const { t } = useTranslation();
 
@@ -257,7 +260,6 @@ function Page() {
       key: 'escape',
     },
     () => router.safeBack(),
-    [router],
   );
 
   const [editor, setEditor] = useState<HTMLDivElement | null>(null);
@@ -300,7 +302,7 @@ function Page() {
   const isEditedValue = useAppSelector((state) => state.page.isEdited);
 
   useEffect(() => {
-    if (!contentRef.current == null) {
+    if (contentRef.current == null) {
       return;
     }
     setParsed(null);
@@ -335,6 +337,7 @@ function Page() {
       ? {
           ...card,
           title: (__title__ as string) ?? card.title,
+          labels: (__labels__ as string[]) ?? card.labels,
           rawContent: contentRef.current ?? card.rawContent,
           parsedContent: parsed,
           fields: deepCopy(card.fields) ?? [],
@@ -412,7 +415,7 @@ function Page() {
   };
 
   // ref not provided, let's just use any
-  const setRef = useCallback((ref: any) => {
+  const setRef = useCallback((ref: ReactCodeMirrorRef) => {
     if (!ref?.view || !ref?.state || !ref?.editor) {
       setView(null);
       setState(null);
@@ -587,14 +590,14 @@ function Page() {
                     <Controller
                       name="__title__"
                       control={control}
-                      render={({ field: { value, onChange } }: any) => (
+                      render={({ field: { value, onChange } }) => (
                         <Textarea
                           sx={{
                             marginBottom: '10px',
                             fontWeight: 'bold',
                             fontSize: '1.8rem',
                           }}
-                          value={value}
+                          value={value as string}
                           onChange={onChange}
                         />
                       )}
@@ -744,13 +747,9 @@ function Page() {
 }
 
 export default function Gate() {
-  const key = useKeyParam();
+  const key = useRequiredKeyParam();
   const { t } = useTranslation();
   const { isLoading, error } = useCard(key);
-
-  if (!key) {
-    return <Box>{t('failedToLoad')}</Box>;
-  }
 
   if (isLoading) {
     return <Box>{t('loading')}</Box>;

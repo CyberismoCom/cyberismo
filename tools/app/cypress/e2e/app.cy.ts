@@ -1,4 +1,5 @@
 /// <reference types="cypress" />
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const t = require('../../src/locales/en/translation.json');
 
 // These e2e tests use a 'cyberismo-bat' project that is created

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   Box,
@@ -128,12 +128,9 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     });
   };
 
-  const zoomIn = useCallback(() => applyZoom(ZOOM_STEP), [zoom, naturalSize]);
-  const zoomOut = useCallback(
-    () => applyZoom(1 / ZOOM_STEP),
-    [zoom, naturalSize],
-  );
-  const resetZoom = useCallback(() => setZoom(1), []);
+  const zoomIn = () => applyZoom(ZOOM_STEP);
+  const zoomOut = () => applyZoom(1 / ZOOM_STEP);
+  const resetZoom = () => setZoom(1);
 
   /* ---------- wheel zoom (always) ---------- */
   /* ---------- wheel / pinch zoom ---------- */

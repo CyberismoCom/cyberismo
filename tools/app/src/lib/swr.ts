@@ -40,9 +40,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 // used to call api with fetch
-export async function callApi<T = {}>(
+export async function callApi<T>(
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
+  // Below is disabled as JSON stringify also accepts any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any,
 ): Promise<T> {
   const options: RequestInit = {

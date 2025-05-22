@@ -14,7 +14,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface LoadingGateProps {
-  values?: any[];
+  values?: unknown[];
   isLoading?: boolean;
   loadingIndicator?: React.ReactNode;
   children: React.ReactNode;

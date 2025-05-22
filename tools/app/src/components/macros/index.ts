@@ -28,6 +28,9 @@ export interface MacroContext {
 
 export type UIMacroName = Exclude<MacroName, 'report' | 'graph'>;
 
+// We simply trust that the macro has been
+// validated and the backend will not return an invalid macro
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
   scoreCard: ScoreCard,

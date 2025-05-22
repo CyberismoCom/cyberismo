@@ -488,7 +488,7 @@ export function useModals<T extends Record<string, boolean>>(modals: T) {
 /**
  * Custom hook for handling forms with dynamic initial values
  */
-export function useDynamicForm(values: Object) {
+export function useDynamicForm(values: Record<string, unknown>) {
   const { reset, ...rest } = useForm();
   const [isReady, setIsReady] = useState(false);
   useEffect(() => {

@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Project, FieldTypes } from '../definitions';
+import { Project, FieldTypes, MetadataValue } from '../definitions';
 import {
   CardType,
   LinkType,
@@ -56,7 +56,7 @@ export type SwrResult<T extends ResourceName> = {
 
 export type FullCardUpdate = {
   content: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, MetadataValue>;
   state: { name: string };
   parent: string;
   index: number;
