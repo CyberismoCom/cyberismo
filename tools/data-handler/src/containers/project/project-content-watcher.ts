@@ -48,10 +48,9 @@ export class ContentWatcher {
   }
 
   /**
-   * Close content watcher. Removes watchers.
+   * Close content watcher. Removes watcher.
    */
-  public close(): void {
+  public close() {
     this.abortController.abort();
-    this.watcher?.close();
   }
 }

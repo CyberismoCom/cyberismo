@@ -74,22 +74,13 @@ export class CommandManager {
    */
   public async initialize() {
     await this.project.collectModuleResources();
-
-    // If process has been killed, cleanup project.
-    process.on('SIGINT', () => {
-      this.project.dispose();
-      process.exit(0);
-    });
-    process.on('SIGTERM', () => {
-      this.project.dispose();
-      process.exit(0);
-    });
   }
 
   /**
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
+   * @param watchResourceChanges Optional. If true, file changes are watched.
    * @returns Instance of this class.
    */
   public static async getInstance(
@@ -100,6 +91,7 @@ export class CommandManager {
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
     ) {
+      CommandManager.instance.project.dispose();
       CommandManager.instance = new CommandManager(path, watchResourceChanges);
       await CommandManager.instance.initialize();
     }
