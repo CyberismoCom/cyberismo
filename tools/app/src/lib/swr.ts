@@ -28,7 +28,15 @@ export class ApiCallError extends Error {
 export async function createApiCallError(
   response: Response,
 ): Promise<ApiCallError> {
-  return new ApiCallError(response, await response.text());
+  // If the response is a text, return the text as the reason
+  // Otherwise, it should be in json format, where the reason is the 'error' field
+  const text = await response.text();
+  try {
+    const json = JSON.parse(text);
+    return new ApiCallError(response, json.error);
+  } catch (e) {
+    return new ApiCallError(response, text);
+  }
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

@@ -17,9 +17,13 @@ export interface Notification {
   message: string;
   type: 'success' | 'error';
   closed: boolean;
+  createdAt: number;
 }
 
-export type NotificationMessage = Omit<Notification, 'id' | 'closed'>;
+export type NotificationMessage = Omit<
+  Notification,
+  'id' | 'closed' | 'createdAt'
+>;
 
 export interface NotificationsState {
   notifications: Notification[];
@@ -54,6 +58,7 @@ export const notificationsSlice = createSlice({
         type: action.payload.type,
         id: ++state.prevId,
         closed: false,
+        createdAt: Date.now(),
       });
     },
   },
