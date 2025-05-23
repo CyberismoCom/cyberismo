@@ -17,22 +17,31 @@ import { MacroContext } from '.';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
+import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 
 export type CreateCardsProps = {
   buttonlabel: string;
   template: string;
-  cardKey?: string;
+  cardkey?: string;
+  link?: {
+    linktype: string;
+    direction: LinkDirection;
+    cardkey: string;
+    description?: string;
+  };
 } & MacroContext;
 
 export default function CreateCards({
   buttonlabel,
   template,
-  cardKey,
+  cardkey,
   macroKey,
   preview,
+  link,
 }: CreateCardsProps) {
   const { t } = useTranslation();
-  const { createCard, isUpdating } = useCard(cardKey || macroKey);
+  const { createCard, isUpdating } = useCard(cardkey || macroKey);
+  const { createLink } = useCard(link?.cardkey || null);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const router = useAppRouter();
@@ -62,8 +71,60 @@ export default function CreateCards({
           );
 
           if (cards && cards.length > 0) {
-            router.push(`/cards/${cards[0]}`);
+            if (link) {
+              const rootCards = cards.filter((card) => card.parent === 'root');
+              if (rootCards.length > 0) {
+                try {
+                  const linkResults = await Promise.allSettled(
+                    rootCards.map((card) =>
+                      createLink(
+                        card.key,
+                        link.linktype,
+                        link.description,
+                        link.direction,
+                      ),
+                    ),
+                  );
+
+                  const successful = linkResults.filter(
+                    (result) => result.status === 'fulfilled',
+                  ).length;
+                  const failed = linkResults.filter(
+                    (result) => result.status === 'rejected',
+                  ).length;
+
+                  if (successful > 0) {
+                    dispatch(
+                      addNotification({
+                        message: t('createLink.success', { count: successful }),
+                        type: 'success',
+                      }),
+                    );
+                  }
+
+                  if (failed > 0) {
+                    dispatch(
+                      addNotification({
+                        message: t('createLink.partialFailure', {
+                          count: failed,
+                        }),
+                        type: 'error',
+                      }),
+                    );
+                  }
+                } catch (e) {
+                  dispatch(
+                    addNotification({
+                      message:
+                        e instanceof Error ? e.message : t('unknownError'),
+                      type: 'error',
+                    }),
+                  );
+                }
+              }
+            }
           }
+          router.push(`/cards/${cards[0].key}`);
         } catch (e) {
           dispatch(
             addNotification({

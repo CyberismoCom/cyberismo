@@ -30,7 +30,7 @@ import type {
   LinkType,
 } from '../interfaces/resource-interfaces.js';
 import { pathExists } from '../utils/file-utils.js';
-import type { ProjectFile } from '../interfaces/project-interfaces.js';
+import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
@@ -209,7 +209,7 @@ export class Create {
   public async createCard(
     templateName: string,
     parentCardKey?: string,
-  ): Promise<string[]> {
+  ): Promise<Card[]> {
     const templateResource = new TemplateResource(
       this.project,
       resourceName(templateName),
@@ -245,7 +245,7 @@ export class Create {
       const sorted = sortItems(createdCards, (item) => {
         return `${item.parent === 'root' ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
       });
-      return sorted.map((item) => item.key);
+      return sorted;
     }
     return [];
   }

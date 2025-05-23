@@ -47,6 +47,7 @@ import {
   findCard,
   flattenTree,
   useModals,
+  parseNestedDataAttributes,
 } from '../lib/utils';
 import { Link as RouterLink, useLocation } from 'react-router';
 import Add from '@mui/icons-material/Add';
@@ -772,21 +773,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     return acc;
   }, []);
 
+  // NOTE: Parser is case-insensitive and lower cases all tags and attributes
+  // htmlparser2 options cannot be used on the browser
   const parsedContent = parseReact(htmlContent, {
     replace: (node) => {
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
         if (macro) {
+          const attributes = parseNestedDataAttributes(node.attribs);
           return React.createElement(macro.component, {
-            ...node.attribs, // node attribs should contain the key
+            ...attributes,
             macroKey: card.key,
             preview,
           });
         }
       }
-    },
-    htmlparser2: {
-      lowerCaseAttributeNames: false,
     },
   });
 

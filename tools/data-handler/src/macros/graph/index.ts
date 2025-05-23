@@ -14,6 +14,7 @@
 
 import BaseMacro from '../base-macro.js';
 import { Calculate } from '../../commands/index.js';
+import type { MacroOptions } from '../index.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
@@ -28,7 +29,7 @@ import type { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
 
-export interface GraphOptions extends Record<string, string> {
+export interface GraphOptions extends MacroOptions {
   model: string;
   view: string;
 }
