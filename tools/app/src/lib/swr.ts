@@ -34,7 +34,7 @@ export async function createApiCallError(
   try {
     const json = JSON.parse(text);
     return new ApiCallError(response, json.error);
-  } catch (e) {
+  } catch {
     return new ApiCallError(response, text);
   }
 }
