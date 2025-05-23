@@ -194,9 +194,6 @@ importers:
       '@asciidoctor/core':
         specifier: ^3.0.4
         version: 3.0.4
-      '@cyberismocom/app':
-        specifier: workspace:*
-        version: link:../app
       '@cyberismocom/data-handler':
         specifier: workspace:*
         version: link:../data-handler
@@ -209,22 +206,25 @@ importers:
       hono:
         specifier: ^4.7.5
         version: 4.7.5
+    devDependencies:
+      '@cyberismocom/app':
+        specifier: workspace:*
+        version: link:../app
 
   tools/cli:
     dependencies:
-      '@inquirer/confirm':
-        specifier: ^5.1.9
-        version: 5.1.9(@types/node@22.15.1)
-      commander:
-        specifier: ^13.1.0
-        version: 13.1.0
-    devDependencies:
       '@cyberismocom/backend':
         specifier: workspace:*
         version: link:../backend
       '@cyberismocom/data-handler':
         specifier: workspace:*
         version: link:../data-handler
+      '@inquirer/confirm':
+        specifier: ^5.1.9
+        version: 5.1.9(@types/node@22.15.1)
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
 
   tools/data-handler:
     dependencies:
@@ -273,6 +273,9 @@ importers:
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
+      node-graphviz:
+        specifier: ^0.1.1
+        version: 0.1.1
       pino:
         specifier: ^9.6.0
         version: 9.6.0
@@ -3167,6 +3170,9 @@ packages:
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
+
+  node-graphviz@0.1.1:
+    resolution: {integrity: sha512-riY8/pFGSD1ipmyzqCwuN2M6W02ELfuLDjhJvTrQCUS/15tyU8ExkC96mlQrNLBK8Ws0z8PdH+ChBT6DuPFWWA==}
 
   node-gyp-build@4.8.4:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
@@ -7496,6 +7502,8 @@ snapshots:
       semver: 7.7.1
 
   node-addon-api@7.1.1: {}
+
+  node-graphviz@0.1.1: {}
 
   node-gyp-build@4.8.4: {}
 
