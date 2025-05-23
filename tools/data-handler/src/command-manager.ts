@@ -50,8 +50,8 @@ export class CommandManager {
     this.project = new Project(path);
     this.validateCmd = Validate.getInstance();
 
-    this.showCmd = new Show(this.project);
     this.calculateCmd = new Calculate(this.project);
+    this.showCmd = new Show(this.project, this.calculateCmd);
     this.createCmd = new Create(this.project, this.calculateCmd);
     this.editCmd = new Edit(this.project, this.calculateCmd);
     this.exportCmd = new Export(this.project, this.calculateCmd, this.showCmd);

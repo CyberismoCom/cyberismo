@@ -43,6 +43,7 @@ import { UserPreferences } from '../utils/user-preferences.js';
 
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
+import type { Calculate } from './calculate.js';
 
 /**
  * Show command.
@@ -52,7 +53,10 @@ export class Show {
     string,
     (from?: ResourcesFrom) => Promise<Resource[]>
   >;
-  constructor(private project: Project) {
+  constructor(
+    private project: Project,
+    private calculate: Calculate,
+  ) {
     this.resourceFunction = new Map([
       ['cardTypes', this.project.cardTypes.bind(this.project)],
       ['fieldTypes', this.project.fieldTypes.bind(this.project)],
@@ -351,7 +355,7 @@ export class Show {
       throw new Error(`Report '${reportName}' does not exist`);
     }
 
-    const reportMacro = new ReportMacro(new TaskQueue());
+    const reportMacro = new ReportMacro(new TaskQueue(), this.calculate);
     const result = await reportMacro.handleInject(
       {
         projectPath: this.project.basePath,
