@@ -10,7 +10,7 @@ const baseModulePath = '../../.tmp/module-base';
 export default defineConfig({
   e2e: {
     baseUrl: 'http://localhost:3000',
-    setupNodeEvents(on, config) {
+    setupNodeEvents(on) {
       on('task', {
         deleteTestProject() {
           rmSync(batPath, { recursive: true, force: true });

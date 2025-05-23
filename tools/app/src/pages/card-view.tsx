@@ -27,17 +27,13 @@ import { expandLinkTypes } from '@/lib/utils';
 import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useKeyParam } from '@/lib/hooks';
+import { useRequiredKeyParam } from '@/lib/hooks';
 
 export const dynamic = 'force-dynamic';
 
 export default function Page() {
   // use params from the url, it should always have a key
-  const key = useKeyParam();
-
-  if (!key) {
-    return <Typography level="title-md">Key is required</Typography>;
-  }
+  const key = useRequiredKeyParam();
 
   const { card, error, createLink, deleteLink, editLink } = useCard(key);
 
@@ -56,7 +52,6 @@ export default function Page() {
       key: 'e',
     },
     () => router.safePush(`/cards/${key}/edit`),
-    [key, router],
   );
 
   const { t } = useTranslation();

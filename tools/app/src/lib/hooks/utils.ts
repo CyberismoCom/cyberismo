@@ -15,7 +15,15 @@ import { findParentCard } from '../utils';
 import { useTree } from '../api';
 import { useParams } from 'react-router';
 
-export function useKeyParam() {
+export function useRequiredKeyParam() {
+  const key = useOptionalKeyParam();
+  if (!key) {
+    throw new Error('useKeyParam hook used in a path without a key');
+  }
+  return key;
+}
+
+export function useOptionalKeyParam() {
   const params = useParams<{ key: string }>();
   if (!params.key || typeof params.key !== 'string') {
     return null;
@@ -158,7 +166,6 @@ export function handleKeyDown(event: KeyboardEvent): void {
 export function useKeyboardShortcut(
   combo: KeyCombo,
   callback: ShortcutHandler,
-  deps: any[] = [],
 ): void {
   // Use a ref to hold the current callback to avoid recreating the event listener
   const callbackRef = useRef<ShortcutHandler>(callback);
@@ -204,7 +211,7 @@ export function useKeyboardShortcut(
         }
       }
     };
-  }, deps);
+  }, [callback, combo]);
 }
 
 /**
@@ -226,7 +233,10 @@ function getEntryValue(entry: ResizeObserverEntry, value: 'width' | 'height') {
   const accessor = value === 'width' ? 'inlineSize' : 'blockSize';
   return contentBoxSize[0]
     ? contentBoxSize[0][accessor]
-    : // @ts-ignore
+    : // The below is a hack because some browsers did not implement the feature as specified
+      // and instead returned an array-like object with direct accessor property
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       contentBoxSize[accessor];
 }
 /**

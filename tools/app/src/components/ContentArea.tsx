@@ -760,6 +760,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const htmlContent = card.parsedContent || '';
 
   const combinedMacros = Object.entries(macroMetadata).reduce<
+    // We simply trust that the macro has been validated
+    // If a validation error occurs, it should also not try to render
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (MacroMetadata & { component: (props: any) => ReactElement })[]
   >((acc, [key, value]) => {
     acc.push({
@@ -1141,7 +1144,7 @@ function renderTableOfContents(
   // Parse the HTML content
   const root = parse(htmlContent);
   // Find all header tags
-  const headers = root.querySelectorAll('h1, h2, h3').map((header: any) => ({
+  const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
     id:
       header.getAttribute('id') ||
       header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist

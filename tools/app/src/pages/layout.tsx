@@ -45,7 +45,7 @@ import {
   useAppSelector,
   useAppRouter,
   useKeyboardShortcut,
-  useKeyParam,
+  useOptionalKeyParam,
 } from '../lib/hooks';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import {
@@ -57,7 +57,7 @@ import { useTree } from '../lib/api/tree';
 
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
-  const key = useKeyParam();
+  const key = useOptionalKeyParam();
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
 
@@ -73,7 +73,6 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
         router.safePush(`/cards/${key}`);
       }
     },
-    [router, tree],
   );
 
   const notifications = useAppSelector(
@@ -189,7 +188,7 @@ const Main = styled('main')(() => ({
 
 function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const key = useKeyParam();
+  const key = useOptionalKeyParam();
 
   useKeyboardShortcut(
     {

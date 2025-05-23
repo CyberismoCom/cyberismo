@@ -33,7 +33,7 @@ interface FieldItemProps {
   editableFieldProps: Omit<Omit<EditableFieldProps, 'onChange'>, 'value'>;
   name: string;
   handleChange?: (
-    e: any,
+    e: string[] | string | null,
     onChange: (arg0: MetadataValue) => void,
     dataType: DataType | 'label',
   ) => void;
@@ -60,7 +60,7 @@ function FieldItem({
           <Controller
             name={name}
             control={context.control}
-            render={({ field: { value, onChange } }: any) => {
+            render={({ field: { value, onChange } }) => {
               return (
                 <EditableField
                   value={forceValue ?? value}
@@ -110,14 +110,14 @@ function MetadataView({
   // TODO: replace with yup schemas
   const handleChange = useCallback(
     (
-      value: string | null,
+      value: string | string[] | null,
       onChange: (arg0: MetadataValue) => void,
       dataType: DataType | 'label',
     ) => {
       switch (dataType) {
         case 'number':
         case 'integer':
-          onChange(value ? parseFloat(value) : null);
+          onChange(value ? parseFloat(value as string) : null);
           break;
         case 'boolean':
           onChange(value === 'true' ? true : value === 'false' ? false : null);

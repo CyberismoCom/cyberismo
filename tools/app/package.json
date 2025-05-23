@@ -15,7 +15,7 @@
     "start": "vite",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "pnpm run unit && pnpm e2e:headless"
+    "test": "pnpm run unit && pnpm e2e:headless && pnpm lint"
   },
   "dependencies": {},
   "devDependencies": {
