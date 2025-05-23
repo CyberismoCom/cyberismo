@@ -46,8 +46,8 @@ export class CommandManager {
   public updateCmd: Update;
   public validateCmd: Validate;
 
-  constructor(path: string) {
-    this.project = new Project(path);
+  constructor(path: string, concurrentApps?: boolean) {
+    this.project = new Project(path, concurrentApps);
     this.validateCmd = Validate.getInstance();
 
     this.showCmd = new Show(this.project);
@@ -80,18 +80,23 @@ export class CommandManager {
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
+   * @param watchResourceChanges Optional. If true, file changes are watched.
    * @returns Instance of this class.
    */
-  public static async getInstance(path: string): Promise<CommandManager> {
+  public static async getInstance(
+    path: string,
+    watchResourceChanges?: boolean,
+  ): Promise<CommandManager> {
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
     ) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance.project.dispose();
+      CommandManager.instance = new CommandManager(path, watchResourceChanges);
       await CommandManager.instance.initialize();
     }
     if (!CommandManager.instance) {
-      CommandManager.instance = new CommandManager(path);
+      CommandManager.instance = new CommandManager(path, watchResourceChanges);
       await CommandManager.instance.initialize();
     }
     return CommandManager.instance;
