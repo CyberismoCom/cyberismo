@@ -18,7 +18,8 @@
     "posttest": "pnpm lint",
     "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
     "test-coverage": "c8 pnpm test",
-    "watch": "tsc --watch -p tsconfig.build.json"
+    "dev": "tsc --watch -p tsconfig.build.json",
+    "watch": "pnpm dev"
   },
   "exports": {
     ".": "./dist/index.js",
