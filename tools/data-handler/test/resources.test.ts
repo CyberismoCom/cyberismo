@@ -1253,7 +1253,7 @@ describe('resources', function () {
         new WorkflowResource(project, resourceName('decision/workflows/newWF')),
       ];
       for (const resource of resources) {
-        await resource.validate().catch(() => expect(false).to.equal(true));
+        await expect(resource.validate()).to.not.be.rejected;
       }
     });
     it('try to validate missing resource types', async () => {
@@ -1292,7 +1292,7 @@ describe('resources', function () {
         ),
       ];
       for (const resource of resources) {
-        await resource.validate().catch(() => expect(true).to.equal(true));
+        await expect(resource.validate()).to.be.rejected;
       }
     });
     it('rename card type', async () => {

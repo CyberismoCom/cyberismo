@@ -35,10 +35,12 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Schema } from 'jsonschema';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { Validate } from '../commands/validate.js';
 
 const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
 const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
+const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
 const staticDirectoryPath = await getStaticDirectoryPath();
 
@@ -219,6 +221,15 @@ export class ReportResource extends FolderResource {
    * @note If content is not provided, base class validation will use resource's current content.
    */
   public async validate(content?: object) {
+    if (this.reportSchema) {
+      const errors = Validate.getInstance().validateJson(
+        this.reportSchema,
+        PARAMETER_SCHEMA_ID,
+      );
+      if (errors.length > 0) {
+        throw new Error(`Invalid parameter schema: ${errors}`);
+      }
+    }
     return super.validate(content);
   }
 }
