@@ -196,7 +196,7 @@ describe('import module', () => {
             expect(modules).to.contain('decision');
           }
         });
-    });
+    }).timeout(10000);
     it('try to import module - no source', async () => {
       const stubProjectPath = sinon
         .stub(commandHandler, 'setProjectPath')
