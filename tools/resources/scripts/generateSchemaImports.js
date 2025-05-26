@@ -1,8 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const schemaDir = './tools/schema';
-const outputFilePath = './tools/data-handler/src/utils/schemas.ts';
+const schemaDir = './src/schema';
+const outputFilePath = './src/schemas.ts';
 const parentSchemaFile = 'cardTreeDirectorySchema';
 
 const license = `
@@ -27,9 +27,10 @@ function nameToCamelCase(name) {
 }
 
 function getImportPath(filePath) {
-  return path
-    .relative(path.dirname(outputFilePath), filePath)
-    .replace(/\\/g, '/');
+  return (
+    './' +
+    path.relative(path.dirname(outputFilePath), filePath).replace(/\\/g, '/')
+  );
 }
 
 const parentSchemaTs = nameToCamelCase(parentSchemaFile);
