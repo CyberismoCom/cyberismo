@@ -6,6 +6,7 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.4",
     "@eslint/js": "^9.26.0",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
