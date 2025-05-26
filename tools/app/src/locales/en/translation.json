@@ -130,5 +130,11 @@
     "list": "Select",
     "label": "Add label"
   },
-  "goToField": "Go to field"
+  "goToField": "Go to field",
+  "createLink": {
+    "success": "{{count}} link created successfully",
+    "success_plural": "{{count}} links created successfully",
+    "partialFailure": "{{count}} link failed to create",
+    "partialFailure_plural": "{{count}} links failed to create"
+  }
 }

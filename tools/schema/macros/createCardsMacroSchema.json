@@ -13,6 +13,25 @@
     "cardKey": {
       "type": "string",
       "description": "The card key of the parent under which the template should be instantiated. If not given, the template will be instantiated under the card that includes this macro."
+    },
+    "link": {
+      "type": "object",
+      "properties": {
+        "linkType": {
+          "type": "string",
+          "description": "Name of the link type to create"
+        },
+        "direction": {
+          "type": "string",
+          "description": "Direction of the link. Can be 'inbound' or 'outbound'."
+        },
+        "cardKey": {
+          "type": "string",
+          "description": "Either the source of an inbound link or the target of an outbound link"
+        }
+      },
+      "additionalProperties": false,
+      "required": ["linkType", "direction", "cardKey"]
     }
   },
   "additionalProperties": false,

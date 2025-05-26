@@ -21,10 +21,10 @@ import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
 import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
 import { CardAction } from './action-types';
-
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
+import { Card } from '@cyberismocom/data-handler/interfaces/project-interfaces';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
@@ -67,7 +67,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       const result = await callUpdate(() =>
         createCard(key ?? 'root', template),
       );
-      dispatch(setRecentlyCreated(result));
+      dispatch(setRecentlyCreated(result.map((card) => card.key)));
       return result;
     },
     moveCard: async (target: string, index?: number) =>
@@ -195,8 +195,8 @@ export async function deleteCard(key: string) {
 export async function createCard(
   parentKey: string,
   template: string,
-): Promise<string[]> {
-  const result = await callApi<string[]>(apiPaths.card(parentKey), 'POST', {
+): Promise<Card[]> {
+  const result = await callApi<Card[]>(apiPaths.card(parentKey), 'POST', {
     template,
   });
 
