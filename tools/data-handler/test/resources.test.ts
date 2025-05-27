@@ -1498,12 +1498,26 @@ describe('resources', function () {
         });
     });
     it('update card type - add element to alwaysVisibleFields', async () => {
+      // Create field type to add first
+      const newFieldType = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/newOne'),
+      );
+      await newFieldType.createFieldType('shortText');
+
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
+
+      // Add the field type to the custom fields
+      await res.update('customFields', {
+        name: 'add',
+        target: { name: 'decision/fieldTypes/newOne' },
+      });
+
       await res.update('alwaysVisibleFields', {
         name: 'add',
         target: 'decision/fieldTypes/newOne',
@@ -1523,11 +1537,26 @@ describe('resources', function () {
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
     });
     it('update card type - add two elements to alwaysVisibleFields and move the latter to first', async () => {
+      // Create second field type to add (first one is already created)
+      const secondNewFieldType = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/secondNewOne'),
+      );
+      await secondNewFieldType.createFieldType('shortText');
+
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
+
+      // Add the field types to the card type
+      // Add the field type to the custom fields
+      await res.update('customFields', {
+        name: 'add',
+        target: { name: 'decision/fieldTypes/secondNewOne' },
+      });
+
       await res.update('alwaysVisibleFields', {
         name: 'add',
         target: 'decision/fieldTypes/newOne',
@@ -1553,6 +1582,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/optionallyVisible'),
       );
       await res.createCardType('decision/workflows/decision');
+
+      // Add custom field to the card type first
+      await res.update('customFields', {
+        name: 'add',
+        target: { name: 'decision/fieldTypes/newOne' },
+      });
+
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
       await res.update('optionallyVisibleFields', {
         name: 'add',
@@ -1578,6 +1614,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/optionallyVisible'),
       );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
+
+      // Add second field type to the custom fields
+      await res.update('customFields', {
+        name: 'add',
+        target: { name: 'decision/fieldTypes/secondNewOne' },
+      });
+
       await res.update('optionallyVisibleFields', {
         name: 'add',
         target: 'decision/fieldTypes/newOne',
@@ -1625,6 +1668,63 @@ describe('resources', function () {
       });
       expect((res.data as CardType).customFields.length).to.equal(1);
     });
+    it('update card type - try to add non-existing element to customFields', async () => {
+      const res = new CardTypeResource(
+        project,
+        resourceName('decision/cardTypes/checkNonExistingItems'),
+      );
+      await res.createCardType('decision/workflows/decision');
+      expect((res.data as CardType).customFields.length).to.equal(0);
+      // Adding a field type that does not exist should throw an error
+      await expect(
+        res.update('customFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/doesNotExist' },
+        }),
+      ).to.be.rejected;
+    });
+    it('update card type - try to add non-existing element to alwaysVisibleFields', async () => {
+      const res = new CardTypeResource(
+        project,
+        resourceName('decision/cardTypes/checkNonExistingItems'),
+      );
+      expect((res.data as CardType).customFields.length).to.equal(0);
+      // Adding a field type that does not exist should throw an error
+      await expect(
+        res.update('alwaysVisibleFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/doesNotExist' },
+        }),
+      ).to.be.rejected;
+      // Also adding a field type that exists, but is not part of custom fields should fail
+      await expect(
+        res.update('alwaysVisibleFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        }),
+      ).to.be.rejected;
+    });
+    it('update card type - try to add non-existing element to optionallyVisibleFields', async () => {
+      const res = new CardTypeResource(
+        project,
+        resourceName('decision/cardTypes/checkNonExistingItems'),
+      );
+      expect((res.data as CardType).customFields.length).to.equal(0);
+      // Adding a field type that does not exist should throw an error
+      await expect(
+        res.update('optionallyVisibleFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/doesNotExist' },
+        }),
+      ).to.be.rejected;
+      // Also adding a field type that exists, but is not part of custom fields should fail
+      await expect(
+        res.update('optionallyVisibleFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        }),
+      ).to.be.rejected;
+    });
     it('update card type - remove element from customFields', async () => {
       const res = new CardTypeResource(
         project,
@@ -1662,17 +1762,17 @@ describe('resources', function () {
       });
       await res.update('customFields', {
         name: 'add',
-        target: { name: 'decision/fieldTypes/newSecondOne' },
+        target: { name: 'decision/fieldTypes/secondNewOne' },
       });
       await res.update('customFields', {
         name: 'rank',
-        target: { name: 'decision/fieldTypes/newSecondOne' },
+        target: { name: 'decision/fieldTypes/secondNewOne' },
         newIndex: 0,
       });
       expect((res.data as CardType).customFields.length).to.equal(2);
       const first = (res.data as CardType).customFields.at(0);
       expect((first as CustomField)?.name).to.equal(
-        'decision/fieldTypes/newSecondOne',
+        'decision/fieldTypes/secondNewOne',
       );
     });
     it('update field type', async () => {
