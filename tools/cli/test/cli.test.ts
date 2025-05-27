@@ -282,7 +282,7 @@ describe('Cli BAT test', function () {
   });
   it('Test calc run with tree query', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo calc run ../../resources/calculations/queries/tree.lp &&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo calc run ../../tools/resources/src/calculations/queries/tree.lp &&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
