@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/backend",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Express backend for Cyberismo",
   "main": "dist/index.js",
   "scripts": {
