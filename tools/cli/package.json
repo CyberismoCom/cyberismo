@@ -7,8 +7,9 @@
     "cyberismo": "bin/run"
   },
   "files": [
-    "/bin",
-    "/dist"
+    "bin",
+    "dist",
+    "src"
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
