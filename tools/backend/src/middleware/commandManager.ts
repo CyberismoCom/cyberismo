@@ -11,7 +11,7 @@
 */
 
 import { Context, MiddlewareHandler } from 'hono';
-import { CommandManager } from '@cyberismocom/data-handler';
+import { CommandManager } from '@cyberismo/data-handler';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {

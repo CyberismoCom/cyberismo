@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/node-clingo",
+  "name": "@cyberismo/node-clingo",
   "version": "1.0.2",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {

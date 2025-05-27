@@ -31,7 +31,7 @@ import type { CardType } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/log-utils.js';
 import type { Project } from '../containers/project.js';
 import { sortItems } from '../utils/lexorank.js';
-import { getStaticDirectoryPath } from '@cyberismocom/resources';
+import { getStaticDirectoryPath } from '@cyberismo/resources';
 
 interface ExportOptions {
   silent: boolean;

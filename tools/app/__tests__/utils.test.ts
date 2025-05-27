@@ -3,7 +3,7 @@ import { Project } from '@/lib/definitions';
 import {
   QueryResult,
   CalculationLink,
-} from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/types/queries';
 import { ExpandedLinkType } from '@/lib/definitions';
 
 import { expect, test, describe } from 'vitest';

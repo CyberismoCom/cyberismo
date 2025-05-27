@@ -16,7 +16,7 @@ To install, run `pnpm install`:
 ## Usage
 
 ```js
-import { solve, setBaseProgram, clearBaseProgram } from '@cyberismocom/node-clingo';
+import { solve, setBaseProgram, clearBaseProgram } from '@cyberismo/node-clingo';
 
 // Solve a simple logic program
 const result = await solve('a. b. c(1). c(2).');

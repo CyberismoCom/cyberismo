@@ -21,9 +21,9 @@ import {
   ExportFormats,
   type requestStatus,
   type UpdateOperations,
-} from '@cyberismocom/data-handler';
+} from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-import { startServer } from '@cyberismocom/backend';
+import { startServer } from '@cyberismo/backend';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 

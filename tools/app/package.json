@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/app",
+  "name": "@cyberismo/app",
   "private": true,
   "version": "0.0.1",
   "license": "AGPL-3.0",
@@ -22,7 +22,7 @@
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/language": "^6.11.0",
     "@codemirror/view": "^6.37.1",
-    "@cyberismocom/data-handler": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*",
     "@mui/icons-material": "^7.0.1",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.1.0",

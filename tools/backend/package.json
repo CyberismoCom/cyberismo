@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/backend",
+  "name": "@cyberismo/backend",
   "version": "0.0.1",
   "description": "Express backend for Cyberismo",
   "main": "dist/index.js",
@@ -14,13 +14,13 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@cyberismocom/data-handler": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*",
     "@hono/node-server": "^1.14.1",
     "dotenv": "^16.5.0",
     "hono": "^4.7.5"
   },
   "devDependencies": {
-    "@cyberismocom/app": "workspace:*"
+    "@cyberismo/app": "workspace:*"
   },
   "types": "dist/index.d.ts",
   "exports": {

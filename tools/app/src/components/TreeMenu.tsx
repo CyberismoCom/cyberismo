@@ -18,7 +18,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 
-import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
 

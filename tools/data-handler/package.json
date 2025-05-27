@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/data-handler",
+  "name": "@cyberismo/data-handler",
   "description": "Command handler for cards and web service",
   "version": "0.0.1",
   "author": "sami.merila@cyberismo.com",
@@ -39,8 +39,8 @@
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@cyberismocom/node-clingo": "workspace:*",
-    "@cyberismocom/resources": "workspace:*",
+    "@cyberismo/node-clingo": "workspace:*",
+    "@cyberismo/resources": "workspace:*",
     "antora": "^3.1.10",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.6.0",

@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/cli",
+  "name": "@cyberismo/cli",
   "version": "0.0.1",
   "description": "CLI tool to handle tasks.",
   "main": "dist/index.js",
@@ -23,8 +23,8 @@
   "dependencies": {
     "@inquirer/confirm": "^5.1.12",
     "commander": "^14.0.0",
-    "@cyberismocom/backend": "workspace:*",
-    "@cyberismocom/data-handler": "workspace:*"
+    "@cyberismo/backend": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*"
   },
   "types": "dist/index.d.ts",
   "type": "module",

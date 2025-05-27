@@ -17,9 +17,9 @@ import {
   Link,
   LinkType,
   Workflow,
-} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
-import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { LinkDirection } from '@cyberismo/data-handler/types/queries';
 
 // These are exported as-is.
 export {
@@ -30,8 +30,8 @@ export {
   type Workflow,
   type WorkflowState,
   type WorkflowTransition,
-} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
-export { type CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+export { type CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 // Single card with metadata and children, but no content.
 // Used in displaying the tree menu view.

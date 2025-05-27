@@ -34,7 +34,7 @@ import type {
   ReportMetadata,
 } from '../interfaces/resource-interfaces.js';
 import type { Schema } from 'jsonschema';
-import { getStaticDirectoryPath } from '@cyberismocom/resources';
+import { getStaticDirectoryPath } from '@cyberismo/resources';
 
 const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
 const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';

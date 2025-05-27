@@ -39,7 +39,7 @@ export async function getStaticDirectoryPath(): Promise<string> {
   // Return early if not running in Node.js
   if (typeof process === 'undefined' || !process.versions?.node) {
     throw new Error(
-      '@cyberismocom/resources: getStaticDirectoryPath can only be called in Node.js',
+      '@cyberismo/resources: getStaticDirectoryPath can only be called in Node.js',
     );
   }
   const { join } = await import('node:path');
