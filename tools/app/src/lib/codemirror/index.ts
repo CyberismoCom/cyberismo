@@ -12,7 +12,7 @@
 
 import { EditorView } from '@uiw/react-codemirror';
 import { apiPaths } from '../swr';
-import { CardAttachment } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { Document, Section } from '@asciidoctor/core';
 
 /**

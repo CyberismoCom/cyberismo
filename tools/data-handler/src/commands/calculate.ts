@@ -13,9 +13,7 @@
 
 // node
 import { basename, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { readFile, rm } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { sanitizeSvgBase64 } from '../utils/sanitize-svg.js';
 
@@ -54,23 +52,8 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { solve, setBaseProgram } from '@cyberismocom/node-clingo';
-
-/**
- * This will done in a different way when build for npmjs is done
- */
-
-const commonFolderLocation = join(
-  fileURLToPath(import.meta.url),
-  '../../../../../resources/calculations/common',
-);
-
-const baseProgramPath = join(commonFolderLocation, 'base.lp');
-const queryLanguagePath = join(commonFolderLocation, 'queryLanguage.lp');
-
-// Read base and query language files
-const baseContent = readFileSync(baseProgramPath, 'utf-8');
-const queryLanguageContent = readFileSync(queryLanguagePath, 'utf-8');
+import { solve, setBaseProgram } from '@cyberismo/node-clingo';
+import { lpFiles } from '@cyberismo/resources';
 
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';
@@ -81,11 +64,6 @@ export class Calculate {
   private static mutex = new Mutex();
 
   private pythonBinary: string = 'python';
-  private queryCache = new Map<string, string>();
-  private static commonFolderLocation: string = join(
-    fileURLToPath(import.meta.url),
-    '../../../../../resources/calculations/common',
-  );
   constructor(private project: Project) {}
 
   // Storage for in-memory program content
@@ -104,12 +82,6 @@ export class Calculate {
       logger.error(`Failed to initialize modules: ${error}`);
     }
   }
-
-  //
-  private static queryFolderLocation: string = join(
-    fileURLToPath(import.meta.url),
-    '../../../../../resources/calculations/queries',
-  );
 
   // Wrapper to run onCreation query.
   private async creationQuery(cardKeys: string[]) {
@@ -312,33 +284,12 @@ export class Calculate {
     return cards;
   }
 
-  // Returns query content from cache.
-  // If the query is not yet used; reads it from disk and puts into cache.
-  private async getQuery(queryName: string): Promise<string | undefined> {
-    if (this.queryCache.has(queryName)) {
-      return this.queryCache.get(queryName);
-    }
-    const query = await this.queryPath(queryName);
-    if (!query) {
-      throw new Error(`Query file ${queryName} not found`);
-    }
-    const content = (await readFile(query)).toString();
-    this.queryCache.set(queryName, content);
-    return content;
-  }
-
   // Checks that Clingo successfully returned result.
   private async parseClingoResult(
     data: string[],
   ): Promise<ParseResult<BaseResult>> {
     const parser = new ClingoParser();
     return parser.parseInput(data.join('\n'));
-  }
-
-  // Return path to query file if it exists, else return null.
-  private async queryPath(queryName: string) {
-    const location = join(Calculate.queryFolderLocation, `${queryName}.lp`);
-    return pathExists(location) ? location : null;
   }
 
   //
@@ -427,7 +378,7 @@ export class Calculate {
       // Create base program content
       const baseProgram =
         '% SECTION: BASE_START\n' +
-        baseContent +
+        lpFiles.common.base +
         '\n% SECTION: BASE_END\n\n' +
         this.modules +
         '\n\n' +
@@ -439,7 +390,7 @@ export class Calculate {
       setBaseProgram(baseProgram, BASE_PROGRAM_KEY);
       setBaseProgram(
         '% SECTION: QUERY_LANGUAGE_START\n' +
-          queryLanguageContent +
+          lpFiles.common.queryLanguage +
           '\n% SECTION: QUERY_LANGUAGE_END',
         QUERY_LANGUAGE_KEY,
       );
@@ -616,7 +567,7 @@ export class Calculate {
     queryName: T,
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    let content = await this.getQuery(queryName);
+    let content = lpFiles.queries[queryName];
     if (options && typeof options === 'object') {
       const handlebars = Handlebars.create();
       const compiled = handlebars.compile(content);

@@ -27,7 +27,7 @@ import { LinkForm } from '../ContentArea';
 import {
   QueryResult,
   LinkDirection,
-} from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/types/queries';
 import { useCard } from '@/lib/api';
 
 interface LinkFormData {

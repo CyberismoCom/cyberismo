@@ -23,11 +23,11 @@ import { useForm } from 'react-hook-form';
 import {
   LinkType,
   WorkflowCategory,
-} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+} from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import {
   QueryResult,
   CalculationLink,
-} from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/types/queries';
 import { CardResponse } from './api/types';
 
 // Gets type of a child of an array

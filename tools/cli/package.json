@@ -1,14 +1,15 @@
 {
-  "name": "@cyberismocom/cli",
-  "version": "1.0.0",
+  "name": "@cyberismo/cli",
+  "version": "0.0.6",
   "description": "CLI tool to handle tasks.",
   "main": "dist/index.js",
   "bin": {
     "cyberismo": "bin/run"
   },
   "files": [
-    "/bin",
-    "/dist"
+    "bin",
+    "dist",
+    "src"
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -22,11 +23,9 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@inquirer/confirm": "^5.1.9",
-    "commander": "^13.1.0"
-  },
-  "devDependencies": {
-    "@cyberismocom/backend": "workspace:*",
-    "@cyberismocom/data-handler": "workspace:*"
+    "commander": "^13.1.0",
+    "@cyberismo/backend": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*"
   },
   "types": "dist/index.d.ts",
   "type": "module",
