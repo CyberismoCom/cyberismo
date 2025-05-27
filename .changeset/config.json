@@ -4,10 +4,10 @@
   "commit": false,
   "fixed": [
     [
-      "@cyberismocom/data-handler",
-      "@cyberismocom/cli",
-      "@cyberismocom/backend",
-      "@cyberismocom/resources"
+      "@cyberismo/data-handler",
+      "@cyberismo/cli",
+      "@cyberismo/backend",
+      "@cyberismo/resources"
     ]
   ],
   "linked": [],

@@ -35,7 +35,7 @@ import { useCard, useTemplates } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
-import { TemplateConfiguration } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 interface NewCardModalProps {
   open: boolean;

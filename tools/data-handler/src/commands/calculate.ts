@@ -52,8 +52,8 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { solve, setBaseProgram } from '@cyberismocom/node-clingo';
-import { lpFiles } from '@cyberismocom/resources';
+import { solve, setBaseProgram } from '@cyberismo/node-clingo';
+import { lpFiles } from '@cyberismo/resources';
 
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';

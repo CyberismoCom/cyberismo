@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/cyberismo",
+  "name": "@cyberismo/cyberismo",
   "description": "Cards: a Tool for Managing Cybersecurity in Software",
   "version": "0.0.1",
   "bin": {

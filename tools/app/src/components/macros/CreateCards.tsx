@@ -17,7 +17,7 @@ import { MacroContext } from '.';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
-import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
+import { LinkDirection } from '@cyberismo/data-handler/types/queries';
 
 export type CreateCardsProps = {
   buttonlabel: string;
