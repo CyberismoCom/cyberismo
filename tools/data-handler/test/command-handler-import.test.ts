@@ -155,6 +155,10 @@ describe('import module', () => {
       );
       expect(result.statusCode).to.equal(200);
 
+      // Ensure that module can be updated.
+      result = await commandHandler.command(Cmd.updateModules, [], optionsMini);
+      expect(result.statusCode).to.equal(200);
+
       // Remove the module so that it won't affect other tests
       await commandHandler.command(
         Cmd.remove,
@@ -180,6 +184,12 @@ describe('import module', () => {
           result = await commandHandler.command(
             Cmd.import,
             ['module', minimalPath],
+            testOptions,
+          );
+          expect(result.statusCode).to.equal(200);
+          result = await commandHandler.command(
+            Cmd.updateModules,
+            [],
             testOptions,
           );
           expect(result.statusCode).to.equal(200);
