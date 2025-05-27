@@ -26,5 +26,9 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "type": "module"
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ]
 }

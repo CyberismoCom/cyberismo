@@ -32,5 +32,9 @@
     "remote_path": "cyberismocom/cyberismo/releases/download/node-clingo-{version}",
     "package_name": "{platform}-{arch}.tar.gz",
     "package_json": "package.json"
-  }
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
 }

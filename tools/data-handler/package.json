@@ -59,5 +59,9 @@
     "tslib": "^2.6.2",
     "write-json-file": "^6.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ]
 }
