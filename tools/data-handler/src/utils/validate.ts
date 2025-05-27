@@ -11,7 +11,7 @@
 */
 import { type Schema, Validator } from 'jsonschema';
 import { DHValidationError, SchemaNotFound } from '../exceptions/index.js';
-import { schemas } from './schemas.js';
+import { schemas } from '@cyberismocom/resources';
 
 /**
  * Validates a JSON object against a schema

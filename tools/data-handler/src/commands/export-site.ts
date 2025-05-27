@@ -24,12 +24,14 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-import { type Calculate, Export, type Show } from './index.js';
+import { type Calculate, type Show } from './index.js';
+import { Export } from './export.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { CardType } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/log-utils.js';
 import type { Project } from '../containers/project.js';
 import { sortItems } from '../utils/lexorank.js';
+import { getStaticDirectoryPath } from '@cyberismocom/resources';
 
 interface ExportOptions {
   silent: boolean;
@@ -117,7 +119,7 @@ export class ExportSite extends Export {
   }
 
   // Create the Antora playbook.
-  private createPlaybook(cards: Card[]) {
+  private async createPlaybook(cards: Card[]) {
     let startPage: string = '';
 
     if (cards[0]) {
@@ -144,14 +146,7 @@ export class ExportSite extends Export {
       },
       ui: {
         bundle: {
-          url: join(
-            dirname(fileURLToPath(import.meta.url)),
-            '..',
-            '..',
-            '..',
-            '..',
-            'resources/ui-bundle',
-          ),
+          url: join(await getStaticDirectoryPath(), 'ui-bundle'),
           snapshot: true,
         },
       },
@@ -281,7 +276,7 @@ export class ExportSite extends Export {
     await this.initDirectories();
     this.createDescriptor();
     await this.toAdocDirectoryAsContent(this.pagesDir, cards, 0);
-    this.createPlaybook(cards);
+    await this.createPlaybook(cards);
     this.generate(destination);
   }
 

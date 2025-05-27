@@ -10,6 +10,14 @@ import queriesOnTransition from './calculations/queries/onTransition.lp';
 import queriesTree from './calculations/queries/tree.lp';
 import testModel from './calculations/test/model.lp';
 
+import graphvizReportQuery from './graphvizReport/query.lp.hbs';
+import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
+
+export const graphvizReport = {
+  query: graphvizReportQuery,
+  content: graphvizReportIndex,
+};
+
 export const lpFiles = {
   common: {
     base: commonBase,

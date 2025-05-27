@@ -15,7 +15,7 @@ await esbuild.build({
     {
       name: 'lp-loader',
       setup(build) {
-        build.onLoad({ filter: /\.lp$/ }, async (args) => {
+        build.onLoad({ filter: /\.(lp|hbs)$/ }, async (args) => {
           const contents = await fs.readFile(args.path, 'utf8');
           // Remove all comments
           let cleanedContents = contents.replace(/%.*$/gm, '');
