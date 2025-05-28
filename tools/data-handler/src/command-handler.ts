@@ -450,10 +450,7 @@ export class Commands {
         parentCardKey,
       );
     } else if (format === 'site') {
-      message = await this.commands?.exportSiteCmd.exportToSite(
-        destination,
-        parentCardKey,
-      );
+      console.log("NOT ANYMORE")
     }
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };

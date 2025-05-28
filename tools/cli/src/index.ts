@@ -23,7 +23,7 @@ import {
   type UpdateOperations,
 } from '@cyberismocom/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-import { startServer } from '@cyberismocom/backend';
+import { startServer, exportSite } from '@cyberismocom/backend';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 
@@ -373,6 +373,10 @@ program
       cardKey: string,
       options: CardsOptions,
     ) => {
+      if(format === "site") {
+        await exportSite(await commandHandler.getProjectPath(options.projectPath), output)
+        return;
+      }
       const result = await commandHandler.command(
         Cmd.export,
         [format, output, cardKey],

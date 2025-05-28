@@ -15,7 +15,6 @@ import { CardUpdate } from './types';
 export * from './fieldTypes';
 export * from './project';
 export * from './card';
-export * from './cardType';
 export * from './templates';
 export * from './linkTypes';
 export * from './tree';
