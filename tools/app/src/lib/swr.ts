@@ -10,6 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { AppConfig } from '@/providers/ConfigContext';
 import { SWRConfiguration } from 'swr';
 
 export class ApiCallError extends Error {
@@ -49,12 +50,16 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 // used to call api with fetch
 export async function callApi<T>(
+  config: AppConfig,
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
   // Below is disabled as JSON stringify also accepts any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any,
 ): Promise<T> {
+  if (config.export && method !== 'GET') {
+    throw new Error('Export mode is enabled, only GET requests are allowed');
+  }
   const options: RequestInit = {
     method,
   };
@@ -71,7 +76,9 @@ export async function callApi<T>(
     }
   }
 
-  return handleResponse(await fetch(url, options));
+  return handleResponse(
+    await fetch(`${url}${config.export ? '.json' : ''}`, options),
+  );
 }
 
 // default fetcher for swr
@@ -80,9 +87,16 @@ export const fetcher = async function (...args: Parameters<typeof fetch>) {
 };
 
 // used to configure swr on a global level
-export function getSwrConfig(): SWRConfiguration {
+export function getSwrConfig(config: AppConfig): SWRConfiguration {
   return {
-    fetcher,
+    fetcher: config.export
+      ? async function (...args: Parameters<typeof fetch>) {
+          if (typeof args[0] === 'string') {
+            args[0] = `${args[0]}.json`;
+          }
+          return fetcher(...args);
+        }
+      : fetcher,
   };
 }
 
