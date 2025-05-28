@@ -457,11 +457,6 @@ export class Commands {
         destination,
         parentCardKey,
       );
-    } else if (format === 'site') {
-      message = await this.commands?.exportSiteCmd.exportToSite(
-        destination,
-        parentCardKey,
-      );
     }
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
