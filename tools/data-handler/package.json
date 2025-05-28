@@ -55,6 +55,7 @@
     "mime-types": "^3.0.1",
     "node-graphviz": "^0.1.1",
     "pino": "^9.6.0",
+    "simple-git": "^3.2.0",
     "tslib": "^2.6.2",
     "write-json-file": "^6.0.0"
   },
