@@ -4,8 +4,9 @@
   "description": "Express backend for Cyberismo",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/main.js",
+    "start": "tsx src/main.ts",
     "dev": "tsx watch src/main.ts",
+    "export": "tsx src/main.ts --export",
     "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
     "test": "vitest run",
     "prepublishOnly": "pnpm --filter app build && pnpm build"

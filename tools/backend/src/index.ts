@@ -3,13 +3,13 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
+import fs from "node:fs/promises"
 import { createServer } from 'node:net';
 
 import { attachCommandManager } from './middleware/commandManager.js';
 
 // Import routes
 import cardsRouter from './routes/cards.js';
-import cardTypesRouter from './routes/cardTypes.js';
 import fieldTypesRouter from './routes/fieldTypes.js';
 import linkTypesRouter from './routes/linkTypes.js';
 import templatesRouter from './routes/templates.js';
@@ -17,12 +17,19 @@ import treeRouter from './routes/tree.js';
 
 import { fileURLToPath } from 'node:url';
 import { readFile } from 'node:fs/promises';
+import { toSSG } from 'hono/ssg';
+import { CommandManager } from '@cyberismocom/data-handler';
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
 
-export function createApp(projectPath?: string) {
+export function createApp(projectPath?: string, exportMode: boolean = false) {
   const app = new Hono();
+
+  app.use(async (c, next) => {
+    c.set('exportMode', exportMode);
+    await next();
+  });
 
   app.use('/api', cors());
 
@@ -38,7 +45,6 @@ export function createApp(projectPath?: string) {
 
   // Wire up routes
   app.route('/api/cards', cardsRouter);
-  app.route('/api/cardTypes', cardTypesRouter);
   app.route('/api/fieldTypes', fieldTypesRouter);
   app.route('/api/linkTypes', linkTypesRouter);
   app.route('/api/templates', templatesRouter);
@@ -59,6 +65,18 @@ export function createApp(projectPath?: string) {
   });
 
   return app;
+}
+
+export async function exportSite(
+  projectPath: string,
+  dir?: string
+) {
+  const app = createApp(projectPath, true);
+  const commands = await CommandManager.getInstance(projectPath);
+  await commands.calculateCmd.generate();
+  return toSSG(app, fs, {
+    dir
+  });
 }
 
 export async function startServer(
