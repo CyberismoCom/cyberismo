@@ -14,11 +14,13 @@
 
 import { Argument, Command, Option } from 'commander';
 import confirm from '@inquirer/confirm';
+import dotenv from 'dotenv';
 import {
   type CardsOptions,
   Cmd,
   Commands,
   ExportFormats,
+  type Credentials,
   type requestStatus,
   type UpdateOperations,
 } from '@cyberismo/data-handler';
@@ -53,6 +55,14 @@ function truncateMessage(
   return [...array.slice(0, limit - 1), '...'];
 }
 
+// Sets up credentials for git operations.
+function credentials(): Credentials | undefined {
+  return {
+    username: process.env.CYBERISMO_GIT_USER,
+    token: process.env.CYBERISMO_GIT_TOKEN,
+  };
+}
+
 // Handle the response object from data-handler
 function handleResponse(response: requestStatus) {
   if (response.statusCode === 200) {
@@ -72,6 +82,9 @@ function handleResponse(response: requestStatus) {
     }
   }
 }
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Commander
 const program = new Command();
@@ -417,6 +430,7 @@ importCmd
         Cmd.import,
         ['module', source, branch, String(useCredentials)],
         Object.assign({}, options, program.opts()),
+        credentials(),
       );
       handleResponse(result);
     },
@@ -707,6 +721,7 @@ program
       Cmd.updateModules,
       [],
       Object.assign({}, options, program.opts()),
+      credentials(),
     );
     handleResponse(result);
   });

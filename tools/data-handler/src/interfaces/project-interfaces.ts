@@ -65,6 +65,12 @@ export interface CardMetadata extends PredefinedCardMetadata {
 // Content in project (apart from cards) is either .schema files or cardsConfig.json.
 type ContentType = DotSchemaContent | ProjectSettings;
 
+// Credentials for private modules.
+export interface Credentials {
+  username?: string;
+  token?: string;
+}
+
 // Single CSV row as read from a file.
 export type CSVRowRaw = {
   [key: string]: string;
@@ -147,9 +153,11 @@ export interface ModuleSetting extends ModuleSettingOptions {
   location: string;
 }
 
+// Additional options for module configuration.
 export interface ModuleSettingOptions {
   branch?: string;
   private?: boolean;
+  credentials?: Credentials;
 }
 
 // Resources that are possible to remove.
