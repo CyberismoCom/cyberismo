@@ -84,6 +84,8 @@ import { useRequiredKeyParam } from '@/lib/hooks';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
 
+import { useConfig } from '@/providers/ConfigContext';
+
 const asciiDoctor = AsciiDoctor();
 
 const extensions = [StreamLanguage.define(asciidoc), EditorView.lineWrapping];
@@ -107,6 +109,7 @@ function AttachmentPreviewCard({
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
+  const config = useConfig();
 
   return (
     <Card
@@ -169,7 +172,7 @@ function AttachmentPreviewCard({
               onClick={async (e) => {
                 e.stopPropagation();
                 try {
-                  await openAttachment(cardKey, name);
+                  await openAttachment(config, cardKey, name);
                 } catch (error) {
                   dispatch(
                     addNotification({
@@ -301,6 +304,8 @@ function Page() {
 
   const isEditedValue = useAppSelector((state) => state.page.isEdited);
 
+  const config = useConfig();
+
   useEffect(() => {
     if (contentRef.current == null) {
       return;
@@ -308,7 +313,11 @@ function Page() {
     setParsed(null);
     let mounted = true;
     async function parse(content: string) {
-      const res = await parseContent(key!, content || card?.rawContent || '');
+      const res = await parseContent(
+        config,
+        key!,
+        content || card?.rawContent || '',
+      );
       if (mounted) {
         setParsed(res);
       }

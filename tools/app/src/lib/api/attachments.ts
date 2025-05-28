@@ -17,12 +17,14 @@ import { addAttachments, removeAttachment } from './actions';
 import { mutate } from 'swr';
 import { apiPaths } from '../swr';
 import { AttachmentAction } from './action-types';
+import { useConfig } from '@/providers/ConfigContext';
 
 export const useAttachments = (
   key: string | null,
   options?: SWRConfiguration,
 ) => {
   const { card } = useCard(key, options);
+  const config = useConfig();
   // NOTE: not an swrkey, but this pretends to be one
   const swrKey = key != null && card ? `${key}/a` : null;
   const { isUpdating, call } = useUpdating(swrKey);
@@ -32,7 +34,7 @@ export const useAttachments = (
       call(() => {
         const formData = new FormData();
         files.forEach((file) => formData.append('files', file));
-        return addAttachments(key, formData).then(() =>
+        return addAttachments(config, key, formData).then(() =>
           mutate(apiPaths.card(key)),
         );
       }, 'add'),
@@ -40,7 +42,7 @@ export const useAttachments = (
       key &&
       call(
         () =>
-          removeAttachment(key, fileName).then(() =>
+          removeAttachment(config, key, fileName).then(() =>
             mutate(apiPaths.card(key)),
           ),
         'remove',
