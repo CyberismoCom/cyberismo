@@ -20,6 +20,7 @@ import {
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { ContentfulStatusCode } from 'hono/utils/http-status';
+import { ssgParams } from 'hono/ssg';
 
 const router = new Hono();
 
@@ -70,6 +71,7 @@ router.get('/', async (c) => {
 async function getCardDetails(
   commands: CommandManager,
   key: string,
+  exportMode?: boolean,
 ): Promise<any> {
   const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
@@ -120,13 +122,14 @@ async function getCardDetails(
     })
     .toString();
 
-  // always parse for now
-  await commands.calculateCmd.generate();
+  // always parse for now if not in export mode
+  if (!exportMode) {
+    await commands.calculateCmd.generate();
+  }
 
   const card = await commands.calculateCmd.runQuery('card', {
     cardKey: key,
   });
-
   if (card.length !== 1) {
     throw new Error('Query failed. Check card-query syntax');
   }
@@ -161,13 +164,21 @@ async function getCardDetails(
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key', async (c) => {
+router.get('/:key', ssgParams(async (c) => {
+  const commands = c.get('commands');
+  const fetchedCards = await commands.showCmd.showCards(CardLocation.projectOnly);
+  const projectCards = fetchedCards.find(cardContainer => cardContainer.type === "project");
+  if (!projectCards) {
+    throw new Error("Data handler did not return project cards");
+  }
+  return projectCards.cards.map(key => ({ key }));
+}), async (c) => {
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
   }
 
-  const result = await getCardDetails(c.get('commands'), key);
+  const result = await getCardDetails(c.get('commands'), key, c.get('exportMode'));
   if (result.status === 200) {
     return c.json(result.data);
   } else {
@@ -733,7 +744,14 @@ router.delete('/:key/links', async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key/a/:attachment', async (c) => {
+router.get('/:key/a/:attachment', ssgParams(async (c) => {
+  const commands = c.get('commands');
+  const attachments = await commands.showCmd.showAttachments();
+  return attachments.map(attachment => ({
+    key: attachment.card,
+    attachment: attachment.fileName
+  }));
+}), async (c) => {
   const commands = c.get('commands');
   const { key, attachment } = c.req.param();
   const filename = decodeURI(attachment);
