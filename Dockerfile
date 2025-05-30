@@ -1,21 +1,90 @@
-# Use the custom Clingo base image
-FROM ghcr.io/cyberismocom/cyberismo-clingo-base:latest
+FROM node:22-alpine AS builder
 
-# Clone the Cyberismo repository
-RUN git clone https://github.com/CyberismoCom/cyberismo.git /cyberismo
+# Enable corepack to use pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install and build Cyberismo
-WORKDIR /cyberismo
-RUN pnpm install --ignore-scripts \
-    && cd tools/node-clingo \
-    && pnpm install \
-    && cd ../../ \
-    && rm -rf .git \
-    && pnpm build \
-    && pnpm link -g \
-    && pnpm store prune \
-    && pnpm prune --prod \
-    && find /cyberismo -path /cyberismo/node_modules -prune -o -exec chmod 777 {} \;
+# Install OS build dependencies for native module compilation
+RUN apk add --no-cache clingo-dev g++ python3 make
 
-# Set the working directory for the final image
+WORKDIR /app
+
+# Copy whole monorepo
+COPY . /app
+RUN pnpm install --frozen-lockfile --no-scripts
+RUN pnpm build
+
+# make sure a prebuild is done
+RUN cd /app/tools/node-clingo && pnpm run build-prebuildify
+
+
+
+FROM node:22-alpine AS runtime
+
+# required environment variables for pnpm
+ENV SHELL=/bin/bash
+ENV PATH=/usr/local/share/pnpm:$PATH
+ENV PNPM_HOME=/usr/local/share/pnpm
+
+WORKDIR /app
+
+# make sure logs directory exists and is writable
+RUN mkdir /app/logs && chmod 777 /app/logs
+
+# enable corepack to use pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy monorepo root manifest files
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# frontend (copy package.json for dependency resolution)
+RUN mkdir -p ./tools/app
+COPY --from=builder /app/tools/app/package.json ./tools/app/package.json
+
+# install clingo-libs(contains only libclingo.so)
+RUN apk add --no-cache clingo-libs
+
+# node-clingo
+RUN mkdir -p ./tools/node-clingo
+COPY --from=builder /app/tools/node-clingo/package.json ./tools/node-clingo/package.json
+COPY --from=builder /app/tools/node-clingo/dist ./tools/node-clingo/dist
+
+# backend
+RUN mkdir -p ./tools/backend
+COPY --from=builder /app/tools/backend/package.json ./tools/backend/package.json
+COPY --from=builder /app/tools/backend/dist ./tools/backend/dist
+
+# cli
+RUN mkdir -p ./tools/cli
+COPY --from=builder /app/tools/cli/package.json ./tools/cli/package.json
+COPY --from=builder /app/tools/cli/dist ./tools/cli/dist
+COPY --from=builder /app/tools/cli/bin ./tools/cli/bin
+
+# data-handler
+RUN mkdir -p ./tools/data-handler
+COPY --from=builder /app/tools/data-handler/package.json ./tools/data-handler/package.json
+COPY --from=builder /app/tools/data-handler/dist ./tools/data-handler/dist
+
+# install deps without dev dependencies
+RUN pnpm install --prod --ignore-scripts
+
+# copy prebuilds
+COPY --from=builder /app/tools/node-clingo/prebuilds ./tools/node-clingo/prebuilds
+
+# at last copy schemas and resources
+COPY --from=builder /app/tools/schema ./tools/schema
+COPY --from=builder /app/resources ./resources
+
+# setup bin
+RUN pnpm setup 
+RUN pnpm link -g
+
 WORKDIR /project
+
+
+
+
+
+
+

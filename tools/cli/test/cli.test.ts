@@ -212,7 +212,7 @@ describe('Cli BAT test', function () {
   });
   it('Add an attachment to a card', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo create attachment ${newPageCardKey} ../../tools/cli/test/cyberismo.png&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cp ../../tools/cli/test/cyberismo.png ./cyberismo.png&&cyberismo create attachment ${newPageCardKey} ./cyberismo.png&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -282,7 +282,7 @@ describe('Cli BAT test', function () {
   });
   it('Test calc run with tree query', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo calc run ../../resources/calculations/queries/tree.lp &&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cp ../../resources/calculations/queries/tree.lp ./tree.lp&&cyberismo calc run ./tree.lp &&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
