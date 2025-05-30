@@ -11,12 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import fs from 'node:fs';
 import { join } from 'node:path';
 import { mkdir, readdir, rm } from 'node:fs/promises';
 
-import git from 'isomorphic-git';
-import http from 'isomorphic-git/http/node/index.js';
+import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
 import type { Import } from './commands/index.js';
@@ -33,6 +31,8 @@ import { Validate } from './commands/index.js';
 const FILE_PROTOCOL = 'file:';
 // todo: add support for git's default branch.
 const MAIN_BRANCH = 'main';
+// timeout in milliseconds for git client (no stdout / stderr activity)
+const DEFAULT_TIMEOUT = 5000;
 
 /**
  * Class that handles module updates and imports.
@@ -56,21 +56,6 @@ export class ModuleManager {
     await this.project.collectModuleResources();
   }
 
-  // Handles a branch of a repository.
-  private async branch(module: ModuleSetting) {
-    if (module.branch === MAIN_BRANCH || module.branch === '' || !module.branch)
-      return;
-
-    await git.checkout({
-      fs,
-      dir: join(this.tempModulesDir, module.name),
-      ref: module.branch,
-    });
-    console.error(
-      `... Switched to '${module.branch}' branch for module '${module.name}'`,
-    );
-  }
-
   // Handles cloning of a repository.
   private async clone(
     module: ModuleSetting,
@@ -80,13 +65,9 @@ export class ModuleManager {
       module.name = this.repositoryName(module.location);
     }
 
-    let repoUrl: URL;
-    try {
-      repoUrl = new URL(module.location);
-    } catch {
-      throw new Error(`Invalid repository URL: ${module.location}`);
-    }
+    const destinationPath = join(this.tempModulesDir, module.name);
 
+    let remote: string = module.location;
     if (
       process.env.CYBERISMO_GIT_USER &&
       process.env.CYBERISMO_GIT_TOKEN &&
@@ -97,37 +78,49 @@ export class ModuleManager {
           `... Using credentials '${process.env.CYBERISMO_GIT_USER}' for cloning '${module.name}'`,
         );
       }
-      repoUrl.username = process.env.CYBERISMO_GIT_USER;
-      repoUrl.password = process.env.CYBERISMO_GIT_TOKEN;
+      try {
+        const repoUrl = new URL(module.location);
+        const user = process.env.CYBERISMO_GIT_USER;
+        const pass = process.env.CYBERISMO_GIT_TOKEN;
+        const host = repoUrl.host;
+        const path = repoUrl.pathname;
+        remote = `https://${user}:${pass}@${host}${path}`;
+      } catch {
+        throw new Error(`Invalid repository URL: ${module.location}`);
+      }
+    } else {
+      if (verbose) {
+        console.log(`... Not using credentials for cloning '${module.name}'`);
+      }
     }
-    await git.clone({
-      fs,
-      http,
-      dir: join(this.tempModulesDir, module.name),
-      url: repoUrl.toString(),
-      depth: 1,
-      onAuth: () => {
-        // Turn credentials 'off' when they are not available
-        if (
-          !process.env.CYBERISMO_GIT_USER ||
-          !process.env.CYBERISMO_GIT_TOKEN
-        ) {
-          return undefined;
-        }
-        // Turn credentials 'off' for public repos
-        if (!module.private) {
-          return undefined;
-        }
-        return {
-          username: process.env.CYBERISMO_GIT_USER,
-          password: process.env.CYBERISMO_GIT_TOKEN,
-        };
-      },
-    });
 
-    if (verbose) {
-      console.log(`... Cloned '${module.name}' to a temporary folder`);
+    try {
+      await mkdir(this.tempModulesDir, { recursive: true });
+      const cloneOptions = this.setCloneOptions(module);
+      await rm(destinationPath, { recursive: true, force: true });
+
+      const git: SimpleGit = simpleGit({
+        timeout: {
+          block: DEFAULT_TIMEOUT,
+        },
+      });
+
+      await git
+        // turn off git prompts
+        .env({ GIT_TERMINAL_PROMPT: 0, GCM_INTERACTIVE: 'never' })
+        .clone(remote, destinationPath, cloneOptions);
+
+      if (verbose) {
+        console.log(`... Cloned '${module.name}' to a temporary folder`);
+      }
+    } catch (error) {
+      console.error(error);
+      if (error instanceof Error)
+        throw new Error(
+          `Failed to clone module '${module.name}': ${error.message}`,
+        );
     }
+
     return module.name;
   }
 
@@ -180,7 +173,6 @@ export class ModuleManager {
   // Updates one module that is received from Git.
   private async handleGitModule(module: ModuleSetting) {
     await this.clone(module);
-    await this.branch(module);
     await this.remove(module);
     await this.importFromTemp(module);
   }
@@ -218,12 +210,18 @@ export class ModuleManager {
 
   // Prepares '.temp/modules' for cloning
   private async prepare() {
-    await mkdir(this.tempModulesDir, { recursive: true });
-    for (const file of await readdir(this.tempModulesDir)) {
-      await rm(join(this.tempModulesDir, file), {
-        force: true,
-        recursive: true,
-      });
+    try {
+      await mkdir(this.tempModulesDir, { recursive: true });
+      const files = await readdir(this.tempModulesDir);
+      for (const file of files) {
+        const filePath = join(this.tempModulesDir, file);
+        await rm(filePath, {
+          force: true,
+          recursive: true,
+        });
+      }
+    } catch (error) {
+      throw new Error(`Failed to prepare temporary directory: ${error}`);
     }
   }
 
@@ -281,11 +279,14 @@ export class ModuleManager {
     for (const module of modules) {
       const existingModule = moduleMap.get(module.name);
       if (existingModule) {
-        if (existingModule.private !== module.private) {
+        if (
+          (existingModule.private && !module.private) ||
+          (!existingModule.private && module.private)
+        ) {
           throw new Error(
             `Module conflict: '${module.name}' has different access:\n` +
-              `  - ${existingModule.private || 'undefined'}\n` +
-              `  - ${module.private || 'undefined'}`,
+              `  - ${existingModule.private === true ? 'true' : 'false'}\n` +
+              `  - ${module.private === true ? 'true' : 'false'}`,
           );
         }
         if (existingModule.location !== module.location) {
@@ -317,6 +318,19 @@ export class ModuleManager {
     const last = gitUrl.lastIndexOf('/');
     const repoName = gitUrl.substring(last + 1, gitUrl.length - 4); //remove trailing ".git"
     return repoName;
+  }
+
+  // Sets cloning options.
+  private setCloneOptions(module: ModuleSetting) {
+    const cloneOptions = ['--depth', '1'];
+    if (
+      module.branch &&
+      module.branch !== '' &&
+      module.branch !== MAIN_BRANCH
+    ) {
+      cloneOptions.push('--branch', module.branch);
+    }
+    return cloneOptions;
   }
 
   // Checks that module prefix is not in use in the project
@@ -373,13 +387,12 @@ export class ModuleManager {
    * @returns module prefix as defined in its CardsConfig.json
    */
   public async importGitModule(source: string, options?: ModuleSettingOptions) {
-    const repoName = await this.clone({
-      name: '',
+    const clonedName = await this.clone({
+      name: this.repositoryName(source),
       location: source,
       ...options,
     });
-    await this.branch({ name: repoName, location: source, ...options });
-    const clonePath = join(this.project.paths.tempFolder, 'modules', repoName);
+    const clonePath = join(this.tempModulesDir, clonedName);
     const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
     await this.validatePrefix(modulePrefix);
 
