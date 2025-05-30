@@ -14,10 +14,10 @@
 // node
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile, rm } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import { sanitizeSvgBase64 } from '../utils/sanitize-svg.js';
+import { graphviz } from 'node-graphviz';
 
 import type {
   BaseResult,
@@ -45,7 +45,6 @@ import {
   createWorkflowFacts,
 } from '../utils/clingo-facts.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
-import { generateRandomString } from '../utils/random.js';
 import type {
   CardType,
   FieldType,
@@ -55,22 +54,38 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { solve, setBaseProgram } from '@cyberismocom/node-clingo';
+import { generateReportContent } from '../utils/report.js';
 
 /**
  * This will done in a different way when build for npmjs is done
  */
 
-const commonFolderLocation = join(
+const commonResourcesLocation = join(
   fileURLToPath(import.meta.url),
-  '../../../../../resources/calculations/common',
+  '../../../../../resources',
 );
 
-const baseProgramPath = join(commonFolderLocation, 'base.lp');
-const queryLanguagePath = join(commonFolderLocation, 'queryLanguage.lp');
+const baseProgramPath = join(
+  commonResourcesLocation,
+  '/calculations/common/base.lp',
+);
+const queryLanguagePath = join(
+  commonResourcesLocation,
+  '/calculations/common/queryLanguage.lp',
+);
 
 // Read base and query language files
 const baseContent = readFileSync(baseProgramPath, 'utf-8');
 const queryLanguageContent = readFileSync(queryLanguagePath, 'utf-8');
+
+const reportQueryTemplate = readFileSync(
+  join(commonResourcesLocation, '/graphvizReport/query.lp.hbs'),
+  'utf-8',
+);
+const reportContentTemplate = readFileSync(
+  join(commonResourcesLocation, '/graphvizReport/index.adoc.hbs'),
+  'utf-8',
+);
 
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';
@@ -80,7 +95,7 @@ const QUERY_LANGUAGE_KEY = 'queryLanguage';
 export class Calculate {
   private static mutex = new Mutex();
 
-  private pythonBinary: string = 'python';
+  private pythonBinary: string = 'python3';
   private queryCache = new Map<string, string>();
   private static commonFolderLocation: string = join(
     fileURLToPath(import.meta.url),
@@ -341,31 +356,18 @@ export class Calculate {
     return pathExists(location) ? location : null;
   }
 
-  //
-  private async run(
-    data: {
-      query?: string;
-    },
-    argMode: 'graph' | 'query' = 'query',
-  ): Promise<string[]> {
-    if (!data.query) {
-      throw new Error('Must provide query to run a clingo program');
-    }
-
+  private async run(query: string): Promise<string[]> {
     const res = await Calculate.mutex.runExclusive(async () => {
       // For queries, use both base and queryLanguage
-      const basePrograms =
-        argMode === 'query'
-          ? [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY]
-          : BASE_PROGRAM_KEY;
+      const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
 
       // Then solve with the program - need to pass the program as parameter
-      return solve(data.query as string, basePrograms);
+      return solve(query, basePrograms);
     });
 
     logger.trace(
       {
-        query: data.query,
+        query,
       },
       `Ran Clingo solve command`,
     );
@@ -538,70 +540,28 @@ export class Calculate {
    * @param timeout Maximum amount of milliseconds clingraph is allowed to run
    * @returns a base64 encoded image as a string
    */
-  public async runGraph(
-    data: { query?: string; file?: string },
-    timeout?: number,
-  ) {
-    const clingoOutput = await this.run(data, 'graph');
-
-    // unlikely we ever get a collision
-    const randomId = generateRandomString(36, 20);
-
-    const clingGraphArgs = [
-      '--out=render',
-      '--format=svg',
-      '--type=digraph',
-      `--name-format=${randomId}`,
-      `--dir=${this.project.paths.tempFolder}`,
-    ];
-
-    // python is only used for windows
-    const pythonArgs = [
-      '-c',
-      `from clingraph import main; import sys; sys.argv = ["sys.argv[0]", ${clingGraphArgs
-        .map((arg) => `'${arg.replace(/\\/g, '\\\\')}'`)
-        .join(',')}]; sys.exit(main())`,
-    ];
-
-    const clingraph = spawnSync(this.pythonBinary, pythonArgs, {
-      encoding: 'utf8',
-      // below looks like it could be replaced by just joining dots, but
-      // it breaks it because elements contain newlines, which must be
-      // replaced by dots
-      input: clingoOutput.join('\n').replaceAll('\n', '.') + '.',
-      timeout,
-      maxBuffer: 1024 * 1024 * 100,
+  public async runGraph(model: string, view: string) {
+    // Let's run the clingraph query
+    const result = await generateReportContent({
+      calculate: this,
+      contentTemplate: reportContentTemplate,
+      queryTemplate: reportQueryTemplate,
+      options: {
+        model: model,
+        view: view,
+      },
+      graph: true,
     });
-
-    if (clingraph.status !== 0) {
-      throw new Error(`Graph: Failed to run clingraph ${clingraph.stderr}`);
-    }
-
-    const filePath = join(this.project.paths.tempFolder, randomId);
-
-    let fileData;
-    try {
-      fileData = await readFile(filePath + '.svg');
-    } catch (e) {
-      throw new Error(
-        `Graph: Failed to read image file after generating graph: ${e}`,
-      );
-    } finally {
-      await rm(filePath, { force: true });
-      await rm(filePath + '.svg', { force: true });
-    }
-
-    // Sanitizing SVG before returning it
-    return sanitizeSvgBase64(fileData);
+    return sanitizeSvgBase64(await graphviz.dot(result, 'svg'));
   }
 
   /**
    * Runs a logic program using clingo.
-   * @param filePath Path to a query file to be run in relation to current working directory
+   * @param query Logic program to be run
    * @returns parsed program output
    */
-  public async runLogicProgram(data: { query?: string; file?: string }) {
-    const clingoOutput = await this.run(data);
+  public async runLogicProgram(query: string) {
+    const clingoOutput = await this.run(query);
 
     return this.parseClingoResult(clingoOutput);
   }
@@ -623,12 +583,11 @@ export class Calculate {
       content = compiled(options);
     }
 
-    const clingoOutput = await this.run(
-      {
-        query: content,
-      },
-      'query',
-    );
+    if (!content) {
+      throw new Error(`Query file ${queryName} not found`);
+    }
+
+    const clingoOutput = await this.run(content);
 
     const result = await this.parseClingoResult(clingoOutput);
 

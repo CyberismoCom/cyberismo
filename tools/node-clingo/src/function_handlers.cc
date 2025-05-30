@@ -17,12 +17,18 @@
 #include <iostream>
 #include <sstream>
 
-#if !defined(__clang__)
-#include <format>
+#if defined(__clang__) || __GNUC__ < 13
+#define USE_FORMAT_FALLBACK 1
 #else
+#define USE_FORMAT_FALLBACK 0
+#endif
+
+#if USE_FORMAT_FALLBACK
 #include <ctime>
 #include <time.h>
 #include <iomanip>
+#else
+#include <format>
 #endif
 
 namespace node_clingo
@@ -133,17 +139,16 @@ namespace node_clingo
 
 // clang used on mac does not support
 // current_zone and zoned_time
-#if !defined(__clang__)
+#if USE_FORMAT_FALLBACK
+        time_t now = time(nullptr);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
+        const auto today_str = ss.str();
+#else
         const auto now_point = std::chrono::system_clock::now();
         const auto current_zone = std::chrono::current_zone();
         const std::chrono::zoned_time zt{current_zone, now_point};
-        std::string today_str = std::format("{:%Y-%m-%d}", zt);
-#else
-        time_t now = time(nullptr);
-        std::string today_str;
-        std::stringstream ss;
-        ss << std::put_time(std::localtime(&now), "%Y-%m-%d");
-        today_str = ss.str();
+        const auto today_str = std::format("{:%Y-%m-%d}", zt);
 #endif
 
         clingo_symbol_t sym;

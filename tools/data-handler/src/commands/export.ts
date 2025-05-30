@@ -206,6 +206,7 @@ export class Export {
           projectPath,
           cardKey: card.key,
         },
+        this.calculateCmd,
       );
     } catch (error) {
       asciiDocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciiDocContent}`;

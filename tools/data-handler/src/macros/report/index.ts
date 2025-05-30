@@ -10,26 +10,30 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { registerEmptyMacros, validateMacroContent } from '../index.js';
+import { validateMacroContent } from '../index.js';
 import type { MacroOptions } from '../index.js';
+
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { Project } from '../../containers/project.js';
-import { Calculate } from '../../commands/index.js';
-import Handlebars from 'handlebars';
+import type { Calculate } from '../../commands/index.js';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
 import { ReportResource } from '../../resources/report-resource.js';
 import { resourceName } from '../../utils/resource-utils.js';
+import { generateReportContent } from '../../utils/report.js';
 
 export interface ReportOptions extends MacroOptions {
   name: string;
 }
 
 class ReportMacro extends BaseMacro {
-  constructor(tasksQueue: TaskQueue) {
-    super(macroMetadata, tasksQueue);
+  constructor(
+    tasks: TaskQueue,
+    private readonly calculate: Calculate,
+  ) {
+    super(macroMetadata, tasks);
   }
   handleValidate = (input: unknown) => {
     this.validate(input);
@@ -45,7 +49,7 @@ class ReportMacro extends BaseMacro {
     const resource = new ReportResource(project, resourceName(options.name));
     const report = await resource.show();
 
-    if (!report) throw new Error(`Report ${options} does not exist`);
+    if (!report) throw new Error(`Report ${options.name} does not exist`);
 
     if (report.schema) {
       validateJson(options, {
@@ -53,30 +57,14 @@ class ReportMacro extends BaseMacro {
       });
     }
 
-    const handlebarsContext = {
-      cardKey: context.cardKey,
-      ...options,
-    };
-
-    const handlebars = Handlebars.create();
-
-    const template = handlebars.compile(report.queryTemplate, {
-      strict: true,
-    });
-
-    const calculate = new Calculate(project);
-    const result = await calculate.runLogicProgram({
-      query: template(handlebarsContext),
-    });
-    if (result.error) {
-      throw new Error(result.error);
-    }
-    // register empty macros so that other macros aren't touched yet
-    registerEmptyMacros(handlebars);
-
-    return handlebars.compile(report.contentTemplate)({
-      ...handlebarsContext,
-      ...result,
+    return generateReportContent({
+      calculate: this.calculate,
+      contentTemplate: report.contentTemplate,
+      queryTemplate: report.queryTemplate,
+      options: {
+        cardKey: context.cardKey,
+        ...options,
+      },
     });
   };
 
