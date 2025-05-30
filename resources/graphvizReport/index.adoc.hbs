@@ -1,5 +1,5 @@
 {{#*inline "subgraph"}}
-subgraph cluster{{this.key}} {
+subgraph cluster_{{this.key}} {
   graph [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
   {{#each edges}}
     "{{this.[source]}}" -> "{{this.destination}}" [{{#each attrs}}{{this.attr}}={{{formatAttributeValue this.value}}} {{/each}}]
