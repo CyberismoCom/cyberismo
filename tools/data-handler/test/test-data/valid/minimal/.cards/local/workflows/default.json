@@ -1,5 +1,6 @@
 {
     "name":"mini/workflows/default",
+    "displayName": "Default workflow",
     "states":[
         { "name": "Open", "category": "initial" },
         { "name": "In Progress", "category": "active" },

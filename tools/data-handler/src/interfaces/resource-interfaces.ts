@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type { Schema } from 'jsonschema';
@@ -59,8 +60,6 @@ export interface EnumDefinition {
 
 // Field type content.
 export interface FieldType extends ResourceBaseMetadata {
-  displayName?: string;
-  fieldDescription?: string;
   dataType: DataType;
   enumValues?: Array<EnumDefinition>;
 }
@@ -68,8 +67,6 @@ export interface FieldType extends ResourceBaseMetadata {
 // Graph model content.
 export interface GraphModelMetadata extends ResourceBaseMetadata {
   category?: string;
-  description?: string;
-  displayName: string;
 }
 
 export interface GraphModel extends GraphModelMetadata {
@@ -79,8 +76,6 @@ export interface GraphModel extends GraphModelMetadata {
 // Graph view content.
 export interface GraphViewMetadata extends ResourceBaseMetadata {
   category?: string;
-  description?: string;
-  displayName: string;
 }
 
 export interface GraphView extends GraphViewMetadata {
@@ -104,8 +99,10 @@ export interface LinkType extends ResourceBaseMetadata {
 }
 
 // Report resource.
-export interface Report {
+export interface Report extends ResourceBaseMetadata {
   name: string;
+  description?: string;
+  displayName: string;
   metadata: ReportMetadata;
   contentTemplate: string;
   queryTemplate: string;
@@ -114,14 +111,14 @@ export interface Report {
 
 // Metadata for report
 export interface ReportMetadata extends ResourceBaseMetadata {
-  displayName: string;
-  description: string;
   category: string;
 }
 
 // Base interface for all resources.
 export interface ResourceBaseMetadata {
   name: string;
+  description?: string;
+  displayName: string;
   usedIn?: string[];
 }
 
@@ -137,8 +134,10 @@ export type ResourceContent =
   | Workflow;
 
 // Template configuration details.
-export interface TemplateConfiguration {
+export interface TemplateConfiguration extends ResourceBaseMetadata {
   name: string;
+  description?: string;
+  displayName: string;
   path: string;
   numberOfCards: number;
   metadata: TemplateMetadata;
@@ -146,8 +145,6 @@ export interface TemplateConfiguration {
 
 // Template configuration content details.
 export interface TemplateMetadata extends ResourceBaseMetadata {
-  displayName?: string;
-  description?: string;
   category?: string;
 }
 

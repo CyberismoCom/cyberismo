@@ -23,6 +23,6 @@
       "type": "string"
     }
   },
-  "required": ["name", "displayName"],
+  "required": ["displayName", "name", "displayName"],
   "additionalProperties": false
 }

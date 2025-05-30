@@ -13,9 +13,9 @@
       "type": "string",
       "description": "A name by which the field is referred to in the user interface."
     },
-    "fieldDescription": {
+    "description": {
       "type": "string",
-      "description": ""
+      "description": "A description that describes the field type"
     },
     "dataType": {
       "type": "string",
@@ -43,5 +43,5 @@
       }
     }
   },
-  "required": ["name", "dataType"]
+  "required": ["displayName", "name", "dataType"]
 }
