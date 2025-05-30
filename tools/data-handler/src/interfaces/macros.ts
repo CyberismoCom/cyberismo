@@ -11,11 +11,12 @@
 */
 
 import type { macroMetadata } from '../macros/common.js';
+import type { Project } from '../containers/project.js';
 
 type Mode = 'validate' | 'static' | 'inject';
 
 export interface MacroGenerationContext {
-  projectPath: string;
+  project: Project;
   mode: Mode;
   cardKey: string;
 }

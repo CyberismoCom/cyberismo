@@ -595,7 +595,7 @@ export class Validate {
               card.content,
               {
                 mode: 'validate',
-                projectPath,
+                project,
                 cardKey: card.key,
               },
               calculate,

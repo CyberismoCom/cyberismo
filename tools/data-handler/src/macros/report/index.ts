@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { validateMacroContent } from '../index.js';
@@ -15,7 +16,6 @@ import type { MacroOptions } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import { Project } from '../../containers/project.js';
 import type { Calculate } from '../../commands/index.js';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
@@ -45,8 +45,10 @@ class ReportMacro extends BaseMacro {
 
   handleInject = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const project = new Project(context.projectPath);
-    const resource = new ReportResource(project, resourceName(options.name));
+    const resource = new ReportResource(
+      context.project,
+      resourceName(options.name),
+    );
     const report = await resource.show();
 
     if (!report) throw new Error(`Report ${options.name} does not exist`);

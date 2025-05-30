@@ -358,7 +358,7 @@ export class Show {
     const reportMacro = new ReportMacro(new TaskQueue(), this.calculate);
     const result = await reportMacro.handleInject(
       {
-        projectPath: this.project.basePath,
+        project: this.project,
         cardKey: cardKey,
         mode: 'static',
       },

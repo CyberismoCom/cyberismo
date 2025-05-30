@@ -1,7 +1,6 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation. This program is distributed in the hope that it
@@ -22,7 +21,6 @@ import { logger } from '../../utils/log-utils.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
-import { Project } from '../../containers/project.js';
 import { readFile } from 'node:fs/promises';
 import { resourceName } from '../../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
@@ -48,16 +46,20 @@ class ReportMacro extends BaseMacro {
   };
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    const project = new Project(context.projectPath);
-    const calculate = new Calculate(project);
+    const calculate = new Calculate(context.project);
 
     const resourceNameToPath = (name: string, fileName: string) => {
       const { identifier, prefix, type } = resourceName(name);
-      if (prefix === project.projectPrefix) {
-        return join(project.paths.resourcesFolder, type, identifier, fileName);
+      if (prefix === context.project.projectPrefix) {
+        return join(
+          context.project.paths.resourcesFolder,
+          type,
+          identifier,
+          fileName,
+        );
       }
       return join(
-        project.paths.modulesFolder,
+        context.project.paths.modulesFolder,
         prefix,
         type,
         identifier,
