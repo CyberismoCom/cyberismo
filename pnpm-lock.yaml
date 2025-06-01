@@ -78,7 +78,7 @@ importers:
         specifier: ^6.11.0
         version: 6.11.0
       '@codemirror/view':
-        specifier: ^6.36.7
+        specifier: ^6.37.1
         version: 6.37.1
       '@cyberismocom/data-handler':
         specifier: workspace:*
