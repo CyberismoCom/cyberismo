@@ -22,7 +22,7 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@inquirer/confirm": "^5.1.12",
-    "commander": "^13.1.0",
+    "commander": "^14.0.0",
     "@cyberismocom/backend": "workspace:*",
     "@cyberismocom/data-handler": "workspace:*"
   },
