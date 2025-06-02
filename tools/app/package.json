@@ -30,7 +30,7 @@
     "@uiw/react-codemirror": "^4.23.12",
     "codemirror-asciidoc": "^2.0.1",
     "cypress": "^14.4.0",
-    "html-react-parser": "^5.2.2",
+    "html-react-parser": "^5.2.5",
     "i18next": "^25.1.2",
     "moment": "^2.30.1",
     "node-html-parser": "^7.0.1",
