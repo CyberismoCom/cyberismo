@@ -48,6 +48,7 @@
     "prettier-fix": "prettier --write .",
     "dev": "pnpm -r --parallel dev",
     "build-docker": "docker build -t cyberismo .",
-    "install-dev-packages": "node scripts/install-dev-packages.js"
+    "install-dev-packages": "node scripts/install-dev-packages.js",
+    "ci:publish": "pnpm publish -r"
   }
 }
