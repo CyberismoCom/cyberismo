@@ -87,6 +87,13 @@ export class CardTypeResource extends FileResource {
     return cards;
   }
 
+  // Checks if field type exists in the project.
+  private async fieldTypeExists(field: Partial<CustomField>) {
+    return field && field.name
+      ? this.project.resourceExists('fieldTypes', field.name)
+      : false;
+  }
+
   // If custom fields change, cards need to be updated.
   // Rename change changes key names in cards.
   private async handleCustomFieldsChange<Type>(op: Operation<Type>) {
@@ -171,6 +178,11 @@ export class CardTypeResource extends FileResource {
         await this.project.updateCardMetadata(card, card.metadata);
       }
     }
+  }
+
+  // Checks if field type exists in this card type.
+  private async hasFieldType(field: Partial<CustomField>): Promise<boolean> {
+    return this.data.customFields.some((item) => item.name === field.name);
   }
 
   // Remove value from array.
@@ -303,6 +315,33 @@ export class CardTypeResource extends FileResource {
     }
   }
 
+  // Checks that field type exists in the project and is defined in this card type.
+  private async validateFieldType<Type>(
+    key: string,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const field =
+      typeof op.target === 'object'
+        ? (op.target as CustomField)
+        : { name: op.target as string };
+    // Check that field type exists in the project.
+    const exists = await this.fieldTypeExists(field);
+    if (!exists) {
+      throw new Error(
+        `Field type '${field.name}' does not exist in the project`,
+      );
+    }
+    // Check that field type is defined in card type.
+    if (key === 'alwaysVisibleFields' || key === 'optionallyVisibleFields') {
+      const hasField = await this.hasFieldType(field);
+      if (!hasField) {
+        throw new Error(
+          `Field type '${field.name}' is not defined in card type '${this.content.name}'`,
+        );
+      }
+    }
+  }
+
   /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
@@ -378,12 +417,14 @@ export class CardTypeResource extends FileResource {
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'alwaysVisibleFields') {
+      await this.validateFieldType(key, op);
       content.alwaysVisibleFields = super.handleArray(
         op,
         key,
         content.alwaysVisibleFields as Type[],
       ) as string[];
     } else if (key === 'optionallyVisibleFields') {
+      await this.validateFieldType(key, op);
       content.optionallyVisibleFields = super.handleArray(
         op,
         key,
@@ -392,6 +433,7 @@ export class CardTypeResource extends FileResource {
     } else if (key === 'workflow') {
       content.workflow = super.handleScalar(op) as string;
     } else if (key === 'customFields') {
+      await this.validateFieldType(key, op);
       content.customFields = super.handleArray(
         op,
         key,
