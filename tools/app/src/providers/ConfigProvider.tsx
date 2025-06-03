@@ -16,6 +16,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<AppConfig | undefined>(undefined);
 
   useEffect(() => {
+    if (import.meta.env.VITE_CYBERISMO_EXPORT === 'true') {
+      setConfig({ export: true });
+      return;
+    }
+
     fetch('/config.json')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load config.json');

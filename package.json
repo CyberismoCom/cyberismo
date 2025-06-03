@@ -16,6 +16,7 @@
     "chai": "^5.2.0",
     "chai-as-promised": "^8.0.1",
     "chokidar-cli": "^3.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",
     "mocha": "^11.2.2",
@@ -47,6 +48,8 @@
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
     "dev": "pnpm -r --parallel dev",
+    "prepare-export": "pnpm --filter backend export && shx cp -r tools/backend/static/api tools/app/public",
+    "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
     "build-docker": "docker build -t cyberismo .",
     "install-dev-packages": "node scripts/install-dev-packages.js",
     "ci:publish": "pnpm --filter !app publish"

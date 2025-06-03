@@ -38,6 +38,9 @@ importers:
       chokidar-cli:
         specifier: ^3.0.0
         version: 3.0.0
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       eslint:
         specifier: ^9.26.0
         version: 9.28.0
@@ -119,9 +122,6 @@ importers:
       codemirror-asciidoc:
         specifier: ^2.0.1
         version: 2.0.1
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
       cypress:
         specifier: ^14.4.0
         version: 14.4.0
