@@ -13,6 +13,8 @@
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 
+import { resolve } from 'path';
+
 import type {
   ModuleSetting,
   ProjectSettings,
@@ -102,6 +104,11 @@ export class ProjectConfiguration implements ProjectSettings {
     const exists = this.modules.find((item) => item.name === module.name);
     if (exists) {
       throw new Error(`Module '${module.name}' already imported`);
+    }
+    // Ensure that module file location is absolute
+    if (module.location && module.location.startsWith('file:')) {
+      const filePath = module.location.substring(5, module.location.length);
+      module.location = `file:${resolve(filePath)}`;
     }
     this.modules.push(module);
     return this.save();
