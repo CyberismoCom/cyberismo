@@ -25,7 +25,7 @@ import {
   type UpdateOperations,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-import { startServer, exportSite } from '@cyberismo/backend';
+import { startServer, exportSite, previewSite } from '@cyberismo/backend';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 
@@ -484,6 +484,17 @@ program
       handleResponse(result);
     },
   );
+
+program
+  .command('preview')
+  .description('Preview the exported site')
+  .argument(
+    '[dir]',
+    'Directory to preview. If not provided, current directory is used.',
+  )
+  .action(async (dir: string) => {
+    await previewSite(dir || '.', true);
+  });
 
 const rank = program.command('rank');
 
