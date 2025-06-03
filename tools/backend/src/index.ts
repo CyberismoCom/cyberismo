@@ -15,9 +15,8 @@ import linkTypesRouter from './routes/linkTypes.js';
 import templatesRouter from './routes/templates.js';
 import treeRouter from './routes/tree.js';
 
-import { fileURLToPath } from 'node:url';
 import { toSSG } from 'hono/ssg';
-import { CommandManager } from '@cyberismocom/data-handler';
+import { CommandManager } from '@cyberismo/data-handler';
 
 const staticFrontendDirRelative = path.relative(
   process.cwd(),
