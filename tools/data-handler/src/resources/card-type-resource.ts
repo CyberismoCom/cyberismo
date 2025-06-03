@@ -1,14 +1,17 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+
 import type {
   CardType,
   CustomField,
@@ -31,7 +34,6 @@ import {
   sortCards,
 } from './file-resource.js';
 import { LinkTypeResource } from './link-type-resource.js';
-import { Template } from '../containers/template.js';
 import { Validate } from '../commands/index.js';
 
 /**
@@ -56,37 +58,6 @@ export class CardTypeResource extends FileResource {
       .map((card) => card.key);
   }
 
-  // Collects affected cards.
-  private async collectCards(cardContent: object) {
-    async function filteredCards(
-      cardSource: Promise<Card[]>,
-      cardTypeName: string,
-    ): Promise<Card[]> {
-      const cards = await cardSource;
-      return cards.filter((card) => card.metadata?.cardType === cardTypeName);
-    }
-
-    // Collect both project cards ...
-    const projectCardsPromise = filteredCards(
-      this.project.cards(this.project.paths.cardRootFolder, cardContent),
-      this.content.name,
-    );
-    // ... and cards from each template that would be affected.
-    const templates = await this.project.templates(ResourcesFrom.localOnly);
-    const templateCardsPromises = templates.map((template) => {
-      const templateObject = new Template(this.project, template);
-      return filteredCards(
-        templateObject.cards('', cardContent),
-        this.content.name,
-      );
-    });
-    // Return all affected cards
-    const cards = (
-      await Promise.all([projectCardsPromise, ...templateCardsPromises])
-    ).reduce((accumulator, value) => accumulator.concat(value), []);
-    return cards;
-  }
-
   // Checks if field type exists in the project.
   private async fieldTypeExists(field: Partial<CustomField>) {
     return field && field.name
@@ -97,15 +68,16 @@ export class CardTypeResource extends FileResource {
   // If custom fields change, cards need to be updated.
   // Rename change changes key names in cards.
   private async handleCustomFieldsChange<Type>(op: Operation<Type>) {
-    const cardContent = {
-      metadata: true,
-      content: true,
-    };
-
     if (op && op.name === 'rank') return;
 
     // Collect both project cards and template cards.
-    const cards = await this.collectCards(cardContent);
+    const cards = await this.collectCards(
+      {
+        metadata: true,
+        content: true,
+      },
+      this.content.name,
+    );
 
     if (op && op.name === 'change') {
       const from = (op as ChangeOperation<string>).target;

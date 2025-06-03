@@ -19,6 +19,7 @@ import { readFile } from 'node:fs/promises';
 
 import type {
   Card,
+  FetchCardDetails,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import {
@@ -48,6 +49,7 @@ import {
 } from '../utils/resource-utils.js';
 import type { Resource } from '../interfaces/project-interfaces.js';
 import { sortCards } from '../utils/card-utils.js';
+import { Template } from '../containers/template.js';
 import { Validate } from '../commands/index.js';
 
 export {
@@ -100,6 +102,37 @@ export class FileResource extends ResourceObject {
       resourceNameToString(this.resourceName),
       this.content as unknown as JSON,
     );
+  }
+
+  // Collects cards that are using the 'cardTypeName'.
+  protected async collectCards(
+    cardContent: FetchCardDetails,
+    cardTypeName: string,
+  ) {
+    async function filteredCards(
+      cardSource: Promise<Card[]>,
+      cardTypeName: string,
+    ): Promise<Card[]> {
+      const cards = await cardSource;
+      return cards.filter((card) => card.metadata?.cardType === cardTypeName);
+    }
+
+    // Collect both project cards ...
+    const projectCardsPromise = filteredCards(
+      this.project.cards(this.project.paths.cardRootFolder, cardContent),
+      cardTypeName,
+    );
+    // ... and cards from each template that would be affected.
+    const templates = await this.project.templates(ResourcesFrom.localOnly);
+    const templateCardsPromises = templates.map((template) => {
+      const templateObject = new Template(this.project, template);
+      return filteredCards(templateObject.cards('', cardContent), cardTypeName);
+    });
+    // Return all affected cards
+    const cards = (
+      await Promise.all([projectCardsPromise, ...templateCardsPromises])
+    ).reduce((accumulator, value) => accumulator.concat(value), []);
+    return cards;
   }
 
   // Initialize the resource.

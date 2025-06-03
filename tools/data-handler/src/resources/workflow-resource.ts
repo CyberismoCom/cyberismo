@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type {
@@ -22,6 +24,7 @@ import type {
   ChangeOperation,
   Operation,
   Project,
+  RemoveOperation,
   ResourceName,
 } from './file-resource.js';
 import {
@@ -46,6 +49,27 @@ export class WorkflowResource extends FileResource {
     this.initialize();
   }
 
+  // Collect all cards that use this workflow.
+  private async collectCardsUsingWorkflow(): Promise<Card[]> {
+    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
+    const promises: Promise<Card[]>[] = [];
+    for (const cardType of cardTypes) {
+      const object = new CardTypeResource(
+        this.project,
+        resourceName(cardType.name),
+      );
+      if (
+        object.data &&
+        (object.data as CardType).workflow ===
+          resourceNameToString(this.resourceName)
+      ) {
+        // fetch all cards with card type
+        promises.push(this.collectCards({ metadata: true }, cardType.name));
+      }
+    }
+    return (await Promise.all(promises)).flat();
+  }
+
   // When resource name changes.
   private async handleNameChange(existingName: string) {
     await Promise.all([
@@ -54,6 +78,96 @@ export class WorkflowResource extends FileResource {
     ]);
     // Finally, write updated content.
     await this.write();
+  }
+
+  // Handle change of workflow state.
+  private async handleStateChange(op: ChangeOperation<WorkflowState>) {
+    const content = { ...(this.content as Workflow) };
+    const stateName = (
+      (op.target as WorkflowState).name
+        ? (op.target as WorkflowState).name
+        : op.target
+    ) as string;
+    // Check that state can be changed to
+    content.transitions = content.transitions.filter(
+      (t) => t.toState !== stateName,
+    );
+    content.transitions.forEach((t) => {
+      t.fromState = t.fromState.filter((state) => state !== stateName);
+    });
+    // validate that new state contains 'name' and 'category'
+    if (op.to.name === undefined || op.to.category === undefined) {
+      throw new Error(
+        `Cannot change state '${stateName}' for workflow '${this.content.name}'.
+         Updated state must have 'name' and 'category' properties.`,
+      );
+    }
+    // Update all cards that use this state.
+    const toStateName = op.to.name;
+
+    await this.updateCardStates(stateName, toStateName);
+  }
+
+  // Handle removal of workflow state.
+  // State can be removed with or without replacement.
+  private async handleStateRemoval(op: RemoveOperation<WorkflowState>) {
+    const content = { ...(this.content as Workflow) };
+    const stateName = (
+      (op.target as WorkflowState).name
+        ? (op.target as WorkflowState).name
+        : op.target
+    ) as string;
+
+    // If there is no replacement value, remove all transitions "to" and "from" this state.
+    if (!op.replacementValue) {
+      content.transitions = content.transitions.filter(
+        (t) => t.toState !== stateName,
+      );
+      content.transitions.forEach((t) => {
+        t.fromState = t.fromState.filter((state) => state !== stateName);
+      });
+    } else {
+      // Replace transitions "to" the removed state with the replacement state.
+      const replacementState = op.replacementValue;
+      const stateExists = content.states.some(
+        (state) => state.name === replacementState.name,
+      );
+      if (!stateExists) {
+        throw new Error(
+          `Cannot change to unknown state '${replacementState.name}' for Workflow`,
+        );
+      }
+
+      content.transitions.forEach((t) => {
+        if (t.toState === stateName) {
+          t.toState = replacementState.name;
+        }
+      });
+      // Replace transitions "from" the removed state with the replacement state.
+      content.transitions.forEach((t) => {
+        t.fromState = t.fromState.map((state) =>
+          state === stateName ? replacementState.name : state,
+        );
+      });
+      // Update all cards that use this state.
+      await this.updateCardStates(stateName, replacementState.name);
+    }
+  }
+
+  // Check if operation is a string operation.
+  private isStringOperation(op: Operation<unknown>): op is Operation<string> {
+    return typeof op.target === 'string';
+  }
+
+  // Update card states when state is changed
+  private async updateCardStates(oldState: string, newState: string) {
+    const cards = await this.collectCardsUsingWorkflow();
+    cards.forEach(async (card) => {
+      if (card.metadata?.workflowState === oldState) {
+        card.metadata.workflowState = newState;
+        await this.project.updateCardMetadata(card, card.metadata);
+      }
+    });
   }
 
   // Update dependant card types.
@@ -154,6 +268,39 @@ export class WorkflowResource extends FileResource {
       ) as WorkflowTransition[];
     } else {
       throw new Error(`Unknown property '${key}' for Workflow`);
+    }
+
+    if (key === 'states' && op.name === 'remove') {
+      // If workflow state is removed, remove all transitions "to" and "from" this state.
+      let removeOp: RemoveOperation<WorkflowState>;
+      if (this.isStringOperation(op)) {
+        const toBeRemovedState = (this.content as Workflow).states.find(
+          (state) => state.name === op.target,
+        );
+        removeOp = {
+          name: 'remove',
+          target: toBeRemovedState as WorkflowState,
+        };
+      } else {
+        removeOp = op as RemoveOperation<WorkflowState>;
+      }
+      await this.handleStateRemoval(removeOp);
+    } else if (key === 'states' && op.name === 'change') {
+      // If workflow state is renamed, replace all transitions "to" and "from" the old state with new state.
+      let changeOp: ChangeOperation<WorkflowState>;
+      if (this.isStringOperation(op)) {
+        const toBeChangedState = (this.content as Workflow).states.find(
+          (state) => state.name === op.target,
+        );
+        changeOp = {
+          name: 'change',
+          target: toBeChangedState as WorkflowState,
+          to: { name: op.to },
+        };
+      } else {
+        changeOp = op as ChangeOperation<WorkflowState>;
+      }
+      await this.handleStateChange(changeOp);
     }
 
     await super.postUpdate(content, key, op);

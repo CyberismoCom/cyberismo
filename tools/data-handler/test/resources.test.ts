@@ -2074,6 +2074,68 @@ describe('resources', function () {
       );
       expect(found).not.to.equal(undefined);
     });
+    it('update existing workflow - rename state', async () => {
+      const res = new WorkflowResource(
+        project,
+        resourceName('decision/workflows/decision'),
+      );
+      const cards = await project.cards(project.paths.cardRootFolder, {
+        metadata: true,
+      });
+      const cardsWithThisWorkflow = cards.filter((card) => {
+        const ct = new CardTypeResource(
+          project,
+          resourceName(card.metadata?.cardType as string),
+        );
+        if (ct) {
+          return ct.data.workflow === 'decision/workflows/decision';
+        }
+      });
+      // Update the workflow state name and check that the cards are updated
+      const expectedItem = { name: 'Approved', category: 'closed' };
+      const updatedItem = { name: 'ReallyApproved', category: 'closed' };
+      const op = {
+        name: 'change',
+        target: expectedItem,
+        to: updatedItem,
+      } as ChangeOperation<WorkflowState>;
+      await res.update('states', op);
+
+      // Check that card metadata is updated.
+      const updatedCard = await project.findSpecificCard(
+        cardsWithThisWorkflow.at(0)?.key as string,
+        { metadata: true },
+      );
+      expect(updatedCard?.metadata?.workflowState).to.equal('ReallyApproved');
+      // Change the state name back to the original to avoid issues in other tests.
+      const opRevert = {
+        name: 'change',
+        target: updatedItem,
+        to: expectedItem,
+      } as ChangeOperation<WorkflowState>;
+      await res.update('states', opRevert);
+    });
+    it('try to update existing workflow - rename state with incomplete state', async () => {
+      const res = new WorkflowResource(
+        project,
+        resourceName('decision/workflows/decision'),
+      );
+      const expectedItem = { name: 'Approved', category: 'closed' };
+      const updatedItem = { name: 'ReallyApproved' };
+      const op = {
+        name: 'change',
+        target: expectedItem,
+        to: updatedItem,
+      } as ChangeOperation<WorkflowState>;
+      await res
+        .update('states', op)
+        .then(() => expect(false).to.equal(true))
+        .catch((error) =>
+          expect(error.message).to.contain(
+            "Cannot change state 'Approved' for workflow 'decision/workflows/decision'.",
+          ),
+        );
+    });
     it('update workflow - rename transition', async () => {
       const res = new WorkflowResource(
         project,
