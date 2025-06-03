@@ -164,30 +164,42 @@ async function getCardDetails(
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key', ssgParams(async (c) => {
-  const commands = c.get('commands');
-  const fetchedCards = await commands.showCmd.showCards(CardLocation.projectOnly);
-  const projectCards = fetchedCards.find(cardContainer => cardContainer.type === "project");
-  if (!projectCards) {
-    throw new Error("Data handler did not return project cards");
-  }
-  return projectCards.cards.map(key => ({ key }));
-}), async (c) => {
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
-
-  const result = await getCardDetails(c.get('commands'), key, c.get('exportMode'));
-  if (result.status === 200) {
-    return c.json(result.data);
-  } else {
-    return c.text(
-      result.message || 'Unknown error',
-      result.status as ContentfulStatusCode,
+router.get(
+  '/:key',
+  ssgParams(async (c) => {
+    const commands = c.get('commands');
+    const fetchedCards = await commands.showCmd.showCards(
+      CardLocation.projectOnly,
     );
-  }
-});
+    const projectCards = fetchedCards.find(
+      (cardContainer) => cardContainer.type === 'project',
+    );
+    if (!projectCards) {
+      throw new Error('Data handler did not return project cards');
+    }
+    return projectCards.cards.map((key) => ({ key }));
+  }),
+  async (c) => {
+    const key = c.req.param('key');
+    if (!key) {
+      return c.text('No search key', 400);
+    }
+
+    const result = await getCardDetails(
+      c.get('commands'),
+      key,
+      c.get('exportMode'),
+    );
+    if (result.status === 200) {
+      return c.json(result.data);
+    } else {
+      return c.text(
+        result.message || 'Unknown error',
+        result.status as ContentfulStatusCode,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -744,50 +756,54 @@ router.delete('/:key/links', async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key/a/:attachment', ssgParams(async (c) => {
-  const commands = c.get('commands');
-  const attachments = await commands.showCmd.showAttachments();
-  return attachments.map(attachment => ({
-    key: attachment.card,
-    attachment: attachment.fileName
-  }));
-}), async (c) => {
-  const commands = c.get('commands');
-  const { key, attachment } = c.req.param();
-  const filename = decodeURI(attachment);
+router.get(
+  '/:key/a/:attachment',
+  ssgParams(async (c) => {
+    const commands = c.get('commands');
+    const attachments = await commands.showCmd.showAttachments();
+    return attachments.map((attachment) => ({
+      key: attachment.card,
+      attachment: attachment.fileName,
+    }));
+  }),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, attachment } = c.req.param();
+    const filename = decodeURI(attachment);
 
-  if (!filename || !key) {
-    return c.text('Missing cardKey or filename', 400);
-  }
+    if (!filename || !key) {
+      return c.text('Missing cardKey or filename', 400);
+    }
 
-  try {
-    const attachmentResponse = await commands.showCmd.showAttachment(
-      key,
-      filename,
-    );
+    try {
+      const attachmentResponse = await commands.showCmd.showAttachment(
+        key,
+        filename,
+      );
 
-    if (!attachmentResponse) {
+      if (!attachmentResponse) {
+        return c.text(
+          `No attachment found from card ${key} and filename ${filename}`,
+          404,
+        );
+      }
+
+      const payload = attachmentResponse as any;
+
+      return new Response(payload.fileBuffer, {
+        headers: {
+          'Content-Type': payload.mimeType,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    } catch {
       return c.text(
         `No attachment found from card ${key} and filename ${filename}`,
         404,
       );
     }
-
-    const payload = attachmentResponse as any;
-
-    return new Response(payload.fileBuffer, {
-      headers: {
-        'Content-Type': payload.mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
-  } catch {
-    return c.text(
-      `No attachment found from card ${key} and filename ${filename}`,
-      404,
-    );
-  }
-});
+  },
+);
 
 export default router;

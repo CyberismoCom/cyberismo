@@ -257,7 +257,9 @@ export class Show {
    * Shows all cards (either template or project cards) from a project.
    * @returns cards list array
    */
-  public async showCards(cardsFrom?: CardLocation): Promise<CardListContainer[]> {
+  public async showCards(
+    cardsFrom?: CardLocation,
+  ): Promise<CardListContainer[]> {
     return this.project.listCards(cardsFrom);
   }
 
