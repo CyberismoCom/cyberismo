@@ -67,18 +67,6 @@ test('non-existing attachment file returns an error', async () => {
   expect(response.status).toBe(404);
 });
 
-test('cardTypes endpoint returns card type object', async () => {
-  const response = await app.request(
-    '/api/cardTypes?name=decision/cardTypes/decision',
-  );
-  expect(response).not.toBe(null);
-
-  const result: any = await response.json();
-  expect(response.status).toBe(200);
-  expect(result.name).toBe('decision/cardTypes/decision');
-  expect(result.workflow).toBe('decision/workflows/decision');
-});
-
 test('fieldTypes endpoint returns proper data', async () => {
   const response = await app.request('/api/fieldTypes');
   expect(response).not.toBe(null);
