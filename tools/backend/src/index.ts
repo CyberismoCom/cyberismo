@@ -23,6 +23,11 @@ const staticFrontendDirRelative = path.relative(
   path.resolve(import.meta.dirname, 'public'),
 );
 
+/**
+ * Create the Hono app for the backend
+ * @param projectPath - Path to the project
+ * @param exportMode - If true, the app is in export mode
+ */
 export function createApp(projectPath?: string, exportMode: boolean = false) {
   const app = new Hono();
 
@@ -91,6 +96,37 @@ export async function exportSite(projectPath: string, dir?: string) {
   });
 }
 
+/**
+ * Preview the exported site
+ * @param dir - Directory to preview
+ * @param findPort - If true, find a free port
+ */
+export async function previewSite(dir: string, findPort: boolean = true) {
+  const app = new Hono();
+  app.use(async (c, next) => {
+    c.set('exportMode', true);
+    await next();
+  });
+  app.use(serveStatic({ root: dir }));
+  app.get('*', (c) =>
+    c.html(
+      readFile(path.join(dir, 'index.html')).then((file) => file.toString()),
+    ),
+  );
+
+  let port = parseInt(process.env.PORT || '3000', 10);
+
+  if (findPort) {
+    port = await findFreePort(port);
+  }
+  await startApp(app, port);
+}
+
+/**
+ * Start the server
+ * @param projectPath - Path to the project
+ * @param findPort - If true, find a free port
+ */
 export async function startServer(
   projectPath?: string,
   findPort: boolean = true,
@@ -100,13 +136,16 @@ export async function startServer(
   if (findPort) {
     port = await findFreePort(port);
   }
-
   const app = createApp(projectPath);
+  await startApp(app, port);
+}
+
+async function startApp(app: Hono, port: number) {
   // Start server
   serve(
     {
       fetch: app.fetch,
-      port: Number(port),
+      port: port,
     },
     (info) => {
       console.log(`Running Cyberismo app on http://localhost:${info.port}`);
