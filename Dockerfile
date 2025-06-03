@@ -66,25 +66,19 @@ RUN mkdir -p ./tools/data-handler
 COPY --from=builder /app/tools/data-handler/package.json ./tools/data-handler/package.json
 COPY --from=builder /app/tools/data-handler/dist ./tools/data-handler/dist
 
+# resources
+RUN mkdir -p ./resources
+COPY --from=builder /app/tools/resources/package.json ./tools/resources/package.json
+COPY --from=builder /app/tools/resources/dist ./tools/resources/dist
+
 # install deps without dev dependencies
 RUN pnpm install --prod --ignore-scripts
 
 # copy prebuilds
 COPY --from=builder /app/tools/node-clingo/prebuilds ./tools/node-clingo/prebuilds
 
-# at last copy schemas and resources
-COPY --from=builder /app/tools/schema ./tools/schema
-COPY --from=builder /app/resources ./resources
-
 # setup bin
 RUN pnpm setup 
 RUN pnpm link -g
 
 WORKDIR /project
-
-
-
-
-
-
-
