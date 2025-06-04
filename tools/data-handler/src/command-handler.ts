@@ -43,6 +43,8 @@ import { errorFunction } from './utils/log-utils.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
+import { type Level } from 'pino';
+
 // Generic options interface
 export interface CardsOptions {
   details?: boolean;
@@ -50,6 +52,7 @@ export interface CardsOptions {
   projectPath?: string;
   repeat?: number;
   showUse?: boolean;
+  logLevel?: Level;
 }
 
 // Commands that this class supports.
@@ -90,6 +93,7 @@ export class Commands {
   private commands?: CommandManager;
   private projectPath: string;
   private validateCmd: Validate;
+  private level?: Level;
 
   constructor() {
     this.projectPath = '';
@@ -117,7 +121,7 @@ export class Commands {
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
     if (!creatingNewProject) {
       try {
-        await this.doSetProject(options.projectPath || '');
+        await this.doSetProject(options.projectPath || '', options.logLevel);
       } catch (error) {
         return { statusCode: 400, message: errorFunction(error) };
       }
@@ -143,7 +147,7 @@ export class Commands {
   }
 
   // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(path: string) {
+  private async doSetProject(path: string, level?: Level) {
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
       let errorMessage = '';
@@ -159,7 +163,7 @@ export class Commands {
       throw new Error(`Input validation error: cannot find project '${path}'`);
     }
 
-    this.commands = await CommandManager.getInstance(this.projectPath);
+    this.commands = await CommandManager.getInstance(this.projectPath, level);
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
     }

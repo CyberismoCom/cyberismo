@@ -37,7 +37,7 @@ import {
   getRankAfter,
   sortItems,
 } from '../utils/lexorank.js';
-import { logger } from '../utils/log-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile } from '../utils/json.js';
 import { Project } from './project.js';
 import { resourceName } from '../utils/resource-utils.js';
@@ -47,6 +47,11 @@ export class Template extends CardContainer {
   private templatePath: string;
   private templateCardsPath: string;
   private project: Project;
+  private get logger() {
+    return getChildLogger({
+      module: 'template',
+    });
+  }
 
   constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
@@ -465,7 +470,7 @@ export class Template extends CardContainer {
     details?: FetchCardDetails,
   ): Promise<Card[]> {
     if (placeHolderPath) {
-      logger.warn('A non-used variable was used in the cards method');
+      this.logger.warn('A non-used variable was used in the cards method');
     }
     const cardDetails = details
       ? details

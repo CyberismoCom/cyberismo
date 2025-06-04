@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Argument, Command } from 'commander';
+import { Argument, Command, Option } from 'commander';
 import confirm from '@inquirer/confirm';
 import {
   type CardsOptions,
@@ -172,7 +172,12 @@ const additionalHelpForRemove = `Sub-command help:
 program
   .name('cyberismo')
   .description(packageDef.description)
-  .version(packageDef.version);
+  .version(packageDef.version)
+  .addOption(
+    new Option('-L, --log-level <level>', 'Set the log level')
+      .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
+      .default('fatal'),
+  );
 
 // Add card to a template
 program
@@ -199,7 +204,7 @@ program
       const result = await commandHandler.command(
         Cmd.add,
         [template, cardType, cardKey],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -229,7 +234,7 @@ calculate
     const result = await commandHandler.command(
       Cmd.calc,
       ['run', filePath],
-      options,
+      Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
   });
@@ -334,7 +339,7 @@ program
       const result = await commandHandler.command(
         Cmd.create,
         [type, target, parameter1, parameter2, parameter3],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -347,7 +352,11 @@ program
   .argument('<cardKey>', 'Card key of card')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.edit, [cardKey], options);
+    const result = await commandHandler.command(
+      Cmd.edit,
+      [cardKey],
+      Object.assign({}, options, program.opts()),
+    );
     handleResponse(result);
   });
 
@@ -376,7 +385,7 @@ program
       const result = await commandHandler.command(
         Cmd.export,
         [format, output, cardKey],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -407,7 +416,7 @@ importCmd
       const result = await commandHandler.command(
         Cmd.import,
         ['module', source, branch, String(useCredentials)],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -427,7 +436,7 @@ importCmd
     const result = await commandHandler.command(
       Cmd.import,
       ['csv', csvFile, cardKey],
-      options,
+      Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
   });
@@ -449,7 +458,7 @@ program
       const result = await commandHandler.command(
         Cmd.move,
         [source, destination],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -473,7 +482,7 @@ rank
       const result = await commandHandler.command(
         Cmd.rank,
         ['card', cardKey, afterCardKey],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -493,7 +502,7 @@ rank
     const result = await commandHandler.command(
       Cmd.rank,
       ['rebalance', cardKey],
-      options,
+      Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
   });
@@ -555,7 +564,7 @@ program
         const result = await commandHandler.command(
           Cmd.remove,
           [type, parameter1, parameter2, parameter3],
-          options,
+          Object.assign({}, options, program.opts()),
         );
         handleResponse(result);
       }
@@ -571,7 +580,11 @@ program
   .argument('<to>', 'New project prefix')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (to: string, options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.rename, [to], options);
+    const result = await commandHandler.command(
+      Cmd.rename,
+      [to],
+      Object.assign({}, options, program.opts()),
+    );
     handleResponse(result);
   });
 
@@ -592,7 +605,7 @@ program
     const result = await commandHandler.command(
       Cmd.report,
       [parameters, output],
-      options,
+      Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
   });
@@ -624,7 +637,7 @@ program
       const result = await commandHandler.command(
         Cmd.show,
         [type, typeDetail],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     }
@@ -645,7 +658,7 @@ program
       const result = await commandHandler.command(
         Cmd.transition,
         [cardKey, transition],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -678,7 +691,7 @@ program
       const result = await commandHandler.command(
         Cmd.update,
         [resourceName, key, operation, value, newValue],
-        options,
+        Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
@@ -690,7 +703,11 @@ program
   .description('Updates all imported modules with latest versions')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.updateModules, [], options);
+    const result = await commandHandler.command(
+      Cmd.updateModules,
+      [],
+      Object.assign({}, options, program.opts()),
+    );
     handleResponse(result);
   });
 
@@ -700,7 +717,11 @@ program
   .description('Validate project structure')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
-    const result = await commandHandler.command(Cmd.validate, [], options);
+    const result = await commandHandler.command(
+      Cmd.validate,
+      [],
+      Object.assign({}, options, program.opts()),
+    );
     handleResponse(result);
   });
 
@@ -717,7 +738,11 @@ program
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
     // validate project
-    const result = await commandHandler.command(Cmd.validate, [], options);
+    const result = await commandHandler.command(
+      Cmd.validate,
+      [],
+      Object.assign({}, options, program.opts()),
+    );
     if (!result.message) {
       program.error('Expected validation result, but got none');
       return;

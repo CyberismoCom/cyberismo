@@ -26,6 +26,9 @@ import {
   Validate,
 } from './commands/index.js';
 import { Project } from './containers/project.js';
+import { ProjectPaths } from './containers/project/project-paths.js';
+import pino, { type Level, type TransportTargetOptions } from 'pino';
+import { setLogger } from './utils/log-utils.js';
 
 // Handles commands and ensures that no extra instances are created.
 export class CommandManager {
@@ -45,6 +48,8 @@ export class CommandManager {
   public transitionCmd: Transition;
   public updateCmd: Update;
   public validateCmd: Validate;
+
+  private pathHandler: ProjectPaths;
 
   constructor(path: string) {
     this.project = new Project(path);
@@ -66,6 +71,7 @@ export class CommandManager {
     this.renameCmd = new Rename(this.project, this.calculateCmd);
     this.transitionCmd = new Transition(this.project, this.calculateCmd);
     this.updateCmd = new Update(this.project);
+    this.pathHandler = new ProjectPaths(path);
   }
 
   /**
@@ -77,12 +83,43 @@ export class CommandManager {
   }
 
   /**
+   * Sets the logger for the command manager.
+   * @param level Log level.
+   */
+  public async setLogger(level: Level) {
+    const all: TransportTargetOptions[] = [
+      {
+        target: 'pino/file',
+        level: 'trace',
+        options: { destination: this.pathHandler.logPath, mkdir: true },
+      },
+      {
+        target: 'pino/file',
+        level: level,
+        options: { destination: 1 }, // stdout
+      },
+    ];
+
+    setLogger(
+      pino.default({
+        level: 'trace',
+        transport: {
+          targets: all,
+        },
+      }),
+    );
+  }
+
+  /**
    * Either creates a new instance, or passes the current one.
    * New instance is created, if path differs, or there is no previous instance.
    * @param path Project path.
    * @returns Instance of this class.
    */
-  public static async getInstance(path: string): Promise<CommandManager> {
+  public static async getInstance(
+    path: string,
+    level?: Level,
+  ): Promise<CommandManager> {
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
@@ -93,6 +130,10 @@ export class CommandManager {
     if (!CommandManager.instance) {
       CommandManager.instance = new CommandManager(path);
       await CommandManager.instance.initialize();
+    }
+
+    if (level) {
+      await CommandManager.instance.setLogger(level);
     }
     return CommandManager.instance;
   }
