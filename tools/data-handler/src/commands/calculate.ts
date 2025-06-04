@@ -298,26 +298,36 @@ export class Calculate {
   }
 
   private async run(query: string): Promise<string[]> {
-    const res = await Calculate.mutex.runExclusive(async () => {
-      // For queries, use both base and queryLanguage
-      const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
+    try {
+      const res = await Calculate.mutex.runExclusive(async () => {
+        // For queries, use both base and queryLanguage
+        const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
 
-      this.logger.trace(
+        this.logger.trace(
+          {
+            clingo: true,
+          },
+          'Solving',
+        );
+
+        // Then solve with the program - need to pass the program as parameter
+        return solve(query, basePrograms);
+      });
+
+      if (res && res.answers && res.answers.length > 0) {
+        return res.answers;
+      }
+      throw new Error('Failed to run Clingo solve. No answers returned.');
+    } catch (error) {
+      this.logger.error(
         {
-          clingo: true,
+          error,
+          query,
         },
-        'Solving',
+        'Clingo solve failed',
       );
-
-      // Then solve with the program - need to pass the program as parameter
-      return solve(query, basePrograms);
-    });
-
-    if (res && res.answers && res.answers.length > 0) {
-      return res.answers;
+      throw error;
     }
-
-    throw new Error('Failed to run Clingo solve. No answers returned.');
   }
 
   /**
