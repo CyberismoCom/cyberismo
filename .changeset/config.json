@@ -7,7 +7,7 @@
       "@cyberismo/data-handler",
       "@cyberismo/cli",
       "@cyberismo/backend",
-      "@cyberismo/resources"
+      "@cyberismo/assets"
     ]
   ],
   "linked": [],

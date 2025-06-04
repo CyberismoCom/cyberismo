@@ -41,7 +41,7 @@
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/node-clingo": "workspace:*",
-    "@cyberismo/resources": "workspace:*",
+    "@cyberismo/assets": "workspace:*",
     "antora": "^3.1.10",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.6.0",

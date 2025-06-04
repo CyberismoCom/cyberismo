@@ -66,10 +66,10 @@ RUN mkdir -p ./tools/data-handler
 COPY --from=builder /app/tools/data-handler/package.json ./tools/data-handler/package.json
 COPY --from=builder /app/tools/data-handler/dist ./tools/data-handler/dist
 
-# resources
-RUN mkdir -p ./resources
-COPY --from=builder /app/tools/resources/package.json ./tools/resources/package.json
-COPY --from=builder /app/tools/resources/dist ./tools/resources/dist
+# assets
+RUN mkdir -p ./tools/assets
+COPY --from=builder /app/tools/assets/package.json ./tools/assets/package.json
+COPY --from=builder /app/tools/assets/dist ./tools/assets/dist
 
 # install deps without dev dependencies
 RUN pnpm install --prod --ignore-scripts

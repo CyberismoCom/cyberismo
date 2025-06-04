@@ -20,7 +20,7 @@ import { readdir } from 'node:fs/promises';
 // dependencies
 import { Validator as JSONValidator, type Schema } from 'jsonschema';
 import { Validator as DirectoryValidator } from 'directory-schema-validator';
-import { parentSchema, schemas } from '@cyberismo/resources';
+import { parentSchema, schemas } from '@cyberismo/assets';
 
 // data-handler
 import type {

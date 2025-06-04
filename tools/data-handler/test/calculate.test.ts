@@ -8,7 +8,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
-import { lpFiles } from '@cyberismo/resources';
+import { lpFiles } from '@cyberismo/assets';
 
 use(chaiAsPromised);
 

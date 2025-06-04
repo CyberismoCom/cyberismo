@@ -53,7 +53,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import { solve, setBaseProgram } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../utils/report.js';
-import { lpFiles, graphvizReport } from '@cyberismo/resources';
+import { lpFiles, graphvizReport } from '@cyberismo/assets';
 
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';

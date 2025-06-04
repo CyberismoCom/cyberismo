@@ -195,6 +195,15 @@ importers:
         specifier: ^6.3.4
         version: 6.3.5(@types/node@22.15.29)(tsx@4.19.4)
 
+  tools/assets:
+    devDependencies:
+      esbuild:
+        specifier: ^0.25.4
+        version: 0.25.4
+      esbuild-plugin-import-glob:
+        specifier: ^0.1.1
+        version: 0.1.1
+
   tools/backend:
     dependencies:
       '@asciidoctor/core':
@@ -237,12 +246,12 @@ importers:
       '@asciidoctor/core':
         specifier: ^3.0.4
         version: 3.0.4
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
       '@cyberismo/node-clingo':
         specifier: workspace:*
         version: link:../node-clingo
-      '@cyberismo/resources':
-        specifier: workspace:*
-        version: link:../resources
       antora:
         specifier: ^3.1.10
         version: 3.1.10
@@ -338,15 +347,6 @@ importers:
       prebuildify:
         specifier: ^6.0.1
         version: 6.0.1
-
-  tools/resources:
-    devDependencies:
-      esbuild:
-        specifier: ^0.25.4
-        version: 0.25.4
-      esbuild-plugin-import-glob:
-        specifier: ^0.1.1
-        version: 0.1.1
 
 packages:
 

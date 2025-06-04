@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismo/resources",
+  "name": "@cyberismo/assets",
   "version": "0.0.6",
   "description": "This package contains static resources",
   "main": "dist/index.js",
