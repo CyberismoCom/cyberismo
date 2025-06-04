@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import git from 'isomorphic-git';
 import { dump } from 'js-yaml';
 
-import { type Calculate, type Show } from './index.js';
+import type { Calculate, Show } from './index.js';
 import { Export } from './export.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { CardType } from '../interfaces/resource-interfaces.js';
