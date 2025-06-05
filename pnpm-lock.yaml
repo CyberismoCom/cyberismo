@@ -8460,7 +8460,7 @@ snapshots:
   rollup-plugin-license@3.6.0(picomatch@4.0.2)(rollup@4.40.2):
     dependencies:
       commenting: 1.1.0
-      fdir: 6.4.4(picomatch@4.0.2)
+      fdir: 6.4.5(picomatch@4.0.2)
       lodash: 4.17.21
       magic-string: 0.30.17
       moment: 2.30.1
