@@ -16,6 +16,7 @@ import type {
   CardType,
   CustomField,
   LinkType,
+  Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './field-type-resource.js';
 import {
@@ -329,7 +330,7 @@ export class CardTypeResource extends FileResource {
       resourceNameToString(resourceName(workflowName)),
       await this.project.projectPrefixes(),
     );
-    const workflow = await this.project.resource(workflowName);
+    const workflow = await this.project.resource<Workflow>(workflowName);
     if (!workflow) {
       throw new Error(
         `Workflow '${workflowName}' does not exist in the project`,
