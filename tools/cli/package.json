@@ -26,7 +26,8 @@
     "@inquirer/confirm": "^5.1.12",
     "commander": "^14.0.0",
     "@cyberismo/backend": "workspace:*",
-    "@cyberismo/data-handler": "workspace:*"
+    "@cyberismo/data-handler": "workspace:*",
+    "dotenv": "^16.5.0"
   },
   "types": "dist/index.d.ts",
   "type": "module",

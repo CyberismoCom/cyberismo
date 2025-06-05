@@ -43,7 +43,7 @@ RUN mkdir -p ./tools/app
 COPY --from=builder /app/tools/app/package.json ./tools/app/package.json
 
 # install clingo-libs(contains only libclingo.so)
-RUN apk add --no-cache clingo-libs
+RUN apk add --no-cache clingo-libs git
 
 # node-clingo
 RUN mkdir -p ./tools/node-clingo
@@ -78,7 +78,7 @@ RUN pnpm install --prod --ignore-scripts
 COPY --from=builder /app/tools/node-clingo/prebuilds ./tools/node-clingo/prebuilds
 
 # setup bin
-RUN pnpm setup 
+RUN pnpm setup
 RUN pnpm link -g
 
 WORKDIR /project

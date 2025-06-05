@@ -14,7 +14,10 @@
 import type { CardType } from '../interfaces/resource-interfaces.js';
 import { type Create, Validate } from './index.js';
 import { ModuleManager } from '../module-manager.js';
-import type { ModuleSettingOptions } from '../interfaces/project-interfaces.js';
+import type {
+  Credentials,
+  ModuleSettingOptions,
+} from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import { readCsvFile } from '../utils/csv.js';
 import { resourceName } from '../utils/resource-utils.js';
@@ -154,8 +157,8 @@ export class Import {
   /**
    * Updates all imported modules.
    */
-  public async updateAllModules() {
-    return this.moduleManager.update();
+  public async updateAllModules(credentials?: Credentials) {
+    return this.moduleManager.update(credentials);
   }
 
   /**

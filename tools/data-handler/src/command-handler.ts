@@ -20,6 +20,7 @@ import type {
   Card,
   CardAttachment,
   CardListContainer,
+  Credentials,
   FileContentType,
   ModuleContent,
   ProjectMetadata,
@@ -116,6 +117,7 @@ export class Commands {
     command: Cmd,
     args: string[],
     options: CardsOptions,
+    credentials?: Credentials,
   ): Promise<requestStatus> {
     // Set project path and validate it.
     const creatingNewProject = command === Cmd.create && args[0] === 'project';
@@ -128,7 +130,7 @@ export class Commands {
     } else {
       this.projectPath = options.projectPath || '';
     }
-    return await this.doHandleCommand(command, args, options);
+    return await this.doHandleCommand(command, args, options, credentials);
   }
 
   // Returns command 'target'.
@@ -175,6 +177,7 @@ export class Commands {
     command: Cmd,
     args: string[],
     options: CardsOptions,
+    credentials?: Credentials,
   ) {
     try {
       if (command === Cmd.add) {
@@ -267,6 +270,7 @@ export class Commands {
             source,
             branch,
             useCredentials && useCredentials === 'true' ? true : false,
+            credentials,
           );
         }
         if (target === 'csv') {
@@ -338,7 +342,7 @@ export class Commands {
           newValue ? JSON.parse(newValue) : undefined,
         );
       } else if (command === Cmd.updateModules) {
-        await this.commands?.importCmd.updateAllModules();
+        await this.commands?.importCmd.updateAllModules(credentials);
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
@@ -478,10 +482,12 @@ export class Commands {
     source: string,
     branch?: string,
     useCredentials?: boolean,
+    credentials?: Credentials,
   ) {
     return this.commands?.importCmd.importModule(source, this.projectPath, {
       branch: branch,
       private: useCredentials,
+      credentials,
     });
   }
 

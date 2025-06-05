@@ -6,9 +6,6 @@ import { describe, it } from 'mocha';
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-// git client
-import { Errors } from 'isomorphic-git';
-
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
 import { CommandManager } from '../src/command-manager.js';
@@ -42,6 +39,22 @@ describe('module-manager', () => {
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
+    const modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(1);
+  });
+  it('import git module using credentials', async () => {
+    const gitModule = 'https://github.com/CyberismoCom/module-base.git';
+    await commands.importCmd.importModule(
+      gitModule,
+      commands.project.basePath,
+      {
+        private: true,
+        credentials: {
+          username: process.env.CYBERISMO_GIT_USER,
+          token: process.env.CYBERISMO_GIT_TOKEN,
+        },
+      },
+    );
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
   });
@@ -86,36 +99,28 @@ describe('module-manager', () => {
   });
   it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
-    const expectedHttpCode = 401;
-    await commands.importCmd
-      .importModule(gitModule, commands.project.basePath)
-      .then(() => expect(false).to.equal(true))
-      .catch((error) => {
-        if (error instanceof Errors.HttpError) {
-          expect(error).to.have.property('data');
-          expect(error.data).to.have.property('statusCode');
-          expect(error.data.statusCode).to.equal(expectedHttpCode);
-        } else {
-          expect(false).to.equal(true);
-        }
-      });
+    const result = await expect(
+      commands.importCmd.importModule(gitModule, commands.project.basePath),
+    ).to.be.rejected;
+    expect(result.message).to.include('Failed to clone module');
   }).timeout(10000);
   it('try to import from incorrect private git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
-    const expectedHttpCode = process.env.CYBERISMO_GIT_USER ? 404 : 401;
-    const options = { private: true };
-    await commands.importCmd
-      .importModule(gitModule, commands.project.basePath, options)
-      .then(() => expect(false).to.equal(true))
-      .catch((error) => {
-        if (error instanceof Errors.HttpError) {
-          expect(error).to.have.property('data');
-          expect(error.data).to.have.property('statusCode');
-          expect(error.data.statusCode).to.equal(expectedHttpCode);
-        } else {
-          expect(false).to.equal(true);
-        }
-      });
+    const options = {
+      private: true,
+      credentials: {
+        username: process.env.CYBERISMO_GIT_USER,
+        token: process.env.CYBERISMO_GIT_TOKEN,
+      },
+    };
+    const result = await expect(
+      commands.importCmd.importModule(
+        gitModule,
+        commands.project.basePath,
+        options,
+      ),
+    ).to.be.rejected;
+    expect(result.message).to.include('Failed to clone module');
   }).timeout(10000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
@@ -127,7 +132,16 @@ describe('module-manager', () => {
     );
 
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.importCmd.importModule(gitModule, commands.project.basePath);
+    await commands.importCmd.importModule(
+      gitModule,
+      commands.project.basePath,
+      {
+        credentials: {
+          username: process.env.CYBERISMO_GIT_USER,
+          token: process.env.CYBERISMO_GIT_TOKEN,
+        },
+      },
+    );
 
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
