@@ -196,14 +196,14 @@ export class Export {
     );
 
     let asciiDocContent = '';
-    const projectPath = this.project.basePath;
+    const project = this.project;
     try {
       const { evaluateMacros } = await import('../macros/index.js');
       asciiDocContent = await evaluateMacros(
         cardDetailsResponse.content || '',
         {
           mode: 'static',
-          projectPath,
+          project,
           cardKey: card.key,
         },
         this.calculateCmd,

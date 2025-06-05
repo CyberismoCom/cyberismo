@@ -101,7 +101,7 @@ async function getCardDetails(
       cardDetailsResponse.content || '',
       {
         mode: 'inject',
-        projectPath: commands.project.basePath || '',
+        project: commands.project,
         cardKey: key,
       },
       commands.calculateCmd,
@@ -571,7 +571,7 @@ router.post('/:key/parse', async (c) => {
         content,
         {
           mode: 'inject',
-          projectPath: commands.project.basePath || '',
+          project: commands.project,
           cardKey: key,
         },
         commands.calculateCmd,
