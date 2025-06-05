@@ -42,6 +42,7 @@
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/node-clingo": "workspace:*",
     "@cyberismo/assets": "workspace:*",
+    "@viz-js/viz": "^3.12.0",
     "antora": "^3.1.10",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.6.0",
@@ -55,7 +56,6 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
     "mime-types": "^3.0.1",
-    "node-graphviz": "^0.1.1",
     "pino": "^9.7.0",
     "tslib": "^2.6.2",
     "write-json-file": "^6.0.0"

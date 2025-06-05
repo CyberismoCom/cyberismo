@@ -15,7 +15,7 @@
 import { basename, join, resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { sanitizeSvgBase64 } from '../utils/sanitize-svg.js';
-import { graphviz } from 'node-graphviz';
+import { instance } from '@viz-js/viz';
 
 import type {
   BaseResult,
@@ -487,7 +487,11 @@ export class Calculate {
       },
       graph: true,
     });
-    return sanitizeSvgBase64(await graphviz.dot(result, 'svg'));
+    return sanitizeSvgBase64(
+      (await instance()).renderString(result, {
+        format: 'svg',
+      }),
+    );
   }
 
   /**
