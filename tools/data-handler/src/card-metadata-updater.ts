@@ -15,7 +15,7 @@
 import type { CardMetadata } from './interfaces/project-interfaces.js';
 import type { FieldType } from './interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
-import { logger } from './utils/log-utils.js';
+import { getChildLogger } from './utils/log-utils.js';
 import type { Project } from './containers/project.js';
 import type { UpdateField } from './types/queries.js';
 
@@ -34,6 +34,11 @@ interface CardUpdateResult {
  *       can be incorporated there and this class can be removed.
  */
 export class CardMetadataUpdater {
+  private static get logger() {
+    return getChildLogger({
+      module: 'cardMetadataUpdater',
+    });
+  }
   /**
    * Applies a given array of changes to card(s).
    * @param project Current project.
@@ -136,7 +141,7 @@ export class CardMetadataUpdater {
 
     if (allErrors.length > 0) {
       allErrors.push('On transition change to card(s) can not be applied.');
-      logger.error(allErrors.join('\n'));
+      this.logger.error(allErrors.join('\n'));
     }
   }
 

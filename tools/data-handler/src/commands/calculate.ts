@@ -30,7 +30,7 @@ import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import { flattenCardArray } from '../utils/card-utils.js';
-import { logger } from '../utils/log-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import {
   createCardFacts,
   createCardTypeFacts,
@@ -61,6 +61,11 @@ const QUERY_LANGUAGE_KEY = 'queryLanguage';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
+  private get logger() {
+    return getChildLogger({
+      module: 'calculate',
+    });
+  }
   private static mutex = new Mutex();
 
   constructor(private project: Project) {}
@@ -78,7 +83,7 @@ export class Calculate {
       const modules = await this.generateModules();
       this.modules = modules; // Store initial modules in logicProgram
     } catch (error) {
-      logger.error(`Failed to initialize modules: ${error}`);
+      this.logger.error(error, 'Failed to initialize modules');
     }
   }
 
@@ -200,8 +205,9 @@ export class Calculate {
             content += `${moduleContent}\n`;
             content += `% SECTION: MODULE_${calculationFile.name}_END\n\n`;
           } catch (error) {
-            logger.warn(
-              `Failed to read module ${calculationFile.name}: ${error}`,
+            this.logger.warn(
+              error,
+              `Failed to read module ${calculationFile.name}`,
             );
           }
         }
@@ -292,29 +298,36 @@ export class Calculate {
   }
 
   private async run(query: string): Promise<string[]> {
-    const res = await Calculate.mutex.runExclusive(async () => {
-      // For queries, use both base and queryLanguage
-      const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
+    try {
+      const res = await Calculate.mutex.runExclusive(async () => {
+        // For queries, use both base and queryLanguage
+        const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
 
-      // Then solve with the program - need to pass the program as parameter
-      return solve(query, basePrograms);
-    });
+        this.logger.trace(
+          {
+            clingo: true,
+          },
+          'Solving',
+        );
 
-    logger.trace(
-      {
-        query,
-      },
-      `Ran Clingo solve command`,
-    );
-
-    if (res && res.answers && res.answers.length > 0) {
-      logger.trace({
-        result: res.answers,
+        // Then solve with the program - need to pass the program as parameter
+        return solve(query, basePrograms);
       });
-      return res.answers;
-    }
 
-    throw new Error('Failed to run Clingo solve. No answers returned.');
+      if (res && res.answers && res.answers.length > 0) {
+        return res.answers;
+      }
+      throw new Error('Failed to run Clingo solve. No answers returned.');
+    } catch (error) {
+      this.logger.error(
+        {
+          error,
+          query,
+        },
+        'Clingo solve failed',
+      );
+      throw error;
+    }
   }
 
   /**
@@ -323,6 +336,14 @@ export class Calculate {
    */
   public async generate(cardKey?: string) {
     await Calculate.mutex.runExclusive(async () => {
+      this.logger.trace(
+        {
+          clingo: true,
+          cardKey,
+        },
+        'Generating logic program',
+      );
+
       if (!this.modulesInitialized) {
         await this.initializeModules();
         this.modulesInitialized = true;
@@ -383,6 +404,13 @@ export class Calculate {
 
       // Also store the base program (without query language) for updates
       this.logicProgram = baseProgram;
+      this.logger.trace(
+        {
+          clingo: true,
+          cardKey,
+        },
+        'Logic program set',
+      );
     });
   }
 
@@ -476,6 +504,14 @@ export class Calculate {
    * @returns a base64 encoded image as a string
    */
   public async runGraph(model: string, view: string) {
+    this.logger.trace(
+      {
+        model,
+        view,
+      },
+      'Running graph',
+    );
+
     // Let's run the clingraph query
     const result = await generateReportContent({
       calculate: this,
@@ -526,6 +562,7 @@ export class Calculate {
       throw new Error(`Query file ${queryName} not found`);
     }
 
+    this.logger.trace({ queryName }, 'Running query');
     const clingoOutput = await this.run(content);
 
     const result = await this.parseClingoResult(clingoOutput);

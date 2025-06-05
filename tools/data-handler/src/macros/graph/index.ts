@@ -17,7 +17,7 @@ import type { MacroOptions } from '../index.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
-import { logger } from '../../utils/log-utils.js';
+import { getChildLogger } from '../../utils/log-utils.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
@@ -33,6 +33,11 @@ export interface GraphOptions extends MacroOptions {
 }
 
 class ReportMacro extends BaseMacro {
+  private get logger() {
+    return getChildLogger({
+      module: 'graphMacro',
+    });
+  }
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
@@ -78,7 +83,7 @@ class ReportMacro extends BaseMacro {
         ),
       );
     } catch (err) {
-      logger.trace(
+      this.logger.trace(
         err,
         'Graph schema not found or failed to read, skipping validation',
       );

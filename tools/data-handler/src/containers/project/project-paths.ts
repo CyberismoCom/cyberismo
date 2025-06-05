@@ -81,7 +81,7 @@ export class ProjectPaths {
   }
 
   public get logPath(): string {
-    return join(this.resourcesFolder, 'dh.log');
+    return join(this.path, '.logs', 'cyberismo_data-handler.log');
   }
 
   public get modulesFolder(): string {

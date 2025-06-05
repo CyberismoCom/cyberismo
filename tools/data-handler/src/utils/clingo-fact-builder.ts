@@ -1,5 +1,5 @@
 import { INT32_MAX } from './constants.js';
-import { logger } from './log-utils.js';
+import { getChildLogger } from './log-utils.js';
 
 /**
     Cyberismo
@@ -40,6 +40,11 @@ export class ClingoFactBuilder {
   protected predicate: string;
   private end: string;
   private arguments: ClingoArgumentInternal[] = [];
+  private get logger() {
+    return getChildLogger({
+      module: 'clingoFactBuilder',
+    });
+  }
 
   constructor(predicate: string, end: string = '.') {
     this.predicate = predicate;
@@ -120,7 +125,7 @@ export class ClingoFactBuilder {
     } else if (typeof value === 'number') {
       let floored = Math.floor(value);
       if (floored !== value) {
-        logger.warn(
+        this.logger.warn(
           {
             value,
           },
@@ -130,7 +135,7 @@ export class ClingoFactBuilder {
 
       const exceedsInt32Max = floored > INT32_MAX;
       if (exceedsInt32Max || floored < -INT32_MAX) {
-        logger.warn(
+        this.logger.warn(
           {
             value,
           },
