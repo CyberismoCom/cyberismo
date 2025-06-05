@@ -40,7 +40,8 @@ export function validateJson<T>(
   if (!validator) {
     validator = new Validator();
     for (const schema of schemas) {
-      validator.addSchema(schema, schema.$id);
+      // For some reason, the draft-07 schema is not a valid Schema, so we need to cast it
+      validator.addSchema(schema as Schema, schema.$id);
     }
   }
 

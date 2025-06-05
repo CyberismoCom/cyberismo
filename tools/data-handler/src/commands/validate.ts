@@ -111,7 +111,7 @@ export class Validate {
   // Loads child schemas to validator.
   private addChildSchemas() {
     schemas.forEach((schema) => {
-      this.validator.addSchema(schema, schema.$id);
+      this.validator.addSchema(schema as Schema, schema.$id);
     });
   }
 
@@ -355,7 +355,7 @@ export class Validate {
       }
       const result = this.validator.validate(content, schema);
       for (const error of result.errors) {
-        const msg = `Validation error from '${fullPath}': ${error.message}.`;
+        const msg = `Validation error from '${fullPath}': ${error.property} ${error.message}.`;
         messages.push(msg);
       }
     }
