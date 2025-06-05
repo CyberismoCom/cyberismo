@@ -1,5 +1,5 @@
 {
-  "name": "@cyberismocom/node-clingo",
+  "name": "@cyberismo/node-clingo",
   "version": "1.0.2",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
@@ -7,11 +7,12 @@
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "shx rm -rf prebuilds && prebuildify --napi",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [],
   "author": "",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "dependencies": {
     "node-addon-api": "^7.1.0",
     "node-gyp-build": "^4.8.4",
@@ -32,5 +33,10 @@
     "remote_path": "cyberismocom/cyberismo/releases/download/node-clingo-{version}",
     "package_name": "{platform}-{arch}.tar.gz",
     "package_json": "package.json"
-  }
+  },
+  "files": [
+    "dist",
+    "src",
+    "scripts/download-prebuild.js"
+  ]
 }

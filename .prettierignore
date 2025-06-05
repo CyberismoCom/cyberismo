@@ -12,5 +12,5 @@ examples/
 **/test-data/
 .github/
 *.hbs
-resources/ui-bundle
+tools/assets/src/static/ui-bundle
 pnpm-lock.yaml

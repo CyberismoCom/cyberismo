@@ -17,8 +17,8 @@ import {
   CardLocation,
   MetadataContent,
   ProjectFetchCardDetails,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { CommandManager, evaluateMacros } from '@cyberismocom/data-handler';
+} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { ContentfulStatusCode } from 'hono/utils/http-status';
 
 const router = new Hono();

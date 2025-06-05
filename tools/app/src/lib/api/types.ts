@@ -14,12 +14,12 @@ import { Project, FieldTypes, MetadataValue } from '../definitions';
 import {
   CardType,
   LinkType,
-} from '@cyberismocom/data-handler/interfaces/resource-interfaces';
+} from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import {
   CardAttachment,
   TemplateConfiguration,
-} from '@cyberismocom/data-handler/interfaces/project-interfaces';
-import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { SWRResponse } from 'swr';
 
 export type CardResponse = {

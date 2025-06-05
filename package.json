@@ -1,11 +1,12 @@
 {
-  "name": "@cyberismocom/cyberismo",
+  "name": "@cyberismo/cyberismo",
   "description": "Cards: a Tool for Managing Cybersecurity in Software",
   "version": "0.0.1",
   "bin": {
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.4",
     "@eslint/js": "^9.26.0",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
@@ -14,7 +15,7 @@
     "@typescript-eslint/parser": "^8.32.0",
     "chai": "^5.2.0",
     "chai-as-promised": "^8.0.1",
-    "concurrently": "^9.1.2",
+    "chokidar-cli": "^3.0.0",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",
     "mocha": "^11.2.2",
@@ -45,9 +46,9 @@
     "test-clingo": "pnpm --filter node-clingo test",
     "prettier-check": "prettier --check .",
     "prettier-fix": "prettier --write .",
-    "script:schemas": "node scripts/generateSchemaImports && prettier --write tools/data-handler/src/utils/schemas.ts",
-    "dev": "concurrently \"pnpm --filter app dev\" \"pnpm --filter data-handler watch\" \"pnpm --filter backend dev\"",
+    "dev": "pnpm -r --parallel dev",
     "build-docker": "docker build -t cyberismo .",
-    "install-dev-packages": "node scripts/install-dev-packages.js"
+    "install-dev-packages": "node scripts/install-dev-packages.js",
+    "ci:publish": "pnpm publish -r"
   }
 }

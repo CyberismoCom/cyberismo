@@ -1,7 +1,7 @@
 {
-  "name": "@cyberismocom/data-handler",
+  "name": "@cyberismo/data-handler",
   "description": "Command handler for cards and web service",
-  "version": "1.0.0",
+  "version": "0.0.6",
   "author": "sami.merila@cyberismo.com",
   "license": "AGPL-3.0",
   "homepage": "https://github.com/CyberismoCom/cyberismo",
@@ -18,7 +18,9 @@
     "posttest": "pnpm lint",
     "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
     "test-coverage": "c8 pnpm test",
-    "watch": "tsc --watch -p tsconfig.build.json"
+    "dev": "tsc --watch -p tsconfig.build.json",
+    "watch": "pnpm dev",
+    "prepublishOnly": "pnpm build"
   },
   "exports": {
     ".": "./dist/index.js",
@@ -38,7 +40,8 @@
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@cyberismocom/node-clingo": "workspace:*",
+    "@cyberismo/node-clingo": "workspace:*",
+    "@cyberismo/assets": "workspace:*",
     "antora": "^3.1.10",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.6.0",
@@ -57,5 +60,9 @@
     "tslib": "^2.6.2",
     "write-json-file": "^6.0.0"
   },
-  "type": "module"
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ]
 }

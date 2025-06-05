@@ -1,21 +1,22 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
 
-const schemaDir = './tools/schema';
-const outputFilePath = './tools/data-handler/src/utils/schemas.ts';
+const schemaDir = './src/schema';
+const outputFilePath = './src/schemas.ts';
 const parentSchemaFile = 'cardTreeDirectorySchema';
 
 const license = `
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors ${new Date().getFullYear()}
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 `;
@@ -27,9 +28,10 @@ function nameToCamelCase(name) {
 }
 
 function getImportPath(filePath) {
-  return path
-    .relative(path.dirname(outputFilePath), filePath)
-    .replace(/\\/g, '/');
+  return (
+    './' +
+    path.relative(path.dirname(outputFilePath), filePath).replace(/\\/g, '/')
+  );
 }
 
 const parentSchemaTs = nameToCamelCase(parentSchemaFile);

@@ -14,7 +14,7 @@ import React from 'react';
 import { Breadcrumbs, Link, styled } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import { findPathTo } from '../lib/utils';
-import { QueryResult } from '@cyberismocom/data-handler/types/queries';
+import { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 type ProjectBreadcrumbsProps = {
   cardKey: string;

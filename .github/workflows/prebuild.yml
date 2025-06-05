@@ -125,7 +125,7 @@ jobs:
           node-version: 22
           cache: 'pnpm'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@cyberismocom'
+          scope: '@cyberismo'
 
       - name: Install dependencies
         working-directory: tools/node-clingo
@@ -137,11 +137,11 @@ jobs:
         run: |
           pnpm build-prebuildify
           # Rename the glibc build
-          if [ -f prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node ]; then
-            mv prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.glibc.node
-            echo "Renamed glibc prebuild to @cyberismocom+node-clingo.glibc.node for linux-${{ matrix.arch }}"
+          if [ -f prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.node ]; then
+            mv prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.node prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.glibc.node
+            echo "Renamed glibc prebuild to @cyberismo+node-clingo.glibc.node for linux-${{ matrix.arch }}"
           else
-            echo "ERROR: Glibc prebuild file not found at prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node"
+            echo "ERROR: Glibc prebuild file not found at prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.node"
             exit 1
           fi
         env:
@@ -162,8 +162,8 @@ jobs:
           docker run --rm -v "$(pwd)/docker-prebuilds-musl-output:/output" node-clingo-builder-musl
           
           echo "Copying and renaming musl prebuilds from ./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/ to tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/"
-          MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.node"
-          TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/@cyberismocom+node-clingo.musl.node"
+          MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/@cyberismo+node-clingo.node"
+          TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.musl.node"
 
           if [ -f "$MUSL_PREBUILD_PATH" ]; then
             # Ensure the target directory exists (it should have been created by the glibc build step or needs to be created for musl)

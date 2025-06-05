@@ -19,12 +19,12 @@ import { CardDetails } from '../definitions';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
-import { LinkDirection } from '@cyberismocom/data-handler/types/queries';
+import { LinkDirection } from '@cyberismo/data-handler/types/queries';
 import { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@cyberismocom/data-handler/interfaces/project-interfaces';
+import { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();

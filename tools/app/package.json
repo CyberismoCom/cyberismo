@@ -1,7 +1,8 @@
 {
-  "name": "@cyberismocom/app",
+  "name": "@cyberismo/app",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.2",
+  "license": "AGPL-3.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules",
@@ -17,12 +18,11 @@
     "preview": "vite preview",
     "test": "pnpm run unit && pnpm e2e:headless && pnpm lint"
   },
-  "dependencies": {},
   "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/language": "^6.11.0",
     "@codemirror/view": "^6.37.1",
-    "@cyberismocom/data-handler": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*",
     "@mui/icons-material": "^7.0.1",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.1.0",
@@ -54,6 +54,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "global-jsdom": "^26.0.0",
     "globals": "^16.1.0",
+    "rollup-plugin-license": "^3.6.0",
     "jsdom": "^26.1.0",
     "start-server-and-test": "^2.0.11",
     "typescript": "~5.8.3",

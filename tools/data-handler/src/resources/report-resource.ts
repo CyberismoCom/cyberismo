@@ -15,7 +15,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { copyDir } from '../utils/file-utils.js';
 import type {
@@ -35,10 +34,13 @@ import type {
   ReportMetadata,
 } from '../interfaces/resource-interfaces.js';
 import type { Schema } from 'jsonschema';
+import { getStaticDirectoryPath } from '@cyberismo/assets';
 
 const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
 const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
+
+const staticDirectoryPath = await getStaticDirectoryPath();
 
 /**
  * Report resource class.
@@ -60,8 +62,8 @@ export class ReportResource extends FolderResource {
   // Path to content folder.
   // @todo: create the files' content dynamically.
   private defaultReportLocation: string = join(
-    fileURLToPath(import.meta.url),
-    '../../../../../resources/defaultReport',
+    staticDirectoryPath,
+    'defaultReport',
   );
 
   // When resource name changes.

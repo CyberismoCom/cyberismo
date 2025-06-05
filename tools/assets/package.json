@@ -1,0 +1,32 @@
+{
+  "name": "@cyberismo/assets",
+  "version": "0.0.6",
+  "description": "This package contains static resources",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "shx rm -rf dist && shx mkdir -p dist && pnpm script:schemas && node scripts/build.js && tsc && shx cp -r src/static dist/",
+    "dev": "chokidar 'src/**/*' -c 'pnpm build'",
+    "script:schemas": "node scripts/generateSchemaImports && prettier --write src/schemas.ts",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [],
+  "author": "sami.merila@cyberismo.com",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/CyberismoCom/cyberismo",
+  "packageManager": "pnpm@10.8.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/cyberismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "^0.25.4",
+    "esbuild-plugin-import-glob": "^0.1.1"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

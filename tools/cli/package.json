@@ -1,21 +1,23 @@
 {
-  "name": "@cyberismocom/cli",
-  "version": "1.0.0",
+  "name": "@cyberismo/cli",
+  "version": "0.0.6",
   "description": "CLI tool to handle tasks.",
   "main": "dist/index.js",
   "bin": {
     "cyberismo": "bin/run"
   },
   "files": [
-    "/bin",
-    "/dist"
+    "bin",
+    "dist",
+    "src"
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
     "lint": "eslint .",
-    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\""
+    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
+    "prepublishOnly": "pnpm build"
   },
   "keywords": [],
   "author": "",
@@ -23,8 +25,8 @@
   "dependencies": {
     "@inquirer/confirm": "^5.1.12",
     "commander": "^14.0.0",
-    "@cyberismocom/backend": "workspace:*",
-    "@cyberismocom/data-handler": "workspace:*"
+    "@cyberismo/backend": "workspace:*",
+    "@cyberismo/data-handler": "workspace:*"
   },
   "types": "dist/index.d.ts",
   "type": "module",

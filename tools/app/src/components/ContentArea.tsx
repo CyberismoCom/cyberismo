@@ -65,8 +65,8 @@ import EditLinkModal from './modals/EditLinkModal';
 import { useAppDispatch, useAppRouter, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
-import { MacroMetadata } from '@cyberismocom/data-handler/interfaces/macros';
-import { macroMetadata } from '@cyberismocom/data-handler/macros/common';
+import { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
+import { macroMetadata } from '@cyberismo/data-handler/macros/common';
 import { UIMacroName, macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 import {
@@ -75,7 +75,7 @@ import {
   QueryResult,
   CalculationLink,
   LinkDirection,
-} from '@cyberismocom/data-handler/types/queries';
+} from '@cyberismo/data-handler/types/queries';
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
