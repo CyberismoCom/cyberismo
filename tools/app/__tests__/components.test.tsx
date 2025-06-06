@@ -23,6 +23,13 @@ vi.mock('../src/lib/hooks', () => {
     }),
   };
 });
+
+vi.mock('@/providers/ConfigContext', () => ({
+  useConfig: vi.fn(() => ({
+    export: false,
+  })),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: vi.fn(),
 }));
