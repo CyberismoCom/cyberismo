@@ -17,7 +17,6 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import { simpleGit, type SimpleGit } from 'simple-git';
 
 import { copyDir, deleteDir, pathExists } from './utils/file-utils.js';
-import type { Import } from './commands/index.js';
 import type {
   Credentials,
   ModuleSetting,
@@ -41,10 +40,7 @@ const DEFAULT_TIMEOUT = 5000;
 export class ModuleManager {
   private modules: ModuleSetting[] = [];
   private tempModulesDir: string = '';
-  constructor(
-    private project: Project,
-    private importCmd: Import,
-  ) {
+  constructor(private project: Project) {
     this.tempModulesDir = join(this.project.paths.tempFolder, 'modules');
   }
 
@@ -185,14 +181,14 @@ export class ModuleManager {
 
   // Updates one module.
   private async handleModule(module: ModuleSetting) {
-    return this.isFileModule(module)
-      ? this.handleFileModule(module)
-      : this.handleGitModule(module);
+    return this.isGitModule(module)
+      ? this.handleGitModule(module)
+      : this.handleFileModule(module);
   }
 
   // Handles importing a module from module settings 'location'
   private async importFromFolder(module: ModuleSetting) {
-    await this.importCmd.updateExistingModule(module.location);
+    await this.importFileModule(module.location);
     console.log(
       `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
     );
@@ -200,9 +196,7 @@ export class ModuleManager {
 
   // Handles importing a module from '.temp' folder
   private async importFromTemp(module: ModuleSetting) {
-    await this.importCmd.updateExistingModule(
-      join(this.tempModulesDir, module.name),
-    );
+    await this.importFileModule(join(this.tempModulesDir, module.name));
     console.log(
       `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
     );
@@ -212,6 +206,12 @@ export class ModuleManager {
   private isFileModule(module: ModuleSetting): boolean {
     if (!module.location) return false;
     return module.location.startsWith('file:');
+  }
+
+  // Returns true if module is imported from git.
+  private isGitModule(module: ModuleSetting): boolean {
+    if (!module.location) return false;
+    return module.location.startsWith('https:');
   }
 
   // Prepares '.temp/modules' for cloning
@@ -339,6 +339,54 @@ export class ModuleManager {
     return cloneOptions;
   }
 
+  // Updates modules in the project.
+  private async update(module?: ModuleSetting, credentials?: Credentials) {
+    // Prints dots every half second so that user knows that something is ongoing
+    function start() {
+      console.log('... Collecting unique modules. This takes a moment.');
+      return setInterval(() => process.stdout.write(`.`), 500);
+    }
+
+    // Stops the above, and shows results
+    function finished(interval: NodeJS.Timeout, modules: string[]) {
+      clearInterval(interval);
+      console.log(`\n... Found modules: ${modules.join(', ')}`);
+    }
+
+    await this.prepare();
+
+    let modules = module ? [module] : this.project.configuration.modules;
+    if (modules.length === 0) {
+      throw new Error(`No modules in the project!`);
+    }
+    modules = modules.filter((module) => this.isGitModule(module));
+
+    const dotInterval = start();
+
+    // Collect prefixes from project's dependency modules.
+    await this.collectModulePrefixes(modules, credentials);
+
+    let uniqueModules: ModuleSetting[] = [];
+    try {
+      uniqueModules = this.removeDuplicates(this.modules);
+    } finally {
+      finished(
+        dotInterval,
+        uniqueModules.map((item) => item.name),
+      );
+
+      // Update modules parallel.
+      const promises: Promise<void>[] = [];
+      uniqueModules.forEach((module) =>
+        promises.push(this.handleModule(module)),
+      );
+      await Promise.all(promises);
+
+      await deleteDir(this.tempModulesDir);
+      await this.project.collectModuleResources();
+    }
+  }
+
   // Checks that module prefix is not in use in the project
   private async validatePrefix(modulePrefix: string) {
     // Do not allow modules with same prefixes.
@@ -390,6 +438,7 @@ export class ModuleManager {
    * Imports module from gitUrl.
    * @param source Git URL to import from.
    * @param options Modules setting options.
+   * @param credentials Credentials for private repositories.
    * @returns module prefix as defined in its CardsConfig.json
    */
   public async importGitModule(
@@ -420,51 +469,20 @@ export class ModuleManager {
   }
 
   /**
-   * Updates all imported modules.
+   * Imports module from a local file path or a git URL.
+   * @param module Module to update. If not provided, updates all modules.
+   * @param credentials Optional credentials for private repositories.
+   * @returns Module prefix as defined in its CardsConfig.json
    */
-  public async update(credentials?: Credentials) {
-    // Prints dots every half second so that user knows that something is ongoing
-    function start() {
-      console.log('... Collecting unique modules. This takes a moment.');
-      return setInterval(() => process.stdout.write(`.`), 500);
-    }
+  public async updateModule(module: ModuleSetting, credentials?: Credentials) {
+    return this.update(module, credentials);
+  }
 
-    // Stops the above, and shows results
-    function finished(interval: NodeJS.Timeout, modules: string[]) {
-      clearInterval(interval);
-      console.log(`\n... Found modules: ${modules.join(', ')}`);
-    }
-
-    await this.prepare();
-
-    const modules = this.project.configuration.modules;
-    if (modules.length === 0) {
-      throw new Error(`No modules in the project!`);
-    }
-
-    const dotInterval = start();
-
-    // Collect prefixes from project's dependency modules.
-    await this.collectModulePrefixes(modules, credentials);
-
-    let uniqueModules: ModuleSetting[] = [];
-    try {
-      uniqueModules = this.removeDuplicates(this.modules);
-    } finally {
-      finished(
-        dotInterval,
-        uniqueModules.map((item) => item.name),
-      );
-
-      // Update modules parallel.
-      const promises: Promise<void>[] = [];
-      uniqueModules.forEach((module) =>
-        promises.push(this.handleModule(module)),
-      );
-      await Promise.all(promises);
-
-      await deleteDir(this.tempModulesDir);
-      await this.project.collectModuleResources();
-    }
+  /**
+   * Updates all imported modules.
+   * @param credentials Optional credentials for private modules.
+   */
+  public async updateModules(credentials?: Credentials) {
+    return this.update(undefined, credentials);
   }
 }
