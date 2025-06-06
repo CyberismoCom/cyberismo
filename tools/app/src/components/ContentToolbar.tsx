@@ -24,6 +24,7 @@ import { useCard, useProject, useTree } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
 import { addNotification } from '../lib/slices/notifications';
 import InsertLink from '@mui/icons-material/InsertLink';
+import { useConfig } from '@/providers/ConfigContext';
 
 interface ContentToolbarProps {
   cardKey: string;
@@ -70,15 +71,17 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
     [updateWorkFlowState, dispatch, t],
   );
 
+  const config = useConfig();
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
       </Box>
 
-      <CardContextMenu cardKey={cardKey} />
+      {!config.export && <CardContextMenu cardKey={cardKey} />}
 
-      {mode === CardMode.VIEW && (
+      {!config.export && mode === CardMode.VIEW && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -108,7 +111,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         disabled={isUpdating() && !isUpdating('updateState')}
       />
 
-      {mode === CardMode.VIEW && (
+      {!config.export && mode === CardMode.VIEW && (
         <Button
           variant="solid"
           aria-label="edit"
