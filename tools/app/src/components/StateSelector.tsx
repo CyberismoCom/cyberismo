@@ -26,6 +26,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
+import { useConfig } from '@/providers/ConfigContext';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -60,6 +61,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     );
   }, [currentState, workflow]);
 
+  const config = useConfig();
   if (!availableTransitions || !currentState) return null;
 
   const statusDot = (
@@ -78,7 +80,9 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     <Dropdown>
       <MenuButton
         size="sm"
-        disabled={availableTransitions.length === 0 || disabled}
+        disabled={
+          availableTransitions.length === 0 || disabled || config.export
+        }
         variant="soft"
         color="neutral"
         endDecorator={!isLoading && statusDot}

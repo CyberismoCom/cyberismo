@@ -76,6 +76,7 @@ import {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
+import { useConfig } from '@/providers/ConfigContext';
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -598,6 +599,8 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
 
   const { t } = useTranslation();
 
+  const config = useConfig();
+
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);
 
@@ -928,7 +931,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     </Typography>
                   </Stack>
                 </AccordionSummary>
-                {!preview && linkFormState === 'hidden' && (
+                {!preview && linkFormState === 'hidden' && !config.export && (
                   <IconButton
                     sx={{
                       height: 36,

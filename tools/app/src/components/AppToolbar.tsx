@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { Link } from 'react-router';
 
 import { Stack, Button, Box } from '@mui/joy';
+import { useConfig } from '@/providers/ConfigContext';
 
 interface AppToolbarProps {
   onNewCard: () => void;
@@ -22,6 +23,7 @@ interface AppToolbarProps {
 
 export default function AppToolbar({ onNewCard }: AppToolbarProps) {
   const { t } = useTranslation();
+  const config = useConfig();
   return (
     <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
       <Box marginLeft={2} height="19px">
@@ -35,16 +37,18 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      <Button
-        data-cy="createNewCardButton"
-        variant="solid"
-        size="sm"
-        startDecorator={<AddIcon />}
-        sx={{ marginRight: '16px' }}
-        onClick={onNewCard}
-      >
-        {t('toolbar.newCard')}
-      </Button>
+      {!config.export && (
+        <Button
+          data-cy="createNewCardButton"
+          variant="solid"
+          size="sm"
+          startDecorator={<AddIcon />}
+          sx={{ marginRight: '16px' }}
+          onClick={onNewCard}
+        >
+          {t('toolbar.newCard')}
+        </Button>
+      )}
     </Stack>
   );
 }

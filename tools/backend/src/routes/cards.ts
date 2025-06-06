@@ -103,7 +103,7 @@ async function getCardDetails(
     asciidocContent = await evaluateMacros(
       cardDetailsResponse.content || '',
       {
-        mode: 'inject',
+        mode: exportMode ? 'static' : 'inject',
         project: commands.project,
         cardKey: key,
       },
