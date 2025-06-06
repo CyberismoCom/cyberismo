@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { copyDir } from '../src/utils/file-utils.js';
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
-import { Show } from '../src/commands/index.js';
+import { Calculate, Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -33,7 +33,8 @@ describe('transition command', () => {
 
   it('transition to new state - success()', async () => {
     const project = new Project(decisionRecordsPath);
-    const show = new Show(project);
+    const calculate = new Calculate(project);
+    const show = new Show(project, calculate);
     const card = await show.showCardDetails({ metadata: true }, 'decision_5');
 
     const result = await commandHandler.command(

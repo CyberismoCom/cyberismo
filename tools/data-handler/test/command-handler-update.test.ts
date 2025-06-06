@@ -10,7 +10,7 @@ import { type CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
-import { Show, Update } from '../src/commands/index.js';
+import { Calculate, Show, Update } from '../src/commands/index.js';
 
 describe('Update command tests', async () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +21,8 @@ describe('Update command tests', async () => {
 
   const project = new Project(decisionRecordsPath);
   const update = new Update(project);
-  const show = new Show(project);
+  const calculate = new Calculate(project);
+  const show = new Show(project, calculate);
   const collector = new ResourceCollector(project);
   collector.collectLocalResources();
 

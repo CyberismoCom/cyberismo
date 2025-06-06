@@ -41,7 +41,7 @@ describe('module-manager', () => {
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
-  });
+  }).timeout(10000);
   it('import git module using credentials', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(
@@ -57,7 +57,7 @@ describe('module-manager', () => {
     );
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
-  });
+  }).timeout(10000);
   it('try to import duplicate local modules', async () => {
     const localModule = join(testDir, 'valid/minimal');
     await commands.importCmd.importModule(
