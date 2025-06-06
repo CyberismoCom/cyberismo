@@ -113,7 +113,7 @@ export async function exportSite(
 
     // Find out how many files are in the project
     const cardQueryResult = await getCardQueryResult(projectPath);
-    const totalFiles = cardQueryResult.length;
+    let totalFiles = cardQueryResult.length;
 
     // copy whole frontend to the same directory
     await cp(staticFrontendDirRelative, dir, { recursive: true });
@@ -133,6 +133,10 @@ export async function exportSite(
       dir,
       afterResponseHook: (res) => {
         if (res.ok) {
+          if (res.headers.get('content-type') === 'image/png') {
+            // Attachments are not counted
+            totalFiles++;
+          }
           processedFiles++; // this is not exactly the number of files as it includes all ssg files, but it's good enough
           onProgress?.(processedFiles, totalFiles + 5); // 2*2 for two extra routes and 1 for the :id call made by hono
         }
