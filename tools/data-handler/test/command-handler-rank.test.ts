@@ -79,7 +79,8 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const details = await new Show(project).showCardDetails(
+      const calculate = new Calculate(project);
+      const details = await new Show(project, calculate).showCardDetails(
         { metadata: true },
         rankBefore,
       );
@@ -98,7 +99,8 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const details = await new Show(project).showCardDetails(
+      const calculate = new Calculate(project);
+      const details = await new Show(project, calculate).showCardDetails(
         { metadata: true, content: true },
         rankBefore,
       );
@@ -115,7 +117,8 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const details = await new Show(project).showCardDetails(
+      const calculate = new Calculate(project);
+      const details = await new Show(project, calculate).showCardDetails(
         { metadata: true, content: true },
         key,
       );
@@ -135,7 +138,8 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const details = await new Show(project).showCardDetails(
+      const calculate = new Calculate(project);
+      const details = await new Show(project, calculate).showCardDetails(
         { metadata: true },
         rankBefore,
       );
@@ -150,7 +154,8 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const project = new Project(options.projectPath!);
-      const details = await new Show(project).showCardDetails(
+      const calculate = new Calculate(project);
+      const details = await new Show(project, calculate).showCardDetails(
         { metadata: true, content: true },
         key,
       );
