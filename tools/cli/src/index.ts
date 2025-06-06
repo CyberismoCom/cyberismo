@@ -410,6 +410,9 @@ program
             if (!progress.isActive) {
               progress.start(total, 0);
             }
+            if (progress.getTotal() !== total) {
+              progress.setTotal(total);
+            }
             progress.update(current);
           },
         );
