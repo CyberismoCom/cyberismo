@@ -1,6 +1,6 @@
 /**
     Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+    Copyright © Cyberismo Ltd and contributors 2025
 
     This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
@@ -9,18 +9,18 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+import { createContext, useContext } from 'react';
 
-import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+export type AppConfig = {
+  export: boolean;
+};
 
-import { SWRConfiguration } from 'swr';
+export const ConfigContext = createContext<AppConfig | undefined>(undefined);
 
-export const useCardType = (
-  cardType: string | null,
-  options?: SWRConfiguration,
-) =>
-  useSWRHook<'cardType'>(
-    cardType ? apiPaths.cardType(cardType) : null,
-    'cardType',
-    options,
-  );
+export function useConfig() {
+  const context = useContext(ConfigContext);
+  if (context === undefined) {
+    throw new Error('useConfig must be used within a ConfigProvider');
+  }
+  return context;
+}

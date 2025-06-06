@@ -8,5 +8,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <div id="file-protocol-warning" style="display: none"></div>
+    <script>
+      if (window.location.protocol === 'file:') {
+        document.getElementById('file-protocol-warning').style.display =
+          'block';
+        document.getElementById('file-protocol-warning').innerHTML =
+          `You opened the file directly in your browser. Most likely you are using the exported site. To preview the site, run <code>cd ${window.location.pathname.split('/').slice(0, -1).join('/')}</code> and then <code>cyberismo preview</code> in the terminal.`;
+      }
+    </script>
   </body>
 </html>

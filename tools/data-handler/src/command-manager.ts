@@ -15,7 +15,6 @@ import {
   Create,
   Edit,
   Export,
-  ExportSite,
   Import,
   Move,
   Remove,
@@ -38,7 +37,6 @@ export class CommandManager {
   public calculateCmd: Calculate;
   public createCmd: Create;
   public editCmd: Edit;
-  public exportSiteCmd: ExportSite;
   public exportCmd: Export;
   public importCmd: Import;
   public moveCmd: Move;
@@ -60,11 +58,6 @@ export class CommandManager {
     this.createCmd = new Create(this.project, this.calculateCmd);
     this.editCmd = new Edit(this.project, this.calculateCmd);
     this.exportCmd = new Export(this.project, this.calculateCmd, this.showCmd);
-    this.exportSiteCmd = new ExportSite(
-      this.project,
-      this.calculateCmd,
-      this.showCmd,
-    );
     this.importCmd = new Import(this.project, this.createCmd);
     this.moveCmd = new Move(this.project, this.calculateCmd);
     this.removeCmd = new Remove(this.project, this.calculateCmd);
