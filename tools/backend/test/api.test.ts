@@ -1,7 +1,7 @@
 import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createApp } from '../src/index.js';
+import { createApp } from '../src/app.js';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
