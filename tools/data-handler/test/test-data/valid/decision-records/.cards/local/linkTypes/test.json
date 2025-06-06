@@ -1,5 +1,6 @@
 {
     "name": "decision/linkTypes/test",
+    "displayName": "Text link type",
     "outboundDisplayName": "test",
     "inboundDisplayName": "test",
     "sourceCardTypes": [],

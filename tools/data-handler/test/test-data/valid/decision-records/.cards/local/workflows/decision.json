@@ -1,5 +1,6 @@
 {
     "name": "decision/workflows/decision",
+    "displayName": "Decision based workflow",
     "states": [
         { "name": "Draft", "category": "initial" },
         { "name": "Approved", "category": "closed" },

@@ -18,10 +18,19 @@ use(chaiAsPromised);
 describe('Cli BAT test', function () {
   this.timeout(20000);
   before(() => {
-    if (!existsSync(baseModulePath)) {
-      execSync(
-        'cd ../../&&git clone git@github.com:CyberismoCom/module-base.git .tmp/module-base',
-      );
+    console.log('Starting CLI acceptance test');
+    // Cloning is only needed for local development.
+    if (!process.env.GITHUB_ACTIONS) {
+      if (existsSync(baseModulePath)) {
+        // Always clone the repo.
+        rmSync(baseModulePath, { recursive: true, force: true });
+      }
+      if (!existsSync(baseModulePath)) {
+        // temp clone to a feature branch
+        execSync(
+          'cd ../../&&git clone -b main git@github.com:CyberismoCom/module-base.git .tmp/module-base',
+        );
+      }
     }
   });
   after(() => {
@@ -34,6 +43,10 @@ describe('Cli BAT test', function () {
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
+        }
+        // If test is about to fail, show the all of the errors in the log.
+        if (!stdout.includes('Project structure validated')) {
+          log(stdout);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -55,8 +68,9 @@ describe('Cli BAT test', function () {
     );
   });
   it('Import module-base', function (done) {
+    // temp use feature branch to make the tests pass
     exec(
-      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git&&cyberismo validate',
+      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git main&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);

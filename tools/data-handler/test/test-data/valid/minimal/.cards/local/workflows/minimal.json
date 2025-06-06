@@ -1,5 +1,6 @@
 {
     "name": "mini/workflows/minimal",
+    "displayName": "Minimal workflow",
     "states": [ { "name": "Created", "category": "initial" } ],
     "transitions": [
         {

@@ -11,6 +11,14 @@
       "minLength": 1,
       "pattern": "^[A-Za-z0-9]*/?[A-Za-z]*/?[A-Za-z-_]+[.json]*$"
     },
+    "description": {
+      "description": "A description that describes the card type",
+      "type": "string"
+    },
+    "displayName": {
+      "description": "A name by which the card type is referred to in the user interface",
+      "type": "string"
+    },
     "workflow": {
       "description": "The name of the workflow",
       "type": "string",
@@ -53,5 +61,5 @@
       }
     }
   },
-  "required": ["name", "workflow"]
+  "required": ["displayName", "name", "workflow"]
 }

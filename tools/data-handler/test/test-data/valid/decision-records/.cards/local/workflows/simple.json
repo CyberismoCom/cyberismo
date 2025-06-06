@@ -1,5 +1,6 @@
 {
     "name": "decision/workflows/simple",
+    "displayName": "Simple workflow",
     "states": [
         { "name": "Created", "category": "initial" },
         { "name": "Approved", "category": "closed" },

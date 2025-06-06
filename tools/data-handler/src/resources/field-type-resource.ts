@@ -462,8 +462,8 @@ export class FieldTypeResource extends FileResource {
         key,
         content.enumValues as Type[],
       ) as EnumDefinition[];
-    } else if (key === 'fieldDescription') {
-      content.fieldDescription = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
     } else {
       throw new Error(`Unknown property '${key}' for FieldType`);
     }

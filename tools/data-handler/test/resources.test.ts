@@ -458,6 +458,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       const linkTypeData = {
         name: name,
+        displayName: name,
         inboundDisplayName: 'in',
         outboundDisplayName: 'out',
         destinationCardTypes: ['decision/cardTypes/decision'],
@@ -479,6 +480,7 @@ describe('resources', function () {
         // missing mandatory value 'enableLinkDescription'
         // note that interface should be such that property is mandatory.
         name: name,
+        displayName: name,
         inboundDisplayName: 'in',
         outboundDisplayName: 'out',
         destinationCardTypes: ['decision/cardTypes/decision'],
@@ -590,6 +592,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       const workflowData = {
         name: name,
+        displayName: name,
         states: [],
         transitions: [],
       } as Workflow;
@@ -920,6 +923,7 @@ describe('resources', function () {
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
           name: 'decision/cardTypes/newCT',
+          displayName: '',
           workflow: 'decision/workflows/decision',
           customFields: [],
           alwaysVisibleFields: [],
@@ -935,6 +939,7 @@ describe('resources', function () {
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
           name: 'decision/fieldTypes/newFT',
+          displayName: '',
           dataType: 'shortText',
         }),
       );
@@ -948,7 +953,6 @@ describe('resources', function () {
         JSON.stringify({
           name: 'decision/graphModels/newGM',
           displayName: '',
-          description: '',
         }),
       );
     });
@@ -961,7 +965,6 @@ describe('resources', function () {
         JSON.stringify({
           name: 'decision/graphViews/newGV',
           displayName: '',
-          description: '',
         }),
       );
     });
@@ -973,6 +976,7 @@ describe('resources', function () {
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
           name: 'decision/linkTypes/newLT',
+          displayName: '',
           outboundDisplayName: 'decision/linkTypes/newLT',
           inboundDisplayName: 'decision/linkTypes/newLT',
           sourceCardTypes: [],
@@ -990,7 +994,6 @@ describe('resources', function () {
         JSON.stringify({
           name: 'decision/reports/newREP',
           displayName: '',
-          description: '',
           category: 'Uncategorised report',
         }),
       );
@@ -1003,6 +1006,7 @@ describe('resources', function () {
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
           name: 'decision/templates/newTEMP',
+          displayName: '',
         }),
       );
     });
@@ -1014,6 +1018,7 @@ describe('resources', function () {
       expect(JSON.stringify(res.data)).to.equal(
         JSON.stringify({
           name: 'decision/workflows/newWF',
+          displayName: '',
           states: [
             { name: 'Draft', category: 'initial' },
             { name: 'Approved', category: 'closed' },
@@ -1037,6 +1042,7 @@ describe('resources', function () {
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
           name: 'decision/cardTypes/newCT',
+          displayName: '',
           workflow: 'decision/workflows/decision',
           customFields: [],
           alwaysVisibleFields: [],
@@ -1053,6 +1059,7 @@ describe('resources', function () {
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
           name: 'decision/fieldTypes/newFT',
+          displayName: '',
           dataType: 'shortText',
         }),
       );
@@ -1067,7 +1074,6 @@ describe('resources', function () {
         JSON.stringify({
           name: 'decision/graphModels/newGM',
           displayName: '',
-          description: '',
           calculationFile: 'model.lp',
         }),
       );
@@ -1082,7 +1088,6 @@ describe('resources', function () {
         JSON.stringify({
           name: 'decision/graphViews/newGV',
           displayName: '',
-          description: '',
           handleBarFile: 'view.lp.hbs',
         }),
       );
@@ -1096,6 +1101,7 @@ describe('resources', function () {
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
           name: 'decision/linkTypes/newLT',
+          displayName: '',
           outboundDisplayName: 'decision/linkTypes/newLT',
           inboundDisplayName: 'decision/linkTypes/newLT',
           sourceCardTypes: [],
@@ -1115,10 +1121,10 @@ describe('resources', function () {
       expect(JSON.stringify(others)).to.equal(
         JSON.stringify({
           name: 'decision/reports/newREP',
+          displayName: '',
           metadata: {
             name: 'decision/reports/newREP',
             displayName: '',
-            description: '',
             category: 'Uncategorised report',
           },
           schema: {
@@ -1164,10 +1170,10 @@ describe('resources', function () {
       expect(JSON.stringify(others)).to.equal(
         JSON.stringify({
           name: 'decision/reports/newREP',
+          displayName: '',
           metadata: {
             name: 'decision/reports/newREP',
             displayName: '',
-            description: '',
             category: 'Uncategorised report',
           },
           schema: {
@@ -1201,8 +1207,12 @@ describe('resources', function () {
       const { path, ...others } = data;
       expect(JSON.stringify(others)).to.equal(
         JSON.stringify({
-          metadata: { name: 'decision/templates/newTEMP' },
+          metadata: {
+            name: 'decision/templates/newTEMP',
+            displayName: '',
+          },
           name: 'decision/templates/newTEMP',
+          displayName: '',
           numberOfCards: 0,
         }),
       );
@@ -1216,6 +1226,7 @@ describe('resources', function () {
       expect(JSON.stringify(data)).to.equal(
         JSON.stringify({
           name: 'decision/workflows/newWF',
+          displayName: '',
           states: [
             { name: 'Draft', category: 'initial' },
             { name: 'Approved', category: 'closed' },
@@ -1840,7 +1851,7 @@ describe('resources', function () {
         expect(false).equals(true);
       }
     });
-    it('update field type - change displayName and fieldDescription', async () => {
+    it('update field type - change displayName and description', async () => {
       const res = new FieldTypeResource(
         project,
         resourceName('decision/fieldTypes/dateFieldType'),
@@ -1850,15 +1861,13 @@ describe('resources', function () {
         target: '',
         to: 'Field for dates',
       });
-      await res.update('fieldDescription', {
+      await res.update('description', {
         name: 'change',
         target: '',
         to: 'Field description',
       });
       expect((res.data as FieldType).displayName).to.equal('Field for dates');
-      expect((res.data as FieldType).fieldDescription).to.equal(
-        'Field description',
-      );
+      expect((res.data as FieldType).description).to.equal('Field description');
     });
     it('update field type - change enumValues', async () => {
       const res = new FieldTypeResource(

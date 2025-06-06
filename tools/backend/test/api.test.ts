@@ -88,7 +88,7 @@ test('fieldTypes endpoint returns proper data', async () => {
   expect(result.length).toBe(9);
   expect(result[0].name).toBe('decision/fieldTypes/admins');
   expect(result[0].displayName).toBe('Administrators');
-  expect(result[0].fieldDescription).toBe('List of admin persons');
+  expect(result[0].description).toBe('List of admin persons');
   expect(result[0].dataType).toBe('list');
 });
 
