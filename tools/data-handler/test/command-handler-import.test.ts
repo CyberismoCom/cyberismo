@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { copyDir } from '../src/utils/file-utils.js';
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
-import { Show } from '../src/commands/index.js';
+import { Calculate, Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -45,7 +45,8 @@ describe('import csv command', () => {
     const [key1, key2] = result.payload as string[];
 
     const project = new Project(decisionRecordsPath);
-    const show = new Show(project);
+    const calculate = new Calculate(project);
+    const show = new Show(project, calculate);
     const card1 = await show.showCardDetails(
       { metadata: true, content: true },
       key1,
@@ -83,7 +84,8 @@ describe('import csv command', () => {
 
     const createdKeys = result.payload as string[];
     const project = new Project(decisionRecordsPath);
-    const show = new Show(project);
+    const calculate = new Calculate(project);
+    const show = new Show(project, calculate);
 
     const parentCard = await show.showCardDetails(
       { metadata: true, content: true, children: true },
