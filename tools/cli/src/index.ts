@@ -26,6 +26,8 @@ import {
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer, exportSite, previewSite } from '@cyberismo/backend';
+import cliProgress from 'cli-progress';
+
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 
@@ -396,10 +398,22 @@ program
       options: CardsOptions,
     ) => {
       if (format === 'site') {
+        const progress = new cliProgress.SingleBar(
+          {},
+          cliProgress.Presets.shades_classic,
+        );
         await exportSite(
           await commandHandler.getProjectPath(options.projectPath),
           output,
+          options.logLevel,
+          (current: number, total: number) => {
+            if (!progress.isActive) {
+              progress.start(total, 0);
+            }
+            progress.update(current);
+          },
         );
+        progress.stop();
         return;
       }
       const result = await commandHandler.command(

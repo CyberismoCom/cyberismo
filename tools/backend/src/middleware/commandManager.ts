@@ -18,7 +18,6 @@ declare module 'hono' {
   interface ContextVariableMap {
     commands: CommandManager;
     projectPath: string;
-    exportMode: boolean;
   }
 }
 

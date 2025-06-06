@@ -1,4 +1,8 @@
+{{#if cardKey}}
 result({{cardKey}}).
+{{else}}
+result(X) :- projectCard(X).
+{{/if}}
 
 % a helper term for display names
 
@@ -17,21 +21,25 @@ displayName(Card, Field, DisplayName) :-
 
 field(Field, "visibility", "always") :-
     alwaysVisibleField(CardType, Field),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
 field(Field, "visibility", "optional") :-
     optionallyVisibleField(CardType, Field),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
 field(Field, "index", Index) :-
     alwaysVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
 field(Field, "index", Index) :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
 dataType(Field, "fieldDisplayName", "shortText") :-
     childResult(_, Field, "fields"),
@@ -39,20 +47,22 @@ dataType(Field, "fieldDisplayName", "shortText") :-
 
 field(Field, "fieldDisplayName", DisplayName) :-
     childResult(_, Field, "fields"),
-    displayName({{cardKey}}, Field, DisplayName).
+    result(Card),
+    displayName(Card, Field, DisplayName).
 
 dataType(Field, "isCalculated", "boolean") :-
     childResult(_, Field, "fields"),
     field(Field, "isCalculated", _).
 
 field(Field, "isCalculated", true) :-
-    field({{cardKey}}, "cardType", CardType),
+    result(Card),
+    field(Card, "cardType", CardType),
     calculatedField(CardType, Field).
 
 field(Field, "isCalculated", false) :-
-
     childResult(_, Field, "fields"),
-    field({{cardKey}}, "cardType", CardType),
+    result(Card),
+    field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
 
 
@@ -61,14 +71,15 @@ field(Field, "isCalculated", false) :-
 % add value
 dataType(Field, "value", DataType) :-
     childResult(_, Field, "fields"),
-    field({{cardKey}}, Field, Value),
-    dataType({{cardKey}}, Field, DataType).
+    result(Card),
+    field(Card, Field, Value),
+    dataType(Card, Field, DataType).
 
 
 % add value
 field(Field, "value", Value) :-
-    childResult({{cardKey}}, Field, "fields"),
-    field({{cardKey}}, Field, Value).
+    childResult(Card, Field, "fields"),
+    field(Card, Field, Value).
 
 
 % select only non-custom fields
@@ -91,13 +102,15 @@ select(2, "dataType").
 select(2, "isCalculated").
 select(2, "value").
 
-childResult({{cardKey}}, Field, "fields") :-
+childResult(Card, Field, "fields") :-
     alwaysVisibleField(CardType, Field),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
-childResult({{cardKey}}, Field, "fields") :-
+childResult(Card, Field, "fields") :-
     optionallyVisibleField(CardType, Field),
-    field({{cardKey}}, "cardType", CardType).
+    field(Card, "cardType", CardType),
+    result(Card).
 
 % for enum fields, add enum values as child results:
 select(3, "index").
