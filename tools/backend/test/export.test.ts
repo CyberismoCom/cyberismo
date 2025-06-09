@@ -10,7 +10,7 @@ import {
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
-import { a } from 'vitest/dist/chunks/suite.d.FvehnV49.js';
+import path from 'node:path';
 
 // Mock external dependencies
 vi.mock('@cyberismo/data-handler');
@@ -180,7 +180,7 @@ describe('export module', () => {
       });
       expect(readFile).toHaveBeenCalledWith('static/config.json', 'utf-8');
       expect(writeFile).toHaveBeenCalledWith(
-        'static/config.json',
+        `static${path.sep}config.json`,
         '{"staticMode":true}',
       );
     });
