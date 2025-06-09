@@ -17,7 +17,7 @@ function createEditLoader(cardKey: string) {
       const response = await fetch('/config.json');
       if (response.ok) {
         const config = await response.json();
-        if (config.export === true) {
+        if (config.staticMode === true) {
           return redirect(`/cards/${cardKey}`);
         }
       }

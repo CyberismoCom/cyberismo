@@ -71,7 +71,7 @@ router.get('/', async (c) => {
 async function getCardDetails(
   commands: CommandManager,
   key: string,
-  exportMode?: boolean,
+  staticMode?: boolean,
 ): Promise<any> {
   const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
@@ -102,7 +102,7 @@ async function getCardDetails(
     asciidocContent = await evaluateMacros(
       cardDetailsResponse.content || '',
       {
-        mode: exportMode ? 'static' : 'inject',
+        mode: staticMode ? 'static' : 'inject',
         project: commands.project,
         cardKey: key,
       },
@@ -123,11 +123,11 @@ async function getCardDetails(
     .toString();
 
   // always parse for now if not in export mode
-  if (!exportMode) {
+  if (!staticMode) {
     await commands.calculateCmd.generate();
   }
 
-  const card = exportMode
+  const card = staticMode
     ? await getCardQueryResult(commands.project.basePath, key)
     : await commands.calculateCmd.runQuery('card', {
         cardKey: key,

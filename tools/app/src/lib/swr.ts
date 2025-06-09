@@ -57,7 +57,7 @@ export async function callApi<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any,
 ): Promise<T> {
-  if (config.export && method !== 'GET') {
+  if (config.staticMode && method !== 'GET') {
     throw new Error('Export mode is enabled, only GET requests are allowed');
   }
   const options: RequestInit = {
@@ -77,7 +77,7 @@ export async function callApi<T>(
   }
 
   return handleResponse(
-    await fetch(`${url}${config.export ? '.json' : ''}`, options),
+    await fetch(`${url}${config.staticMode ? '.json' : ''}`, options),
   );
 }
 
@@ -89,7 +89,7 @@ export const fetcher = async function (...args: Parameters<typeof fetch>) {
 // used to configure swr on a global level
 export function getSwrConfig(config: AppConfig): SWRConfiguration {
   return {
-    fetcher: config.export
+    fetcher: config.staticMode
       ? async function (...args: Parameters<typeof fetch>) {
           if (typeof args[0] === 'string') {
             args[0] = `${args[0]}.json`;

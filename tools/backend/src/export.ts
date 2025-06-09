@@ -1,6 +1,6 @@
 /**
   Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2024
+  Copyright © Cyberismo Ltd and contributors 2025
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation.
@@ -69,34 +69,33 @@ export async function getCardQueryResult(
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
  * @param projectPath - Path to the project.
- * @param dir - Directory to export to.
+ * @param exportDir - Directory to export to.
  * @param level - Log level for the operation.
  * @param onProgress - Optional progress callback function.
  */
 export async function exportSite(
   projectPath: string,
-  dir?: string,
+  exportDir?: string,
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
   onProgress?: (current?: number, total?: number) => void,
 ) {
-  dir = dir || 'static';
+  exportDir = exportDir || 'static';
 
-  // replace with logger
   const app = createApp(projectPath);
 
   // copy whole frontend to the same directory
-  await cp(staticFrontendDirRelative, dir, { recursive: true });
+  await cp(staticFrontendDirRelative, exportDir, { recursive: true });
   // read config file and change export to true
-  const config = await readFile(path.join(dir, 'config.json'), 'utf-8');
+  const config = await readFile(path.join(exportDir, 'config.json'), 'utf-8');
   const configJson = JSON.parse(config);
-  configJson.export = true;
+  configJson.staticMode = true;
   await writeFile(
-    path.join(dir, 'config.json'),
-    JSON.stringify(configJson, null, 2),
+    path.join(exportDir, 'config.json'),
+    JSON.stringify(configJson),
   );
 
   const commands = await CommandManager.getInstance(projectPath, level);
-  await toSsg(app, commands, dir, onProgress);
+  await toSsg(app, commands, exportDir, onProgress);
 }
 
 async function getRoutes(app: Hono) {

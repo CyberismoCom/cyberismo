@@ -81,7 +81,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
       <MenuButton
         size="sm"
         disabled={
-          availableTransitions.length === 0 || disabled || config.export
+          availableTransitions.length === 0 || disabled || config.staticMode
         }
         variant="soft"
         color="neutral"

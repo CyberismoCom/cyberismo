@@ -12,7 +12,7 @@
 import { createContext, useContext } from 'react';
 
 export type AppConfig = {
-  export: boolean;
+  staticMode: boolean;
 };
 
 export const ConfigContext = createContext<AppConfig | undefined>(undefined);

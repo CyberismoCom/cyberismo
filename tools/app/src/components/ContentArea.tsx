@@ -931,21 +931,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     </Typography>
                   </Stack>
                 </AccordionSummary>
-                {!preview && linkFormState === 'hidden' && !config.export && (
-                  <IconButton
-                    sx={{
-                      height: 36,
-                      alignSelf: 'center',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                      onLinkFormChange && onLinkFormChange('add');
-                    }}
-                  >
-                    <Add />
-                  </IconButton>
-                )}
+                {!preview &&
+                  linkFormState === 'hidden' &&
+                  !config.staticMode && (
+                    <IconButton
+                      sx={{
+                        height: 36,
+                        alignSelf: 'center',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                        onLinkFormChange && onLinkFormChange('add');
+                      }}
+                    >
+                      <Add />
+                    </IconButton>
+                  )}
               </Stack>
               <AccordionDetails>
                 {!preview &&

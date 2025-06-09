@@ -37,7 +37,7 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      {!config.export && (
+      {!config.staticMode && (
         <Button
           data-cy="createNewCardButton"
           variant="solid"

@@ -17,7 +17,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (import.meta.env.VITE_CYBERISMO_EXPORT === 'true') {
-      setConfig({ export: true });
+      setConfig({ staticMode: true });
       return;
     }
 
@@ -28,7 +28,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       })
       .then(setConfig)
       .catch((err) => {
-        setConfig({ export: false }); // fallback default
+        setConfig({ staticMode: false }); // fallback default
         console.error('Failed to load config.json:', err);
       });
   }, []);

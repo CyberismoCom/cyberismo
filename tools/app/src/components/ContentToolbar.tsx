@@ -79,9 +79,9 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
       </Box>
 
-      {!config.export && <CardContextMenu cardKey={cardKey} />}
+      {!config.staticMode && <CardContextMenu cardKey={cardKey} />}
 
-      {!config.export && mode === CardMode.VIEW && (
+      {!config.staticMode && mode === CardMode.VIEW && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
             onClick={onInsertLink}
@@ -111,7 +111,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
         disabled={isUpdating() && !isUpdating('updateState')}
       />
 
-      {!config.export && mode === CardMode.VIEW && (
+      {!config.staticMode && mode === CardMode.VIEW && (
         <Button
           variant="solid"
           aria-label="edit"

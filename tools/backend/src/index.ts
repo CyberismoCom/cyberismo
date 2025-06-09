@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2025
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
@@ -17,6 +18,9 @@ import { readFile } from 'node:fs/promises';
 import { findFreePort } from './utils.js';
 import { createApp } from './app.js';
 export { exportSite } from './export.js';
+
+const DEFAULT_PORT = 3000;
+const DEFAULT_MAX_PORT = DEFAULT_PORT + 100;
 
 /**
  * Preview the exported site
@@ -32,10 +36,10 @@ export async function previewSite(dir: string, findPort: boolean = true) {
     ),
   );
 
-  let port = parseInt(process.env.PORT || '3000', 10);
+  let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
 
   if (findPort) {
-    port = await findFreePort(port);
+    port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
   await startApp(app, port);
 }
@@ -49,10 +53,10 @@ export async function startServer(
   projectPath?: string,
   findPort: boolean = true,
 ) {
-  let port = parseInt(process.env.PORT || '3000', 10);
+  let port = parseInt(process.env.PORT || DEFAULT_PORT.toString(), 10);
 
   if (findPort) {
-    port = await findFreePort(port);
+    port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
   const app = createApp(projectPath);
   await startApp(app, port);

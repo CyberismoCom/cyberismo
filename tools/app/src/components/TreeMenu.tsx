@@ -191,7 +191,7 @@ export const TreeMenu = ({
         ref={treeRef}
         data={tree}
         openByDefault={false}
-        disableDrag={config.export}
+        disableDrag={config.staticMode}
         idAccessor={(node) => node.key}
         childrenAccessor="children"
         indent={16}

@@ -255,6 +255,7 @@ export class Show {
 
   /**
    * Shows all cards (either template or project cards) from a project.
+   * @param cardsFrom - The location from which to look for cards. Either from the project, templates or both.
    * @returns cards list array
    */
   public async showCards(

@@ -26,7 +26,7 @@ vi.mock('../src/lib/hooks', () => {
 
 vi.mock('@/providers/ConfigContext', () => ({
   useConfig: vi.fn(() => ({
-    export: false,
+    staticMode: false,
   })),
 }));
 

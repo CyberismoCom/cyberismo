@@ -1,3 +1,15 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
 import path from 'node:path';
 import { createServer } from 'node:net';
 
@@ -25,7 +37,11 @@ export async function runInParallel<T>(
 
   return Promise.all(runningPromises.map((p) => p()));
 }
-
+/**
+ * Runs a callback and returns the result or undefined if it throws.
+ * @param cb - The callback to run.
+ * @returns The result of the callback or undefined if it throws.
+ */
 export async function runCbSafely<T>(
   cb: () => Promise<T> | T,
 ): Promise<T | undefined> {
@@ -34,16 +50,25 @@ export async function runCbSafely<T>(
   } catch {}
 }
 
+/**
+ * The relative path to the static frontend directory.
+ */
 export const staticFrontendDirRelative = path.relative(
   process.cwd(),
   path.resolve(import.meta.dirname, 'public'),
 );
 
+/**
+ * Finds a free port.
+ * @param port - The port to start looking for.
+ * @param maxAttempts - The maximum number of attempts to find a free port.
+ * @returns The free port.
+ */
 export async function findFreePort(
-  port: number,
-  maxAttempts: number = 100,
+  minPort: number,
+  maxPort: number,
 ): Promise<number> {
-  for (let i = port; i < port + maxAttempts; i++) {
+  for (let i = minPort; i < maxPort; i++) {
     try {
       await testPort(i);
       return i;
