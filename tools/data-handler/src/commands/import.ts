@@ -29,7 +29,7 @@ export class Import {
     private project: Project,
     private createCmd: Create,
   ) {
-    this.moduleManager = new ModuleManager(this.project, this);
+    this.moduleManager = new ModuleManager(this.project);
   }
 
   /**
@@ -145,28 +145,25 @@ export class Import {
       );
     }
 
-    // Add module as a dependency.
-    return this.project.importModule({
+    const moduleSettings = {
       name: modulePrefix,
       branch: options ? options.branch : undefined,
       private: options ? options.private : undefined,
       location: gitModule ? source : `file:${source}`,
-    });
+    };
+
+    // Fetch module dependencies.
+    await this.moduleManager.updateModule(moduleSettings, options?.credentials);
+
+    // Add module as a dependency.
+    return this.project.importModule(moduleSettings);
   }
 
   /**
    * Updates all imported modules.
+   * @param credentials Optional credentials for private modules.
    */
   public async updateAllModules(credentials?: Credentials) {
-    return this.moduleManager.update(credentials);
-  }
-
-  /**
-   * Updates 'moduleName' module from its source.
-   * Modules using gitUrl, are first copied to .temp
-   * @param moduleName module name (prefix) to update
-   */
-  public async updateExistingModule(moduleName: string) {
-    await this.moduleManager.importFileModule(moduleName);
+    return this.moduleManager.updateModules(credentials);
   }
 }

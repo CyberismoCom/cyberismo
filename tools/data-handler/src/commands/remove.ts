@@ -188,8 +188,8 @@ export class Remove {
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-    await deleteDir(module.path);
     await this.project.removeModule(moduleName);
+    await deleteDir(module.path);
   }
 
   /**
