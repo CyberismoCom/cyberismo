@@ -402,6 +402,7 @@ program
           {},
           cliProgress.Presets.shades_classic,
         );
+        // Should be in commandHandler, once it is moved under the CLI package
         await exportSite(
           await commandHandler.getProjectPath(options.projectPath),
           output,
@@ -417,6 +418,8 @@ program
           },
         );
         progress.stop();
+        console.log('Exported site to', output);
+        console.log('Run `cyberismo preview out` to view the site');
         return;
       }
       const result = await commandHandler.command(

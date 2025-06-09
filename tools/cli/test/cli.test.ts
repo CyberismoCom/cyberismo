@@ -294,6 +294,24 @@ describe('Cli BAT test', function () {
       },
     );
   });
+  it('export static site and preview it', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo export site ./out&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Exported site to');
+        expect(stdout).to.include(
+          'Run `cyberismo preview out` to view the site',
+        );
+        expect(stdout).to.include('Project structure validated');
+        rmSync('./out', { recursive: true, force: true });
+        done();
+      },
+    );
+  });
   it('Test calc run with tree query', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cp ../../tools/assets/src/calculations/queries/tree.lp ./tree.lp&&cyberismo calc run ./tree.lp &&cyberismo validate`,
