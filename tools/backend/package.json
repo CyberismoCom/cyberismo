@@ -20,10 +20,12 @@
     "@cyberismo/data-handler": "workspace:*",
     "@hono/node-server": "^1.14.1",
     "dotenv": "^16.5.0",
-    "hono": "^4.7.5"
+    "hono": "^4.7.5",
+    "mime-types": "^3.0.1"
   },
   "devDependencies": {
-    "@cyberismo/app": "workspace:*"
+    "@cyberismo/app": "workspace:*",
+    "@types/mime-types": "^3.0.0"
   },
   "types": "dist/index.d.ts",
   "exports": {

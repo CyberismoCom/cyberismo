@@ -13,40 +13,19 @@
 
 import path from 'node:path';
 
-import fs, { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { cp, writeFile } from 'node:fs/promises';
-import { staticFrontendDirRelative } from './utils.js';
-import { toSSG } from 'hono/ssg';
+import {
+  runCbSafely,
+  runInParallel,
+  staticFrontendDirRelative,
+} from './utils.js';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
-
-// As long as hono makes multiple calls to the route handlers, we need to
-// make sure that calls are only made once
-// Create a wrapper that will call the underlying function only once
-// Until the reset function is called
-
-let _callOnceMap: Map<string, Promise<unknown>> = new Map();
-
-/**
- * Wraps a function to call it only once. NOTE: Using same key with different functions
- * leads to types being inconsistent.
- * @param fn The function to wrap.
- * @param key The key to use to identify the function.
- * @returns A function that will call the underlying function only once.
- */
-export function callOnce<T, U extends unknown[]>(
-  fn: (...args: U) => Promise<T>,
-  key: string,
-): () => Promise<T> {
-  return async (...args: U) => {
-    if (!_callOnceMap.has(key)) {
-      _callOnceMap.set(key, fn(...args));
-    }
-    return _callOnceMap.get(key) as Promise<T>;
-  };
-}
+import { Context, Hono, MiddlewareHandler } from 'hono';
+import mime from 'mime-types';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 
@@ -55,7 +34,6 @@ let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
  * Also resets the card query promise.
  */
 function reset() {
-  _callOnceMap.clear();
   _cardQueryPromise = null;
 }
 
@@ -101,49 +79,200 @@ export async function exportSite(
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
   onProgress?: (current?: number, total?: number) => void,
 ) {
-  reset(); // Just in case
-  try {
-    dir = dir || 'static';
+  dir = dir || 'static';
 
-    // replace with logger
-    const app = createApp(projectPath);
+  // replace with logger
+  const app = createApp(projectPath);
 
-    const commands = await CommandManager.getInstance(projectPath, level);
-    await commands.calculateCmd.generate();
+  // copy whole frontend to the same directory
+  await cp(staticFrontendDirRelative, dir, { recursive: true });
+  // read config file and change export to true
+  const config = await readFile(path.join(dir, 'config.json'), 'utf-8');
+  const configJson = JSON.parse(config);
+  configJson.export = true;
+  await writeFile(
+    path.join(dir, 'config.json'),
+    JSON.stringify(configJson, null, 2),
+  );
 
-    // Find out how many files are in the project
-    const cardQueryResult = await getCardQueryResult(projectPath);
-    let totalFiles = cardQueryResult.length;
+  const commands = await CommandManager.getInstance(projectPath, level);
+  await toSsg(app, commands, dir, onProgress);
+}
 
-    // copy whole frontend to the same directory
-    await cp(staticFrontendDirRelative, dir, { recursive: true });
-    // read config file and change export to true
-    const config = await readFile(path.join(dir, 'config.json'), 'utf-8');
-    const configJson = JSON.parse(config);
-    configJson.export = true;
-    await writeFile(
-      path.join(dir, 'config.json'),
-      JSON.stringify(configJson, null, 2),
-    );
-
-    let processedFiles = 0;
-
-    // at last
-    await toSSG(app, fs, {
-      dir,
-      afterResponseHook: (res) => {
-        if (res.ok) {
-          if (res.headers.get('content-type') === 'image/png') {
-            // Attachments are not counted
-            totalFiles++;
-          }
-          processedFiles++; // this is not exactly the number of files as it includes all ssg files, but it's good enough
-          onProgress?.(processedFiles, totalFiles + 5); // 2*2 for two extra routes and 1 for the :id call made by hono
-        }
-        return res;
-      },
-    });
-  } finally {
-    reset();
+async function getRoutes(app: Hono) {
+  const routes = new Set<string>();
+  for (const route of app.routes) {
+    if (route.method === 'GET') routes.add(route.path);
   }
+
+  // handles both routes with and without dynamic parameters
+  const filteredRoutes = [];
+  for (const route of routes) {
+    if (!route.includes(':')) {
+      filteredRoutes.push(route);
+      continue;
+    }
+    const response = await createSsgRequest(app, route, true);
+    if (response.ok) {
+      const params = await response.json();
+      if (Array.isArray(params) && params.length > 0) {
+        for (const param of params) {
+          let newRoute = route;
+          for (const [key, value] of Object.entries(param)) {
+            newRoute = newRoute.replace(`:${key}`, `${value}`);
+          }
+          filteredRoutes.push(newRoute);
+        }
+      }
+    }
+  }
+
+  return filteredRoutes;
+}
+
+/**
+ * This is similar to hono's ssg function, but it only calls middlewares once
+ * @param app
+ * @param onProgress
+ */
+async function toSsg(
+  app: Hono,
+  commands: CommandManager,
+  dir: string,
+  onProgress?: (current?: number, total?: number) => void,
+) {
+  reset();
+  await commands.calculateCmd.generate();
+
+  const promises = [];
+
+  const routes = await getRoutes(app);
+  await runCbSafely(() => onProgress?.(0, routes.length));
+
+  let processedFiles = 0;
+  let failed = false;
+  const done = async (error?: Error) => {
+    if (error) {
+      failed = true;
+      console.error(error);
+    }
+    processedFiles++;
+    await runCbSafely(() => onProgress?.(processedFiles, routes.length));
+  };
+  for (const route of routes) {
+    promises.push(async () => {
+      try {
+        const response = await createSsgRequest(app, route, false);
+        if (!response.ok) {
+          await done(new Error(`Failed to export route ${route}: ${response}`));
+          return;
+        }
+        await writeFileToDir(dir, response, route);
+        await done();
+      } catch (error) {
+        await done(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+  }
+
+  await runInParallel(promises, 5);
+  if (failed) {
+    throw new Error('Failed to export some routes');
+  }
+}
+
+/**
+ * Get the file content and file ending for a given response and route.
+ * @param response - The response to get the file content and file ending for.
+ * @param route - The route to get the file content and file ending for.
+ * @returns The file content and file ending for the given response and route.
+ * If the route already has a file ending, it will be returned as an empty string.
+ */
+async function getFileContent(
+  response: Response,
+  route: string,
+): Promise<{
+  content: ArrayBuffer;
+  fileEnding: string;
+}> {
+  // Check if route already has an extension
+  const routeExtension = path.extname(route);
+  if (routeExtension) {
+    // Trust the existing extension in the route
+    const content = await response.arrayBuffer();
+    return {
+      content,
+      fileEnding: '',
+    };
+  }
+
+  // No extension in route, fall back to content type detection
+  const contentType = response.headers.get('content-type');
+  if (!contentType) {
+    throw new Error('No content type');
+  }
+  const extension = mime.extension(contentType);
+  if (!extension) {
+    throw new Error('Unsupported content type');
+  }
+
+  // Use ArrayBuffer for all content types
+  const content = await response.arrayBuffer();
+  return {
+    content,
+    fileEnding: `.${extension}`,
+  };
+}
+
+async function writeFileToDir(dir: string, response: Response, route: string) {
+  const { content, fileEnding } = await getFileContent(response, route);
+
+  let filePath = path.join(dir, route);
+
+  // if route does not have a file ending, add it based on the content type
+  if (!route.endsWith(fileEnding)) {
+    filePath += fileEnding;
+  }
+
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, Buffer.from(content));
+}
+
+// findroutes = if this request is used to find the routes in the app
+function createSsgRequest(
+  app: Hono,
+  route: string,
+  findRoutes: boolean = true,
+) {
+  return app.request(route, {
+    headers: new Headers({
+      'x-ssg': 'true',
+      'x-ssg-find': findRoutes ? 'true' : 'false',
+    }),
+  });
+}
+
+/**
+ * Check if the request is a static site generation request.
+ * @param c - The context of the request.
+ * @returns True if the request is a static site generation request.
+ */
+export function isSSGContext(c: Context) {
+  return c.req.header('x-ssg') === 'true';
+}
+
+/**
+ * This middleware is used to find the routes in the app.
+ * @param fn - The function to call to get the parameters for the route.
+ * @returns The middleware handler.
+ */
+export function ssgParams(
+  fn?: (c: Context) => Promise<unknown[]>,
+): MiddlewareHandler {
+  return async (c, next) => {
+    if (c.req.header('x-ssg-find') === 'true') {
+      return fn ? c.json(await fn(c)) : c.json([]);
+    }
+    return next();
+  };
 }

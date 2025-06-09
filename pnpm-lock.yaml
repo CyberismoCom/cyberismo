@@ -221,10 +221,16 @@ importers:
       hono:
         specifier: ^4.7.5
         version: 4.7.11
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
     devDependencies:
       '@cyberismo/app':
         specifier: workspace:*
         version: link:../app
+      '@types/mime-types':
+        specifier: ^3.0.0
+        version: 3.0.0
 
   tools/cli:
     dependencies:

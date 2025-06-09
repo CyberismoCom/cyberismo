@@ -1,6 +1,39 @@
 import path from 'node:path';
 import { createServer } from 'node:net';
 
+/**
+ * Runs promises in parallel, but only maxConcurrent at a time.
+ * @param promises - Array of promises to run in parallel
+ * @param maxConcurrent - Maximum number of promises to run at a time
+ * @returns - Promise that resolves when all promises have resolved
+ */
+export async function runInParallel<T>(
+  promises: (() => Promise<unknown>)[],
+  maxConcurrent: number = 2,
+) {
+  const waitingPromises: (() => Promise<unknown>)[] = [];
+  const wrappedPromises = promises.map((fn) => async () => {
+    await fn();
+    const next = waitingPromises.shift();
+    if (next) {
+      await next();
+    }
+  });
+
+  const runningPromises = wrappedPromises.slice(0, maxConcurrent);
+  waitingPromises.push(...wrappedPromises.slice(maxConcurrent));
+
+  return Promise.all(runningPromises.map((p) => p()));
+}
+
+export async function runCbSafely<T>(
+  cb: () => Promise<T> | T,
+): Promise<T | undefined> {
+  try {
+    return await cb();
+  } catch {}
+}
+
 export const staticFrontendDirRelative = path.relative(
   process.cwd(),
   path.resolve(import.meta.dirname, 'public'),

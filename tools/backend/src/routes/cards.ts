@@ -20,8 +20,7 @@ import {
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { ContentfulStatusCode } from 'hono/utils/http-status';
-import { isSSGContext, ssgParams } from 'hono/ssg';
-import { callOnce, getCardQueryResult } from '../export.js';
+import { getCardQueryResult, isSSGContext, ssgParams } from '../export.js';
 
 const router = new Hono();
 
@@ -169,21 +168,19 @@ async function getCardDetails(
  */
 router.get(
   '/:key',
-  ssgParams(
-    callOnce(async (c: Context) => {
-      const commands = c.get('commands');
-      const fetchedCards = await commands.showCmd.showCards(
-        CardLocation.projectOnly,
-      );
-      const projectCards = fetchedCards.find(
-        (cardContainer) => cardContainer.type === 'project',
-      );
-      if (!projectCards) {
-        throw new Error('Data handler did not return project cards');
-      }
-      return projectCards.cards.map((key) => ({ key }));
-    }, 'cardDetail'),
-  ),
+  ssgParams(async (c: Context) => {
+    const commands = c.get('commands');
+    const fetchedCards = await commands.showCmd.showCards(
+      CardLocation.projectOnly,
+    );
+    const projectCards = fetchedCards.find(
+      (cardContainer) => cardContainer.type === 'project',
+    );
+    if (!projectCards) {
+      throw new Error('Data handler did not return project cards');
+    }
+    return projectCards.cards.map((key) => ({ key }));
+  }),
   async (c) => {
     const key = c.req.param('key');
     if (!key) {
@@ -763,16 +760,14 @@ router.delete('/:key/links', async (c) => {
  */
 router.get(
   '/:key/a/:attachment',
-  ssgParams(
-    callOnce(async (c: Context) => {
-      const commands = c.get('commands');
-      const attachments = await commands.showCmd.showAttachments();
-      return attachments.map((attachment) => ({
-        key: attachment.card,
-        attachment: attachment.fileName,
-      }));
-    }, 'attachments'),
-  ),
+  ssgParams(async (c: Context) => {
+    const commands = c.get('commands');
+    const attachments = await commands.showCmd.showAttachments();
+    return attachments.map((attachment) => ({
+      key: attachment.card,
+      attachment: attachment.fileName,
+    }));
+  }),
   async (c) => {
     const commands = c.get('commands');
     const { key, attachment } = c.req.param();
