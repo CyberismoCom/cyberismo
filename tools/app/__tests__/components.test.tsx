@@ -24,11 +24,16 @@ vi.mock('../src/lib/hooks', () => {
   };
 });
 
-vi.mock('@/lib/utils', () => ({
-  config: {
-    staticMode: false,
-  },
-}));
+vi.mock('@/lib/utils', async () => {
+  const actual = await import('@/lib/utils');
+
+  return {
+    ...actual,
+    config: {
+      staticMode: false,
+    },
+  };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: vi.fn(),
