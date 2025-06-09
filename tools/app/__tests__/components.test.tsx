@@ -24,10 +24,10 @@ vi.mock('../src/lib/hooks', () => {
   };
 });
 
-vi.mock('@/providers/ConfigContext', () => ({
-  useConfig: vi.fn(() => ({
+vi.mock('@/lib/utils', () => ({
+  config: {
     staticMode: false,
-  })),
+  },
 }));
 
 vi.mock('react-i18next', () => ({

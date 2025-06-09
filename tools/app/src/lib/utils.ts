@@ -29,6 +29,7 @@ import {
   CalculationLink,
 } from '@cyberismo/data-handler/types/queries';
 import { CardResponse } from './api/types';
+import { AppConfig } from './definitions';
 
 // Gets type of a child of an array
 type ItemType<T> = T extends (infer U)[] ? U : never;
@@ -55,6 +56,16 @@ export function canCreateLinkToCard(
     return false;
   return true;
 }
+/**
+ * Loads the config.json file and returns the config.
+ * @returns the config.json file.
+ */
+export const config: AppConfig = await fetch('/config.json')
+  .then((res) => res.json())
+  .catch((err) => {
+    console.error('Failed to load config.json, using fallback', err);
+    return { staticMode: false };
+  });
 
 /**
  * Counts the number of children of a card, including the card itself and children of children

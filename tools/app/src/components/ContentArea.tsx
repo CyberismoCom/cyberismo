@@ -76,7 +76,7 @@ import {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
-import { useConfig } from '@/providers/ConfigContext';
+import { config } from '@/lib/utils';
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -598,8 +598,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const dispatch = useAppDispatch();
 
   const { t } = useTranslation();
-
-  const config = useConfig();
 
   const lastTitle = useAppSelector((state) => state.page.title);
   const cardKey = useAppSelector((state) => state.page.cardKey);

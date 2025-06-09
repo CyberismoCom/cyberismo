@@ -12,15 +12,9 @@
 
 //import { evaluateMacros } from '@cyberismo/data-handler';
 import { callApi } from '../../swr';
-import { AppConfig } from '@/providers/ConfigContext';
 
-export async function parseContent(
-  config: AppConfig,
-  key: string,
-  content: string,
-) {
+export async function parseContent(key: string, content: string) {
   const result = await callApi<{ parsedContent: string }>(
-    config,
     `/api/cards/${key}/parse`,
     'POST',
     { content },

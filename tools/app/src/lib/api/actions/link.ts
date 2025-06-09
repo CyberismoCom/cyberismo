@@ -11,16 +11,14 @@
 */
 
 import { callApi } from '../../swr';
-import { AppConfig } from '@/providers/ConfigContext';
 
 export async function createLink(
-  config: AppConfig,
   fromCard: string,
   toCard: string,
   linkType: string,
   linkDescription?: string,
 ) {
-  return callApi(config, `/api/cards/${fromCard}/links`, 'POST', {
+  return callApi(`/api/cards/${fromCard}/links`, 'POST', {
     toCard,
     linkType,
     description: linkDescription,
@@ -28,13 +26,12 @@ export async function createLink(
 }
 
 export async function removeLink(
-  config: AppConfig,
   fromCard: string,
   toCard: string,
   linkType: string,
   linkDescription?: string,
 ) {
-  return callApi(config, `/api/cards/${fromCard}/links`, 'DELETE', {
+  return callApi(`/api/cards/${fromCard}/links`, 'DELETE', {
     toCard,
     linkType,
     description: linkDescription,

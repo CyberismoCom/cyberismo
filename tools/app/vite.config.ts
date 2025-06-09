@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
+import topLevelAwait from 'vite-plugin-top-level-await';
 import * as path from 'path';
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,6 +14,7 @@ export default defineConfig({
         },
       },
     }),
+    topLevelAwait(),
   ],
   resolve: {
     alias: {

@@ -24,7 +24,7 @@ import { useCard, useProject, useTree } from '../lib/api';
 import { useAppDispatch } from '../lib/hooks';
 import { addNotification } from '../lib/slices/notifications';
 import InsertLink from '@mui/icons-material/InsertLink';
-import { useConfig } from '@/providers/ConfigContext';
+import { config } from '@/lib/utils';
 
 interface ContentToolbarProps {
   cardKey: string;
@@ -70,8 +70,6 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
     },
     [updateWorkFlowState, dispatch, t],
   );
-
-  const config = useConfig();
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>

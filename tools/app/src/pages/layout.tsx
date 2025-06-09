@@ -54,7 +54,6 @@ import {
 } from '../lib/slices/notifications';
 import { findParentCard } from '../lib/utils';
 import { useTree } from '../lib/api/tree';
-import { useConfig } from '@/providers/ConfigContext';
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
@@ -217,13 +216,12 @@ function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
 const materialTheme = createTheme();
 
 export default function CardsLayout() {
-  const config = useConfig();
   return (
     <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
       <JoyCssVarsProvider theme={theme}>
         <CssBaseline />
         <StoreProvider>
-          <SWRConfig value={getSwrConfig(config)}>
+          <SWRConfig value={getSwrConfig()}>
             <Stack>
               <Main>
                 <MainLayout>

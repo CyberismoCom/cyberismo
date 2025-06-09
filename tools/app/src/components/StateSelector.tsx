@@ -26,7 +26,7 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
-import { useConfig } from '@/providers/ConfigContext';
+import { config } from '@/lib/utils';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -61,7 +61,6 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     );
   }, [currentState, workflow]);
 
-  const config = useConfig();
   if (!availableTransitions || !currentState) return null;
 
   const statusDot = (

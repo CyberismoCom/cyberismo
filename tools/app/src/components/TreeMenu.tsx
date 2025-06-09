@@ -21,7 +21,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
-import { useConfig } from '@/providers/ConfigContext';
+import { config } from '@/lib/utils';
 
 type TreeMenuProps = {
   title?: string;
@@ -159,7 +159,6 @@ export const TreeMenu = ({
   const treeRef = useRef(null);
   const { width, height, ref } = useResizeObserver();
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
-  const config = useConfig();
 
   useEffect(() => {
     // unfortunately react arborist does not provide a type for the ref

@@ -10,8 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AppConfig } from '@/providers/ConfigContext';
 import { SWRConfiguration } from 'swr';
+import { config } from './utils';
 
 export class ApiCallError extends Error {
   public reason: string;
@@ -50,7 +50,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 // used to call api with fetch
 export async function callApi<T>(
-  config: AppConfig,
   url: string,
   method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'PATCH',
   // Below is disabled as JSON stringify also accepts any
@@ -87,7 +86,7 @@ export const fetcher = async function (...args: Parameters<typeof fetch>) {
 };
 
 // used to configure swr on a global level
-export function getSwrConfig(config: AppConfig): SWRConfiguration {
+export function getSwrConfig(): SWRConfiguration {
   return {
     fetcher: config.staticMode
       ? async function (...args: Parameters<typeof fetch>) {

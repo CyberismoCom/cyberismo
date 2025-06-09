@@ -25,12 +25,10 @@ import { setRecentlyCreated } from '../slices/card';
 import { addNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { AppConfig, useConfig } from '@/providers/ConfigContext';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const config = useConfig();
   const { callUpdate, isUpdating, ...rest } = useSWRHook(
     key ? apiPaths.card(key) : null,
     'card',
@@ -41,13 +39,12 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
     ...rest,
     isUpdating: (action?: CardAction) => isUpdating(action),
     updateCard: async (update: CardUpdate) =>
-      (key &&
-        (await callUpdate(() => updateCard(config, key, update), 'update'))) ||
+      (key && (await callUpdate(() => updateCard(key, update), 'update'))) ||
       null,
     deleteCard: async () => {
       if (!key) return;
       try {
-        await callUpdate(() => deleteCard(config, key), 'delete');
+        await callUpdate(() => deleteCard(key), 'delete');
         dispatch(cardDeleted(key));
         dispatch(
           addNotification({
@@ -68,7 +65,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
     },
     createCard: async (template: string) => {
       const result = await callUpdate(() =>
-        createCard(config, key ?? 'root', template),
+        createCard(key ?? 'root', template),
       );
       dispatch(setRecentlyCreated(result.map((card) => card.key)));
       return result;
@@ -77,7 +74,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       key &&
       (await callUpdate(
         () =>
-          updateCard(config, key, {
+          updateCard(key, {
             parent: target,
             index,
           }),
@@ -88,7 +85,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
       (key &&
         (await callUpdate(
           () =>
-            updateCard(config, key, {
+            updateCard(key, {
               state: { name: state },
             }),
           'updateState',
@@ -104,7 +101,6 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         (await callUpdate(
           () =>
             createLink(
-              config,
               direction === 'outbound' ? key : target,
               direction === 'outbound' ? target : key,
               type,
@@ -125,7 +121,6 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
         (await callUpdate(
           () =>
             removeLink(
-              config,
               direction === 'outbound' ? key : target,
               direction === 'outbound' ? target : key,
               linkType,
@@ -162,20 +157,13 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
             const oldLinkType = previousLinkType || linkType;
 
             return removeLink(
-              config,
               oldSourceKey,
               oldDestKey,
               oldLinkType,
               previousLinkDescription,
             )
               .then(() =>
-                createLink(
-                  config,
-                  sourceKey,
-                  destKey,
-                  linkType,
-                  linkDescription,
-                ),
+                createLink(sourceKey, destKey, linkType, linkDescription),
               )
               .then(() => mutate(apiPaths.card(key)));
           }, 'editLink'))) ||
@@ -184,18 +172,9 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
     },
   };
 };
-export async function updateCard(
-  config: AppConfig,
-  key: string,
-  cardUpdate: CardUpdate,
-) {
+export async function updateCard(key: string, cardUpdate: CardUpdate) {
   const swrKey = apiPaths.card(key);
-  const result = await callApi<CardDetails>(
-    config,
-    swrKey,
-    'PATCH',
-    cardUpdate,
-  );
+  const result = await callApi<CardDetails>(swrKey, 'PATCH', cardUpdate);
 
   // update swr cache for the card and project
   // revalidation not needed since api returns the updated card
@@ -204,9 +183,9 @@ export async function updateCard(
   mutate(apiPaths.tree());
 }
 
-export async function deleteCard(config: AppConfig, key: string) {
+export async function deleteCard(key: string) {
   const swrKey = apiPaths.card(key);
-  await callApi(config, swrKey, 'DELETE');
+  await callApi(swrKey, 'DELETE');
 
   mutate(swrKey, undefined, false);
 
@@ -214,18 +193,12 @@ export async function deleteCard(config: AppConfig, key: string) {
 }
 
 export async function createCard(
-  config: AppConfig,
   parentKey: string,
   template: string,
 ): Promise<Card[]> {
-  const result = await callApi<Card[]>(
-    config,
-    apiPaths.card(parentKey),
-    'POST',
-    {
-      template,
-    },
-  );
+  const result = await callApi<Card[]>(apiPaths.card(parentKey), 'POST', {
+    template,
+  });
 
   // revalidate whole project
   mutate(apiPaths.tree());

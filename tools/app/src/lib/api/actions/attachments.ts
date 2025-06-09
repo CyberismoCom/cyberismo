@@ -11,22 +11,13 @@
 */
 
 import { callApi } from '../../swr';
-import { AppConfig } from '@/providers/ConfigContext';
 
-export async function addAttachments(
-  config: AppConfig,
-  key: string,
-  formData: FormData,
-) {
-  return callApi(config, `/api/cards/${key}/attachments`, 'POST', formData);
+export async function addAttachments(key: string, formData: FormData) {
+  return callApi(`/api/cards/${key}/attachments`, 'POST', formData);
 }
 
-export async function removeAttachment(
-  config: AppConfig,
-  key: string,
-  filename: string,
-) {
-  return callApi(config, `/api/cards/${key}/attachments/${filename}`, 'DELETE');
+export async function removeAttachment(key: string, filename: string) {
+  return callApi(`/api/cards/${key}/attachments/${filename}`, 'DELETE');
 }
 
 /**
@@ -35,14 +26,6 @@ export async function removeAttachment(
  * @param filename
  * @returns
  */
-export async function openAttachment(
-  config: AppConfig,
-  key: string,
-  filename: string,
-) {
-  return callApi(
-    config,
-    `/api/cards/${key}/attachments/${filename}/open`,
-    'POST',
-  );
+export async function openAttachment(key: string, filename: string) {
+  return callApi(`/api/cards/${key}/attachments/${filename}/open`, 'POST');
 }
