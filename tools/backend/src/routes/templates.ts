@@ -40,7 +40,12 @@ router.get('/', async (c) => {
   if (response) {
     return c.json(response);
   } else {
-    return c.text(`No templates found from path ${c.get('projectPath')}`, 500);
+    return c.json(
+      {
+        error: `No templates found from path ${c.get('projectPath')}`,
+      },
+      500,
+    );
   }
 });
 

@@ -195,8 +195,10 @@ router.get(
     if (result.status === 200) {
       return c.json(result.data);
     } else {
-      return c.text(
-        result.message || 'Unknown error',
+      return c.json(
+        {
+          error: result.message || 'Unknown error',
+        },
         result.status as ContentfulStatusCode,
       );
     }
@@ -300,8 +302,10 @@ router.patch('/:key', async (c) => {
   if (result.status === 200) {
     return c.json(result.data);
   } else {
-    return c.text(
-      result.message || 'Unknown error',
+    return c.json(
+      {
+        error: result.message || 'Unknown error',
+      },
       result.status as ContentfulStatusCode,
     );
   }
@@ -338,8 +342,10 @@ router.delete('/:key', async (c) => {
     await commands.removeCmd.remove('card', key);
     return new Response(null, { status: 204 });
   } catch (error) {
-    return c.text(
-      error instanceof Error ? error.message : 'Unknown error',
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
       400,
     );
   }
@@ -390,9 +396,9 @@ router.post('/:key', async (c) => {
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
-      return c.text(error.message, 400);
+      return c.json({ error: error.message }, 400);
     }
-    return c.text('Unknown error occurred', 500);
+    return c.json({ error: 'Unknown error occurred' }, 500);
   }
 });
 
@@ -800,8 +806,10 @@ router.get(
         },
       });
     } catch {
-      return c.text(
-        `No attachment found from card ${key} and filename ${filename}`,
+      return c.json(
+        {
+          error: `No attachment found from card ${key} and filename ${filename}`,
+        },
         404,
       );
     }

@@ -65,10 +65,12 @@ export function createApp(projectPath?: string) {
     if (!isSSGContext(c)) {
       console.error(err.stack);
     }
-    return c.text(
-      isSSGContext(c)
-        ? err.message || 'Internal Server Error'
-        : 'Internal Server Error',
+    return c.json(
+      {
+        error: isSSGContext(c)
+          ? err.message || 'Internal Server Error'
+          : 'Internal Server Error',
+      },
       500,
     );
   });

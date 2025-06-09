@@ -164,11 +164,14 @@ async function toSsg(
       try {
         const response = await createSsgRequest(app, route, false);
         if (!response.ok) {
-          await done(
-            new Error(
-              `Failed to export route ${route}: ${await response.text()}`,
-            ),
-          );
+          const error = await response.json();
+          if (typeof error === 'object' && error !== null && 'error' in error) {
+            await done(
+              new Error(`Failed to export route ${route}: ${error.error}`),
+            );
+          } else {
+            await done(new Error(`Failed to export route ${route}`));
+          }
           return;
         }
         await writeFileToDir(dir, response, route);

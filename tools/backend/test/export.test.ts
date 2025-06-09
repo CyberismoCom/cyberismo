@@ -264,6 +264,7 @@ describe('export module', () => {
         request: vi.fn().mockResolvedValue({
           ok: false,
           status: 500,
+          json: vi.fn().mockResolvedValue({ error: 'test' }),
         }),
       };
 
@@ -283,7 +284,7 @@ describe('export module', () => {
       vi.mocked(writeFile).mockResolvedValue(undefined);
 
       await expect(exportSite('/test/project')).rejects.toThrow(
-        'Errors:\nFailed to export route /api/cards',
+        'Errors:\nFailed to export route /api/cards: test',
       );
     });
   });
