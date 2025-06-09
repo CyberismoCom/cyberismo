@@ -22,6 +22,7 @@ import templatesRouter from './routes/templates.js';
 import treeRouter from './routes/tree.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isSSGContext } from './export.js';
 
 /**
  * Create the Hono app for the backend
@@ -61,8 +62,15 @@ export function createApp(projectPath?: string) {
   });
   // Error handling
   app.onError((err, c) => {
-    console.error(err.stack);
-    return c.text('Internal Server Error', 500);
+    if (!isSSGContext(c)) {
+      console.error(err.stack);
+    }
+    return c.text(
+      isSSGContext(c)
+        ? err.message || 'Internal Server Error'
+        : 'Internal Server Error',
+      500,
+    );
   });
 
   return app;

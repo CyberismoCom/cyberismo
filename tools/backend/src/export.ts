@@ -30,10 +30,10 @@ import mime from 'mime-types';
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 
 /**
- * This resets the callOnce map, allowing you to redo the export.
+ *  DO NO USE DIRECTLY. This resets the callOnce map, allowing you to redo the export.
  * Also resets the card query promise.
  */
-function reset() {
+export function reset() {
   _cardQueryPromise = null;
 }
 
@@ -150,10 +150,11 @@ async function toSsg(
 
   let processedFiles = 0;
   let failed = false;
+  let errors: Error[] = [];
   const done = async (error?: Error) => {
     if (error) {
       failed = true;
-      console.error(error);
+      errors.push(error);
     }
     processedFiles++;
     await runCbSafely(() => onProgress?.(processedFiles, routes.length));
@@ -163,7 +164,11 @@ async function toSsg(
       try {
         const response = await createSsgRequest(app, route, false);
         if (!response.ok) {
-          await done(new Error(`Failed to export route ${route}: ${response}`));
+          await done(
+            new Error(
+              `Failed to export route ${route}: ${await response.text()}`,
+            ),
+          );
           return;
         }
         await writeFileToDir(dir, response, route);
@@ -176,7 +181,8 @@ async function toSsg(
 
   await runInParallel(promises, 5);
   if (failed) {
-    throw new Error('Failed to export some routes');
+    const message = `Errors:\n${errors.map((e) => e.message).join('\n')}`;
+    throw new Error(message);
   }
 }
 

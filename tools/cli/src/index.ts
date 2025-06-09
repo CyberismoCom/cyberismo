@@ -403,24 +403,33 @@ program
           cliProgress.Presets.shades_classic,
         );
         // Should be in commandHandler, once it is moved under the CLI package
-        await exportSite(
-          await commandHandler.getProjectPath(options.projectPath),
-          output,
-          options.logLevel,
-          (current: number, total: number) => {
-            if (!progress.isActive) {
-              progress.start(total, 0);
-            }
-            if (progress.getTotal() !== total) {
-              progress.setTotal(total);
-            }
-            progress.update(current);
-          },
-        );
-        progress.stop();
-        console.log('Exported site to', output);
-        console.log('Run `cyberismo preview out` to view the site');
-        return;
+        try {
+          await exportSite(
+            await commandHandler.getProjectPath(options.projectPath),
+            output,
+            options.logLevel,
+            (current: number, total: number) => {
+              if (!progress.isActive) {
+                progress.start(total, 0);
+              }
+              if (progress.getTotal() !== total) {
+                progress.setTotal(total);
+              }
+              progress.update(current);
+            },
+          );
+          progress.stop();
+          console.log('Exported site to', output);
+          console.log('Run `cyberismo preview out` to view the site');
+          return;
+        } catch (e) {
+          handleResponse({
+            statusCode: 500,
+            message: e instanceof Error ? e.message : String(e),
+          });
+        } finally {
+          progress.stop();
+        }
       }
       const result = await commandHandler.command(
         Cmd.export,
