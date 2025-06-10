@@ -41,7 +41,12 @@ router.get('/', async (c) => {
 
     return c.json(linkTypes);
   } else {
-    return c.text(`No link types found from path ${c.get('projectPath')}`, 500);
+    return c.json(
+      {
+        error: `No link types found from path ${c.get('projectPath')}`,
+      },
+      500,
+    );
   }
 });
 

@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
+import topLevelAwait from 'vite-plugin-top-level-await';
 import * as path from 'path';
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -14,6 +14,7 @@ export default defineConfig({
         },
       },
     }),
+    topLevelAwait(),
   ],
   resolve: {
     alias: {
@@ -21,9 +22,12 @@ export default defineConfig({
     },
   },
   server: {
-    proxy: {
-      '/api': 'http://localhost:3000',
-    },
+    proxy:
+      process.env.VITE_CYBERISMO_EXPORT === 'true'
+        ? undefined
+        : {
+            '/api': 'http://localhost:3000',
+          },
   },
   test: {
     include: ['__tests__/**/*.test.ts*'],

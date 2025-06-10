@@ -1,7 +1,7 @@
 import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createApp } from '../src/index.js';
+import { createApp } from '../src/app.js';
 
 // Testing env attempts to open project in "../data-handler/test/test-data/valid/decision-records"
 
@@ -65,18 +65,6 @@ test('non-existing attachment file returns an error', async () => {
   const response = await app.request('/api/cards/decision_1/a/bogus.gif');
   expect(response).not.toBe(null);
   expect(response.status).toBe(404);
-});
-
-test('cardTypes endpoint returns card type object', async () => {
-  const response = await app.request(
-    '/api/cardTypes?name=decision/cardTypes/decision',
-  );
-  expect(response).not.toBe(null);
-
-  const result: any = await response.json();
-  expect(response.status).toBe(200);
-  expect(result.name).toBe('decision/cardTypes/decision');
-  expect(result.workflow).toBe('decision/workflows/decision');
 });
 
 test('fieldTypes endpoint returns proper data', async () => {

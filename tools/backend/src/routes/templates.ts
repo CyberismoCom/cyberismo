@@ -11,6 +11,7 @@
 */
 
 import { Hono } from 'hono';
+import { isSSGContext } from 'hono/ssg';
 
 const router = new Hono();
 
@@ -29,13 +30,22 @@ const router = new Hono();
  *         description: project_path not set or other internal error
  */
 router.get('/', async (c) => {
+  // We do not need templates in ssg context
+  if (isSSGContext(c)) {
+    return c.json([]);
+  }
   const commands = c.get('commands');
 
   const response = await commands.showCmd.showTemplatesWithDetails();
   if (response) {
     return c.json(response);
   } else {
-    return c.text(`No templates found from path ${c.get('projectPath')}`, 500);
+    return c.json(
+      {
+        error: `No templates found from path ${c.get('projectPath')}`,
+      },
+      500,
+    );
   }
 });
 

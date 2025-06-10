@@ -76,6 +76,7 @@ import {
   CalculationLink,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
+import { config } from '@/lib/utils';
 import { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
@@ -928,21 +929,23 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     </Typography>
                   </Stack>
                 </AccordionSummary>
-                {!preview && linkFormState === 'hidden' && (
-                  <IconButton
-                    sx={{
-                      height: 36,
-                      alignSelf: 'center',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                      onLinkFormChange && onLinkFormChange('add');
-                    }}
-                  >
-                    <Add />
-                  </IconButton>
-                )}
+                {!preview &&
+                  linkFormState === 'hidden' &&
+                  !config.staticMode && (
+                    <IconButton
+                      sx={{
+                        height: 36,
+                        alignSelf: 'center',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                        onLinkFormChange && onLinkFormChange('add');
+                      }}
+                    >
+                      <Add />
+                    </IconButton>
+                  )}
               </Stack>
               <AccordionDetails>
                 {!preview &&

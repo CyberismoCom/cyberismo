@@ -54,6 +54,7 @@ import {
 } from '../lib/slices/notifications';
 import { findParentCard } from '../lib/utils';
 import { useTree } from '../lib/api/tree';
+import { config } from '@/lib/utils';
 
 function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   // Last URL parameter after /cards base is the card key
@@ -195,7 +196,9 @@ function MainLayout({ children }: Readonly<{ children: ReactNode }>) {
       key: 'c',
     },
     () => {
-      setIsCreateDialogOpen(true);
+      if (!config.staticMode) {
+        setIsCreateDialogOpen(true);
+      }
     },
   );
 

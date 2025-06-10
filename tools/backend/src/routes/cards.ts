@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Hono } from 'hono';
+import { Context, Hono } from 'hono';
 import Processor from '@asciidoctor/core';
 import {
   Card,
@@ -20,6 +20,7 @@ import {
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { ContentfulStatusCode } from 'hono/utils/http-status';
+import { getCardQueryResult, isSSGContext, ssgParams } from '../export.js';
 
 const router = new Hono();
 
@@ -70,6 +71,7 @@ router.get('/', async (c) => {
 async function getCardDetails(
   commands: CommandManager,
   key: string,
+  staticMode?: boolean,
 ): Promise<any> {
   const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
@@ -100,7 +102,7 @@ async function getCardDetails(
     asciidocContent = await evaluateMacros(
       cardDetailsResponse.content || '',
       {
-        mode: 'inject',
+        mode: staticMode ? 'static' : 'inject',
         project: commands.project,
         cardKey: key,
       },
@@ -120,13 +122,16 @@ async function getCardDetails(
     })
     .toString();
 
-  // always parse for now
-  await commands.calculateCmd.generate();
+  // always parse for now if not in export mode
+  if (!staticMode) {
+    await commands.calculateCmd.generate();
+  }
 
-  const card = await commands.calculateCmd.runQuery('card', {
-    cardKey: key,
-  });
-
+  const card = staticMode
+    ? await getCardQueryResult(commands.project.basePath, key)
+    : await commands.calculateCmd.runQuery('card', {
+        cardKey: key,
+      });
   if (card.length !== 1) {
     throw new Error('Query failed. Check card-query syntax');
   }
@@ -161,22 +166,44 @@ async function getCardDetails(
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key', async (c) => {
-  const key = c.req.param('key');
-  if (!key) {
-    return c.text('No search key', 400);
-  }
-
-  const result = await getCardDetails(c.get('commands'), key);
-  if (result.status === 200) {
-    return c.json(result.data);
-  } else {
-    return c.text(
-      result.message || 'Unknown error',
-      result.status as ContentfulStatusCode,
+router.get(
+  '/:key',
+  ssgParams(async (c: Context) => {
+    const commands = c.get('commands');
+    const fetchedCards = await commands.showCmd.showCards(
+      CardLocation.projectOnly,
     );
-  }
-});
+    const projectCards = fetchedCards.find(
+      (cardContainer) => cardContainer.type === 'project',
+    );
+    if (!projectCards) {
+      throw new Error('Data handler did not return project cards');
+    }
+    return projectCards.cards.map((key) => ({ key }));
+  }),
+  async (c) => {
+    const key = c.req.param('key');
+    if (!key) {
+      return c.text('No search key', 400);
+    }
+
+    const result = await getCardDetails(
+      c.get('commands'),
+      key,
+      isSSGContext(c),
+    );
+    if (result.status === 200) {
+      return c.json(result.data);
+    } else {
+      return c.json(
+        {
+          error: result.message || 'Unknown error',
+        },
+        result.status as ContentfulStatusCode,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -275,8 +302,10 @@ router.patch('/:key', async (c) => {
   if (result.status === 200) {
     return c.json(result.data);
   } else {
-    return c.text(
-      result.message || 'Unknown error',
+    return c.json(
+      {
+        error: result.message || 'Unknown error',
+      },
       result.status as ContentfulStatusCode,
     );
   }
@@ -313,8 +342,10 @@ router.delete('/:key', async (c) => {
     await commands.removeCmd.remove('card', key);
     return new Response(null, { status: 204 });
   } catch (error) {
-    return c.text(
-      error instanceof Error ? error.message : 'Unknown error',
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
       400,
     );
   }
@@ -365,9 +396,9 @@ router.post('/:key', async (c) => {
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
-      return c.text(error.message, 400);
+      return c.json({ error: error.message }, 400);
     }
-    return c.text('Unknown error occurred', 500);
+    return c.json({ error: 'Unknown error occurred' }, 500);
   }
 });
 
@@ -733,43 +764,56 @@ router.delete('/:key/links', async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.get('/:key/a/:attachment', async (c) => {
-  const commands = c.get('commands');
-  const { key, attachment } = c.req.param();
-  const filename = decodeURI(attachment);
+router.get(
+  '/:key/a/:attachment',
+  ssgParams(async (c: Context) => {
+    const commands = c.get('commands');
+    const attachments = await commands.showCmd.showAttachments();
+    return attachments.map((attachment) => ({
+      key: attachment.card,
+      attachment: attachment.fileName,
+    }));
+  }),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, attachment } = c.req.param();
+    const filename = decodeURI(attachment);
 
-  if (!filename || !key) {
-    return c.text('Missing cardKey or filename', 400);
-  }
+    if (!filename || !key) {
+      return c.text('Missing cardKey or filename', 400);
+    }
 
-  try {
-    const attachmentResponse = await commands.showCmd.showAttachment(
-      key,
-      filename,
-    );
+    try {
+      const attachmentResponse = await commands.showCmd.showAttachment(
+        key,
+        filename,
+      );
 
-    if (!attachmentResponse) {
-      return c.text(
-        `No attachment found from card ${key} and filename ${filename}`,
+      if (!attachmentResponse) {
+        return c.text(
+          `No attachment found from card ${key} and filename ${filename}`,
+          404,
+        );
+      }
+
+      const payload = attachmentResponse as any;
+
+      return new Response(payload.fileBuffer, {
+        headers: {
+          'Content-Type': payload.mimeType,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    } catch {
+      return c.json(
+        {
+          error: `No attachment found from card ${key} and filename ${filename}`,
+        },
         404,
       );
     }
-
-    const payload = attachmentResponse as any;
-
-    return new Response(payload.fileBuffer, {
-      headers: {
-        'Content-Type': payload.mimeType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
-      },
-    });
-  } catch {
-    return c.text(
-      `No attachment found from card ${key} and filename ${filename}`,
-      404,
-    );
-  }
-});
+  },
+);
 
 export default router;

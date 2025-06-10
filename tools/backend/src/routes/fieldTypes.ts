@@ -41,8 +41,10 @@ router.get('/', async (c) => {
 
     return c.json(fieldTypes);
   } else {
-    return c.text(
-      `No field types found from path ${c.get('projectPath')}`,
+    return c.json(
+      {
+        error: `No field types found from path ${c.get('projectPath')}`,
+      },
       500,
     );
   }

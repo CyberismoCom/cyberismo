@@ -21,6 +21,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
+import { config } from '@/lib/utils';
 
 type TreeMenuProps = {
   title?: string;
@@ -189,6 +190,7 @@ export const TreeMenu = ({
         ref={treeRef}
         data={tree}
         openByDefault={false}
+        disableDrag={config.staticMode}
         idAccessor={(node) => node.key}
         childrenAccessor="children"
         indent={16}

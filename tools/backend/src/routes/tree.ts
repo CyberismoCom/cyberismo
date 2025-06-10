@@ -33,7 +33,12 @@ router.get('/', async (c) => {
     const tree = await commands.calculateCmd.runQuery('tree');
     return c.json(tree);
   } catch (e) {
-    return c.text((e instanceof Error && e.message) || '', 500);
+    return c.json(
+      {
+        error: (e instanceof Error && e.message) || '',
+      },
+      500,
+    );
   }
 });
 

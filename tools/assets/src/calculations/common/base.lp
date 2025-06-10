@@ -11,6 +11,9 @@ ancestor(A, C) :- parent(A, B), ancestor (B, C), card(A), card(B), template(C).
 % if the card type is given, then it's a card
 card(C) :- field(C, "cardType", _).
 
+projectCard(C) :- card(C), field(C, "container", "project").
+templateCard(C) :- card(C), field(C, "container", "template").
+
 % data types for non-shortText default values
 
 dataType(Card, "lastUpdated", "dateTime") :-

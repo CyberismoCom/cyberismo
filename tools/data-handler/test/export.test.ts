@@ -4,9 +4,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { CommandManager } from '../src/command-manager.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { ExportSite } from '../src/commands/index.js';
 import { fileURLToPath } from 'node:url';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -17,31 +15,6 @@ const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
-let commands: CommandManager;
-
-describe('export-site', () => {
-  before(async () => {
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
-  });
-
-  after(() => {
-    rmSync(testDir, { recursive: true, force: true });
-    rmSync(testDirForExport, { recursive: true, force: true });
-  });
-  it('export site (success)', async () => {
-    const exportSite = new ExportSite(
-      commands.project,
-      commands.calculateCmd,
-      commands.showCmd,
-    );
-    await exportSite.exportToSite('/tmp/foo', undefined, {
-      silent: true,
-    });
-    expect(true).to.equal(true);
-  }).timeout(20000);
-});
 
 describe('export command', () => {
   const commandHandler = new Commands();

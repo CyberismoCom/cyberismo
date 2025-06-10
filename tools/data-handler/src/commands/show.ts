@@ -29,6 +29,7 @@ import type {
   ProjectFetchCardDetails,
   ProjectMetadata,
   Resource,
+  CardLocation,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -254,10 +255,13 @@ export class Show {
 
   /**
    * Shows all cards (either template or project cards) from a project.
+   * @param cardsFrom - The location from which to look for cards. Either from the project, templates or both.
    * @returns cards list array
    */
-  public async showCards(): Promise<CardListContainer[]> {
-    return this.project.listCards();
+  public async showCards(
+    cardsFrom?: CardLocation,
+  ): Promise<CardListContainer[]> {
+    return this.project.listCards(cardsFrom);
   }
 
   /**

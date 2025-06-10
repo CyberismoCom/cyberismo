@@ -250,6 +250,11 @@ export const createCardFacts = async (card: Card, project: Project) => {
       b.addLiteralArguments(card.key, parentsPath),
     );
   }
+  builder.addCustomFact(Facts.Common.FIELD, (b) =>
+    b
+      .addLiteralArgument(card.key)
+      .addArguments('container', isTemplateCard(card) ? 'template' : 'project'),
+  );
 
   return builder.buildAll();
 };

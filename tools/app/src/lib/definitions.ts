@@ -33,6 +33,13 @@ export {
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 export { type CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
+/**
+ * App wide configuration which is static and should not be changed at runtime.
+ */
+export type AppConfig = {
+  staticMode: boolean;
+};
+
 // Single card with metadata and children, but no content.
 // Used in displaying the tree menu view.
 export interface Card {

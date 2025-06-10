@@ -57,3 +57,5 @@ tools/*/.idea
 logs
 
 prebuilds
+
+tools/backend/static
