@@ -178,7 +178,10 @@ describe('export module', () => {
       expect(cp).toHaveBeenCalledWith('./static-frontend', 'static', {
         recursive: true,
       });
-      expect(readFile).toHaveBeenCalledWith('static/config.json', 'utf-8');
+      expect(readFile).toHaveBeenCalledWith(
+        `static${path.sep}config.json`,
+        'utf-8',
+      );
       expect(writeFile).toHaveBeenCalledWith(
         `static${path.sep}config.json`,
         '{"staticMode":true}',
