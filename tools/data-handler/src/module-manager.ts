@@ -29,8 +29,6 @@ import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';
 
 const FILE_PROTOCOL = 'file:';
-// todo: add support for git's default branch.
-const MAIN_BRANCH = 'main';
 // timeout in milliseconds for git client (no stdout / stderr activity)
 const DEFAULT_TIMEOUT = 10000;
 
@@ -40,6 +38,8 @@ const DEFAULT_TIMEOUT = 10000;
 export class ModuleManager {
   private modules: ModuleSetting[] = [];
   private tempModulesDir: string = '';
+  private defaultBranchCache: Map<string, string> = new Map();
+
   constructor(private project: Project) {
     this.tempModulesDir = join(this.project.paths.tempFolder, 'modules');
   }
@@ -92,7 +92,7 @@ export class ModuleManager {
 
     try {
       await mkdir(this.tempModulesDir, { recursive: true });
-      const cloneOptions = this.setCloneOptions(module);
+      const cloneOptions = await this.setCloneOptions(module);
       await rm(destinationPath, { recursive: true, force: true });
 
       const git: SimpleGit = simpleGit({
@@ -143,6 +143,31 @@ export class ModuleManager {
     }
   }
 
+  // Gets the default branch for a repository from remote or cache
+  private async defaultBranch(module: ModuleSetting): Promise<string> {
+    if (this.defaultBranchCache.has(module.location)) {
+      return this.defaultBranchCache.get(module.location)!;
+    }
+    // Set the default branch if branch was not specified
+    if (!module.branch) {
+      const destinationPath = join(this.tempModulesDir, module.name);
+      // Only return path after cloning
+      if (pathExists(destinationPath)) {
+        const git: SimpleGit = simpleGit({
+          timeout: {
+            block: DEFAULT_TIMEOUT,
+          },
+        });
+        const options = ['--abbrev-ref', 'HEAD'];
+        const defaultBranch = await git.cwd(destinationPath).revparse(options);
+        this.defaultBranchCache.set(module.location, defaultBranch);
+        return defaultBranch;
+      }
+    }
+    // The actual default branch will be updated later (after cloning).
+    return '';
+  }
+
   // Collects one module's dependency prefixes to 'this.modules'.
   // Note that there can be duplicate entries.
   private async doCollectModulePrefix(
@@ -167,7 +192,7 @@ export class ModuleManager {
 
   // Updates one module that is read from local file system.
   private async handleFileModule(module: ModuleSetting) {
-    this.removeProtocolFromLocation(module);
+    this.stripProtocolFromLocation(module);
     await this.remove(module);
     await this.importFromFolder(module);
   }
@@ -231,11 +256,6 @@ export class ModuleManager {
     }
   }
 
-  // Returns whether to use git or file system for handling the module.
-  private protocol(module: ModuleSetting) {
-    return this.isFileModule(module) ? 'file' : 'git';
-  }
-
   // Handles removing an imported module.
   private async remove(module: ModuleSetting) {
     try {
@@ -249,37 +269,19 @@ export class ModuleManager {
     }
   }
 
-  // Remove module files.
-  private async removeModuleFiles(moduleName: string) {
-    const module = await this.project.module(moduleName);
-    if (!module) {
-      throw new Error(`Module '${moduleName}' not found`);
-    }
-    await deleteDir(module.path);
-  }
-
-  // Updates module's 'location' not to have 'protocol:' in the beginning (only for "file:" needed).
-  private removeProtocolFromLocation(module: ModuleSetting) {
-    const protocol = this.protocol(module);
-    module.location = module.location.substring(
-      protocol.length + 1,
-      module.location.length,
-    );
-  }
-
   // Checks for duplicate ModuleSetting entries and throws an error if modules
   // with the same name have different branches or locations.
-  // Treats undefined branch, empty string branch, and "main" branch as equivalent.
+  // Treats undefined branch, empty string branch, and default branch as equivalent.
   // Returns an array with duplicate entries removed
-  private removeDuplicates(modules: ModuleSetting[]): ModuleSetting[] {
+  private async removeDuplicates(
+    modules: ModuleSetting[],
+  ): Promise<ModuleSetting[]> {
     const moduleMap = new Map<string, ModuleSetting>();
 
-    // Assume that empty, or missing branch means 'main'
-    const normalizeBranch = (branch: string | undefined): string => {
-      if (!branch || branch === '' || branch === MAIN_BRANCH) {
-        return MAIN_BRANCH;
-      }
-      return branch;
+    // Normalize branch names by checking against the default branch for each module
+
+    const normalizeBranch = async (module: ModuleSetting) => {
+      return module.branch ? module.branch! : await this.defaultBranch(module);
     };
 
     for (const module of modules) {
@@ -302,8 +304,8 @@ export class ModuleManager {
               `  - ${module.location}`,
           );
         }
-        const existingBranch = normalizeBranch(existingModule.branch);
-        const newBranch = normalizeBranch(module.branch);
+        const existingBranch = await normalizeBranch(existingModule);
+        const newBranch = await normalizeBranch(module);
 
         if (existingBranch !== newBranch) {
           throw new Error(
@@ -319,6 +321,15 @@ export class ModuleManager {
     return Array.from(moduleMap.values());
   }
 
+  // Remove module files.
+  private async removeModuleFiles(moduleName: string) {
+    const module = await this.project.module(moduleName);
+    if (!module) {
+      throw new Error(`Module '${moduleName}' not found`);
+    }
+    await deleteDir(module.path);
+  }
+
   // Gets repository name from gitUrl
   private repositoryName(gitUrl: string): string {
     const last = gitUrl.lastIndexOf('/');
@@ -326,17 +337,28 @@ export class ModuleManager {
     return repoName;
   }
 
-  // Sets cloning options.
-  private setCloneOptions(module: ModuleSetting) {
+  // Sets cloning options with support for default branch.
+  private async setCloneOptions(module: ModuleSetting): Promise<string[]> {
     const cloneOptions = ['--depth', '1'];
+    const defaultBranch = await this.defaultBranch(module);
+    // Only specify branch if it's different from the default branch
     if (
       module.branch &&
       module.branch !== '' &&
-      module.branch !== MAIN_BRANCH
+      module.branch !== defaultBranch
     ) {
       cloneOptions.push('--branch', module.branch);
     }
     return cloneOptions;
+  }
+
+  // Updates module's 'location' not to have 'protocol:' in the beginning (only for "file:" needed).
+  private stripProtocolFromLocation(module: ModuleSetting) {
+    const protocol = this.isFileModule(module) ? 'file' : 'git';
+    module.location = module.location.substring(
+      protocol.length + 1,
+      module.location.length,
+    );
   }
 
   // Updates modules in the project.
@@ -367,7 +389,7 @@ export class ModuleManager {
     try {
       await this.collectModulePrefixes(modules, credentials);
 
-      uniqueModules = this.removeDuplicates(this.modules);
+      uniqueModules = await this.removeDuplicates(this.modules);
     } finally {
       finished(
         dotInterval,
