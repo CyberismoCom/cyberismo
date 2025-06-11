@@ -365,7 +365,6 @@ export class ModuleManager {
 
     let uniqueModules: ModuleSetting[] = [];
     try {
-      // Collect prefixes from project's dependency modules.
       await this.collectModulePrefixes(modules, credentials);
 
       uniqueModules = this.removeDuplicates(this.modules);
