@@ -57,12 +57,14 @@ jobs:
         repository: CyberismoCom/module-base
         path: .tmp/module-base
         ref: main
+        set-safe-directory: false
     - name: Checkout cyberismo-docs repository for testing purposes
       uses: actions/checkout@v4
       with:
         repository: CyberismoCom/cyberismo-docs
         path: .tmp/cyberismo-docs
         ref: main
+        set-safe-directory: false
     - run: pnpm install
     - run: pnpm --filter=app exec cypress install
     - run: pnpm build
