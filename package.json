@@ -52,6 +52,6 @@
     "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
     "build-docker": "docker build -t cyberismo .",
     "install-dev-packages": "node scripts/install-dev-packages.js",
-    "ci:publish": "pnpm --filter !app publish"
+    "ci:publish": "pnpm --filter !app publish --access public"
   }
 }
