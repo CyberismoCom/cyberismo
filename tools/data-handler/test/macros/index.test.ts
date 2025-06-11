@@ -9,11 +9,24 @@ import {
   registerMacros,
   validateMacroContent,
 } from '../../src/macros/index.js';
+import { copyDir } from '../../src/utils/file-utils.js';
+import { dirname, join } from 'node:path';
+import { mkdirSync, rmSync } from 'node:fs';
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/base-macro.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import TaskQueue from '../../src/macros/task-queue.js';
+
+import { Calculate } from '../../src/commands/index.js';
+import { fileURLToPath } from 'node:url';
+import { Project } from '../../src/containers/project.js';
+
+const baseDir = dirname(fileURLToPath(import.meta.url));
+const testDir = join(baseDir, 'tmp-calculate-tests');
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+let calculate: Calculate;
+let project: Project;
 
 class TestMacro extends BaseMacro {
   constructor(schema: string) {
@@ -103,52 +116,86 @@ describe('macros', () => {
       ).to.throw();
     });
   });
+
   describe('handleMacros', () => {
+    before(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data/', testDir);
+      project = new Project(decisionRecordsPath);
+      calculate = new Calculate(project);
+      await calculate.generate();
+    });
+
+    after(() => {
+      setTimeout(() => {
+        rmSync(testDir, { recursive: true, force: true });
+      }, 5000);
+    });
     describe('createCards', () => {
       it('createCards inject (success)', async () => {
-        const result = await evaluateMacros(validAdoc, {
-          mode: 'inject',
-          projectPath: '',
-          cardKey: '',
-        });
+        const result = await evaluateMacros(
+          validAdoc,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(result).to.contain('<create-cards');
       });
       it('createCards static (success)', async () => {
-        const result = await evaluateMacros(validAdoc, {
-          mode: 'static',
-          projectPath: '',
-          cardKey: '',
-        });
+        const result = await evaluateMacros(
+          validAdoc,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(result).to.not.contain('<create-cards>');
       });
     });
     describe('scoreCard', () => {
       it('scoreCard inject (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
-        const result = await evaluateMacros(macro, {
-          mode: 'inject',
-          projectPath: '',
-          cardKey: '',
-        });
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(result).to.contain('<score-card');
       });
       it('scoreCard static (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
-        const result = await evaluateMacros(macro, {
-          mode: 'static',
-          projectPath: '',
-          cardKey: '',
-        });
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(result).to.contain('----');
       });
       it('raw macro (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
         const withRaw = `{{#raw}}${macro}{{/raw}}`;
-        const result = await evaluateMacros(withRaw, {
-          mode: 'static',
-          projectPath: '',
-          cardKey: '',
-        });
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(result).to.equal(
           '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
         );
@@ -156,23 +203,44 @@ describe('macros', () => {
     });
   });
   describe('validate macros', () => {
+    before(async () => {
+      mkdirSync(testDir, { recursive: true });
+      await copyDir('test/test-data/', testDir);
+      project = new Project(decisionRecordsPath);
+      calculate = new Calculate(project);
+      await calculate.generate();
+    });
+
+    after(() => {
+      setTimeout(() => {
+        rmSync(testDir, { recursive: true, force: true });
+      }, 5000);
+    });
     it('validate macros (success)', async () => {
       // this should not throw an error
-      const result = await evaluateMacros(validAdoc, {
-        mode: 'validate',
-        projectPath: '',
-        cardKey: '',
-      });
+      const result = await evaluateMacros(
+        validAdoc,
+        {
+          mode: 'validate',
+          project: project,
+          cardKey: '',
+        },
+        calculate,
+      );
       expect(result).to.not.equal(null);
     });
     it('validate macros - failure', async () => {
       try {
         // this should throw an error
-        await evaluateMacros(invalidAdoc, {
-          mode: 'validate',
-          projectPath: '',
-          cardKey: '',
-        });
+        await evaluateMacros(
+          invalidAdoc,
+          {
+            mode: 'validate',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
         expect(true).to.equal(false);
       } catch (error) {
         expect(error).to.not.equal(null);
@@ -186,10 +254,11 @@ describe('macros', () => {
         handlebars,
         {
           mode: 'inject',
-          projectPath: '',
+          project: project,
           cardKey: '',
         },
         new TaskQueue(),
+        calculate,
       );
       expect(handlebars.helpers).to.have.property('createCards');
       expect(handlebars.helpers).to.have.property('scoreCard');

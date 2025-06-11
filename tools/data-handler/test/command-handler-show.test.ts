@@ -12,7 +12,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import { type ModuleContent } from '../src/interfaces/project-interfaces.js';
 import { Project } from '../src/containers/project.js';
-import { Show } from '../src/commands/index.js';
+import { Calculate, Show } from '../src/commands/index.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -47,7 +47,8 @@ describe('shows command', () => {
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
-      const showCommand = new Show(project);
+      const calculate = new Calculate(project);
+      const showCommand = new Show(project, calculate);
       const result = await showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
@@ -59,7 +60,8 @@ describe('shows command', () => {
     it('show attachment file, card not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
-      const showCommand = new Show(project);
+      const calculate = new Calculate(project);
+      const showCommand = new Show(project, calculate);
       await showCommand
         .showAttachment('invalid_key', 'does-not-exist.png')
         .catch((error) =>
@@ -71,7 +73,8 @@ describe('shows command', () => {
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
-      const showCommand = new Show(project);
+      const calculate = new Calculate(project);
+      const showCommand = new Show(project, calculate);
       await showCommand
         .showAttachment('decision_1', 'does-not-exist.png')
         .catch((error) =>
