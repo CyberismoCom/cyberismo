@@ -34,7 +34,7 @@ function createEditLoader(cardKey: string) {
 export const router = createBrowserRouter([
   {
     path: '/',
-    loader: () =>{
+    loader: () => {
       if (window.location.search) {
         const newPath = window.location.search.slice(2).split('&')[0];
         if (newPath) {
