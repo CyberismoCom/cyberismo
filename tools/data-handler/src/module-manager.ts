@@ -363,11 +363,11 @@ export class ModuleManager {
 
     const dotInterval = start();
 
-    // Collect prefixes from project's dependency modules.
-    await this.collectModulePrefixes(modules, credentials);
-
     let uniqueModules: ModuleSetting[] = [];
     try {
+      // Collect prefixes from project's dependency modules.
+      await this.collectModulePrefixes(modules, credentials);
+
       uniqueModules = this.removeDuplicates(this.modules);
     } finally {
       finished(
