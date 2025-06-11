@@ -34,7 +34,15 @@ function createEditLoader(cardKey: string) {
 export const router = createBrowserRouter([
   {
     path: '/',
-    loader: () => redirect('/cards'),
+    loader: () => {
+      if (window.location.search) {
+        const newPath = window.location.search.slice(2).split('&')[0];
+        if (newPath) {
+          return redirect(newPath);
+        }
+      }
+      return redirect('/cards');
+    },
   },
   {
     Component: CardsLayout,
