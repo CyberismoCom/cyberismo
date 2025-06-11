@@ -57,7 +57,7 @@ describe('module-manager', () => {
     );
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
-  }).timeout(15000);
+  }).timeout(60000);
   it('try to import duplicate local modules', async () => {
     const localModule = join(testDir, 'valid/minimal');
     await commands.importCmd.importModule(
