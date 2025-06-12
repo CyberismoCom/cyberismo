@@ -6,8 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 env:
   CI: true
@@ -33,13 +32,8 @@ jobs:
       
       - name: Install dependencies
         run: pnpm install
-      
-      - name: Create and publish versions
-        uses: changesets/action@v1
-        with:
-          commit: "chore: update versions"
-          title: "chore: update versions"
-          publish: pnpm ci:publish
+
+      - name: Publish packages
+        run: pnpm ci:publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
