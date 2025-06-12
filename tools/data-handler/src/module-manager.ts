@@ -32,7 +32,7 @@ const FILE_PROTOCOL = 'file:';
 // todo: add support for git's default branch.
 const MAIN_BRANCH = 'main';
 // timeout in milliseconds for git client (no stdout / stderr activity)
-const DEFAULT_TIMEOUT = 5000;
+const DEFAULT_TIMEOUT = 10000;
 
 /**
  * Class that handles module updates and imports.
