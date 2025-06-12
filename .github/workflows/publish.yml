@@ -29,12 +29,14 @@ jobs:
         with:
           node-version: 22
           cache: 'pnpm'
-          registry-url: 'https://npm.pkg.github.com'
-      
+
+      - name: Set publishing config
+        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+  
       - name: Install dependencies
         run: pnpm install
 
       - name: Publish packages
         run: pnpm ci:publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
