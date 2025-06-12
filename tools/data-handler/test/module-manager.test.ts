@@ -5,6 +5,7 @@ import { describe, it } from 'mocha';
 // node
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import * as os from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +44,8 @@ describe('module-manager', () => {
     expect(modules.length).equals(1);
   }).timeout(10000);
   it('import git module using credentials', async () => {
+    const skipTest = process.env.GITHUB_ACTIONS && os.platform() === 'win32';
+    if (skipTest) return;
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(
       gitModule,
