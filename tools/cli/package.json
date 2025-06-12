@@ -16,8 +16,7 @@
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
     "lint": "eslint .",
-    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\"",
-    "prepublishOnly": "pnpm build"
+    "test": "mocha --require mocha-suppress-logs --disable-warning=ExperimentalWarning --forbid-only \"./test/**/*.test.ts\""
   },
   "keywords": [],
   "author": "",

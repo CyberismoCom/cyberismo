@@ -7,8 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "build-prebuildify": "shx rm -rf prebuilds && prebuildify --napi",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "prepublishOnly": "pnpm build"
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
