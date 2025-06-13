@@ -5,6 +5,7 @@ import { describe, it } from 'mocha';
 // node
 import { mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { skip } from 'node:test';
 import * as os from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -45,7 +46,10 @@ describe('module-manager', () => {
   }).timeout(10000);
   it('import git module using credentials', async () => {
     const skipTest = process.env.GITHUB_ACTIONS && os.platform() === 'win32';
-    if (skipTest) return;
+    if (skipTest)
+      skip(
+        `Importing a module causes action to jam from time to time on CI/Windows`,
+      );
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(
       gitModule,
