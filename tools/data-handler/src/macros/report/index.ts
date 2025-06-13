@@ -23,6 +23,7 @@ import type TaskQueue from '../task-queue.js';
 import { ReportResource } from '../../resources/report-resource.js';
 import { resourceName } from '../../utils/resource-utils.js';
 import { generateReportContent } from '../../utils/report.js';
+import { ClingoError } from '@cyberismo/node-clingo';
 
 export interface ReportOptions extends MacroOptions {
   name: string;
@@ -58,16 +59,24 @@ class ReportMacro extends BaseMacro {
         schema: report.schema,
       });
     }
-
-    return generateReportContent({
-      calculate: this.calculate,
-      contentTemplate: report.contentTemplate,
-      queryTemplate: report.queryTemplate,
-      options: {
-        cardKey: context.cardKey,
-        ...options,
-      },
-    });
+    try {
+      return await generateReportContent({
+        calculate: this.calculate,
+        contentTemplate: report.contentTemplate,
+        queryTemplate: report.queryTemplate,
+        options: {
+          cardKey: context.cardKey,
+          ...options,
+        },
+      });
+    } catch (error) {
+      if (error instanceof ClingoError) {
+        throw new Error(
+          `Error running logic program in report '${options.name}':${error.details.errors.join('\n')}`,
+        );
+      }
+      throw error;
+    }
   };
 
   private validate(data: unknown): ReportOptions {
