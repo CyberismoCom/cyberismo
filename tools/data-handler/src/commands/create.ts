@@ -72,15 +72,20 @@ export class Create {
     },
   ];
 
-  static gitIgnoreContent: string = `.calc\n
-        .asciidoctor\n
-        .vscode\n
-        *.html\n
-        *.pdf\n
-        *.puml\n
-        **/.DS_Store\n
-        *-debug.log\n
-        *-error.log\n`;
+  static gitIgnoreContent: string[] = [
+    '.calc',
+    '.asciidoctor',
+    '.vscode',
+    '*.html',
+    '*.pdf',
+    '*.puml',
+    '**/.DS_Store',
+    '*-debug.log',
+    '*-error.log',
+    '.temp',
+    '.logs',
+    '.cache',
+  ];
 
   /**
    * Adds new cards to a template.
@@ -510,7 +515,10 @@ export class Create {
     });
 
     try {
-      await writeFile(join(projectPath, '.gitignore'), this.gitIgnoreContent);
+      await writeFile(
+        join(projectPath, '.gitignore'),
+        this.gitIgnoreContent.join('\n') + '\n',
+      );
     } catch {
       console.error('Failed to create project');
     }
