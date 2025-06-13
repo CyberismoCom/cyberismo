@@ -17,6 +17,7 @@ import { join, sep } from 'node:path';
 import { ActionGuard } from '../permissions/action-guard.js';
 import type { Calculate } from './index.js';
 import { deleteDir, deleteFile } from '../utils/file-utils.js';
+import { ModuleManager } from '../module-manager.js';
 import { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 import { resourceName } from '../utils/resource-utils.js';
@@ -27,10 +28,13 @@ const MODULES_PATH = `${sep}modules${sep}`;
  * Remove command.
  */
 export class Remove {
+  private moduleManager: ModuleManager;
   constructor(
     private project: Project,
     private calculateCmd: Calculate,
-  ) {}
+  ) {
+    this.moduleManager = new ModuleManager(this.project);
+  }
 
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
@@ -182,16 +186,6 @@ export class Remove {
     await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
   }
 
-  // Removes modules from project
-  private async removeModule(moduleName: string) {
-    const module = await this.project.module(moduleName);
-    if (!module) {
-      throw new Error(`Module '${moduleName}' not found`);
-    }
-    await this.project.removeModule(moduleName);
-    await deleteDir(module.path);
-  }
-
   /**
    * Removes either attachment, card, imported module, link or resource from project.
    * @param type Type of resource
@@ -236,7 +230,8 @@ export class Remove {
       else if (type == 'card') return this.removeCard(targetName);
       else if (type == 'link')
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
-      else if (type == 'module') return this.removeModule(targetName);
+      else if (type == 'module')
+        return this.moduleManager.removeModule(targetName);
       else if (type == 'label') return this.removeLabel(targetName, rest[0]);
     }
     throw new Error(`Unknown resource type '${type}'`);

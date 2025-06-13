@@ -824,15 +824,6 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Removes a module from project.
-   * @param moduleName Name of the module
-   */
-  public async removeModule(moduleName: string) {
-    await this.configuration.removeModule(moduleName);
-    await this.collectModuleResources();
-  }
-
-  /**
    * Array of reports in the project.
    * @param from Defines where resources are collected from.
    * @returns array of all reports in the project.
