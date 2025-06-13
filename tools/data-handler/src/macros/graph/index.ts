@@ -17,7 +17,6 @@ import type { MacroOptions } from '../index.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
-import { getChildLogger } from '../../utils/log-utils.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
@@ -26,6 +25,7 @@ import { resourceName } from '../../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
+import { ClingoError } from '@cyberismo/node-clingo';
 
 export interface GraphOptions extends MacroOptions {
   model: string;
@@ -33,11 +33,6 @@ export interface GraphOptions extends MacroOptions {
 }
 
 class ReportMacro extends BaseMacro {
-  private get logger() {
-    return getChildLogger({
-      module: 'graphMacro',
-    });
-  }
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
@@ -117,7 +112,17 @@ class ReportMacro extends BaseMacro {
     const view = handlebars.compile(viewContent)(handlebarsContext);
 
     const modelContent = await readFile(modelLocation, { encoding: 'utf-8' });
-    const result = await calculate.runGraph(modelContent, view);
+    let result: string;
+    try {
+      result = await calculate.runGraph(modelContent, view);
+    } catch (error) {
+      if (error instanceof ClingoError) {
+        throw new Error(
+          `Error running graph in view '${options.view}' in model '${options.model}': ${error.details.errors.join('\n')}`,
+        );
+      }
+      throw error;
+    }
 
     if (typeof result !== 'string') {
       throw new Error(
