@@ -29,6 +29,8 @@ import { readJsonFile } from './utils/json.js';
 import { Validate } from './commands/index.js';
 
 const FILE_PROTOCOL = 'file:';
+const HTTPS_PROTOCOL = 'https:';
+
 // timeout in milliseconds for git client (no stdout / stderr activity)
 const DEFAULT_TIMEOUT = 10000;
 
@@ -67,10 +69,15 @@ export class ModuleManager {
 
     let remote = module.location;
     if (module.private) {
-      if (credentials && credentials?.username && credentials?.token) {
+      if (
+        credentials &&
+        credentials?.username &&
+        credentials?.token &&
+        module.location.startsWith(HTTPS_PROTOCOL)
+      ) {
         if (verbose) {
           console.log(
-            `... Using credentials '${credentials?.username}' for cloning '${module.name}'`,
+            `... Using HTTPS with credentials '${credentials?.username}' for cloning '${module.name}'`,
           );
         }
         try {
@@ -83,10 +90,16 @@ export class ModuleManager {
         } catch {
           throw new Error(`Invalid repository URL: ${module.location}`);
         }
-      } else {
+      } else if (module.location.startsWith('git@')) {
         if (verbose) {
-          console.log(`... Not using credentials for cloning '${module.name}'`);
+          console.log(`... Using SSH for cloning '${module.name}'`);
         }
+      }
+    } else {
+      if (verbose) {
+        console.log(
+          `... Using HTTPS without credentials for cloning '${module.name}'`,
+        );
       }
     }
 
@@ -110,7 +123,6 @@ export class ModuleManager {
         console.log(`... Cloned '${module.name}' to a temporary folder`);
       }
     } catch (error) {
-      console.error(error);
       if (error instanceof Error)
         throw new Error(
           `Failed to clone module '${module.name}': ${error.message}`,
@@ -236,7 +248,9 @@ export class ModuleManager {
   // Returns true if module is imported from git.
   private isGitModule(module: ModuleSetting): boolean {
     if (!module.location) return false;
-    return module.location.startsWith('https:');
+    return (
+      module.location.startsWith('https:') || module.location.startsWith('git@')
+    );
   }
 
   // Prepares '.temp/modules' for cloning
@@ -293,8 +307,8 @@ export class ModuleManager {
         ) {
           throw new Error(
             `Module conflict: '${module.name}' has different access:\n` +
-              `  - ${existingModule.private === true ? 'true' : 'false'}\n` +
-              `  - ${module.private === true ? 'true' : 'false'}`,
+              `  - ${Boolean(existingModule.private)}\n` +
+              `  - ${Boolean(module.private)}`,
           );
         }
         if (existingModule.location !== module.location) {
@@ -372,7 +386,9 @@ export class ModuleManager {
     // Stops the above, and shows results
     function finished(interval: NodeJS.Timeout, modules: string[]) {
       clearInterval(interval);
-      console.log(`\n... Found modules: ${modules.join(', ')}`);
+      if (modules.length > 0) {
+        console.log(`\n... Found modules: ${modules.join(', ')}`);
+      }
     }
 
     await this.prepare();
@@ -388,7 +404,6 @@ export class ModuleManager {
     let uniqueModules: ModuleSetting[] = [];
     try {
       await this.collectModulePrefixes(modules, credentials);
-
       uniqueModules = await this.removeDuplicates(this.modules);
     } finally {
       finished(
