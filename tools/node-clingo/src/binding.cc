@@ -26,8 +26,17 @@
 #include <unordered_map>
 #include <vector>
 
+struct ClingoLogMessage {
+    clingo_warning_t code;
+    bool isError;
+    std::string message;
+};
+
 // Store base programs in a map, keyed by name
 std::unordered_map<std::string, std::string> g_basePrograms;
+// For now error messsages are stored in a global vector,
+// If async/threading is needed, we cannot use a single global variable
+std::vector<ClingoLogMessage> g_errorMessages;
 
 /**
  * A logger function for Clingo that does nothing.
@@ -38,7 +47,7 @@ std::unordered_map<std::string, std::string> g_basePrograms;
  */
 void silent_logger(clingo_warning_t code, char const *message, void *data)
 {
-    // Do nothing - this silences all Clingo output
+    g_errorMessages.push_back({code, code == clingo_warning_runtime_error, message});
 }
 
 /**
@@ -52,7 +61,31 @@ void handle_clingo_error(const Napi::Env &env)
     // If clingo returns an error, we throw an error to the javascript side
     if (clingo_error_code() != 0)
     {
-        throw Napi::Error::New(env, clingo_error_message());
+        Napi::Error error = Napi::Error::New(env, clingo_error_message());
+        
+        // Create an object to hold error details
+        Napi::Object errorObj = Napi::Object::New(env);
+        
+        // Add errors and warnings from g_errorMessages
+        Napi::Array errors = Napi::Array::New(env);
+        Napi::Array warnings = Napi::Array::New(env);
+        
+        size_t errorIndex = 0;
+        size_t warningIndex = 0;
+        
+        for (const auto& msg : g_errorMessages) {
+            if (msg.isError) {
+                errors.Set(errorIndex++, Napi::String::New(env, msg.message));
+            } else {
+                warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
+            }
+        }
+        
+        errorObj.Set("errors", errors);
+        errorObj.Set("warnings", warnings);
+        
+        error.Set("details", errorObj);
+        throw error;
     }
 }
 
@@ -394,7 +427,9 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
             }
         }
 
-        // Create control object with silent logger
+        // Error messages must be cleared before grounding
+        g_errorMessages.clear();
+
         clingo_control_t *ctl = nullptr;
         if (!clingo_control_new(nullptr, 0, silent_logger, nullptr, 20, &ctl))
         {
@@ -457,7 +492,24 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         }
         resultObj.Set("answers", answersArray);
         resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
-
+        
+        Napi::Array errors = Napi::Array::New(env);
+        Napi::Array warnings = Napi::Array::New(env);
+        
+        size_t errorIndex = 0;
+        size_t warningIndex = 0;
+        
+        for (const auto& msg : g_errorMessages) {
+            if (msg.isError) {
+                errors.Set(errorIndex++, Napi::String::New(env, msg.message));
+            } else {
+                warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
+            }
+        }
+        
+        resultObj.Set("errors", errors);
+        resultObj.Set("warnings", warnings);
+        
         return resultObj;
     }
     catch (const Napi::Error &e)

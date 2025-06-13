@@ -20,6 +20,15 @@ try {
   binding = build(import.meta.dirname);
 }
 
+export class ClingoError extends Error {
+  constructor(
+    message: string,
+    public details: { errors: string[]; warnings: string[] },
+  ) {
+    super(message);
+  }
+}
+
 // Default key for base programs
 const DEFAULT_KEY = 'default';
 
@@ -75,7 +84,20 @@ async function solve(
     const result = binding.solve(program, basePrograms);
     return result;
   } catch (error) {
-    console.error('Error solving program:', error);
+    if (
+      error instanceof Error &&
+      'details' in error &&
+      typeof error.details === 'object' &&
+      error.details !== null &&
+      'errors' in error.details &&
+      'warnings' in error.details
+    ) {
+      const { errors, warnings } = error.details as {
+        errors: string[];
+        warnings: string[];
+      };
+      throw new ClingoError(error.message, { errors, warnings });
+    }
     throw error;
   }
 }

@@ -27,3 +27,39 @@ export class SchemaNotFound extends Error {
     this.name = 'SchemaNotFound';
   }
 }
+/**
+ * This interface is used to store the context of a macro error.
+ */
+export interface MacroDependency {
+  macroName: string;
+  parameters: string;
+  output?: string;
+}
+/**
+ * This error is thrown when a macro fails to execute.
+ */
+export class MacroError extends Error {
+  public context: {
+    cardKey: string;
+    macroName: string;
+    parameters: string;
+    dependency?: MacroDependency;
+  };
+
+  constructor(
+    message: string,
+    cardKey: string,
+    macroName: string,
+    parameters: string,
+    dependency?: MacroDependency,
+  ) {
+    super(message);
+    this.name = 'MacroError';
+    this.context = {
+      cardKey,
+      macroName,
+      parameters,
+      dependency,
+    };
+  }
+}
