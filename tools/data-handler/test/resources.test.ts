@@ -486,17 +486,9 @@ describe('resources', function () {
         destinationCardTypes: ['decision/cardTypes/decision'],
         sourceCardTypes: ['decision/cardTypes/decision'],
       } as LinkType;
-      await res
-        .create(linkTypeData)
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          // note that there is sometimes extra whitespace at the end of error messages.
-          expect(error.message.trim()).to.equal(
-            `Invalid content JSON: Schema '/linkTypeSchema' validation Error: requires property "enableLinkDescription"`,
-          );
-        });
+      await expect(res.create(linkTypeData)).to.be.rejectedWith(
+        `Invalid content JSON: Schema '/linkTypeSchema' validation Error: requires property "enableLinkDescription"`,
+      );
     });
     it('create report', async () => {
       const res = new ReportResource(
@@ -557,17 +549,9 @@ describe('resources', function () {
         description: 'No description',
         category: 'Random category',
       } as TemplateMetadata;
-      await res
-        .create(templateData)
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          // note that there is sometimes extra whitespace at the end of error messages.
-          expect(error.message.trim()).to.equal(
-            `Invalid content JSON: Schema '/templateSchema' validation Error: requires property "name"`,
-          );
-        });
+      await expect(res.create(templateData)).to.be.rejectedWith(
+        `Invalid content JSON: Schema '/templateSchema' validation Error: requires property "name"`,
+      );
     });
     it('create workflow', async () => {
       const res = new WorkflowResource(
@@ -606,176 +590,103 @@ describe('resources', function () {
         project,
         resourceName('decision/cardTypes/new-ööö'),
       );
-      await res
-        .createCardType('decision/workflows/decision')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(
+        res.createCardType('decision/workflows/decision'),
+      ).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create field type with invalid name', async () => {
       const res = new FieldTypeResource(
         project,
         resourceName('decision/fieldTypes/new-ööö'),
       );
-      await res
-        .createFieldType('shortText')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(res.createFieldType('shortText')).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create link type with invalid name', async () => {
       const res = new LinkTypeResource(
         project,
         resourceName('decision/linkTypes/new-ööö'),
       );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create graph model with invalid name', async () => {
       const res = new GraphModelResource(
         project,
         resourceName('decision/graphModels/newÄ'),
       );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'newÄ' is invalid",
-            );
-          }
-        });
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'newÄ' is invalid",
+      );
     });
     it('try to create graph view with invalid name', async () => {
       const res = new GraphViewResource(
         project,
         resourceName('decision/graphViews/newÖ'),
       );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'newÖ' is invalid",
-            );
-          }
-        });
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'newÖ' is invalid",
+      );
     });
     it('try to create report with invalid name', async () => {
       const res = new ReportResource(
         project,
         resourceName('decision/reports/new-ööö'),
       );
-      await res
-        .createReport()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(res.createReport()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create template with invalid name', async () => {
       const res = new TemplateResource(
         project,
         resourceName('decision/templates/new-ööö'),
       );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create workflow with invalid name', async () => {
       const res = new WorkflowResource(
         project,
         resourceName('decision/workflows/new-ööö'),
       );
-      await res
-        .create()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
-            );
-          }
-        });
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
     });
     it('try to create card type with invalid type', async () => {
       const res = new CardTypeResource(
         project,
         resourceName('decision/workflows/new-one'),
       );
-      await res
-        .createCardType('decision/workflows/decision')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name must match the resource type. Type 'workflows' does not match 'cardTypes'",
-            );
-          }
-        });
+      await expect(
+        res.createCardType('decision/workflows/decision'),
+      ).to.be.rejectedWith(
+        "Resource name must match the resource type. Type 'workflows' does not match 'cardTypes'",
+      );
     });
     it('try to create field type with invalid type', async () => {
       const res = new FieldTypeResource(
         project,
         resourceName('decision/workflows/new-one'), // cannot create from workflows
       );
-      await res
-        .createFieldType('shortText')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name must match the resource type. Type 'workflows' does not match 'fieldTypes'",
-            );
-          }
-        });
+      await expect(res.createFieldType('shortText')).to.be.rejectedWith(
+        "Resource name must match the resource type. Type 'workflows' does not match 'fieldTypes'",
+      );
     });
     it('try to create field type with invalid type', async () => {
       const res = new ReportResource(
         project,
         resourceName('decision/workflows/new-one'), // cannot create from workflows
       );
-      await res
-        .createReport()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name must match the resource type. Type 'workflows' does not match 'reports'",
-            );
-          }
-        });
+      await expect(res.createReport()).to.be.rejectedWith(
+        "Resource name must match the resource type. Type 'workflows' does not match 'reports'",
+      );
     });
     it('try to create resources with invalid types', async () => {
       const resources = [
@@ -802,16 +713,9 @@ describe('resources', function () {
         ),
       ];
       for (const res of resources) {
-        await res
-          .create()
-          .then(() => expect(false).to.equal(true))
-          .catch((err) => {
-            if (err instanceof Error) {
-              expect(err.message).to.include(
-                "Resource name must match the resource type. Type 'cardTypes' does not match",
-              );
-            }
-          });
+        await expect(res.create()).to.be.rejectedWith(
+          "Resource name must match the resource type. Type 'cardTypes' does not match",
+        );
       }
     });
     it('try to create card type with invalid project prefix', async () => {
@@ -819,32 +723,20 @@ describe('resources', function () {
         project,
         resourceName('unknown/cardTypes/new-one'),
       );
-      await res
-        .createCardType('decision/workflows/decision')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-            );
-          }
-        });
+      await expect(
+        res.createCardType('decision/workflows/decision'),
+      ).to.be.rejectedWith(
+        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+      );
     });
     it('try to create field type with invalid project prefix', async () => {
       const res = new FieldTypeResource(
         project,
         resourceName('unknown/fieldTypes/new-one'),
       );
-      await res
-        .createFieldType('shortText')
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-            );
-          }
-        });
+      await expect(res.createFieldType('shortText')).to.be.rejectedWith(
+        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+      );
     });
     it('try to create resources with invalid project prefix', async () => {
       // Include only resources that can be created with call to 'create()'
@@ -871,16 +763,9 @@ describe('resources', function () {
         ),
       ];
       for (const res of resources) {
-        await res
-          .create()
-          .then(() => expect(false).to.equal(true))
-          .catch((err) => {
-            if (err instanceof Error) {
-              expect(err.message).to.equal(
-                "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-              );
-            }
-          });
+        await expect(res.create()).to.be.rejectedWith(
+          "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+        );
       }
     });
     it('try to create report with invalid project prefix', async () => {
@@ -888,32 +773,20 @@ describe('resources', function () {
         project,
         resourceName('unknown/reports/new-one'),
       );
-      await res
-        .createReport()
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
-            );
-          }
-        });
+      await expect(res.createReport()).to.be.rejectedWith(
+        "Resource name can only refer to project that it is part of. Prefix 'unknown' is not included in '[decision]'",
+      );
     });
     it('try to create card type with invalid content', async () => {
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/new-one'),
       );
-      await res
-        .createCardType('decision/workflows/does-not-exist') // invalid workflow
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.equal(
-              "Workflow 'decision/workflows/does-not-exist' does not exist in the project",
-            );
-          }
-        });
+      await expect(
+        res.createCardType('decision/workflows/does-not-exist'),
+      ).to.be.rejectedWith(
+        "Workflow 'decision/workflows/does-not-exist' does not exist in the project",
+      );
     });
     it('data of card type', async () => {
       const res = new CardTypeResource(
@@ -1392,14 +1265,9 @@ describe('resources', function () {
         resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
-      await res
-        .rename(resourceName('newpre/workflows/newname'))
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.include('Can only rename project resources');
-          }
-        });
+      await expect(
+        res.rename(resourceName('newpre/workflows/newname')),
+      ).to.be.rejectedWith('Can only rename project resources');
       await res.delete();
     });
     it('try to rename workflow - attempt to change type', async () => {
@@ -1408,14 +1276,9 @@ describe('resources', function () {
         resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
-      await res
-        .rename(resourceName('decision/linkTypes/newname'))
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.include('Cannot change resource type');
-          }
-        });
+      await expect(
+        res.rename(resourceName('decision/linkTypes/newname')),
+      ).to.be.rejectedWith('Cannot change resource type');
       await res.delete();
     });
     it('try to rename workflow - attempt to use invalid name', async () => {
@@ -1424,16 +1287,9 @@ describe('resources', function () {
         resourceName('decision/workflows/newResForRename'),
       );
       await res.create();
-      await res
-        .rename(resourceName('decision/workflows/newname-ööö'))
-        .then(() => expect(false).to.equal(true))
-        .catch((err) => {
-          if (err instanceof Error) {
-            expect(err.message).to.include(
-              'Resource identifier must follow naming',
-            );
-          }
-        });
+      await expect(
+        res.rename(resourceName('decision/workflows/newname-ööö')),
+      ).to.be.rejectedWith('Resource identifier must follow naming');
       await res.delete();
     });
     it('update card type - name', async () => {
@@ -1455,58 +1311,37 @@ describe('resources', function () {
         resourceName('decision/cardTypes/tryForUpdate'),
       );
       await res.createCardType('decision/workflows/decision');
-      await res
-        .update('name', {
+      await expect(
+        res.update('name', {
           name: 'rank',
           target: '',
           newIndex: 99,
-        })
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          expect(error.message).to.equal(
-            'Cannot do operation rank on scalar value',
-          );
-        });
+        }),
+      ).to.be.rejectedWith('Cannot do operation rank on scalar value');
     });
     it('update card type - try to "add" scalar "name"', async () => {
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/tryForUpdate'),
       );
-      await res
-        .update('name', {
+      await expect(
+        res.update('name', {
           name: 'add',
           target: '',
-        })
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          expect(error.message).to.equal(
-            'Cannot do operation add on scalar value',
-          );
-        });
+        }),
+      ).to.be.rejectedWith('Cannot do operation add on scalar value');
     });
     it('update card type - try to "remove" scalar "name"', async () => {
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/tryForUpdate'),
       );
-      await res
-        .update('name', {
+      await expect(
+        res.update('name', {
           name: 'remove',
           target: '',
-        })
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          expect(error.message).to.equal(
-            'Cannot do operation remove on scalar value',
-          );
-        });
+        }),
+      ).to.be.rejectedWith('Cannot do operation remove on scalar value');
     });
     it('update card type - add element to alwaysVisibleFields', async () => {
       // Create field type to add first
@@ -1805,20 +1640,13 @@ describe('resources', function () {
         resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.createFieldType('dateTime');
-      await res
-        .update('name', {
+      await expect(
+        res.update('name', {
           name: 'change',
           target: '',
           to: 'decision/fieldTypes/afterUpdate-öööö',
-        })
-        .then(() => {
-          expect(false).to.equal(true);
-        })
-        .catch((error) => {
-          expect(error.message).to.include(
-            'Resource identifier must follow naming rules.',
-          );
-        });
+        }),
+      ).to.be.rejectedWith('Resource identifier must follow naming rules.');
     });
     it('update field type - change data type (number -> integer)', async () => {
       let card6 = await project.cardDetailsById('decision_6', {
@@ -2136,14 +1964,9 @@ describe('resources', function () {
         target: expectedItem,
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
-      await res
-        .update('states', op)
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.contain(
-            "Cannot change state 'Approved' for workflow 'decision/workflows/decision'.",
-          ),
-        );
+      await expect(res.update('states', op)).to.be.rejectedWith(
+        "Cannot change state 'Approved' for workflow 'decision/workflows/decision'.",
+      );
     });
     it('update workflow - rename transition', async () => {
       const res = new WorkflowResource(
@@ -2362,14 +2185,9 @@ describe('resources', function () {
       const before = await project.cardTypes();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete field type that does not exist', async () => {
       const name = 'decision/fieldTypes/nonExisting';
@@ -2377,14 +2195,9 @@ describe('resources', function () {
       const before = await project.fieldTypes();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete graph model that does not exist', async () => {
       const name = 'decision/graphModels/nonExisting';
@@ -2392,14 +2205,9 @@ describe('resources', function () {
       const before = await project.graphModels();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete graph view that does not exist', async () => {
       const name = 'decision/graphViews/nonExisting';
@@ -2407,14 +2215,9 @@ describe('resources', function () {
       const before = await project.graphViews();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete link type that does not exist', async () => {
       const name = 'decision/linkTypes/nonExisting';
@@ -2422,14 +2225,9 @@ describe('resources', function () {
       const before = await project.linkTypes();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete report that does not exist', async () => {
       const name = 'decision/reports/nonExisting';
@@ -2437,14 +2235,9 @@ describe('resources', function () {
       const before = await project.reports();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete template that does not exist', async () => {
       const name = 'decision/templates/nonExisting';
@@ -2452,14 +2245,9 @@ describe('resources', function () {
       const before = await project.templates();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to delete workflow that does not exist', async () => {
       const name = 'decision/workflows/nonExisting';
@@ -2467,14 +2255,9 @@ describe('resources', function () {
       const before = await project.workflows();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .delete()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('try to check usage of nonExisting resource', async () => {
       const name = 'decision/workflows/nonExisting';
@@ -2482,14 +2265,9 @@ describe('resources', function () {
       const before = await project.workflows();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
-      await res
-        .usage()
-        .then(() => expect(false).to.equal(true))
-        .catch((error) =>
-          expect(error.message).to.equal(
-            `Resource 'nonExisting' does not exist in the project`,
-          ),
-        );
+      await expect(res.usage()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
     });
     it('check usage of cardType resource', async () => {
       const name = 'decision/cardTypes/decision';

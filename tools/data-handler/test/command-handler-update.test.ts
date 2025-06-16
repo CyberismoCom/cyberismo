@@ -138,15 +138,10 @@ describe('Update command tests', async () => {
     const invalidName = `${project.projectPrefix}/workflows/newName-ÄÄÄ`;
     expect(exists).to.equal(true);
 
-    await update
-      .updateValue(name, 'change', 'name', invalidName)
-      .then(() => {
-        expect(false).to.equal(true);
-      })
-      .catch((error) => {
-        expect(error.message).to.equal(
-          "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
-        );
-      });
+    await expect(
+      update.updateValue(name, 'change', 'name', invalidName),
+    ).to.be.rejectedWith(
+      "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
+    );
   });
 });

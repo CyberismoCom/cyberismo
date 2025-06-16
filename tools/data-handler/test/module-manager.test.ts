@@ -71,38 +71,27 @@ describe('module-manager', () => {
       localModule,
       commands.project.basePath,
     );
-    await commands.importCmd
-      .importModule(localModule, commands.project.basePath)
-      .then(() => expect(false).equal(true))
-      .catch((error) =>
-        expect(error.message).to.equal(
-          `Imported project has a prefix 'mini' that is already used in the project. Cannot import from module.`,
-        ),
-      );
+    await expect(
+      commands.importCmd.importModule(localModule, commands.project.basePath),
+    ).to.be.rejectedWith(
+      `Imported project has a prefix 'mini' that is already used in the project. Cannot import from module.`,
+    );
   });
   it('try to import duplicate git modules', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
 
-    await commands.importCmd
-      .importModule(gitModule, commands.project.basePath)
-      .then(() => expect(false).equal(true))
-      .catch((error) =>
-        expect(error.message).to.equal(
-          `Imported project has a prefix 'base' that is already used in the project. Cannot import from module.`,
-        ),
-      );
+    await expect(
+      commands.importCmd.importModule(gitModule, commands.project.basePath),
+    ).to.be.rejectedWith(
+      `Imported project has a prefix 'base' that is already used in the project. Cannot import from module.`,
+    );
   });
   it('try to import from incorrect local path', async () => {
     const localModule = join(testDir, 'valid/i-do-not-exist');
-    await commands.importCmd
-      .importModule(localModule, commands.project.basePath)
-      .then(() => expect(false).to.equal(true))
-      .catch((error) =>
-        expect(error.message).to.include(
-          `Input validation error: cannot find project`,
-        ),
-      );
+    await expect(
+      commands.importCmd.importModule(localModule, commands.project.basePath),
+    ).to.be.rejectedWith(`Input validation error: cannot find project`);
   });
   it('try to import from incorrect git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
