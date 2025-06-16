@@ -134,7 +134,7 @@ export class Import {
     destination?: string,
     options?: ModuleSettingOptions,
   ) {
-    const gitModule = source.startsWith('https');
+    const gitModule = source.startsWith('https') || source.startsWith('git@');
     const modulePrefix = gitModule
       ? await this.moduleManager.importGitModule(source, options)
       : await this.moduleManager.importFileModule(source, destination);
