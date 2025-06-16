@@ -1,5 +1,5 @@
 // testing
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 // node
@@ -72,17 +72,12 @@ describe('transition command', () => {
     const stubProjectPath = sinon
       .stub(commandHandler, 'setProjectPath')
       .resolves('path');
-    try {
-      await commandHandler.command(
-        Cmd.transition,
-        ['decision_5', 'Created'],
-        {},
-      );
-      assert(false, 'this should not be reached as the above throws');
-    } catch {
-      // missing path (if the project location cannot be deduced) throws
-      expect(true);
-    }
+    await expect(
+      commandHandler.command(Cmd.transition, ['decision_5', 'Created'], {}),
+    ).to.eventually.deep.equal({
+      message: "Input validation error: cannot find project ''",
+      statusCode: 400,
+    });
     stubProjectPath.restore();
   });
   it('missing card', async () => {

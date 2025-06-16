@@ -635,12 +635,7 @@ describe('project', () => {
   it('parse card path - invalid card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
     const project = new Project(decisionRecordsPath);
-    try {
-      project.cardPathParts('decision_99');
-      expect(false);
-    } catch {
-      expect(true);
-    }
+    expect(() => project.cardPathParts('decision_99')).to.throw();
   });
   it('collect all report handlebar files', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);

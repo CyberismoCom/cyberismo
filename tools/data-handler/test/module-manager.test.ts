@@ -46,24 +46,26 @@ describe('module-manager', () => {
   }).timeout(10000);
   it('import git module using credentials', async () => {
     const skipTest = process.env.GITHUB_ACTIONS && os.platform() === 'win32';
-    if (skipTest)
+    if (skipTest) {
       skip(
         `Importing a module causes action to jam from time to time on CI/Windows`,
       );
-    const gitModule = 'https://github.com/CyberismoCom/module-base.git';
-    await commands.importCmd.importModule(
-      gitModule,
-      commands.project.basePath,
-      {
-        private: true,
-        credentials: {
-          username: process.env.CYBERISMO_GIT_USER,
-          token: process.env.CYBERISMO_GIT_TOKEN,
+    } else {
+      const gitModule = 'https://github.com/CyberismoCom/module-base.git';
+      await commands.importCmd.importModule(
+        gitModule,
+        commands.project.basePath,
+        {
+          private: true,
+          credentials: {
+            username: process.env.CYBERISMO_GIT_USER,
+            token: process.env.CYBERISMO_GIT_TOKEN,
+          },
         },
-      },
-    );
-    const modules = await commands.showCmd.showModules();
-    expect(modules.length).equals(1);
+      );
+      const modules = await commands.showCmd.showModules();
+      expect(modules.length).equals(1);
+    }
   }).timeout(60000);
   it('try to import duplicate local modules', async () => {
     const localModule = join(testDir, 'valid/minimal');

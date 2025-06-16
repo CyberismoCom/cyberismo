@@ -1,5 +1,5 @@
 // testing
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 // node
@@ -7,7 +7,6 @@ import { join } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands } from '../src/command-handler.js';
-import { type requestStatus } from '../src/interfaces/request-status-interfaces.js';
 
 const commandHandler: Commands = new Commands();
 
@@ -20,14 +19,12 @@ describe('command-handler: validate command', () => {
     const stubProjectPath = sinon
       .stub(commandHandler, 'setProjectPath')
       .resolves('path');
-    let result: requestStatus = { statusCode: 500 };
-    try {
-      result = await commandHandler.command(Cmd.validate, [], {});
-      assert(false, 'this should not be reached as the above throws');
-    } catch {
-      // do nothing
-    }
-    expect(result.statusCode).to.equal(400);
+    await expect(
+      commandHandler.command(Cmd.validate, [], {}),
+    ).to.eventually.deep.equal({
+      message: "Input validation error: cannot find project ''",
+      statusCode: 400,
+    });
     stubProjectPath.restore();
   });
   it('valid schema', async () => {
