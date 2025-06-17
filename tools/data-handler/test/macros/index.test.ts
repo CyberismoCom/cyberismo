@@ -230,9 +230,8 @@ describe('macros', () => {
       expect(result).to.not.equal(null);
     });
     it('validate macros - failure', async () => {
-      try {
-        // this should throw an error
-        await evaluateMacros(
+      await expect(
+        evaluateMacros(
           invalidAdoc,
           {
             mode: 'validate',
@@ -240,11 +239,8 @@ describe('macros', () => {
             cardKey: '',
           },
           calculate,
-        );
-        expect(true).to.equal(false);
-      } catch (error) {
-        expect(error).to.not.equal(null);
-      }
+        ),
+      ).to.be.rejected;
     });
   });
   describe('registerMacros', () => {

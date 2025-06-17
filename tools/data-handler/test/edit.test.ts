@@ -84,12 +84,9 @@ describe('edit card', () => {
     const cards = await commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      try {
-        editCmd.editCard(firstCard.key + 1);
-        expect(false);
-      } catch {
-        expect(true);
-      }
+      await expect(editCmd.editCard(firstCard.key + 1)).to.be.rejectedWith(
+        "Card 'decision_51' does not exist in the project",
+      );
     }
   });
   // @todo: Make sinon fake/mock for user preferences

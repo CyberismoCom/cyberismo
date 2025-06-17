@@ -26,22 +26,8 @@ describe('Json', () => {
       'test-data',
       'i-do-not-exist.json',
     );
-    try {
-      readJsonFileSync(path);
-    } catch (error) {
-      if (error instanceof Error) {
-        const err: Error = error;
-        expect(err.message).to.contain('no such file');
-      }
-    }
-    try {
-      await readJsonFile(path);
-    } catch (error) {
-      if (error instanceof Error) {
-        const err: Error = error;
-        expect(err.message).to.contain('no such file');
-      }
-    }
+    expect(() => readJsonFileSync(path)).to.throw('no such file');
+    await expect(readJsonFile(path)).to.be.rejectedWith('no such file');
   });
   it('readAdocFile not found', () => {
     const path = join(
@@ -50,14 +36,7 @@ describe('Json', () => {
       'test-data',
       'i-do-not-exist.json',
     );
-    try {
-      readADocFileSync(path);
-    } catch (error) {
-      if (error instanceof Error) {
-        const err: Error = error;
-        expect(err.message).to.contain('not found');
-      }
-    }
+    expect(() => readADocFileSync(path)).to.throw(`Adoc file`);
   });
   it('readJsonFile non-JSON content', () => {
     const path = join(
@@ -66,14 +45,7 @@ describe('Json', () => {
       'test-data',
       'non-valid-template-not-json.txt',
     );
-    try {
-      readJsonFileSync(path);
-    } catch (error) {
-      if (error instanceof Error) {
-        const err: Error = error;
-        expect(err.message).to.contain('Unexpected token');
-      }
-    }
+    expect(() => readJsonFileSync(path)).to.throw('Unexpected token');
   });
   it('formatJson', () => {
     const referenceJson =

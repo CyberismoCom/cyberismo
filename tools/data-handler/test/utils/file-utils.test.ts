@@ -38,12 +38,7 @@ describe('file utils', () => {
     });
     await mkdir(destination, { recursive: true });
     await copyDir('test/test-data/valid/minimal', destination);
-    try {
-      await access(destination);
-      expect(true);
-    } catch {
-      expect(false);
-    }
+    await expect(access(destination)).to.be.fulfilled;
   });
   it('copyDir with hierarchy (success)', async () => {
     const destination = join(testDir, 'some/hierarchy/that/is/rather/deep');
@@ -51,23 +46,15 @@ describe('file utils', () => {
       rmSync(destination, { recursive: true, force: true });
     });
     await copyDir('test/test-data/valid/minimal/', destination);
-    try {
-      await access(destination);
-      expect(true);
-    } catch {
-      expect(false);
-    }
+    await expect(access(destination)).to.be.fulfilled;
   });
   it('deleteDir (success)', async () => {
     const targetDir = join(testDir, 'this-temp');
     await mkdir(targetDir, { recursive: true });
     await deleteDir(targetDir);
-    try {
-      await access(targetDir);
-      expect(false);
-    } catch {
-      expect(true);
-    }
+    await expect(access(targetDir)).to.be.rejectedWith(
+      `ENOENT: no such file or directory,`,
+    );
   });
   it('deleteFile (success)', async () => {
     const target = 'testfile.txt';
@@ -79,12 +66,7 @@ describe('file utils', () => {
     await writeFile(target, 'data');
     const success = await deleteFile(target);
     expect(success).to.equal(true);
-    try {
-      await access(target);
-      expect(false);
-    } catch {
-      expect(true);
-    }
+    await expect(access(target)).to.be.rejected;
   });
   it('deleteFile - file missing', async () => {
     const target = '';

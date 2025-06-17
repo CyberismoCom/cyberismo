@@ -1,5 +1,5 @@
 // testing
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 // node
@@ -225,19 +225,17 @@ describe('import module', () => {
       const stubProjectPath = sinon
         .stub(commandHandler, 'setProjectPath')
         .resolves('path');
-      let result = { statusCode: 0 };
       const invalidOptions = { projectPath: '' };
-      try {
-        result = await commandHandler.command(
+      await expect(
+        commandHandler.command(
           Cmd.import,
           ['module', decisionRecordsPath],
           invalidOptions,
-        );
-        assert(false, 'this should not be reached as the above throws');
-      } catch {
-        // do nothing
-      }
-      expect(result.statusCode).to.equal(400);
+        ),
+      ).to.eventually.deep.equal({
+        statusCode: 400,
+        message: "Input validation error: cannot find project ''",
+      });
       stubProjectPath.restore();
     });
     it('try to import module - twice the same module', async () => {

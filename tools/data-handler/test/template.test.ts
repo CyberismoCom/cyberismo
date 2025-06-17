@@ -36,15 +36,9 @@ after(() => {
 
 describe('template', () => {
   it('try to create template with no name', () => {
-    try {
-      new Template(project, { name: '', path: '' });
-    } catch (error) {
-      if (error instanceof Error) {
-        expect(error.message).to.contain(
-          `Must define resource name to query its details`,
-        );
-      }
-    }
+    expect(() => new Template(project, { name: '', path: '' })).to.throw(
+      `Must define resource name to query its details`,
+    );
   });
   it('list template cards', async () => {
     const template = new Template(project, {

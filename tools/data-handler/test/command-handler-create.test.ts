@@ -1,5 +1,5 @@
 // testing
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import * as sinon from 'sinon';
 
 // node
@@ -634,11 +634,7 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    try {
-      await access(projectDir, fsConstants.R_OK);
-    } catch {
-      assert(false, 'project folder could not be created');
-    }
+    await expect(access(projectDir, fsConstants.F_OK)).to.be.fulfilled;
     expect(result.statusCode).to.equal(200);
   });
   it('project with user home path (success)', async () => {
@@ -652,12 +648,7 @@ describe('create command', () => {
       ['project', name, prefix],
       testOptions,
     );
-    try {
-      // nodeJS does not automatically expand paths with tilde
-      await access(resolveTilde(path), fsConstants.F_OK);
-    } catch {
-      assert(false, 'project folder could not be created');
-    }
+    await expect(access(resolveTilde(path), fsConstants.F_OK)).to.be.fulfilled;
     expect(result.statusCode).to.equal(200);
   });
   it('project creation without options (success)', async () => {

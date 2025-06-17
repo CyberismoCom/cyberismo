@@ -35,14 +35,9 @@ describe('resource utils', () => {
   it('resourceName with only identifier and using "strict" throws', () => {
     const name = 'test';
     const strictNameValidation = true;
-    try {
-      resourceName(name, strictNameValidation);
-    } catch (error) {
-      if (error instanceof Error)
-        expect(error.message).to.equal(
-          "Name 'test' is not valid resource name",
-        );
-    }
+    expect(() => resourceName(name, strictNameValidation)).to.throw(
+      "Name 'test' is not valid resource name",
+    );
   });
   it('resourceName with invalid names', () => {
     const invalidResourceNames = ['', 'test/test', 'test/test/test/test'];
@@ -131,16 +126,13 @@ describe('resource utils with Project instance', () => {
     }
   });
   it('resourceNameToPath with empty prefix throws', () => {
-    try {
+    expect(() =>
       resourceNameToPath(project, {
         prefix: '',
         type: '',
         identifier: '',
-      });
-    } catch (e) {
-      if (e instanceof Error)
-        expect(e.message).to.equal('resourceName does not contain prefix');
-    }
+      }),
+    ).to.throw('resourceName does not contain prefix');
   });
 
   it('pathToResourceName with valid values', () => {
@@ -193,13 +185,9 @@ describe('resource utils with Project instance', () => {
       ],
     ]);
     for (const name of invalidNames) {
-      try {
-        pathToResourceName(project, name[0]);
-      } catch (e) {
-        if (e instanceof Error) {
-          expect(e.message).to.equal(`${name[1]} ${name[0]}`);
-        }
-      }
+      expect(() => pathToResourceName(project, name[0])).to.throw(
+        `${name[1]} ${name[0]}`,
+      );
     }
   });
 });
