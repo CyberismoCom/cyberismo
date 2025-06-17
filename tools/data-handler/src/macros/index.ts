@@ -18,7 +18,7 @@ import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
 
 import { validateJson } from '../utils/validate.js';
-import { DHValidationError } from '../exceptions/index.js';
+import { DHValidationError, MacroError } from '../exceptions/index.js';
 import type { AdmonitionType } from '../interfaces/adoc.js';
 import type { Validator } from 'jsonschema';
 import type {
@@ -29,6 +29,7 @@ import type {
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import type { Calculate } from '../commands/index.js';
+import { ClingoError } from '@cyberismo/node-clingo';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 
@@ -211,7 +212,14 @@ export function applyMacroResults(
   context: MacroGenerationContext,
 ) {
   for (const item of tasks) {
-    if (item.promiseResult === null) {
+    if (item.error) {
+      input = input.replace(
+        item.placeholder,
+        handleMacroError(item.error, item.macro, context),
+      );
+    } // It should not be possible that promiseResult is null if there never was an error
+    // Unless the function itself returns null / undefined
+    else if (item.promiseResult == null) {
       input = handleMacroError(
         new Error(
           `Tried to access result before it was resolved for ${item.placeholder}`,
@@ -240,7 +248,17 @@ export function handleMacroError(
   let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
   if (error instanceof DHValidationError) {
     message = `Check json syntax of macro ${macro}: ${error.errors?.map((e) => e.message).join(', ')}`;
+  } else if (error instanceof MacroError) {
+    const { cardKey, macroName, dependency } = error.context;
+    message = `Macro error in card '${cardKey}' in macro '${macroName}':\n\n${error.message}.`;
+
+    if (dependency) {
+      message += `\n\nParameters:\n\n${context.mode === 'validate' ? dependency.parameters : createCodeBlock(dependency.parameters)}.\n\n${dependency.output ? `Output:\n\n${context.mode === 'validate' ? dependency.output : createCodeBlock(dependency.output)}` : ''}`;
+    }
+  } else if (error instanceof ClingoError) {
+    message = `Error running logic program in macro '${macro}':${error.details.errors.join('\n')}`;
   }
+
   if (
     typeof error === 'object' &&
     error != null &&
@@ -326,6 +344,15 @@ export function createAdmonition(
   content: string,
 ) {
   return `[${type}]\n.${label}\n====\n${content}\n====\n\n`;
+}
+
+/**
+ * Creates a code block
+ * @param content - The content of the code block
+ * @returns The code block as a string
+ */
+export function createCodeBlock(content: string) {
+  return `\n\n----\n${content}\n----\n\n`;
 }
 
 /**

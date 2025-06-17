@@ -102,4 +102,23 @@ describe('Clingo solver', () => {
   it('should handle errors', async () => {
     await expect(solve('not a program', 'non_existent')).rejects.toThrow();
   });
+  it('should include errors and warnings in the result', async () => {
+    try {
+      await solve('causes syn t4x error,');
+      expect.fail('Expected solve to throw an error');
+    } catch (error: any) {
+      expect(error).toBeDefined();
+      expect(error.message).toBe('parsing failed');
+
+      // Verify the error has details with errors and warnings
+      expect(error.details).toBeDefined();
+      expect(error.details.errors).toBeInstanceOf(Array);
+      expect(error.details.warnings).toBeInstanceOf(Array);
+
+      // Verify there's at least one error (syntax error)
+      expect(error.details.errors.length).toBeGreaterThan(0);
+      expect(error.details.errors[0]).toContain('syntax error');
+      expect(error.details.errors[0]).toContain('unexpected');
+    }
+  });
 });
