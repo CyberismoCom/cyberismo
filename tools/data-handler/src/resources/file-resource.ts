@@ -301,9 +301,9 @@ export class FileResource extends ResourceObject {
   ) {
     function toValue(op: Operation<Type>) {
       if (op.name === 'rank') return op.newIndex;
-      if (op.name === 'add') return op.target;
-      if (op.name === 'remove') return op.target;
-      if (op.name === 'change') return op.to;
+      if (op.name === 'add') return JSON.stringify(op.target);
+      if (op.name === 'remove') return JSON.stringify(op.target);
+      if (op.name === 'change') return JSON.stringify(op.to);
     }
 
     // Check that new name is valid.
@@ -320,7 +320,9 @@ export class FileResource extends ResourceObject {
     } catch (error) {
       if (error instanceof Error) {
         const errorValue = typeof op === 'object' ? toValue(op) : op;
-        throw new Error(`Cannot ${op.name} '${key}' --> '${errorValue}'`);
+        throw new Error(
+          `Cannot ${op.name} '${key}' --> '${errorValue}: ${error.message}'`,
+        );
       }
     }
 
