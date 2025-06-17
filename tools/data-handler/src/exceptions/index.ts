@@ -28,7 +28,7 @@ export class SchemaNotFound extends Error {
   }
 }
 /**
- * This interface is used to store the context of a macro error.
+ * Stores the context of a macro error that originated from another macro
  */
 export interface MacroDependency {
   macroName: string;
@@ -36,7 +36,7 @@ export interface MacroDependency {
   output?: string;
 }
 /**
- * This error is thrown when a macro fails to execute.
+ * Thrown when a macro fails to execute.
  */
 export class MacroError extends Error {
   public context: {

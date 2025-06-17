@@ -32,6 +32,16 @@ struct ClingoLogMessage {
     std::string message;
 };
 
+struct NodeClingoLogs {
+    Napi::Array errors;
+    Napi::Array warnings;
+
+    NodeClingoLogs(Napi::Env env) {
+        errors = Napi::Array::New(env);
+        warnings = Napi::Array::New(env);
+    }
+};
+
 // Store base programs in a map, keyed by name
 std::unordered_map<std::string, std::string> g_basePrograms;
 // For now error messsages are stored in a global vector,
@@ -39,15 +49,37 @@ std::unordered_map<std::string, std::string> g_basePrograms;
 std::vector<ClingoLogMessage> g_errorMessages;
 
 /**
- * A logger function for Clingo that does nothing.
- * Used to silence Clingo's output (warnings, info messages).
+ * A logger function for Clingo that captures messages.
+ * Collects warnings and errors from Clingo for later processing.
  * @param code The warning code.
  * @param message The warning message.
  * @param data User data (unused).
  */
-void silent_logger(clingo_warning_t code, char const *message, void *data)
+void message_collector(clingo_warning_t code, char const *message, void *data)
 {
     g_errorMessages.push_back({code, code == clingo_warning_runtime_error, message});
+}
+
+/**
+ * Helper function to parse the error messages from Clingo
+ * @param env The N-API environment.
+ * @return NodeClingoLogs containing separated errors and warnings arrays.
+ */
+NodeClingoLogs parse_clingo_logs(const Napi::Env &env) {
+    NodeClingoLogs logs(env);
+    
+    size_t errorIndex = 0;
+    size_t warningIndex = 0;
+    
+    for (const auto& msg : g_errorMessages) {
+        if (msg.isError) {
+            logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
+        } else {
+            logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
+        }
+    }
+    
+    return logs;
 }
 
 /**
@@ -66,23 +98,11 @@ void handle_clingo_error(const Napi::Env &env)
         // Create an object to hold error details
         Napi::Object errorObj = Napi::Object::New(env);
         
-        // Add errors and warnings from g_errorMessages
-        Napi::Array errors = Napi::Array::New(env);
-        Napi::Array warnings = Napi::Array::New(env);
+        // Parse errors and warnings using the common routine
+        NodeClingoLogs logs = parse_clingo_logs(env);
         
-        size_t errorIndex = 0;
-        size_t warningIndex = 0;
-        
-        for (const auto& msg : g_errorMessages) {
-            if (msg.isError) {
-                errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-            } else {
-                warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-            }
-        }
-        
-        errorObj.Set("errors", errors);
-        errorObj.Set("warnings", warnings);
+        errorObj.Set("errors", logs.errors);
+        errorObj.Set("warnings", logs.warnings);
         
         error.Set("details", errorObj);
         throw error;
@@ -431,7 +451,7 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         g_errorMessages.clear();
 
         clingo_control_t *ctl = nullptr;
-        if (!clingo_control_new(nullptr, 0, silent_logger, nullptr, 20, &ctl))
+        if (!clingo_control_new(nullptr, 0, message_collector, nullptr, 20, &ctl))
         {
             handle_clingo_error(env);
         }
@@ -493,22 +513,11 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         resultObj.Set("answers", answersArray);
         resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
         
-        Napi::Array errors = Napi::Array::New(env);
-        Napi::Array warnings = Napi::Array::New(env);
+        // Parse errors and warnings using the common routine
+        NodeClingoLogs logs = parse_clingo_logs(env);
         
-        size_t errorIndex = 0;
-        size_t warningIndex = 0;
-        
-        for (const auto& msg : g_errorMessages) {
-            if (msg.isError) {
-                errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-            } else {
-                warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-            }
-        }
-        
-        resultObj.Set("errors", errors);
-        resultObj.Set("warnings", warnings);
+        resultObj.Set("errors", logs.errors);
+        resultObj.Set("warnings", logs.warnings);
         
         return resultObj;
     }

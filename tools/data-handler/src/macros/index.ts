@@ -217,7 +217,7 @@ export function applyMacroResults(
         item.placeholder,
         handleMacroError(item.error, item.macro, context),
       );
-    } // It shouldn not be possible that promiseResult is null if there never was an error
+    } // It should not be possible that promiseResult is null if there never was an error
     // Unless the function itself returns null / undefined
     else if (item.promiseResult == null) {
       input = handleMacroError(

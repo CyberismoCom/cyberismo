@@ -91,6 +91,16 @@ abstract class BaseMacro {
     };
   }
 
+  private findTask(globalId: string, localId: number) {
+    const task = this.tasks.find(globalId, localId);
+    if (!task) {
+      this.logger.warn(
+        `Task not found for global id ${globalId}, local id ${localId}.`,
+      );
+    }
+    return task;
+  }
+
   /**
    * Function responsible for starting the promise and storing it along with its localId.
    */
@@ -125,7 +135,7 @@ abstract class BaseMacro {
       .then(() => {
         for (const dependency of dependencies) {
           if (dependency.error) {
-            const task = this.tasks.find(this.globalId, localId);
+            const task = this.findTask(this.globalId, localId);
             if (task) {
               // There could be a better way, but multi-nested macros are rare
               task.error = new MacroError(
@@ -138,12 +148,7 @@ abstract class BaseMacro {
                   parameters: dependency.parameters,
                 },
               );
-              return;
             }
-            // Should never happen
-            this.logger.warn(
-              `Task was not found for dependency: ${dependency.placeholder} (globalId: ${this.globalId}, localId: ${localId})`,
-            );
             return;
           }
           input = input.replace(
@@ -154,7 +159,7 @@ abstract class BaseMacro {
           try {
             JSON.parse(input);
           } catch {
-            const task = this.tasks.find(this.globalId, localId);
+            const task = this.findTask(this.globalId, localId);
             if (task) {
               task.error = new MacroError(
                 'Invalid JSON produced by macro dependency',
@@ -167,11 +172,7 @@ abstract class BaseMacro {
                   output: input,
                 },
               );
-              return;
             }
-            this.logger.warn(
-              `Task was not found for dependency: ${dependency.placeholder} (globalId: ${this.globalId}, localId: ${localId})`,
-            );
             return;
           }
         }
@@ -190,18 +191,14 @@ abstract class BaseMacro {
         if (result === undefined) {
           return;
         }
-        const task = this.tasks.find(this.globalId, localId);
+        const task = this.findTask(this.globalId, localId);
         if (task) {
           task.promiseResult = result;
-        } else {
-          this.logger.warn(
-            `Task not found after execution: macro ${this.metadata.name}, local id ${localId}.`,
-          );
         }
       })
       .catch((err) => {
-        //
         if (!(err instanceof Error)) {
+          this.logger.error(err, 'Unknown error');
           err = new Error('Unknown error');
         }
         const message =
@@ -218,14 +215,9 @@ abstract class BaseMacro {
                 input,
               );
 
-        const task = this.tasks.find(this.globalId, localId);
+        const task = this.findTask(this.globalId, localId);
         if (task) {
           task.error = error;
-        } else {
-          this.logger.warn(
-            `Error handling task for macro ${this.metadata.name}, local id ${localId}:`,
-            error,
-          );
         }
       });
 
