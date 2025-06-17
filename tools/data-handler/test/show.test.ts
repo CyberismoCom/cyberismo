@@ -381,13 +381,10 @@ describe('show', () => {
       },
     };
     await commands.calculateCmd.generate();
-    showCmd
-      .showReportResults(parameters.name, 'wrong', parameters)
-      .then(() => expect(false).equal(true))
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Report 'decision/reports/wrongReport' does not exist in the project`,
-        ),
-      );
+    await expect(
+      showCmd.showReportResults(parameters.name, 'wrong', parameters),
+    ).to.be.rejectedWith(
+      `Report 'decision/reports/wrongReport' does not exist`,
+    );
   });
 });
