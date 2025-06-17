@@ -12,7 +12,6 @@
     "src"
   ],
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf node_modules",
     "lint": "eslint .",
