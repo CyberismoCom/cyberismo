@@ -53,15 +53,9 @@ router.get('/', async (c) => {
     return c.text(`No card types found from path ${c.get('projectPath')}`, 500);
   }
 
-  const cardsResponse = await commands.showCmd.showProjectCards();
-
-  if (!cardsResponse) {
-    return c.text(`No cards found from path ${c.get('projectPath')}`, 500);
-  }
-
   const response = {
-    name: (projectResponse! as any).name,
-    cards: cardsResponse,
+    name: projectResponse.name,
+    prefix: projectResponse.prefix,
     workflows: workflowsResponse,
     cardTypes: cardTypesResponse,
   };

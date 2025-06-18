@@ -122,3 +122,27 @@ test('tree endpoint returns proper data', async () => {
   );
   expect(result[0].children?.at(0)?.rank).toBe('0|a');
 });
+
+const resourceTypes = [
+  'calculations',
+  'cardTypes',
+  'fieldTypes',
+  'graphModels',
+  'graphViews',
+  'linkTypes',
+  'reports',
+  'templates',
+  'workflows',
+];
+
+for (const resourceType of resourceTypes) {
+  test(`/api/${resourceType} endpoint returns proper data`, async () => {
+    const response = await app.request(`/api/resources/${resourceType}`);
+    expect(response).not.toBe(null);
+
+    const result = (await response.json()) as any[];
+    expect(response.status).toBe(200);
+    expect(result).not.toBe(null);
+    expect(Array.isArray(result)).toBe(true);
+  });
+}

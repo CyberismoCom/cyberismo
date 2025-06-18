@@ -138,6 +138,7 @@ test('deepCopy returns null when input is null', () => {
 
 const testProject: Project = {
   name: 'Test project',
+  prefix: 'test',
   workflows: [
     {
       name: 'test/workflows/controlledDocument',
