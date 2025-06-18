@@ -10,7 +10,6 @@ describe('Clingo solver', () => {
   it('should solve a simple logic program', async () => {
     const program = 'a. b. c(1). c(2).';
     const result = await solve(program);
-    console.log(result);
 
     expect(result).toBeDefined();
     expect(result.answers).toBeInstanceOf(Array);
@@ -26,7 +25,6 @@ describe('Clingo solver', () => {
     // Solve with additional rules
     const program = 'derived :- base(X).';
     const result = await solve(program);
-    console.log('Result with default base:', result);
 
     expect(result.answers.length).toBeGreaterThan(0);
     expect(result.answers[0]).toContain('derived');
@@ -40,7 +38,6 @@ describe('Clingo solver', () => {
 
     // First solve
     const result1 = await solve('a.');
-    console.log('First solve result:', result1);
     expect(result1.answers[0]).toContain('common(value)');
     expect(result1.answers[0]).toContain('a');
 
