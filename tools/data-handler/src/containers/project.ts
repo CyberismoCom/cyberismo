@@ -660,31 +660,58 @@ export class Project extends CardContainer {
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
         calculations: [
-          ...(await this.resources.collectResourcesFromModules('calculations')),
+          ...(await this.resources.collectResourcesFromModules(
+            'calculations',
+            moduleName,
+          )),
         ],
         cardTypes: [
-          ...(await this.resources.collectResourcesFromModules('cardTypes')),
+          ...(await this.resources.collectResourcesFromModules(
+            'cardTypes',
+            moduleName,
+          )),
         ],
         fieldTypes: [
-          ...(await this.resources.collectResourcesFromModules('fieldTypes')),
+          ...(await this.resources.collectResourcesFromModules(
+            'fieldTypes',
+            moduleName,
+          )),
         ],
         graphModels: [
-          ...(await this.resources.collectResourcesFromModules('graphModels')),
+          ...(await this.resources.collectResourcesFromModules(
+            'graphModels',
+            moduleName,
+          )),
         ],
         graphViews: [
-          ...(await this.resources.collectResourcesFromModules('graphViews')),
+          ...(await this.resources.collectResourcesFromModules(
+            'graphViews',
+            moduleName,
+          )),
         ],
         linkTypes: [
-          ...(await this.resources.collectResourcesFromModules('linkTypes')),
+          ...(await this.resources.collectResourcesFromModules(
+            'linkTypes',
+            moduleName,
+          )),
         ],
         reports: [
-          ...(await this.resources.collectResourcesFromModules('reports')),
+          ...(await this.resources.collectResourcesFromModules(
+            'reports',
+            moduleName,
+          )),
         ],
         templates: [
-          ...(await this.resources.collectResourcesFromModules('templates')),
+          ...(await this.resources.collectResourcesFromModules(
+            'templates',
+            moduleName,
+          )),
         ],
         workflows: [
-          ...(await this.resources.collectResourcesFromModules('workflows')),
+          ...(await this.resources.collectResourcesFromModules(
+            'workflows',
+            moduleName,
+          )),
         ],
       };
     }
