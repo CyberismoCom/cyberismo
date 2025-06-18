@@ -1,4 +1,4 @@
-name: Changesets
+name: Publish
 
 on:
   push:
@@ -36,7 +36,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
   
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --ignore-scripts
 
       - name: Build
         run: pnpm build
