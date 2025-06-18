@@ -34,6 +34,11 @@ const HTTPS_PROTOCOL = 'https:';
 // timeout in milliseconds for git client (no stdout / stderr activity)
 const DEFAULT_TIMEOUT = 10000;
 
+// When dependencies are built to a map, use map that has
+//   key: module name,
+//   value: list of unique prefixes
+type DependencyGraph = Map<string, Set<string>>;
+
 /**
  * Class that handles module updates and imports.
  */
@@ -53,6 +58,35 @@ export class ModuleManager {
 
     // Update the resources.
     await this.project.collectModuleResources();
+  }
+
+  // Creates a map of what dependencies each module depend from.
+  private async buildDependencyGraph(
+    dependencies: ModuleSetting[],
+  ): Promise<DependencyGraph> {
+    const dependencyNames = dependencies.map((item) => item.name);
+    const dependencyGraph = new Map<string, Set<string>>() as DependencyGraph;
+    for (const dependency of dependencyNames) {
+      dependencyGraph.set(
+        dependency,
+        await this.transientDependencies(dependency),
+      );
+    }
+    return dependencyGraph;
+  }
+
+  // Returns 'true' if 'moduleName' can be removed.
+  private canBeRemoved(
+    dependencies: DependencyGraph,
+    moduleName: string,
+  ): boolean {
+    let unused = true;
+    dependencies.forEach((transientDependencies, key) => {
+      if (key !== moduleName && transientDependencies.has(moduleName)) {
+        unused = false;
+      }
+    });
+    return unused;
   }
 
   // Handles cloning of a repository.
@@ -180,6 +214,23 @@ export class ModuleManager {
     return '';
   }
 
+  // Fetches direct dependencies of a module.
+  private async dependencies(moduleName: string): Promise<Set<string>> {
+    const allModules = await this.project.modules();
+    if (!allModules) return new Set();
+    const module = allModules.find((m) => m.name === moduleName);
+    if (!module) {
+      throw new Error(`Module '${moduleName}' not found`);
+    }
+    const modulePath = join(module.path, module.name, 'cardsConfig.json');
+    const moduleConfiguration = (await readJsonFile(
+      modulePath,
+    )) as ProjectConfiguration;
+    return moduleConfiguration.modules
+      ? new Set(moduleConfiguration.modules.map((m) => m.name))
+      : new Set();
+  }
+
   // Collects one module's dependency prefixes to 'this.modules'.
   // Note that there can be duplicate entries.
   private async doCollectModulePrefix(
@@ -251,6 +302,38 @@ export class ModuleManager {
     return (
       module.location.startsWith('https:') || module.location.startsWith('git@')
     );
+  }
+
+  // Collect modules that could be removed from .cards/modules when
+  // 'moduleName' is removed.
+  private async orphanedModules(
+    dependencies: DependencyGraph,
+    moduleName: string,
+  ): Promise<string[]> {
+    const projectModules = this.project.configuration.modules;
+    const removableTransientModules: string[] = [];
+    if (dependencies.has(moduleName)) {
+      const deps = dependencies.get(moduleName);
+      for (const dependency of deps!) {
+        const projectDependency = projectModules.some(
+          (item) => item.name === dependency,
+        );
+        if (projectDependency) continue;
+
+        let orphanModule = true;
+        dependencies.forEach((transientDependencies, key) => {
+          if (key === moduleName) return;
+          if (transientDependencies.has(dependency)) {
+            orphanModule = false;
+          }
+        });
+
+        if (orphanModule) {
+          removableTransientModules.push(dependency);
+        }
+      }
+    }
+    return removableTransientModules;
   }
 
   // Prepares '.temp/modules' for cloning
@@ -375,6 +458,23 @@ export class ModuleManager {
     );
   }
 
+  // Fetches all dependencies for a module.
+  private async transientDependencies(
+    moduleName: string,
+  ): Promise<Set<string>> {
+    const dependencies = await this.dependencies(moduleName);
+    let transientDependencies: Set<string> = new Set(dependencies);
+    for (const dependency of dependencies) {
+      const depTransients = await this.transientDependencies(dependency);
+      transientDependencies = new Set([
+        ...transientDependencies,
+        ...depTransients,
+      ]);
+    }
+
+    return transientDependencies;
+  }
+
   // Updates modules in the project.
   private async update(module?: ModuleSetting, credentials?: Credentials) {
     // Prints dots every half second so that user knows that something is ongoing
@@ -417,7 +517,6 @@ export class ModuleManager {
         promises.push(this.handleModule(module)),
       );
       await Promise.all(promises);
-
       await deleteDir(this.tempModulesDir);
       await this.project.collectModuleResources();
     }
@@ -502,6 +601,39 @@ export class ModuleManager {
     );
     await this.addFileContents(sourcePath, destinationPath);
     return modulePrefix;
+  }
+
+  /**
+   * Removed module from project.
+   * If module is not used by any other modules, then will remove the module from disk as well.
+   * Otherwise, only updates project configuration.
+   * @param moduleName Name of the module to remove
+   */
+  public async removeModule(moduleName: string) {
+    const projectModules = this.project.configuration.modules;
+    const dependencies = await this.buildDependencyGraph(projectModules);
+    const module = await this.project.module(moduleName);
+
+    if (!module) {
+      throw new Error(`Module '${moduleName}' not found`);
+    }
+
+    // Project module can always be removed from project configuration,
+    // but modules under .cards/modules must be checked not to be used by
+    // other modules.
+    if (this.canBeRemoved(dependencies, moduleName)) {
+      const orphans = await this.orphanedModules(dependencies, moduleName);
+      await deleteDir(module.path);
+      for (const moduleToDelete of orphans) {
+        const modulePath = join(
+          this.project.paths.modulesFolder,
+          moduleToDelete,
+        );
+        await deleteDir(modulePath);
+      }
+      await this.project.collectModuleResources();
+    }
+    await this.project.configuration.removeModule(moduleName);
   }
 
   /**

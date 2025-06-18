@@ -117,27 +117,13 @@ describe('import csv command', () => {
 });
 
 describe('import module', () => {
-  const type = 'module';
-  const miniModule = 'mini';
-  const decisionModule = 'decision';
-
-  before(async () => {
+  beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
   });
 
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
-  });
-
-  beforeEach(async () => {
-    // Ensure that previous imports are removed.
-    await commandHandler.command(Cmd.remove, [type, miniModule], options);
-    await commandHandler.command(
-      Cmd.remove,
-      [type, decisionModule],
-      optionsMini,
-    );
   });
 
   describe('import module command', () => {
