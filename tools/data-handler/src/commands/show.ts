@@ -59,6 +59,7 @@ export class Show {
     private calculate: Calculate,
   ) {
     this.resourceFunction = new Map([
+      ['calculations', this.project.calculations.bind(this.project)],
       ['cardTypes', this.project.cardTypes.bind(this.project)],
       ['fieldTypes', this.project.fieldTypes.bind(this.project)],
       ['graphModels', this.project.graphModels.bind(this.project)],

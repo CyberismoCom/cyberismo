@@ -1,8 +1,24 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
 import { createBrowserRouter, redirect } from 'react-router';
-import CardsLayout from './pages/layout';
-import CardsPage from './pages/cards';
-import CardPage from './pages/card-view';
-import CardEditPage from './pages/card-edit';
+import CardsLayout from './pages/cards/layout';
+import CardsPage from './pages/cards/cards';
+import CardPage from './pages/cards/card-view';
+import CardEditPage from './pages/cards/card-edit';
+import Configuration from './pages/configuration/configuration';
+import Resource from './pages/configuration/resource';
+import Layout from './pages/layout';
+import ConfigLayout from './pages/configuration/layout';
 
 // Export mode guard - unfortunately need to refetch config.json to check export mode since hooks
 function createEditLoader(cardKey: string) {
@@ -45,36 +61,54 @@ export const router = createBrowserRouter([
     },
   },
   {
-    Component: CardsLayout,
+    Component: Layout,
     children: [
       {
-        path: '/cards.html',
-        loader: () => redirect('/cards'),
+        Component: CardsLayout,
+        children: [
+          {
+            path: '/cards.html',
+            loader: () => redirect('/cards'),
+          },
+          {
+            path: '/cards',
+            Component: CardsPage,
+          },
+          {
+            path: '/cards/:key.html',
+            loader: ({ params }) => {
+              return redirect(`/cards/${params.key}`);
+            },
+          },
+          {
+            path: '/cards/:key',
+            Component: CardPage,
+          },
+          {
+            path: '/cards/:key/edit.html',
+            loader: ({ params }) => {
+              return redirect(`/cards/${params.key}/edit`);
+            },
+          },
+          {
+            path: '/cards/:key/edit',
+            loader: ({ params }) => createEditLoader(params.key!)(),
+            Component: CardEditPage,
+          },
+        ],
       },
       {
-        path: '/cards',
-        Component: CardsPage,
-      },
-      {
-        path: '/cards/:key.html',
-        loader: ({ params }) => {
-          return redirect(`/cards/${params.key}`);
-        },
-      },
-      {
-        path: '/cards/:key',
-        Component: CardPage,
-      },
-      {
-        path: '/cards/:key/edit.html',
-        loader: ({ params }) => {
-          return redirect(`/cards/${params.key}/edit`);
-        },
-      },
-      {
-        path: '/cards/:key/edit',
-        loader: ({ params }) => createEditLoader(params.key!)(),
-        Component: CardEditPage,
+        Component: ConfigLayout,
+        children: [
+          {
+            path: '/configuration/',
+            Component: Configuration,
+          },
+          {
+            path: '/configuration/:resource',
+            Component: Resource,
+          },
+        ],
       },
     ],
   },
