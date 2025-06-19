@@ -14,9 +14,8 @@
 
 import { type Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 
-import { CardContainer } from '../card-container.js';
 import type { Project } from '../project.js';
 import type { ProjectPaths } from './project-paths.js';
 import type {
@@ -37,6 +36,9 @@ export enum ResourcesFrom {
   importedOnly = 'imported',
   localOnly = 'local',
 }
+
+// This class collects resources that have these types of files.
+const allowedExtensions = ['.lp', '.json'];
 
 // Helper class to contain collected resources.
 class ResourceCollection {
@@ -109,9 +111,7 @@ export class ResourceCollector {
     }
 
     const isValidFile = (item: Dirent): boolean =>
-      item.isFile() &&
-      item.name !== CardContainer.schemaContentFile &&
-      item.name !== '.gitkeep';
+      item.isFile() && allowedExtensions.includes(extname(item.name));
 
     const processResource = async (resource: Dirent): Promise<Resource[]> => {
       const resourcePath = join(
@@ -231,13 +231,10 @@ export class ResourceCollector {
     }
     resources.push(
       ...entries
-        .filter((entry) => {
-          return (
-            entry.isFile() &&
-            entry.name !== '.gitkeep' &&
-            entry.name !== CardContainer.schemaContentFile
-          );
-        })
+        .filter(
+          (entry) =>
+            entry.isFile() && allowedExtensions.includes(extname(entry.name)),
+        )
         .map((entry) => {
           if (entry.name.endsWith('.json')) {
             entry.name = stripExtension(entry.name);
