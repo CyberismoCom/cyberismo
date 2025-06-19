@@ -6,7 +6,6 @@
 % select(field): "field" should be returned on all levels of hierarchy for all collections
 % selectAll: all fields should be returned on all levels of hierarchy for all collections
 
-% select works similarly for "labels", "links", "notifications", "policyChecks" and "deniedOperations" as it works for fields
 
 select(N, Collection, Field) :- select(Field), resultLevel(_, N, Collection).
 
@@ -22,38 +21,44 @@ childResult(Key, Child, "results") :- childResult(Key, Child).
 % resultLevel(key, n, collection): result "key" is on result level n in "collection"
 resultLevel(Key, 1, "results") :- result(Key).
 resultLevel(Child, N+1, Collection) :- childResult(Key, Child, Collection), resultLevel(Key, N, _).
+resultLevel(Child, N+1, Collection) :- childObject(Key, Child, Collection), resultLevel(Key, N, _).
 
 % result(key): key is a result of the query
 #show result(Key) : result(Key), not queryError.
 
 % childResult(key, child key): child key is a child result of key
 #show childResult(Key, Child, Collection) : childResult(Key, Child, Collection), not queryError.
-
+% childObject(key, child, collection): childObject is similar to childResult, expect it is an object
+#show childObject(Key, Child, Collection) : childObject(Key, Child, Collection), not queryError.
 % helpers for simplifying some of the #show statements
 
-% resultOrChildResult(key): key is included in the results as a result or a child result
-resultOrChildResult(Key) :- result(Key).
-resultOrChildResult(Key) :- childResult(_, Key, _).
+% anyResult(key): key is included in the results as a result or a child result/object
+anyResult(Key) :- result(Key).
+anyResult(Key) :- childResult(_, Key, _).
+anyResult(Key) :- childObject(_, Key, _).
 
 % showAll(key): whether all fields or field-like things of a key should be included in the results
 showAll(Key) :-
-    resultOrChildResult(Key),
+    anyResult(Key),
     resultLevel(Key, Level, _),
     selectAll(Level),
     not queryError.
 
 % showField: whether a certain field or field-like thing of a key should be included in the results
 showField(Key, Field) :-
-    resultOrChildResult(Key),
+    anyResult(Key),
     resultLevel(Key, Level, _),
     select(Level, Field),
     not queryError.
 
 showField(Key, Field) :-
-    resultOrChildResult(Key),
+    anyResult(Key),
     resultLevel(Key, Level, Collection),
     select(Level, Collection, Field),
     not queryError.
+
+% showField is also defined if showAll is defined so there is only a single show predicate for each result
+showField(Key, Field) :- showAll(Key), field(Key, Field, _).
 
 % Fields
 %
@@ -74,292 +79,80 @@ showField(Key, Field) :-
     DataType != "list",
     showField(Key, Field).
 
-#show field(Key, Field, Value, DataType) :
-    field(Key, Field, Value),
-    dataType(Key, Field, DataType),
-    DataType != "enum",
-    DataType != "list",
-    showAll(Key).
-
 #show field(Key, Field, Value, "shortText") :
     field(Key, Field, Value),
     not dataType(Key, Field, _),
     showField(Key, Field).
 
-#show field(Key, Field, Value, "shortText") :
+% list
+childResult(Key, (Key, Field, Value), Field) :-
     field(Key, Field, Value),
-    not dataType(Key, Field, _),
-    showAll(Key).
+    dataType(Key, Field, "list"),
+    showField(Key, Field).
 
-#show enumField(Key, Field, Value, Index, DisplayValue) :
+field((Key, Field, Value), "value", Value, "shortText") :-
+    childResult(Key, (Key, Field, Value), Field),
+    field(Key, Field, Value),
+    dataType(Key, Field, "list").
+
+field((Key, Field, Value), "index", Index, "integer") :-
+    childResult(Key, (Key, Field, Value), Field),
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    field((Field, Value), "index", Index).
+
+field((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
+    childResult(Key, (Key, Field, Value), Field),
+    field(Key, Field, Value),
+    dataType(Key, Field, "list"),
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
+
+% enum
+childObject(Key, (Key, Field), Field) :-
+    field(Key, Field, _),
+    dataType(Key, Field, "enum"),
+    showField(Key, Field).
+
+field((Key, Field), "value", Value, "shortText") :-
+    childObject(Key, (Key, Field), Field),
+    field(Key, Field, Value),
+    dataType(Key, Field, "enum").
+
+field((Key, Field), "index", Index, "integer") :-
+    childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
-    field((Field, Value), "index", Index),
-    field((Field, Value), "enumDisplayValue", DisplayValue),
-    showField(Key, Field).
+    field((Field, Value), "index", Index).
 
-#show enumField(Key, Field, Value, Index, Value) :
+field((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
+    childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
-    field((Field, Value), "index", Index),
-    not field((Field, Value), "enumDisplayValue", _),
-    showField(Key, Field).
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
-#show enumField(Key, Field, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    not field((Field, Value), "index", _),
-    not field((Field, Value), "enumDisplayValue", _),
-    showField(Key, Field).
+% Allow specifying up to 3 fields at the same time
+field(Key, Field, Value) :-
+    field(Key, Field, Value, _, _).
 
-#show enumField(Key, Field, Value, Index, DisplayValue) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    field((Field, Value), "index", Index),
-    field((Field, Value), "enumDisplayValue", DisplayValue),
-    showAll(Key).
+field(Key, Field, Value) :-
+    field(Key, _, _, Field, Value).
 
-#show enumField(Key, Field, Value, Index, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "enum"),
-    field((Field, Value), "index", Index),
-    not field((Field, Value), "enumDisplayValue", _),
-    showAll(Key).
+field(Key, Field, Value) :-
+    field(Key, Field, Value, _, _, _, _).
 
-#show enumField(Key, Field, Value) :
-     field(Key, Field, Value),
-     dataType(Key, Field, "enum"),
-     not field((Field, Value), "index", _),
-     not field((Field, Value), "enumDisplayValue", _),
-     showAll(Key).
+field(Key, Field, Value) :-
+    field(Key, _, _, Field, Value, _, _).
+    
+field(Key, Field, Value) :-
+    field(Key, _, _, _, _, Field, Value).
 
-#show listField(Key, Field, Value, Index, DisplayValue) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    field((Field, Value), "enumDisplayValue", DisplayValue),
-    showField(Key, Field).
+% allow using field directly
+field(Key, Field, Value) :- field(Key, Field, Value, _).
+dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
 
-#show listField(Key, Field, Value, Index, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    not field((Field, Value), "enumDisplayValue", _),
-    showField(Key, Field).
 
-#show listField(Key, Field, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    not field((Field, Value), "index", _),
-    not field((Field, Value), "enumDisplayValue", _),
-    showField(Key, Field).
-
-#show listField(Key, Field, Value, Index, DisplayValue) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    field((Field, Value), "enumDisplayValue", DisplayValue),
-    showAll(Key).
-
-#show listField(Key, Field, Value, Index, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    field((Field, Value), "index", Index),
-    not field((Field, Value), "enumDisplayValue", _),
-    showAll(Key).
-
-#show listField(Key, Field, Value) :
-    field(Key, Field, Value),
-    dataType(Key, Field, "list"),
-    not field((Field, Value), "index", _),
-    not field((Field, Value), "enumDisplayValue", _),
-    showAll(Key).
-
-% label(key, label): key is tagged with "label"
-
-#show label(Key, Label) :
-    label(Key, Label),
-    showField(Key, "labels").
-
-#show label(Key, Label) :
-    label(Key, Label),
-    showAll(Key).
-
-% links
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "user", LinkDescription) :
-    userLink(Source, Destination, LinkType, LinkDescription),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showField(Source, "links").
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "user", LinkDescription) :
-    userLink(Source, Destination, LinkType, LinkDescription),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showField(Destination, "links").
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "user", LinkDescription) :
-    userLink(Source, Destination, LinkType, LinkDescription),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showAll(Source).
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "user", LinkDescription) :
-    userLink(Source, Destination, LinkType, LinkDescription),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showAll(Destination).
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "user") :
-    userLink(Source, Destination, LinkType),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showField(Source, "links").
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "user") :
-    userLink(Source, Destination, LinkType),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showField(Destination, "links").
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "user") :
-    userLink(Source, Destination, LinkType),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showAll(Source).
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "user") :
-    userLink(Source, Destination, LinkType),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showAll(Destination).
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "calculated", LinkDescription) :
-    calculatedLink(Source, Destination, LinkType, LinkDescription),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showField(Source, "links").
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "calculated", LinkDescription) :
-    calculatedLink(Source, Destination, LinkType, LinkDescription),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showField(Destination, "links").
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "calculated", LinkDescription) :
-    calculatedLink(Source, Destination, LinkType, LinkDescription),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showAll(Source).
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "calculated", LinkDescription) :
-    calculatedLink(Source, Destination, LinkType, LinkDescription),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showAll(Destination).
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "calculated") :
-    calculatedLink(Source, Destination, LinkType),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showField(Source, "links").
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "calculated") :
-    calculatedLink(Source, Destination, LinkType),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showField(Destination, "links").
-
-#show link(Source, Destination, DestinationTitle, LinkType, OutboundDisplayName, "outbound", "calculated") :
-    calculatedLink(Source, Destination, LinkType),
-    field(Destination, "title", DestinationTitle),
-    field(LinkType, "outboundDisplayName", OutboundDisplayName),
-    showAll(Source).
-
-#show link(Destination, Source, SourceTitle, LinkType, InboundDisplayName, "inbound", "calculated") :
-    calculatedLink(Source, Destination, LinkType),
-    field(Source, "title", SourceTitle),
-    field(LinkType, "inboundDisplayName", InboundDisplayName),
-    showAll(Destination).
-
-% notifications
-
-#show notification(Key, Category, Title, Message) :
-    notification(Key, Category, Title, Message),
-    showField(Key, "notifications").
-
-#show notification(Key, Category, Title, Message) :
-    notification(Key, Category, Title, Message),
-    showAll(Key).
-
-% policy checks
-
-#show policyCheckFailure(Key, Category, Title, ErrorMessage, Field) :
-    policyCheckFailure(Key, Category, Title, ErrorMessage, Field),
-    showField(Key, "policyChecks").
-
-#show policyCheckFailure(Key, Category, Title, ErrorMessage, Field) :
-    policyCheckFailure(Key, Category, Title, ErrorMessage, Field),
-    showAll(Key).
-
-#show policyCheckFailure(Key, Category, Title, ErrorMessage) :
-    policyCheckFailure(Key, Category, Title, ErrorMessage),
-    showField(Key, "policyChecks").
-
-#show policyCheckFailure(Key, Category, Title, ErrorMessage) :
-    policyCheckFailure(Key, Category, Title, ErrorMessage),
-    showAll(Key).
-
-#show policyCheckSuccess(Key, Category, Title) :
-    policyCheckSuccess(Key, Category, Title),
-    showField(Key, "policyChecks").
-
-#show policyCheckSuccess(Key, Category, Title) :
-    policyCheckSuccess(Key, Category, Title),
-    showAll(Key).
-
-% denied operations
-
-#show transitionDenied(Key, Transition, ErrorMessage) :
-    transitionDenied(Key, Transition, ErrorMessage),
-    showField(Key, "deniedOperations").
-
-#show transitionDenied(Key, Transition, ErrorMessage) :
-    transitionDenied(Key, Transition, ErrorMessage),
-    showAll(Key).
-
-#show movingCardDenied(Key, ErrorMessage) :
-    movingCardDenied(Key, ErrorMessage),
-    showField(Key, "deniedOperations").
-
-#show movingCardDenied(Key, ErrorMessage) :
-    movingCardDenied(Key, ErrorMessage),
-    showAll(Key).
-
-#show deletingCardDenied(Key, ErrorMessage) :
-    deletingCardDenied(Key, ErrorMessage),
-    showField(Key, "deniedOperations").
-
-#show deletingCardDenied(Key, ErrorMessage) :
-    deletingCardDenied(Key, ErrorMessage),
-    showAll(Key).
-
-#show editingFieldDenied(Key, Field, ErrorMessage) :
-    editingFieldDenied(Key, Field, ErrorMessage),
-    showField(Key, "deniedOperations").
-
-#show editingFieldDenied(Key, Field, ErrorMessage) :
-    editingFieldDenied(Key, Field, ErrorMessage),
-    showAll(Key).
-
-#show editingContentDenied(Key, ErrorMessage) :
-    editingContentDenied(Key, ErrorMessage),
-    showField(Key, "deniedOperations").
-
-#show editingContentDenied(Key, ErrorMessage) :
-    editingContentDenied(Key, ErrorMessage),
-    showAll(Key).
+% list(ParentKey, Collection): Allows defining a list under a parent. Allows guaranteeing an empty list, if no elements are present
+#show list(ParentKey, Collection) : list(ParentKey, Collection).
 
 % order(n, collection, 1, field, direction): the results in the collection on level n should be first ordered by "field" in "direction"
 % order(n, collection, 2, field, direction): the results in the collection on level n should be secondly ordered by "field" in "direction"

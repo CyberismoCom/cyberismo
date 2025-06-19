@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "shx rm -rf dist && shx mkdir -p dist && pnpm script:schemas && node scripts/build.js && tsc && shx cp -r src/static dist/",
-    "dev": "chokidar 'src/**/*' -c 'pnpm build'",
+    "dev": "pnpm build && chokidar 'src/**/*' -i 'src/schemas.ts' -c 'pnpm build'",
     "script:schemas": "node scripts/generateSchemaImports && prettier --write src/schemas.ts"
   },
   "keywords": [],

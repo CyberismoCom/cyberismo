@@ -15,38 +15,16 @@ use(chaiAsPromised);
 const expectedTree: QueryResult<'tree'>[] = [
   {
     key: 'decision_5',
-    labels: [],
     cardType: 'decision/cardTypes/simplepage',
-    links: [],
     rank: '0|a',
     children: [
       {
         key: 'decision_6',
         cardType: 'decision/cardTypes/decision',
-        labels: [],
-        links: [],
         rank: '0|a',
-        notifications: [],
-        policyChecks: { successes: [], failures: [] },
-        deniedOperations: {
-          transition: [],
-          move: [],
-          delete: [],
-          editField: [],
-          editContent: [],
-        },
         title: 'Document Decisions with Decision Records',
       },
     ],
-    notifications: [],
-    policyChecks: { successes: [], failures: [] },
-    deniedOperations: {
-      transition: [],
-      move: [],
-      delete: [],
-      editField: [],
-      editContent: [],
-    },
     title: 'Decision Records',
   },
 ];
