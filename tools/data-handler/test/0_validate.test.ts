@@ -150,54 +150,6 @@ describe('validate cmd tests', () => {
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
     expect(valid.length).to.be.greaterThan(0);
   });
-  it('validateSchema() - cardsConfig', async () => {
-    const path =
-      'test/test-data/valid/decision-records/.cards/local/cardsConfig.json';
-    const schemaId = 'cardsConfigSchema';
-    const valid = await validateCmd.validateSchema(path, schemaId);
-    expect(valid.length).to.equal(0);
-  });
-  it('validateSchema() - card type', async () => {
-    const path =
-      'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
-    const schemaId = 'cardTypeSchema';
-    const valid = await validateCmd.validateSchema(path, schemaId);
-    expect(valid.length).to.equal(0);
-  });
-  it('validateSchema() - template', async () => {
-    const path =
-      'test/test-data/valid/decision-records/.cards/local/templates/decision.json';
-    const schemaId = 'templateSchema';
-    const valid = await validateCmd.validateSchema(path, schemaId);
-    expect(valid.length).to.equal(0);
-  });
-  it('validateSchema() - workflow', async () => {
-    const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
-    const schemaId = 'workflowSchema';
-    const valid = await validateCmd.validateSchema(path, schemaId);
-    expect(valid.length).to.equal(0);
-  });
-  it('try to validateSchema() - invalid JSON', async () => {
-    const schemaId = 'workflowSchema';
-    await validateCmd
-      .validateSchema('', schemaId)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal('Path is not valid '),
-      );
-  });
-  it('try to validateSchema() - invalid schemaId', async () => {
-    const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision';
-    const schemaId = 'i-do-not-exists';
-    await validateCmd
-      .validateSchema(path, schemaId)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          "Unknown schema '/i-do-not-exists'",
-        ),
-      );
-  });
 
   it('validateWorkflowState (success)', async () => {
     const project = new Project('test/test-data/valid/decision-records/');

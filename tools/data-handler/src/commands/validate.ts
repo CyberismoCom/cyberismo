@@ -705,41 +705,6 @@ export class Validate {
   }
 
   /**
-   * Validate schema that matches schemaId from path.
-   * @param projectPath path to schema
-   * @param schemaId schema's id
-   * @returns string containing all validation errors
-   * @todo - unused; remove?
-   */
-  public async validateSchema(
-    projectPath: string,
-    schemaId: string,
-  ): Promise<string> {
-    const validationErrors: string[] = [];
-    if (!schemaId.startsWith('/')) {
-      schemaId = '/' + schemaId;
-    }
-    const activeJsonSchema = this.validator.schemas[schemaId];
-    if (activeJsonSchema === undefined) {
-      throw new Error(`Unknown schema '${schemaId}'`);
-    } else {
-      let contentFile = '';
-      try {
-        contentFile = await readJsonFile(projectPath);
-      } catch {
-        throw new Error(`Path is not valid ${projectPath}`);
-      }
-
-      const result = this.validator.validate(contentFile, activeJsonSchema);
-      for (const error of result.errors) {
-        const msg = `Schema '${schemaId}' validation Error: ${error.message}\n`;
-        validationErrors.push(msg);
-      }
-    }
-    return validationErrors.join('\n');
-  }
-
-  /**
    * Validates that card's custom fields are according to schema and have correct data in them.
    * @param project currently used Project
    * @param card specific card
