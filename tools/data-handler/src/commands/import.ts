@@ -134,6 +134,9 @@ export class Import {
     destination?: string,
     options?: ModuleSettingOptions,
   ) {
+    const beforeImportValidateErrors = await Validate.getInstance().validate(
+      this.project.basePath,
+    );
     const gitModule = source.startsWith('https') || source.startsWith('git@');
     const modulePrefix = gitModule
       ? await this.moduleManager.importGitModule(source, options)
@@ -156,7 +159,17 @@ export class Import {
     await this.moduleManager.updateModule(moduleSettings, options?.credentials);
 
     // Add module as a dependency.
-    return this.project.importModule(moduleSettings);
+    await this.project.importModule(moduleSettings);
+
+    // Validate the project after module has been imported
+    const afterImportValidateErrors = await Validate.getInstance().validate(
+      this.project.basePath,
+    );
+    if (afterImportValidateErrors.length > beforeImportValidateErrors.length) {
+      console.error(
+        `There are new validations errors after importing the module. Check the project`,
+      );
+    }
   }
 
   /**

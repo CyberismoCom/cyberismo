@@ -257,14 +257,15 @@ export class ModuleManager {
   private async handleFileModule(module: ModuleSetting) {
     this.stripProtocolFromLocation(module);
     await this.remove(module);
-    await this.importFromFolder(module);
+    await this.importFromFolder(module.location, module.name);
   }
 
   // Updates one module that is received from Git.
   private async handleGitModule(module: ModuleSetting) {
     await this.clone(module);
+    const tempLocation = join(this.tempModulesDir, module.name);
     await this.remove(module);
-    await this.importFromTemp(module);
+    await this.importFromFolder(tempLocation, module.name);
   }
 
   // Updates one module.
@@ -274,19 +275,11 @@ export class ModuleManager {
       : this.handleFileModule(module);
   }
 
-  // Handles importing a module from module settings 'location'
-  private async importFromFolder(module: ModuleSetting) {
-    await this.importFileModule(module.location);
+  // Imports from a given folder. Is used both for .temp/<module name> and file locations.
+  private async importFromFolder(path: string, name: string) {
+    await this.importFileModule(path);
     console.log(
-      `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
-    );
-  }
-
-  // Handles importing a module from '.temp' folder
-  private async importFromTemp(module: ModuleSetting) {
-    await this.importFileModule(join(this.tempModulesDir, module.name));
-    console.log(
-      `... Imported module '${module.name}' to '${this.project.configuration.name}'`,
+      `... Imported module '${name}' to '${this.project.configuration.name}'`,
     );
   }
 
