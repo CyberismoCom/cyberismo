@@ -14,7 +14,7 @@
 
 import { type Dirent, readdirSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 
 import { CardContainer } from '../card-container.js';
 import type { Project } from '../project.js';
@@ -232,10 +232,9 @@ export class ResourceCollector {
     resources.push(
       ...entries
         .filter((entry) => {
+          const extension = extname(entry.name);
           return (
-            entry.isFile() &&
-            entry.name !== '.gitkeep' &&
-            entry.name !== CardContainer.schemaContentFile
+            (entry.isFile() && extension === '.json') || extension === '.lp'
           );
         })
         .map((entry) => {
