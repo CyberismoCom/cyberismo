@@ -50,27 +50,27 @@ export class ActionGuard {
     }
     const res = cards[0];
     if (action === 'editContent') {
-      return checkOperation(res.deniedOperations.editContent);
+      return checkOperation(res.deniedOperations.editContent ?? []);
     }
     if (action === 'transition') {
       return checkOperation(
-        res.deniedOperations.transition.filter(
+        res.deniedOperations.transition?.filter(
           (value) => value.transitionName === param,
-        ),
+        ) ?? [],
       );
     }
     if (action === 'delete') {
-      return checkOperation(res.deniedOperations.delete);
+      return checkOperation(res.deniedOperations.delete ?? []);
     }
     if (action === 'editField') {
       return checkOperation(
-        res.deniedOperations.editField.filter(
+        res.deniedOperations.editField?.filter(
           (value) => value.fieldName === param,
-        ),
+        ) ?? [],
       );
     }
     if (action === 'move') {
-      return checkOperation(res.deniedOperations.move);
+      return checkOperation(res.deniedOperations.move ?? []);
     }
     throw new Error(`Action: ${action} does not support checking permissions`);
   }

@@ -61,11 +61,6 @@ export interface DeniedOperationCollection {
 
 export interface BaseResult extends Record<string, unknown> {
   key: string;
-  labels: string[];
-  links: CalculationLink[];
-  notifications: Notification[];
-  policyChecks: PolicyCheckCollection;
-  deniedOperations: DeniedOperationCollection;
 }
 
 export interface ParseResult<T extends BaseResult> {
@@ -99,7 +94,12 @@ interface CardQueryResult extends BaseResult {
   cardType: string;
   workflowState: string;
   lastUpdated: string;
-  fields?: CardQueryField[];
+  fields: CardQueryField[];
+  labels: string[];
+  links: CalculationLink[];
+  notifications: Notification[];
+  policyChecks: PolicyCheckCollection;
+  deniedOperations: DeniedOperationCollection;
 }
 interface FieldsToUpdateQueryResult extends BaseResult {
   updateFields: UpdateField[];
