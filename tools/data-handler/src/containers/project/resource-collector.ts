@@ -55,17 +55,31 @@ class ResourceCollection {
    * @param type Resource array type to return.
    * @returns resource array of a give type.
    */
-  public resourceArray(type: ResourceFolderType): Resource[] {
-    if (type === 'calculations') return this.calculations;
-    if (type === 'cardTypes') return this.cardTypes;
-    if (type === 'fieldTypes') return this.fieldTypes;
-    if (type === 'graphViews') return this.graphViews;
-    if (type === 'graphModels') return this.graphModels;
-    if (type === 'linkTypes') return this.linkTypes;
-    if (type === 'reports') return this.reports;
-    if (type === 'templates') return this.templates;
-    if (type === 'workflows') return this.workflows;
-    throw new Error(`Unknown resource type '${type}'`);
+  public resourceArray(
+    type: ResourceFolderType,
+    moduleName?: string,
+  ): Resource[] {
+    let resources: Resource[] = [];
+
+    if (type === 'calculations') resources = this.calculations;
+    else if (type === 'cardTypes') resources = this.cardTypes;
+    else if (type === 'fieldTypes') resources = this.fieldTypes;
+    else if (type === 'graphViews') resources = this.graphViews;
+    else if (type === 'graphModels') resources = this.graphModels;
+    else if (type === 'linkTypes') resources = this.linkTypes;
+    else if (type === 'reports') resources = this.reports;
+    else if (type === 'templates') resources = this.templates;
+    else if (type === 'workflows') resources = this.workflows;
+    else throw new Error(`Unknown resource type '${type}'`);
+
+    if (moduleName) {
+      resources = resources.filter((item) => {
+        const { prefix } = resourceName(item.name);
+        return moduleName === prefix;
+      });
+    }
+
+    return resources;
   }
 }
 
@@ -162,6 +176,7 @@ export class ResourceCollector {
   // Adds a resource type from all modules.
   private async addResourcesFromModules(
     type: ResourceFolderType,
+    moduleName?: string,
   ): Promise<Resource[]> {
     try {
       // 'modules' is a bit special; it is collected separately from actual resources.
@@ -174,7 +189,7 @@ export class ResourceCollector {
       }
 
       await this.addModuleResources();
-      return this.modules.resourceArray(type);
+      return this.modules.resourceArray(type, moduleName);
     } catch {
       return [];
     }
@@ -261,10 +276,14 @@ export class ResourceCollector {
   /**
    * Collect specific resource from modules.
    * @param type Type of resource (e.g. 'templates').
+   * @param moduleName Name of the module to collect resources from
    * @returns array of collected items.
    */
-  public async collectResourcesFromModules(type: ResourceFolderType) {
-    return (await this.addResourcesFromModules(type)).map((item) =>
+  public async collectResourcesFromModules(
+    type: ResourceFolderType,
+    moduleName?: string,
+  ) {
+    return (await this.addResourcesFromModules(type, moduleName)).map((item) =>
       stripExtension(item.name),
     );
   }
