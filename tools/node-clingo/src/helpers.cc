@@ -80,12 +80,6 @@ namespace node_clingo
             case '&':
                 result += amp;
                 break;
-            case '\"':
-                result += quot;
-                break;
-            case '\'':
-                result += apos;
-                break;
             case '<':
                 result += lt;
                 break;

@@ -73,7 +73,7 @@ namespace node_clingo
 
     /**
      * Handler for the @wrap function.
-     * Wraps a value within a specified range.
+     * Wraps a value within a specified range. Also escapes the result.
      * @param arguments Array of clingo symbols representing the value, min, and max.
      * @param arguments_size Number of arguments.
      * @param symbol_callback Callback function to return the result symbol.
