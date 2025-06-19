@@ -136,5 +136,18 @@
     "success_plural": "{{count}} links created successfully",
     "partialFailure": "{{count}} link failed to create",
     "partialFailure_plural": "{{count}} links failed to create"
-  }
+  },
+  "resources": {
+    "calculations": "Calculations",
+    "cardTypes": "Card types",
+    "fieldTypes": "Field types",
+    "graphModels": "Graph models",
+    "graphViews": "Graph views",
+    "linkTypes": "Link types",
+    "modules": "Modules",
+    "reports": "Reports",
+    "templates": "Templates",
+    "workflows": "Workflows"
+  },
+  "selectResource": "Select resource"
 }

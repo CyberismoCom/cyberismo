@@ -116,6 +116,7 @@ describe('StateSelector', () => {
 
 const testProject: Project = {
   name: 'Test project',
+  prefix: 'test',
   workflows: [
     {
       name: 'test/workflows/controlledDocument',
