@@ -111,6 +111,7 @@ interface TreeQueryResult extends BaseResult {
   cardType: string;
   statusIndicator?: StatusIndicator;
   children?: TreeQueryResult[];
+  template?: string;
 }
 
 export interface UpdateField {

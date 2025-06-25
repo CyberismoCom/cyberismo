@@ -552,12 +552,9 @@ export class Calculate {
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
     let content = lpFiles.queries[queryName];
-    if (options && typeof options === 'object') {
-      const handlebars = Handlebars.create();
-      const compiled = handlebars.compile(content);
-      content = compiled(options);
-    }
-
+    const handlebars = Handlebars.create();
+    const compiled = handlebars.compile(content);
+    content = compiled(options || {});
     if (!content) {
       throw new Error(`Query file ${queryName} not found`);
     }

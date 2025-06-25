@@ -14,23 +14,43 @@
 import { Box, Typography } from '@mui/joy';
 import { NodeRendererProps, NodeApi } from 'react-arborist';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { hasResourceData, ResourceNode } from '@/lib/api/resources';
+import { useTranslation } from 'react-i18next';
 
-interface SimpleNodeData {
-  id: string;
-  label: string;
-  children?: SimpleNodeData[];
+interface ConfigTreeNodeProps extends NodeRendererProps<ResourceNode> {
+  onNodeClick?: (node: NodeApi<ResourceNode>) => void;
 }
 
-interface SimpleTreeNodeProps extends NodeRendererProps<SimpleNodeData> {
-  onNodeClick?: (node: NodeApi<SimpleNodeData>) => void;
+function identifier(name: string) {
+  const parts = name.split('/');
+  return parts[parts.length - 1];
 }
 
-export const SimpleTreeNode = ({
+function getResourceName(
+  node: NodeApi<ResourceNode>,
+  t: (key: string) => string,
+) {
+  const resourceData = hasResourceData(node.data) ? node.data.data : null;
+  if (node.data.type === 'module') {
+    return node.data.name;
+  }
+  if (node.data.type === 'card') {
+    return node.data.data.title || node.data.data.key;
+  }
+  if (node.data.type === 'resourceGroup' || node.data.type === 'modulesGroup') {
+    return t(`resources.${node.data.name}`);
+  }
+  return resourceData?.displayName || identifier(node.data.name);
+}
+
+export const ConfigTreeNode = ({
   node,
   style,
   dragHandle,
   onNodeClick,
-}: SimpleTreeNodeProps) => {
+}: ConfigTreeNodeProps) => {
+  const { t } = useTranslation();
+
   return (
     <Box
       className="treenode"
@@ -73,7 +93,7 @@ export const SimpleTreeNode = ({
           cursor: 'pointer',
         }}
       >
-        {node.data.label}
+        {getResourceName(node, t)}
       </Typography>
     </Box>
   );

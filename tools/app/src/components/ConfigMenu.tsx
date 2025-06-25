@@ -13,17 +13,19 @@
 
 import { useResourceTree } from '@/lib/api';
 import { BaseTreeComponent } from './BaseTreeComponent';
-import { SimpleTreeNode } from './tree-nodes';
+import { ConfigTreeNode } from './tree-nodes';
+import { useProject } from '@/lib/api/project';
 
 export default function ConfigMenu() {
-  const { data: resources } = useResourceTree();
+  const { resourceTree } = useResourceTree();
+  const { project } = useProject();
 
   return (
     <BaseTreeComponent
-      title="Title"
+      title={`Configuration - ${project?.name}`}
       linkTo="/configuration"
-      data={resources}
-      nodeRenderer={SimpleTreeNode}
+      data={resourceTree}
+      nodeRenderer={ConfigTreeNode}
       idAccessor="id"
       childrenAccessor="children"
     />

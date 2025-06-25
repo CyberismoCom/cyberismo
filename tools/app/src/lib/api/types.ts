@@ -21,6 +21,7 @@ import {
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { SWRResponse } from 'swr';
+import { ResourceNode } from './resources';
 
 export type CardResponse = {
   parsedContent: string;
@@ -36,6 +37,7 @@ export type Resources = {
   templates: TemplateConfiguration[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
+  resourceTree: ResourceNode[];
 };
 
 export type ResourceName = keyof Resources;
@@ -49,8 +51,8 @@ export type AdditionalProperties = {
   isUpdating: (key2?: string) => boolean;
 };
 
-export type SwrResult<T extends ResourceName> = {
-  [key in T]: Resources[T] | null;
+export type SwrResult<T extends ResourceName, InitialData = null> = {
+  [key in T]: Resources[T] | InitialData;
 } & Omit<SWRResponse<Resources[T]>, 'data'> &
   AdditionalProperties;
 

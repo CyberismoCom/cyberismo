@@ -183,7 +183,7 @@ export class Project extends CardContainer {
    * @returns array of all calculation files in the project.
    */
   public async calculations(
-    from: ResourcesFrom = ResourcesFrom.localOnly,
+    from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     return this.resources.resources('calculations', from);
   }

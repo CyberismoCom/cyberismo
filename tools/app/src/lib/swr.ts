@@ -105,8 +105,11 @@ export const apiPaths = {
   fieldTypes: () => '/api/fieldTypes',
   cardType: (cardType: string) => `/api/cardTypes?name=${cardType}`,
   templates: () => '/api/templates',
+  templateTree: () => '/api/templates/tree',
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,
   linkTypes: () => '/api/linkTypes',
+  resources: (type: string) => `/api/resources/${type}`,
+  resourceTree: () => '/api/resources/tree',
   tree: () => '/api/tree',
 };

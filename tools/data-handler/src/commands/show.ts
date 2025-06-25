@@ -394,6 +394,14 @@ export class Show {
     name: string,
     showUse: boolean = false,
   ): Promise<ResourceContent | undefined> {
+    // TODO: remove this workaround once calculations are implemented as a resource class
+    if (resourceName(name).type === 'calculations') {
+      return {
+        name,
+        displayName: resourceName(name).identifier,
+      };
+    }
+
     const strictNameCheck = true;
     const resource = Project.resourceObject(
       this.project,

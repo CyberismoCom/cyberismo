@@ -21,6 +21,7 @@ export const useProject = (options?: SWRConfiguration) => {
   const { callUpdate, ...rest } = useSWRHook<'project'>(
     apiPaths.project(),
     'project',
+    null,
     options,
   );
   return {

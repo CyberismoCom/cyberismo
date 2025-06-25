@@ -123,6 +123,7 @@ export interface ResourceBaseMetadata {
 
 // All resources metadata content.
 export type ResourceContent =
+  | CalculationMetadata
   | CardType
   | FieldType
   | GraphModel

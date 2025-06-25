@@ -14,7 +14,7 @@
 import { NodeApi } from 'react-arborist';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { BaseTreeComponent } from './BaseTreeComponent';
-import { EnhancedTreeNode } from './tree-nodes';
+import { CardTreeNode } from './tree-nodes';
 
 type TreeMenuProps = {
   title?: string;
@@ -47,7 +47,7 @@ export const TreeMenu = ({
       linkTo={(title && '/cards') || ''}
       data={tree}
       selectedId={selectedCardKey}
-      nodeRenderer={EnhancedTreeNode}
+      nodeRenderer={CardTreeNode}
       idAccessor={(node) => node.key}
       childrenAccessor="children"
       onMove={handleMove}

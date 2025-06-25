@@ -19,7 +19,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 
-interface EnhancedTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
+interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;
 }
 
@@ -31,12 +31,12 @@ const chipColor = (value: string) => {
   else return 'warning.300';
 };
 
-export const EnhancedTreeNode = ({
+export const CardTreeNode = ({
   node,
   style,
   dragHandle,
   onNodeClick,
-}: EnhancedTreeNodeProps) => {
+}: CardTreeNodeProps) => {
   const progress = node.data.progress;
 
   const renderStatusIndicator = () => {
