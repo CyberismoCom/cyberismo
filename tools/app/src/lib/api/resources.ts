@@ -105,6 +105,12 @@ interface CalculationNode extends BaseResourceNode {
   data: CalculationMetadata;
 }
 
+// File node for static sub-editors
+interface FileNode extends BaseResourceNode {
+  type: 'file';
+  name: string;
+}
+
 // Union type for all possible resource nodes
 export type ResourceNode =
   | ResourceGroupNode
@@ -119,7 +125,8 @@ export type ResourceNode =
   | GraphModelNode
   | GraphViewNode
   | CalculationNode
-  | CardNode;
+  | CardNode
+  | FileNode;
 
 // Type guard helpers for working with ResourceNode
 export const isResourceOfType = <T extends ResourceNode['type']>(
