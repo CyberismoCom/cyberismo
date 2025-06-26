@@ -25,8 +25,10 @@ import type {
   Workflow,
   ResourceBaseMetadata,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { ResourceFolderType } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type {
+  Card,
+  ResourceFolderType,
+} from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { useSWRHook } from './common';
 
 // Base resource node type
@@ -72,7 +74,7 @@ interface LinkTypeNode extends BaseResourceNode {
 
 interface CardNode extends BaseResourceNode {
   type: 'card';
-  data: QueryResult<'tree'>;
+  data: Card;
 }
 
 interface WorkflowNode extends BaseResourceNode {

@@ -35,7 +35,7 @@ function getResourceName(
     return node.data.name;
   }
   if (node.data.type === 'card') {
-    return node.data.data.title || node.data.data.key;
+    return node.data.data.metadata?.title || node.data.data.key;
   }
   if (node.data.type === 'file') {
     return node.data.name;

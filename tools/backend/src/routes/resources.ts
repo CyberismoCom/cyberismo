@@ -14,10 +14,11 @@
 import { Hono } from 'hono';
 import { ssgParams } from '../export.js';
 import type { ResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type {
-  Card,
-  ResourceFolderType,
+import {
+  type Card,
+  type ResourceFolderType,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { CommandManager } from '@cyberismo/data-handler';
 
 const router = new Hono();
 
@@ -99,39 +100,38 @@ const createCardNode = (card: Card): any => {
 };
 
 // Helper function to process templates using templateTree query
-const processTemplates = async (commands: any, projectPrefix?: string) => {
+const processTemplates = async (
+  commands: CommandManager,
+  projectPrefix?: string,
+) => {
   try {
-    const templates = await commands.showCmd.showResources('templates');
-    await commands.calculateCmd.generate();
-    const templateTree = await commands.calculateCmd.runQuery('tree', {
-      parents: templates,
-    });
+    const templateTree = await commands.showCmd.showAllTemplateCards();
 
     const rootTemplates: { [templateName: string]: any[] } = {};
     const moduleTemplates: {
       [prefix: string]: { [templateName: string]: any[] };
     } = {};
 
-    for (const card of templateTree) {
-      if (!card.template) continue;
+    for (const { name, cards } of templateTree) {
+      for (const card of cards) {
+        const cardNode = createCardNode(card);
 
-      const cardNode = createCardNode(card);
+        const { prefix } = parseResourcePrefix(name);
 
-      const { prefix } = parseResourcePrefix(card.template);
-
-      if (prefix === projectPrefix || !prefix) {
-        if (!rootTemplates[card.template]) {
-          rootTemplates[card.template] = [];
+        if (prefix === projectPrefix || !prefix) {
+          if (!rootTemplates[name]) {
+            rootTemplates[name] = [];
+          }
+          rootTemplates[name].push(cardNode);
+        } else {
+          if (!moduleTemplates[prefix]) {
+            moduleTemplates[prefix] = {};
+          }
+          if (!moduleTemplates[prefix][name]) {
+            moduleTemplates[prefix][name] = [];
+          }
+          moduleTemplates[prefix][name].push(cardNode);
         }
-        rootTemplates[card.template].push(cardNode);
-      } else {
-        if (!moduleTemplates[prefix]) {
-          moduleTemplates[prefix] = {};
-        }
-        if (!moduleTemplates[prefix][card.template]) {
-          moduleTemplates[prefix][card.template] = [];
-        }
-        moduleTemplates[prefix][card.template].push(cardNode);
       }
     }
 

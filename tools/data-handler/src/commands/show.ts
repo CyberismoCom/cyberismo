@@ -121,6 +121,27 @@ export class Show {
   }
 
   /**
+   * Shows all template cards in a project.
+   * @returns all template cards in a project.
+   */
+  public async showAllTemplateCards(): Promise<
+    { name: string; cards: Card[] }[]
+  > {
+    return Promise.all(
+      (await this.project.templates()).map(async (template) => {
+        const templateResource = new TemplateResource(
+          this.project,
+          resourceName(template.name),
+        );
+        return {
+          name: template.name,
+          cards: await templateResource.templateObject().showTemplateCards(),
+        };
+      }),
+    );
+  }
+
+  /**
    * Shows all attachments (either template or project attachments) from a project.
    * @returns array of card attachments
    */
