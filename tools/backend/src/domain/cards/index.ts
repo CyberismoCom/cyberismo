@@ -1,26 +1,21 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { Context, Hono } from 'hono';
-import Processor from '@asciidoctor/core';
-import {
-  Card,
-  CardLocation,
-  MetadataContent,
-  ProjectFetchCardDetails,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { ContentfulStatusCode } from 'hono/utils/http-status';
-import { getCardQueryResult, isSSGContext, ssgParams } from '../export.js';
+import { ssgParams, isSSGContext } from '../../export.js';
+import { getCardDetails } from './lib.js';
+import * as cardService from './service.js';
 
 const router = new Hono();
 
@@ -41,105 +36,16 @@ const router = new Hono();
 router.get('/', async (c) => {
   const commands = c.get('commands');
 
-  const projectResponse = await commands.showCmd.showProject();
-
-  const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
-  if (!workflowsResponse) {
-    return c.text(`No workflows found from path ${c.get('projectPath')}`, 500);
-  }
-
-  const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
-  if (!cardTypesResponse) {
-    return c.text(`No card types found from path ${c.get('projectPath')}`, 500);
-  }
-
-  const response = {
-    name: projectResponse.name,
-    prefix: projectResponse.prefix,
-    workflows: workflowsResponse,
-    cardTypes: cardTypesResponse,
-  };
-  return c.json(response);
-});
-
-async function getCardDetails(
-  commands: CommandManager,
-  key: string,
-  staticMode?: boolean,
-): Promise<any> {
-  const fetchCardDetails: ProjectFetchCardDetails = {
-    attachments: true,
-    children: false,
-    content: true,
-    contentType: 'adoc',
-    metadata: false,
-    parent: false,
-    location: CardLocation.projectOnly,
-  };
-
-  let cardDetailsResponse: Card | undefined;
   try {
-    cardDetailsResponse = await commands.showCmd.showCardDetails(
-      fetchCardDetails,
-      key,
-    );
-  } catch {
-    return { status: 400, message: `Card ${key} not found from project` };
-  }
-
-  if (!cardDetailsResponse) {
-    return { status: 400, message: `Card ${key} not found from project` };
-  }
-
-  let asciidocContent = '';
-  try {
-    asciidocContent = await evaluateMacros(
-      cardDetailsResponse.content || '',
-      {
-        mode: staticMode ? 'static' : 'inject',
-        project: commands.project,
-        cardKey: key,
-      },
-      commands.calculateCmd,
-    );
+    const response = await cardService.getProjectInfo(commands);
+    return c.json(response);
   } catch (error) {
-    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
+    return c.text(
+      `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
+      500,
+    );
   }
-
-  const htmlContent = Processor()
-    .convert(asciidocContent, {
-      safe: 'safe',
-      attributes: {
-        imagesdir: `/api/cards/${key}/a`,
-        icons: 'font',
-      },
-    })
-    .toString();
-
-  // always parse for now if not in export mode
-  if (!staticMode) {
-    await commands.calculateCmd.generate();
-  }
-
-  const card = staticMode
-    ? await getCardQueryResult(commands.project.basePath, key)
-    : await commands.calculateCmd.runQuery('card', {
-        cardKey: key,
-      });
-  if (card.length !== 1) {
-    throw new Error('Query failed. Check card-query syntax');
-  }
-
-  return {
-    status: 200,
-    data: {
-      ...card[0],
-      rawContent: cardDetailsResponse.content || '',
-      parsedContent: htmlContent,
-      attachments: cardDetailsResponse.attachments,
-    },
-  };
-}
+});
 
 /**
  * @swagger
@@ -164,16 +70,8 @@ router.get(
   '/:key',
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
-    const fetchedCards = await commands.showCmd.showCards(
-      CardLocation.projectOnly,
-    );
-    const projectCards = fetchedCards.find(
-      (cardContainer) => cardContainer.type === 'project',
-    );
-    if (!projectCards) {
-      throw new Error('Data handler did not return project cards');
-    }
-    return projectCards.cards.map((key) => ({ key }));
+    const cards = await cardService.getAllCards(commands);
+    return cards.map((key) => ({ key }));
   }),
   async (c) => {
     const key = c.req.param('key');
@@ -237,70 +135,23 @@ router.patch('/:key', async (c) => {
   }
 
   const body = await c.req.json();
-  let successes = 0;
-  const errors = [];
 
-  if (body.state) {
-    try {
-      await commands.transitionCmd.cardTransition(key, body.state);
-      successes++;
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
+  try {
+    const result = await cardService.updateCard(commands, key, body);
+    if (result.status === 200) {
+      return c.json(result.data);
+    } else {
+      return c.json(
+        {
+          error: result.message || 'Unknown error',
+        },
+        result.status as ContentfulStatusCode,
+      );
     }
-  }
-
-  if (body.content != null) {
-    try {
-      await commands.editCmd.editCardContent(key, body.content);
-      successes++;
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
-    }
-  }
-
-  if (body.metadata) {
-    for (const [metadataKey, metadataValue] of Object.entries(body.metadata)) {
-      const value = metadataValue as MetadataContent;
-
-      try {
-        await commands.editCmd.editCardMetadata(key, metadataKey, value);
-        successes++;
-      } catch (error) {
-        if (error instanceof Error) errors.push(error.message);
-      }
-    }
-  }
-
-  if (body.parent) {
-    try {
-      await commands.moveCmd.moveCard(key, body.parent);
-      successes++;
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
-    }
-  }
-  if (body.index != null) {
-    try {
-      await commands.moveCmd.rankByIndex(key, body.index);
-      successes++;
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
-    }
-  }
-
-  if (errors.length > 0) {
-    return c.text(errors.join('\n'), 400);
-  }
-
-  const result = await getCardDetails(commands, key);
-  if (result.status === 200) {
-    return c.json(result.data);
-  } else {
-    return c.json(
-      {
-        error: result.message || 'Unknown error',
-      },
-      result.status as ContentfulStatusCode,
+  } catch (error) {
+    return c.text(
+      error instanceof Error ? error.message : 'Unknown error',
+      400,
     );
   }
 });
@@ -333,7 +184,7 @@ router.delete('/:key', async (c) => {
   }
 
   try {
-    await commands.removeCmd.remove('card', key);
+    await cardService.deleteCard(commands, key);
     return new Response(null, { status: 204 });
   } catch (error) {
     return c.json(
@@ -380,13 +231,11 @@ router.post('/:key', async (c) => {
   }
 
   try {
-    const result = await c
-      .get('commands')
-      .createCmd.createCard(body.template, key === 'root' ? undefined : key);
-
-    if (result.length === 0) {
-      return c.json({ error: 'No cards created' }, 400);
-    }
+    const result = await cardService.createCard(
+      c.get('commands'),
+      body.template,
+      key,
+    );
     return c.json(result);
   } catch (error) {
     if (error instanceof Error) {
@@ -437,23 +286,12 @@ router.post('/:key/attachments', async (c) => {
       return c.json({ error: 'No files uploaded' }, 400);
     }
 
-    const succeeded = [];
-    for (const file of files) {
-      if (file instanceof File) {
-        const buffer = await file.arrayBuffer();
-        await commands.createCmd.createAttachment(
-          key,
-          file.name,
-          Buffer.from(buffer),
-        );
-        succeeded.push(file.name);
-      }
-    }
-
-    return c.json({
-      message: 'Attachments uploaded successfully',
-      files: succeeded,
-    });
+    const result = await cardService.uploadAttachments(
+      commands,
+      key,
+      files as File[],
+    );
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -496,8 +334,8 @@ router.delete('/:key/attachments/:filename', async (c) => {
   const { key, filename } = c.req.param();
 
   try {
-    await commands.removeCmd.remove('attachment', key, filename);
-    return c.json({ message: 'Attachment removed successfully' });
+    const result = await cardService.removeAttachment(commands, key, filename);
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -540,8 +378,8 @@ router.post('/:key/attachments/:filename/open', async (c) => {
   const { key, filename } = c.req.param();
 
   try {
-    await commands.showCmd.openAttachment(key, filename);
-    return c.json({ message: 'Attachment opened successfully' });
+    const result = await cardService.openAttachment(commands, key, filename);
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -590,33 +428,8 @@ router.post('/:key/parse', async (c) => {
   }
 
   try {
-    let asciidocContent = '';
-    try {
-      asciidocContent = await evaluateMacros(
-        content,
-        {
-          mode: 'inject',
-          project: commands.project,
-          cardKey: key,
-        },
-        commands.calculateCmd,
-      );
-    } catch (error) {
-      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
-    }
-
-    const processor = Processor();
-    const parsedContent = processor
-      .convert(asciidocContent, {
-        safe: 'safe',
-        attributes: {
-          imagesdir: `/api/cards/${key}/a`,
-          icons: 'font',
-        },
-      })
-      .toString();
-
-    return c.json({ parsedContent });
+    const result = await cardService.parseContent(commands, key, content);
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -669,8 +482,14 @@ router.post('/:key/links', async (c) => {
   }
 
   try {
-    await commands.createCmd.createLink(key, toCard, linkType, description);
-    return c.json({ message: 'Link created successfully' });
+    const result = await cardService.createLink(
+      commands,
+      key,
+      toCard,
+      linkType,
+      description,
+    );
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -722,8 +541,14 @@ router.delete('/:key/links', async (c) => {
   }
 
   try {
-    await commands.removeCmd.remove('link', key, toCard, linkType, description);
-    return c.json({ message: 'Link removed successfully' });
+    const result = await cardService.removeLink(
+      commands,
+      key,
+      toCard,
+      linkType,
+      description,
+    );
+    return c.json(result);
   } catch (error) {
     return c.json(
       {
@@ -762,11 +587,7 @@ router.get(
   '/:key/a/:attachment',
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
-    const attachments = await commands.showCmd.showAttachments();
-    return attachments.map((attachment) => ({
-      key: attachment.card,
-      attachment: attachment.fileName,
-    }));
+    return await cardService.getAllAttachments(commands);
   }),
   async (c) => {
     const commands = c.get('commands');
@@ -778,18 +599,11 @@ router.get(
     }
 
     try {
-      const attachmentResponse = await commands.showCmd.showAttachment(
+      const attachmentResponse = await cardService.getAttachment(
+        commands,
         key,
         filename,
       );
-
-      if (!attachmentResponse) {
-        return c.text(
-          `No attachment found from card ${key} and filename ${filename}`,
-          404,
-        );
-      }
-
       const payload = attachmentResponse as any;
 
       return new Response(payload.fileBuffer, {
@@ -799,10 +613,13 @@ router.get(
           'Cache-Control': 'no-store',
         },
       });
-    } catch {
+    } catch (error) {
       return c.json(
         {
-          error: `No attachment found from card ${key} and filename ${filename}`,
+          error:
+            error instanceof Error
+              ? error.message
+              : `No attachment found from card ${key} and filename ${filename}`,
         },
         404,
       );
