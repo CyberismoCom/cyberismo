@@ -16,7 +16,7 @@ import { useResourceTree } from '@/lib/api';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { ConfigTreeNode } from './tree-nodes';
 import { useProject } from '@/lib/api/project';
-import type { ResourceNode } from '@/lib/api/resources';
+import type { ResourceNode } from '@/lib/api/types';
 
 // Helper function to add static child nodes to specific resource types
 const addStaticChildren = (node: ResourceNode): ResourceNode => {
