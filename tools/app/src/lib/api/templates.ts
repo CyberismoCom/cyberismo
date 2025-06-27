@@ -16,4 +16,4 @@ import { apiPaths } from '../swr';
 import { SWRConfiguration } from 'swr';
 
 export const useTemplates = (options?: SWRConfiguration) =>
-  useSWRHook<'templates'>(apiPaths.templates(), 'templates', options);
+  useSWRHook<'templates'>(apiPaths.templates(), 'templates', null, options);
