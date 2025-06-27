@@ -151,8 +151,8 @@ field(Key, Field, Value) :- field(Key, Field, Value, _).
 dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
 
 
-% list(ParentKey, Collection): Allows defining a list under a parent. Allows guaranteeing an empty list, if no elements are present
-#show list(ParentKey, Collection) : list(ParentKey, Collection).
+% childResultCollection(ParentKey, Collection): Defines a childResult. Allows guaranteeing an empty list, if no elements are present
+#show childResultCollection(ParentKey, Collection) : childResultCollection(ParentKey, Collection).
 
 % order(n, collection, 1, field, direction): the results in the collection on level n should be first ordered by "field" in "direction"
 % order(n, collection, 2, field, direction): the results in the collection on level n should be secondly ordered by "field" in "direction"

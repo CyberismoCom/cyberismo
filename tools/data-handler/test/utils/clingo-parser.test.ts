@@ -111,21 +111,21 @@ describe('ClingoParser', () => {
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal(fieldValue);
   });
-  it('should parse list correctly', async () => {
-    const input = `result("key1")\nlist("key1", "list")`;
+  it('should parse childResultCollection correctly', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")`;
     const result = await parser.parseInput(input);
     expect(result.results[0].list).to.be.an('array');
     expect(result.results[0].list).to.have.lengthOf(0);
   });
-  it('should parse list correctly with items', async () => {
-    const input = `result("key1")\nlist("key1", "list")\nchildResult("key1", "item1", "list")\nfield("item1", "field", "${encodeClingoValue('item1')}", "shortText")`;
+  it('should parse childResultCollection correctly with items', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")\nchildResult("key1", "item1", "list")\nfield("item1", "field", "${encodeClingoValue('item1')}", "shortText")`;
     const result: any = await parser.parseInput(input);
     expect(result.results[0].list).to.be.an('array');
     expect(result.results[0].list).to.have.lengthOf(1);
     expect(result.results[0].list[0].field).to.equal('item1');
   });
-  it('should parse list correctly with items in a stringList', async () => {
-    const input = `result("key1")\nlist("key1", "list")\nfield("key1", "list", "${encodeClingoValue('item1')}", "stringList")`;
+  it('should parse childResultCollection correctly with items in a stringList', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")\nfield("key1", "list", "${encodeClingoValue('item1')}", "stringList")`;
     const result: any = await parser.parseInput(input);
     expect(result.results[0].list).to.be.an('array');
     expect(result.results[0].list).to.have.lengthOf(1);

@@ -34,7 +34,7 @@ class ClingoParser {
     'childResult',
     'childObject',
     'field',
-    'list',
+    'childResultCollection',
     'order',
   ];
 
@@ -94,6 +94,12 @@ class ClingoParser {
       this.childResultQueue.push({ parentKey, childKey, collection });
       this.collections.add(collection);
     },
+    childResultCollection: (parentKey: string, collection: string) => {
+      const parent = this.getOrInitResult(parentKey);
+      if (!parent[collection] || !Array.isArray(parent[collection])) {
+        parent[collection] = [];
+      }
+    },
     childObject: (parentKey: string, name: string, collection: string) => {
       this.childObjectQueue.push({ parentKey, name, collection });
     },
@@ -128,12 +134,6 @@ class ClingoParser {
           }
           (res[fieldName] as unknown[]).push(decoded);
           break;
-      }
-    },
-    list: (parentKey: string, collection: string) => {
-      const parent = this.getOrInitResult(parentKey);
-      if (!parent[collection] || !Array.isArray(parent[collection])) {
-        parent[collection] = [];
       }
     },
     order: (

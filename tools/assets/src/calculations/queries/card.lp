@@ -99,7 +99,7 @@ select(2, "fields", "dataType").
 select(2, "fields", "isCalculated").
 select(2, "fields", "value").
 
-list(Card, "fields") :-
+childResultCollection(Card, "fields") :-
     result(Card).
 
 childResult(Card, Field, "fields") :-
@@ -127,7 +127,7 @@ field((Field, EnumValue), "enumValue", EnumValue) :-
 % labels
 select(1, "labels").
 
-list(Card, "labels") :-
+childResultCollection(Card, "labels") :-
     result(Card).
 
 field(Card, "labels", Label, "stringList") :-
@@ -147,7 +147,7 @@ select(2, "links", "linkSource").
 select(2, "links", "title").
 select(2, "links", "key").
 
-list(Card, "links") :-
+childResultCollection(Card, "links") :-
     result(Card).
 
 childResult(Card, (Card, Destination, LinkType, "", "outbound"), "links") :-
@@ -232,10 +232,10 @@ select(3, "failures", "fieldName").
 childObject(Card, (Card, "policyChecks"), "policyChecks") :-
     result(Card).
 
-list((Card, "policyChecks"), "successes") :-
+childResultCollection((Card, "policyChecks"), "successes") :-
     result(Card).
 
-list((Card, "policyChecks"), "failures") :-
+childResultCollection((Card, "policyChecks"), "failures") :-
     result(Card).
 
 % successes
@@ -272,7 +272,7 @@ select(2, "notifications", "title").
 select(2, "notifications", "category").
 select(2, "notifications", "message").
 
-list(Card, "notifications") :-
+childResultCollection(Card, "notifications") :-
     result(Card).
 
 % notifications
@@ -301,7 +301,7 @@ childObject(Card, (Card, "deniedOperations"), "deniedOperations") :-
     result(Card).
 
 % transition denied operations
-list((Card, "deniedOperations"), "transition") :-
+childResultCollection((Card, "deniedOperations"), "transition") :-
     result(Card).
 
 childResult((Card, "deniedOperations"), (Card, TransitionName, ErrorMessage), "transition") :-
@@ -313,7 +313,7 @@ field((Card, TransitionName, ErrorMessage), "transitionName", TransitionName, "e
     transitionDenied(Card, TransitionName, ErrorMessage).
 
 % move denied operations
-list((Card, "deniedOperations"), "move") :-
+childResultCollection((Card, "deniedOperations"), "move") :-
     result(Card).
 
 childResult((Card, "deniedOperations"), (Card, ErrorMessage), "move") :-
@@ -325,7 +325,7 @@ field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
     movingCardDenied(Card, ErrorMessage).
 
 % delete denied operations
-list((Card, "deniedOperations"), "delete") :-
+childResultCollection((Card, "deniedOperations"), "delete") :-
     result(Card).
 
 childResult((Card, "deniedOperations"), (Card, ErrorMessage), "delete") :-
@@ -337,7 +337,7 @@ field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
     deletingCardDenied(Card, ErrorMessage).
 
 % editField denied operations
-list((Card, "deniedOperations"), "editField") :-
+childResultCollection((Card, "deniedOperations"), "editField") :-
     result(Card).
 
 childResult((Card, "deniedOperations"), (Card, FieldName, ErrorMessage), "editField") :-
@@ -349,7 +349,7 @@ field((Card, FieldName, ErrorMessage), "fieldName", FieldName, "errorMessage", E
     editingFieldDenied(Card, FieldName, ErrorMessage).
 
 % editContent denied operations
-list((Card, "deniedOperations"), "editContent") :-
+childResultCollection((Card, "deniedOperations"), "editContent") :-
     result(Card).
 
 childResult((Card, "deniedOperations"), (Card, ErrorMessage), "editContent") :-
