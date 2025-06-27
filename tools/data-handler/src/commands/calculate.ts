@@ -58,6 +58,7 @@ import { lpFiles, graphvizReport } from '@cyberismo/assets';
 // Define names for the base programs
 const BASE_PROGRAM_KEY = 'base';
 const QUERY_LANGUAGE_KEY = 'queryLanguage';
+const UTILS_PROGRAM_KEY = 'utils';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -301,7 +302,11 @@ export class Calculate {
     try {
       const res = await Calculate.mutex.runExclusive(async () => {
         // For queries, use both base and queryLanguage
-        const basePrograms = [BASE_PROGRAM_KEY, QUERY_LANGUAGE_KEY];
+        const basePrograms = [
+          BASE_PROGRAM_KEY,
+          QUERY_LANGUAGE_KEY,
+          UTILS_PROGRAM_KEY,
+        ];
 
         this.logger.trace(
           {
@@ -401,6 +406,7 @@ export class Calculate {
           '\n% SECTION: QUERY_LANGUAGE_END',
         QUERY_LANGUAGE_KEY,
       );
+      setBaseProgram(lpFiles.common.utils, UTILS_PROGRAM_KEY);
 
       // Also store the base program (without query language) for updates
       this.logicProgram = baseProgram;

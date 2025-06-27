@@ -39,6 +39,12 @@ test('/api/cards/decision_5 returns a card object', async () => {
   expect(response.status).toBe(200);
   expect(result.title).toBe('Decision Records');
   expect(result.rawContent).not.toBe(null);
+  expect(result.labels).not.toBe(null);
+  expect(result.links).not.toBe(null);
+  expect(result.notifications).not.toBe(null);
+  expect(result.policyChecks).not.toBe(null);
+  expect(result.deniedOperations).not.toBe(null);
+  expect(result.fields).not.toBe(null);
 });
 
 test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
