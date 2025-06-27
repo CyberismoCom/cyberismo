@@ -4,6 +4,7 @@ export * from './schemas.js';
 // They rarely change and we get 100% type safety this way
 import commonBase from './calculations/common/base.lp';
 import commonQueryLanguage from './calculations/common/queryLanguage.lp';
+import commonUtils from './calculations/common/utils.lp';
 import queriesCard from './calculations/queries/card.lp';
 import queriesOnCreation from './calculations/queries/onCreation.lp';
 import queriesOnTransition from './calculations/queries/onTransition.lp';
@@ -22,6 +23,7 @@ export const lpFiles = {
   common: {
     base: commonBase,
     queryLanguage: commonQueryLanguage,
+    utils: commonUtils,
   },
   queries: {
     card: queriesCard,

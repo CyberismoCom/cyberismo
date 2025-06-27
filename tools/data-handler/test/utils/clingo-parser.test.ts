@@ -82,32 +82,6 @@ describe('ClingoParser', () => {
     expect(result.results[0].results2).to.have.lengthOf(1);
     expect(result.results[0].results2[0].key).to.equal('childKey');
   });
-  it('should parse enumField correctly', async () => {
-    const input = `result("key1")\nenumField("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "1", "displayName")`;
-    const result = await parser.parseInput(input);
-    expect(result.results[0].fieldName).to.deep.equal({
-      value: 'fieldValue',
-      index: 1,
-      displayValue: 'displayName',
-    });
-  });
-
-  it('should parse enumField correctly', async () => {
-    const input = `result("key1")\nlistField("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "1", "displayName")\nlistField("key1", "fieldName", "${encodeClingoValue('fieldValue2')}", "2", "displayName2")`;
-    const result = await parser.parseInput(input);
-    expect(result.results[0].fieldName).to.deep.equal([
-      {
-        value: 'fieldValue',
-        index: 1,
-        displayValue: 'displayName',
-      },
-      {
-        value: 'fieldValue2',
-        index: 2,
-        displayValue: 'displayName2',
-      },
-    ]);
-  });
 
   it('should parse field correctly', async () => {
     const input = `result("key1")\nfield("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "shortText")`;
@@ -137,133 +111,25 @@ describe('ClingoParser', () => {
     const result = await parser.parseInput(input);
     expect(result.results[0].fieldName).to.equal(fieldValue);
   });
-
-  it('should parse label correctly', async () => {
-    const input = 'result("key1")\nlabel("key1", "label1")';
+  it('should parse childResultCollection correctly', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")`;
     const result = await parser.parseInput(input);
-    expect(result.results[0].labels).to.include('label1');
+    expect(result.results[0].list).to.be.an('array');
+    expect(result.results[0].list).to.have.lengthOf(0);
   });
-
-  it('should parse link correctly', async () => {
-    const input =
-      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "user", "linkDescription")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].links).to.have.lengthOf(1);
-    expect(result.results[0].links[0]).to.deep.equal({
-      key: 'cardKey',
-      linkType: 'linkType',
-      title: 'title',
-      displayName: 'displayName',
-      linkDescription: 'linkDescription',
-      linkSource: 'user',
-      direction: 'inbound',
-    });
+  it('should parse childResultCollection correctly with items', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")\nchildResult("key1", "item1", "list")\nfield("item1", "field", "${encodeClingoValue('item1')}", "shortText")`;
+    const result: any = await parser.parseInput(input);
+    expect(result.results[0].list).to.be.an('array');
+    expect(result.results[0].list).to.have.lengthOf(1);
+    expect(result.results[0].list[0].field).to.equal('item1');
   });
-
-  it('should parse link without linkDescription correctly', async () => {
-    const input =
-      'result("key1")\nlink("key1", "cardKey", "title", "linkType", "displayName", "inbound", "calculated")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].links).to.have.lengthOf(1);
-    expect(result.results[0].links[0]).to.deep.equal({
-      key: 'cardKey',
-      linkType: 'linkType',
-      title: 'title',
-      displayName: 'displayName',
-      linkDescription: undefined,
-      linkSource: 'calculated',
-      direction: 'inbound',
-    });
-  });
-
-  it('should parse transitionDenied correctly', async () => {
-    const input =
-      'result("key1")\ntransitionDenied("key1", "transitionName", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].deniedOperations.transition).to.have.lengthOf(1);
-    expect(result.results[0].deniedOperations.transition[0]).to.deep.equal({
-      transitionName: 'transitionName',
-      errorMessage: 'errorMessage',
-    });
-  });
-
-  it('should parse movingCardDenied correctly', async () => {
-    const input = 'result("key1")\nmovingCardDenied("key1", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].deniedOperations.move).to.have.lengthOf(1);
-    expect(result.results[0].deniedOperations.move[0].errorMessage).to.equal(
-      'errorMessage',
-    );
-  });
-
-  it('should parse deletingCardDenied correctly', async () => {
-    const input = 'result("key1")\ndeletingCardDenied("key1", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].deniedOperations.delete).to.have.lengthOf(1);
-    expect(result.results[0].deniedOperations.delete[0].errorMessage).to.equal(
-      'errorMessage',
-    );
-  });
-
-  it('should parse editingFieldDenied correctly', async () => {
-    const input =
-      'result("key1")\neditingFieldDenied("key1", "fieldName", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].deniedOperations.editField).to.have.lengthOf(1);
-    expect(result.results[0].deniedOperations.editField[0]).to.deep.equal({
-      fieldName: 'fieldName',
-      errorMessage: 'errorMessage',
-    });
-  });
-
-  it('should parse editingContentDenied correctly', async () => {
-    const input =
-      'result("key1")\neditingContentDenied("key1", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].deniedOperations.editContent).to.have.lengthOf(1);
-    expect(
-      result.results[0].deniedOperations.editContent[0].errorMessage,
-    ).to.equal('errorMessage');
-  });
-
-  it('should parse policyCheckFailure correctly', async () => {
-    const input =
-      'result("key1")\npolicyCheckFailure("key1", "category", "title", "errorMessage")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].policyChecks.failures).to.have.lengthOf(1);
-    expect(result.results[0].policyChecks.failures[0]).to.deep.equal({
-      category: 'category',
-      title: 'title',
-      errorMessage: 'errorMessage',
-      fieldName: undefined,
-    });
-    expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
-  });
-
-  it('should parse policyCheckFailure correctly with fieldName', async () => {
-    const input =
-      'result("key1")\npolicyCheckFailure("key1", "category", "title", "errorMessage", "field")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].policyChecks.failures).to.have.lengthOf(1);
-    expect(result.results[0].policyChecks.failures[0]).to.deep.equal({
-      category: 'category',
-      title: 'title',
-      errorMessage: 'errorMessage',
-      fieldName: 'field',
-    });
-    expect(result.results[0].policyChecks.successes).to.have.lengthOf(0);
-  });
-
-  it('should parse policyCheckSuccess correctly', async () => {
-    const input =
-      'result("key1")\npolicyCheckSuccess("key1", "category", "title")';
-    const result = await parser.parseInput(input);
-    expect(result.results[0].policyChecks.successes).to.have.lengthOf(1);
-    expect(result.results[0].policyChecks.successes[0]).to.deep.equal({
-      category: 'category',
-      title: 'title',
-    });
-    expect(result.results[0].policyChecks.failures).to.have.lengthOf(0);
+  it('should parse childResultCollection correctly with items in a stringList', async () => {
+    const input = `result("key1")\nchildResultCollection("key1", "list")\nfield("key1", "list", "${encodeClingoValue('item1')}", "stringList")`;
+    const result: any = await parser.parseInput(input);
+    expect(result.results[0].list).to.be.an('array');
+    expect(result.results[0].list).to.have.lengthOf(1);
+    expect(result.results[0].list[0]).to.equal('item1');
   });
 
   it('should parse order correctly', async () => {
@@ -373,30 +239,12 @@ describe('ClingoParser', () => {
     const input = `
             result("key1")
             field("key1", "fieldName", "${encodeClingoValue('fieldValue')}", "shortText")
-            label("key1", "label1")
-            link("key1", "cardKey", "linkType", "linkDescription")
-            transitionDenied("key1", "transitionName", "errorMessage")
-            movingCardDenied("key1", "errorMessage")
-            deletingCardDenied("key1", "errorMessage")
-            editingFieldDenied("key1", "fieldName", "errorMessage")
-            editingContentDenied("key1", "errorMessage")
-            policyCheckFailure("key1", "category", "title", "errorMessage")
-            policyCheckSuccess("key1", "category", "title")
             order("1", "results", "0", "field", "ASC")
         `;
     const result = await parser.parseInput(input);
     expect(result.results).to.have.lengthOf(1);
     const res = result.results[0];
     expect(res.fieldName).to.equal('fieldValue');
-    expect(res.labels).to.include('label1');
-    expect(res.links).to.have.lengthOf(1);
-    expect(res.deniedOperations.transition).to.have.lengthOf(1);
-    expect(res.deniedOperations.move).to.have.lengthOf(1);
-    expect(res.deniedOperations.delete).to.have.lengthOf(1);
-    expect(res.deniedOperations.editField).to.have.lengthOf(1);
-    expect(res.deniedOperations.editContent).to.have.lengthOf(1);
-    expect(res.policyChecks.failures).to.have.lengthOf(1);
-    expect(res.policyChecks.successes).to.have.lengthOf(1);
   });
   it('should handle multiple parenthesis', async () => {
     const input = `
@@ -412,5 +260,113 @@ describe('ClingoParser', () => {
     expect(res.key).to.equal('key1');
     expect(res.test).to.equal('(test, testing something)');
     expect(res.test2).to.equal('((test1, test2), testing something)');
+  });
+
+  describe('childObject', () => {
+    it('should parse childObject correctly', async () => {
+      const input = `
+        result("parentKey")
+        field("childKey", "name", "${encodeClingoValue('childName')}", "shortText")
+        childObject("parentKey", "childKey", "child")
+      `;
+      const result: any = await parser.parseInput(input);
+      expect(result.results).to.have.lengthOf(1);
+      expect(result.results[0].key).to.equal('parentKey');
+      expect(result.results[0].child).to.be.an('object');
+      expect(result.results[0].child.key).to.equal('childKey');
+      expect(result.results[0].child.name).to.equal('childName');
+    });
+
+    it('should handle multiple childObjects with different collections', async () => {
+      const input = `
+        result("parentKey")
+        field("childKey1", "name", "${encodeClingoValue('child1')}", "shortText")
+        field("childKey2", "name", "${encodeClingoValue('child2')}", "shortText")
+        childObject("parentKey", "childKey1", "firstChild")
+        childObject("parentKey", "childKey2", "secondChild")
+      `;
+      const result: any = await parser.parseInput(input);
+      expect(result.results).to.have.lengthOf(1);
+      expect(result.results[0].key).to.equal('parentKey');
+      expect(result.results[0].firstChild).to.be.an('object');
+      expect(result.results[0].secondChild).to.be.an('object');
+      expect(result.results[0].firstChild.name).to.equal('child1');
+      expect(result.results[0].secondChild.name).to.equal('child2');
+    });
+
+    it('should handle nested childObjects', async () => {
+      const input = `
+        result("grandparentKey")
+        field("parentKey", "name", "${encodeClingoValue('parent')}", "shortText")
+        field("childKey", "name", "${encodeClingoValue('child')}", "shortText")
+        childObject("grandparentKey", "parentKey", "parent")
+        childObject("parentKey", "childKey", "child")
+      `;
+      const result: any = await parser.parseInput(input);
+      expect(result.results).to.have.lengthOf(1);
+      expect(result.results[0].key).to.equal('grandparentKey');
+      expect(result.results[0].parent).to.be.an('object');
+      expect(result.results[0].parent.name).to.equal('parent');
+      expect(result.results[0].parent.child).to.be.an('object');
+      expect(result.results[0].parent.child.name).to.equal('child');
+    });
+
+    it('should handle childObject with complex field values', async () => {
+      const input = `
+        result("parentKey")
+        field("childKey", "number", "42", "integer")
+        field("childKey", "text", "${encodeClingoValue('complex\ntext')}", "shortText")
+        field("childKey", "boolean", "true", "boolean")
+        childObject("parentKey", "childKey", "child")
+      `;
+      const result: any = await parser.parseInput(input);
+      expect(result.results).to.have.lengthOf(1);
+      expect(result.results[0].child).to.be.an('object');
+      expect(result.results[0].child.number).to.equal(42);
+      expect(result.results[0].child.text).to.equal('complex\ntext');
+      expect(result.results[0].child.boolean).to.equal(true);
+    });
+
+    it('should handle deeply nested childObject and childResult relationships', async () => {
+      const input = `
+        result("rootKey")
+        field("rootKey", "name", "${encodeClingoValue('root')}", "shortText")
+        
+        field("objectKey", "name", "${encodeClingoValue('object')}", "shortText")
+        childObject("rootKey", "objectKey", "mainObject")
+        
+        field("resultKey1", "name", "${encodeClingoValue('result1')}", "shortText")
+        field("resultKey2", "name", "${encodeClingoValue('result2')}", "shortText")
+        childResult("objectKey", "resultKey1", "results")
+        childResult("objectKey", "resultKey2", "results")
+        
+        field("nestedObjectKey", "name", "${encodeClingoValue('nested')}", "shortText")
+        childObject("resultKey1", "nestedObjectKey", "nestedObject")
+      `;
+      const result: any = await parser.parseInput(input);
+
+      // Check root level
+      expect(result.results).to.have.lengthOf(1);
+      expect(result.results[0].key).to.equal('rootKey');
+      expect(result.results[0].name).to.equal('root');
+
+      // Check first level childObject
+      expect(result.results[0].mainObject).to.be.an('object');
+      expect(result.results[0].mainObject.name).to.equal('object');
+
+      // Check second level childResult array
+      expect(result.results[0].mainObject.results).to.be.an('array');
+      expect(result.results[0].mainObject.results).to.have.lengthOf(2);
+      expect(result.results[0].mainObject.results[0].name).to.equal('result1');
+      expect(result.results[0].mainObject.results[1].name).to.equal('result2');
+
+      // Check third level childObject
+      expect(result.results[0].mainObject.results[0].nestedObject).to.be.an(
+        'object',
+      );
+      expect(
+        result.results[0].mainObject.results[0].nestedObject.name,
+      ).to.equal('nested');
+    });
   });
 });

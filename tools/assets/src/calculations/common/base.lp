@@ -34,20 +34,6 @@ dataType(Key, Field, DataType) :-
     fieldType(Field),
     field(Field, "dataType", DataType).
 
-% data types for enum values
-
-dataType((FieldType, EnumValue), "index", "integer") :-
-    enumValue(FieldType, EnumValue).
-
-dataType((FieldType, EnumValue), "enumDisplayValue", "shortText") :-
-    enumValue(FieldType, EnumValue).
-
-dataType((FieldType, EnumValue), "enumDescription", "longText") :-
-    enumValue(FieldType, EnumValue).
-
-dataType((FieldType, EnumValue), "enumValue", "longText") :-
-    enumValue(FieldType, EnumValue).
-
 % descendants of hidden cards are hidden
 
 hiddenInTreeView(Card) :-

@@ -88,19 +88,24 @@ select(1, "title").
 select(1, "key").
 select(1, "lastUpdated").
 select(1, "workflowState").
-select(1, "notifications").
 select(1, "policyChecks").
 select(1, "links").
+select(1, "notifications").
 select(1, "deniedOperations").
 select(1, "labels").
 
-select(2, "visibility").
-select(2, "index").
-select(2, "fieldDisplayName").
-select(2, "fieldDescription").
-select(2, "dataType").
-select(2, "isCalculated").
-select(2, "value").
+% Fields
+
+select(2, "fields", "visibility").
+select(2, "fields", "index").
+select(2, "fields", "fieldDisplayName").
+select(2, "fields", "fieldDescription").
+select(2, "fields", "dataType").
+select(2, "fields", "isCalculated").
+select(2, "fields", "value").
+
+childResultCollection(Card, "fields") :-
+    result(Card).
 
 childResult(Card, Field, "fields") :-
     alwaysVisibleField(CardType, Field),

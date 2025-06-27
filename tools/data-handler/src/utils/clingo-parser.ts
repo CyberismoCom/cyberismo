@@ -11,11 +11,7 @@
 */
 
 import type { DataType } from '../interfaces/resource-interfaces.js';
-import type {
-  BaseResult,
-  LinkDirection,
-  ParseResult,
-} from '../types/queries.js';
+import type { BaseResult, ParseResult } from '../types/queries.js';
 
 /**
  * This function reverses the encoding made by the "encodeClingoValue" function
@@ -28,25 +24,17 @@ export function decodeClingoValue(value: string) {
     return char;
   });
 }
+// Enums and lists are handled by the query language
+type FieldDataType = Omit<DataType, 'list' | 'enum'> | 'stringList';
 
 class ClingoParser {
   private keywords = [
     'queryError',
     'result',
     'childResult',
+    'childObject',
     'field',
-    'enumField',
-    'listField',
-    'label',
-    'link',
-    'transitionDenied',
-    'movingCardDenied',
-    'deletingCardDenied',
-    'editingFieldDenied',
-    'editingContentDenied',
-    'notification',
-    'policyCheckFailure',
-    'policyCheckSuccess',
+    'childResultCollection',
     'order',
   ];
 
@@ -60,6 +48,11 @@ class ClingoParser {
   private childResultQueue: {
     parentKey: string;
     childKey: string;
+    collection: string;
+  }[] = [];
+  private childObjectQueue: {
+    parentKey: string;
+    name: string;
     collection: string;
   }[] = [];
   private tempResults: { [key: string]: BaseResult } = {};
@@ -78,6 +71,7 @@ class ClingoParser {
     };
     this.resultQueue = [];
     this.childResultQueue = [];
+    this.childObjectQueue = [];
     this.tempResults = {};
     this.orderQueue = [];
     this.collections = new Set();
@@ -100,47 +94,20 @@ class ClingoParser {
       this.childResultQueue.push({ parentKey, childKey, collection });
       this.collections.add(collection);
     },
-    enumField: async (
-      key: string,
-      fieldName: string,
-      fieldValue: string,
-      index: string,
-      displayValue: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      const decoded = decodeClingoValue(fieldValue);
-      const parsedIndex = parseInt(index, 10);
-      res[fieldName] = {
-        value: decoded,
-        index: parsedIndex,
-        displayValue,
-      };
-    },
-    // NOTE: Must be tested in INTDEV-623
-    listField: async (
-      key: string,
-      fieldName: string,
-      fieldValue: string,
-      index: string,
-      displayValue: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      const decoded = decodeClingoValue(fieldValue);
-      if (!res[fieldName] || !Array.isArray(res[fieldName])) {
-        res[fieldName] = [];
+    childResultCollection: (parentKey: string, collection: string) => {
+      const parent = this.getOrInitResult(parentKey);
+      if (!parent[collection] || !Array.isArray(parent[collection])) {
+        parent[collection] = [];
       }
-      const parsedIndex = parseInt(index, 10);
-      (res[fieldName] as unknown[]).push({
-        value: decoded,
-        index: parsedIndex,
-        displayValue,
-      });
+    },
+    childObject: (parentKey: string, name: string, collection: string) => {
+      this.childObjectQueue.push({ parentKey, name, collection });
     },
     field: async (
       key: string,
       fieldName: string,
       fieldValue: string,
-      dataType: DataType,
+      dataType: FieldDataType,
     ) => {
       const res = this.getOrInitResult(key);
       const decoded = decodeClingoValue(fieldValue);
@@ -161,88 +128,13 @@ class ClingoParser {
         case 'boolean':
           res[fieldName] = fieldValue === 'true';
           break;
+        case 'stringList':
+          if (!res[fieldName] || !Array.isArray(res[fieldName])) {
+            res[fieldName] = [];
+          }
+          (res[fieldName] as unknown[]).push(decoded);
+          break;
       }
-    },
-    label: (key: string, label: string) => {
-      const res = this.getOrInitResult(key);
-      res.labels.push(label);
-    },
-    link: (
-      key: string, // key is the card itself
-      cardKey: string, // cardKey is otherCard this is being linked to
-      title: string,
-      linkType: string,
-      displayName: string,
-      direction: LinkDirection,
-      linkSource: 'user' | 'calculated',
-      linkDescription?: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      res.links.push({
-        key: cardKey,
-        linkType,
-        displayName,
-        linkDescription,
-        direction,
-        linkSource,
-        title,
-      });
-    },
-    transitionDenied: (
-      key: string,
-      transitionName: string,
-      errorMessage: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      res.deniedOperations.transition.push({ transitionName, errorMessage });
-    },
-    movingCardDenied: (key: string, errorMessage: string) => {
-      const res = this.getOrInitResult(key);
-      res.deniedOperations.move.push({ errorMessage });
-    },
-    deletingCardDenied: (key: string, errorMessage: string) => {
-      const res = this.getOrInitResult(key);
-      res.deniedOperations.delete.push({ errorMessage });
-    },
-    editingFieldDenied: (
-      key: string,
-      fieldName: string,
-      errorMessage: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      res.deniedOperations.editField.push({ fieldName, errorMessage });
-    },
-    editingContentDenied: (key: string, errorMessage: string) => {
-      const res = this.getOrInitResult(key);
-      res.deniedOperations.editContent.push({ errorMessage });
-    },
-    notification: (
-      key: string,
-      category: string,
-      title: string,
-      message: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      res.notifications.push({ key, category, title, message });
-    },
-    policyCheckFailure: (
-      key: string,
-      category: string,
-      title: string,
-      errorMessage: string,
-      fieldName?: string,
-    ) => {
-      const res = this.getOrInitResult(key);
-      res.policyChecks.failures.push({
-        category,
-        title,
-        errorMessage,
-        fieldName,
-      });
-    },
-    policyCheckSuccess: (key: string, category: string, title: string) => {
-      const res = this.getOrInitResult(key);
-      res.policyChecks.successes.push({ category, title });
     },
     order: (
       level: string,
@@ -267,17 +159,6 @@ class ClingoParser {
     if (!this.tempResults[key]) {
       this.tempResults[key] = {
         key,
-        labels: [],
-        links: [],
-        notifications: [],
-        policyChecks: { successes: [], failures: [] },
-        deniedOperations: {
-          transition: [],
-          move: [],
-          delete: [],
-          editField: [],
-          editContent: [],
-        },
       };
     }
     return this.tempResults[key];
@@ -377,6 +258,12 @@ class ClingoParser {
       }
 
       (parent[collection] as unknown[]).push(child);
+    });
+
+    this.childObjectQueue.forEach(({ parentKey, name, collection }) => {
+      const parent = this.getOrInitResult(parentKey);
+      const child = this.getOrInitResult(name);
+      parent[collection] = child;
     });
 
     this.sortByLevel(this.result.results);
