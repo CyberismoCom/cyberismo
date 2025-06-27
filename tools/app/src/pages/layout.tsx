@@ -102,10 +102,10 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
     );
   }
   return (
-    <Box height="100%">
+    <Box>
       <PanelGroup direction="horizontal">
-        <Panel defaultSize={20} minSize={12} maxSize={40}>
-          <Box height="100%">
+        <Panel defaultSize={0} minSize={0} maxSize={40}>
+          <Box height="100%" display="none">
             <TreeMenu
               title={project.name}
               tree={tree}
@@ -131,7 +131,7 @@ function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
         </Panel>
         <PanelResizeHandle className="resizeHandle" />
         <Panel>
-          <Box padding={2} flexGrow={1} height="100%" overflow="hidden">
+          <Box padding={2} flexGrow={1}>
             {children}
           </Box>
         </Panel>

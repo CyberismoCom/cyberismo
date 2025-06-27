@@ -23,7 +23,13 @@ interface AppToolbarProps {
 export default function AppToolbar({ onNewCard }: AppToolbarProps) {
   const { t } = useTranslation();
   return (
-    <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
+    <Stack
+      bgcolor="black"
+      height="44px"
+      direction="row"
+      alignItems="center"
+      display="none"
+    >
       <Box marginLeft={2} height="19px">
         <Link to="/cards">
           <img

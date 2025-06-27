@@ -579,7 +579,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   const [visibleHeaderIds, setVisibleHeaderIds] = useState<string[] | null>(
     null,
   );
-  const [linksExpanded, setLinksExpanded] = useState(false);
+  const [linksExpanded, setLinksExpanded] = useState(true);
 
   const { modalOpen, openModal, closeModal } = useModals({
     editLink: false,
@@ -854,7 +854,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   }, [linkFormState]);
 
   return (
-    <Stack direction="row" height="100%">
+    <Stack direction="row">
       <SvgViewerModal
         open={isModalOpen}
         svgMarkup={modalSvg}
@@ -865,7 +865,6 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         padding={3}
         flexGrow={1}
         sx={{
-          overflowY: 'scroll',
           scrollbarWidth: 'thin',
         }}
         onScroll={handleScroll}
@@ -889,7 +888,12 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
             >
               <Stack direction="row" width="100%">
                 <AccordionSummary
-                  indicator={<ExpandMore data-cy="expandLinks" />}
+                  indicator={
+                    <ExpandMore
+                      data-cy="expandLinks"
+                      sx={{ display: 'none' }}
+                    />
+                  }
                   onClick={() => {
                     if (linksExpanded) {
                       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -929,23 +933,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
                     </Typography>
                   </Stack>
                 </AccordionSummary>
-                {!preview &&
-                  linkFormState === 'hidden' &&
-                  !config.staticMode && (
-                    <IconButton
-                      sx={{
-                        height: 36,
-                        alignSelf: 'center',
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                        onLinkFormChange && onLinkFormChange('add');
-                      }}
-                    >
-                      <Add />
-                    </IconButton>
-                  )}
+                {false && linkFormState === 'hidden' && !config.staticMode && (
+                  <IconButton
+                    sx={{
+                      height: 36,
+                      alignSelf: 'center',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                      onLinkFormChange && onLinkFormChange('add');
+                    }}
+                  >
+                    <Add />
+                  </IconButton>
+                )}
               </Stack>
               <AccordionDetails>
                 {!preview &&
@@ -1088,9 +1090,10 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         sx={{
           overflowY: 'auto',
           scrollbarWidth: 'thin',
+          display: 'none',
         }}
       >
-        <Box sx={{ marginBottom: 1 }}>
+        <Box sx={{ marginBottom: 1, display: 'none' }}>
           {renderTableOfContents(
             t('tableOfContents'),
             htmlContent,

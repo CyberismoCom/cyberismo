@@ -72,7 +72,7 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
   );
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    <Box sx={{ display: 'none', alignItems: 'center' }}>
       <Box sx={{ flexGrow: 1 }}>
         <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
       </Box>

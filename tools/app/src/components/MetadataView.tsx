@@ -104,7 +104,7 @@ function MetadataView({
   focusField,
 }: MetadataViewProps) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(initialExpanded);
+  const [expanded, setExpanded] = useState(true);
   const context = useFormContext();
 
   // TODO: replace with yup schemas
@@ -239,7 +239,12 @@ function MetadataView({
         card.fields.filter((field) => field.visibility === 'always').length !==
           card.fields.length &&
         card.fields.length !== 0 && (
-          <Box alignContent="flex-end" flexShrink={0} paddingLeft={1}>
+          <Box
+            alignContent="flex-end"
+            flexShrink={0}
+            paddingLeft={1}
+            display="none"
+          >
             <Link
               variant="soft"
               color="primary"
