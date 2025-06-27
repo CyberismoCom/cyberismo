@@ -132,19 +132,19 @@ field((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
 
 % Allow specifying up to 3 fields at the same time
 field(Key, Field, Value) :-
-    field(Key, Field, Value, _, _).
+    fields(Key, Field, Value, _, _).
 
 field(Key, Field, Value) :-
-    field(Key, _, _, Field, Value).
+    fields(Key, _, _, Field, Value).
 
 field(Key, Field, Value) :-
-    field(Key, Field, Value, _, _, _, _).
+    fields(Key, Field, Value, _, _, _, _).
 
 field(Key, Field, Value) :-
-    field(Key, _, _, Field, Value, _, _).
+    fields(Key, _, _, Field, Value, _, _).
     
 field(Key, Field, Value) :-
-    field(Key, _, _, _, _, Field, Value).
+    fields(Key, _, _, _, _, Field, Value).
 
 % allow using field directly
 field(Key, Field, Value) :- field(Key, Field, Value, _).

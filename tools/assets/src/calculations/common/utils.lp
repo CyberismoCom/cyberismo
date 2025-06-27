@@ -22,7 +22,7 @@ childResult((Card, "policyChecks"), (Card, Category, Title), "successes") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckSuccess(Card, Category, Title).
 
-field((Card, Category, Title), "category", Category, "title", Title) :-
+fields((Card, Category, Title), "category", Category, "title", Title) :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckSuccess(Card, Category, Title).
 
@@ -37,7 +37,7 @@ childResult((Card, "policyChecks"), (Card, Category, Title, ErrorMessage, Field)
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
 
-field((Card, Category, Title, ErrorMessage, Field), "category", Category, "title", Title, "errorMessage", ErrorMessage) :-
+fields((Card, Category, Title, ErrorMessage, Field), "category", Category, "title", Title, "errorMessage", ErrorMessage) :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
 
@@ -94,7 +94,7 @@ field((Source, Destination, LinkType, LinkDescription, Direction), "linkDescript
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links").
 
 % links: direction and link type
-field((Source, Destination, LinkType, LinkDescription, Direction), "direction", Direction, "linkType", LinkType) :-
+fields((Source, Destination, LinkType, LinkDescription, Direction), "direction", Direction, "linkType", LinkType) :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links").
 
 % links: link source
@@ -146,7 +146,7 @@ childResult(Card, (Card, Category, Title, Message), "notifications") :-
     showField(Card, "notifications"),
     notification(Card, Category, Title, Message).
 
-field((Card, Category, Title, Message), "key", Card, "category", Category, "title", Title) :-
+fields((Card, Category, Title, Message), "key", Card, "category", Category, "title", Title) :-
     childResult(Card, (Card, Category, Title, Message), "notifications").
 
 field((Card, Category, Title, Message), "message", Message) :-
@@ -173,7 +173,7 @@ childResult((Card, "deniedOperations"), (Card, TransitionName, ErrorMessage), "t
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     transitionDenied(Card, TransitionName, ErrorMessage).
 
-field((Card, TransitionName, ErrorMessage), "transitionName", TransitionName, "errorMessage", ErrorMessage) :-
+fields((Card, TransitionName, ErrorMessage), "transitionName", TransitionName, "errorMessage", ErrorMessage) :-
     childResult((Card, "deniedOperations"), (Card, TransitionName, ErrorMessage), "transition").
 
 % move denied operations
@@ -206,7 +206,7 @@ childResult((Card, "deniedOperations"), (Card, FieldName, ErrorMessage), "editFi
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     editingFieldDenied(Card, FieldName, ErrorMessage).
 
-field((Card, FieldName, ErrorMessage), "fieldName", FieldName, "errorMessage", ErrorMessage) :-
+fields((Card, FieldName, ErrorMessage), "fieldName", FieldName, "errorMessage", ErrorMessage) :-
     childResult((Card, "deniedOperations"), (Card, FieldName, ErrorMessage), "editField").
 
 % editContent denied operations
