@@ -226,4 +226,5 @@ childResultCollection(Card, "labels") :-
     showField(Card, "labels").
 
 field(Card, "labels", Label, "stringList") :-
+    showField(Card, "labels"),
     label(Card, Label).
