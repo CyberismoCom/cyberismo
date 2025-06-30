@@ -150,7 +150,7 @@ export class GraphModelResource extends FolderResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as GraphModel) };
+    const content = structuredClone(this.content) as GraphModel;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;

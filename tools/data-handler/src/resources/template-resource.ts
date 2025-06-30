@@ -146,7 +146,7 @@ export class TemplateResource extends FolderResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as TemplateMetadata) };
+    const content = structuredClone(this.content) as TemplateMetadata;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;

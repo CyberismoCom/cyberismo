@@ -144,7 +144,7 @@ export class GraphViewResource extends FolderResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as GraphView) };
+    const content = structuredClone(this.content) as GraphView;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;

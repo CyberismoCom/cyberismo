@@ -179,7 +179,7 @@ export class ReportResource extends FolderResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as ReportMetadata) };
+    const content = structuredClone(this.content) as ReportMetadata;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
