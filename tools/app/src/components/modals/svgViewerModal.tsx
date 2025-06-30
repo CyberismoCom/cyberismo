@@ -28,37 +28,12 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;
 
-// To allow backbutton to close the modal, not to change the page
-function useBackButtonModal(open: boolean, onClose: () => void) {
-  const pushedRef = useRef(false);
-
-  useEffect(() => {
-    if (!open || pushedRef.current) return;
-
-    window.history.pushState(null, '');
-    pushedRef.current = true;
-
-    const handlePop = () => {
-      if (pushedRef.current) {
-        pushedRef.current = false;
-        onClose();
-      }
-      window.removeEventListener('popstate', handlePop);
-      window.history.replaceState(null, '');
-    };
-
-    window.addEventListener('popstate', handlePop);
-  }, [open, onClose]);
-}
-
 const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
   open,
   svgMarkup,
   onClose,
   padding = 32,
 }) => {
-  useBackButtonModal(open, onClose);
-
   const [zoom, setZoom] = useState(1);
   const [naturalSize, setNaturalSize] = useState<Size | null>(null);
 
