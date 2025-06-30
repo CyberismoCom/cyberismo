@@ -16,4 +16,4 @@ import { apiPaths } from '../swr';
 import { SWRConfiguration } from 'swr';
 
 export const useLinkTypes = (options?: SWRConfiguration) =>
-  useSWRHook<'linkTypes'>(apiPaths.linkTypes(), 'linkTypes', options);
+  useSWRHook<'linkTypes'>(apiPaths.linkTypes(), 'linkTypes', null, options);

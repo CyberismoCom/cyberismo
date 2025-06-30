@@ -32,6 +32,7 @@ export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const { callUpdate, isUpdating, ...rest } = useSWRHook(
     key ? apiPaths.card(key) : null,
     'card',
+    null,
     options,
   );
 
