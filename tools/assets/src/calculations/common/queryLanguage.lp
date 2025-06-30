@@ -147,6 +147,9 @@ field(Key, Field, Value) :-
     fields(Key, _, _, _, _, Field, Value).
 
 % allow using field directly
+% fields are always shown
+% TODO: instead of creating datatype and showField facts, we should simply show the field directly with #show
+showField(Key, Field) :- field(Key, Field, _, _).
 field(Key, Field, Value) :- field(Key, Field, Value, _).
 dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
 
