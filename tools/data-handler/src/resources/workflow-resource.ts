@@ -82,8 +82,8 @@ export class WorkflowResource extends FileResource {
 
   // Handle change of workflow state.
   private async handleStateChange(op: ChangeOperation<WorkflowState>) {
-    const content = { ...(this.content as Workflow) };
-    const stateName = this.targetName(op);
+    const content = structuredClone(this.content) as Workflow;
+    const stateName = this.targetName(op) as string;
     // Check that state can be changed to
     content.transitions = content.transitions.filter(
       (t) => t.toState !== stateName,
@@ -107,8 +107,8 @@ export class WorkflowResource extends FileResource {
   // Handle removal of workflow state.
   // State can be removed with or without replacement.
   private async handleStateRemoval(op: RemoveOperation<WorkflowState>) {
-    const content = { ...(this.content as Workflow) };
-    const stateName = this.targetName(op);
+    const content = structuredClone(this.content) as Workflow;
+    const stateName = this.targetName(op) as string;
 
     // If there is no replacement value, remove all transitions "to" and "from" this state.
     if (!op.replacementValue) {
@@ -148,13 +148,13 @@ export class WorkflowResource extends FileResource {
 
   // Returns target name irregardless of the type
   private targetName(op: Operation<WorkflowState | WorkflowTransition>) {
-    const name = (op.target.name ? op.target.name : op.target) as string;
+    const name = op.target.name ? op.target.name : op.target;
     return name;
   }
 
   // Potentially updates the changed transition with current properties.
   private async transitionObject(op: ChangeOperation<WorkflowTransition>) {
-    const content = { ...(this.content as Workflow) };
+    const content = structuredClone(this.content) as Workflow;
     const targetTransitionName = this.targetName(op);
     const currentTransition = content.transitions.filter(
       (item) => item.name === targetTransitionName,
@@ -278,7 +278,7 @@ export class WorkflowResource extends FileResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as Workflow) };
+    const content = structuredClone(this.content) as Workflow;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
