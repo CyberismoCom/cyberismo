@@ -11,6 +11,9 @@ jobs:
     outputs:
       version-changed: ${{ steps.check.outputs.changed }}
       version: ${{ steps.check.outputs.version }}
+    permissions:
+      contents: read
+
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -50,7 +53,6 @@ jobs:
 
     permissions:
       contents: read
-      packages: read
 
     steps:
       - name: Check out code
