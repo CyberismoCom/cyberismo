@@ -15,6 +15,7 @@ displayName(Card, (Card, Field), DisplayName) :-
 
 displayName(Card, (Card, Field), DisplayName) :-
     field(Card, "cardType", CardType),
+    fieldType(Field),
     field((CardType, Field), "displayName", DisplayName).
 
 % the second level includes metadata for the always visible and optionally visible fields
@@ -50,12 +51,12 @@ field((Card, Field), "index", Index) :-
 
 dataType((Card, Field), "fieldDisplayName", "shortText") :-
     childResult(Card, (Card, Field), "fields"),
-    field(Field, "fieldDisplayName", _).
+    field((Card, Field), "fieldDisplayName", _).
 
 field((Card, Field), "fieldDisplayName", DisplayName) :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
-    displayName(Card, Field, DisplayName).
+    displayName(Card, (Card, Field), DisplayName).
 
 dataType((Card, Field), "isCalculated", "boolean") :-
     childResult(Card, (Card, Field), "fields"),
@@ -128,7 +129,7 @@ select(3, "enumValue").
 
 childResult((Card, Field), (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue),
-    result(Card).
+    childResult(Card, (Card, Field), "fields").
 
 field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
