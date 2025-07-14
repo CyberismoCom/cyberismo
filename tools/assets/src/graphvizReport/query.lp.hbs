@@ -100,6 +100,7 @@ field(((node, Node), Field), "value", Value) :-
     attr(node, Node, Field, Value),
     not labelAttribute(Field).
 
+% default graph
 graph(default) :-
     node(_).
 
@@ -112,8 +113,8 @@ node(X, default) :-
 edge((XR, YR), default) :-
     edge((XR, YR)).
 
-edge((XR, YR, ""), Graph) :-
-    edge((XR, YR), Graph).
+edge((XR, YR, Identifier), default) :-
+    edge((XR, YR, Identifier)).
 
 % edges
 childResult(Graph, (edge, (XR, YR, Description)), "edges") :-
@@ -137,5 +138,12 @@ field((edge, (XR, YR, Description)), "source", XR) :-
 
 field((edge, (XR, YR, Description)), "destination", YR) :-
     edge((XR, YR, Description), _).
+
+% edges without a separate identifier use "" as their identifier
+edge((XR, YR, ""), Graph) :-
+    edge((XR, YR), Graph).
+
+attr(edge, (Source, Destination, ""), Attribute, Value) :-
+  attr(edge, (Source, Destination), Attribute, Value).
 
 order(N, Collection, 1, "rank", "ASC") :- resultLevel(_, N, Collection).
