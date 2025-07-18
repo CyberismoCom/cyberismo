@@ -58,6 +58,11 @@ field((Card, Field), "fieldDisplayName", DisplayName) :-
     result(Card),
     displayName(Card, (Card, Field), DisplayName).
 
+field((Card, Field), "fieldDescription", Description, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    field(Field, "description", Description).
+
 dataType((Card, Field), "isCalculated", "boolean") :-
     childResult(Card, (Card, Field), "fields"),
     field((Card, Field), "isCalculated", _).
@@ -72,6 +77,12 @@ field((Card, Field), "isCalculated", false) :-
     result(Card),
     field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
+
+% add dataType of field
+field((Card, Field), "dataType", DataType, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    dataType(Card, Field, DataType).
 
 % add value
 dataType((Card, Field), "value", DataType) :-
