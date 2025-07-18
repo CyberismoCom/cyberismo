@@ -157,33 +157,7 @@ describe('macros', () => {
         expect(result).to.not.contain('<create-cards>');
       });
     });
-    describe('scoreCard', () => {
-      it('scoreCard inject (success)', async () => {
-        const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'inject',
-            project: project,
-            cardKey: '',
-          },
-          calculate,
-        );
-        expect(result).to.contain('<score-card');
-      });
-      it('scoreCard static (success)', async () => {
-        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-          },
-          calculate,
-        );
-        expect(result).to.contain('----');
-      });
+    describe('raw', () => {
       it('raw macro (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
         const withRaw = `{{#raw}}${macro}{{/raw}}`;
@@ -257,7 +231,7 @@ RawContent3`;
         );
         expect(result).to.equal(expectedResult);
       });
-      it('nested raw macros should throw an error with line numbers', async () => {
+      it('nested raw macros should return error with line numbers', async () => {
         const nestedContent = `{{#raw}}
 Outer content
 {{#raw}}
@@ -265,37 +239,63 @@ Inner content
 {{/raw}}
 More outer content
 {{/raw}}`;
-        await expect(
-          evaluateMacros(
-            nestedContent,
-            {
-              mode: 'static',
-              project: project,
-              cardKey: '',
-            },
-            calculate,
-          ),
-        ).to.be.rejectedWith(
+        const result = await evaluateMacros(
+          nestedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain(
           'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
         );
       });
-      it('unclosed raw block should throw an error with line number', async () => {
+      it('unclosed raw block should return error with line number', async () => {
         const unclosedContent = `{{#raw}}
 This raw block has no closing tag
 Some content here`;
-        await expect(
-          evaluateMacros(
-            unclosedContent,
-            {
-              mode: 'static',
-              project: project,
-              cardKey: '',
-            },
-            calculate,
-          ),
-        ).to.be.rejectedWith(
+        const result = await evaluateMacros(
+          unclosedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain(
           'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
         );
+      });
+    });
+    describe('scoreCard', () => {
+      it('scoreCard inject (success)', async () => {
+        const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('<score-card');
+      });
+      it('scoreCard static (success)', async () => {
+        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('----');
       });
     });
   });
