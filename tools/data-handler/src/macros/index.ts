@@ -34,6 +34,24 @@ const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 
 /**
+ * Pre-processes the content to handle {{#raw}} blocks by escaping all handlebars syntax inside them
+ * @param content The template content to process
+ * @returns The processed content with raw blocks escaped
+ */
+function preprocessRawBlocks(content: string): string {
+  // Find all {{#raw}}...{{/raw}} blocks
+  const rawBlockRegex = /\{\{#raw\}\}([\s\S]*?)\{\{\/raw\}\}/g;
+
+  return content.replace(rawBlockRegex, (_, innerContent) => {
+    // Escape all curly braces in the inner content
+    const escapedContent = innerContent
+      .replaceAll('{', CURLY_LEFT)
+      .replaceAll('}', CURLY_RIGHT);
+    return escapedContent;
+  });
+}
+
+/**
  * Constructor for all macros except report macros
  */
 export interface SimpleMacroConstructor {
@@ -106,25 +124,10 @@ export function registerMacros(
     const MacroClass = macros[macro];
     const macroInstance = new MacroClass(tasks, calculate);
     instance.registerHelper(macro, function (this: unknown, options) {
-      if (
-        this != null &&
-        typeof this === 'object' &&
-        '__isRaw' in this &&
-        this.__isRaw
-      ) {
-        // we use escaped chars so that they will not be re-run
-        return `${CURLY_LEFT}${CURLY_LEFT}#${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
-      }
       return macroInstance.invokeMacro(context, options);
     });
     macroInstances.push(macroInstance);
   }
-
-  instance.registerHelper('raw', function (options) {
-    return options.fn({
-      __isRaw: true,
-    });
-  });
 
   return macroInstances;
 }
@@ -169,7 +172,7 @@ export async function evaluateMacros(
   let result = content;
   while (maxTries-- > 0) {
     tasks.reset();
-    const compiled = handlebars.compile(result, {
+    const compiled = handlebars.compile(preprocessRawBlocks(result), {
       strict: true,
     });
     try {
