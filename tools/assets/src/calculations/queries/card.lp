@@ -22,7 +22,7 @@ displayName(Card, (Card, Field), DisplayName) :-
 % we include the card key in the key of the fields, because the same query is used
 % when generating static sites for all project cards at the same time
 
-field((Card, Field), "fieldType", Field) :-
+field((Card, Field), "key", Field) :-
     customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
@@ -60,7 +60,7 @@ field((Card, Field), "fieldDisplayName", DisplayName) :-
 
 dataType((Card, Field), "isCalculated", "boolean") :-
     childResult(Card, (Card, Field), "fields"),
-    field(Field, "isCalculated", _).
+    field((Card, Field), "isCalculated", _).
 
 field((Card, Field), "isCalculated", true) :-
     result(Card),
@@ -99,7 +99,7 @@ select(1, "labels").
 
 % Fields
 
-select(2, "fields", "fieldType").
+select(2, "fields", "key").
 select(2, "fields", "visibility").
 select(2, "fields", "index").
 select(2, "fields", "fieldDisplayName").
