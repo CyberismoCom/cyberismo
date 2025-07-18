@@ -12,16 +12,30 @@
 
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 import { Stack, Button, Box } from '@mui/joy';
 import { config } from '@/lib/utils';
+import { useKeyboardShortcut } from '@/lib/hooks';
+
 interface AppToolbarProps {
   onNewCard: () => void;
 }
 
 export default function AppToolbar({ onNewCard }: AppToolbarProps) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const inCards = location.pathname.startsWith('/cards');
+  useKeyboardShortcut(
+    {
+      key: 'c',
+    },
+    () => {
+      if (!config.staticMode && inCards) {
+        onNewCard();
+      }
+    },
+  );
   return (
     <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
       <Box marginLeft={2} height="19px">
@@ -35,7 +49,7 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      {!config.staticMode && (
+      {!config.staticMode && inCards && (
         <Button
           data-cy="createNewCardButton"
           variant="solid"

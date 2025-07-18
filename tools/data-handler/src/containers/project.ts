@@ -13,7 +13,6 @@
 */
 
 // node
-import { type Dirent } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
@@ -25,7 +24,6 @@ import {
   CardLocation,
   type CardListContainer,
   type CardMetadata,
-  CardNameRegEx,
   type FetchCardDetails,
   type MetadataContent,
   type ModuleContent,
@@ -36,7 +34,6 @@ import {
   type Resource,
   type ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
-import { findParentPath } from '../utils/card-utils.js';
 import { getFilesSync, pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
 import { isTemplateCard } from '../utils/card-utils.js';
@@ -183,7 +180,7 @@ export class Project extends CardContainer {
    * @returns array of all calculation files in the project.
    */
   public async calculations(
-    from: ResourcesFrom = ResourcesFrom.localOnly,
+    from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     return this.resources.resources('calculations', from);
   }
@@ -986,68 +983,7 @@ export class Project extends CardContainer {
    * @returns an array of all project cards in the project.
    */
   public async showProjectCards(): Promise<Card[]> {
-    const cards: Card[] = [];
-    const cardPathMap = new Map<string, Card>();
-    const entries = await readdir(this.paths.cardRootFolder, {
-      withFileTypes: true,
-      recursive: true,
-    });
-
-    // Checks if Dirent folder is a card folder
-    function cardFolder(
-      entry: Dirent,
-      cardPathMap: Map<string, Card>,
-    ): Card | undefined {
-      const fullPath = join(entry.parentPath, entry.name);
-      if (!cardPathMap.has(fullPath)) {
-        const newCard: Card = {
-          key: entry.name,
-          path: fullPath,
-          children: [],
-          attachments: [],
-        };
-        cardPathMap.set(fullPath, newCard);
-        return newCard;
-      }
-    }
-
-    // Process card directories first
-    entries
-      .filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name))
-      .forEach((entry) => {
-        const card = cardFolder(entry, cardPathMap);
-        if (card) cards.push(card);
-      });
-
-    // Process metadata files in parallel
-    await Promise.all(
-      entries
-        .filter(
-          (entry) => entry.isFile() && entry.name === Project.cardMetadataFile,
-        )
-        .map(async (entry) => {
-          const parentCard = cardPathMap.get(entry.parentPath);
-          if (!parentCard) return;
-          parentCard.metadata = (await readJsonFile(
-            join(entry.parentPath, entry.name),
-          )) as CardMetadata;
-        }),
-    );
-
-    // Finally, build the card hierarchy
-    Array.from(cardPathMap.entries()).map(([cardPath, card]) => {
-      const parentPath = findParentPath(cardPath);
-      if (!parentPath) return;
-      const parentCard = cardPathMap.get(parentPath);
-      if (!parentCard) return;
-
-      parentCard.children.push(card);
-      const index = cards.indexOf(card);
-      if (index > -1) {
-        cards.splice(index, 1);
-      }
-    });
-    return cards;
+    return this.showCards(this.paths.cardRootFolder);
   }
 
   /**

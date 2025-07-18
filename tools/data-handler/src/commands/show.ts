@@ -59,6 +59,7 @@ export class Show {
     private calculate: Calculate,
   ) {
     this.resourceFunction = new Map([
+      ['calculations', this.project.calculations.bind(this.project)],
       ['cardTypes', this.project.cardTypes.bind(this.project)],
       ['fieldTypes', this.project.fieldTypes.bind(this.project)],
       ['graphModels', this.project.graphModels.bind(this.project)],
@@ -117,6 +118,27 @@ export class Show {
     } else {
       spawn('xdg-open', [path]);
     }
+  }
+
+  /**
+   * Shows all template cards in a project.
+   * @returns all template cards in a project.
+   */
+  public async showAllTemplateCards(): Promise<
+    { name: string; cards: Card[] }[]
+  > {
+    return Promise.all(
+      (await this.project.templates()).map(async (template) => {
+        const templateResource = new TemplateResource(
+          this.project,
+          resourceName(template.name),
+        );
+        return {
+          name: template.name,
+          cards: await templateResource.templateObject().showTemplateCards(),
+        };
+      }),
+    );
   }
 
   /**
@@ -393,6 +415,14 @@ export class Show {
     name: string,
     showUse: boolean = false,
   ): Promise<ResourceContent | undefined> {
+    // TODO: remove this workaround once calculations are implemented as a resource class
+    if (resourceName(name).type === 'calculations') {
+      return {
+        name,
+        displayName: resourceName(name).identifier,
+      };
+    }
+
     const strictNameCheck = true;
     const resource = Project.resourceObject(
       this.project,

@@ -15,14 +15,15 @@ import { staticFrontendDirRelative } from './utils.js';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachCommandManager } from './middleware/commandManager.js';
-import cardsRouter from './routes/cards.js';
-import fieldTypesRouter from './routes/fieldTypes.js';
-import linkTypesRouter from './routes/linkTypes.js';
-import templatesRouter from './routes/templates.js';
-import treeRouter from './routes/tree.js';
+import cardsRouter from './domain/cards/index.js';
+import fieldTypesRouter from './domain/fieldTypes/index.js';
+import linkTypesRouter from './domain/linkTypes/index.js';
+import templatesRouter from './domain/templates/index.js';
+import treeRouter from './domain/tree/index.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isSSGContext } from './export.js';
+import resourcesRouter from './domain/resources/index.js';
 
 /**
  * Create the Hono app for the backend
@@ -49,6 +50,7 @@ export function createApp(projectPath?: string) {
   app.route('/api/linkTypes', linkTypesRouter);
   app.route('/api/templates', templatesRouter);
   app.route('/api/tree', treeRouter);
+  app.route('/api/resources', resourcesRouter);
 
   // serve index.html for all other routes
   app.notFound(async (c) => {

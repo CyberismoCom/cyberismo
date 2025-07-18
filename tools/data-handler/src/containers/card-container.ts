@@ -17,6 +17,8 @@ import { basename, join, sep } from 'node:path';
 import type { Dirent } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 
+import { findParentPath } from '../utils/card-utils.js';
+import { readJsonFile } from '../utils/json.js';
 import { writeJsonFile } from '../utils/json.js';
 import { getFilesSync } from '../utils/file-utils.js';
 
@@ -24,6 +26,7 @@ import { getFilesSync } from '../utils/file-utils.js';
 import {
   type CardAttachment,
   type Card,
+  type CardMetadata,
   CardNameRegEx,
   type FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
@@ -374,5 +377,76 @@ export class CardContainer {
       card.metadata!.lastUpdated = new Date().toISOString();
       await writeJsonFile(metadataFile, card.metadata);
     }
+  }
+
+  /**
+   * Show cards with hierarchy structure from a given path.
+   * @param path The path to read cards from
+   * @returns an array of cards with proper parent-child relationships.
+   */
+  protected async showCards(path: string): Promise<Card[]> {
+    const cards: Card[] = [];
+    const cardPathMap = new Map<string, Card>();
+    const entries = await readdir(path, {
+      withFileTypes: true,
+      recursive: true,
+    });
+
+    // Checks if Dirent folder is a card folder
+    function cardFolder(
+      entry: Dirent,
+      cardPathMap: Map<string, Card>,
+    ): Card | undefined {
+      const fullPath = join(entry.parentPath, entry.name);
+      if (!cardPathMap.has(fullPath)) {
+        const newCard: Card = {
+          key: entry.name,
+          path: fullPath,
+          children: [],
+          attachments: [],
+        };
+        cardPathMap.set(fullPath, newCard);
+        return newCard;
+      }
+    }
+
+    // Process card directories first
+    entries
+      .filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name))
+      .forEach((entry) => {
+        const card = cardFolder(entry, cardPathMap);
+        if (card) cards.push(card);
+      });
+
+    // Process metadata files in parallel
+    await Promise.all(
+      entries
+        .filter(
+          (entry) =>
+            entry.isFile() && entry.name === CardContainer.cardMetadataFile,
+        )
+        .map(async (entry) => {
+          const parentCard = cardPathMap.get(entry.parentPath);
+          if (!parentCard) return;
+          parentCard.metadata = (await readJsonFile(
+            join(entry.parentPath, entry.name),
+          )) as CardMetadata;
+        }),
+    );
+
+    // Finally, build the card hierarchy
+    Array.from(cardPathMap.entries()).map(([cardPath, card]) => {
+      const parentPath = findParentPath(cardPath);
+      if (!parentPath) return;
+      const parentCard = cardPathMap.get(parentPath);
+      if (!parentCard) return;
+
+      parentCard.children.push(card);
+      const index = cards.indexOf(card);
+      if (index > -1) {
+        cards.splice(index, 1);
+      }
+    });
+    return cards;
   }
 }

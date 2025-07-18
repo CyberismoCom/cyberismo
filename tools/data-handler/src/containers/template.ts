@@ -575,4 +575,12 @@ export class Template extends CardContainer {
   public templateFolder(): string {
     return this.templatePath;
   }
+
+  /**
+   * Show cards of a template with hierarchy structure.
+   * @returns an array of all template cards with proper parent-child relationships.
+   */
+  public async showTemplateCards(): Promise<Card[]> {
+    return this.showCards(this.templateCardsPath);
+  }
 }

@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -30,7 +31,7 @@ import {
   Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useCard, useProject } from '../../lib/api';
+import { useCard } from '../../lib/api';
 import { useAppSelector } from '../../lib/hooks';
 import {
   deepCopy,
@@ -62,9 +63,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const { tree, isLoading } = useTree();
-
-  // TODO: get rid of this dependency
-  const { project, isLoading: isLoadingProject } = useProject();
 
   const { moveCard, isUpdating } = useCard(cardKey);
   const recents = useAppSelector((state) => state.recentlyViewed.pages);
@@ -99,7 +97,7 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     setSelected(null);
   }, [open, currentTab]);
 
-  if (isLoading || !tree || !project || isLoadingProject) {
+  if (isLoading || !tree) {
     return (
       <Box padding={2}>
         <CircularProgress size="md" color="primary" />
