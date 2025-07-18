@@ -257,6 +257,46 @@ RawContent3`;
         );
         expect(result).to.equal(expectedResult);
       });
+      it('nested raw macros should throw an error with line numbers', async () => {
+        const nestedContent = `{{#raw}}
+Outer content
+{{#raw}}
+Inner content
+{{/raw}}
+More outer content
+{{/raw}}`;
+        await expect(
+          evaluateMacros(
+            nestedContent,
+            {
+              mode: 'static',
+              project: project,
+              cardKey: '',
+            },
+            calculate,
+          ),
+        ).to.be.rejectedWith(
+          'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
+        );
+      });
+      it('unclosed raw block should throw an error with line number', async () => {
+        const unclosedContent = `{{#raw}}
+This raw block has no closing tag
+Some content here`;
+        await expect(
+          evaluateMacros(
+            unclosedContent,
+            {
+              mode: 'static',
+              project: project,
+              cardKey: '',
+            },
+            calculate,
+          ),
+        ).to.be.rejectedWith(
+          'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
+        );
+      });
     });
   });
   describe('validate macros', () => {
