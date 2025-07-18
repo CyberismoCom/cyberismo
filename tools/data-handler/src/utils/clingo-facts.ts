@@ -101,6 +101,23 @@ export const createWorkflowFacts = (workflow: Workflow) => {
     Facts.Workflow.WORKFLOW,
     workflow.name,
   );
+
+  if (workflow.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      workflow.name,
+      'displayName',
+      workflow.displayName,
+    );
+
+  if (workflow.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      workflow.name,
+      'description',
+      workflow.description,
+    );
+
   // add states
   for (const state of workflow.states) {
     if (state.category) {
@@ -340,6 +357,22 @@ export const createCardTypeFacts = (cardType: CardType) => {
 
   builder.addFact(Facts.CardType.CARD_TYPE, cardType.name);
 
+  if (cardType.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      cardType.name,
+      'displayName',
+      cardType.displayName,
+    );
+
+  if (cardType.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      cardType.name,
+      'description',
+      cardType.description,
+    );
+
   builder.addFact(
     Facts.Common.FIELD,
     cardType.name,
@@ -421,8 +454,27 @@ export const createCardTypeFacts = (cardType: CardType) => {
  * @returns clingo facts as a string
  */
 export const createLinkTypeFacts = (linkType: LinkType) => {
-  const builder = new ClingoProgramBuilder()
-    .addFact(Facts.LinkType.LINK_TYPE, linkType.name)
+  const builder = new ClingoProgramBuilder().addFact(
+    Facts.LinkType.LINK_TYPE,
+    linkType.name,
+  );
+
+  if (linkType.displayName)
+    builder.addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'displayName',
+      linkType.displayName,
+    );
+
+  if (linkType.description)
+    builder.addFact(
+      Facts.Common.FIELD,
+      linkType.name,
+      'description',
+      linkType.description,
+    );
+  builder
     .addFact(
       Facts.Common.FIELD,
       linkType.name,
