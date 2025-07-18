@@ -239,6 +239,32 @@ describe('macros', () => {
         );
         expect(result).to.equal(mixedContent);
       });
+      it('nested raw macros should preserve inner raw tags as literal text', async () => {
+        const nestedContent = `{{#raw}}
+Outer content
+{{#raw}}
+Inner content
+{{/raw}}
+More outer content
+{{/raw}}`;
+        const expectedResult = `
+Outer content
+{{#raw}}
+Inner content
+{{/raw}}
+More outer content
+`;
+        const result = await evaluateMacros(
+          nestedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(expectedResult);
+      });
     });
   });
   describe('validate macros', () => {
