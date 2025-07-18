@@ -200,6 +200,45 @@ describe('macros', () => {
           '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
         );
       });
+      it('raw macro with handlebars helpers (success)', async () => {
+        const handlebarsContent = `{{#each results}}
+
+* {{this.title}}
+{{/each}}`;
+        const withRaw = `{{#raw}}${handlebarsContent}{{/raw}}`;
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(handlebarsContent);
+      });
+      it('raw macro with mixed content (success)', async () => {
+        const mixedContent = `{{#each results}}
+* {{this.title}}
+{{/each}}
+
+{{#scoreCard}}"title": "Test", "value": 42{{/scoreCard}}
+
+{{#if condition}}
+  This is conditional
+{{/if}}`;
+        const withRaw = `{{#raw}}${mixedContent}{{/raw}}`;
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(mixedContent);
+      });
     });
   });
   describe('validate macros', () => {
