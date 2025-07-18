@@ -135,7 +135,7 @@ interface CardQueryField extends BaseResult {
   visibility: 'always' | 'optional';
   index: number;
   fieldDisplayName: string;
-  description: string;
+  fieldDescription: string;
   dataType: DataType;
   isCalculated: boolean;
   value: string | number | boolean | null | EnumValue | ListValueItem[];

@@ -6,81 +6,95 @@ result(X) :- projectCard(X).
 
 % a helper term for display names
 
-displayName(Card, Field, DisplayName) :-
+displayName(Card, (Card, Field), DisplayName) :-
     field(Card, Field, _),
     fieldType(Field),
     field(Field, "displayName", DisplayName),
     field(Card, "cardType", CardType),
     not field((CardType, Field), "displayName", _).
 
-displayName(Card, Field, DisplayName) :-
+displayName(Card, (Card, Field), DisplayName) :-
     field(Card, "cardType", CardType),
+    fieldType(Field),
     field((CardType, Field), "displayName", DisplayName).
 
 % the second level includes metadata for the always visible and optionally visible fields
+% we include the card key in the key of the fields, because the same query is used
+% when generating static sites for all project cards at the same time
 
-field(Field, "visibility", "always") :-
+field((Card, Field), "key", Field) :-
+    customField(CardType, Field),
+    field(Card, "cardType", CardType),
+    result(Card).
+
+field((Card, Field), "visibility", "always") :-
     alwaysVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field(Field, "visibility", "optional") :-
+field((Card, Field), "visibility", "optional") :-
     optionallyVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field(Field, "index", Index) :-
+field((Card, Field), "index", Index) :-
     alwaysVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-field(Field, "index", Index) :-
+field((Card, Field), "index", Index) :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-dataType(Field, "fieldDisplayName", "shortText") :-
-    childResult(_, Field, "fields"),
-    field(Field, "fieldDisplayName", _).
+dataType((Card, Field), "fieldDisplayName", "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    field((Card, Field), "fieldDisplayName", _).
 
-field(Field, "fieldDisplayName", DisplayName) :-
-    childResult(_, Field, "fields"),
+field((Card, Field), "fieldDisplayName", DisplayName) :-
+    childResult(Card, (Card, Field), "fields"),
     result(Card),
-    displayName(Card, Field, DisplayName).
+    displayName(Card, (Card, Field), DisplayName).
 
-dataType(Field, "isCalculated", "boolean") :-
-    childResult(_, Field, "fields"),
-    field(Field, "isCalculated", _).
+field((Card, Field), "fieldDescription", Description, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    field(Field, "description", Description).
 
-field(Field, "isCalculated", true) :-
+dataType((Card, Field), "isCalculated", "boolean") :-
+    childResult(Card, (Card, Field), "fields"),
+    field((Card, Field), "isCalculated", _).
+
+field((Card, Field), "isCalculated", true) :-
     result(Card),
     field(Card, "cardType", CardType),
     calculatedField(CardType, Field).
 
-field(Field, "isCalculated", false) :-
-    childResult(_, Field, "fields"),
+field((Card, Field), "isCalculated", false) :-
+    childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
 
-
-
+% add dataType of field
+field((Card, Field), "dataType", DataType, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    result(Card),
+    dataType(Card, Field, DataType).
 
 % add value
-dataType(Field, "value", DataType) :-
-    childResult(_, Field, "fields"),
+dataType((Card, Field), "value", DataType) :-
+    childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Card, Field, Value),
     dataType(Card, Field, DataType).
 
-
 % add value
-field(Field, "value", Value) :-
-    childResult(Card, Field, "fields"),
+field((Card, Field), "value", Value) :-
+    childResult(Card, (Card, Field), "fields"),
     field(Card, Field, Value).
-
 
 % select only non-custom fields
 select(1, "cardType").
@@ -96,6 +110,7 @@ select(1, "labels").
 
 % Fields
 
+select(2, "fields", "key").
 select(2, "fields", "visibility").
 select(2, "fields", "index").
 select(2, "fields", "fieldDisplayName").
@@ -107,12 +122,12 @@ select(2, "fields", "value").
 childResultCollection(Card, "fields") :-
     result(Card).
 
-childResult(Card, Field, "fields") :-
+childResult(Card, (Card, Field), "fields") :-
     alwaysVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-childResult(Card, Field, "fields") :-
+childResult(Card, (Card, Field), "fields") :-
     optionallyVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
@@ -123,8 +138,9 @@ select(3, "enumDisplayValue").
 select(3, "enumDescription").
 select(3, "enumValue").
 
-childResult(Field, (Field, EnumValue), "enumValues") :-
-    enumValue(Field, EnumValue).
+childResult((Card, Field), (Field, EnumValue), "enumValues") :-
+    enumValue(Field, EnumValue),
+    childResult(Card, (Card, Field), "fields").
 
 field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
