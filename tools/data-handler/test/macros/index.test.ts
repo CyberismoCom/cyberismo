@@ -239,21 +239,13 @@ describe('macros', () => {
         );
         expect(result).to.equal(mixedContent);
       });
-      it('nested raw macros should preserve inner raw tags as literal text', async () => {
-        const nestedContent = `{{#raw}}
-Outer content
-{{#raw}}
-Inner content
-{{/raw}}
-More outer content
-{{/raw}}`;
-        const expectedResult = `
-Outer content
-{{#raw}}
-Inner content
-{{/raw}}
-More outer content
-`;
+      it('content should be able to contain multiple raw blocks', async () => {
+        const nestedContent = `{{#raw}}RawContent1{{/raw}}
+{{#raw}}RawContent2{{/raw}}
+{{#raw}}RawContent3{{/raw}}`;
+        const expectedResult = `RawContent1
+RawContent2
+RawContent3`;
         const result = await evaluateMacros(
           nestedContent,
           {

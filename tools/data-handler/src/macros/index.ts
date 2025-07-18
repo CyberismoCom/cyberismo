@@ -39,7 +39,7 @@ const CURLY_RIGHT = '&#125;';
  * @returns The processed content with raw blocks escaped
  */
 function preprocessRawBlocks(content: string): string {
-  const rawBlockRegex = /\{\{#raw\}\}([\s\S]*)\{\{\/raw\}\}/g;
+  const rawBlockRegex = /\{\{#raw\}\}([\s\S]*?)\{\{\/raw\}\}/g;
 
   return content.replace(rawBlockRegex, (_, innerContent) => {
     // Escape all curly braces in the inner content
