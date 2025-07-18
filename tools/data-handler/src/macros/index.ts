@@ -34,6 +34,80 @@ const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 
 /**
+ * Pre-processes the content to handle {{#raw}} blocks by escaping all handlebars syntax inside them
+ * @param content The template content to process
+ * @returns The processed content with raw blocks escaped
+ * @throws Error if nested raw blocks are found or if a raw block is not properly closed
+ */
+function preprocessRawBlocks(content: string): string {
+  const result: string[] = [];
+  let i = 0;
+
+  // Helper function to check if a target string matches at a given position without creating substrings
+  const matchesAt = (pos: number, target: string): boolean => {
+    if (pos + target.length > content.length) return false;
+    for (let k = 0; k < target.length; k++) {
+      if (content[pos + k] !== target[k]) return false;
+    }
+    return true;
+  };
+
+  // Helper function to get line number at position
+  const getLineNumber = (pos: number): number => {
+    let lineNum = 1;
+    for (let k = 0; k < pos; k++) {
+      if (content[k] === '\n') {
+        lineNum++;
+      }
+    }
+    return lineNum;
+  };
+
+  while (i < content.length) {
+    // Check for {{#raw}}
+    if (matchesAt(i, '{{#raw}}')) {
+      const openingLine = getLineNumber(i);
+      // Find the matching {{/raw}} - no nesting allowed
+      let j = i + 8;
+
+      while (j < content.length) {
+        if (matchesAt(j, '{{#raw}}')) {
+          // Found nested raw block - not supported
+          const nestedLine = getLineNumber(j);
+          throw new Error(
+            `Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line ${nestedLine} (original raw block started on line ${openingLine}).`,
+          );
+        } else if (matchesAt(j, '{{/raw}}')) {
+          // Found matching closing tag
+          const rawContent = content.slice(i + 8, j);
+          const escapedContent = rawContent
+            .replaceAll('{', CURLY_LEFT)
+            .replaceAll('}', CURLY_RIGHT);
+          result.push(escapedContent);
+          i = j + 8;
+          break;
+        } else {
+          j++;
+        }
+      }
+
+      // If we reached the end without finding a closing tag
+      if (j >= content.length) {
+        throw new Error(
+          `Unclosed {{#raw}} block found on line ${openingLine}. Every {{#raw}} must have a matching {{/raw}}.`,
+        );
+      }
+    } else {
+      // Not a raw block, keep as-is
+      result.push(content[i]);
+      i++;
+    }
+  }
+
+  return result.join('');
+}
+
+/**
  * Constructor for all macros except report macros
  */
 export interface SimpleMacroConstructor {
@@ -106,25 +180,10 @@ export function registerMacros(
     const MacroClass = macros[macro];
     const macroInstance = new MacroClass(tasks, calculate);
     instance.registerHelper(macro, function (this: unknown, options) {
-      if (
-        this != null &&
-        typeof this === 'object' &&
-        '__isRaw' in this &&
-        this.__isRaw
-      ) {
-        // we use escaped chars so that they will not be re-run
-        return `${CURLY_LEFT}${CURLY_LEFT}#${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
-      }
       return macroInstance.invokeMacro(context, options);
     });
     macroInstances.push(macroInstance);
   }
-
-  instance.registerHelper('raw', function (options) {
-    return options.fn({
-      __isRaw: true,
-    });
-  });
 
   return macroInstances;
 }
@@ -169,10 +228,10 @@ export async function evaluateMacros(
   let result = content;
   while (maxTries-- > 0) {
     tasks.reset();
-    const compiled = handlebars.compile(result, {
-      strict: true,
-    });
     try {
+      const compiled = handlebars.compile(preprocessRawBlocks(result), {
+        strict: true,
+      });
       result = compiled({});
 
       await tasks.waitAll();

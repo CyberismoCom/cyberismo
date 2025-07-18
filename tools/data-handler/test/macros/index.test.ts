@@ -157,6 +157,119 @@ describe('macros', () => {
         expect(result).to.not.contain('<create-cards>');
       });
     });
+    describe('raw', () => {
+      it('raw macro (success)', async () => {
+        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
+        const withRaw = `{{#raw}}${macro}{{/raw}}`;
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(
+          '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
+        );
+      });
+      it('raw macro with handlebars helpers (success)', async () => {
+        const handlebarsContent = `{{#each results}}
+
+* {{this.title}}
+{{/each}}`;
+        const withRaw = `{{#raw}}${handlebarsContent}{{/raw}}`;
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(handlebarsContent);
+      });
+      it('raw macro with mixed content (success)', async () => {
+        const mixedContent = `{{#each results}}
+* {{this.title}}
+{{/each}}
+
+{{#scoreCard}}"title": "Test", "value": 42{{/scoreCard}}
+
+{{#if condition}}
+  This is conditional
+{{/if}}`;
+        const withRaw = `{{#raw}}${mixedContent}{{/raw}}`;
+        const result = await evaluateMacros(
+          withRaw,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(mixedContent);
+      });
+      it('content should be able to contain multiple raw blocks', async () => {
+        const nestedContent = `{{#raw}}RawContent1{{/raw}}
+{{#raw}}RawContent2{{/raw}}
+{{#raw}}RawContent3{{/raw}}`;
+        const expectedResult = `RawContent1
+RawContent2
+RawContent3`;
+        const result = await evaluateMacros(
+          nestedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.equal(expectedResult);
+      });
+      it('nested raw macros should return error with line numbers', async () => {
+        const nestedContent = `{{#raw}}
+Outer content
+{{#raw}}
+Inner content
+{{/raw}}
+More outer content
+{{/raw}}`;
+        const result = await evaluateMacros(
+          nestedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain(
+          'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
+        );
+      });
+      it('unclosed raw block should return error with line number', async () => {
+        const unclosedContent = `{{#raw}}
+This raw block has no closing tag
+Some content here`;
+        const result = await evaluateMacros(
+          unclosedContent,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain(
+          'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
+        );
+      });
+    });
     describe('scoreCard', () => {
       it('scoreCard inject (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
@@ -183,22 +296,6 @@ describe('macros', () => {
           calculate,
         );
         expect(result).to.contain('----');
-      });
-      it('raw macro (success)', async () => {
-        const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
-        const withRaw = `{{#raw}}${macro}{{/raw}}`;
-        const result = await evaluateMacros(
-          withRaw,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-          },
-          calculate,
-        );
-        expect(result).to.equal(
-          '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
-        );
       });
     });
   });
