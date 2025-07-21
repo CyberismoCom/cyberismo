@@ -62,8 +62,7 @@ export function canCreateLinkToCard(
  */
 export const config: AppConfig = await fetch('/config.json')
   .then((res) => res.json())
-  .catch((err) => {
-    console.error('Failed to load config.json, using fallback', err);
+  .catch(() => {
     return { staticMode: false };
   });
 
