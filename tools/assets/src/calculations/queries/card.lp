@@ -49,11 +49,7 @@ field((Card, Field), "index", Index) :-
     field(Card, "cardType", CardType),
     result(Card).
 
-dataType((Card, Field), "fieldDisplayName", "shortText") :-
-    childResult(Card, (Card, Field), "fields"),
-    field((Card, Field), "fieldDisplayName", _).
-
-field((Card, Field), "fieldDisplayName", DisplayName) :-
+field((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     displayName(Card, (Card, Field), DisplayName).
@@ -82,7 +78,7 @@ field((Card, Field), "isCalculated", false) :-
 field((Card, Field), "dataType", DataType, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
-    dataType(Card, Field, DataType).
+    field(Field, "dataType", DataType).
 
 % add value
 dataType((Card, Field), "value", DataType) :-
