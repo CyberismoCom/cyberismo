@@ -537,7 +537,7 @@ const PolicyChecks = ({
                       <Typography fontSize="xs">
                         {failure.errorMessage}
                       </Typography>
-                      {failure.fieldName && (
+                      {!config.staticMode && failure.fieldName && (
                         <Link
                           level="body-sm"
                           component="button"
