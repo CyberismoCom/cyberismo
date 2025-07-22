@@ -30,6 +30,7 @@ import schema from './schema/schema.json' with { type: 'json' };
 import scoreCardMacroSchema from './schema/macros/scoreCardMacroSchema.json' with { type: 'json' };
 import templateSchema from './schema/resources/templateSchema.json' with { type: 'json' };
 import workflowSchema from './schema/resources/workflowSchema.json' with { type: 'json' };
+import xrefMacroSchema from './schema/macros/xrefMacroSchema.json' with { type: 'json' };
 import cardTreeDirectorySchema from './schema/cardTreeDirectorySchema.json' with { type: 'json' };
 
 export const schemas = [
@@ -51,6 +52,7 @@ export const schemas = [
   scoreCardMacroSchema,
   templateSchema,
   workflowSchema,
+  xrefMacroSchema,
 ];
 
 export const parentSchema = cardTreeDirectorySchema;
