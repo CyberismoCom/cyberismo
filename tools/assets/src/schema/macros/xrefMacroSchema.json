@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "$id": "xrefMacroSchema",
+  "properties": {
+    "cardKey": {
+      "type": "string",
+      "description": "The key of the card to create a cross-reference to"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["cardKey"]
+}

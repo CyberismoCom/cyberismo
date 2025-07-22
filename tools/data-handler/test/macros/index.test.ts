@@ -547,6 +547,110 @@ Some content here`;
         expect(result).to.contain('Card key: test-card');
       });
     });
+    describe('xrefMacro', () => {
+      let cardDetailsByIdStub: sinon.SinonStub;
+      beforeEach(async () => {
+        cardDetailsByIdStub = stub(project, 'cardDetailsById');
+
+        const baseCard: Card = {
+          key: '',
+          path: '',
+          content: '',
+          metadata: {
+            title: '',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+
+        const testCard = structuredClone(baseCard);
+        testCard.key = 'xref-test-card';
+        testCard.content = 'This is a test card for xref.';
+        testCard.metadata!.title = 'Test Card for Cross Reference';
+
+        cardDetailsByIdStub.withArgs('xref-test-card').resolves(testCard);
+      });
+      afterEach(() => {
+        cardDetailsByIdStub.restore();
+      });
+
+      ['static', 'inject'].forEach((mode) => {
+        it(`xrefMacro ${mode} (success)`, async () => {
+          const macro = `{{#xref}}"cardKey": "xref-test-card"{{/xref}}`;
+          const result = await evaluateMacros(
+            macro,
+            {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+            },
+            calculate,
+          );
+
+          expect(result).to.equal(
+            'link:/cards/xref-test-card[Test Card for Cross Reference]',
+          );
+          expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
+            true,
+          );
+        });
+      });
+
+      it('xrefMacro with non-existent card should return warning message', async () => {
+        const macro = `{{#xref}}"cardKey": "non-existent-card"{{/xref}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain('Card key non-existent-card not found');
+
+        // Should have attempted to fetch the non-existent card
+        expect(cardDetailsByIdStub.calledWith('non-existent-card')).to.equal(
+          true,
+        );
+      });
+
+      it('xrefMacro with wrong schema should return warning message', async () => {
+        const macro = `{{#xref}}"invalidProperty": "test-value"{{/xref}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+      });
+
+      it('xrefMacro with missing cardKey should return warning message', async () => {
+        const macro = `{{#xref}}{{/xref}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+      });
+    });
   });
   describe('validate macros', () => {
     before(async () => {

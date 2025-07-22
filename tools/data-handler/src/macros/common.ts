@@ -16,6 +16,7 @@ import graph from './graph/metadata.js';
 import include from './include/metadata.js';
 import report from './report/metadata.js';
 import scoreCard from './scoreCard/metadata.js';
+import xref from './xref/metadata.js';
 
 export const macroMetadata = {
   createCards,
@@ -23,4 +24,5 @@ export const macroMetadata = {
   include,
   report,
   scoreCard,
+  xref,
 };
