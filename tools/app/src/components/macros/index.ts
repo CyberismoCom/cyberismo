@@ -26,7 +26,7 @@ export interface MacroContext {
   preview: boolean;
 }
 
-export type UIMacroName = Exclude<MacroName, 'report' | 'graph'>;
+export type UIMacroName = Exclude<MacroName, 'report' | 'graph' | 'include'>;
 
 // We simply trust that the macro has been
 // validated and the backend will not return an invalid macro
