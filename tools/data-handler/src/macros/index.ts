@@ -17,6 +17,7 @@ import graph from './graph/index.js';
 import include from './include/index.js';
 import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
+import xref from './xref/index.js';
 
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
@@ -135,6 +136,7 @@ export const macros: {
   include,
   report,
   scoreCard,
+  xref,
 };
 
 /**
