@@ -15,6 +15,9 @@ import type { PredefinedCardMetadata } from '../interfaces/project-interfaces.js
 
 export const INT32_MAX = 2147483647; // 2^31-1
 
+// Maximum level offset for includeMacro
+export const MAX_LEVEL_OFFSET = 5;
+
 /**
  * These are field names that are non-custom fields that present in metadata
  */
