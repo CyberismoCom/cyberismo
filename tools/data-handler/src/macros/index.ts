@@ -14,6 +14,7 @@ import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
 import graph from './graph/index.js';
+import include from './include/index.js';
 import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
 
@@ -131,6 +132,7 @@ export const macros: {
 } = {
   createCards,
   graph,
+  include,
   report,
   scoreCard,
 };
@@ -220,19 +222,18 @@ export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
   calculate: Calculate,
-  maxTries: number = 10,
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
   registerMacros(handlebars, context, tasks, calculate);
   let result = content;
-  while (maxTries-- > 0) {
+  while ((context.maxTries ?? 10) > 0) {
     tasks.reset();
     try {
       const compiled = handlebars.compile(preprocessRawBlocks(result), {
         strict: true,
       });
-      result = compiled({});
+      result = compiled({ cardKey: context.cardKey });
 
       await tasks.waitAll();
 

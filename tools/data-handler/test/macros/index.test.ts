@@ -1,6 +1,7 @@
 // testing
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
+import { stub } from 'sinon';
 
 import {
   createAdmonition,
@@ -17,10 +18,12 @@ import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/base-macro.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import TaskQueue from '../../src/macros/task-queue.js';
-
 import { Calculate } from '../../src/commands/index.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../../src/containers/project.js';
+import type { Mode } from '../../src/interfaces/macros.js';
+import type { Card } from '../../src/interfaces/project-interfaces.js';
+import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-calculate-tests');
@@ -296,6 +299,252 @@ Some content here`;
           calculate,
         );
         expect(result).to.contain('----');
+      });
+    });
+    describe('includeMacro', () => {
+      let cardDetailsByIdStub: sinon.SinonStub;
+      beforeEach(async () => {
+        cardDetailsByIdStub = stub(project, 'cardDetailsById');
+
+        const baseCard: Card = {
+          key: '',
+          path: '',
+          content: '',
+          metadata: {
+            title: '',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+
+        const testCard = structuredClone(baseCard);
+        testCard.key = 'test-card';
+        testCard.content =
+          'This is test content for the included card.\n\n== Test subtitle\n\nCard key: {{cardKey}}';
+        testCard.metadata!.title = 'Test Card Title';
+
+        cardDetailsByIdStub.withArgs('test-card').resolves(testCard);
+
+        const testCardNested = structuredClone(baseCard);
+        testCardNested.key = 'testCardNested';
+        testCardNested.content =
+          'This is the parent card.\n\n{{#include}}"cardKey": "test-card"{{/include}}\n\nEnd of parent card.';
+        testCardNested.metadata!.title = 'Parent Card with Include';
+        cardDetailsByIdStub.withArgs('testCardNested').resolves(testCardNested);
+
+        const testCardNestedWithOffset = structuredClone(baseCard);
+        testCardNestedWithOffset.key = 'testCardNestedWithOffset';
+        testCardNestedWithOffset.content =
+          'This is the parent card.\n\n{{#include}}"cardKey": "test-card", "levelOffset": "+1"{{/include}}\n\nEnd of parent card.';
+        testCardNestedWithOffset.metadata!.title = 'Parent Card with Include';
+
+        cardDetailsByIdStub
+          .withArgs('testCardNestedWithOffset')
+          .resolves(testCardNestedWithOffset);
+      });
+      afterEach(() => {
+        cardDetailsByIdStub.restore();
+      });
+      ['static', 'inject'].forEach((mode) => {
+        it(`includeMacro ${mode} (success)`, async () => {
+          try {
+            const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
+            const result = await evaluateMacros(
+              macro,
+              {
+                mode: mode as Mode,
+                project: project,
+                cardKey: '',
+              },
+              calculate,
+            );
+
+            expect(result).to.contain('= Test Card Title');
+            expect(result).to.contain(
+              'This is test content for the included card.',
+            );
+            expect(result).to.contain('== Test subtitle');
+            expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+          } finally {
+            cardDetailsByIdStub.restore();
+          }
+        });
+      });
+      it('includeMacro with level offset (success)', async () => {
+        const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+1"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('== Test Card Title');
+        expect(result).to.contain('=== Test subtitle');
+      });
+      it('includeMacro with negative level offset (success)', async () => {
+        const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "-10"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        // cannot go below level 1
+        expect(result).to.contain('= Test Card Title');
+        expect(result).to.contain('= Test subtitle');
+      });
+      it('includeMacro with non-existent card should return warning message', async () => {
+        const macro = `{{#include}}"cardKey": "non-existent-card"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain('Card key non-existent-card not found');
+
+        // Should have attempted to fetch the non-existent card
+        expect(cardDetailsByIdStub.calledWith('non-existent-card')).to.equal(
+          true,
+        );
+      });
+      it('includeMacro with a wrong type should return warning message', async () => {
+        const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "test"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain('Invalid level offset: test');
+      });
+      it('includeMacro with wrong schema should return warning message', async () => {
+        const macro = `{{#include}}"cardKey": "test-card", "levelOffset": 1{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('.Macro Error');
+      });
+      it('includeMacro with level offset outside of range (success)', async () => {
+        const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+10"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        // cannot go above level MAX LEVEL OFFSET
+        expect(result).to.contain(
+          `${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test Card Title`,
+        );
+        expect(result).to.contain(
+          `\n${'='.repeat(MAX_LEVEL_OFFSET + 2)} Test subtitle`,
+        );
+      });
+      it('includeMacro inside includeMacro (success)', async () => {
+        const macro = `{{#include}}"cardKey": "testCardNested"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+
+        // Should contain content from both cards
+        expect(result).to.contain('= Parent Card with Include');
+        expect(result).to.contain('This is the parent card.');
+        expect(result).to.contain('= Test Card Title');
+        expect(result).to.contain(
+          'This is test content for the included card.',
+        );
+        expect(result).to.contain('End of parent card.');
+
+        // Verify both cards were fetched
+        expect(cardDetailsByIdStub.calledWith('testCardNested')).to.equal(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+      });
+      it('includeMacro with level offset inside includeMacro (success)', async () => {
+        const macro = `{{#include}}"cardKey": "testCardNestedWithOffset"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('== Test Card Title');
+        expect(result).to.contain('=== Test subtitle');
+        expect(
+          cardDetailsByIdStub.calledWith('testCardNestedWithOffset'),
+        ).to.equal(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+      });
+      it('includeMacro with nested level offset (success)', async () => {
+        const macro = `{{#include}}"cardKey": "testCardNestedWithOffset", "levelOffset": "+1"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('=== Test Card Title');
+        expect(result).to.contain('==== Test subtitle');
+        expect(
+          cardDetailsByIdStub.calledWith('testCardNestedWithOffset'),
+        ).to.equal(true);
+        expect(cardDetailsByIdStub.calledWith('test-card')).to.equal(true);
+      });
+
+      it('includeMacro passes correct context with updated cardKey', async () => {
+        const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'original-card-key',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Card key: test-card');
       });
     });
   });
