@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Handlebars from 'handlebars';
@@ -422,15 +424,15 @@ export function createCodeBlock(content: string) {
  * @param image base64 encoded image
  * @returns valid asciidoc with the image
  */
-export function createImage(image: string) {
+export function createImage(image: string, controls: boolean = true) {
   if (process.env.EXPORT_FORMAT) {
     return `image::data:image/svg+xml;base64,${image}[]\n`;
   } else {
-    return `++++
-<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper">
-${Buffer.from(image, 'base64').toString('utf-8')}
-</div>
-++++
-`;
+    const svg = Buffer.from(image, 'base64').toString('utf-8');
+    if (controls) {
+      return `++++\n<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper">\n${svg}\n</div>\n++++\n`;
+    } else {
+      return `++++\n${svg}\n++++\n`;
+    }
   }
 }

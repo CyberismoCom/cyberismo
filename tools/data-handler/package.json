@@ -38,8 +38,8 @@
   },
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
-    "@cyberismo/node-clingo": "workspace:*",
     "@cyberismo/assets": "workspace:*",
+    "@cyberismo/node-clingo": "workspace:*",
     "@viz-js/viz": "^3.12.0",
     "async-mutex": "^0.5.0",
     "csv-parse": "^5.6.0",
@@ -54,6 +54,7 @@
     "mime-types": "^3.0.1",
     "pino": "^9.7.0",
     "simple-git": "^3.2.0",
+    "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
     "write-json-file": "^6.0.0"
   },

@@ -285,7 +285,7 @@ Some content here`;
           },
           calculate,
         );
-        expect(result).to.contain('<score-card');
+        expect(result).to.contain('<svg');
       });
       it('scoreCard static (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
@@ -298,7 +298,7 @@ Some content here`;
           },
           calculate,
         );
-        expect(result).to.contain('----');
+        expect(result).to.contain('<svg');
       });
     });
     describe('includeMacro', () => {
