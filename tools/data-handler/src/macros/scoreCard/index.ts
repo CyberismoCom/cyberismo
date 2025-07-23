@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type { MacroOptions } from '../index.js';
@@ -17,6 +19,7 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
+import { createScoreCardSvg } from '../../svg/index.js';
 
 export interface ScoreCardOptions extends MacroOptions {
   title?: string;
@@ -26,6 +29,7 @@ export interface ScoreCardOptions extends MacroOptions {
 }
 
 class ScoreCardMacro extends BaseMacro {
+  static num = 0;
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
@@ -40,7 +44,8 @@ class ScoreCardMacro extends BaseMacro {
 
   handleInject = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
-    return createHtmlPlaceholder(this.metadata, options);
+    ScoreCardMacro.num++;
+    return ScoreCardMacro.num % 2 === 0 ? createScoreCardSvg(options) : createHtmlPlaceholder(this.metadata, options);
   };
 
   private validate(input: unknown): ScoreCardOptions {
