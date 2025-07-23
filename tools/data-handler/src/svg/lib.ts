@@ -13,6 +13,14 @@
 */
 import pixelWidth from 'string-pixel-width';
 
+/**
+ * Measures the width of a text string
+ * @param text - The text to measure
+ * @param font - The font to use
+ * @param size - The size of the font
+ * @param bold - Whether the text is bold
+ * @returns The width of the text
+ */
 export function measureTextWidth(
   text: string,
   font: string,

@@ -25,6 +25,13 @@ const UNIT_OFFSET = 3;
 const LINE_GAP_TITLE = 16;
 const LINE_GAP_CAPTION = 16;
 
+/**
+ * Options for the score card
+ * @param title - The title of the score card
+ * @param value - The value of the score card
+ * @param unit - The unit of the score card
+ * @param legend - The legend of the score card
+ */
 export interface ScoreCardOptions {
   title?: string;
   value: number;
