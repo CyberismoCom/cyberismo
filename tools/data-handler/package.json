@@ -56,6 +56,8 @@
     "simple-git": "^3.2.0",
     "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
+    "vega": "^6.1.2",
+    "vega-lite": "^6.2.0",
     "write-json-file": "^6.0.0"
   },
   "type": "module",
