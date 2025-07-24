@@ -20,6 +20,7 @@ import include from './include/index.js';
 import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
 import xref from './xref/index.js';
+import percentage from './percentage/index.js';
 
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
@@ -139,6 +140,7 @@ export const macros: {
   report,
   scoreCard,
   xref,
+  percentage,
 };
 
 /**
