@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "$id": "percentageMacroSchema",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title text on top of the widget"
+    },
+    "value": {
+      "type": "number",
+      "description": "Percentage value (0-100)"
+    },
+    "legend": {
+      "type": "string",
+      "description": "Description text shown below the value"
+    },
+    "colour": {
+      "type": "string",
+      "enum": ["blue", "green", "yellow", "red", "orange", "purple"],
+      "description": "Colour of the progress arc (optional)"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["title", "value", "legend"]
+}
