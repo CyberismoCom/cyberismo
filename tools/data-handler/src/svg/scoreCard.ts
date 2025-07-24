@@ -78,9 +78,9 @@ export function scoreCard(options: ScoreCardOptions): string {
   const svgContent = `<svg class="card" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
     <rect rx="8" ry="8" fill="#fff" stroke="#dfe4ea" stroke-width="3" width="${width}" height="${height}"/>
     <g text-anchor="middle">
-      <text class="title" x="${width / 2}" y="${TITLE_SIZE / 2 + PADDING}" font-family="${FONT_FAMILY}" font-size="${TITLE_SIZE}" font-weight="400" fill="#001829" dominant-baseline="middle">${title}</text>
-      <text class="value" x="${width / 2}" y="${titleHeight + VALUE_SIZE / 2 + PADDING}" font-family="${FONT_FAMILY}" font-size="${VALUE_SIZE}" font-weight="700" fill="#333" dominant-baseline="middle">${value}<tspan class="unit" font-size="${UNIT_SIZE}" font-weight="400" dx="${UNIT_OFFSET}">${unit}</tspan></text>
-      <text class="caption" x="${width / 2}" y="${titleHeight + valueHeight + LINE_GAP_CAPTION + CAPTION_SIZE / 2 + PADDING}" font-family="${FONT_FAMILY}" font-size="${CAPTION_SIZE}" font-weight="400" fill="#999" dominant-baseline="middle">${legend}</text>
+      <text class="title" x="${width / 2}" y="${TITLE_SIZE / 2 + PADDING}" font-size="${TITLE_SIZE}" font-weight="400" fill="#001829" dominant-baseline="middle">${title}</text>
+      <text class="value" x="${width / 2}" y="${titleHeight + VALUE_SIZE / 2 + PADDING}" font-size="${VALUE_SIZE}" font-weight="700" fill="#333" dominant-baseline="middle">${value}<tspan class="unit" font-size="${UNIT_SIZE}" font-weight="400" dx="${UNIT_OFFSET}">${unit}</tspan></text>
+      <text class="caption" x="${width / 2}" y="${titleHeight + valueHeight + LINE_GAP_CAPTION + CAPTION_SIZE / 2 + PADDING}" font-size="${CAPTION_SIZE}" font-weight="400" fill="#999" dominant-baseline="middle">${legend}</text>
     </g>
   </svg>`;
 
