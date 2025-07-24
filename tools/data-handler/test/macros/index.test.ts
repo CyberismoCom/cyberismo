@@ -301,6 +301,107 @@ Some content here`;
         expect(result).to.contain('<svg');
       });
     });
+    describe('percentage', () => {
+      it('percentage inject (success)', async () => {
+        const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('<svg');
+        expect(result).to.contain('Test Percentage');
+        expect(result).to.contain('85%');
+      });
+      it('percentage static (success)', async () => {
+        const macro = `{{#percentage}}"title": "Static Percentage", "value": 42, "legend": "done", "colour": "green"{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('<svg');
+        expect(result).to.contain('Static Percentage');
+        expect(result).to.contain('42%');
+      });
+      it('percentage missing title (failure)', async () => {
+        const macro = `{{#percentage}}"value": 50, "legend": "missing title"{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Macro Error');
+        expect(result).to.contain('title');
+      });
+      it('percentage missing value (failure)', async () => {
+        const macro = `{{#percentage}}"title": "No Value", "legend": "No Value"{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Macro Error');
+        expect(result).to.contain('value');
+      });
+      it('percentage missing legend (failure)', async () => {
+        const macro = `{{#percentage}}"title": "No Legend", "value": 10{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Macro Error');
+        expect(result).to.contain('legend');
+      });
+      it('percentage value as string (failure)', async () => {
+        const macro = `{{#percentage}}"title": "String Value", "value": "not a number", "legend": "fail"{{/percentage}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Macro Error');
+        expect(result).to.contain('is not of a type');
+      });
+      it('percentage malformed JSON (failure)', async () => {
+        const macro = `{{#percentage}}"title": "Malformed", "value": 10, "legend": "fail"`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+          },
+          calculate,
+        );
+        expect(result).to.contain('Macro Error');
+      });
+    });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
       beforeEach(async () => {
