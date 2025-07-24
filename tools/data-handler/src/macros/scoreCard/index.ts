@@ -1,22 +1,25 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import type { MacroOptions } from '../index.js';
-import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
+import { createImage, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
+import { scoreCard } from '../../svg/index.js';
 
 export interface ScoreCardOptions extends MacroOptions {
   title?: string;
@@ -33,22 +36,20 @@ class ScoreCardMacro extends BaseMacro {
     this.validate(data);
   };
 
-  handleStatic = async (context: MacroGenerationContext, input: unknown) => {
+  handleStatic = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
-    return this.createAsciidocElement(options);
+    return createImage(
+      Buffer.from(scoreCard(options)).toString('base64'),
+      false,
+    );
   };
 
-  handleInject = async (_: MacroGenerationContext, input: unknown) => {
-    const options = this.validate(input);
-    return createHtmlPlaceholder(this.metadata, options);
+  handleInject = async (context: MacroGenerationContext, input: unknown) => {
+    return this.handleStatic(context, input);
   };
 
   private validate(input: unknown): ScoreCardOptions {
     return validateMacroContent<ScoreCardOptions>(this.metadata, input);
-  }
-
-  private createAsciidocElement(options: ScoreCardOptions) {
-    return `\n----\n${options.title}: ${options.value} ${options.unit ?? ''} ${options.legend ?? ''}\n----\n`;
   }
 }
 
