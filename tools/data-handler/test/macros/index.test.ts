@@ -6,6 +6,7 @@ import { stub } from 'sinon';
 import {
   createAdmonition,
   createHtmlPlaceholder,
+  createMacro,
   evaluateMacros,
   registerMacros,
   validateMacroContent,
@@ -886,5 +887,20 @@ Some content here`;
         '[WARNING]\n.test-title\n====\ntest-content\n====\n\n',
       );
     });
+  });
+});
+
+describe('createMacro', () => {
+  it('should create a macro with empty options', () => {
+    const result = createMacro('scoreCard', {});
+    expect(result).to.equal('{{#scoreCard}}{{/scoreCard}}');
+  });   
+  it('should create a macro with non-empty options', () => {
+        const result = createMacro('scoreCard', { foo: 'bar', num: 42 }); 
+    expect(result).to.equal('{{#scoreCard}}"foo":"bar","num":42{{/scoreCard}}');
+  });
+  it('should handle options with nested objects', () => {
+    const result = createMacro('scoreCard', { a: { b: 1 } });
+    expect(result).to.equal('{{#scoreCard}}"a":{"b":1{{/scoreCard}}');
   });
 });

@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -454,6 +456,25 @@ export function metadataValueToString(
   } else {
     return metadata ? metadata.toLocaleString() : '';
   }
+}
+
+/**
+ * Parses data attributes with dot notation back into a nested object structure
+ * @param attribs - The HTML element attributes object
+ * @returns An object with nested structure based on dot notation in data attributes
+ */
+export function parseDataAttributes(attribs: Record<string, string>): Record<string, unknown> {
+  const attributes = parseNestedDataAttributes(attribs);
+  let options = {};
+  if(attributes.options && typeof attributes.options === 'string') {
+    const binary = atob(attributes.options);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    options = JSON.parse(new TextDecoder().decode(bytes));
+  }
+  return {
+    ...attributes,
+    ...options,
+  };
 }
 
 /**

@@ -10,24 +10,20 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
-import { validateMacroContent } from '../index.js';
-
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
+import macroMetadata from './metadata.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
+import * as vegaLite from 'vega-lite';
+import { createMacro, validateMacroContent } from '../index.js';
+import VegaMacro from '../vega/index.js';
 
-export interface XrefMacroOptions {
-  cardKey: string;
+export interface VegaLiteMacroInput {
+  spec: vegaLite.TopLevelSpec;
 }
 
-export default class XrefMacro extends BaseMacro {
-  constructor(
-    tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
-  ) {
+class VegaLiteMacro extends BaseMacro {
+  constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
 
@@ -35,28 +31,21 @@ export default class XrefMacro extends BaseMacro {
     this.validate(input);
   };
 
-  handleStatic = async (
-    context: MacroGenerationContext,
-    input: unknown,
-  ): Promise<string> => {
-    const options = this.validate(input);
-    const card = await context.project.cardDetailsById(options.cardKey, {
-      metadata: true,
+  handleStatic = async (_: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input) as VegaLiteMacroInput;
+    const compiled = vegaLite.compile(options.spec).spec;
+    return createMacro('vega', {
+        spec: compiled,
     });
-
-    if (!card || !card.metadata) {
-      throw new Error(`Card key ${options.cardKey} not found`);
-    }
-
-    // Generate AsciiDoc link with proper React Router URL
-    return `xref:${options.cardKey}.adoc[${card.metadata.title}]`;
   };
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     return this.handleStatic(context, input);
   };
 
-  private validate(input: unknown): XrefMacroOptions {
-    return validateMacroContent<XrefMacroOptions>(this.metadata, input);
+  private validate(input: unknown): VegaLiteMacroInput {
+    return validateMacroContent<VegaLiteMacroInput>(this.metadata, input);
   }
 }
+
+export default VegaLiteMacro; 

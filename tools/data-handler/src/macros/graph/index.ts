@@ -13,7 +13,6 @@
 
 import BaseMacro from '../base-macro.js';
 import { Calculate } from '../../commands/index.js';
-import type { MacroOptions } from '../index.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
@@ -27,7 +26,7 @@ import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 
-export interface GraphOptions extends MacroOptions {
+export interface GraphOptions {
   model: string;
   view: string;
 }
