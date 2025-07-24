@@ -70,7 +70,7 @@ export function percentage(options: PercentageOptions): string {
   const donutCenterY = donutYOffset + SIZE / 2 - TITLE_HEIGHT / 2;
   const dynamicSVGHeight = donutYOffset + SIZE / 2 + R + 20;
   return `
-<svg width="${SVG_WIDTH}" height="${dynamicSVGHeight}" viewBox="0 0 ${SVG_WIDTH} ${dynamicSVGHeight}">
+<svg width="${SVG_WIDTH}" height="${dynamicSVGHeight}" viewBox="0 0 ${SVG_WIDTH} ${dynamicSVGHeight}" xmlns="http://www.w3.org/2000/svg">
   <title>${title}</title>
 
   <!-- Visible Title (wrapped) -->
