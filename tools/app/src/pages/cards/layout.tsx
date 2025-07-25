@@ -20,17 +20,27 @@ import {
   useAppRouter,
   useKeyboardShortcut,
   useOptionalKeyParam,
+  useDocumentTitle,
 } from '../../lib/hooks';
 import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
+import { useCard } from '../../lib/api/card';
 
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
+  const { card } = useCard(key);
 
   const router = useAppRouter();
+
+  // Set document title based on current card and project
+  const title =
+    card?.title && project?.name
+      ? `${card.title} - ${project.name}`
+      : project?.name || 'Cyberismo App';
+  useDocumentTitle(title);
 
   useKeyboardShortcut(
     {
