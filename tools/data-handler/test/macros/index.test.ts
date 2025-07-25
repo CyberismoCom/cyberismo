@@ -693,7 +693,7 @@ Some content here`;
           );
 
           expect(result).to.equal(
-            'link:/cards/xref-test-card[Test Card for Cross Reference]',
+            'xref:xref-test-card.adoc[Test Card for Cross Reference]',
           );
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
             true,
