@@ -392,7 +392,7 @@ function Page() {
       }),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, editor, view]);
+  }, [tab, editor, view]);
 
   // save the last title when user scrolls
   const handleScroll = () => {

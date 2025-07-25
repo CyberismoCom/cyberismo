@@ -1,7 +1,6 @@
 /**
   Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2024
-
+  Copyright © Cyberismo Ltd and contributors 2025
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation. This program is distributed in the hope that it
@@ -19,16 +18,16 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import { scoreCard } from '../../svg/index.js';
+import { percentage } from '../../svg/index.js';
 
-export interface ScoreCardOptions extends MacroOptions {
-  title?: string;
+export interface PercentageOptions extends MacroOptions {
+  title: string;
   value: number;
-  unit?: string;
-  legend?: string;
+  legend: string;
+  colour?: 'blue' | 'green' | 'yellow' | 'red' | 'orange' | 'purple';
 }
 
-class ScoreCardMacro extends BaseMacro {
+class PercentageMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
@@ -39,7 +38,7 @@ class ScoreCardMacro extends BaseMacro {
   handleStatic = async (_: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
     return createImage(
-      Buffer.from(scoreCard(options)).toString('base64'),
+      Buffer.from(percentage(options)).toString('base64'),
       false,
     );
   };
@@ -48,9 +47,9 @@ class ScoreCardMacro extends BaseMacro {
     return this.handleStatic(context, input);
   };
 
-  private validate(input: unknown): ScoreCardOptions {
-    return validateMacroContent<ScoreCardOptions>(this.metadata, input);
+  private validate(input: unknown): PercentageOptions {
+    return validateMacroContent<PercentageOptions>(this.metadata, input);
   }
 }
 
-export default ScoreCardMacro;
+export default PercentageMacro;

@@ -1,21 +1,26 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
 import graph from './graph/index.js';
+import include from './include/index.js';
 import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
+import xref from './xref/index.js';
+import percentage from './percentage/index.js';
 
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
@@ -32,6 +37,80 @@ import type { Calculate } from '../commands/index.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
+
+/**
+ * Pre-processes the content to handle {{#raw}} blocks by escaping all handlebars syntax inside them
+ * @param content The template content to process
+ * @returns The processed content with raw blocks escaped
+ * @throws Error if nested raw blocks are found or if a raw block is not properly closed
+ */
+function preprocessRawBlocks(content: string): string {
+  const result: string[] = [];
+  let i = 0;
+
+  // Helper function to check if a target string matches at a given position without creating substrings
+  const matchesAt = (pos: number, target: string): boolean => {
+    if (pos + target.length > content.length) return false;
+    for (let k = 0; k < target.length; k++) {
+      if (content[pos + k] !== target[k]) return false;
+    }
+    return true;
+  };
+
+  // Helper function to get line number at position
+  const getLineNumber = (pos: number): number => {
+    let lineNum = 1;
+    for (let k = 0; k < pos; k++) {
+      if (content[k] === '\n') {
+        lineNum++;
+      }
+    }
+    return lineNum;
+  };
+
+  while (i < content.length) {
+    // Check for {{#raw}}
+    if (matchesAt(i, '{{#raw}}')) {
+      const openingLine = getLineNumber(i);
+      // Find the matching {{/raw}} - no nesting allowed
+      let j = i + 8;
+
+      while (j < content.length) {
+        if (matchesAt(j, '{{#raw}}')) {
+          // Found nested raw block - not supported
+          const nestedLine = getLineNumber(j);
+          throw new Error(
+            `Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line ${nestedLine} (original raw block started on line ${openingLine}).`,
+          );
+        } else if (matchesAt(j, '{{/raw}}')) {
+          // Found matching closing tag
+          const rawContent = content.slice(i + 8, j);
+          const escapedContent = rawContent
+            .replaceAll('{', CURLY_LEFT)
+            .replaceAll('}', CURLY_RIGHT);
+          result.push(escapedContent);
+          i = j + 8;
+          break;
+        } else {
+          j++;
+        }
+      }
+
+      // If we reached the end without finding a closing tag
+      if (j >= content.length) {
+        throw new Error(
+          `Unclosed {{#raw}} block found on line ${openingLine}. Every {{#raw}} must have a matching {{/raw}}.`,
+        );
+      }
+    } else {
+      // Not a raw block, keep as-is
+      result.push(content[i]);
+      i++;
+    }
+  }
+
+  return result.join('');
+}
 
 /**
  * Constructor for all macros except report macros
@@ -57,8 +136,11 @@ export const macros: {
 } = {
   createCards,
   graph,
+  include,
   report,
   scoreCard,
+  xref,
+  percentage,
 };
 
 /**
@@ -106,25 +188,10 @@ export function registerMacros(
     const MacroClass = macros[macro];
     const macroInstance = new MacroClass(tasks, calculate);
     instance.registerHelper(macro, function (this: unknown, options) {
-      if (
-        this != null &&
-        typeof this === 'object' &&
-        '__isRaw' in this &&
-        this.__isRaw
-      ) {
-        // we use escaped chars so that they will not be re-run
-        return `${CURLY_LEFT}${CURLY_LEFT}#${macro}${CURLY_RIGHT}${CURLY_RIGHT}${options.fn(this)}${CURLY_LEFT}${CURLY_LEFT}/${macro}${CURLY_RIGHT}${CURLY_RIGHT}`;
-      }
       return macroInstance.invokeMacro(context, options);
     });
     macroInstances.push(macroInstance);
   }
-
-  instance.registerHelper('raw', function (options) {
-    return options.fn({
-      __isRaw: true,
-    });
-  });
 
   return macroInstances;
 }
@@ -161,19 +228,18 @@ export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
   calculate: Calculate,
-  maxTries: number = 10,
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
   registerMacros(handlebars, context, tasks, calculate);
   let result = content;
-  while (maxTries-- > 0) {
+  while ((context.maxTries ?? 10) > 0) {
     tasks.reset();
-    const compiled = handlebars.compile(result, {
-      strict: true,
-    });
     try {
-      result = compiled({});
+      const compiled = handlebars.compile(preprocessRawBlocks(result), {
+        strict: true,
+      });
+      result = compiled({ cardKey: context.cardKey });
 
       await tasks.waitAll();
 
@@ -360,15 +426,15 @@ export function createCodeBlock(content: string) {
  * @param image base64 encoded image
  * @returns valid asciidoc with the image
  */
-export function createImage(image: string) {
+export function createImage(image: string, controls: boolean = true) {
   if (process.env.EXPORT_FORMAT) {
     return `image::data:image/svg+xml;base64,${image}[]\n`;
   } else {
-    return `++++
-<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper">
-${Buffer.from(image, 'base64').toString('utf-8')}
-</div>
-++++
-`;
+    const svg = Buffer.from(image, 'base64').toString('utf-8');
+    if (controls) {
+      return `++++\n<div class="cyberismo-svg-wrapper" data-type="cyberismo-svg-wrapper">\n${svg}\n</div>\n++++\n`;
+    } else {
+      return `++++\n${svg}\n++++\n`;
+    }
   }
 }
