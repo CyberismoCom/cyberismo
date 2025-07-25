@@ -557,6 +557,7 @@ export class Commands {
           'The parameters file must include a "cardKey" field included in the "parameters".',
       };
     }
+    this.commands?.calculateCmd.generate();
 
     const { name, parameters } = parametersFile;
     let result: string | undefined = '';

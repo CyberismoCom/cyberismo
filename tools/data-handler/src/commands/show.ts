@@ -45,6 +45,7 @@ import { UserPreferences } from '../utils/user-preferences.js';
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import type { Calculate } from './calculate.js';
+import { evaluateMacros } from '../macros/index.js';
 
 /**
  * Show command.
@@ -382,13 +383,23 @@ export class Show {
     }
 
     const reportMacro = new ReportMacro(new TaskQueue(), this.calculate);
-    const result = await reportMacro.handleInject(
+    let result = await reportMacro.handleInject(
       {
         project: this.project,
         cardKey: cardKey,
         mode: 'static',
       },
       { name: reportName, ...parameters },
+    );
+
+    result = await evaluateMacros(
+      result,
+      {
+        project: this.project,
+        cardKey: cardKey,
+        mode: 'static',
+      },
+      this.calculate,
     );
 
     // Show the results either in the console or write to a file.
