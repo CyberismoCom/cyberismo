@@ -50,7 +50,8 @@ export default class XrefMacro extends BaseMacro {
     }
 
     // Generate AsciiDoc link with proper React Router URL
-    return `link:/cards/${options.cardKey}[${card.metadata.title}]`;
+    return `xref:${options.cardKey}.adoc[${card.metadata.title}]`;
+    // xref:docs_qp3vhh4t.adoc[Link Title]
   };
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
