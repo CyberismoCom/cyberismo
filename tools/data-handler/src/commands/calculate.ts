@@ -23,7 +23,7 @@ import type {
   QueryName,
   QueryResult,
 } from '../types/queries.js';
-import type { Card } from '../interfaces/project-interfaces.js';
+import type { Card, Context } from '../interfaces/project-interfaces.js';
 import ClingoParser from '../utils/clingo-parser.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Mutex } from 'async-mutex';
@@ -34,6 +34,7 @@ import { getChildLogger } from '../utils/log-utils.js';
 import {
   createCardFacts,
   createCardTypeFacts,
+  createContextFacts,
   createFieldTypeFacts,
   createLinkTypeFacts,
   createModuleFacts,
@@ -59,6 +60,7 @@ import { lpFiles, graphvizReport } from '@cyberismo/assets';
 const BASE_PROGRAM_KEY = 'base';
 const QUERY_LANGUAGE_KEY = 'queryLanguage';
 const UTILS_PROGRAM_KEY = 'utils';
+const CONTEXT_PROGRAM_KEY = 'context';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -89,9 +91,9 @@ export class Calculate {
   }
 
   // Wrapper to run onCreation query.
-  private async creationQuery(cardKeys: string[]) {
+  private async creationQuery(cardKeys: string[], context: Context) {
     if (!cardKeys) return undefined;
-    return this.runQuery('onCreation', {
+    return this.runQuery('onCreation', context, {
       cardKeys,
     });
   }
@@ -298,7 +300,7 @@ export class Calculate {
     return parser.parseInput(data.join('\n'));
   }
 
-  private async run(query: string): Promise<string[]> {
+  private async run(query: string, context: Context): Promise<string[]> {
     try {
       const res = await Calculate.mutex.runExclusive(async () => {
         // For queries, use both base and queryLanguage
@@ -306,6 +308,7 @@ export class Calculate {
           BASE_PROGRAM_KEY,
           QUERY_LANGUAGE_KEY,
           UTILS_PROGRAM_KEY,
+          CONTEXT_PROGRAM_KEY,
         ];
 
         this.logger.trace(
@@ -315,6 +318,8 @@ export class Calculate {
           'Solving',
         );
 
+        const contextFacts = createContextFacts(context);
+        setBaseProgram(contextFacts, CONTEXT_PROGRAM_KEY);
         // Then solve with the program - need to pass the program as parameter
         return solve(query, basePrograms);
       });
@@ -490,7 +495,7 @@ export class Calculate {
     });
 
     const cardKeys = cards.map((item) => item.key);
-    const queryResult = await this.creationQuery(cardKeys);
+    const queryResult = await this.creationQuery(cardKeys, 'localApp');
     if (
       !queryResult ||
       queryResult.at(0) === undefined ||
@@ -509,7 +514,7 @@ export class Calculate {
    * @param timeout Maximum amount of milliseconds clingraph is allowed to run
    * @returns a base64 encoded image as a string
    */
-  public async runGraph(model: string, view: string) {
+  public async runGraph(model: string, view: string, context: Context) {
     this.logger.trace(
       {
         model,
@@ -528,6 +533,7 @@ export class Calculate {
         view: view,
       },
       graph: true,
+      context,
     });
     return sanitizeSvgBase64(
       (await instance()).renderString(result, {
@@ -541,8 +547,8 @@ export class Calculate {
    * @param query Logic program to be run
    * @returns parsed program output
    */
-  public async runLogicProgram(query: string) {
-    const clingoOutput = await this.run(query);
+  public async runLogicProgram(query: string, context: Context = 'localApp') {
+    const clingoOutput = await this.run(query, context);
 
     return this.parseClingoResult(clingoOutput);
   }
@@ -555,6 +561,7 @@ export class Calculate {
    */
   public async runQuery<T extends QueryName>(
     queryName: T,
+    context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
     let content = lpFiles.queries[queryName];
@@ -566,7 +573,7 @@ export class Calculate {
     }
 
     this.logger.trace({ queryName }, 'Running query');
-    const clingoOutput = await this.run(content);
+    const clingoOutput = await this.run(content, context);
 
     const result = await this.parseClingoResult(clingoOutput);
 

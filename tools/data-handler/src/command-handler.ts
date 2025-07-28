@@ -45,6 +45,7 @@ import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
+import { type Context } from './interfaces/project-interfaces.js';
 
 // Generic options interface
 export interface CardsOptions {
@@ -55,6 +56,7 @@ export interface CardsOptions {
   repeat?: number;
   showUse?: boolean;
   logLevel?: Level;
+  context?: Context;
 }
 
 // Commands that this class supports.
@@ -195,7 +197,7 @@ export class Commands {
             return { statusCode: 400, message: 'File path is missing' };
           }
           await this.generateLogicProgram();
-          return this.runLogicProgram(cardKey);
+          return this.runLogicProgram(cardKey, options.context || 'localApp');
         }
         if (command === 'generate') {
           return this.generateLogicProgram(cardKey);
@@ -322,7 +324,11 @@ export class Commands {
         );
       } else if (command === Cmd.report) {
         const [parameters, outputPath] = args;
-        return this.runReport(parameters, outputPath);
+        return this.runReport(
+          parameters,
+          options.context || 'localApp',
+          outputPath,
+        );
       } else if (command === Cmd.start) {
         return this.startApp(options.forceStart);
       } else if (command === Cmd.transition) {
@@ -517,10 +523,14 @@ export class Commands {
   }
 
   // Runs a given logic program along with the query-language
-  private async runLogicProgram(filePath: string): Promise<requestStatus> {
+  private async runLogicProgram(
+    filePath: string,
+    context: Context,
+  ): Promise<requestStatus> {
     try {
       const res = await this.commands?.calculateCmd.runLogicProgram(
         readFileSync(filePath, 'utf-8'),
+        context,
       );
       return {
         statusCode: 200,
@@ -532,7 +542,11 @@ export class Commands {
   }
 
   // Runs a report using Handlebars and the provided parameters.
-  private async runReport(parametersPath: string, outputPath?: string) {
+  private async runReport(
+    parametersPath: string,
+    context: Context,
+    outputPath?: string,
+  ) {
     const parametersFile = await readJsonFile(parametersPath);
 
     // Validate the parameters file.
@@ -565,6 +579,7 @@ export class Commands {
         name,
         parameters.cardKey,
         parameters,
+        context,
         outputPath,
       );
     } catch (e) {

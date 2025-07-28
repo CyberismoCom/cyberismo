@@ -54,6 +54,7 @@ export async function getCardDetails(
     asciidocContent = await evaluateMacros(
       cardDetailsResponse.content || '',
       {
+        context: staticMode ? 'exportedSite' : 'localApp',
         mode: staticMode ? 'static' : 'inject',
         project: commands.project,
         cardKey: key,
@@ -81,7 +82,7 @@ export async function getCardDetails(
 
   const card = staticMode
     ? await getCardQueryResult(commands.project.basePath, key)
-    : await commands.calculateCmd.runQuery('card', {
+    : await commands.calculateCmd.runQuery('card', 'localApp', {
         cardKey: key,
       });
   if (card.length !== 1) {

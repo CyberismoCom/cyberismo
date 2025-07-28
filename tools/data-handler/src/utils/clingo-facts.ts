@@ -16,7 +16,11 @@ import {
   type AllowedClingoType,
   ClingoFactBuilder,
 } from './clingo-fact-builder.js';
-import type { Card, ModuleContent } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  Context,
+  ModuleContent,
+} from '../interfaces/project-interfaces.js';
 import type {
   CardType,
   FieldType,
@@ -445,6 +449,12 @@ export const createCardTypeFacts = (cardType: CardType) => {
       );
     }
   }
+  return builder.buildAll();
+};
+
+export const createContextFacts = (context: Context) => {
+  const builder = new ClingoProgramBuilder();
+  builder.addFact(context);
   return builder.buildAll();
 };
 

@@ -23,6 +23,7 @@ import {
   type Credentials,
   type requestStatus,
   type UpdateOperations,
+  validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer, exportSite, previewSite } from '@cyberismo/backend';
@@ -183,6 +184,13 @@ const additionalHelpForRemove = `Sub-command help:
       <identifier> name of a specific resource.
     Note that you cannot remove resources from imported modules.`;
 
+const contextOption = new Option(
+  '-c, --context [context]',
+  'Context to run the logic programs in.',
+)
+  .choices(validContexts)
+  .default('app');
+
 // Main CLI program.
 program
   .name('cyberismo')
@@ -244,6 +252,7 @@ calculate
   .command('run')
   .description('Run a logic program')
   .argument('<filePath>', 'Path to the logic program')
+  .addOption(contextOption)
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (filePath: string, options: CardsOptions) => {
     const result = await commandHandler.command(
@@ -661,6 +670,7 @@ program
     '[output]',
     'Optional output file; if omitted output will be directed to stdout',
   )
+  .addOption(contextOption)
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (parameters: string, output: string, options: CardsOptions) => {
     const result = await commandHandler.command(
