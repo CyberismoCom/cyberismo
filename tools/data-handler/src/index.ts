@@ -17,7 +17,7 @@ import {
   CommandManager,
   ExportFormats,
 } from './command-handler.js';
-import type { Credentials } from './interfaces/project-interfaces.js';
+export * from './interfaces/project-interfaces.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 import { evaluateMacros } from './macros/index.js';
@@ -27,7 +27,6 @@ export {
   Cmd,
   CommandManager,
   Commands,
-  Credentials,
   ExportFormats,
   requestStatus,
   UpdateOperations,

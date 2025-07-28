@@ -39,7 +39,7 @@ export class ActionGuard {
     param?: string,
   ) {
     await this.calculate.generate();
-    const cards = await this.calculate.runQuery('card', {
+    const cards = await this.calculate.runQuery('card', 'localApp', {
       cardKey,
     });
     if (cards.length === 0) {
