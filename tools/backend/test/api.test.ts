@@ -45,6 +45,8 @@ test('/api/cards/decision_5 returns a card object', async () => {
   expect(result.policyChecks).not.toBe(null);
   expect(result.deniedOperations).not.toBe(null);
   expect(result.fields).not.toBe(null);
+  expect(result.cardTypeDisplayName).toBe('Simple card type');
+  expect(result.cardType).toBe('decision/cardTypes/simplepage');
 });
 
 test('/api/cards/decision_1/a/the-needle.heic returns an attachment file', async () => {
