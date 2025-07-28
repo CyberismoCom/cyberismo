@@ -84,7 +84,6 @@ export enum Cmd {
 // To what format the content can be exported to.
 export enum ExportFormats {
   adoc = 'adoc',
-  html = 'html',
   site = 'site',
 }
 
@@ -457,18 +456,10 @@ export class Commands {
       return { statusCode: 500 };
     }
     process.env.EXPORT_FORMAT = format;
-    let message = '';
-    if (format === 'adoc') {
-      message = await this.commands?.exportCmd.exportToADoc(
-        destination,
-        parentCardKey,
-      );
-    } else if (format === 'html') {
-      message = await this.commands?.exportCmd.exportToHTML(
-        destination,
-        parentCardKey,
-      );
-    }
+    const message = await this.commands?.exportCmd.exportToADoc(
+      destination,
+      parentCardKey,
+    );
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
   }
