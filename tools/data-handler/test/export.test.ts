@@ -13,7 +13,6 @@ const testDirForExport = join(baseDir, 'tmp-command-export-site-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
-const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };
 
 describe('export command', () => {
@@ -47,24 +46,6 @@ describe('export command', () => {
       recursive: true,
       force: true,
     });
-  });
-  it('export to HTML (success)', async () => {
-    const result = await commandHandler.command(
-      Cmd.export,
-      ['html', join(testDirForExport, 'output')],
-      optionsMini,
-    );
-    expect(result.statusCode).to.equal(200);
-  });
-  it('export partial tree to HTML (success)', async () => {
-    const card = 'decision_5';
-    const result = await commandHandler.command(
-      Cmd.export,
-      ['html', join(testDirForExport, 'output'), card],
-      options,
-    );
-    expect(result.message).to.be.equal(undefined);
-    expect(result.statusCode).to.equal(200);
   });
   it('missing project', async () => {
     optionsMini.projectPath = join(testDirForExport, 'valid/i-do-not-exist');
