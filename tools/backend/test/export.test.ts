@@ -58,6 +58,7 @@ describe('export module', () => {
       expect(result).toEqual(mockCards);
       expect(mockCommands.calculateCmd.runQuery).toHaveBeenCalledWith(
         'card',
+        'exportedSite',
         {},
       );
     });

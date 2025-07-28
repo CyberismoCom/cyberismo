@@ -202,6 +202,7 @@ export class Export {
       asciiDocContent = await evaluateMacros(
         cardDetailsResponse.content || '',
         {
+          context: 'exportedDocument',
           mode: 'static',
           project,
           cardKey: card.key,
@@ -255,7 +256,7 @@ export class Export {
     }
 
     await this.calculateCmd.generate();
-    const tree = await this.calculateCmd.runQuery('tree');
+    const tree = await this.calculateCmd.runQuery('tree', 'exportedDocument');
 
     if (cardKey) {
       const targetCard = this.findCardInTree(tree, cardKey);

@@ -12,6 +12,7 @@
 import Handlebars from 'handlebars';
 import type { Calculate } from '../commands/index.js';
 import { registerEmptyMacros } from '../macros/index.js';
+import type { Context } from '../interfaces/project-interfaces.js';
 
 /**
  * Formats a value from a logic program for use to graphviz
@@ -39,6 +40,7 @@ interface GenerateReportContentParams {
   queryTemplate: string;
   options: Record<string, string>;
   graph?: boolean;
+  context: Context;
 }
 
 /**
@@ -58,6 +60,7 @@ export async function generateReportContent(
     queryTemplate,
     graph,
     options, // Destructure options
+    context,
   } = params;
 
   const handlebars = Handlebars.create();
@@ -67,7 +70,7 @@ export async function generateReportContent(
     strict: true,
   });
 
-  const result = await calculate.runLogicProgram(template(options));
+  const result = await calculate.runLogicProgram(template(options), context);
 
   if (result.error) {
     throw new Error(result.error);

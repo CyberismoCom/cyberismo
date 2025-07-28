@@ -62,6 +62,14 @@ export interface CardMetadata extends PredefinedCardMetadata {
   [key: string]: MetadataContent;
 }
 
+export const validContexts = ['localApp', 'exportedSite', 'exportedDocument'];
+
+export type Context = 'localApp' | 'exportedSite' | 'exportedDocument';
+
+export const isContext = (context: string): context is Context => {
+  return validContexts.includes(context);
+};
+
 // Content in project (apart from cards) is either .schema files or cardsConfig.json.
 type ContentType = DotSchemaContent | ProjectSettings;
 

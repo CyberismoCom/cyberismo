@@ -142,6 +142,7 @@ describe('macros', () => {
             mode: 'inject',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -154,6 +155,7 @@ describe('macros', () => {
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -170,6 +172,7 @@ describe('macros', () => {
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -189,6 +192,7 @@ describe('macros', () => {
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -211,6 +215,7 @@ describe('macros', () => {
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -229,6 +234,7 @@ RawContent3`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -248,6 +254,7 @@ More outer content
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -265,6 +272,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -282,6 +290,7 @@ Some content here`;
             mode: 'inject',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -295,6 +304,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -310,6 +320,7 @@ Some content here`;
             mode: 'inject',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -325,6 +336,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -340,6 +352,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -354,6 +367,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -368,6 +382,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -382,6 +397,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -396,6 +412,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -460,6 +477,7 @@ Some content here`;
                 mode: mode as Mode,
                 project: project,
                 cardKey: '',
+                context: 'localApp',
               },
               calculate,
             );
@@ -483,6 +501,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -497,6 +516,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -513,6 +533,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -533,6 +554,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -548,6 +570,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -561,6 +584,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -580,6 +604,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -605,6 +630,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -623,6 +649,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -642,6 +669,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: 'original-card-key',
+            context: 'localApp',
           },
           calculate,
         );
@@ -688,6 +716,7 @@ Some content here`;
               mode: mode as Mode,
               project: project,
               cardKey: '',
+              context: 'localApp',
             },
             calculate,
           );
@@ -709,6 +738,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -730,6 +760,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -745,6 +776,7 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         );
@@ -775,6 +807,7 @@ Some content here`;
           mode: 'validate',
           project: project,
           cardKey: '',
+          context: 'localApp',
         },
         calculate,
       );
@@ -788,6 +821,7 @@ Some content here`;
             mode: 'validate',
             project: project,
             cardKey: '',
+            context: 'localApp',
           },
           calculate,
         ),
@@ -803,6 +837,7 @@ Some content here`;
           mode: 'inject',
           project: project,
           cardKey: '',
+          context: 'localApp',
         },
         new TaskQueue(),
         calculate,

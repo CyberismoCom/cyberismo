@@ -594,6 +594,7 @@ export class Validate {
             await evaluateMacros(
               card.content,
               {
+                context: 'localApp',
                 mode: 'validate',
                 project,
                 cardKey: card.key,
