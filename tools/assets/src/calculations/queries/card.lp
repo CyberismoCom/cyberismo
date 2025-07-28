@@ -92,8 +92,15 @@ field((Card, Field), "value", Value) :-
     childResult(Card, (Card, Field), "fields"),
     field(Card, Field, Value).
 
+% add cardTypeDisplayName
+field(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
+    result(Card),
+    field(Card, "cardType", CardType),
+    field(CardType, "displayName", DisplayName).
+
 % select only non-custom fields
 select(1, "cardType").
+select(1, "cardTypeDisplayName").
 select(1, "title").
 select(1, "key").
 select(1, "lastUpdated").
