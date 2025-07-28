@@ -16,8 +16,6 @@
 import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-// asciidoctor
-import Processor from '@asciidoctor/core';
 import type { Calculate, Show } from './index.js';
 import type {
   Card,
@@ -289,29 +287,6 @@ export class Export {
     }
 
     await this.toAdocFile(resultDocumentPath, cards);
-    return message;
-  }
-
-  /**
-   * Exports the card(s) to HTML and opens the browser.
-   * @param destination Path to where the resulting file(s) will be created.
-   * @param cardKey Optional; If not exporting the whole card tree, card key of parent card.
-   */
-  public async exportToHTML(
-    destination: string,
-    cardKey?: string,
-  ): Promise<string> {
-    let message = '';
-    await this.exportToADoc(destination, cardKey).then((msg) => {
-      message = msg;
-      const asciiDocProcessor = Processor();
-      const adocFile = join(destination, Project.cardContentFile);
-      asciiDocProcessor.convertFile(adocFile, {
-        safe: 'safe',
-        base_dir: '/',
-        standalone: true,
-      });
-    });
     return message;
   }
 }
