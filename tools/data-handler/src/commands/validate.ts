@@ -562,7 +562,15 @@ export class Validate {
         const cards = await project.cards();
         cards.push(...(await project.allTemplateCards()));
 
+        const cardIds = new Map<string, number>();
+
         for (const card of cards) {
+          if (cardIds.has(card.key)) {
+            cardIds.set(card.key, (cardIds.get(card.key) || 0) + 1);
+          } else {
+            cardIds.set(card.key, 1);
+          }
+
           if (card.metadata) {
             // validate card's workflow
             if (!isTemplateCard(card)) {
@@ -607,6 +615,12 @@ export class Validate {
           validationErrors += errorMsg
             .filter(this.removeDuplicateEntries)
             .join('\n');
+        }
+        // Validate that there are no duplicate card keys
+        for (const [key, count] of cardIds) {
+          if (count > 1) {
+            validationErrors += `Duplicate card key '${key}' found ${count} times\n`;
+          }
         }
       }
     } catch (error) {
