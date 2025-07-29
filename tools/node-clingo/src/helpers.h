@@ -24,6 +24,16 @@ namespace node_clingo
 {
 
     /**
+     * Enum for resource name parts.
+     */
+    enum class ResourcePart
+    {
+        PREFIX = 0,     // Module prefix (e.g., "base")
+        TYPE = 1,       // Resource type (e.g., "fieldTypes") 
+        IDENTIFIER = 2  // Resource identifier (e.g., "owner")
+    };
+
+    /**
      * Get the string representation of a clingo symbol.
      * @param symbol The clingo symbol.
      * @returns The string representation of the symbol.
@@ -52,6 +62,45 @@ namespace node_clingo
      * @returns The time_point value representing the date, or epoch on error.
      */
     std::chrono::system_clock::time_point parse_iso_date(const std::string &iso_date);
+
+    /**
+     * Helper function to return a string symbol via callback.
+     * @param str The string to return.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool return_string(
+        const char *str,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
+
+
+    /**
+     * Helper function to return an empty string symbol via callback.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool return_empty_string(
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
+
+    /**
+     * Helper function to validate and extract part of resource name format.
+     * @param arguments Array of clingo symbols representing the arguments.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @param part Resource part to extract (PREFIX, TYPE, or IDENTIFIER)
+     * @returns True on success, false on error. Calls symbol_callback with result.
+     */
+    bool extract_resource_part(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data,
+        ResourcePart part);
 
 }
 
