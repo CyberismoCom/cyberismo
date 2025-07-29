@@ -14,7 +14,6 @@
 
 #include <chrono>
 #include <cstring>
-#include <iostream>
 #include <sstream>
 
 #if defined(__clang__) || __GNUC__ < 13
@@ -70,10 +69,7 @@ namespace node_clingo
             }
         }
 
-        clingo_symbol_t sym;
-        clingo_symbol_create_string(result.c_str(), &sym);
-
-        return symbol_callback(&sym, 1, symbol_callback_data);
+        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
     }
 
     bool handle_days_since(
@@ -151,13 +147,7 @@ namespace node_clingo
         const auto today_str = std::format("{:%Y-%m-%d}", zt);
 #endif
 
-        clingo_symbol_t sym;
-        if (!clingo_symbol_create_string(today_str.c_str(), &sym))
-        {
-            return false;
-        }
-
-        return symbol_callback(&sym, 1, symbol_callback_data);
+        return return_string(today_str.c_str(), symbol_callback, symbol_callback_data);
     }
 
     bool handle_wrap(
@@ -210,13 +200,34 @@ namespace node_clingo
             }
         }
 
-        clingo_symbol_t sym;
-        if (!clingo_symbol_create_string(result.c_str(), &sym))
-        {
-            return false;
-        }
+        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
+    }
 
-        return symbol_callback(&sym, 1, symbol_callback_data);
+    bool handle_resource_prefix(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)
+    {
+        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::PREFIX);
+    }
+
+    bool handle_resource_type(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)
+    {
+        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::TYPE);
+    }
+
+    bool handle_resource_identifier(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)
+    {
+        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::IDENTIFIER);
     }
 
     const std::unordered_map<std::string, FunctionHandler> &get_function_handlers()
@@ -225,7 +236,10 @@ namespace node_clingo
             {"concatenate", handle_concatenate},
             {"daysSince", handle_days_since},
             {"today", handle_today},
-            {"wrap", handle_wrap}};
+            {"wrap", handle_wrap},
+            {"resourcePrefix", handle_resource_prefix},
+            {"resourceType", handle_resource_type},
+            {"resourceIdentifier", handle_resource_identifier}};
         return handlers;
     }
 

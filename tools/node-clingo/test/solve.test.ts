@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { solve, setBaseProgram, clearBaseProgram } from '../lib/index.js';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { solve, setBaseProgram, clearBaseProgram } from '../dist/index.js';
 
 describe('Clingo solver', () => {
   afterEach(() => {
@@ -117,5 +117,146 @@ describe('Clingo solver', () => {
       expect(error.details.errors[0]).toContain('syntax error');
       expect(error.details.errors[0]).toContain('unexpected');
     }
+  });
+
+  describe('Resource parsing functions', () => {
+    beforeEach(() => {
+      // Set up a base program that shows common result predicates
+      const showResultsProgram = `
+        #show result/1.
+        #show result1/1.
+        #show result2/1.
+        #show result3/1.
+      `;
+      setBaseProgram(showResultsProgram, 'show_results');
+    });
+    it('should extract prefix from valid resource names', async () => {
+      const program = `
+        result(@resourcePrefix("base/fieldTypes/owner")).
+        result2(@resourcePrefix("local/cardTypes/task")).  
+        result3(@resourcePrefix("system/workflows/review")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result("base")');
+      expect(result.answers[0]).toContain('result2("local")');
+      expect(result.answers[0]).toContain('result3("system")');
+    });
+
+    it('should extract type from valid resource names', async () => {
+      const program = `
+        result(@resourceType("base/fieldTypes/owner")).
+        result2(@resourceType("local/cardTypes/task")).
+        result3(@resourceType("system/workflows/review")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result("fieldTypes")');
+      expect(result.answers[0]).toContain('result2("cardTypes")');
+      expect(result.answers[0]).toContain('result3("workflows")');
+    });
+
+    it('should extract identifier from valid resource names', async () => {
+      const program = `
+        result(@resourceIdentifier("base/fieldTypes/owner")).
+        result2(@resourceIdentifier("local/cardTypes/task")).
+        result3(@resourceIdentifier("system/workflows/review")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result("owner")');
+      expect(result.answers[0]).toContain('result2("task")');
+      expect(result.answers[0]).toContain('result3("review")');
+    });
+
+    it('should return empty string for invalid resource names with no slashes', async () => {
+      const program = `
+        result1(@resourcePrefix("invalidname")).
+        result2(@resourceType("invalidname")).
+        result3(@resourceIdentifier("invalidname")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("")');
+      expect(result.answers[0]).toContain('result2("")');
+      expect(result.answers[0]).toContain('result3("")');
+    });
+
+    it('should return empty string for invalid resource names with only one slash', async () => {
+      const program = `
+        result1(@resourcePrefix("base/owner")).
+        result2(@resourceType("base/owner")).
+        result3(@resourceIdentifier("base/owner")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("")');
+      expect(result.answers[0]).toContain('result2("")');
+      expect(result.answers[0]).toContain('result3("")');
+    });
+
+    it('should return empty string for invalid resource names with too many slashes', async () => {
+      const program = `
+        result1(@resourcePrefix("base/fieldTypes/owner/extra")).
+        result2(@resourceType("base/fieldTypes/owner/extra")).
+        result3(@resourceIdentifier("base/fieldTypes/owner/extra")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("")');
+      expect(result.answers[0]).toContain('result2("")');
+      expect(result.answers[0]).toContain('result3("")');
+    });
+
+    it('should return empty string for empty input', async () => {
+      const program = `
+        result1(@resourcePrefix("")).
+        result2(@resourceType("")).
+        result3(@resourceIdentifier("")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("")');
+      expect(result.answers[0]).toContain('result2("")');
+      expect(result.answers[0]).toContain('result3("")');
+    });
+
+    it('should return empty string for non-string inputs', async () => {
+      const program = `
+        result1(@resourcePrefix(123)).
+        result2(@resourceType(456)).
+        result3(@resourceIdentifier(789)).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("")');
+      expect(result.answers[0]).toContain('result2("")');
+      expect(result.answers[0]).toContain('result3("")');
+    });
+
+    it('should handle edge cases with special characters', async () => {
+      const program = `
+        result1(@resourcePrefix("base-123/field_types/owner-name")).
+        result2(@resourceType("base-123/field_types/owner-name")).
+        result3(@resourceIdentifier("base-123/field_types/owner-name")).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("base-123")');
+      expect(result.answers[0]).toContain('result2("field_types")');
+      expect(result.answers[0]).toContain('result3("owner-name")');
+    });
+
+    it('should work in combination with other functions', async () => {
+      const program = `
+        resource("base/fieldTypes/owner").
+        result1(@resourcePrefix(R)) :- resource(R).
+        result2(@concatenate(@resourcePrefix("base/fieldTypes/owner"), "/", @resourceType("base/fieldTypes/owner"))).
+      `;
+      const result = await solve(program, 'show_results');
+
+      expect(result.answers[0]).toContain('result1("base")');
+      expect(result.answers[0]).toContain('result2("base/fieldTypes")');
+    });
   });
 });
