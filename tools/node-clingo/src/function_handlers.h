@@ -87,6 +87,51 @@ namespace node_clingo
         void *symbol_callback_data);
 
     /**
+     * Handler for the @resourcePrefix function.
+     * Extracts the module prefix from a resource name (part before first slash).
+     * @param arguments Array of clingo symbols representing the resource name.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_resource_prefix(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
+
+    /**
+     * Handler for the @resourceType function.
+     * Extracts the resource type from a resource name (part between first and second slash).
+     * @param arguments Array of clingo symbols representing the resource name.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_resource_type(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
+
+    /**
+     * Handler for the @resourceIdentifier function.
+     * Extracts the resource identifier from a resource name (part after last slash).
+     * @param arguments Array of clingo symbols representing the resource name.
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_resource_identifier(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data);
+
+    /**
      * Get the map of function names to their handlers.
      * @returns A constant reference to the unordered map containing function handlers.
      */
