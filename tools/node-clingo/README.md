@@ -16,50 +16,112 @@ To install, run `pnpm install`:
 ## Usage
 
 ```js
-import { solve, setBaseProgram, clearBaseProgram } from '@cyberismo/node-clingo';
+import {
+  solve,
+  setProgram,
+  removeProgram,
+  removeAllPrograms,
+  removeProgramsByFlag,
+} from '@cyberismo/node-clingo';
 
 // Solve a simple logic program
 const result = await solve('a. b. c(1). c(2).');
-console.log(result.answers); // [ 'a b c(1) c(2)' ]
+console.log(result.answers); // [ 'a\nb\nc(1)\nc(2)' ]
 
 // Set a base program (persisted across solves)
-setBaseProgram('base(1).');
-const result2 = await solve('derived :- base(X).');
-console.log(result2.answers); // [ 'base(1) derived' ]
+setProgram('base', 'base(1).');
+const result2 = await solve('derived :- base(X).', ['base']);
+console.log(result2.answers); // [ 'base(1)\nderived' ]
 
 // Named base programs
-setBaseProgram('type(query).', 'query');
-setBaseProgram('type(graph).', 'graph');
-const result3 = await solve('valid :- type(query).', 'query');
+setProgram('query', 'type(query).');
+setProgram('graph', 'type(graph).');
+const result3 = await solve('valid :- type(query).', ['query']);
 
 // Combine multiple base programs
-setBaseProgram('color(red).', 'colors');
-setBaseProgram('shape(circle).', 'shapes');
-setBaseProgram('size(large).', 'sizes');
+setProgram('colors', 'color(red).');
+setProgram('shapes', 'shape(circle).');
+setProgram('sizes', 'size(large).');
 const result4 = await solve('valid :- color(X), shape(Y), size(Z).', [
-  'colors', 'shapes', 'sizes',
+  'colors',
+  'shapes',
+  'sizes',
 ]);
 
-// Clear base programs
-default: clearBaseProgram(); // clears all
-clearBaseProgram('query'); // clears named
+// Programs with flags for easier management
+setProgram('base-facts', 'person(alice). person(bob).', ['facts']);
+setProgram('base-rules', 'friend(X,Y) :- person(X), person(Y), X != Y.', [
+  'rules',
+]);
+const result5 = await solve('happy(X) :- friend(X,Y).', ['facts', 'rules']);
+
+// Remove programs
+removeProgram('query'); // removes specific program
+removeProgramsByFlag('facts'); // removes all programs with 'facts' flag
+removeAllPrograms(); // clears all programs
 ```
 
 ---
 
 ## API
 
-### `async solve(program: string, basePrograms?: string | string[]): Promise<{ answers: string[], executionTime: number }>`
+### `async solve(program: string, refs?: string[]): Promise<ClingoResult>`
 
-Solves a logic program, optionally combining with one or more base programs. Returns all answer sets and execution time (μs).
+Solves a logic program, optionally combining with one or more stored programs referenced by key or flag. Returns all answer sets, execution time (μs), and any errors/warnings.
 
-### `setBaseProgram(program: string, key?: string)`
+**Returns:** `ClingoResult` object with:
 
-Stores a base program under a key (default: 'default'). Used in subsequent solves.
+- `answers: string[]` - Array of answer sets (each answer set as a single string with atoms separated by newlines)
+- `executionTime: number` - Execution time in microseconds
+- `errors: string[]` - Any error messages from Clingo
+- `warnings: string[]` - Any warning messages from Clingo
 
-### `clearBaseProgram(key?: string)`
+### `setProgram(key: string, program: string, refs?: string[])`
 
-Removes a named base program, or all if no key is given.
+Stores a program under a key. Optionally assign flags (refs) for easier program management.
+
+**Parameters:**
+
+- `key: string` - Unique identifier for this program
+- `program: string` - The logic program content
+- `refs?: string[]` - Optional array of flag names to associate with this program
+
+### `removeProgram(key: string): boolean`
+
+Removes a stored program by key.
+
+**Returns:** `true` if the program was found and removed, `false` if it didn't exist.
+
+### `removeProgramsByFlag(flag: string): number`
+
+Removes all stored programs that have the specified flag.
+
+**Returns:** Number of programs removed.
+
+### `removeAllPrograms()`
+
+Removes all stored programs.
+
+### Error Handling
+
+The `solve` function may throw a `ClingoError` when parsing or solving fails. This error contains additional details:
+
+```js
+import { solve, ClingoError } from '@cyberismo/node-clingo';
+
+try {
+  const result = await solve('invalid syntax here');
+} catch (error) {
+  if (error instanceof ClingoError) {
+    console.log('Clingo error:', error.message);
+    console.log('Errors:', error.details.errors);
+    console.log('Warnings:', error.details.warnings);
+    if (error.details.program) {
+      console.log('Failed program:', error.details.program);
+    }
+  }
+}
+```
 
 ---
 
@@ -122,15 +184,5 @@ pnpm run build-prebuildify
 #### Alpine/musl builds
 
 See `alpine.Dockerfile` for the musl/Alpine build process (used in CI for static builds).
-
----
-
-## CI/CD & Prebuild Workflow
-
-- See `.github/workflows/prebuild.yml` for the full automation:
-  - Detects version changes
-  - Builds prebuilds for all platforms (including musl via Docker)
-  - Uploads prebuilds as GitHub release assets
-  - Installs prebuilds automatically on `pnpm install` via `scripts/download-prebuild.js`
 
 ---

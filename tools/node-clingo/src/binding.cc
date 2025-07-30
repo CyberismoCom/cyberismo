@@ -16,10 +16,9 @@
 #include <clingo.h>
 #include <ctime>
 #include <cstring>
-#include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <napi.h>
+#include <set>
 #include <sstream>
 #include <stdint.h>
 #include <string>
@@ -42,8 +41,16 @@ struct NodeClingoLogs {
     }
 };
 
-// Store base programs in a map, keyed by name
-std::unordered_map<std::string, std::string> g_basePrograms;
+// Program with flags
+struct Program {
+    std::string content;
+    std::vector<std::string> flags;
+};
+
+// stores all programs
+std::unordered_map<std::string, Program> g_programs;
+
+
 // For now error messsages are stored in a global vector,
 // If async/threading is needed, we cannot use a single global variable
 std::vector<ClingoLogMessage> g_errorMessages;
@@ -87,8 +94,9 @@ NodeClingoLogs parse_clingo_logs(const Napi::Env &env) {
  * If a Clingo error has occurred (clingo_error_code() != 0),
  * it throws a Napi::Error with the Clingo error message.
  * @param env The N-API environment.
+ * @param programKey The string identifier of the program that caused the error
  */
-void handle_clingo_error(const Napi::Env &env)
+void handle_clingo_error(const Napi::Env &env, const std::string& programKey = "")
 {
     // If clingo returns an error, we throw an error to the javascript side
     if (clingo_error_code() != 0)
@@ -103,6 +111,9 @@ void handle_clingo_error(const Napi::Env &env)
         
         errorObj.Set("errors", logs.errors);
         errorObj.Set("warnings", logs.warnings);
+        if(!programKey.empty()) {
+            errorObj.Set("program", Napi::String::New(env, programKey));
+        }
         
         error.Set("details", errorObj);
         throw error;
@@ -253,94 +264,99 @@ bool solve_event_callback(uint32_t type, void *event, void *data, bool *go_on)
 }
 
 /**
- * N-API function exposed to JavaScript as `setBaseProgram`.
- * Stores or updates a named base logic program string.
- * @param info N-API callback info containing arguments (program string, key string).
- * @returns Napi::Boolean(true) on success.
+ * N-API function exposed to JavaScript as `setProgram`.
+ * Stores or updates a program with optional flags.
+ * @param info N-API callback info containing arguments (key string, program string, optional flags array).
+ * @returns undefined
  * @throws Napi::TypeError if arguments are invalid.
- * @throws Napi::Error on other errors.
  */
-Napi::Value SetBaseProgram(const Napi::CallbackInfo &info)
+Napi::Value SetProgram(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    try
+    // Check arguments
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
     {
-        // Check arguments
-        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
-        {
-            throw Napi::TypeError::New(env, "Expected arguments: program (string), key (string)");
+        throw Napi::TypeError::New(env, "Expected arguments: key (string), program (string), optional flags (string[])");
+    }
+
+    std::string key = info[0].As<Napi::String>().Utf8Value();
+    std::string content = info[1].As<Napi::String>().Utf8Value();
+
+    // Create program entry
+    Program prog;
+    prog.content = content;
+
+    // Add flags if provided
+    if (info.Length() >= 3 && info[2].IsArray()) {
+        Napi::Array flags = info[2].As<Napi::Array>();
+        for (uint32_t i = 0; i < flags.Length(); ++i) {
+            Napi::Value val = flags[i];
+            if (val.IsString()) {
+                prog.flags.push_back(val.As<Napi::String>().Utf8Value());
+            }
         }
+    }
 
-        std::string program = info[0].As<Napi::String>().Utf8Value();
-        std::string key = info[1].As<Napi::String>().Utf8Value();
-
-        // Update the named base program
-        g_basePrograms[key] = program;
-
-        return Napi::Boolean::New(env, true);
-    }
-    catch (const Napi::Error &e)
-    {
-        e.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (const std::exception &e)
-    {
-        const auto error = Napi::Error::New(env, e.what());
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (...)
-    {
-        const auto error = Napi::Error::New(env, "Unknown error occurred");
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
+    // Store the program
+    g_programs[key] = std::move(prog);
+    return env.Undefined();
 }
 
 /**
- * N-API function exposed to JavaScript as `clearBaseProgram`.
- * Removes a specific named base program.
+ * N-API function exposed to JavaScript as `removeProgram`.
+ * Removes a stored program.
  * @param info N-API callback info containing arguments (key string).
- * @returns Napi::Boolean(true) on success.
+ * @returns Napi::Boolean indicating whether the program was found and removed.
  * @throws Napi::TypeError if the argument is invalid.
- * @throws Napi::Error on other errors.
  */
-Napi::Value ClearBaseProgram(const Napi::CallbackInfo &info)
+Napi::Value RemoveProgram(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-
-    try
+    // Check arguments
+    if (info.Length() < 1 || !info[0].IsString())
     {
-        // Check arguments
-        if (info.Length() < 1 || !info[0].IsString())
-        {
-            throw Napi::TypeError::New(env, "Expected argument: key (string)");
+        throw Napi::TypeError::New(env, "Expected argument: key (string)");
+    }
+
+    std::string key = info[0].As<Napi::String>().Utf8Value();
+    size_t removedCount = g_programs.erase(key);
+
+    return Napi::Boolean::New(env, removedCount > 0);
+}
+
+/**
+ * N-API function exposed to JavaScript as `removeProgramsByFlag`.
+ * Removes all stored programs that have the specified flag.
+ * @param info N-API callback info containing arguments (flag string).
+ * @returns Napi::Number indicating the number of programs removed.
+ * @throws Napi::TypeError if the argument is invalid.
+ */
+Napi::Value RemoveProgramsByFlag(const Napi::CallbackInfo &info)
+{
+Napi::Env env = info.Env();
+    // Check arguments
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        throw Napi::TypeError::New(env, "Expected argument: flag (string)");
+    }
+
+    std::string flag = info[0].As<Napi::String>().Utf8Value();
+    size_t removedCount = 0;
+
+    // Iterate through programs and remove those with the specified flag
+    auto it = g_programs.begin();
+    while (it != g_programs.end()) {
+        const auto& prog = it->second;
+        if (std::find(prog.flags.begin(), prog.flags.end(), flag) != prog.flags.end()) {
+            it = g_programs.erase(it);
+            removedCount++;
+        } else {
+            ++it;
         }
+    }
 
-        std::string key = info[0].As<Napi::String>().Utf8Value();
-        g_basePrograms.erase(key);
-
-        return Napi::Boolean::New(env, true);
-    }
-    catch (const Napi::Error &e)
-    {
-        e.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (const std::exception &e)
-    {
-        const auto error = Napi::Error::New(env, e.what());
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (...)
-    {
-        const auto error = Napi::Error::New(env, "Unknown error occurred");
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
+    return Napi::Number::New(env, removedCount);
 }
 
 /**
@@ -350,32 +366,11 @@ Napi::Value ClearBaseProgram(const Napi::CallbackInfo &info)
  * @returns Napi::Boolean(true) on success.
  * @throws Napi::Error on errors.
  */
-Napi::Value ClearAllBasePrograms(const Napi::CallbackInfo &info)
+Napi::Value RemoveAllPrograms(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
-
-    try
-    {
-        g_basePrograms.clear();
-        return Napi::Boolean::New(env, true);
-    }
-    catch (const Napi::Error &e)
-    {
-        e.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (const std::exception &e)
-    {
-        const auto error = Napi::Error::New(env, e.what());
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
-    catch (...)
-    {
-        const auto error = Napi::Error::New(env, "Unknown error occurred");
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
+    g_programs.clear();
+    return env.Undefined();
 }
 
 /**
@@ -393,151 +388,139 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    try
+    // Check arguments
+    if (info.Length() < 1 || !info[0].IsString())
     {
+        throw Napi::TypeError::New(env, "String argument expected for program");
+    }
 
-        // Check arguments
-        if (info.Length() < 1 || !info[0].IsString())
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Create the program string once
+    std::string program = info[0].As<Napi::String>().Utf8Value();
+
+    // Error messages must be cleared before grounding
+    g_errorMessages.clear();
+
+    // Initialize Clingo control
+    clingo_control_t *ctl = nullptr;
+    if (!clingo_control_new(nullptr, 0, message_collector, nullptr, 20, &ctl))
+    {
+        handle_clingo_error(env);
+    }
+
+    std::unique_ptr<clingo_control_t, void (*)(clingo_control_t *)> ctl_guard(ctl, clingo_control_free);
+
+    // Create vector to store all parts we need to ground
+    std::vector<clingo_part_t> parts;
+    // stores reference strings
+    // NOTE: Important that this is defined here, otherwise c strings will be invalidated
+    std::set<std::string> refs;
+
+    // Apply base programs if specified
+    if (info.Length() >= 2)
+    {
+        if (!info[1].IsArray())
         {
-            throw Napi::TypeError::New(env, "String argument expected for program");
+            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
         }
 
-        auto start = std::chrono::high_resolution_clock::now();
-
-        // Create the program string once
-        std::string program = info[0].As<Napi::String>().Utf8Value();
-
-        // Apply base programs if specified
-        if (info.Length() >= 2)
-        {
-            if (info[1].IsString())
-            {
-                // If a single base program name is provided
-                std::string key = info[1].As<Napi::String>().Utf8Value();
-                auto it = g_basePrograms.find(key);
-                if (it != g_basePrograms.end())
-                {
-                    program = it->second + "\n" + program;
-                }
+        Napi::Array arr = info[1].As<Napi::Array>();
+        
+        for (uint32_t i = 0; i < arr.Length(); ++i) {
+            Napi::Value val = arr[i];
+            if (!val.IsString()) {
+                throw Napi::TypeError::New(env, "All refs must be strings");
             }
-            else if (info[1].IsArray())
-            {
-                // If an array of base program names is provided
-                Napi::Array basePrograms = info[1].As<Napi::Array>();
-                std::string combinedBase = "";
-                for (uint32_t i = 0; i < basePrograms.Length(); ++i)
-                {
-                    Napi::Value val = basePrograms[i];
-                    if (val.IsString())
-                    {
-                        std::string key = val.As<Napi::String>().Utf8Value();
-                        auto it = g_basePrograms.find(key);
-                        if (it != g_basePrograms.end())
-                        {
-                            if (!combinedBase.empty())
-                                combinedBase += "\n";
-                            combinedBase += it->second;
-                        }
+            std::string ref = val.As<Napi::String>().Utf8Value();
+            refs.insert(ref);
+        }
+
+        for (const auto& ref : refs) {
+            auto it = g_programs.find(ref);
+            if (it != g_programs.end()) {
+                if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str())) {
+                    handle_clingo_error(env, ref);
+                } else {
+                    parts.push_back({ref.c_str(), nullptr, 0});
+                }
+                // No need check other refs, as ref was a program, not a flag
+                continue;
+            }
+
+            // If no direct match, check flags
+            for (const auto& [key, prog] : g_programs) {
+                if (std::find(prog.flags.begin(), prog.flags.end(), ref) != prog.flags.end()) {
+                    if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str())) {
+                        handle_clingo_error(env, key);
+                    } else {
+                        parts.push_back({key.c_str(), nullptr, 0});
                     }
                 }
-                if (!combinedBase.empty())
-                {
-                    program = combinedBase + "\n" + program;
-                }
             }
         }
+    }
 
-        // Error messages must be cleared before grounding
-        g_errorMessages.clear();
+    // Add the main program last and its part
+    if (!clingo_control_add(ctl, "__program__", nullptr, 0, program.c_str())) {
+        handle_clingo_error(env, "__program__");
+    }
+    parts.push_back({"__program__", nullptr, 0});
 
-        clingo_control_t *ctl = nullptr;
-        if (!clingo_control_new(nullptr, 0, message_collector, nullptr, 20, &ctl))
+    // Ground the program
+    if (!clingo_control_ground(ctl, parts.data(), parts.size(), ground_callback, nullptr))
+    {
+        handle_clingo_error(env);
+    }
+
+    // Solve the program
+    std::vector<std::string> answers;
+    clingo_solve_handle_t *handle = nullptr;
+
+    // Use clingo_solve_mode_yield to get all answer sets
+    if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle))
+    {
+        handle_clingo_error(env);
+    }
+
+    std::unique_ptr<clingo_solve_handle_t, void (*)(clingo_solve_handle_t *)> handle_guard(
+        handle,
+        [](clingo_solve_handle_t *h)
         {
-            handle_clingo_error(env);
-        }
-
-        std::unique_ptr<clingo_control_t, void (*)(clingo_control_t *)> ctl_guard(ctl, clingo_control_free);
-
-        // Add the program
-        if (!clingo_control_add(ctl, "base", nullptr, 0, program.c_str()))
-        {
-            handle_clingo_error(env);
-        }
-
-        // Ground the program
-        clingo_part_t parts[] = {{"base", nullptr, 0}};
-
-        if (!clingo_control_ground(ctl, parts, 1, ground_callback, nullptr))
-        {
-            handle_clingo_error(env);
-        }
-
-        // Solve the program
-        std::vector<std::string> answers;
-        clingo_solve_handle_t *handle = nullptr;
-
-        // Use clingo_solve_mode_yield to get all answer sets
-        if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle))
-        {
-            handle_clingo_error(env);
-        }
-
-        std::unique_ptr<clingo_solve_handle_t, void (*)(clingo_solve_handle_t *)> handle_guard(
-            handle,
-            [](clingo_solve_handle_t *h)
+            if (h)
             {
-                if (h)
-                {
-                    clingo_solve_handle_close(h);
-                }
-            });
+                clingo_solve_handle_close(h);
+            }
+        });
 
-        // Wait for solving to finish
-        clingo_solve_result_bitset_t result;
-        if (!clingo_solve_handle_get(handle, &result))
-        {
-            handle_clingo_error(env);
-        }
-
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-        // Create result object with answers and execution time
-        Napi::Object resultObj = Napi::Object::New(env);
-
-        Napi::Array answersArray = Napi::Array::New(env, answers.size());
-        for (size_t i = 0; i < answers.size(); ++i)
-        {
-            answersArray[i] = Napi::String::New(env, answers[i]);
-        }
-        resultObj.Set("answers", answersArray);
-        resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
-        
-        // Parse errors and warnings using the common routine
-        NodeClingoLogs logs = parse_clingo_logs(env);
-        
-        resultObj.Set("errors", logs.errors);
-        resultObj.Set("warnings", logs.warnings);
-        
-        return resultObj;
-    }
-    catch (const Napi::Error &e)
+    // Wait for solving to finish
+    clingo_solve_result_bitset_t result;
+    if (!clingo_solve_handle_get(handle, &result))
     {
-        e.ThrowAsJavaScriptException();
-        return env.Undefined();
+        handle_clingo_error(env);
     }
-    catch (const std::exception &e)
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    // Create result object with answers and execution time
+    Napi::Object resultObj = Napi::Object::New(env);
+
+    Napi::Array answersArray = Napi::Array::New(env, answers.size());
+    for (size_t i = 0; i < answers.size(); ++i)
     {
-        const auto error = Napi::Error::New(env, e.what());
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
+        answersArray[i] = Napi::String::New(env, answers[i]);
     }
-    catch (...)
-    {
-        const auto error = Napi::Error::New(env, "Unknown error occurred");
-        error.ThrowAsJavaScriptException();
-        return env.Undefined();
-    }
+    resultObj.Set("answers", answersArray);
+    resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
+    
+    // Parse errors and warnings using the common routine
+    NodeClingoLogs logs = parse_clingo_logs(env);
+    
+    resultObj.Set("errors", logs.errors);
+    resultObj.Set("warnings", logs.warnings);
+    
+    return resultObj;
 }
 
 /**
@@ -554,17 +537,21 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
         Napi::Function::New(env, Solve));
 
     exports.Set(
-        Napi::String::New(env, "setBaseProgram"),
-        Napi::Function::New(env, SetBaseProgram));
+        Napi::String::New(env, "setProgram"),
+        Napi::Function::New(env, SetProgram));
 
     exports.Set(
-        Napi::String::New(env, "clearBaseProgram"),
-        Napi::Function::New(env, ClearBaseProgram));
+        Napi::String::New(env, "removeAllPrograms"),
+        Napi::Function::New(env, RemoveAllPrograms));
 
     exports.Set(
-        Napi::String::New(env, "clearAllBasePrograms"),
-        Napi::Function::New(env, ClearAllBasePrograms));
+        Napi::String::New(env, "removeProgram"),
+        Napi::Function::New(env, RemoveProgram));
 
+    exports.Set(
+        Napi::String::New(env, "removeProgramsByFlag"),
+        Napi::Function::New(env, RemoveProgramsByFlag));
+        
     return exports;
 }
 

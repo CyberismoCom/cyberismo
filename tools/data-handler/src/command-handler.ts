@@ -199,7 +199,7 @@ export class Commands {
           return this.runLogicProgram(cardKey, options.context || 'localApp');
         }
         if (command === 'generate') {
-          return this.generateLogicProgram(cardKey);
+          return this.generateLogicProgram();
         }
       } else if (command === Cmd.create) {
         const [type, ...rest] = args;
@@ -465,9 +465,9 @@ export class Commands {
   }
 
   // Generates logic program for a card.
-  private async generateLogicProgram(cardKey?: string): Promise<requestStatus> {
+  private async generateLogicProgram(): Promise<requestStatus> {
     try {
-      await this.commands?.calculateCmd.generate(cardKey);
+      await this.commands?.calculateCmd.generate();
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
