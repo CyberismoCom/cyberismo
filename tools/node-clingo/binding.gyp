@@ -6,8 +6,6 @@
   "targets": [
     {
       "target_name": "node-clingo",
-      "cflags!": [ "-fno-exceptions" ],
-      "cflags_cc!": [ "-fno-exceptions" ],
       "cflags_cc": [ "-std=c++20" ],
       "sources": [ 
         "src/binding.cc",
@@ -18,17 +16,14 @@
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(conda_prefix)/Library/include"
       ],
-      "defines": [ "NAPI_DISABLE_CPP_EXCEPTIONS" ],
+      "dependencies": [
+        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except_all"
+      ],
       "conditions": [
         ["OS=='win'", {
           "libraries": [
             "<(conda_prefix)/Library/lib/import_clingo.lib"
           ],
-          "msvs_settings": {
-            "VCCLCompilerTool": {
-              "ExceptionHandling": 1
-            }
-          },
           "copies": [
             {
               "destination": "<(PRODUCT_DIR)",
@@ -76,7 +71,6 @@
             }]
           ],
           "xcode_settings": {
-            "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
             "OTHER_LDFLAGS": [
               "-Wl,-rpath,@loader_path"
             ]
