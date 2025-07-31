@@ -82,12 +82,8 @@ export class WorkflowResource extends FileResource {
 
   // Handle change of workflow state.
   private async handleStateChange(op: ChangeOperation<WorkflowState>) {
-    const content = { ...(this.content as Workflow) };
-    const stateName = (
-      (op.target as WorkflowState).name
-        ? (op.target as WorkflowState).name
-        : op.target
-    ) as string;
+    const content = structuredClone(this.content) as Workflow;
+    const stateName = this.targetName(op) as string;
     // Check that state can be changed to
     content.transitions = content.transitions.filter(
       (t) => t.toState !== stateName,
@@ -111,12 +107,8 @@ export class WorkflowResource extends FileResource {
   // Handle removal of workflow state.
   // State can be removed with or without replacement.
   private async handleStateRemoval(op: RemoveOperation<WorkflowState>) {
-    const content = { ...(this.content as Workflow) };
-    const stateName = (
-      (op.target as WorkflowState).name
-        ? (op.target as WorkflowState).name
-        : op.target
-    ) as string;
+    const content = structuredClone(this.content) as Workflow;
+    const stateName = this.targetName(op) as string;
 
     // If there is no replacement value, remove all transitions "to" and "from" this state.
     if (!op.replacementValue) {
@@ -152,6 +144,42 @@ export class WorkflowResource extends FileResource {
       // Update all cards that use this state.
       await this.updateCardStates(stateName, replacementState.name);
     }
+  }
+
+  // Returns target name irregardless of the type
+  private targetName(op: Operation<WorkflowState | WorkflowTransition>) {
+    const name = op.target.name ? op.target.name : op.target;
+    return name;
+  }
+
+  // Potentially updates the changed transition with current properties.
+  private async transitionObject(op: ChangeOperation<WorkflowTransition>) {
+    const content = structuredClone(this.content) as Workflow;
+    const targetTransitionName = this.targetName(op);
+    const currentTransition = content.transitions.filter(
+      (item) => item.name === targetTransitionName,
+    )[0];
+
+    if (currentTransition) {
+      op.to.fromState =
+        op.to.fromState.length === 0
+          ? currentTransition.fromState
+          : op.to.fromState;
+      op.to.toState = op.to.toState ?? currentTransition.toState;
+    }
+
+    if (
+      op.to.name === undefined ||
+      op.to.toState === undefined ||
+      op.to.fromState == undefined ||
+      op.to.fromState.length === 0
+    ) {
+      throw new Error(
+        `Cannot change transition '${targetTransitionName}' for workflow '${this.content.name}'.
+         Updated transition must have 'name', 'toState' and 'fromState' properties.`,
+      );
+    }
+    return op.to;
   }
 
   // Check if operation is a string operation.
@@ -250,7 +278,7 @@ export class WorkflowResource extends FileResource {
 
     await super.update(key, op);
 
-    const content = { ...(this.content as Workflow) };
+    const content = structuredClone(this.content) as Workflow;
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
@@ -268,6 +296,33 @@ export class WorkflowResource extends FileResource {
       ) as WorkflowTransition[];
     } else {
       throw new Error(`Unknown property '${key}' for Workflow`);
+    }
+
+    // If workflow transition is removed, then above call to 'handleArray' is all that is needed.
+
+    if (key === 'transitions' && op.name === 'change') {
+      // If workflow transition is changed, update to full object and change the content.
+      let changeOp: ChangeOperation<WorkflowTransition>;
+      if (this.isStringOperation(op)) {
+        const targetTransition = (this.content as Workflow).transitions.find(
+          (transition) => transition.name === op.target,
+        )!;
+        changeOp = {
+          name: 'change',
+          target: targetTransition as WorkflowTransition,
+          to: {
+            name: op.to,
+            toState: targetTransition.toState,
+            fromState: targetTransition.fromState,
+          },
+        };
+      } else {
+        changeOp = op as ChangeOperation<WorkflowTransition>;
+      }
+      const newTransition = await this.transitionObject(changeOp);
+      content.transitions = content.transitions.map((item) =>
+        item.name == newTransition.name ? newTransition : item,
+      );
     }
 
     if (key === 'states' && op.name === 'remove') {
