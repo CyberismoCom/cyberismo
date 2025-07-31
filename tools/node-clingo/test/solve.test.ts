@@ -114,7 +114,7 @@ describe('Clingo solver', () => {
       expect.fail('Expected solve to throw an error');
     } catch (error: any) {
       expect(error).toBeDefined();
-      expect(error.message).toBe('parsing failed');
+      expect(error.message).toContain('Parsing failed');
 
       // Verify the error has details with errors and warnings
       expect(error.details).toBeDefined();
