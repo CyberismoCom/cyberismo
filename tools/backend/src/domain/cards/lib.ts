@@ -49,11 +49,17 @@ export async function getCardDetails(
     return { status: 400, message: `Card ${key} not found from project` };
   }
 
+  // always parse for now if not in export mode
+  if (!staticMode) {
+    await commands.calculateCmd.generate();
+  }
+
   let asciidocContent = '';
   try {
     asciidocContent = await evaluateMacros(
       cardDetailsResponse.content || '',
       {
+        context: staticMode ? 'exportedSite' : 'localApp',
         mode: staticMode ? 'static' : 'inject',
         project: commands.project,
         cardKey: key,
@@ -74,14 +80,9 @@ export async function getCardDetails(
     })
     .toString();
 
-  // always parse for now if not in export mode
-  if (!staticMode) {
-    await commands.calculateCmd.generate();
-  }
-
   const card = staticMode
     ? await getCardQueryResult(commands.project.basePath, key)
-    : await commands.calculateCmd.runQuery('card', {
+    : await commands.calculateCmd.runQuery('card', 'localApp', {
         cardKey: key,
       });
   if (card.length !== 1) {

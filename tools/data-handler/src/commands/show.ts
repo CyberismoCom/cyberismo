@@ -30,6 +30,7 @@ import type {
   ProjectMetadata,
   Resource,
   CardLocation,
+  Context,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -371,6 +372,7 @@ export class Show {
     reportName: string,
     cardKey: string,
     parameters: object,
+    context: Context,
     outputPath?: string,
   ): Promise<string> {
     if (
@@ -387,6 +389,7 @@ export class Show {
         project: this.project,
         cardKey: cardKey,
         mode: 'static',
+        context,
       },
       { name: reportName, ...parameters },
     );

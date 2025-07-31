@@ -13,7 +13,10 @@
 
 import { CommandManager } from '@cyberismo/data-handler';
 
-export async function getCardTree(commands: CommandManager) {
+export async function getCardTree(commands: CommandManager, isSsg: boolean) {
   await commands.calculateCmd.generate();
-  return commands.calculateCmd.runQuery('tree');
+  return commands.calculateCmd.runQuery(
+    'tree',
+    isSsg ? 'exportedSite' : 'localApp',
+  );
 }

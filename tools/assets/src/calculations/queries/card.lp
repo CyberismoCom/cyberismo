@@ -49,11 +49,7 @@ field((Card, Field), "index", Index) :-
     field(Card, "cardType", CardType),
     result(Card).
 
-dataType((Card, Field), "fieldDisplayName", "shortText") :-
-    childResult(Card, (Card, Field), "fields"),
-    field((Card, Field), "fieldDisplayName", _).
-
-field((Card, Field), "fieldDisplayName", DisplayName) :-
+field((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     displayName(Card, (Card, Field), DisplayName).
@@ -82,7 +78,7 @@ field((Card, Field), "isCalculated", false) :-
 field((Card, Field), "dataType", DataType, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
-    dataType(Card, Field, DataType).
+    field(Field, "dataType", DataType).
 
 % add value
 dataType((Card, Field), "value", DataType) :-
@@ -96,8 +92,15 @@ field((Card, Field), "value", Value) :-
     childResult(Card, (Card, Field), "fields"),
     field(Card, Field, Value).
 
+% add cardTypeDisplayName
+field(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
+    result(Card),
+    field(Card, "cardType", CardType),
+    field(CardType, "displayName", DisplayName).
+
 % select only non-custom fields
 select(1, "cardType").
+select(1, "cardTypeDisplayName").
 select(1, "title").
 select(1, "key").
 select(1, "lastUpdated").

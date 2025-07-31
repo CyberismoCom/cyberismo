@@ -1,0 +1,16 @@
+{
+  "type": "object",
+  "$id": "includeMacroSchema",
+  "properties": {
+    "cardKey": {
+      "type": "string",
+      "description": "The key of the card to include content from"
+    },
+    "levelOffset": {
+      "type": "string",
+      "description": "Optional offset to adjust the heading levels of the included content. Should be a number as string (e.g., '+1', '+2' or '-1')."
+    }
+  },
+  "additionalProperties": false,
+  "required": ["cardKey"]
+}

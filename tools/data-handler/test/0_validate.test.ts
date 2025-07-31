@@ -50,6 +50,11 @@ describe('validate cmd tests', () => {
     const valid = await validateCmd.validate(path);
     expect(valid.length).to.be.greaterThan(0);
   });
+  it('try to validate() - invalid-duplicate-card-key', async () => {
+    const path = 'test/test-data/invalid/invalid-duplicate-card-key';
+    const valid = await validateCmd.validate(path);
+    expect(valid.length).to.be.greaterThan(0);
+  });
   it('try to validate() - missing-templates-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-templates-subfolder';
     const valid = await validateCmd.validate(path);

@@ -92,6 +92,7 @@ interface CardQueryResult extends BaseResult {
   rank: string;
   title: string;
   cardType: string;
+  cardTypeDisplayName: string;
   workflowState: string;
   lastUpdated: string;
   fields: CardQueryField[];

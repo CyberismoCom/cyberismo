@@ -333,6 +333,7 @@ describe('show', () => {
       parameters.name,
       parameters.parameters.cardKey,
       parameters,
+      'localApp',
     );
     expect(results).to.not.equal(undefined);
     expect(results).to.include('xref');
@@ -349,6 +350,7 @@ describe('show', () => {
       parameters.name,
       parameters.parameters.cardKey,
       parameters,
+      'localApp',
       join(testDir, 'report-results.txt'),
     );
     expect(results).equal('');
@@ -367,6 +369,7 @@ describe('show', () => {
       parameters.name,
       parameters.parameters.cardKey,
       parameters,
+      'localApp',
       join(testDir, 'report-results.txt'),
     );
     expect(results).equal('');
@@ -382,7 +385,12 @@ describe('show', () => {
     };
     await commands.calculateCmd.generate();
     await expect(
-      showCmd.showReportResults(parameters.name, 'wrong', parameters),
+      showCmd.showReportResults(
+        parameters.name,
+        'wrong',
+        parameters,
+        'localApp',
+      ),
     ).to.be.rejectedWith(
       `Report 'decision/reports/wrongReport' does not exist`,
     );

@@ -51,7 +51,11 @@ export async function getCardQueryResult(
   if (!_cardQueryPromise) {
     const commands = await CommandManager.getInstance(projectPath);
     // fetch all cards
-    _cardQueryPromise = commands.calculateCmd.runQuery('card', {});
+    _cardQueryPromise = commands.calculateCmd.runQuery(
+      'card',
+      'exportedSite',
+      {},
+    );
   }
   return _cardQueryPromise.then((results) => {
     if (!cardKey) {

@@ -22,13 +22,16 @@ import fieldTypeSchema from './schema/resources/fieldTypeSchema.json' with { typ
 import graphMacroBaseSchema from './schema/macros/graphMacroBaseSchema.json' with { type: 'json' };
 import graphModelSchema from './schema/resources/graphModelSchema.json' with { type: 'json' };
 import graphViewSchema from './schema/resources/graphViewSchema.json' with { type: 'json' };
+import includeMacroSchema from './schema/macros/includeMacroSchema.json' with { type: 'json' };
 import linkTypeSchema from './schema/resources/linkTypeSchema.json' with { type: 'json' };
+import percentageMacroSchema from './schema/macros/percentageMacroSchema.json' with { type: 'json' };
 import reportMacroBaseSchema from './schema/macros/reportMacroBaseSchema.json' with { type: 'json' };
 import reportSchema from './schema/resources/reportSchema.json' with { type: 'json' };
 import schema from './schema/schema.json' with { type: 'json' };
 import scoreCardMacroSchema from './schema/macros/scoreCardMacroSchema.json' with { type: 'json' };
 import templateSchema from './schema/resources/templateSchema.json' with { type: 'json' };
 import workflowSchema from './schema/resources/workflowSchema.json' with { type: 'json' };
+import xrefMacroSchema from './schema/macros/xrefMacroSchema.json' with { type: 'json' };
 import cardTreeDirectorySchema from './schema/cardTreeDirectorySchema.json' with { type: 'json' };
 
 export const schemas = [
@@ -42,13 +45,16 @@ export const schemas = [
   graphMacroBaseSchema,
   graphModelSchema,
   graphViewSchema,
+  includeMacroSchema,
   linkTypeSchema,
+  percentageMacroSchema,
   reportMacroBaseSchema,
   reportSchema,
   schema,
   scoreCardMacroSchema,
   templateSchema,
   workflowSchema,
+  xrefMacroSchema,
 ];
 
 export const parentSchema = cardTreeDirectorySchema;

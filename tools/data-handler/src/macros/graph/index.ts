@@ -114,7 +114,7 @@ class ReportMacro extends BaseMacro {
     const modelContent = await readFile(modelLocation, { encoding: 'utf-8' });
     let result: string;
     try {
-      result = await calculate.runGraph(modelContent, view);
+      result = await calculate.runGraph(modelContent, view, context.context);
     } catch (error) {
       if (error instanceof ClingoError) {
         throw new Error(

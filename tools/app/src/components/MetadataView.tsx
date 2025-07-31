@@ -168,7 +168,7 @@ function MetadataView({
         />
         <FieldItem
           name="__cardtype__"
-          forceValue={card.cardType}
+          forceValue={card.cardTypeDisplayName || card.cardType}
           expanded={true}
           editableFieldProps={{
             label: t('cardType'),

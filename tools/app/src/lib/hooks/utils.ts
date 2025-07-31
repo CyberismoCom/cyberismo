@@ -277,3 +277,13 @@ export function useResizeObserver() {
     return { ...dimensions, ref: callbackRef };
   }, [dimensions, callbackRef]);
 }
+
+/**
+ * Simple hook to set the document title
+ * @param title - The title to set
+ */
+export function useDocumentTitle(title: string) {
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+}

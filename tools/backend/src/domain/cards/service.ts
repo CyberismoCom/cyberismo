@@ -175,6 +175,7 @@ export async function parseContent(
     asciidocContent = await evaluateMacros(
       content,
       {
+        context: 'localApp',
         mode: 'inject',
         project: commands.project,
         cardKey: key,

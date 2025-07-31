@@ -18,7 +18,10 @@ const testDir = join(baseDir, 'tmp-command-handler-report-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
 const commandHandler: Commands = new Commands();
-const optionsDecision: CardsOptions = { projectPath: decisionRecordsPath };
+const optionsDecision: CardsOptions = {
+  projectPath: decisionRecordsPath,
+  context: 'localApp',
+};
 
 describe('report command', () => {
   before(async () => {

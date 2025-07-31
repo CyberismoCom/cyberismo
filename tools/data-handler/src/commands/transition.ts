@@ -119,7 +119,7 @@ export class Transition {
   // Wrapper to run onTransition query.
   private async transitionChangesQuery(cardKey: string, transition: string) {
     if (!cardKey || !transition) return undefined;
-    return this.calculateCmd.runQuery('onTransition', {
+    return this.calculateCmd.runQuery('onTransition', 'localApp', {
       cardKey,
       transition,
     });

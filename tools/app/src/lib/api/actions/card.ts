@@ -10,7 +10,6 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-//import { evaluateMacros } from '@cyberismo/data-handler';
 import { callApi } from '../../swr';
 
 export async function parseContent(key: string, content: string) {

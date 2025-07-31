@@ -68,6 +68,7 @@ class ReportMacro extends BaseMacro {
           cardKey: context.cardKey,
           ...options,
         },
+        context: context.context,
       });
     } catch (error) {
       if (error instanceof ClingoError) {

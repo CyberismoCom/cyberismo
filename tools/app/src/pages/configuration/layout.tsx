@@ -10,10 +10,22 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Outlet } from 'react-router';
+import { Outlet, useParams } from 'react-router';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
 import ConfigMenu from '../../components/ConfigMenu';
+import { useDocumentTitle } from '../../lib/hooks';
+import { useProject } from '../../lib/api';
 
 export default function ConfigLayout() {
+  // TODO: resource is not implemented yet, might need to change this
+  const { resource } = useParams();
+  const { project } = useProject();
+
+  const title =
+    resource && project?.name
+      ? `${resource} - ${project.name}`
+      : project?.name || 'Cyberismo App';
+  useDocumentTitle(title);
+
   return <TwoColumnLayout leftPanel={<ConfigMenu />} rightPanel={<Outlet />} />;
 }

@@ -13,6 +13,7 @@
 
 import { Hono } from 'hono';
 import * as treeService from './service.js';
+import { isSSGContext } from '../../export.js';
 
 const router = new Hono();
 
@@ -34,7 +35,7 @@ router.get('/', async (c) => {
   const commands = c.get('commands');
 
   try {
-    const response = await treeService.getCardTree(commands);
+    const response = await treeService.getCardTree(commands, isSSGContext(c));
     return c.json(response);
   } catch (error) {
     return c.json(

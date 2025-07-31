@@ -61,7 +61,11 @@ describe('calculate', () => {
     expect(res).to.deep.equal(expectedTree);
   });
   it('run clingraph successfully', async () => {
-    const res = await calculate.runGraph(lpFiles.test.model, 'viewAll.');
+    const res = await calculate.runGraph(
+      lpFiles.test.model,
+      'viewAll.',
+      'localApp',
+    );
 
     expect(res).to.not.equal('');
   }).timeout(20000);
@@ -153,6 +157,34 @@ describe('calculate', () => {
         'result(@wrap("this > that")).',
       );
       expect(res.results[0].key).to.equal('this &gt; that');
+    });
+  });
+
+  describe('context tests', () => {
+    it('runLogicProgram should return different results based on context', async () => {
+      const contextAwareProgram = `
+        result("app-mode") :- localApp.
+        result("exported-mode") :- exportedSite.
+        result("document-mode") :- exportedDocument.
+      `;
+
+      const testCases = [
+        { context: 'localApp' as const, expectedResult: 'app-mode' },
+        { context: 'exportedSite' as const, expectedResult: 'exported-mode' },
+        {
+          context: 'exportedDocument' as const,
+          expectedResult: 'document-mode',
+        },
+      ];
+
+      for (const testCase of testCases) {
+        const result = await calculate.runLogicProgram(
+          contextAwareProgram,
+          testCase.context,
+        );
+        expect(result.results).to.have.length(1);
+        expect(result.results[0].key).to.equal(testCase.expectedResult);
+      }
     });
   });
 });
