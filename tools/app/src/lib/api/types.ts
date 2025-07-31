@@ -36,6 +36,10 @@ export type CardResponse = {
   attachments: CardAttachment[];
 } & QueryResult<'card'>;
 
+export type ResourceFileContentResponse = {
+  content: string;
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
@@ -45,6 +49,7 @@ export type Resources = {
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
   resourceTree: ResourceNode[];
+  resourceFileContent: ResourceFileContentResponse;
 };
 
 export type ResourceName = keyof Resources;
@@ -153,6 +158,7 @@ interface CalculationNode extends BaseResourceNode {
 interface FileNode extends BaseResourceNode {
   type: 'file';
   name: string;
+  displayName: string;
 }
 
 // Union type for all possible resource nodes
@@ -171,6 +177,8 @@ export type ResourceNode =
   | CalculationNode
   | CardNode
   | FileNode;
+
+export type NodeType = ResourceNode['type'];
 
 // Type guard helpers for working with ResourceNode
 export const isResourceOfType = <T extends ResourceNode['type']>(

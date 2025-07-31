@@ -17,6 +17,10 @@ import {
   type ResourceFolderType,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager } from '@cyberismo/data-handler';
+import {
+  resourceName,
+  isResourceFolderType,
+} from '../../../../data-handler/dist/utils/resource-utils.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -117,9 +121,9 @@ function parseResourcePrefix(resource: string): {
 
 // Helper function to create resource node with all data from showResource
 async function createResourceNode(
-  commands: any,
+  commands: CommandManager,
   resourceType: ResourceFolderType,
-  resourceName: string,
+  name: string,
   children?: any[],
 ): Promise<{
   id: string;
@@ -128,7 +132,7 @@ async function createResourceNode(
   data: ResourceContent | undefined;
   children?: any[];
 }> {
-  const resourceData = await commands.showCmd.showResource(resourceName);
+  const resourceData = await commands.showCmd.showResource(name);
   const node: {
     id: string;
     type: ResourceFolderType;
@@ -136,13 +140,30 @@ async function createResourceNode(
     data: ResourceContent | undefined;
     children?: any[];
   } = {
-    id: `${resourceType}-${resourceName}`,
+    id: `${resourceType}-${name}`,
     type: resourceType,
-    name: resourceName,
+    name: name,
     data: resourceData,
   };
 
-  if (children) {
+  // Add file children for folder resources
+  if (isResourceFolderType(resourceType)) {
+    try {
+      const fileNames = await commands.showCmd.showFileNames(
+        resourceName(name),
+      );
+      const fileNodes = fileNames.map((fileName: string) => ({
+        id: `${resourceType}-${name}-${fileName}`,
+        type: 'file',
+        name: `${name}/${fileName}`,
+        displayName: fileName,
+      }));
+
+      node.children = children ? [...children, ...fileNodes] : fileNodes;
+    } catch (error) {
+      console.warn(`Failed to get file names for resource '${name}'`, error);
+    }
+  } else if (children) {
     node.children = children;
   }
 
@@ -150,20 +171,20 @@ async function createResourceNode(
 }
 
 // Helper function to recursively create card nodes with children
-function createCardNode(card: Card): any {
+function createCardNode(card: Card, module: string): any {
   // Destructure to separate children from other card data
   const { children, ...cardData } = card;
 
   const cardNode: any = {
     id: `card-${card.key}`,
     type: 'card',
-    name: card.key,
+    name: `${module}/cards/${card.key}`,
     data: cardData,
   };
 
   // Recursively process children if they exist
   if (children && children.length > 0) {
-    cardNode.children = children.map(createCardNode);
+    cardNode.children = children.map((child) => createCardNode(child, module));
   }
 
   return cardNode;
@@ -183,9 +204,8 @@ async function processTemplates(
 
   for (const { name, cards } of templateTree) {
     for (const card of cards) {
-      const cardNode = createCardNode(card);
-
       const { prefix } = parseResourcePrefix(name);
+      const cardNode = createCardNode(card, prefix);
 
       if (prefix === projectPrefix || !prefix) {
         if (!rootTemplates[name]) {
@@ -251,4 +271,25 @@ async function groupResourcesByPrefix(
   });
 
   return { rootResources, moduleResources };
+}
+/**
+ * Get the content of a file in a resource.
+ * @param commands Command manager.
+ * @param module Name of the module.
+ * @param type Name of the type.
+ * @param resource Name of the resource.
+ * @param fileName Name of the file.
+ * @returns The content of the file.
+ */
+export async function getFileContent(
+  commands: CommandManager,
+  module: string,
+  type: string,
+  resource: string,
+  fileName: string,
+) {
+  return commands.showCmd.showFile(
+    resourceName(`${module}/${type}/${resource}`),
+    fileName,
+  );
 }

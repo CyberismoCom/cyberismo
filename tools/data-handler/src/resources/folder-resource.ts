@@ -12,7 +12,7 @@
 */
 
 import { basename, join } from 'node:path';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
@@ -98,6 +98,23 @@ export class FolderResource extends FileResource {
     return super.show();
   }
 
+  /**
+   * Shows the content of a file in the resource.
+   * @param fileName Name of the file to show.
+   * @returns the content of the file.
+   */
+  public async showFile(fileName: string): Promise<string> {
+    const filePath = join(this.internalFolder, fileName);
+    return readFile(filePath, 'utf8');
+  }
+
+  /**
+   * Shows all file names in the resource.
+   * @returns all file names in the resource.
+   */
+  public async showFileNames(): Promise<string[]> {
+    return readdir(this.internalFolder);
+  }
   /**
    * Updates resource.
    * @param key Key to modify

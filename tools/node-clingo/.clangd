@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - -I/home/work/.nvm/versions/node/v22.17.1/include/node
+    - -I/home/work/cyberismo/cyberismo-tool/node_modules/.pnpm/node-addon-api@7.1.1/node_modules/node-addon-api
+    - -DNAPI_DISABLE_CPP_EXCEPTIONS
+    - -std=c++20

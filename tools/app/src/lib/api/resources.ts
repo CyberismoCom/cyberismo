@@ -26,3 +26,11 @@ export const hasResourceData = (
 
 export const useResourceTree = (options?: SWRConfiguration) =>
   useSWRHook(apiPaths.resourceTree(), 'resourceTree', [], options);
+
+export const useResourceFileContent = (
+  resourceName: string,
+  options?: SWRConfiguration,
+) => {
+  const swrKey = apiPaths.resourceFileContent(resourceName);
+  return useSWRHook(swrKey, 'resourceFileContent', { content: '' }, options);
+};

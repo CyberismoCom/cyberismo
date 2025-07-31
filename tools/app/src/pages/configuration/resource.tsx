@@ -10,6 +10,62 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+
+import { useResourceTree } from '@/lib/api';
+import { ResourceNode } from '@/lib/api/types';
+import { useParams } from 'react-router';
+import { TextEditor } from '@/components/config-editors';
+
+const resourceMap: Record<string, (node: ResourceNode) => React.ReactNode> = {
+  file: (node) => <TextEditor node={node} />,
+};
+
+function findNode(
+  resourceTree: ResourceNode[],
+  module: string,
+  type: string,
+  resource: string,
+  file?: string,
+): ResourceNode | null {
+  const name = `${module}/${type}/${resource}${file ? `/${file}` : ''}`;
+  for (const node of resourceTree) {
+    const found = findNode(node.children || [], module, type, resource, file);
+    if (found) {
+      return found;
+    }
+    if (node.name === name) {
+      return node;
+    }
+  }
+  return null;
+}
+
 export default function Resource() {
-  return <div>Resource</div>;
+  const { resourceTree } = useResourceTree();
+  const { module, type, resource, file } = useParams();
+
+  if (!resourceTree) {
+    return <div>Loading...</div>;
+  }
+
+  if (!module || !type || !resource) {
+    return <div>Invalid resource</div>;
+  }
+
+  const node = findNode(resourceTree, module, type, resource, file);
+
+  if (!node) {
+    return (
+      <div>
+        Resource {module}/{type}/{resource}
+        {file ? `/${file}` : ''} not found
+      </div>
+    );
+  }
+
+  if (!resourceMap[node.type]) {
+    return <div>Type {node.type} not implemented</div>;
+  }
+
+  return resourceMap[node.type](node);
 }
