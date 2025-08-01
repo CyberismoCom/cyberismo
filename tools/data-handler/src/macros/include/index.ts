@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { MacroOptions } from '../index.js';
 import { evaluateMacros, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
@@ -21,7 +20,7 @@ import type TaskQueue from '../task-queue.js';
 import type { Calculate } from '../../commands/index.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
 
-export interface IncludeMacroOptions extends MacroOptions {
+export interface IncludeMacroOptions {
   cardKey: string;
   levelOffset?: string;
 }

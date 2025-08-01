@@ -1,13 +1,15 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import React, {
@@ -47,7 +49,7 @@ import {
   findCard,
   flattenTree,
   useModals,
-  parseNestedDataAttributes,
+  parseDataAttributes,
 } from '../lib/utils';
 import { Link as RouterLink, useLocation } from 'react-router';
 import Add from '@mui/icons-material/Add';
@@ -781,7 +783,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
       if (node.type === 'tag') {
         const macro = combinedMacros.find((m) => m.tagName === node.name);
         if (macro) {
-          const attributes = parseNestedDataAttributes(node.attribs);
+          const attributes = parseDataAttributes(node.attribs);
           return React.createElement(macro.component, {
             ...attributes,
             macroKey: card.key,

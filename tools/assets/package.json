@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "shx rm -rf dist && shx mkdir -p dist && pnpm script:schemas && node scripts/build.js && tsc && shx cp -r src/static dist/",
+    "build": "shx rm -rf dist && shx mkdir -p dist &&  shx cp THIRD-PARTY.txt dist/ && pnpm script:schemas && node scripts/build.js && tsc && shx cp -r src/static dist/",
     "dev": "pnpm build && chokidar 'src/**/*' -i 'src/schemas.ts' -c 'pnpm build'",
     "script:schemas": "node scripts/generateSchemaImports && prettier --write src/schemas.ts"
   },

@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { MacroOptions } from '../index.js';
 import { createImage, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
@@ -20,7 +19,7 @@ import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { percentage } from '../../svg/index.js';
 
-export interface PercentageOptions extends MacroOptions {
+export interface PercentageOptions {
   title: string;
   value: number;
   legend: string;

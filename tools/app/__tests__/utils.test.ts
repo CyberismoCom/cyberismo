@@ -23,6 +23,7 @@ import {
   isAlreadyLinked,
   canCreateLinkToCard,
   parseNestedDataAttributes,
+  parseDataAttributes,
 } from '@/lib/utils';
 
 test('flattenTree works with test data', async () => {
@@ -729,6 +730,33 @@ describe('parseNestedDataAttributes', () => {
       nested: {
         jsonValue: '{"nested":true}',
       },
+    });
+  });
+
+  describe('parseDataAttributes', () => {
+    test('correctly parses base64-encoded unicode JSON in options', () => {
+      const optionsObj = { label: '测试🌟', value: 'üñîçødë' };
+      const json = JSON.stringify(optionsObj);
+      // Encode to base64
+      const bytes = new TextEncoder().encode(json);
+      const binary = Array.from(bytes).map((b) => String.fromCharCode(b)).join('');
+      const base64 = btoa(binary);
+      const attribs = {
+        key: 'test',
+        options: base64,
+      };
+      const result = parseDataAttributes(attribs);
+      expect(result.label).toBe(optionsObj.label);
+      expect(result.value).toBe(optionsObj.value);
+      // Also check that the original keys are present
+      expect(result.key).toBe('test');
+    });
+    test('correctly parses even if options is not present', () => {
+      const attribs = {
+        key: 'test',
+      };
+      const result = parseDataAttributes(attribs);
+      expect(result.key).toBe('test');
     });
   });
 });
