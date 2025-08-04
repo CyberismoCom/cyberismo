@@ -22,10 +22,10 @@ import type TaskQueue from '../task-queue.js';
 import { scoreCard } from '../../svg/index.js';
 
 export interface ScoreCardOptions extends MacroOptions {
-  title?: string;
   value: number;
-  unit?: string;
   legend?: string;
+  title?: string;
+  unit?: string;
 }
 
 class ScoreCardMacro extends BaseMacro {

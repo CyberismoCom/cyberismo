@@ -33,10 +33,10 @@ const LINE_GAP_CAPTION = 16;
  * @param legend - The legend of the score card
  */
 export interface ScoreCardOptions {
-  title?: string;
   value: number;
-  unit?: string;
+  title?: string;
   legend?: string;
+  unit?: string;
 }
 
 /**
