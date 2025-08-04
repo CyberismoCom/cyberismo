@@ -41,10 +41,10 @@ struct NodeClingoLogs {
     }
 };
 
-// Program with flags
+// Program with categories
 struct Program {
     std::string content;
-    std::vector<std::string> flags;
+    std::vector<std::string> categories;
 };
 
 // stores all programs
@@ -265,8 +265,8 @@ bool solve_event_callback(uint32_t type, void *event, void *data, bool *go_on)
 
 /**
  * N-API function exposed to JavaScript as `setProgram`.
- * Stores or updates a program with optional flags.
- * @param info N-API callback info containing arguments (key string, program string, optional flags array).
+ * Stores or updates a program with optional categories.
+ * @param info N-API callback info containing arguments (key string, program string, optional categories array).
  * @returns undefined
  * @throws Napi::TypeError if arguments are invalid.
  */
@@ -277,7 +277,7 @@ Napi::Value SetProgram(const Napi::CallbackInfo &info)
     // Check arguments
     if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
     {
-        throw Napi::TypeError::New(env, "Expected arguments: key (string), program (string), optional flags (string[])");
+        throw Napi::TypeError::New(env, "Expected arguments: key (string), program (string), optional categories (string[])");
     }
 
     std::string key = info[0].As<Napi::String>().Utf8Value();
@@ -287,13 +287,13 @@ Napi::Value SetProgram(const Napi::CallbackInfo &info)
     Program prog;
     prog.content = content;
 
-    // Add flags if provided
+    // Add categories if provided
     if (info.Length() >= 3 && info[2].IsArray()) {
-        Napi::Array flags = info[2].As<Napi::Array>();
-        for (uint32_t i = 0; i < flags.Length(); ++i) {
-            Napi::Value val = flags[i];
+        Napi::Array categories = info[2].As<Napi::Array>();
+        for (uint32_t i = 0; i < categories.Length(); ++i) {
+            Napi::Value val = categories[i];
             if (val.IsString()) {
-                prog.flags.push_back(val.As<Napi::String>().Utf8Value());
+                prog.categories.push_back(val.As<Napi::String>().Utf8Value());
             }
         }
     }
@@ -326,29 +326,29 @@ Napi::Value RemoveProgram(const Napi::CallbackInfo &info)
 }
 
 /**
- * N-API function exposed to JavaScript as `removeProgramsByFlag`.
- * Removes all stored programs that have the specified flag.
- * @param info N-API callback info containing arguments (flag string).
+ * N-API function exposed to JavaScript as `removeProgramsByCategory`.
+ * Removes all stored programs that have the specified category.
+ * @param info N-API callback info containing arguments (category string).
  * @returns Napi::Number indicating the number of programs removed.
  * @throws Napi::TypeError if the argument is invalid.
  */
-Napi::Value RemoveProgramsByFlag(const Napi::CallbackInfo &info)
+Napi::Value RemoveProgramsByCategory(const Napi::CallbackInfo &info)
 {
 Napi::Env env = info.Env();
     // Check arguments
     if (info.Length() < 1 || !info[0].IsString())
     {
-        throw Napi::TypeError::New(env, "Expected argument: flag (string)");
+        throw Napi::TypeError::New(env, "Expected argument: category (string)");
     }
 
-    std::string flag = info[0].As<Napi::String>().Utf8Value();
+    std::string category = info[0].As<Napi::String>().Utf8Value();
     size_t removedCount = 0;
 
-    // Iterate through programs and remove those with the specified flag
+    // Iterate through programs and remove those with the specified category
     auto it = g_programs.begin();
     while (it != g_programs.end()) {
         const auto& prog = it->second;
-        if (std::find(prog.flags.begin(), prog.flags.end(), flag) != prog.flags.end()) {
+        if (std::find(prog.categories.begin(), prog.categories.end(), category) != prog.categories.end()) {
             it = g_programs.erase(it);
             removedCount++;
         } else {
@@ -444,13 +444,13 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
                 } else {
                     parts.push_back({ref.c_str(), nullptr, 0});
                 }
-                // No need check other refs, as ref was a program, not a flag
+                // No need check other refs, as ref was a program, not a category
                 continue;
             }
 
-            // If no direct match, check flags
+            // If no direct match, check categories
             for (const auto& [key, prog] : g_programs) {
-                if (std::find(prog.flags.begin(), prog.flags.end(), ref) != prog.flags.end()) {
+                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end()) {
                     if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str())) {
                         handle_clingo_error(env, key);
                     } else {
@@ -549,8 +549,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
         Napi::Function::New(env, RemoveProgram));
 
     exports.Set(
-        Napi::String::New(env, "removeProgramsByFlag"),
-        Napi::Function::New(env, RemoveProgramsByFlag));
+        Napi::String::New(env, "removeProgramsByCategory"),
+        Napi::Function::New(env, RemoveProgramsByCategory));
         
     return exports;
 }

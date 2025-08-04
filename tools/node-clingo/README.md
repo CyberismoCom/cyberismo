@@ -21,7 +21,7 @@ import {
   setProgram,
   removeProgram,
   removeAllPrograms,
-  removeProgramsByFlag,
+  removeProgramsByCategory,
 } from '@cyberismo/node-clingo';
 
 // Solve a simple logic program
@@ -48,7 +48,7 @@ const result4 = await solve('valid :- color(X), shape(Y), size(Z).', [
   'sizes',
 ]);
 
-// Programs with flags for easier management
+// Programs with categories for easier management
 setProgram('base-facts', 'person(alice). person(bob).', ['facts']);
 setProgram('base-rules', 'friend(X,Y) :- person(X), person(Y), X != Y.', [
   'rules',
@@ -57,7 +57,7 @@ const result5 = await solve('happy(X) :- friend(X,Y).', ['facts', 'rules']);
 
 // Remove programs
 removeProgram('query'); // removes specific program
-removeProgramsByFlag('facts'); // removes all programs with 'facts' flag
+removeProgramsByCategory('facts'); // removes all programs with 'facts' category
 removeAllPrograms(); // clears all programs
 ```
 
@@ -65,9 +65,9 @@ removeAllPrograms(); // clears all programs
 
 ## API
 
-### `async solve(program: string, refs?: string[]): Promise<ClingoResult>`
+### `async solve(program: string, categories?: string[]): Promise<ClingoResult>`
 
-Solves a logic program, optionally combining with one or more stored programs referenced by key or flag. Returns all answer sets, execution time (μs), and any errors/warnings.
+Solves a logic program, optionally combining with one or more stored programs referenced by key or category. Returns all answer sets, execution time (μs), and any errors/warnings.
 
 **Returns:** `ClingoResult` object with:
 
@@ -76,15 +76,15 @@ Solves a logic program, optionally combining with one or more stored programs re
 - `errors: string[]` - Any error messages from Clingo
 - `warnings: string[]` - Any warning messages from Clingo
 
-### `setProgram(key: string, program: string, refs?: string[])`
+### `setProgram(key: string, program: string, categories?: string[])`
 
-Stores a program under a key. Optionally assign flags (refs) for easier program management.
+Stores a program under a key. Optionally assign categories for easier program management.
 
 **Parameters:**
 
 - `key: string` - Unique identifier for this program
 - `program: string` - The logic program content
-- `refs?: string[]` - Optional array of flag names to associate with this program
+- `categories?: string[]` - Optional array of category names to associate with this program
 
 ### `removeProgram(key: string): boolean`
 
@@ -92,9 +92,9 @@ Removes a stored program by key.
 
 **Returns:** `true` if the program was found and removed, `false` if it didn't exist.
 
-### `removeProgramsByFlag(flag: string): number`
+### `removeProgramsByCategory(category: string): number`
 
-Removes all stored programs that have the specified flag.
+Removes all stored programs that have the specified category.
 
 **Returns:** Number of programs removed.
 

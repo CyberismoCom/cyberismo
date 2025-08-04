@@ -46,13 +46,13 @@ interface ClingoResult {
 }
 
 /**
- * Sets a program with optional refs
+ * Sets a program with optional categories
  * @param key Name to identify this program
  * @param program The program content
- * @param refs Optional array of reference names
+ * @param categories Optional array of category names
  */
-function setProgram(key: string, program: string, refs?: string[]) {
-  binding.setProgram(key, program, refs);
+function setProgram(key: string, program: string, categories?: string[]) {
+  binding.setProgram(key, program, categories);
 }
 
 /**
@@ -65,27 +65,30 @@ function removeProgram(key: string): boolean {
 }
 
 /**
- * Removes all stored programs that have the specified flag
- * @param flag The flag to match
+ * Removes all stored programs that have the specified category
+ * @param category The category to match
  * @returns The number of programs removed
  */
-function removeProgramsByFlag(flag: string): number {
-  return binding.removeProgramsByFlag(flag);
+function removeProgramsByCategory(category: string): number {
+  return binding.removeProgramsByCategory(category);
 }
 
 /**
  * Solves a logic program
  * @param program The logic program as a string
- * @param refs Optional array of program keys to include
+ * @param categories Optional array of program keys or categories to include
  * @returns Promise resolving to an object containing answers and execution time
  */
-async function solve(program: string, refs?: string[]): Promise<ClingoResult> {
+async function solve(
+  program: string,
+  categories?: string[],
+): Promise<ClingoResult> {
   if (!program) {
     throw new Error('No program provided');
   }
 
   try {
-    const result = binding.solve(program, refs ?? []);
+    const result = binding.solve(program, categories ?? []);
     return result;
   } catch (error) {
     if (
@@ -122,7 +125,7 @@ export {
   solve,
   setProgram,
   removeProgram,
-  removeProgramsByFlag,
+  removeProgramsByCategory,
   removeAllPrograms,
   ClingoResult,
 };
@@ -130,6 +133,6 @@ export default {
   solve,
   setProgram,
   removeProgram,
-  removeProgramsByFlag,
+  removeProgramsByCategory,
   removeAllPrograms,
 };

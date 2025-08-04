@@ -3,7 +3,7 @@ import {
   solve,
   setProgram,
   removeAllPrograms,
-  removeProgramsByFlag,
+  removeProgramsByCategory,
   removeProgram,
 } from '../lib/index.js';
 
@@ -62,7 +62,7 @@ describe('Clingo solver', () => {
       expect(result2.answers[0]).not.toContain('type(query)');
     });
 
-    it('should work with ref ids', async () => {
+    it('should work with category ids', async () => {
       setProgram('query', 'type(query).', ['ref']);
       const result1 = await solve('valid :- type(query).', ['ref']);
       expect(result1.answers[0]).toContain('valid');
@@ -269,33 +269,33 @@ describe('Clingo solver', () => {
     });
   });
 
-  describe('Program management by flag', () => {
-    it('should remove programs by flag and return count', () => {
-      // Set up programs with various flags
+  describe('Program management by category', () => {
+    it('should remove programs by category and return count', () => {
+      // Set up programs with various categories
       setProgram('program1', 'fact(a).', ['base', 'common']);
       setProgram('program2', 'fact(b).', ['base', 'special']);
       setProgram('program3', 'fact(c).', ['advanced']);
       setProgram('program4', 'fact(d).', ['base']);
 
-      // Remove programs with 'base' flag
-      const removedCount = removeProgramsByFlag('base');
+      // Remove programs with 'base' category
+      const removedCount = removeProgramsByCategory('base');
 
       // Should return 3 (program1, program2, program4)
       expect(removedCount).toBe(3);
     });
 
-    it('should not affect programs without the specified flag', async () => {
+    it('should not affect programs without the specified category', async () => {
       // Set up programs
       setProgram('keep1', 'fact(keep1).', ['advanced']);
       setProgram('remove1', 'fact(remove1).', ['base']);
       setProgram('keep2', 'fact(keep2).', ['special']);
       setProgram('remove2', 'fact(remove2).', ['base', 'other']);
 
-      // Remove programs with 'base' flag
-      const removedCount = removeProgramsByFlag('base');
+      // Remove programs with 'base' category
+      const removedCount = removeProgramsByCategory('base');
       expect(removedCount).toBe(2);
 
-      // Programs without 'base' flag should still work
+      // Programs without 'base' category should still work
       const result1 = await solve('test :- fact(keep1).', ['keep1']);
       expect(result1.answers[0]).toContain('test');
       expect(result1.answers[0]).toContain('fact(keep1)');
@@ -304,53 +304,57 @@ describe('Clingo solver', () => {
       expect(result2.answers[0]).toContain('test');
       expect(result2.answers[0]).toContain('fact(keep2)');
 
-      // Programs with 'base' flag should be gone and not affect solving
+      // Programs with 'base' category should be gone and not affect solving
       const result3 = await solve('a.', ['remove1', 'remove2']);
       expect(result3.answers[0]).toBe('a');
     });
 
-    it('should return 0 when no programs have the specified flag', () => {
-      // Set up programs without the target flag
+    it('should return 0 when no programs have the specified category', () => {
+      // Set up programs without the target category
       setProgram('program1', 'fact(a).', ['other']);
       setProgram('program2', 'fact(b).', ['different']);
 
-      // Try to remove programs with non-existent flag
-      const removedCount = removeProgramsByFlag('nonexistent');
+      // Try to remove programs with non-existent category
+      const removedCount = removeProgramsByCategory('nonexistent');
 
       expect(removedCount).toBe(0);
     });
 
     it('should return 0 when no programs are stored', () => {
       // No programs set up
-      const removedCount = removeProgramsByFlag('any_flag');
+      const removedCount = removeProgramsByCategory('any_category');
       expect(removedCount).toBe(0);
     });
 
-    it('should handle programs with multiple flags correctly', () => {
-      // Set up programs with overlapping flags
-      setProgram('multi1', 'fact(m1).', ['flag1', 'flag2', 'flag3']);
-      setProgram('multi2', 'fact(m2).', ['flag2', 'flag4']);
-      setProgram('multi3', 'fact(m3).', ['flag1', 'flag4']);
-      setProgram('single', 'fact(s).', ['flag5']);
+    it('should handle programs with multiple categories correctly', () => {
+      // Set up programs with overlapping categories
+      setProgram('multi1', 'fact(m1).', [
+        'category1',
+        'category2',
+        'category3',
+      ]);
+      setProgram('multi2', 'fact(m2).', ['category2', 'category4']);
+      setProgram('multi3', 'fact(m3).', ['category1', 'category4']);
+      setProgram('single', 'fact(s).', ['category5']);
 
-      // Remove by flag2 - should remove multi1 and multi2
-      const removedCount1 = removeProgramsByFlag('flag2');
+      // Remove by category2 - should remove multi1 and multi2
+      const removedCount1 = removeProgramsByCategory('category2');
       expect(removedCount1).toBe(2);
 
-      // Remove by flag1 - should remove multi3 (multi1 already removed)
-      const removedCount2 = removeProgramsByFlag('flag1');
+      // Remove by category1 - should remove multi3 (multi1 already removed)
+      const removedCount2 = removeProgramsByCategory('category1');
       expect(removedCount2).toBe(1);
 
-      // Remove by flag5 - should remove single
-      const removedCount3 = removeProgramsByFlag('flag5');
+      // Remove by category5 - should remove single
+      const removedCount3 = removeProgramsByCategory('category5');
       expect(removedCount3).toBe(1);
 
-      // No programs should be left with flag4
-      const removedCount4 = removeProgramsByFlag('flag4');
+      // No programs should be left with category4
+      const removedCount4 = removeProgramsByCategory('category4');
       expect(removedCount4).toBe(0);
     });
 
-    it('should work correctly after removing programs by flag', async () => {
+    it('should work correctly after removing programs by category', async () => {
       // Set up test scenario
       setProgram('base_common', 'common(value).', ['base']);
       setProgram('special_logic', 'special(rule).', ['special']);
@@ -364,7 +368,7 @@ describe('Clingo solver', () => {
       expect(initialResult.answers[0]).toContain('test');
 
       // Remove base programs
-      const removedCount = removeProgramsByFlag('base');
+      const removedCount = removeProgramsByCategory('base');
       expect(removedCount).toBe(1);
 
       // Should still be able to use remaining programs
@@ -381,12 +385,12 @@ describe('Clingo solver', () => {
       expect(withoutBase.answers[0]).toBe('a'); // Only the main program result
     });
 
-    it('should handle empty flag string', () => {
+    it('should handle empty category string', () => {
       setProgram('program1', 'fact(a).', ['', 'normal']);
       setProgram('program2', 'fact(b).', ['normal']);
 
-      // Remove programs with empty flag
-      const removedCount = removeProgramsByFlag('');
+      // Remove programs with empty category
+      const removedCount = removeProgramsByCategory('');
       expect(removedCount).toBe(1);
     });
   });
@@ -437,8 +441,8 @@ describe('Clingo solver', () => {
       expect(removed).toBe(false);
     });
 
-    it('should remove program with specific key while keeping others with same flags', async () => {
-      // Set up programs with same flags but different keys
+    it('should remove program with specific key while keeping others with same categories', async () => {
+      // Set up programs with same categories but different keys
       setProgram('base1', 'type(base1).', ['common']);
       setProgram('base2', 'type(base2).', ['common']);
       setProgram('base3', 'type(base3).', ['common']);
@@ -447,7 +451,7 @@ describe('Clingo solver', () => {
       const removed = removeProgram('base2');
       expect(removed).toBe(true);
 
-      // Other programs with same flag should still work
+      // Other programs with same category should still work
       const result = await solve('test :- type(base1), type(base3).', [
         'common',
       ]);
@@ -457,20 +461,22 @@ describe('Clingo solver', () => {
       expect(result.answers[0]).not.toContain('type(base2)');
     });
 
-    it('should work with programs that have no flags', async () => {
-      setProgram('no_flags', 'fact(no_flags).', []);
-      setProgram('with_flags', 'fact(with_flags).', ['flag']);
+    it('should work with programs that have no categories', async () => {
+      setProgram('no_categories', 'fact(no_categories).', []);
+      setProgram('with_categories', 'fact(with_categories).', ['category']);
 
-      // Remove the program without flags
-      const removed = removeProgram('no_flags');
+      // Remove the program without categories
+      const removed = removeProgram('no_categories');
       expect(removed).toBe(true);
 
-      // Program with flags should still work
-      const result = await solve('test :- fact(with_flags).', ['with_flags']);
+      // Program with categories should still work
+      const result = await solve('test :- fact(with_categories).', [
+        'with_categories',
+      ]);
       expect(result.answers[0]).toContain('test');
 
-      // Program without flags should be gone
-      const result2 = await solve('a.', ['no_flags']);
+      // Program without categories should be gone
+      const result2 = await solve('a.', ['no_categories']);
       expect(result2.answers[0]).toBe('a');
     });
 
@@ -524,14 +530,14 @@ describe('Clingo solver', () => {
 
     it('should work after partial removals', async () => {
       // Set up programs
-      setProgram('keep', 'fact(keep).', ['flag']);
-      setProgram('remove1', 'fact(remove1).', ['flag']);
+      setProgram('keep', 'fact(keep).', ['category']);
+      setProgram('remove1', 'fact(remove1).', ['category']);
       setProgram('remove2', 'fact(remove2).', ['other']);
 
       // Remove some programs individually
       const removed1 = removeProgram('remove1');
       expect(removed1).toBe(true);
-      const removed2 = removeProgramsByFlag('other');
+      const removed2 = removeProgramsByCategory('other');
       expect(removed2).toBe(1);
 
       // One program should still be available

@@ -60,8 +60,8 @@ import {
 import { generateReportContent } from '../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 
-// Define the main flag that will be used for all programs
-const MAIN_FLAG = 'main';
+// Define the all category that will be used for all programs
+const ALL_CATEGORY = 'all';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -110,7 +110,7 @@ export class Calculate {
 
   private async setCardContent(card: Card) {
     const cardContent = await createCardFacts(card, this.project);
-    setProgram(card.key, cardContent, [MAIN_FLAG]);
+    setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
   // Generates logic programs related to modules (and project itself).
@@ -139,7 +139,7 @@ export class Calculate {
       if (!cardType) continue;
 
       const cardTypeContent = createCardTypeFacts(cardType);
-      setProgram(cardType.name, cardTypeContent, [MAIN_FLAG]);
+      setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -153,7 +153,7 @@ export class Calculate {
       if (!fieldType) continue;
 
       const fieldTypeContent = createFieldTypeFacts(fieldType);
-      setProgram(fieldType.name, fieldTypeContent, [MAIN_FLAG]);
+      setProgram(fieldType.name, fieldTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -167,7 +167,7 @@ export class Calculate {
       if (!linkType) continue;
 
       const linkTypeContent = createLinkTypeFacts(linkType);
-      setProgram(linkType.name, linkTypeContent, [MAIN_FLAG]);
+      setProgram(linkType.name, linkTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -181,7 +181,7 @@ export class Calculate {
       if (!workflow) continue;
 
       const workflowContent = createWorkflowFacts(workflow);
-      setProgram(workflow.name, workflowContent, [MAIN_FLAG]);
+      setProgram(workflow.name, workflowContent, [ALL_CATEGORY]);
     }
   }
 
@@ -195,7 +195,7 @@ export class Calculate {
       if (!report) continue;
 
       const reportContent = createReportFacts(report);
-      setProgram(report.name, reportContent, [MAIN_FLAG]);
+      setProgram(report.name, reportContent, [ALL_CATEGORY]);
     }
   }
 
@@ -212,9 +212,9 @@ export class Calculate {
       const cards = await this.getCards(template.name);
       for (const card of cards) {
         const cardContent = await createCardFacts(card, this.project);
-        setProgram(card.key, cardContent, [MAIN_FLAG]);
+        setProgram(card.key, cardContent, [ALL_CATEGORY]);
       }
-      setProgram(template.name, templateContent, [MAIN_FLAG]);
+      setProgram(template.name, templateContent, [ALL_CATEGORY]);
     }
   }
 
@@ -235,7 +235,7 @@ export class Calculate {
         if (pathExists(filePath)) {
           try {
             const moduleContent = await readFile(filePath, 'utf-8');
-            setProgram(calculationFile.name, moduleContent, [MAIN_FLAG]);
+            setProgram(calculationFile.name, moduleContent, [ALL_CATEGORY]);
           } catch (error) {
             this.logger.warn(
               error,
@@ -265,8 +265,8 @@ export class Calculate {
   private async run(query: string, context: Context): Promise<string[]> {
     try {
       const res = await Calculate.mutex.runExclusive(async () => {
-        // Use the main flag to include all programs
-        const basePrograms = [MAIN_FLAG];
+        // Use the main category to include all programs
+        const basePrograms = [ALL_CATEGORY];
 
         this.logger.trace(
           {
@@ -276,7 +276,7 @@ export class Calculate {
         );
 
         const contextFacts = createContextFacts(context);
-        setProgram('context', contextFacts, [MAIN_FLAG]);
+        setProgram('context', contextFacts, [ALL_CATEGORY]);
         // Then solve with the program - need to pass the program as parameter
         return solve(query, basePrograms);
       });
@@ -315,14 +315,14 @@ export class Calculate {
         await this.initializeModules();
         this.modulesInitialized = true;
       }
-      // Set base common programs with main flag
-      setProgram('base', lpFiles.common.base, [MAIN_FLAG]);
-      setProgram('queryLanguage', lpFiles.common.queryLanguage, [MAIN_FLAG]);
+      // Set base common programs with main category
+      setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
+      setProgram('queryLanguage', lpFiles.common.queryLanguage, [ALL_CATEGORY]);
 
-      setProgram('utils', lpFiles.common.utils, [MAIN_FLAG]);
+      setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
 
       // Set modules program
-      setProgram('modules', this.modules, [MAIN_FLAG]);
+      setProgram('modules', this.modules, [ALL_CATEGORY]);
 
       // Set individual resource type programs
       await this.setCardTreeContent();
