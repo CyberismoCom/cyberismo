@@ -12,22 +12,28 @@ import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { Calculate, Show, Update } from '../src/commands/index.js';
 
-describe('Update command tests', async () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
-  const testDir = join(baseDir, 'tmp-update-tests');
-  const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  mkdirSync(testDir, { recursive: true });
-  await copyDir('test/test-data/', testDir);
+const baseDir = dirname(fileURLToPath(import.meta.url));
+const testDir = join(baseDir, 'tmp-update-tests');
+const decisionRecordsPath = join(testDir, 'valid/decision-records');
+let project: Project;
+let update: Update;
+let collector: ResourceCollector;
 
-  const project = new Project(decisionRecordsPath);
-  const update = new Update(project);
-  const calculate = new Calculate(project);
-  const show = new Show(project, calculate);
-  const collector = new ResourceCollector(project);
-  collector.collectLocalResources();
+describe('update command', () => {
+  before(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+  });
+
+  beforeEach(async () => {
+    project = new Project(decisionRecordsPath);
+    update = new Update(project);
+    collector = new ResourceCollector(project);
+    collector.collectLocalResources();
   });
 
   it('update file resource', async () => {
@@ -66,6 +72,8 @@ describe('Update command tests', async () => {
   });
 
   it('update resource - rank item using string value (name)', async () => {
+    const calculate = new Calculate(project);
+    const show = new Show(project, calculate);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 0;
@@ -99,6 +107,8 @@ describe('Update command tests', async () => {
     expect(indexAfter).to.equal(moveToIndex);
   });
   it('update resource - rank item using partial object value', async () => {
+    const calculate = new Calculate(project);
+    const show = new Show(project, calculate);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 4;
