@@ -18,4 +18,4 @@ const macroMetadata: MacroMetadata = {
   schema: 'vegaMacroSchema',
 };
 
-export default macroMetadata; 
+export default macroMetadata;

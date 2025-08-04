@@ -359,10 +359,7 @@ function objectToBase64(obj: unknown): string {
  * @param options - The options for the macro
  * @returns The placeholder for the macro
  */
-export function createHtmlPlaceholder(
-  macro: MacroMetadata,
-  options: unknown,
-) {
+export function createHtmlPlaceholder(macro: MacroMetadata, options: unknown) {
   const optionsBase64 = objectToBase64(options);
   return `\n\n++++\n<${macro.tagName} options="${optionsBase64}" key="macro-${macroCounter++}"></${macro.tagName}>\n++++\n\n`;
 }
@@ -418,7 +415,7 @@ export function createImage(image: string, controls: boolean = true) {
  */
 export function createMacro(macro: MacroName, options: unknown) {
   let optionsString = JSON.stringify(options, null, 0);
-  if(optionsString.length > 1) {
+  if (optionsString.length > 1) {
     optionsString = optionsString.slice(1, -1);
   }
   return `{{#${macro}}}${optionsString}{{/${macro}}}`;

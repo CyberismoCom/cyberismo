@@ -24,9 +24,7 @@ function Vega({ spec }: VegaProps) {
   if (!spec) {
     return <div style={{ color: 'red' }}>No Vega spec provided.</div>;
   }
-  return (
-      <VegaComponent spec={spec} actions={false}/>
-  );
-};
+  return <VegaComponent spec={spec} actions={false} />;
+}
 
 export default Vega;

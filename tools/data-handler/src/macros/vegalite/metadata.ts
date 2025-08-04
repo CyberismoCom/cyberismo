@@ -18,4 +18,4 @@ const macroMetadata: MacroMetadata = {
   schema: 'vegaLiteMacroSchema',
 };
 
-export default macroMetadata; 
+export default macroMetadata;

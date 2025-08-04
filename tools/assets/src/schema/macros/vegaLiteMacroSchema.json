@@ -70,9 +70,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "aggregate"
-      ],
+      "required": ["aggregate"],
       "type": "object"
     },
     "AggregatedFieldDef": {
@@ -91,18 +89,11 @@
           "description": "The aggregation operation to apply to the fields (e.g., `\"sum\"`, `\"average\"`, or `\"count\"`). See the [full list of supported aggregation operations](https://vega.github.io/vega-lite/docs/aggregate.html#ops) for more information."
         }
       },
-      "required": [
-        "op",
-        "as"
-      ],
+      "required": ["op", "as"],
       "type": "object"
     },
     "Align": {
-      "enum": [
-        "left",
-        "center",
-        "right"
-      ],
+      "enum": ["left", "center", "right"],
       "type": "string"
     },
     "AllSortString": {
@@ -589,10 +580,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -1002,9 +990,7 @@
           "$ref": "#/definitions/FieldName"
         }
       },
-      "required": [
-        "argmax"
-      ],
+      "required": ["argmax"],
       "type": "object"
     },
     "ArgminDef": {
@@ -1014,9 +1000,7 @@
           "$ref": "#/definitions/FieldName"
         }
       },
-      "required": [
-        "argmin"
-      ],
+      "required": ["argmin"],
       "type": "object"
     },
     "AutoSizeParams": {
@@ -1024,10 +1008,7 @@
       "properties": {
         "contains": {
           "description": "Determines how size calculation should be performed, one of `\"content\"` or `\"padding\"`. The default setting (`\"content\"`) interprets the width and height settings as the data rectangle (plotting) dimensions, to which padding is then added. In contrast, the `\"padding\"` setting includes the padding within the view size calculations, such that the width and height settings indicate the **total** intended size of the view.\n\n__Default value__: `\"content\"`",
-          "enum": [
-            "content",
-            "padding"
-          ],
+          "enum": ["content", "padding"],
           "type": "string"
         },
         "resize": {
@@ -1042,13 +1023,7 @@
       "type": "object"
     },
     "AutosizeType": {
-      "enum": [
-        "pad",
-        "none",
-        "fit",
-        "fit-x",
-        "fit-y"
-      ],
+      "enum": ["pad", "none", "fit", "fit-x", "fit-y"],
       "type": "string"
     },
     "Axis": {
@@ -1318,10 +1293,7 @@
           "anyOf": [
             {
               "description": "Indicates if labels should be hidden if they exceed the axis range. If `false` (the default) no bounds overlap analysis is performed. If `true`, labels will be hidden if they exceed the axis range by more than 1 pixel. If this property is a number, it specifies the pixel tolerance: the maximum amount by which a label bounding box may exceed the axis range.\n\n__Default value:__ `false`.",
-              "type": [
-                "number",
-                "boolean"
-              ]
+              "type": ["number", "boolean"]
             },
             {
               "$ref": "#/definitions/ExprRef"
@@ -1355,10 +1327,7 @@
         },
         "labelFlush": {
           "description": "Indicates if the first and last axis labels should be aligned flush with the scale range. Flush alignment for a horizontal axis will left-align the first label and right-align the last label. For vertical axes, bottom and top text baselines are applied instead. If this property is a number, it also indicates the number of pixels by which to offset the first and last labels; for example, a value of 2 will flush-align the first and last labels and also push them 2 pixels outward from the center of the axis. The additional adjustment can sometimes help the labels better visually group with corresponding axis ticks.\n\n__Default value:__ `true` for axis of a continuous x-scale. Otherwise, `false`.",
-          "type": [
-            "boolean",
-            "number"
-          ]
+          "type": ["boolean", "number"]
         },
         "labelFlushOffset": {
           "anyOf": [
@@ -1591,10 +1560,7 @@
           "anyOf": [
             {
               "description": "For band scales, indicates if ticks and grid lines should be placed at the `\"center\"` of a band (default) or at the band `\"extent\"`s to indicate intervals",
-              "enum": [
-                "center",
-                "extent"
-              ],
+              "enum": ["center", "extent"],
               "type": "string"
             },
             {
@@ -2268,10 +2234,7 @@
           "anyOf": [
             {
               "description": "Indicates if labels should be hidden if they exceed the axis range. If `false` (the default) no bounds overlap analysis is performed. If `true`, labels will be hidden if they exceed the axis range by more than 1 pixel. If this property is a number, it specifies the pixel tolerance: the maximum amount by which a label bounding box may exceed the axis range.\n\n__Default value:__ `false`.",
-              "type": [
-                "number",
-                "boolean"
-              ]
+              "type": ["number", "boolean"]
             },
             {
               "$ref": "#/definitions/ExprRef"
@@ -2305,10 +2268,7 @@
         },
         "labelFlush": {
           "description": "Indicates if the first and last axis labels should be aligned flush with the scale range. Flush alignment for a horizontal axis will left-align the first label and right-align the last label. For vertical axes, bottom and top text baselines are applied instead. If this property is a number, it also indicates the number of pixels by which to offset the first and last labels; for example, a value of 2 will flush-align the first and last labels and also push them 2 pixels outward from the center of the axis. The additional adjustment can sometimes help the labels better visually group with corresponding axis ticks.\n\n__Default value:__ `true` for axis of a continuous x-scale. Otherwise, `false`.",
-          "type": [
-            "boolean",
-            "number"
-          ]
+          "type": ["boolean", "number"]
         },
         "labelFlushOffset": {
           "anyOf": [
@@ -2541,10 +2501,7 @@
           "anyOf": [
             {
               "description": "For band scales, indicates if ticks and grid lines should be placed at the `\"center\"` of a band (default) or at the band `\"extent\"`s to indicate intervals",
-              "enum": [
-                "center",
-                "extent"
-              ],
+              "enum": ["center", "extent"],
               "type": "string"
             },
             {
@@ -2948,12 +2905,7 @@
       "type": "object"
     },
     "AxisOrient": {
-      "enum": [
-        "top",
-        "bottom",
-        "left",
-        "right"
-      ],
+      "enum": ["top", "bottom", "left", "right"],
       "type": "string"
     },
     "AxisResolveMap": {
@@ -3455,10 +3407,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -4139,11 +4088,7 @@
       "type": "object"
     },
     "Baseline": {
-      "enum": [
-        "top",
-        "middle",
-        "bottom"
-      ],
+      "enum": ["top", "middle", "bottom"],
       "type": "string"
     },
     "BinExtent": {
@@ -4252,11 +4197,7 @@
           "description": "The data field to bin."
         }
       },
-      "required": [
-        "bin",
-        "field",
-        "as"
-      ],
+      "required": ["bin", "field", "as"],
       "type": "object"
     },
     "BindCheckbox": {
@@ -4279,9 +4220,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "input"
-      ],
+      "required": ["input"],
       "type": "object"
     },
     "BindDirect": {
@@ -4308,9 +4247,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "element"
-      ],
+      "required": ["element"],
       "type": "object"
     },
     "BindInput": {
@@ -4355,10 +4292,7 @@
           "description": "An optional CSS selector string indicating the parent element to which the input element should be added. By default, all input elements are added within the parent container of the Vega view."
         },
         "input": {
-          "enum": [
-            "radio",
-            "select"
-          ],
+          "enum": ["radio", "select"],
           "type": "string"
         },
         "labels": {
@@ -4378,10 +4312,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "input",
-        "options"
-      ],
+      "required": ["input", "options"],
       "type": "object"
     },
     "BindRange": {
@@ -4416,9 +4347,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "input"
-      ],
+      "required": ["input"],
       "type": "object"
     },
     "Binding": {
@@ -4492,10 +4421,7 @@
         "color",
         "luminosity"
       ],
-      "type": [
-        "null",
-        "string"
-      ]
+      "type": ["null", "string"]
     },
     "BoxPlot": {
       "const": "boxplot",
@@ -4686,9 +4612,7 @@
           "description": "The mark type. This could a primitive mark type (one of `\"bar\"`, `\"circle\"`, `\"square\"`, `\"tick\"`, `\"line\"`, `\"area\"`, `\"point\"`, `\"geoshape\"`, `\"rule\"`, and `\"text\"`) or a composite mark type (`\"boxplot\"`, `\"errorband\"`, `\"errorbar\"`)."
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "BrushConfig": {
@@ -4744,10 +4668,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "calculate",
-        "as"
-      ],
+      "required": ["calculate", "as"],
       "type": "object"
     },
     "Categorical": {
@@ -5397,10 +5318,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5424,10 +5342,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5462,10 +5377,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5489,10 +5401,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5527,10 +5436,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5554,10 +5460,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5592,10 +5495,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5619,10 +5519,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5657,10 +5554,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5684,10 +5578,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5725,10 +5616,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5752,10 +5640,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5780,16 +5665,10 @@
             },
             "value": {
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity).",
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5813,10 +5692,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5841,16 +5717,10 @@
             },
             "value": {
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity).",
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": ["string", "null"]
             }
           },
-          "required": [
-            "condition",
-            "value"
-          ],
+          "required": ["condition", "value"],
           "type": "object"
         },
         {
@@ -5874,10 +5744,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "condition",
-            "expr"
-          ],
+          "required": ["condition", "expr"],
           "type": "object"
         }
       ]
@@ -5982,9 +5849,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         },
         {
@@ -6059,9 +5924,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         }
       ]
@@ -6163,9 +6026,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         },
         {
@@ -6240,9 +6101,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         }
       ]
@@ -6328,9 +6187,7 @@
           "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
         }
       },
-      "required": [
-        "param"
-      ],
+      "required": ["param"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(Gradient|string|null|ExprRef)>>": {
@@ -6362,10 +6219,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(Text|ExprRef)>>": {
@@ -6391,10 +6245,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(number[]|ExprRef)>>": {
@@ -6423,10 +6274,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(number|ExprRef)>>": {
@@ -6452,10 +6300,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(string|ExprRef)>>": {
@@ -6481,10 +6326,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<(string|null|ExprRef)>>": {
@@ -6513,10 +6355,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalParameter<ValueDef<number>>": {
@@ -6535,10 +6374,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "param",
-        "value"
-      ],
+      "required": ["param", "value"],
       "type": "object"
     },
     "ConditionalPredicate<(ValueDef<(Align|null)>|ExprRef)>": {
@@ -6562,10 +6398,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6580,10 +6413,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6609,10 +6439,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6627,10 +6454,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6656,10 +6480,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6674,10 +6495,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6703,10 +6521,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6721,10 +6536,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6750,10 +6562,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6768,10 +6577,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6800,10 +6606,7 @@
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6818,10 +6621,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6837,16 +6637,10 @@
             },
             "value": {
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity).",
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6861,10 +6655,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -6880,16 +6671,10 @@
             },
             "value": {
               "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity).",
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": ["string", "null"]
             }
           },
-          "required": [
-            "test",
-            "value"
-          ],
+          "required": ["test", "value"],
           "type": "object"
         },
         {
@@ -6904,10 +6689,7 @@
               "description": "Predicate for triggering the condition"
             }
           },
-          "required": [
-            "expr",
-            "test"
-          ],
+          "required": ["expr", "test"],
           "type": "object"
         }
       ]
@@ -7005,9 +6787,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "test"
-          ],
+          "required": ["test"],
           "type": "object"
         },
         {
@@ -7078,9 +6858,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "test"
-          ],
+          "required": ["test"],
           "type": "object"
         }
       ]
@@ -7178,9 +6956,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "test"
-          ],
+          "required": ["test"],
           "type": "object"
         },
         {
@@ -7251,9 +7027,7 @@
               "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
             }
           },
-          "required": [
-            "test"
-          ],
+          "required": ["test"],
           "type": "object"
         }
       ]
@@ -7335,9 +7109,7 @@
           "description": "The type of measurement (`\"quantitative\"`, `\"temporal\"`, `\"ordinal\"`, or `\"nominal\"`) for the encoded field or constant value (`datum`). It can also be a `\"geojson\"` type for encoding ['geoshape'](https://vega.github.io/vega-lite/docs/geoshape.html).\n\nVega-Lite automatically infers data types in many cases as discussed below. However, type is required for a field if: (1) the field is not nominal and the field encoding has no specified `aggregate` (except `argmin` and `argmax`), `bin`, scale type, custom `sort` order, nor `timeUnit` or (2) if you wish to use an ordinal scale for a field with `bin` or `timeUnit`.\n\n__Default value:__\n\n1) For a data `field`, `\"nominal\"` is the default data type unless the field encoding has `aggregate`, `channel`, `bin`, scale type, `sort`, or `timeUnit` that satisfies the following criteria:\n- `\"quantitative\"` is the default type if (1) the encoded field contains `bin` or `aggregate` except `\"argmin\"` and `\"argmax\"`, (2) the encoding channel is `latitude` or `longitude` channel or (3) if the specified scale type is [a quantitative scale](https://vega.github.io/vega-lite/docs/scale.html#type).\n- `\"temporal\"` is the default type if (1) the encoded field contains `timeUnit` or (2) the specified scale type is a time or utc scale\n- `\"ordinal\"` is the default type if (1) the encoded field contains a [custom `sort` order](https://vega.github.io/vega-lite/docs/sort.html#specifying-custom-sort-order), (2) the specified scale type is an ordinal/point/band scale, or (3) the encoding channel is `order`.\n\n2) For a constant value in data domain (`datum`):\n- `\"quantitative\"` if the datum is a number\n- `\"nominal\"` if the datum is a string\n- `\"temporal\"` if the datum is [a date time object](https://vega.github.io/vega-lite/docs/datetime.html)\n\n__Note:__\n- Data `type` describes the semantics of the data rather than the primitive data types (number, string, etc.). The same primitive data type can have different types of measurement. For example, numeric data can represent quantitative, ordinal, or nominal data.\n- Data values for a temporal field can be either a date-time string (e.g., `\"2015-03-07 12:32:17\"`, `\"17:01\"`, `\"2015-03-16\"`. `\"2015\"`) or a timestamp number (e.g., `1552199579097`).\n- When using with [`bin`](https://vega.github.io/vega-lite/docs/bin.html), the `type` property can be either `\"quantitative\"` (for using a linear bin scale) or [`\"ordinal\"` (for using an ordinal bin scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`timeUnit`](https://vega.github.io/vega-lite/docs/timeunit.html), the `type` property can be either `\"temporal\"` (default, for using a temporal scale) or [`\"ordinal\"` (for using an ordinal scale)](https://vega.github.io/vega-lite/docs/type.html#cast-bin).\n- When using with [`aggregate`](https://vega.github.io/vega-lite/docs/aggregate.html), the `type` property refers to the post-aggregation data type. For example, we can calculate count `distinct` of a categorical field `\"cat\"` using `{\"aggregate\": \"distinct\", \"field\": \"cat\"}`. The `\"type\"` of the aggregate output is `\"quantitative\"`.\n- Secondary channels (e.g., `x2`, `y2`, `xError`, `yError`) do not have `type` as they must have exactly the same type as their primary channels (e.g., `x`, `y`).\n\n__See also:__ [`type`](https://vega.github.io/vega-lite/docs/type.html) documentation."
         }
       },
-      "required": [
-        "test"
-      ],
+      "required": ["test"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(Gradient|string|null|ExprRef)>>": {
@@ -7365,10 +7137,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(Text|ExprRef)>>": {
@@ -7390,10 +7159,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(number[]|ExprRef)>>": {
@@ -7418,10 +7184,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(number|ExprRef)>>": {
@@ -7443,10 +7206,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(string|ExprRef)>>": {
@@ -7468,10 +7228,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<(string|null|ExprRef)>>": {
@@ -7496,10 +7253,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "ConditionalPredicate<ValueDef<number>>": {
@@ -7514,10 +7268,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "test",
-        "value"
-      ],
+      "required": ["test", "value"],
       "type": "object"
     },
     "Config": {
@@ -7683,11 +7434,7 @@
         },
         "fieldTitle": {
           "description": "Defines how Vega-Lite generates title for fields. There are three possible styles:\n- `\"verbal\"` (Default) - displays function in a verbal style (e.g., \"Sum of field\", \"Year-month of date\", \"field (binned)\").\n- `\"function\"` - displays function using parentheses and capitalized texts (e.g., \"SUM(field)\", \"YEARMONTH(date)\", \"BIN(field)\").\n- `\"plain\"` - displays only the field name without functions (e.g., \"field\", \"date\", \"field\").",
-          "enum": [
-            "verbal",
-            "functional",
-            "plain"
-          ],
+          "enum": ["verbal", "functional", "plain"],
           "type": "string"
         },
         "font": {
@@ -7866,10 +7613,7 @@
         },
         "type": {
           "description": "Type of input data: `\"json\"`, `\"csv\"`, `\"tsv\"`, `\"dsv\"`.\n\n__Default value:__  The default format type is determined by the extension of the file URL. If no extension is detected, `\"json\"` will be used by default.",
-          "enum": [
-            "csv",
-            "tsv"
-          ],
+          "enum": ["csv", "tsv"],
           "type": "string"
         }
       },
@@ -7917,10 +7661,7 @@
       "type": "string"
     },
     "Cyclical": {
-      "enum": [
-        "rainbow",
-        "sinebow"
-      ],
+      "enum": ["rainbow", "sinebow"],
       "type": "string"
     },
     "Data": {
@@ -8141,10 +7882,7 @@
         },
         "resolve": {
           "description": "Indicates how parameters for multiple densities should be resolved. If `\"independent\"`, each density may have its own domain extent and dynamic number of curve sample steps. If `\"shared\"`, the KDE transform will ensure that all densities are defined over a shared domain and curve steps, enabling stacking.\n\n__Default value:__ `\"shared\"`",
-          "enum": [
-            "independent",
-            "shared"
-          ],
+          "enum": ["independent", "shared"],
           "type": "string"
         },
         "steps": {
@@ -8152,9 +7890,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "density"
-      ],
+      "required": ["density"],
       "type": "object"
     },
     "DerivedStream": {
@@ -8198,9 +7934,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "stream"
-      ],
+      "required": ["stream"],
       "type": "object"
     },
     "Dict<InlineDataset>": {
@@ -8354,9 +8088,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "unionWith"
-      ],
+      "required": ["unionWith"],
       "type": "object"
     },
     "DsvDataFormat": {
@@ -8385,9 +8117,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "delimiter"
-      ],
+      "required": ["delimiter"],
       "type": "object"
     },
     "Element": {
@@ -8533,9 +8263,7 @@
           "description": "The mark type. This could a primitive mark type (one of `\"bar\"`, `\"circle\"`, `\"square\"`, `\"tick\"`, `\"line\"`, `\"area\"`, `\"point\"`, `\"geoshape\"`, `\"rule\"`, and `\"text\"`) or a composite mark type (`\"boxplot\"`, `\"errorband\"`, `\"errorbar\"`)."
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "ErrorBar": {
@@ -8648,18 +8376,11 @@
           "description": "The mark type. This could a primitive mark type (one of `\"bar\"`, `\"circle\"`, `\"square\"`, `\"tick\"`, `\"line\"`, `\"area\"`, `\"point\"`, `\"geoshape\"`, `\"rule\"`, and `\"text\"`) or a composite mark type (`\"boxplot\"`, `\"errorband\"`, `\"errorbar\"`)."
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "ErrorBarExtent": {
-      "enum": [
-        "ci",
-        "iqr",
-        "stderr",
-        "stdev"
-      ],
+      "enum": ["ci", "iqr", "stderr", "stdev"],
       "type": "string"
     },
     "EventStream": {
@@ -8699,10 +8420,7 @@
               "$ref": "#/definitions/MarkType"
             },
             "source": {
-              "enum": [
-                "view",
-                "scope"
-              ],
+              "enum": ["view", "scope"],
               "type": "string"
             },
             "throttle": {
@@ -8712,9 +8430,7 @@
               "$ref": "#/definitions/EventType"
             }
           },
-          "required": [
-            "type"
-          ],
+          "required": ["type"],
           "type": "object"
         },
         {
@@ -8762,10 +8478,7 @@
               "$ref": "#/definitions/WindowEventType"
             }
           },
-          "required": [
-            "source",
-            "type"
-          ],
+          "required": ["source", "type"],
           "type": "object"
         }
       ]
@@ -8810,9 +8523,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "expr"
-      ],
+      "required": ["expr"],
       "type": "object"
     },
     "ExtentTransform": {
@@ -8827,10 +8538,7 @@
           "description": "The output parameter produced by the extent transform."
         }
       },
-      "required": [
-        "extent",
-        "param"
-      ],
+      "required": ["extent", "param"],
       "type": "object"
     },
     "FacetEncodingFieldDef": {
@@ -8873,10 +8581,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -9351,10 +9056,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -9474,9 +9176,7 @@
           "description": "The width of a visualization.\n\n- For a plot with a continuous x-field, width should be a number.\n- For a plot with either a discrete x-field or no x-field, width can be either a number indicating a fixed width or an object in the form of `{step: number}` defining the width per discrete step. (No x-field is equivalent to having one discrete step.)\n- To enable responsive sizing on width, it should be set to `\"container\"`.\n\n__Default value:__ Based on `config.view.continuousWidth` for a plot with a continuous x-field and `config.view.discreteWidth` otherwise.\n\n__Note:__ For plots with [`row` and `column` channels](https://vega.github.io/vega-lite/docs/encoding.html#facet), this represents the width of a single view and the `\"container\"` option cannot be used.\n\n__See also:__ [`width`](https://vega.github.io/vega-lite/docs/size.html) documentation."
         }
       },
-      "required": [
-        "mark"
-      ],
+      "required": ["mark"],
       "type": "object"
     },
     "Feature": {
@@ -9493,10 +9193,7 @@
         },
         "id": {
           "description": "A value that uniquely identifies this feature in a https://tools.ietf.org/html/rfc7946#section-3.2.",
-          "type": [
-            "string",
-            "number"
-          ]
+          "type": ["string", "number"]
         },
         "properties": {
           "$ref": "#/definitions/GeoJsonProperties",
@@ -9508,11 +9205,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "geometry",
-        "properties",
-        "type"
-      ],
+      "required": ["geometry", "properties", "type"],
       "type": "object"
     },
     "Feature<Geometry,GeoJsonProperties>": {
@@ -9529,10 +9222,7 @@
         },
         "id": {
           "description": "A value that uniquely identifies this feature in a https://tools.ietf.org/html/rfc7946#section-3.2.",
-          "type": [
-            "string",
-            "number"
-          ]
+          "type": ["string", "number"]
         },
         "properties": {
           "$ref": "#/definitions/GeoJsonProperties",
@@ -9544,11 +9234,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "geometry",
-        "properties",
-        "type"
-      ],
+      "required": ["geometry", "properties", "type"],
       "type": "object"
     },
     "FeatureCollection": {
@@ -9571,10 +9257,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "features",
-        "type"
-      ],
+      "required": ["features", "type"],
       "type": "object"
     },
     "Field": {
@@ -9633,10 +9316,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "equal",
-        "field"
-      ],
+      "required": ["equal", "field"],
       "type": "object"
     },
     "FieldGTEPredicate": {
@@ -9678,10 +9358,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "gte"
-      ],
+      "required": ["field", "gte"],
       "type": "object"
     },
     "FieldGTPredicate": {
@@ -9723,10 +9400,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "gt"
-      ],
+      "required": ["field", "gt"],
       "type": "object"
     },
     "FieldLTEPredicate": {
@@ -9768,10 +9442,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "lte"
-      ],
+      "required": ["field", "lte"],
       "type": "object"
     },
     "FieldLTPredicate": {
@@ -9813,10 +9484,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "lt"
-      ],
+      "required": ["field", "lt"],
       "type": "object"
     },
     "FieldName": {
@@ -9873,10 +9541,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "oneOf"
-      ],
+      "required": ["field", "oneOf"],
       "type": "object"
     },
     "FieldOrDatumDefWithCondition<DatumDef,(Gradient|string|null)>": {
@@ -10785,9 +10450,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "field"
-      ],
+      "required": ["field"],
       "type": "object"
     },
     "FieldRangePredicate": {
@@ -10841,10 +10504,7 @@
           "description": "Time unit for the field to be tested."
         }
       },
-      "required": [
-        "field",
-        "range"
-      ],
+      "required": ["field", "range"],
       "type": "object"
     },
     "FieldValidPredicate": {
@@ -10873,10 +10533,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "field",
-        "valid"
-      ],
+      "required": ["field", "valid"],
       "type": "object"
     },
     "FilterTransform": {
@@ -10887,9 +10544,7 @@
           "description": "The `filter` property must be a predication definition, which can take one of the following forms:\n\n1) an [expression](https://vega.github.io/vega-lite/docs/types.html#expression) string, where `datum` can be used to refer to the current data object. For example, `{filter: \"datum.b2 > 60\"}` would make the output data includes only items that have values in the field `b2` over 60.\n\n2) one of the [field predicates](https://vega.github.io/vega-lite/docs/predicate.html#field-predicate): [`equal`](https://vega.github.io/vega-lite/docs/predicate.html#field-equal-predicate), [`lt`](https://vega.github.io/vega-lite/docs/predicate.html#lt-predicate), [`lte`](https://vega.github.io/vega-lite/docs/predicate.html#lte-predicate), [`gt`](https://vega.github.io/vega-lite/docs/predicate.html#gt-predicate), [`gte`](https://vega.github.io/vega-lite/docs/predicate.html#gte-predicate), [`range`](https://vega.github.io/vega-lite/docs/predicate.html#range-predicate), [`oneOf`](https://vega.github.io/vega-lite/docs/predicate.html#one-of-predicate), or [`valid`](https://vega.github.io/vega-lite/docs/predicate.html#valid-predicate),\n\n3) a [selection predicate](https://vega.github.io/vega-lite/docs/predicate.html#selection-predicate), which define the names of a selection that the data point should belong to (or a logical composition of selections).\n\n4) a [logical composition](https://vega.github.io/vega-lite/docs/predicate.html#composition) of (1), (2), or (3)."
         }
       },
-      "required": [
-        "filter"
-      ],
+      "required": ["filter"],
       "type": "object"
     },
     "Fit": {
@@ -10926,9 +10581,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "flatten"
-      ],
+      "required": ["flatten"],
       "type": "object"
     },
     "FoldTransform": {
@@ -10951,9 +10604,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "fold"
-      ],
+      "required": ["fold"],
       "type": "object"
     },
     "FontStyle": {
@@ -10975,10 +10626,7 @@
         800,
         900
       ],
-      "type": [
-        "string",
-        "number"
-      ]
+      "type": ["string", "number"]
     },
     "Format": {
       "anyOf": [
@@ -11053,10 +10701,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -11134,9 +10779,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "concat"
-      ],
+      "required": ["concat"],
       "type": "object"
     },
     "FacetSpec": {
@@ -11156,10 +10799,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -11252,10 +10892,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "facet",
-        "spec"
-      ],
+      "required": ["facet", "spec"],
       "type": "object"
     },
     "HConcatSpec<GenericSpec>": {
@@ -11264,10 +10901,7 @@
       "properties": {
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -11327,9 +10961,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "hconcat"
-      ],
+      "required": ["hconcat"],
       "type": "object"
     },
     "Spec": {
@@ -11419,9 +11051,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "mark"
-      ],
+      "required": ["mark"],
       "type": "object"
     },
     "VConcatSpec<GenericSpec>": {
@@ -11430,10 +11060,7 @@
       "properties": {
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -11493,9 +11120,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "vconcat"
-      ],
+      "required": ["vconcat"],
       "type": "object"
     },
     "GeoJsonFeature": {
@@ -11560,10 +11185,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "geometries",
-        "type"
-      ],
+      "required": ["geometries", "type"],
       "type": "object"
     },
     "Gradient": {
@@ -11588,10 +11210,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "offset",
-        "color"
-      ],
+      "required": ["offset", "color"],
       "type": "object"
     },
     "GraticuleGenerator": {
@@ -11614,9 +11233,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "graticule"
-      ],
+      "required": ["graticule"],
       "type": "object"
     },
     "GraticuleParams": {
@@ -12226,13 +11843,7 @@
       "type": "string"
     },
     "ImputeMethod": {
-      "enum": [
-        "value",
-        "median",
-        "max",
-        "min",
-        "mean"
-      ],
+      "enum": ["value", "median", "max", "min", "mean"],
       "type": "string"
     },
     "ImputeParams": {
@@ -12241,10 +11852,7 @@
         "frame": {
           "description": "A frame specification as a two-element array used to control the window over which the specified method is applied. The array entries should either be a number indicating the offset from the current data object, or null to indicate unbounded rows preceding or following the current data object. For example, the value `[-5, 5]` indicates that the window should include five objects preceding and five objects following the current object.\n\n__Default value:__:  `[null, null]` indicating that the window includes all objects.",
           "items": {
-            "type": [
-              "null",
-              "number"
-            ]
+            "type": ["null", "number"]
           },
           "maxItems": 2,
           "minItems": 2,
@@ -12288,9 +11896,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "stop"
-      ],
+      "required": ["stop"],
       "type": "object"
     },
     "ImputeTransform": {
@@ -12299,10 +11905,7 @@
         "frame": {
           "description": "A frame specification as a two-element array used to control the window over which the specified method is applied. The array entries should either be a number indicating the offset from the current data object, or null to indicate unbounded rows preceding or following the current data object. For example, the value `[-5, 5]` indicates that the window should include five objects preceding and five objects following the current object.\n\n__Default value:__:  `[null, null]` indicating that the window includes all objects.",
           "items": {
-            "type": [
-              "null",
-              "number"
-            ]
+            "type": ["null", "number"]
           },
           "maxItems": 2,
           "minItems": 2,
@@ -12343,10 +11946,7 @@
           "description": "The field value to use when the imputation `method` is `\"value\"`."
         }
       },
-      "required": [
-        "impute",
-        "key"
-      ],
+      "required": ["impute", "key"],
       "type": "object"
     },
     "InlineData": {
@@ -12365,9 +11965,7 @@
           "description": "The full data set, included inline. This can be an array of objects or primitive values, an object, or a string. Arrays of primitive values are ingested as objects with a `data` property. Strings are parsed according to the specified format type."
         }
       },
-      "required": [
-        "values"
-      ],
+      "required": ["values"],
       "type": "object"
     },
     "InlineDataset": {
@@ -12476,10 +12074,7 @@
         },
         "translate": {
           "description": "When truthy, allows a user to interactively move an interval selection back-and-forth. Can be `true`, `false` (to disable panning), or a [Vega event stream definition](https://vega.github.io/vega/docs/event-streams/) which must include a start and end event to trigger continuous panning. Discrete panning (e.g., pressing the left/right arrow keys) will be supported in future versions.\n\n__Default value:__ `true`, which corresponds to `[pointerdown, window:pointerup] > window:pointermove!`. This default allows users to clicks and drags within an interval selection to reposition it.\n\n__See also:__ [`translate` examples](https://vega.github.io/vega-lite/docs/selection.html#translate) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         },
         "type": {
           "const": "interval",
@@ -12488,15 +12083,10 @@
         },
         "zoom": {
           "description": "When truthy, allows a user to interactively resize an interval selection. Can be `true`, `false` (to disable zooming), or a [Vega event stream definition](https://vega.github.io/vega/docs/event-streams/). Currently, only `wheel` events are supported, but custom event streams can still be used to specify filters, debouncing, and throttling. Future versions will expand the set of events that can trigger this transformation.\n\n__Default value:__ `true`, which corresponds to `wheel!`. This default allows users to use the mouse wheel to resize an interval selection.\n\n__See also:__ [`zoom` examples](https://vega.github.io/vega-lite/docs/selection.html#zoom) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "IntervalSelectionConfigWithoutType": {
@@ -12551,17 +12141,11 @@
         },
         "translate": {
           "description": "When truthy, allows a user to interactively move an interval selection back-and-forth. Can be `true`, `false` (to disable panning), or a [Vega event stream definition](https://vega.github.io/vega/docs/event-streams/) which must include a start and end event to trigger continuous panning. Discrete panning (e.g., pressing the left/right arrow keys) will be supported in future versions.\n\n__Default value:__ `true`, which corresponds to `[pointerdown, window:pointerup] > window:pointermove!`. This default allows users to clicks and drags within an interval selection to reposition it.\n\n__See also:__ [`translate` examples](https://vega.github.io/vega-lite/docs/selection.html#translate) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         },
         "zoom": {
           "description": "When truthy, allows a user to interactively resize an interval selection. Can be `true`, `false` (to disable zooming), or a [Vega event stream definition](https://vega.github.io/vega/docs/event-streams/). Currently, only `wheel` events are supported, but custom event streams can still be used to specify filters, debouncing, and throttling. Future versions will expand the set of events that can trigger this transformation.\n\n__Default value:__ `true`, which corresponds to `wheel!`. This default allows users to use the mouse wheel to resize an interval selection.\n\n__See also:__ [`zoom` examples](https://vega.github.io/vega-lite/docs/selection.html#zoom) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         }
       },
       "type": "object"
@@ -12582,10 +12166,7 @@
           "description": "The aggregation operation to apply (e.g., `\"sum\"`, `\"average\"` or `\"count\"`). See the list of all supported operations [here](https://vega.github.io/vega-lite/docs/aggregate.html#ops)."
         }
       },
-      "required": [
-        "op",
-        "as"
-      ],
+      "required": ["op", "as"],
       "type": "object"
     },
     "JoinAggregateTransform": {
@@ -12606,9 +12187,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "joinaggregate"
-      ],
+      "required": ["joinaggregate"],
       "type": "object"
     },
     "JsonDataFormat": {
@@ -12741,9 +12320,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "layer"
-      ],
+      "required": ["layer"],
       "type": "object"
     },
     "LayerRepeatSpec": {
@@ -12762,10 +12339,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -12851,10 +12425,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "repeat",
-        "spec"
-      ],
+      "required": ["repeat", "spec"],
       "type": "object"
     },
     "LayerSpec": {
@@ -12959,17 +12530,11 @@
           "description": "The width of a visualization.\n\n- For a plot with a continuous x-field, width should be a number.\n- For a plot with either a discrete x-field or no x-field, width can be either a number indicating a fixed width or an object in the form of `{step: number}` defining the width per discrete step. (No x-field is equivalent to having one discrete step.)\n- To enable responsive sizing on width, it should be set to `\"container\"`.\n\n__Default value:__ Based on `config.view.continuousWidth` for a plot with a continuous x-field and `config.view.discreteWidth` otherwise.\n\n__Note:__ For plots with [`row` and `column` channels](https://vega.github.io/vega-lite/docs/encoding.html#facet), this represents the width of a single view and the `\"container\"` option cannot be used.\n\n__See also:__ [`width`](https://vega.github.io/vega-lite/docs/size.html) documentation."
         }
       },
-      "required": [
-        "layer"
-      ],
+      "required": ["layer"],
       "type": "object"
     },
     "LayoutAlign": {
-      "enum": [
-        "all",
-        "each",
-        "none"
-      ],
+      "enum": ["all", "each", "none"],
       "type": "string"
     },
     "Legend": {
@@ -13696,10 +13261,7 @@
         },
         "type": {
           "description": "The type of the legend. Use `\"symbol\"` to create a discrete legend and `\"gradient\"` for a continuous color gradient.\n\n__Default value:__ `\"gradient\"` for non-binned quantitative fields and temporal fields; `\"symbol\"` otherwise.",
-          "enum": [
-            "symbol",
-            "gradient"
-          ],
+          "enum": ["symbol", "gradient"],
           "type": "string"
         },
         "values": {
@@ -14661,9 +14223,7 @@
           ]
         }
       },
-      "required": [
-        "legend"
-      ],
+      "required": ["legend"],
       "type": "object"
     },
     "LineConfig": {
@@ -15088,10 +14648,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -15514,10 +15071,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "LinearGradient": {
@@ -15555,10 +15109,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "gradient",
-        "stops"
-      ],
+      "required": ["gradient", "stops"],
       "type": "object"
     },
     "LocalMultiTimeUnit": {
@@ -15655,10 +15206,7 @@
           "description": "The data field of the independent variable to use a predictor."
         }
       },
-      "required": [
-        "loess",
-        "on"
-      ],
+      "required": ["loess", "on"],
       "type": "object"
     },
     "LogicalAnd<Predicate>": {
@@ -15671,9 +15219,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "and"
-      ],
+      "required": ["and"],
       "type": "object"
     },
     "PredicateComposition": {
@@ -15699,9 +15245,7 @@
           "$ref": "#/definitions/PredicateComposition"
         }
       },
-      "required": [
-        "not"
-      ],
+      "required": ["not"],
       "type": "object"
     },
     "LogicalOr<Predicate>": {
@@ -15714,9 +15258,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "or"
-      ],
+      "required": ["or"],
       "type": "object"
     },
     "LookupData": {
@@ -15738,10 +15280,7 @@
           "description": "Key in data to lookup."
         }
       },
-      "required": [
-        "data",
-        "key"
-      ],
+      "required": ["data", "key"],
       "type": "object"
     },
     "LookupSelection": {
@@ -15763,10 +15302,7 @@
           "description": "Selection parameter name to look up."
         }
       },
-      "required": [
-        "key",
-        "param"
-      ],
+      "required": ["key", "param"],
       "type": "object"
     },
     "LookupTransform": {
@@ -15805,10 +15341,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "lookup",
-        "from"
-      ],
+      "required": ["lookup", "from"],
       "type": "object"
     },
     "Mark": {
@@ -16253,10 +15786,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -17129,10 +16659,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -17636,9 +17163,7 @@
           "description": "Offset for y-position."
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "MarkInvalidDataMode": {
@@ -17764,9 +17289,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "merge"
-      ],
+      "required": ["merge"],
       "type": "object"
     },
     "Month": {
@@ -17797,10 +17320,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "MultiPoint": {
@@ -17823,10 +17343,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "MultiPolygon": {
@@ -17855,10 +17372,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "MultiTimeUnit": {
@@ -17883,9 +17397,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "type": "object"
     },
     "NonArgAggregateOp": {
@@ -17933,10 +17445,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -18025,10 +17534,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "repeat",
-        "spec"
-      ],
+      "required": ["repeat", "spec"],
       "type": "object"
     },
     "NonNormalizedSpec": {
@@ -18074,12 +17580,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "decimal",
-        "thousands",
-        "grouping",
-        "currency"
-      ],
+      "required": ["decimal", "thousands", "grouping", "currency"],
       "type": "object"
     },
     "NumericArrayMarkPropDef": {
@@ -18211,25 +17712,15 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "type": "object"
     },
     "Orient": {
-      "enum": [
-        "left",
-        "right",
-        "top",
-        "bottom"
-      ],
+      "enum": ["left", "right", "top", "bottom"],
       "type": "string"
     },
     "Orientation": {
-      "enum": [
-        "horizontal",
-        "vertical"
-      ],
+      "enum": ["horizontal", "vertical"],
       "type": "string"
     },
     "OverlayMarkDef": {
@@ -18665,10 +18156,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -19198,9 +18686,7 @@
               "description": "The name of a parameter."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         },
         {
@@ -19215,9 +18701,7 @@
               "description": "The name of a parameter."
             }
           },
-          "required": [
-            "param"
-          ],
+          "required": ["param"],
           "type": "object"
         }
       ]
@@ -19237,9 +18721,7 @@
           "description": "Filter using a parameter name."
         }
       },
-      "required": [
-        "param"
-      ],
+      "required": ["param"],
       "type": "object"
     },
     "Parse": {
@@ -19249,10 +18731,7 @@
       "type": "object"
     },
     "ParseValue": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "PivotTransform": {
       "additionalProperties": false,
@@ -19281,10 +18760,7 @@
           "description": "The data field to populate pivoted fields. The aggregate values of this field become the values of the new pivoted fields."
         }
       },
-      "required": [
-        "pivot",
-        "value"
-      ],
+      "required": ["pivot", "value"],
       "type": "object"
     },
     "Point": {
@@ -19304,10 +18780,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "PointSelectionConfig": {
@@ -19362,10 +18835,7 @@
         },
         "toggle": {
           "description": "Controls whether data values should be toggled (inserted or removed from a point selection) or only ever inserted into point selections.\n\nOne of:\n- `true` -- the default behavior, which corresponds to `\"event.shiftKey\"`.  As a result, data values are toggled when the user interacts with the shift-key pressed.\n- `false` -- disables toggling behaviour; the selection will only ever contain a single data value corresponding to the most recent interaction.\n- A [Vega expression](https://vega.github.io/vega/docs/expressions/) which is re-evaluated as the user interacts. If the expression evaluates to `true`, the data value is toggled into or out of the point selection. If the expression evaluates to `false`, the point selection is first cleared, and the data value is then inserted. For example, setting the value to the Vega expression `\"true\"` will toggle data values without the user pressing the shift-key.\n\n__Default value:__ `true`\n\n__See also:__ [`toggle` examples](https://vega.github.io/vega-lite/docs/selection.html#toggle) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         },
         "type": {
           "const": "point",
@@ -19373,9 +18843,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "PointSelectionConfigWithoutType": {
@@ -19430,10 +18898,7 @@
         },
         "toggle": {
           "description": "Controls whether data values should be toggled (inserted or removed from a point selection) or only ever inserted into point selections.\n\nOne of:\n- `true` -- the default behavior, which corresponds to `\"event.shiftKey\"`.  As a result, data values are toggled when the user interacts with the shift-key pressed.\n- `false` -- disables toggling behaviour; the selection will only ever contain a single data value corresponding to the most recent interaction.\n- A [Vega expression](https://vega.github.io/vega/docs/expressions/) which is re-evaluated as the user interacts. If the expression evaluates to `true`, the data value is toggled into or out of the point selection. If the expression evaluates to `false`, the point selection is first cleared, and the data value is then inserted. For example, setting the value to the Vega expression `\"true\"` will toggle data values without the user pressing the shift-key.\n\n__Default value:__ `true`\n\n__See also:__ [`toggle` examples](https://vega.github.io/vega-lite/docs/selection.html#toggle) in the documentation.",
-          "type": [
-            "string",
-            "boolean"
-          ]
+          "type": ["string", "boolean"]
         }
       },
       "type": "object"
@@ -19474,10 +18939,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "coordinates",
-        "type"
-      ],
+      "required": ["coordinates", "type"],
       "type": "object"
     },
     "Position": {
@@ -19925,12 +19387,7 @@
       ]
     },
     "PrimitiveValue": {
-      "type": [
-        "number",
-        "string",
-        "boolean",
-        "null"
-      ]
+      "type": ["number", "string", "boolean", "null"]
     },
     "Projection": {
       "additionalProperties": false,
@@ -20276,9 +19733,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "quantile"
-      ],
+      "required": ["quantile"],
       "type": "object"
     },
     "RadialGradient": {
@@ -20324,10 +19779,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "gradient",
-        "stops"
-      ],
+      "required": ["gradient", "stops"],
       "type": "object"
     },
     "RangeConfig": {
@@ -20500,9 +19952,7 @@
               ]
             }
           },
-          "required": [
-            "scheme"
-          ],
+          "required": ["scheme"],
           "type": "object"
         }
       ]
@@ -20962,10 +20412,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -21383,14 +20830,7 @@
         },
         "method": {
           "description": "The functional form of the regression model. One of `\"linear\"`, `\"log\"`, `\"exp\"`, `\"pow\"`, `\"quad\"`, or `\"poly\"`.\n\n__Default value:__ `\"linear\"`",
-          "enum": [
-            "linear",
-            "log",
-            "exp",
-            "pow",
-            "quad",
-            "poly"
-          ],
+          "enum": ["linear", "log", "exp", "pow", "quad", "poly"],
           "type": "string"
         },
         "on": {
@@ -21410,10 +20850,7 @@
           "description": "The data field of the dependent variable to predict."
         }
       },
-      "required": [
-        "regression",
-        "on"
-      ],
+      "required": ["regression", "on"],
       "type": "object"
     },
     "RelativeBandSize": {
@@ -21424,9 +20861,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "band"
-      ],
+      "required": ["band"],
       "type": "object"
     },
     "RepeatMapping": {
@@ -21454,18 +20889,11 @@
       "description": "Reference to a repeated value.",
       "properties": {
         "repeat": {
-          "enum": [
-            "row",
-            "column",
-            "repeat",
-            "layer"
-          ],
+          "enum": ["row", "column", "repeat", "layer"],
           "type": "string"
         }
       },
-      "required": [
-        "repeat"
-      ],
+      "required": ["repeat"],
       "type": "object"
     },
     "RepeatSpec": {
@@ -21495,10 +20923,7 @@
       "type": "object"
     },
     "ResolveMode": {
-      "enum": [
-        "independent",
-        "shared"
-      ],
+      "enum": ["independent", "shared"],
       "type": "string"
     },
     "RowCol<LayoutAlign>": {
@@ -21648,9 +21073,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "sample"
-      ],
+      "required": ["sample"],
       "type": "object"
     },
     "Scale": {
@@ -22004,9 +21427,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "step"
-      ],
+      "required": ["step"],
       "type": "object"
     },
     "ScaleBins": {
@@ -22434,17 +21855,11 @@
           "type": "number"
         },
         "type": {
-          "enum": [
-            "rgb",
-            "cubehelix",
-            "cubehelix-long"
-          ],
+          "enum": ["rgb", "cubehelix", "cubehelix-long"],
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "type": "object"
     },
     "ScaleInvalidDataConfig": {
@@ -23050,9 +22465,7 @@
           "description": "A color scheme name for ordinal scales (e.g., `\"category10\"` or `\"blues\"`).\n\nFor the full list of supported schemes, please refer to the [Vega Scheme](https://vega.github.io/vega/docs/schemes/#reference) reference."
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "type": "object"
     },
     "SecondaryFieldDef": {
@@ -23211,25 +22624,15 @@
           "description": "Initialize the selection with a mapping between [projected channels or field names](https://vega.github.io/vega-lite/docs/selection.html#project) and initial values.\n\n__See also:__ [`init`](https://vega.github.io/vega-lite/docs/value.html) documentation."
         }
       },
-      "required": [
-        "name",
-        "select"
-      ],
+      "required": ["name", "select"],
       "type": "object"
     },
     "SelectionResolution": {
-      "enum": [
-        "global",
-        "union",
-        "intersect"
-      ],
+      "enum": ["global", "union", "intersect"],
       "type": "string"
     },
     "SelectionType": {
-      "enum": [
-        "point",
-        "interval"
-      ],
+      "enum": ["point", "interval"],
       "type": "string"
     },
     "SequenceGenerator": {
@@ -23244,9 +22647,7 @@
           "description": "Generate a sequence of numbers."
         }
       },
-      "required": [
-        "sequence"
-      ],
+      "required": ["sequence"],
       "type": "object"
     },
     "SequenceParams": {
@@ -23269,10 +22670,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "start",
-        "stop"
-      ],
+      "required": ["start", "stop"],
       "type": "object"
     },
     "SequentialMultiHue": {
@@ -27917,9 +27315,7 @@
           "description": "The sort order. One of `\"ascending\"` (default), `\"descending\"`, or `null` (do not sort)."
         }
       },
-      "required": [
-        "encoding"
-      ],
+      "required": ["encoding"],
       "type": "object"
     },
     "SortField": {
@@ -27942,16 +27338,11 @@
           "description": "Whether to sort the field in ascending or descending order. One of `\"ascending\"` (default), `\"descending\"`, or `null` (do not sort)."
         }
       },
-      "required": [
-        "field"
-      ],
+      "required": ["field"],
       "type": "object"
     },
     "SortOrder": {
-      "enum": [
-        "ascending",
-        "descending"
-      ],
+      "enum": ["ascending", "descending"],
       "type": "string"
     },
     "SphereGenerator": {
@@ -27974,17 +27365,11 @@
           "description": "Generate sphere GeoJSON data for the full globe."
         }
       },
-      "required": [
-        "sphere"
-      ],
+      "required": ["sphere"],
       "type": "object"
     },
     "StackOffset": {
-      "enum": [
-        "zero",
-        "center",
-        "normalize"
-      ],
+      "enum": ["zero", "center", "normalize"],
       "type": "string"
     },
     "StackTransform": {
@@ -28015,11 +27400,7 @@
         },
         "offset": {
           "description": "Mode for stacking marks. One of `\"zero\"` (default), `\"center\"`, or `\"normalize\"`. The `\"zero\"` offset will stack starting at `0`. The `\"center\"` offset will center the stacks. The `\"normalize\"` offset will compute percentage values for each stack point, with output values in the range `[0,1]`.\n\n__Default value:__ `\"zero\"`",
-          "enum": [
-            "zero",
-            "center",
-            "normalize"
-          ],
+          "enum": ["zero", "center", "normalize"],
           "type": "string"
         },
         "sort": {
@@ -28034,20 +27415,11 @@
           "description": "The field which is stacked."
         }
       },
-      "required": [
-        "stack",
-        "groupby",
-        "as"
-      ],
+      "required": ["stack", "groupby", "as"],
       "type": "object"
     },
     "StandardType": {
-      "enum": [
-        "quantitative",
-        "ordinal",
-        "temporal",
-        "nominal"
-      ],
+      "enum": ["quantitative", "ordinal", "temporal", "nominal"],
       "type": "string"
     },
     "Step": {
@@ -28062,16 +27434,11 @@
           "type": "number"
         }
       },
-      "required": [
-        "step"
-      ],
+      "required": ["step"],
       "type": "object"
     },
     "StepFor": {
-      "enum": [
-        "position",
-        "offset"
-      ],
+      "enum": ["position", "offset"],
       "type": "string"
     },
     "Stream": {
@@ -28169,19 +27536,11 @@
       "$ref": "#/definitions/ValueDefWithCondition<MarkPropFieldOrDatumDef,(string|null)>"
     },
     "StrokeCap": {
-      "enum": [
-        "butt",
-        "round",
-        "square"
-      ],
+      "enum": ["butt", "round", "square"],
       "type": "string"
     },
     "StrokeJoin": {
-      "enum": [
-        "miter",
-        "round",
-        "bevel"
-      ],
+      "enum": ["miter", "round", "bevel"],
       "type": "string"
     },
     "StyleConfigIndex": {
@@ -28324,10 +27683,7 @@
       ]
     },
     "TextDirection": {
-      "enum": [
-        "ltr",
-        "rtl"
-      ],
+      "enum": ["ltr", "rtl"],
       "type": "string"
     },
     "TickConfig": {
@@ -28790,10 +28146,7 @@
         },
         "order": {
           "description": "For line and trail marks, this `order` property can be set to `null` or `false` to make the lines use the original order in the data sources.",
-          "type": [
-            "null",
-            "boolean"
-          ]
+          "type": ["null", "boolean"]
         },
         "orient": {
           "$ref": "#/definitions/Orientation",
@@ -29342,10 +28695,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "interval",
-        "step"
-      ],
+      "required": ["interval", "step"],
       "type": "object"
     },
     "TimeLocale": {
@@ -29457,11 +28807,7 @@
           "description": "The timeUnit."
         }
       },
-      "required": [
-        "timeUnit",
-        "field",
-        "as"
-      ],
+      "required": ["timeUnit", "field", "as"],
       "type": "object"
     },
     "TimeUnitTransformParams": {
@@ -29487,35 +28833,18 @@
       "type": "object"
     },
     "TitleAnchor": {
-      "enum": [
-        null,
-        "start",
-        "middle",
-        "end"
-      ],
-      "type": [
-        "null",
-        "string"
-      ]
+      "enum": [null, "start", "middle", "end"],
+      "type": ["null", "string"]
     },
     "TitleConfig": {
       "$ref": "#/definitions/BaseTitleNoValueRefs"
     },
     "TitleFrame": {
-      "enum": [
-        "bounds",
-        "group"
-      ],
+      "enum": ["bounds", "group"],
       "type": "string"
     },
     "TitleOrient": {
-      "enum": [
-        "none",
-        "left",
-        "right",
-        "top",
-        "bottom"
-      ],
+      "enum": ["none", "left", "right", "top", "bottom"],
       "type": "string"
     },
     "TitleParams": {
@@ -29823,25 +29152,18 @@
           "type": "number"
         }
       },
-      "required": [
-        "text"
-      ],
+      "required": ["text"],
       "type": "object"
     },
     "TooltipContent": {
       "additionalProperties": false,
       "properties": {
         "content": {
-          "enum": [
-            "encoding",
-            "data"
-          ],
+          "enum": ["encoding", "data"],
           "type": "string"
         }
       },
-      "required": [
-        "content"
-      ],
+      "required": ["content"],
       "type": "object"
     },
     "TopLevelConcatSpec": {
@@ -29887,10 +29209,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -29998,9 +29317,7 @@
           "description": "Optional metadata that will be passed to Vega. This object is completely ignored by Vega and Vega-Lite and can be used for custom metadata."
         }
       },
-      "required": [
-        "concat"
-      ],
+      "required": ["concat"],
       "type": "object"
     },
     "TopLevelHConcatSpec": {
@@ -30035,10 +29352,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -30128,9 +29442,7 @@
           "description": "Optional metadata that will be passed to Vega. This object is completely ignored by Vega and Vega-Lite and can be used for custom metadata."
         }
       },
-      "required": [
-        "hconcat"
-      ],
+      "required": ["hconcat"],
       "type": "object"
     },
     "TopLevelVConcatSpec": {
@@ -30165,10 +29477,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -30258,9 +29567,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "vconcat"
-      ],
+      "required": ["vconcat"],
       "type": "object"
     },
     "TopLevelLayerSpec": {
@@ -30421,9 +29728,7 @@
           "description": "The width of a visualization.\n\n- For a plot with a continuous x-field, width should be a number.\n- For a plot with either a discrete x-field or no x-field, width can be either a number indicating a fixed width or an object in the form of `{step: number}` defining the width per discrete step. (No x-field is equivalent to having one discrete step.)\n- To enable responsive sizing on width, it should be set to `\"container\"`.\n\n__Default value:__ Based on `config.view.continuousWidth` for a plot with a continuous x-field and `config.view.discreteWidth` otherwise.\n\n__Note:__ For plots with [`row` and `column` channels](https://vega.github.io/vega-lite/docs/encoding.html#facet), this represents the width of a single view and the `\"container\"` option cannot be used.\n\n__See also:__ [`width`](https://vega.github.io/vega-lite/docs/size.html) documentation."
         }
       },
-      "required": [
-        "layer"
-      ],
+      "required": ["layer"],
       "type": "object"
     },
     "TopLevelRepeatSpec": {
@@ -30471,10 +29776,7 @@
             },
             "bounds": {
               "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-              "enum": [
-                "full",
-                "flush"
-              ],
+              "enum": ["full", "flush"],
               "type": "string"
             },
             "center": {
@@ -30593,10 +29895,7 @@
               "description": "Optional metadata that will be passed to Vega. This object is completely ignored by Vega and Vega-Lite and can be used for custom metadata."
             }
           },
-          "required": [
-            "repeat",
-            "spec"
-          ],
+          "required": ["repeat", "spec"],
           "type": "object"
         },
         {
@@ -30642,10 +29941,7 @@
             },
             "bounds": {
               "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-              "enum": [
-                "full",
-                "flush"
-              ],
+              "enum": ["full", "flush"],
               "type": "string"
             },
             "center": {
@@ -30761,10 +30057,7 @@
               "description": "Optional metadata that will be passed to Vega. This object is completely ignored by Vega and Vega-Lite and can be used for custom metadata."
             }
           },
-          "required": [
-            "repeat",
-            "spec"
-          ],
+          "required": ["repeat", "spec"],
           "type": "object"
         }
       ]
@@ -30812,10 +30105,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -30938,11 +30228,7 @@
           "description": "Optional metadata that will be passed to Vega. This object is completely ignored by Vega and Vega-Lite and can be used for custom metadata."
         }
       },
-      "required": [
-        "data",
-        "facet",
-        "spec"
-      ],
+      "required": ["data", "facet", "spec"],
       "type": "object"
     },
     "TopLevelParameter": {
@@ -31022,10 +30308,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "name",
-        "select"
-      ],
+      "required": ["name", "select"],
       "type": "object"
     },
     "TopLevelSpec": {
@@ -31097,10 +30380,7 @@
         },
         "bounds": {
           "description": "The bounds calculation method to use for determining the extent of a sub-plot. One of `full` (the default) or `flush`.\n\n- If set to `full`, the entire calculated bounds (including axes, title, and legend) will be used.\n- If set to `flush`, only the specified width and height values for the sub-view will be used. The `flush` setting can be useful when attempting to place sub-plots without axes or legends into a uniform grid structure.\n\n__Default value:__ `\"full\"`",
-          "enum": [
-            "full",
-            "flush"
-          ],
+          "enum": ["full", "flush"],
           "type": "string"
         },
         "center": {
@@ -31243,10 +30523,7 @@
           "description": "The width of a visualization.\n\n- For a plot with a continuous x-field, width should be a number.\n- For a plot with either a discrete x-field or no x-field, width can be either a number indicating a fixed width or an object in the form of `{step: number}` defining the width per discrete step. (No x-field is equivalent to having one discrete step.)\n- To enable responsive sizing on width, it should be set to `\"container\"`.\n\n__Default value:__ Based on `config.view.continuousWidth` for a plot with a continuous x-field and `config.view.discreteWidth` otherwise.\n\n__Note:__ For plots with [`row` and `column` channels](https://vega.github.io/vega-lite/docs/encoding.html#facet), this represents the width of a single view and the `\"container\"` option cannot be used.\n\n__See also:__ [`width`](https://vega.github.io/vega-lite/docs/size.html) documentation."
         }
       },
-      "required": [
-        "data",
-        "mark"
-      ],
+      "required": ["data", "mark"],
       "type": "object"
     },
     "TopoDataFormat": {
@@ -31342,21 +30619,11 @@
     },
     "Type": {
       "description": "Data type based on level of measurement",
-      "enum": [
-        "quantitative",
-        "ordinal",
-        "temporal",
-        "nominal",
-        "geojson"
-      ],
+      "enum": ["quantitative", "ordinal", "temporal", "nominal", "geojson"],
       "type": "string"
     },
     "TypeForShape": {
-      "enum": [
-        "nominal",
-        "ordinal",
-        "geojson"
-      ],
+      "enum": ["nominal", "ordinal", "geojson"],
       "type": "string"
     },
     "TypedFieldDef": {
@@ -31529,9 +30796,7 @@
           "description": "The width of a visualization.\n\n- For a plot with a continuous x-field, width should be a number.\n- For a plot with either a discrete x-field or no x-field, width can be either a number indicating a fixed width or an object in the form of `{step: number}` defining the width per discrete step. (No x-field is equivalent to having one discrete step.)\n- To enable responsive sizing on width, it should be set to `\"container\"`.\n\n__Default value:__ Based on `config.view.continuousWidth` for a plot with a continuous x-field and `config.view.discreteWidth` otherwise.\n\n__Note:__ For plots with [`row` and `column` channels](https://vega.github.io/vega-lite/docs/encoding.html#facet), this represents the width of a single view and the `\"container\"` option cannot be used.\n\n__See also:__ [`width`](https://vega.github.io/vega-lite/docs/size.html) documentation."
         }
       },
-      "required": [
-        "mark"
-      ],
+      "required": ["mark"],
       "type": "object"
     },
     "UrlData": {
@@ -31550,9 +30815,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "url"
-      ],
+      "required": ["url"],
       "type": "object"
     },
     "UtcMultiTimeUnit": {
@@ -31629,9 +30892,7 @@
           "description": "A constant value in visual domain (e.g., `\"red\"` / `\"#0099ff\"` / [gradient definition](https://vega.github.io/vega-lite/docs/types.html#gradient) for color, values between `0` to `1` for opacity)."
         }
       },
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "type": "object"
     },
     "ValueDef<number>": {
@@ -31643,9 +30904,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "type": "object"
     },
     "ValueDefWithCondition<MarkPropFieldOrDatumDef,(Gradient|string|null)>": {
@@ -31896,9 +31155,7 @@
           "description": "The [initial value](http://vega.github.io/vega-lite/docs/value.html) of the parameter.\n\n__Default value:__ `undefined`"
         }
       },
-      "required": [
-        "name"
-      ],
+      "required": ["name"],
       "type": "object"
     },
     "Vector10<string>": {
@@ -32187,9 +31444,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "step"
-              ],
+              "required": ["step"],
               "type": "object"
             }
           ],
@@ -32207,9 +31462,7 @@
                   "type": "number"
                 }
               },
-              "required": [
-                "step"
-              ],
+              "required": ["step"],
               "type": "object"
             }
           ],
@@ -32396,10 +31649,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "op",
-        "as"
-      ],
+      "required": ["op", "as"],
       "type": "object"
     },
     "WindowOnlyOp": {
@@ -32424,10 +31674,7 @@
         "frame": {
           "description": "A frame specification as a two-element array indicating how the sliding window should proceed. The array entries should either be a number indicating the offset from the current data object, or null to indicate unbounded rows preceding or following the current data object. The default value is `[null, 0]`, indicating that the sliding window includes the current object and all preceding objects. The value `[-5, 5]` indicates that the window should include five objects preceding and five objects following the current object. Finally, `[null, null]` indicates that the window frame should always include all data objects. If you this frame and want to assign the same value to add objects, you can use the simpler [join aggregate transform](https://vega.github.io/vega-lite/docs/joinaggregate.html). The only operators affected are the aggregation operations and the `first_value`, `last_value`, and `nth_value` window operations. The other window operations are not affected by this.\n\n__Default value:__:  `[null, 0]` (includes the current object and all preceding objects)",
           "items": {
-            "type": [
-              "null",
-              "number"
-            ]
+            "type": ["null", "number"]
           },
           "type": "array"
         },
@@ -32457,9 +31704,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "window"
-      ],
+      "required": ["window"],
       "type": "object"
     }
   }

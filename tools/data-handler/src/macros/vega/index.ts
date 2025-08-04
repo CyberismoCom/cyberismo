@@ -15,7 +15,11 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import BaseMacro from '../base-macro.js';
 import macroMetadata from './metadata.js';
 import type TaskQueue from '../task-queue.js';
-import { createHtmlPlaceholder, createImage, validateMacroContent } from '../index.js';
+import {
+  createHtmlPlaceholder,
+  createImage,
+  validateMacroContent,
+} from '../index.js';
 import * as vega from 'vega';
 
 export interface VegaMacroInput {
@@ -49,4 +53,4 @@ class VegaMacro extends BaseMacro {
   }
 }
 
-export default VegaMacro; 
+export default VegaMacro;

@@ -35,7 +35,7 @@ class VegaLiteMacro extends BaseMacro {
     const options = this.validate(input) as VegaLiteMacroInput;
     const compiled = vegaLite.compile(options.spec).spec;
     return createMacro('vega', {
-        spec: compiled,
+      spec: compiled,
     });
   };
 
@@ -48,4 +48,4 @@ class VegaLiteMacro extends BaseMacro {
   }
 }
 
-export default VegaLiteMacro; 
+export default VegaLiteMacro;

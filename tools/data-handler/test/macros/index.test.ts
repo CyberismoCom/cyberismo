@@ -894,9 +894,9 @@ describe('createMacro', () => {
   it('should create a macro with empty options', () => {
     const result = createMacro('scoreCard', {});
     expect(result).to.equal('{{#scoreCard}}{{/scoreCard}}');
-  });   
+  });
   it('should create a macro with non-empty options', () => {
-        const result = createMacro('scoreCard', { foo: 'bar', num: 42 }); 
+    const result = createMacro('scoreCard', { foo: 'bar', num: 42 });
     expect(result).to.equal('{{#scoreCard}}"foo":"bar","num":42{{/scoreCard}}');
   });
   it('should handle options with nested objects', () => {

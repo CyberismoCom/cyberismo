@@ -463,10 +463,12 @@ export function metadataValueToString(
  * @param attribs - The HTML element attributes object
  * @returns An object with nested structure based on dot notation in data attributes
  */
-export function parseDataAttributes(attribs: Record<string, string>): Record<string, unknown> {
+export function parseDataAttributes(
+  attribs: Record<string, string>,
+): Record<string, unknown> {
   const attributes = parseNestedDataAttributes(attribs);
   let options = {};
-  if(attributes.options && typeof attributes.options === 'string') {
+  if (attributes.options && typeof attributes.options === 'string') {
     const binary = atob(attributes.options);
     const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
     options = JSON.parse(new TextDecoder().decode(bytes));

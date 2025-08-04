@@ -739,7 +739,9 @@ describe('parseNestedDataAttributes', () => {
       const json = JSON.stringify(optionsObj);
       // Encode to base64
       const bytes = new TextEncoder().encode(json);
-      const binary = Array.from(bytes).map((b) => String.fromCharCode(b)).join('');
+      const binary = Array.from(bytes)
+        .map((b) => String.fromCharCode(b))
+        .join('');
       const base64 = btoa(binary);
       const attribs = {
         key: 'test',
