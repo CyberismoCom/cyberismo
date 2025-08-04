@@ -11,9 +11,7 @@
 */
 #include "helpers.h"
 
-#include <algorithm>
 #include <chrono>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -196,4 +194,96 @@ namespace node_clingo
         // Return epoch time_point on parsing failure for all formats
         return std::chrono::system_clock::time_point{};
     }
+
+    bool return_string(
+        const char *str,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)
+    {
+        clingo_symbol_t sym;
+        if (!clingo_symbol_create_string(str, &sym))
+        {
+            return false;
+        }
+        return symbol_callback(&sym, 1, symbol_callback_data);
+    }
+
+    bool return_empty_string(
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data)
+    {
+        return return_string("", symbol_callback, symbol_callback_data);
+    }
+
+    bool extract_resource_part(
+        clingo_symbol_t const *arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void *symbol_callback_data,
+        ResourcePart part)
+    {
+        if (arguments_size != 1)
+        {
+            return false;
+        }
+
+        clingo_symbol_type_t type = clingo_symbol_type(arguments[0]);
+        if (type != clingo_symbol_type_string)
+        {
+            // Return empty string for non-string input
+            return return_empty_string(symbol_callback, symbol_callback_data);
+        }
+
+        const char *resource_name;
+        if (!clingo_symbol_string(arguments[0], &resource_name))
+        {
+            return false;
+        }
+
+        std::string resource_str(resource_name);
+        
+        if (resource_str.empty())
+        {
+            return return_empty_string(symbol_callback, symbol_callback_data);
+        }
+        
+        size_t first_slash = resource_str.find('/');
+        if (first_slash == std::string::npos)
+        {
+            // No slashes - invalid format
+            return return_empty_string(symbol_callback, symbol_callback_data);
+        }
+        
+        size_t second_slash = resource_str.find('/', first_slash + 1);
+        if (second_slash == std::string::npos)
+        {
+            // Only 1 slash - invalid format
+            return return_empty_string(symbol_callback, symbol_callback_data);
+        }
+        
+        size_t third_slash = resource_str.find('/', second_slash + 1);
+        if (third_slash != std::string::npos)
+        {
+            // More than 2 slashes - invalid format
+            return return_empty_string(symbol_callback, symbol_callback_data);
+        }
+
+        // Extract the requested part
+        std::string result;
+        switch (part)
+        {
+            case ResourcePart::PREFIX:
+                result = resource_str.substr(0, first_slash);
+                break;
+            case ResourcePart::TYPE:
+                result = resource_str.substr(first_slash + 1, second_slash - first_slash - 1);
+                break;
+            case ResourcePart::IDENTIFIER:
+                result = resource_str.substr(second_slash + 1);
+                break;
+        }
+
+        return return_string(result.c_str(), symbol_callback, symbol_callback_data);
+    }
+
 } // namespace node_clingo
