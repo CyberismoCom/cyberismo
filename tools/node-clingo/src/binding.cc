@@ -424,6 +424,8 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         {
             throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
         }
+        // Track which programs have already been added to prevent duplicates
+        std::set<std::string> addedPrograms;
 
         Napi::Array arr = info[1].As<Napi::Array>();
         
@@ -438,23 +440,25 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
 
         for (const auto& ref : refs) {
             auto it = g_programs.find(ref);
-            if (it != g_programs.end()) {
-                if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str())) {
-                    handle_clingo_error(env, ref);
-                } else {
-                    parts.push_back({ref.c_str(), nullptr, 0});
-                }
-                // No need check other refs, as ref was a program, not a category
-                continue;
+            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end()) {
+                    if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str())) {
+                        handle_clingo_error(env, ref);
+                    } else {
+                        parts.push_back({ref.c_str(), nullptr, 0});
+                        addedPrograms.insert(ref);
+                    }
+                    // no need to check other refs, as ref was a program, not a category
+                    continue;
             }
 
             // If no direct match, check categories
             for (const auto& [key, prog] : g_programs) {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end()) {
+                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() && addedPrograms.find(key) == addedPrograms.end()) {
                     if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str())) {
                         handle_clingo_error(env, key);
                     } else {
                         parts.push_back({key.c_str(), nullptr, 0});
+                        addedPrograms.insert(key);
                     }
                 }
             }
