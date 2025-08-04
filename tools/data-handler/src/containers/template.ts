@@ -26,6 +26,7 @@ import {
   type FetchCardDetails,
   type FileContentType,
   type Resource,
+  MetadataContent,
 } from '../interfaces/project-interfaces.js';
 import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
 import { pathExists, stripExtension } from '../utils/file-utils.js';
@@ -582,5 +583,28 @@ export class Template extends CardContainer {
    */
   public async showTemplateCards(): Promise<Card[]> {
     return this.showCards(this.templateCardsPath);
+  }
+
+  /**
+   * Updates card content.
+   * @param cardKey card's ID that is updated.
+   * @param changedContent changed content
+   */
+  public async updateCardContent(cardKey: string, changedContent: string) {
+    return super.updateCardContent(cardKey, changedContent);
+  }
+
+  /**
+   * Updates card metadata's single key.
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
+   */
+  public async updateCardMetadataKey(
+    cardKey: string,
+    changedKey: string,
+    newValue: MetadataContent,
+  ) {
+    return super.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 }

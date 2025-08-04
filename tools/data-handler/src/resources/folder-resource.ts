@@ -11,8 +11,16 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { basename, join } from 'node:path';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { basename, dirname, join, normalize, resolve } from 'node:path';
+import {
+  access,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
@@ -96,6 +104,54 @@ export class FolderResource extends FileResource {
    */
   protected async show(): Promise<ResourceContent> {
     return super.show();
+  }
+
+  /**
+   * Shows the content of a file in the resource.
+   * @param fileName Name of the file to show.
+   * @returns the content of the file.
+   */
+  public async showFile(fileName: string): Promise<string> {
+    const filePath = join(this.internalFolder, fileName);
+    return readFile(filePath, 'utf8');
+  }
+
+  /**
+   * Shows all file names in the resource.
+   * @returns all file names in the resource.
+   */
+  public async showFileNames(): Promise<string[]> {
+    return readdir(this.internalFolder);
+  }
+
+  /**
+   * Updates a file in the resource.
+   * @param fileName The name of the file to update.
+   * @param changedContent The new content for the file.
+   */
+  public async updateFile(fileName: string, changedContent: string) {
+    const filePath = join(this.internalFolder, fileName);
+
+    // Do not allow updating file in other directories
+    const normalizedFilePath = normalize(filePath);
+    const normalizedInternalFilePath = normalize(this.internalFolder);
+    if (dirname(normalizedFilePath) !== normalizedInternalFilePath) {
+      throw new Error(`File '${fileName}' is not in the resource`);
+    }
+
+    // This makes sure that the file is in the resource folder.
+    if (basename(normalizedFilePath) !== fileName) {
+      throw new Error(`File '${fileName}' is not in the resource`);
+    }
+
+    // We need to check if a file exists because we don't want to allow creating a new file.
+    const fileExists = await access(filePath)
+      .then(() => true)
+      .catch(() => false);
+    if (!fileExists) {
+      throw new Error(`File '${fileName}' does not exist in the resource`);
+    }
+    await writeFile(filePath, changedContent);
   }
 
   /**

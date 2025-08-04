@@ -1040,15 +1040,7 @@ export class Project extends CardContainer {
    * @param content changed content
    */
   public async updateCardContent(cardKey: string, content: string) {
-    const card = await this.findCard(this.basePath, cardKey, {
-      metadata: true,
-      content: true,
-    });
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-    card.content = content;
-    await this.saveCard(card);
+    return super.updateCardContent(cardKey, content);
   }
 
   /**
@@ -1062,32 +1054,7 @@ export class Project extends CardContainer {
     changedKey: string,
     newValue: MetadataContent,
   ) {
-    const templateCard = await this.isTemplateCard(cardKey);
-    const card = await this.findCard(
-      templateCard ? this.paths.templatesFolder : this.paths.cardRootFolder,
-      cardKey,
-      {
-        metadata: true,
-      },
-    );
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-
-    if (!card.metadata || card.metadata[changedKey] === newValue) {
-      return;
-    }
-    const cardAsRecord: Record<string, MetadataContent> = card.metadata;
-    cardAsRecord[changedKey] = newValue;
-
-    const invalidCard = isTemplateCard(card)
-      ? ''
-      : await this.validateCard(card);
-    if (invalidCard.length !== 0) {
-      throw new Error(invalidCard);
-    }
-
-    await this.saveCardMetadata(card);
+    return super.updateCardMetadataKey(cardKey, changedKey, newValue);
   }
 
   /**

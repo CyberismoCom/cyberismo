@@ -12,7 +12,7 @@
 */
 
 import { ContentArea, LinkFormState } from '@/components/ContentArea';
-import ContentToolbar from '@/components/ContentToolbar';
+import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
 import { cardViewed } from '@/lib/actions';
 import { useCard, useLinkTypes, useTree } from '@/lib/api';
@@ -29,6 +29,8 @@ import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequiredKeyParam } from '@/lib/hooks';
+import CardContextMenu from '@/components/CardContextMenu';
+import { config } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,12 +88,17 @@ export default function Page() {
 
   return (
     <Stack height="100%">
-      <ContentToolbar
+      <CardToolbar
         cardKey={key}
         mode={CardMode.VIEW}
         onUpdate={() => {}}
         onInsertLink={() => setLinkFormState('add-from-toolbar')}
         linkButtonDisabled={expandedLinkTypes.length === 0}
+        contextMenu={
+          config.staticMode ? undefined : (
+            <CardContextMenu cardKey={card?.key || ''} />
+          )
+        }
       />
       <Box flexGrow={1} minHeight={0}>
         <LoadingGate values={[card, tree]}>

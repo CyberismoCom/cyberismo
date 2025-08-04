@@ -18,7 +18,7 @@ import {
   ProjectFetchCardDetails,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { getCardQueryResult, isSSGContext } from '../../export.js';
+import { getCardQueryResult } from '../../export.js';
 
 export async function getCardDetails(
   commands: CommandManager,
@@ -32,7 +32,7 @@ export async function getCardDetails(
     contentType: 'adoc',
     metadata: false,
     parent: false,
-    location: CardLocation.projectOnly,
+    location: CardLocation.all,
   };
 
   let cardDetailsResponse: Card | undefined;
