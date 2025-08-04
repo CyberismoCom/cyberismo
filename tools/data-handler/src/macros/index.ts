@@ -37,6 +37,8 @@ import type { Calculate } from '../commands/index.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
+const RAW_BLOCK_OPEN = '{{#raw}}';
+const RAW_BLOCK_CLOSE = '{{/raw}}';
 
 /**
  * Pre-processes the content to handle {{#raw}} blocks by escaping all handlebars syntax inside them
@@ -70,26 +72,26 @@ function preprocessRawBlocks(content: string): string {
 
   while (i < content.length) {
     // Check for {{#raw}}
-    if (matchesAt(i, '{{#raw}}')) {
+    if (matchesAt(i, RAW_BLOCK_OPEN)) {
       const openingLine = getLineNumber(i);
       // Find the matching {{/raw}} - no nesting allowed
-      let j = i + 8;
+      let j = i + RAW_BLOCK_OPEN.length;
 
       while (j < content.length) {
-        if (matchesAt(j, '{{#raw}}')) {
+        if (matchesAt(j, RAW_BLOCK_OPEN)) {
           // Found nested raw block - not supported
           const nestedLine = getLineNumber(j);
           throw new Error(
-            `Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line ${nestedLine} (original raw block started on line ${openingLine}).`,
+            `Nested ${RAW_BLOCK_OPEN} blocks are not supported. Found nested raw block inside another raw block on line ${nestedLine} (original raw block started on line ${openingLine}).`,
           );
-        } else if (matchesAt(j, '{{/raw}}')) {
+        } else if (matchesAt(j, RAW_BLOCK_CLOSE)) {
           // Found matching closing tag
-          const rawContent = content.slice(i + 8, j);
+          const rawContent = content.slice(i + RAW_BLOCK_OPEN.length, j);
           const escapedContent = rawContent
             .replaceAll('{', CURLY_LEFT)
             .replaceAll('}', CURLY_RIGHT);
           result.push(escapedContent);
-          i = j + 8;
+          i = j + RAW_BLOCK_CLOSE.length;
           break;
         } else {
           j++;
@@ -99,7 +101,7 @@ function preprocessRawBlocks(content: string): string {
       // If we reached the end without finding a closing tag
       if (j >= content.length) {
         throw new Error(
-          `Unclosed {{#raw}} block found on line ${openingLine}. Every {{#raw}} must have a matching {{/raw}}.`,
+          `Unclosed ${RAW_BLOCK_OPEN} block found on line ${openingLine}. Every ${RAW_BLOCK_OPEN} must have a matching ${RAW_BLOCK_CLOSE}.`,
         );
       }
     } else {
