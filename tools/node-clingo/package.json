@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node scripts/download-prebuild.js || node-gyp-build",
@@ -14,7 +14,7 @@
   "author": "",
   "license": "AGPL-3.0",
   "dependencies": {
-    "node-addon-api": "^7.1.0",
+    "node-addon-api": "^8.5.0",
     "node-gyp-build": "^4.8.4",
     "tar-stream": "^3.1.7"
   },

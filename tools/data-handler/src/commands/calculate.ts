@@ -29,7 +29,6 @@ import { pathExists } from '../utils/file-utils.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
 import { type Project, ResourcesFrom } from '../containers/project.js';
-import { flattenCardArray } from '../utils/card-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import {
   createCardFacts,
@@ -52,15 +51,17 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { solve, setBaseProgram } from '@cyberismo/node-clingo';
+import {
+  removeAllPrograms,
+  solve,
+  setProgram,
+  removeProgram,
+} from '@cyberismo/node-clingo';
 import { generateReportContent } from '../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 
-// Define names for the base programs
-const BASE_PROGRAM_KEY = 'base';
-const QUERY_LANGUAGE_KEY = 'queryLanguage';
-const UTILS_PROGRAM_KEY = 'utils';
-const CONTEXT_PROGRAM_KEY = 'context';
+// Define the all category that will be used for all programs
+const ALL_CATEGORY = 'all';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -99,72 +100,17 @@ export class Calculate {
   }
 
   // Generate card tree content
-  private async generateCardTreeContent(parentCard: Card | undefined) {
-    const cards = await this.getCards(parentCard);
-
-    let content = '% SECTION: CARDS_START\n';
+  private async setCardTreeContent() {
+    const cards = await this.getCards(undefined);
 
     for (const card of cards) {
-      const cardContent = await createCardFacts(card, this.project);
-      content += `% SECTION: CARD_${card.key}_START\n`;
-      content += `% Card ${card.key}\n`;
-      content += `${cardContent}\n`;
-      content += `% SECTION: CARD_${card.key}_END\n\n`;
+      await this.setCardContent(card);
     }
-
-    content += '% SECTION: CARDS_END';
-
-    return content;
   }
 
-  //
-  private async generateCardTypes() {
-    const cardTypes = await this.project.cardTypes();
-    let content = '';
-
-    for (const cardType of await Promise.all(
-      cardTypes.map((c) => this.project.resource<CardType>(c.name)),
-    )) {
-      if (!cardType) continue;
-
-      const cardTypeContent = createCardTypeFacts(cardType);
-      content += `% CardType ${cardType.name}\n${cardTypeContent}\n\n`;
-    }
-
-    return content;
-  }
-
-  //
-  private async generateFieldTypes() {
-    const fieldTypes = await this.project.fieldTypes();
-    let content = '';
-
-    for (const fieldType of await Promise.all(
-      fieldTypes.map((m) => this.project.resource<FieldType>(m.name)),
-    )) {
-      if (!fieldType) continue;
-
-      const fieldTypeContent = createFieldTypeFacts(fieldType);
-      content += `% FieldType ${fieldType.name}\n${fieldTypeContent}\n\n`;
-    }
-    return content;
-  }
-
-  // Collects all linkTypes from the project
-  private async generateLinkTypes() {
-    const linkTypes = await this.project.linkTypes();
-    let content = '';
-
-    for (const linkType of await Promise.all(
-      linkTypes.map((c) => this.project.resource<LinkType>(c.name)),
-    )) {
-      if (!linkType) continue;
-
-      const linkTypeContent = createLinkTypeFacts(linkType);
-      content += `% LinkType ${linkType.name}\n${linkTypeContent}\n\n`;
-    }
-
-    return content;
+  private async setCardContent(card: Card) {
+    const cardContent = await createCardFacts(card, this.project);
+    setProgram(card.key, cardContent, [ALL_CATEGORY]);
   }
 
   // Generates logic programs related to modules (and project itself).
@@ -183,13 +129,99 @@ export class Calculate {
     return content;
   }
 
-  // Collects all logic calculation files from project (local and imported modules)
-  private async generateCalculations() {
-    // Collect all available calculations
-    const calculations = await this.project.calculations(ResourcesFrom.all);
-    let content = '% SECTION: MODULES_START\n';
+  // Sets individual CardType programs
+  private async setCardTypesPrograms() {
+    const cardTypes = await this.project.cardTypes();
 
-    // Process modules content
+    for (const cardType of await Promise.all(
+      cardTypes.map((c) => this.project.resource<CardType>(c.name)),
+    )) {
+      if (!cardType) continue;
+
+      const cardTypeContent = createCardTypeFacts(cardType);
+      setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual FieldType programs
+  private async setFieldTypesPrograms() {
+    const fieldTypes = await this.project.fieldTypes();
+
+    for (const fieldType of await Promise.all(
+      fieldTypes.map((m) => this.project.resource<FieldType>(m.name)),
+    )) {
+      if (!fieldType) continue;
+
+      const fieldTypeContent = createFieldTypeFacts(fieldType);
+      setProgram(fieldType.name, fieldTypeContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual LinkType programs
+  private async setLinkTypesPrograms() {
+    const linkTypes = await this.project.linkTypes();
+
+    for (const linkType of await Promise.all(
+      linkTypes.map((c) => this.project.resource<LinkType>(c.name)),
+    )) {
+      if (!linkType) continue;
+
+      const linkTypeContent = createLinkTypeFacts(linkType);
+      setProgram(linkType.name, linkTypeContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual Workflow programs
+  private async setWorkflowsPrograms() {
+    const workflows = await this.project.workflows();
+
+    for (const workflow of await Promise.all(
+      workflows.map((m) => this.project.resource<Workflow>(m.name)),
+    )) {
+      if (!workflow) continue;
+
+      const workflowContent = createWorkflowFacts(workflow);
+      setProgram(workflow.name, workflowContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual Report programs
+  private async setReportsPrograms() {
+    const reports = await this.project.reports();
+
+    for (const report of await Promise.all(
+      reports.map((r) => this.project.resource<ReportMetadata>(r.name)),
+    )) {
+      if (!report) continue;
+
+      const reportContent = createReportFacts(report);
+      setProgram(report.name, reportContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual Template programs
+  private async setTemplatesPrograms() {
+    const templates = await this.project.templates();
+
+    for (const template of await Promise.all(
+      templates.map((r) => this.project.resource<TemplateMetadata>(r.name)),
+    )) {
+      if (!template) continue;
+
+      const templateContent = createTemplateFacts(template);
+      const cards = await this.getCards(template.name);
+      for (const card of cards) {
+        const cardContent = await createCardFacts(card, this.project);
+        setProgram(card.key, cardContent, [ALL_CATEGORY]);
+      }
+      setProgram(template.name, templateContent, [ALL_CATEGORY]);
+    }
+  }
+
+  // Sets individual Calculation programs
+  private async setCalculationsPrograms() {
+    const calculations = await this.project.calculations(ResourcesFrom.all);
+
     for (const calculationFile of calculations) {
       if (calculationFile.path) {
         const moduleLogicFile = resolve(
@@ -203,93 +235,23 @@ export class Calculate {
         if (pathExists(filePath)) {
           try {
             const moduleContent = await readFile(filePath, 'utf-8');
-            content += `% SECTION: MODULE_${calculationFile.name}_START\n`;
-            content += `% Module ${calculationFile.name}\n`;
-            content += `${moduleContent}\n`;
-            content += `% SECTION: MODULE_${calculationFile.name}_END\n\n`;
+            setProgram(calculationFile.name, moduleContent, [ALL_CATEGORY]);
           } catch (error) {
             this.logger.warn(
               error,
-              `Failed to read module ${calculationFile.name}`,
+              `Failed to read calculation ${calculationFile.name}`,
             );
           }
         }
       }
     }
-    content += '% SECTION: MODULES_END';
-    return content;
-  }
-
-  // Generates logic programs related to reports.
-  private async generateReports() {
-    const reports = await this.project.reports();
-    let content = '';
-
-    for (const report of await Promise.all(
-      reports.map((r) => this.project.resource<ReportMetadata>(r.name)),
-    )) {
-      if (!report) continue;
-      content += createReportFacts(report);
-    }
-    return content;
-  }
-
-  // Generates logic programs related to templates (including their cards).
-  private async generateTemplates() {
-    const templates = await this.project.templates();
-    let content = '';
-
-    for (const template of await Promise.all(
-      templates.map((r) => this.project.resource<TemplateMetadata>(r.name)),
-    )) {
-      if (!template) continue;
-
-      let templateContent = createTemplateFacts(template);
-      const cards = await this.getCards(undefined, template.name);
-      for (const card of cards) {
-        const cardContent = await createCardFacts(card, this.project);
-        templateContent = templateContent.concat(cardContent);
-      }
-      content = content.concat(templateContent);
-    }
-    return content;
-  }
-
-  //
-  private async generateWorkFlows() {
-    const workflows = await this.project.workflows();
-    let content = '';
-
-    // loop through workflows
-    for (const workflow of await Promise.all(
-      workflows.map((m) => this.project.resource<Workflow>(m.name)),
-    )) {
-      if (!workflow) continue;
-
-      const workflowContent = createWorkflowFacts(workflow);
-      content += `% Workflow ${workflow.name}\n${workflowContent}\n\n`;
-    }
-
-    return content;
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private async getCards(
-    card: Card | undefined,
-    templateName?: string,
-  ): Promise<Card[]> {
-    let cards: Card[] = [];
-    if (!card) {
-      return templateName
-        ? this.project.templateCards(templateName)
-        : this.project.cards();
-    }
-    if (card.children) {
-      cards = flattenCardArray(card.children);
-    }
-    card.children = [];
-    cards.unshift(card);
-    return cards;
+  private async getCards(templateName?: string): Promise<Card[]> {
+    return templateName
+      ? this.project.templateCards(templateName)
+      : this.project.cards();
   }
 
   // Checks that Clingo successfully returned result.
@@ -303,13 +265,8 @@ export class Calculate {
   private async run(query: string, context: Context): Promise<string[]> {
     try {
       const res = await Calculate.mutex.runExclusive(async () => {
-        // For queries, use both base and queryLanguage
-        const basePrograms = [
-          BASE_PROGRAM_KEY,
-          QUERY_LANGUAGE_KEY,
-          UTILS_PROGRAM_KEY,
-          CONTEXT_PROGRAM_KEY,
-        ];
+        // Use the main category to include all programs
+        const basePrograms = [ALL_CATEGORY];
 
         this.logger.trace(
           {
@@ -319,7 +276,7 @@ export class Calculate {
         );
 
         const contextFacts = createContextFacts(context);
-        setBaseProgram(contextFacts, CONTEXT_PROGRAM_KEY);
+        setProgram('context', contextFacts, [ALL_CATEGORY]);
         // Then solve with the program - need to pass the program as parameter
         return solve(query, basePrograms);
       });
@@ -344,81 +301,42 @@ export class Calculate {
    * Generates a logic program.
    * @param cardKey Optional, sub-card tree defining card
    */
-  public async generate(cardKey?: string) {
+  public async generate() {
     await Calculate.mutex.runExclusive(async () => {
       this.logger.trace(
         {
           clingo: true,
-          cardKey,
         },
         'Generating logic program',
       );
+      removeAllPrograms();
 
       if (!this.modulesInitialized) {
         await this.initializeModules();
         this.modulesInitialized = true;
       }
+      // Set base common programs with main category
+      setProgram('base', lpFiles.common.base, [ALL_CATEGORY]);
+      setProgram('queryLanguage', lpFiles.common.queryLanguage, [ALL_CATEGORY]);
 
-      let card: Card | undefined;
-      if (cardKey) {
-        card = await this.project.findSpecificCard(cardKey, {
-          metadata: true,
-          children: true,
-          content: false,
-          parent: false,
-        });
-        if (!card) {
-          throw new Error(`Card '${cardKey}' not found`);
-        }
-      }
-      const calculations = await this.generateCalculations();
-      const cardTreeContent = await this.generateCardTreeContent(card);
-      const workFlows = await this.generateWorkFlows();
-      const cardTypes = await this.generateCardTypes();
-      const fieldTypes = await this.generateFieldTypes();
-      const linkTypes = await this.generateLinkTypes();
-      const reports = await this.generateReports();
-      const templates = await this.generateTemplates();
+      setProgram('utils', lpFiles.common.utils, [ALL_CATEGORY]);
 
-      // Combine all resources
-      const resourcesProgram =
-        '% SECTION: RESOURCES_START\n' +
-        calculations +
-        workFlows +
-        cardTypes +
-        fieldTypes +
-        linkTypes +
-        reports +
-        templates +
-        '% SECTION: RESOURCES_END';
+      // Set modules program
+      setProgram('modules', this.modules, [ALL_CATEGORY]);
 
-      // Create base program content
-      const baseProgram =
-        '% SECTION: BASE_START\n' +
-        lpFiles.common.base +
-        '\n% SECTION: BASE_END\n\n' +
-        this.modules +
-        '\n\n' +
-        cardTreeContent +
-        '\n\n' +
-        resourcesProgram;
+      // Set individual resource type programs
+      await this.setCardTreeContent();
+      await this.setCardTypesPrograms();
+      await this.setFieldTypesPrograms();
+      await this.setLinkTypesPrograms();
+      await this.setWorkflowsPrograms();
+      await this.setReportsPrograms();
+      await this.setTemplatesPrograms();
+      await this.setCalculationsPrograms();
 
-      // Set the base programs separately
-      setBaseProgram(baseProgram, BASE_PROGRAM_KEY);
-      setBaseProgram(
-        '% SECTION: QUERY_LANGUAGE_START\n' +
-          lpFiles.common.queryLanguage +
-          '\n% SECTION: QUERY_LANGUAGE_END',
-        QUERY_LANGUAGE_KEY,
-      );
-      setBaseProgram(lpFiles.common.utils, UTILS_PROGRAM_KEY);
-
-      // Also store the base program (without query language) for updates
-      this.logicProgram = baseProgram;
       this.logger.trace(
         {
           clingo: true,
-          cardKey,
         },
         'Logic program set',
       );
@@ -430,7 +348,9 @@ export class Calculate {
    * @param changedCard Card that was changed.
    */
   public async handleCardChanged(changedCard: Card) {
-    await this.generate(changedCard.key);
+    await Calculate.mutex.runExclusive(async () => {
+      await this.setCardContent(changedCard);
+    });
     return { statusCode: 200 };
   }
 
@@ -442,22 +362,15 @@ export class Calculate {
     if (!deletedCard) {
       return;
     }
-
     await Calculate.mutex.runExclusive(async () => {
-      const affectedCards = await this.getCards(deletedCard);
-
-      // Filter out deleted cards' content from the cardsProgram string
-      for (const card of affectedCards) {
-        // Remove card-specific content from the in-memory program using section markers
-        const cardSectionPattern = new RegExp(
-          `% SECTION: CARD_${card.key}_START[\\s\\S]*?% SECTION: CARD_${card.key}_END\\n\\n`,
-          'g',
+      if (!removeProgram(deletedCard.key)) {
+        this.logger.warn(
+          {
+            cardKey: deletedCard.key,
+          },
+          'Tried to remove card program that does not exist',
         );
-        this.logicProgram = this.logicProgram.replace(cardSectionPattern, '');
       }
-
-      // Update the base program after modifying logicProgram
-      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
   }
 
@@ -470,28 +383,10 @@ export class Calculate {
       return;
     }
 
-    // Only proceed if we already have a logic program
-    if (!this.logicProgram) {
-      return;
-    }
-
     await Calculate.mutex.runExclusive(async () => {
-      // Generate content for all cards (including new ones)
-      const cardTreeContent = await this.generateCardTreeContent(undefined);
-
-      // Update the main logic program with the new cards program
-      if (
-        this.logicProgram.includes('% SECTION: CARDS_START') &&
-        this.logicProgram.includes('% SECTION: CARDS_END')
-      ) {
-        this.logicProgram = this.logicProgram.replace(
-          /% SECTION: CARDS_START[\s\S]*?% SECTION: CARDS_END/,
-          cardTreeContent,
-        );
+      for (const card of cards) {
+        await this.setCardContent(card);
       }
-
-      // Update the base program after modifying logicProgram
-      setBaseProgram(this.logicProgram, BASE_PROGRAM_KEY);
     });
 
     const cardKeys = cards.map((item) => item.key);
