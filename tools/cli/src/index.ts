@@ -87,7 +87,7 @@ function handleResponse(response: requestStatus) {
 }
 
 // Load environment variables from .env file
-dotenv.config();
+dotenv.config({ quiet: true });
 
 // Commander
 const program = new Command();
