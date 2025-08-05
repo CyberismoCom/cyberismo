@@ -53,5 +53,10 @@
     "build-docker": "docker build -t cyberismo .",
     "install-dev-packages": "node scripts/install-dev-packages.js",
     "ci:publish": "pnpm --filter !app publish --access public"
-  }
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/node": "^22.15.29"
+    }
+}
 }

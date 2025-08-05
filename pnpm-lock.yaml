@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@types/node': ^22.15.29
+
 importers:
 
   .:
@@ -21,7 +24,7 @@ importers:
         specifier: ^10.0.10
         version: 10.0.10
       '@types/node':
-        specifier: ^22.14.1
+        specifier: ^22.15.29
         version: 22.15.29
       '@typescript-eslint/parser':
         specifier: ^8.32.0
@@ -115,7 +118,7 @@ importers:
         version: 4.24.2(@babel/runtime@7.28.2)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.37.1)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@vitejs/plugin-react':
         specifier: ^4.4.1
-        version: 4.5.0(vite@6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4))
+        version: 4.5.0(vite@6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4))
       codemirror-asciidoc:
         specifier: ^2.0.1
         version: 2.0.1
@@ -154,7 +157,7 @@ importers:
         version: 19.1.0
       react-arborist:
         specifier: ^3.4.3
-        version: 3.4.3(@types/node@24.2.0)(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 3.4.3(@types/node@22.15.29)(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react-dom:
         specifier: ^19.0.0
         version: 19.1.0(react@19.1.0)
@@ -199,10 +202,10 @@ importers:
         version: 6.2.0(vega@6.1.2)
       vite:
         specifier: ^6.3.4
-        version: 6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4)
+        version: 6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4)
       vite-plugin-top-level-await:
         specifier: ^1.5.0
-        version: 1.5.0(rollup@4.40.2)(vite@6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4))
+        version: 1.5.0(rollup@4.40.2)(vite@6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4))
 
   tools/assets:
     devDependencies:
@@ -251,7 +254,7 @@ importers:
         version: link:../data-handler
       '@inquirer/confirm':
         specifier: ^5.1.12
-        version: 5.1.12(@types/node@24.2.0)
+        version: 5.1.12(@types/node@22.15.29)
       cli-progress:
         specifier: ^3.12.0
         version: 3.12.0
@@ -853,7 +856,7 @@ packages:
     resolution: {integrity: sha512-dpq+ielV9/bqgXRUbNH//KsY6WEw9DrGPmipkpmgC1Y46cwuBTNx7PXFWTjc3MQ+urcc0QxoVHcMI0FW4Ok0hg==}
     engines: {node: '>=18'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': ^22.15.29
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -862,7 +865,7 @@ packages:
     resolution: {integrity: sha512-1viSxebkYN2nJULlzCxES6G9/stgHSepZ9LqqfdIGPHj5OHhiBUXVS0a6R0bEC2A+VL4D9w6QB66ebCr6HGllA==}
     engines: {node: '>=18'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': ^22.15.29
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -875,7 +878,7 @@ packages:
     resolution: {integrity: sha512-PfunHQcjwnju84L+ycmcMKB/pTPIngjUJvfnRhKY6FKPuYXlM4aQCb/nIdTFR6BEhMjFvngzvng/vBAJMZpLSA==}
     engines: {node: '>=18'}
     peerDependencies:
-      '@types/node': '>=18'
+      '@types/node': ^22.15.29
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -1463,9 +1466,6 @@ packages:
 
   '@types/node@22.15.29':
     resolution: {integrity: sha512-LNdjOkUDlU1RZb8e1kOIUpN1qQUlzGkEtbVNo53vbrwDg5om6oduhm4SiUaPW5ASTXhAiP0jInWG8Qx9fVlOeQ==}
-
-  '@types/node@24.2.0':
-    resolution: {integrity: sha512-3xyG3pMCq3oYCNg7/ZP+E1ooTaGB4cG8JWRsqqOYQdbWNY4zbaV0Ennrd7stjiJEFZCaybcIgpTjJWHRfBSIDw==}
 
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
@@ -3650,7 +3650,7 @@ packages:
     resolution: {integrity: sha512-9i1jSgbyVw0ELlEVt/NkCUkxy1hmhJOkePoCH713u75vzHGyXhPDm28oLfc2NMSBjZRM1Y+wRjHXJT3sPrTy+A==}
     peerDependencies:
       '@types/hoist-non-react-statics': '>= 3.3.1'
-      '@types/node': '>= 12'
+      '@types/node': ^22.15.29
       '@types/react': '>= 16'
       react: '>= 16.14'
     peerDependenciesMeta:
@@ -4340,9 +4340,6 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici-types@7.10.0:
-    resolution: {integrity: sha512-t5Fy/nfn+14LuOc2KNYg75vZqClpAiqscVvMygNnlsHBFpSXdJaYtXMcdNLpl/Qvc3P2cB3s6lOV51nqsFq4ag==}
-
   unique-filename@4.0.0:
     resolution: {integrity: sha512-XSnEewXmQ+veP7xX2dS5Q4yZAvO40cBN2MWkJ7D/6sW4Dg6wYBNwM1Vrnz1FhH5AdeLIlUXRI9e28z1YZi71NQ==}
     engines: {node: ^18.17.0 || >=20.5.0}
@@ -4529,7 +4526,7 @@ packages:
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
-      '@types/node': ^18.0.0 || ^20.0.0 || >=22.0.0
+      '@types/node': ^22.15.29
       jiti: '>=1.21.0'
       less: '*'
       lightningcss: ^1.21.0
@@ -4587,7 +4584,7 @@ packages:
     peerDependencies:
       '@edge-runtime/vm': '*'
       '@types/debug': ^4.1.12
-      '@types/node': ^18.0.0 || ^20.0.0 || >=22.0.0
+      '@types/node': ^22.15.29
       '@vitest/browser': 3.1.4
       '@vitest/ui': 3.1.4
       happy-dom: '*'
@@ -5314,17 +5311,17 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.2': {}
 
-  '@inquirer/confirm@5.1.12(@types/node@24.2.0)':
+  '@inquirer/confirm@5.1.12(@types/node@22.15.29)':
     dependencies:
-      '@inquirer/core': 10.1.13(@types/node@24.2.0)
-      '@inquirer/type': 3.0.7(@types/node@24.2.0)
+      '@inquirer/core': 10.1.13(@types/node@22.15.29)
+      '@inquirer/type': 3.0.7(@types/node@22.15.29)
     optionalDependencies:
-      '@types/node': 24.2.0
+      '@types/node': 22.15.29
 
-  '@inquirer/core@10.1.13(@types/node@24.2.0)':
+  '@inquirer/core@10.1.13(@types/node@22.15.29)':
     dependencies:
       '@inquirer/figures': 1.0.12
-      '@inquirer/type': 3.0.7(@types/node@24.2.0)
+      '@inquirer/type': 3.0.7(@types/node@22.15.29)
       ansi-escapes: 4.3.2
       cli-width: 4.1.0
       mute-stream: 2.0.0
@@ -5332,13 +5329,13 @@ snapshots:
       wrap-ansi: 6.2.0
       yoctocolors-cjs: 2.1.2
     optionalDependencies:
-      '@types/node': 24.2.0
+      '@types/node': 22.15.29
 
   '@inquirer/figures@1.0.12': {}
 
-  '@inquirer/type@3.0.7(@types/node@24.2.0)':
+  '@inquirer/type@3.0.7(@types/node@22.15.29)':
     optionalDependencies:
-      '@types/node': 24.2.0
+      '@types/node': 22.15.29
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -5875,11 +5872,6 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.2.0':
-    dependencies:
-      undici-types: 7.10.0
-    optional: true
-
   '@types/parse-json@4.0.2':
     optional: true
 
@@ -5918,7 +5910,7 @@ snapshots:
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 24.2.0
+      '@types/node': 22.15.29
     optional: true
 
   '@typescript-eslint/eslint-plugin@8.33.0(@typescript-eslint/parser@8.33.0(eslint@9.28.0)(typescript@5.8.3))(eslint@9.28.0)(typescript@5.8.3)':
@@ -6040,7 +6032,7 @@ snapshots:
       - '@codemirror/lint'
       - '@codemirror/search'
 
-  '@vitejs/plugin-react@4.5.0(vite@6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4))':
+  '@vitejs/plugin-react@4.5.0(vite@6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4))':
     dependencies:
       '@babel/core': 7.27.1
       '@babel/plugin-transform-react-jsx-self': 7.25.9(@babel/core@7.27.1)
@@ -6048,7 +6040,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.9
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4)
+      vite: 6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4)
     transitivePeerDependencies:
       - supports-color
 
@@ -8150,10 +8142,10 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  react-arborist@3.4.3(@types/node@24.2.0)(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
+  react-arborist@3.4.3(@types/node@22.15.29)(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       react: 19.1.0
-      react-dnd: 14.0.5(@types/node@24.2.0)(@types/react@19.1.6)(react@19.1.0)
+      react-dnd: 14.0.5(@types/node@22.15.29)(@types/react@19.1.6)(react@19.1.0)
       react-dnd-html5-backend: 14.1.0
       react-dom: 19.1.0(react@19.1.0)
       react-window: 1.8.11(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -8168,7 +8160,7 @@ snapshots:
     dependencies:
       dnd-core: 14.0.1
 
-  react-dnd@14.0.5(@types/node@24.2.0)(@types/react@19.1.6)(react@19.1.0):
+  react-dnd@14.0.5(@types/node@22.15.29)(@types/react@19.1.6)(react@19.1.0):
     dependencies:
       '@react-dnd/invariant': 2.0.0
       '@react-dnd/shallowequal': 2.0.0
@@ -8177,7 +8169,7 @@ snapshots:
       hoist-non-react-statics: 3.3.2
       react: 19.1.0
     optionalDependencies:
-      '@types/node': 24.2.0
+      '@types/node': 22.15.29
       '@types/react': 19.1.6
 
   react-dom@19.1.0(react@19.1.0):
@@ -8883,9 +8875,6 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.10.0:
-    optional: true
-
   unique-filename@4.0.0:
     dependencies:
       unique-slug: 5.0.0
@@ -9214,12 +9203,12 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-top-level-await@1.5.0(rollup@4.40.2)(vite@6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4)):
+  vite-plugin-top-level-await@1.5.0(rollup@4.40.2)(vite@6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4)):
     dependencies:
       '@rollup/plugin-virtual': 3.0.2(rollup@4.40.2)
       '@swc/core': 1.11.31
       uuid: 10.0.0
-      vite: 6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4)
+      vite: 6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4)
     transitivePeerDependencies:
       - '@swc/helpers'
       - rollup
@@ -9234,20 +9223,6 @@ snapshots:
       tinyglobby: 0.2.14
     optionalDependencies:
       '@types/node': 22.15.29
-      fsevents: 2.3.3
-      terser: 5.40.0
-      tsx: 4.19.4
-
-  vite@6.3.5(@types/node@24.2.0)(terser@5.40.0)(tsx@4.19.4):
-    dependencies:
-      esbuild: 0.25.4
-      fdir: 6.4.5(picomatch@4.0.2)
-      picomatch: 4.0.2
-      postcss: 8.5.3
-      rollup: 4.40.2
-      tinyglobby: 0.2.14
-    optionalDependencies:
-      '@types/node': 24.2.0
       fsevents: 2.3.3
       terser: 5.40.0
       tsx: 4.19.4
