@@ -850,22 +850,36 @@ Some content here`;
   });
   describe('adoc helpers', () => {
     it('createHtmlPlaceholder (success)', () => {
-      const result = createHtmlPlaceholder(macro.metadata, {
+      const options = {
         test: 'test-data',
-      });
-      expect(result).to.match(
-        /^\n\+{3}\n<test-tag-name test="test-data" key="macro-\d+"><\/test-tag-name>\n\+{3}\n$/,
-      );
+      };
+
+      const result = createHtmlPlaceholder(macro.metadata, options);
+      expect(result).to.contain('test-tag-name');
+      expect(result).to.contain('key="macro-');
+      expect(result).to.contain('options="');
+
+      const optionsBase64 = Buffer.from(
+        JSON.stringify(options),
+        'utf-8',
+      ).toString('base64');
+
+      expect(result).to.contain(optionsBase64);
     });
     it('createHtmlPlaceholder (success) without data', () => {
       // note: depends on the order of execution
       const result = createHtmlPlaceholder(macro.metadata, {});
-      expect(result).to.match(
-        /^\n\+{3}\n<test-tag-name key="macro-\d+"><\/test-tag-name>\n\+{3}\n$/,
+      expect(result).to.contain('test-tag-name');
+      expect(result).to.contain('key="macro-');
+      expect(result).to.contain('options="');
+
+      const optionsBase64 = Buffer.from(JSON.stringify({}), 'utf-8').toString(
+        'base64',
       );
+      expect(result).to.contain(optionsBase64);
     });
     it('createHtmlPlaceholder with nested objects (dot notation)', () => {
-      const result = createHtmlPlaceholder(macro.metadata, {
+      const options = {
         key: 'test',
         anotherKey: {
           key1: 'test',
@@ -874,12 +888,14 @@ Some content here`;
             deepValue: 'deep',
           },
         },
-      });
+      };
+      const result = createHtmlPlaceholder(macro.metadata, options);
 
-      expect(result).to.contain('key="test"');
-      expect(result).to.contain('anotherKey.key1="test"');
-      expect(result).to.contain('anotherKey.key2="test2"');
-      expect(result).to.contain('anotherKey.nested.deepValue="deep"');
+      const optionsBase64 = Buffer.from(
+        JSON.stringify(options),
+        'utf-8',
+      ).toString('base64');
+      expect(result).to.contain(optionsBase64);
     });
     it('createAdmonition (success)', () => {
       const result = createAdmonition('WARNING', 'test-title', 'test-content');
@@ -901,6 +917,6 @@ describe('createMacro', () => {
   });
   it('should handle options with nested objects', () => {
     const result = createMacro('scoreCard', { a: { b: 1 } });
-    expect(result).to.equal('{{#scoreCard}}"a":{"b":1{{/scoreCard}}');
+    expect(result).to.equal('{{#scoreCard}}"a":{"b":1}{{/scoreCard}}');
   });
 });
