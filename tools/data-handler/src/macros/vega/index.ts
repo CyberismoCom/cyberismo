@@ -39,7 +39,6 @@ class VegaMacro extends BaseMacro {
     const options = this.validate(input) as VegaMacroInput;
     const view = new vega.View(vega.parse(options.spec), { renderer: 'none' });
     const svg = await view.toSVG();
-    console.log(svg);
     return createImage(Buffer.from(svg).toString('base64'), false);
   };
 
