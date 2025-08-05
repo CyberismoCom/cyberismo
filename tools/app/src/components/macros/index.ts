@@ -1,19 +1,22 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { MacroName } from '@cyberismo/data-handler/interfaces/macros';
 import CreateCards from './CreateCards';
 import ScoreCard from './ScoreCard';
 import { ReactElement } from 'react';
+import Vega from './Vega';
 
 export interface MacroContext {
   /**
@@ -28,7 +31,7 @@ export interface MacroContext {
 
 export type UIMacroName = Exclude<
   MacroName,
-  'report' | 'graph' | 'include' | 'xref' | 'percentage'
+  'report' | 'graph' | 'include' | 'xref' | 'percentage' | 'vegaLite'
 >;
 
 // We simply trust that the macro has been
@@ -37,4 +40,5 @@ export type UIMacroName = Exclude<
 export const macros: Record<UIMacroName, (props: any) => ReactElement> = {
   createCards: CreateCards,
   scoreCard: ScoreCard,
+  vega: Vega,
 };

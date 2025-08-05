@@ -12,7 +12,6 @@
 */
 
 import { validateMacroContent } from '../index.js';
-import type { MacroOptions } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
@@ -25,7 +24,7 @@ import { resourceName } from '../../utils/resource-utils.js';
 import { generateReportContent } from '../../utils/report.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 
-export interface ReportOptions extends MacroOptions {
+export interface ReportOptions {
   name: string;
 }
 

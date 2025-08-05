@@ -1,14 +1,13 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
-
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation. This program is distributed in the hope that it
-  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
-  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the GNU Affero General Public License for more details.
-  You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
@@ -21,6 +20,8 @@ import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
 import xref from './xref/index.js';
 import percentage from './percentage/index.js';
+import vega from './vega/index.js';
+import vegaLite from './vegalite/index.js';
 
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
@@ -143,6 +144,8 @@ export const macros: {
   scoreCard,
   xref,
   percentage,
+  vega,
+  vegaLite,
 };
 
 /**
@@ -346,57 +349,19 @@ export function handleMacroError(
 // There might be a better way to do this
 let macroCounter = 0;
 
-type Value = string | number | boolean | undefined;
-
+function objectToBase64(obj: unknown): string {
+  return Buffer.from(JSON.stringify(obj), 'utf-8').toString('base64');
+}
 /**
- * Macro options can be a flat object or a nested object
- * The nested object will be flattened into dot notation attributes
+ * Creates a placeholder for a macro
+ * Options are encoded as base64
+ * @param macro - The macro to create a placeholder for
+ * @param options - The options for the macro
+ * @returns The placeholder for the macro
  */
-export type MacroOptions = {
-  [key: string]: Value | MacroOptions;
-};
-/**
- * Creates an injectable placeholder for a macro
- * @param macro - The macro to create the placeholder for
- * @param options - Options will be passed to the html element as attributes
- */
-export function createHtmlPlaceholder(
-  macro: MacroMetadata,
-  options: MacroOptions,
-) {
-  // Flatten nested objects into dot notation attributes
-  const flattenedOptions: Record<string, Value> = {};
-
-  // Helper function to flatten nested objects
-  const flatten = (obj: MacroOptions, prefix = ''): void => {
-    Object.entries(obj).forEach(([key, value]) => {
-      const newKey = prefix ? `${prefix}.${key}` : key;
-
-      if (
-        value !== null &&
-        typeof value === 'object' &&
-        !Array.isArray(value)
-      ) {
-        // Recursively flatten nested objects
-        flatten(value, newKey);
-      } else {
-        // Add leaf values to flattened options
-        flattenedOptions[newKey] = value as Value;
-      }
-    });
-  };
-
-  flatten(options);
-
-  // Convert flattened options to attribute strings
-  const attributeStrings = Object.entries(flattenedOptions)
-    .filter(([, value]) => value !== undefined)
-    .map(([key, value]) => `${key}="${value}"`);
-
-  const optionString = attributeStrings.join(' ');
-
-  // start with a line change to ensure that inline passthrough +++ is on its own line
-  return `\n+++\n<${macro.tagName}${optionString ? ` ${optionString}` : ''} key="macro-${macroCounter++}"></${macro.tagName}>\n+++\n`;
+export function createHtmlPlaceholder(macro: MacroMetadata, options: unknown) {
+  const optionsBase64 = objectToBase64(options);
+  return `\n\n++++\n<${macro.tagName} options="${optionsBase64}" key="macro-${macroCounter++}"></${macro.tagName}>\n++++\n\n`;
 }
 
 /**
@@ -439,4 +404,19 @@ export function createImage(image: string, controls: boolean = true) {
       return `++++\n${svg}\n++++\n`;
     }
   }
+}
+
+/**
+ * Creates a Handlebars macro block string with the given macro name and options.
+ *
+ * @param macro - The name of the macro to create (e.g., 'scoreCard', 'include').
+ * @param options - The options object to be stringified and inserted as macro content.
+ * @returns The Handlebars macro block as a string, e.g. {{#macro}}...{{/macro}}
+ */
+export function createMacro(macro: MacroName, options: unknown) {
+  let optionsString = JSON.stringify(options, null, 0);
+  if (optionsString.length > 1) {
+    optionsString = optionsString.slice(1, -1);
+  }
+  return `{{#${macro}}}${optionsString}{{/${macro}}}`;
 }

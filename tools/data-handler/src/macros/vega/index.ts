@@ -11,45 +11,45 @@
   You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
-import { createImage, validateMacroContent } from '../index.js';
-
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
+import macroMetadata from './metadata.js';
 import type TaskQueue from '../task-queue.js';
-import { scoreCard } from '../../svg/index.js';
+import {
+  createHtmlPlaceholder,
+  createImage,
+  validateMacroContent,
+} from '../index.js';
+import * as vega from 'vega';
 
-export interface ScoreCardOptions {
-  value: number;
-  legend?: string;
-  title?: string;
-  unit?: string;
+export interface VegaMacroInput {
+  spec: vega.Spec;
 }
 
-class ScoreCardMacro extends BaseMacro {
+class VegaMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
-  handleValidate = (data: string) => {
-    this.validate(data);
+
+  handleValidate = (input: unknown) => {
+    this.validate(input);
   };
 
   handleStatic = async (_: MacroGenerationContext, input: unknown) => {
-    const options = this.validate(input);
-    return createImage(
-      Buffer.from(scoreCard(options)).toString('base64'),
-      false,
-    );
+    const options = this.validate(input) as VegaMacroInput;
+    const view = new vega.View(vega.parse(options.spec), { renderer: 'none' });
+    const svg = await view.toSVG();
+    return createImage(Buffer.from(svg).toString('base64'), false);
   };
 
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
+  handleInject = async (_: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input) as VegaMacroInput;
+    return createHtmlPlaceholder(this.metadata, options);
   };
 
-  private validate(input: unknown): ScoreCardOptions {
-    return validateMacroContent<ScoreCardOptions>(this.metadata, input);
+  private validate(input: unknown): VegaMacroInput {
+    return validateMacroContent<VegaMacroInput>(this.metadata, input);
   }
 }
 
-export default ScoreCardMacro;
+export default VegaMacro;

@@ -30,6 +30,8 @@ import reportSchema from './schema/resources/reportSchema.json' with { type: 'js
 import schema from './schema/schema.json' with { type: 'json' };
 import scoreCardMacroSchema from './schema/macros/scoreCardMacroSchema.json' with { type: 'json' };
 import templateSchema from './schema/resources/templateSchema.json' with { type: 'json' };
+import vegaLiteMacroSchema from './schema/macros/vegaLiteMacroSchema.json' with { type: 'json' };
+import vegaMacroSchema from './schema/macros/vegaMacroSchema.json' with { type: 'json' };
 import workflowSchema from './schema/resources/workflowSchema.json' with { type: 'json' };
 import xrefMacroSchema from './schema/macros/xrefMacroSchema.json' with { type: 'json' };
 import cardTreeDirectorySchema from './schema/cardTreeDirectorySchema.json' with { type: 'json' };
@@ -53,6 +55,8 @@ export const schemas = [
   schema,
   scoreCardMacroSchema,
   templateSchema,
+  vegaLiteMacroSchema,
+  vegaMacroSchema,
   workflowSchema,
   xrefMacroSchema,
 ];
