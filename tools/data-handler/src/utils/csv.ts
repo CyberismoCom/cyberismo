@@ -45,7 +45,7 @@ export async function readCsvFile(file: string): Promise<CSVRowRaw[]> {
     if (!Array.isArray(row)) {
       throw new Error('Row is not an array');
     }
-    return headers.reduce((acc, header, index) => {
+    return headers.reduce((acc: Record<string, string>, header, index) => {
       acc[header] = row[index];
       return acc;
     }, {});
