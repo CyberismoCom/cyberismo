@@ -45,11 +45,11 @@ importers:
         specifier: ^10.1.5
         version: 10.1.5(eslint@9.28.0)
       mocha:
-        specifier: ^11.2.2
-        version: 11.5.0
+        specifier: ^11.7.1
+        version: 11.7.1
       mocha-suppress-logs:
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.6.0
+        version: 0.6.0
       prettier:
         specifier: ^3.3.2
         version: 3.5.3
@@ -103,7 +103,7 @@ importers:
         version: 6.6.3
       '@testing-library/react':
         specifier: ^16.3.0
-        version: 16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/react':
         specifier: ^19.1.3
         version: 19.1.6
@@ -112,7 +112,7 @@ importers:
         version: 19.1.5(@types/react@19.1.6)
       '@uiw/react-codemirror':
         specifier: ^4.23.12
-        version: 4.23.12(@babel/runtime@7.27.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.37.1)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        version: 4.23.12(@babel/runtime@7.28.2)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.37.1)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@vitejs/plugin-react':
         specifier: ^4.4.1
         version: 4.5.0(vite@6.3.5(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4))
@@ -1366,10 +1366,6 @@ packages:
   '@swc/types@0.1.22':
     resolution: {integrity: sha512-D13mY/ZA4PPEFSy6acki9eBT/3WgjMoRqNcdpIvjaYLQ44Xk5BdaL7UkDxAh6Z9UOe7tCCp67BVmZCojYp9owg==}
 
-  '@testing-library/dom@10.4.0':
-    resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
-    engines: {node: '>=18'}
-
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
     engines: {node: '>=18'}
@@ -1828,8 +1824,8 @@ packages:
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
 
-  brace-expansion@2.0.1:
-    resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
+  brace-expansion@2.0.2:
+    resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -3146,11 +3142,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  mocha-suppress-logs@0.5.1:
-    resolution: {integrity: sha512-f4BhMiCABgCt3tlXiOcRydWreNCkfvgXgNL2ZclfXPdLNcY7jfyNy3Oi5wwPuxx++UyuNiIx3F7orvckAfrKzw==}
+  mocha-suppress-logs@0.6.0:
+    resolution: {integrity: sha512-cDn7TwkxlcWeXKDYfKrQliGBljTNPKB1/k5doF4TGzAVC/edKGbAM28vsYRTA57h0Y+yaVQbgSmIqYySBNEmfQ==}
 
-  mocha@11.5.0:
-    resolution: {integrity: sha512-VKDjhy6LMTKm0WgNEdlY77YVsD49LZnPSXJAaPNL9NRYQADxvORsyG1DIQY6v53BKTnlNbEE2MbVCDbnxr4K3w==}
+  mocha@11.7.1:
+    resolution: {integrity: sha512-5EK+Cty6KheMS/YLPPMJC64g5V61gIR25KsRItHw6x4hEKT6Njp1n9LOlH4gpevuwMVS66SXaBBpg+RWZkza4A==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     hasBin: true
 
@@ -4355,8 +4351,8 @@ packages:
     resolution: {integrity: sha512-kKlNACbvHrkpIw6oPeYDSmdCTu2hdMHoyXLTcUKala++lx5Y+wjJ/e474Jqv5abnVmwxw08DiTuHmw69lJGksA==}
     engines: {node: '>=8.0.0'}
 
-  workerpool@6.5.1:
-    resolution: {integrity: sha512-Fs4dNYcsdpYSAfVxhnl1L5zTksjvOJxtC5hzMNl+1t9B8hTJTdKDyZ5ju7ztgPy+ft9tBFXoOlDNiOT9WUXZlA==}
+  workerpool@9.3.3:
+    resolution: {integrity: sha512-slxCaKbYjEdFT/o2rH9xS1hf4uRDch1w7Uo+apxhZ+sf/1d9e0ZVkn42kPNGP2dgjIx6YFvSevj0zHvbWe2jdw==}
 
   wrap-ansi@5.1.0:
     resolution: {integrity: sha512-QC1/iN/2/RPVJ5jYK8BGttj5z83LmSKmvbvrXPNCLZSEb32KKVDJDl/MOt2N01qU2H/FkzEa9PKto1BqDjtd7Q==}
@@ -5445,17 +5441,6 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@testing-library/dom@10.4.0':
-    dependencies:
-      '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.27.4
-      '@types/aria-query': 5.0.4
-      aria-query: 5.3.0
-      chalk: 4.1.2
-      dom-accessibility-api: 0.5.16
-      lz-string: 1.5.0
-      pretty-format: 27.5.1
-
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -5477,10 +5462,10 @@ snapshots:
       lodash: 4.17.21
       redent: 3.0.0
 
-  '@testing-library/react@16.3.0(@testing-library/dom@10.4.0)(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@testing-library/react@16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@babel/runtime': 7.27.4
-      '@testing-library/dom': 10.4.0
+      '@testing-library/dom': 10.4.1
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
     optionalDependencies:
@@ -5691,9 +5676,9 @@ snapshots:
       '@codemirror/state': 6.5.2
       '@codemirror/view': 6.37.1
 
-  '@uiw/react-codemirror@4.23.12(@babel/runtime@7.27.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.37.1)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@uiw/react-codemirror@4.23.12(@babel/runtime@7.28.2)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.37.1)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.37.1)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
-      '@babel/runtime': 7.27.4
+      '@babel/runtime': 7.28.2
       '@codemirror/commands': 6.8.1
       '@codemirror/state': 6.5.2
       '@codemirror/theme-one-dark': 6.1.2
@@ -5955,7 +5940,7 @@ snapshots:
       balanced-match: 1.0.2
       concat-map: 0.0.1
 
-  brace-expansion@2.0.1:
+  brace-expansion@2.0.2:
     dependencies:
       balanced-match: 1.0.2
 
@@ -7300,11 +7285,11 @@ snapshots:
 
   minimatch@5.1.6:
     dependencies:
-      brace-expansion: 2.0.1
+      brace-expansion: 2.0.2
 
   minimatch@9.0.5:
     dependencies:
-      brace-expansion: 2.0.1
+      brace-expansion: 2.0.2
 
   minimist@1.2.8: {}
 
@@ -7350,11 +7335,11 @@ snapshots:
 
   mkdirp@3.0.1: {}
 
-  mocha-suppress-logs@0.5.1:
+  mocha-suppress-logs@0.6.0:
     dependencies:
       clone: 2.1.2
 
-  mocha@11.5.0:
+  mocha@11.7.1:
     dependencies:
       browser-stdout: 1.3.1
       chokidar: 4.0.3
@@ -7372,7 +7357,7 @@ snapshots:
       serialize-javascript: 6.0.2
       strip-json-comments: 3.1.1
       supports-color: 8.1.1
-      workerpool: 6.5.1
+      workerpool: 9.3.3
       yargs: 17.7.2
       yargs-parser: 21.1.1
       yargs-unparser: 2.0.0
@@ -8577,7 +8562,7 @@ snapshots:
       reduce-flatten: 2.0.0
       typical: 5.2.0
 
-  workerpool@6.5.1: {}
+  workerpool@9.3.3: {}
 
   wrap-ansi@5.1.0:
     dependencies:
