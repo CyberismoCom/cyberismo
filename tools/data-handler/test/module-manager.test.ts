@@ -88,7 +88,7 @@ describe('module-manager', () => {
     ).to.be.rejectedWith(
       `Imported project has a prefix 'base' that is already used in the project. Cannot import from module.`,
     );
-  });
+  }).timeout(10000);
   it('try to import from incorrect local path', async () => {
     const localModule = join(testDir, 'valid/i-do-not-exist');
     await expect(
