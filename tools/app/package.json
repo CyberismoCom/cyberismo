@@ -54,7 +54,7 @@
     "redux-persist": "^6.0.0",
     "react-vega": "^7.7.1",
     "rollup-plugin-license": "^3.6.0",
-    "start-server-and-test": "^2.0.11",
+    "start-server-and-test": "^2.0.13",
     "swr": "^2.3.3",
     "typescript": "~5.8.3",
     "vega": "^6.1.2",
