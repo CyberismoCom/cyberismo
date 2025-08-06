@@ -13,7 +13,13 @@
 */
 
 // node
-import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  truncate,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Project } from '../containers/project.js';
@@ -26,8 +32,22 @@ import type {
 import type { QueryResult } from '../types/queries.js';
 import type { CardType } from '../interfaces/resource-interfaces.js';
 import type { Show } from './index.js';
+import { generateReportContent } from '../utils/report.js';
+import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
+import { spawn } from 'node:child_process';
+import { evaluateMacros } from '../macros/index.js';
 
 const attachmentFolder: string = 'a';
+
+interface ExportPdfOptions {
+  title: string;
+  name: string;
+  date?: Date;
+  version?: string;
+  revremark?: string;
+  cardKey?: string;
+  recursive?: boolean;
+}
 
 export class Export {
   constructor(
@@ -221,6 +241,75 @@ export class Export {
     }
 
     return card;
+  }
+
+  private async runAsciidoctorPdf(content: string): Promise<Buffer> {
+    const staticRootDir = await getStaticDirectoryPath();
+    const proc = spawn(
+      'asciidoctor-pdf',
+      [
+        '--trace',
+        '-a',
+        'pdf-theme=cyberismo',
+        '-a',
+        `pdf-themesdir=${join(staticRootDir, 'pdf-themes')}`,
+        '-a',
+        `pdf-fontsdir=${join(staticRootDir, 'pdf-themes', 'fonts')};GEM_FONTS_DIR`,
+        '-',
+      ],
+      {
+        timeout: 10000,
+      },
+    );
+    proc.stdin.end(content);
+    const result = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      proc.stdout.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+      proc.stderr.on('data', (chunk) => {
+        process.stderr.write(chunk);
+      });
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(Buffer.concat(chunks));
+        } else {
+          reject(new Error(`Asciidoctor-pdf failed with code ${code}`));
+        }
+      });
+    });
+    return result;
+  }
+
+  public async exportPdf(
+    destination: string,
+    options: ExportPdfOptions,
+  ): Promise<string> {
+    const opts = {
+      ...options,
+      date: options.date?.toISOString().split('T')[0],
+      recursive: options.recursive !== true ? false : true,
+    };
+
+    const result = await generateReportContent({
+      calculate: this.project.calculationEngine,
+      contentTemplate: pdfReport.content,
+      queryTemplate: pdfReport.query,
+      context: 'exportedDocument',
+      options: opts,
+    });
+
+    await writeFile(`${destination}.adoc`, result);
+    const evaluated = await evaluateMacros(result, {
+      context: 'exportedDocument',
+      mode: 'static',
+      project: this.project,
+      cardKey: '', // top level report does not contain any macros that use cardKey
+    });
+    await writeFile(`${destination}.evaluated.adoc`, evaluated);
+    const pdf = await this.runAsciidoctorPdf(evaluated);
+    await writeFile(destination, pdf);
+    return `Exported PDF to ${destination}`;
   }
 
   /**

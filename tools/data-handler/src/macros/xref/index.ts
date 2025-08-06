@@ -36,21 +36,36 @@ export default class XrefMacro extends BaseMacro {
     input: unknown,
   ): Promise<string> => {
     const options = this.validate(input);
-    const card = await context.project.cardDetailsById(options.cardKey, {
-      metadata: true,
-    });
+    const card = await this.getCard(options.cardKey, context);
 
     if (!card || !card.metadata) {
       throw new Error(`Card key ${options.cardKey} not found`);
     }
 
-    // Generate AsciiDoc link with proper React Router URL
-    return `xref:${options.cardKey}.adoc[${card.metadata.title}]`;
+    // in static mode we need to use internal references
+    return `<<${options.cardKey}>>`;
   };
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
+    const options = this.validate(input);
+    const card = await this.getCard(options.cardKey, context);
+
+    if (!card || !card.metadata) {
+      throw new Error(`Card key ${options.cardKey} not found`);
+    }
+
+    return `xref:${options.cardKey}.adoc[${card.metadata.title}]`;
   };
+
+  private async getCard(cardKey: string, context: MacroGenerationContext) {
+    const card = await context.project.cardDetailsById(cardKey, {
+      metadata: true,
+    });
+    if (!card || !card.metadata) {
+      throw new Error(`Card key ${cardKey} not found`);
+    }
+    return card;
+  }
 
   private validate(input: unknown): XrefMacroOptions {
     return validateMacroContent<XrefMacroOptions>(this.metadata, input);

@@ -13,10 +13,17 @@ import testModel from './calculations/test/model.lp';
 
 import graphvizReportQuery from './graphvizReport/query.lp.hbs';
 import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
+import pdfReportQuery from './exportPdfReport/query.lp.hbs';
+import pdfReportIndex from './exportPdfReport/index.adoc.hbs';
 
 export const graphvizReport = {
   query: graphvizReportQuery,
   content: graphvizReportIndex,
+};
+
+export const pdfReport = {
+  query: pdfReportQuery,
+  content: pdfReportIndex,
 };
 
 export const lpFiles = {

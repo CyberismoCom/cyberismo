@@ -22,6 +22,8 @@ import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
 export interface IncludeMacroOptions {
   cardKey: string;
   levelOffset?: string;
+  title?: 'include' | 'exclude' | 'only';
+  pageTitles?: 'normal' | 'discrete';
 }
 
 export default class IncludeMacro extends BaseMacro {
@@ -38,6 +40,12 @@ export default class IncludeMacro extends BaseMacro {
     input: unknown,
   ): Promise<string> => {
     const options = this.validate(input);
+    if (!options.title) {
+      options.title = 'include';
+    }
+    if (!options.pageTitles) {
+      options.pageTitles = 'normal';
+    }
     const card = await context.project.cardDetailsById(options.cardKey, {
       content: true,
       metadata: true,
@@ -49,10 +57,16 @@ export default class IncludeMacro extends BaseMacro {
       ...context,
       cardKey: options.cardKey,
     };
-    const content = `= ${card.metadata?.title}\n\n${await evaluateMacros(
-      card.content ?? '',
+
+    const anchor = this.generateAnchor(options);
+    const title = this.generateTitle(options, card.metadata?.title);
+    const cardContent = await this.generateCardContent(
+      options,
+      card.content,
       newContext,
-    )}`;
+    );
+
+    const content = `\n\n${anchor}${title}${cardContent}`;
 
     let levelOffset = 0;
     if (options.levelOffset) {
@@ -74,6 +88,7 @@ export default class IncludeMacro extends BaseMacro {
             MAX_LEVEL_OFFSET,
           )
         : 0,
+      options.pageTitles === 'discrete',
     );
     return adjustedContent;
   };
@@ -86,16 +101,50 @@ export default class IncludeMacro extends BaseMacro {
     return validateMacroContent<IncludeMacroOptions>(this.metadata, input);
   }
 
+  private generateAnchor(options: IncludeMacroOptions): string {
+    return options.title !== 'exclude' && options.pageTitles === 'normal'
+      ? `[[${options.cardKey}]]\n`
+      : '';
+  }
+
+  private generateTitle(
+    options: IncludeMacroOptions,
+    cardTitle?: string,
+  ): string {
+    if (options.title === 'only' || options.title === 'include') {
+      return `= ${cardTitle}\n\n`;
+    }
+    return '';
+  }
+
+  private async generateCardContent(
+    options: IncludeMacroOptions,
+    cardContent: string | undefined,
+    context: MacroGenerationContext,
+  ): Promise<string> {
+    if (options.title === 'only') {
+      return '';
+    }
+    return await evaluateMacros(cardContent ?? '', context);
+  }
+
   // Adjust asciidoc titles to match the level offset
-  private adjustTitles(content: string, levelOffset: number) {
+  private adjustTitles(
+    content: string,
+    levelOffset: number,
+    discrete: boolean,
+  ) {
     const lines = content.split('\n');
     const adjustedLines = lines.map((line) => {
-      const match = line.match(/^(\s*)(=+)(.*?)\s*$/);
+      const match = line.match(/^(\s*)([=#]+)(.*?)\s*$/);
       if (match) {
         const currentLevel = match[2].length;
-        const newLevel = Math.max(1, currentLevel + levelOffset);
+        const newLevel = Math.min(
+          Math.max(1, currentLevel + levelOffset),
+          MAX_LEVEL_OFFSET + 1,
+        );
         const equals = '='.repeat(newLevel);
-        return `${match[1]}${equals} ${match[3].trim()}`;
+        return `${discrete ? '[discrete]\n' : ''}${match[1]}${equals} ${match[3].trim()}`;
       }
       return line;
     });

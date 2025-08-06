@@ -38,7 +38,7 @@ interface GenerateReportContentParams {
   calculate: CalculationEngine;
   contentTemplate: string;
   queryTemplate: string;
-  options: Record<string, string>;
+  options: Record<string, string | undefined | boolean>;
   graph?: boolean;
   context: Context;
 }
