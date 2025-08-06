@@ -57,6 +57,7 @@ export interface CardsOptions {
   showUse?: boolean;
   logLevel?: Level;
   context?: Context;
+  recursive?: boolean;
 }
 
 // Commands that this class supports.
@@ -85,6 +86,7 @@ export enum Cmd {
 export enum ExportFormats {
   adoc = 'adoc',
   site = 'site',
+  pdf = 'pdf',
 }
 
 export { CommandManager } from './command-manager.js';
@@ -267,7 +269,12 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(output, format as ExportFormats, cardKey);
+        await this.export(
+          output,
+          format as ExportFormats,
+          cardKey,
+          options.recursive,
+        );
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -451,15 +458,32 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
+    recursive?: boolean,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
     }
     process.env.EXPORT_FORMAT = format;
-    const message = await this.commands?.exportCmd.exportToADoc(
-      destination,
-      parentCardKey,
-    );
+    // generate
+    await this.commands?.calculateCmd.generate();
+    let message = '';
+    if (format === 'pdf') {
+      const options = {
+        title: 'Cyberismo',
+        name: 'Cyberismo',
+        date: new Date(),
+        version: '1.0.0',
+        revremark: 'Initial version',
+        cardKey: parentCardKey,
+        recursive: recursive ?? false,
+      };
+      message = await this.commands?.exportCmd.exportPdf(destination, options);
+    } else {
+      message = await this.commands?.exportCmd.exportToADoc(
+        destination,
+        parentCardKey,
+      );
+    }
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
   }
@@ -562,6 +586,7 @@ export class Commands {
           'The parameters file must include a "cardKey" field included in the "parameters".',
       };
     }
+    this.commands?.calculateCmd.generate();
 
     const { name, parameters } = parametersFile;
     let result: string | undefined = '';

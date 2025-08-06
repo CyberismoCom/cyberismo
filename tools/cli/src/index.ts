@@ -399,6 +399,7 @@ program
     'Path to a card. If defined will export only that card and its children instead of whole project.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-r, --recursive', 'Export recursively(Only for pdf format)')
   .action(
     async (
       format: string,

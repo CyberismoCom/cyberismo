@@ -1,0 +1,57 @@
+extends: default
+page:
+  size: a4
+running-content:
+  start-at: toc
+
+font:
+  merge: false
+  catalog:
+    Plus Jakarta Sans:
+      normal: PlusJakartaSans-Medium.ttf
+      italic: PlusJakartaSans-Italic.ttf
+      bold: PlusJakartaSans-Bold.ttf
+      bold_italic: PlusJakartaSans-BoldItalic.ttf
+    'M+ 1mn':
+      normal: GEM_FONTS_DIR/mplus1mn-regular-subset.ttf
+      bold: GEM_FONTS_DIR/mplus1mn-bold-subset.ttf
+      italic: GEM_FONTS_DIR/mplus1mn-italic-subset.ttf
+      bold_italic: GEM_FONTS_DIR/mplus1mn-bold_italic-subset.ttf
+
+base:
+  font-family: Plus Jakarta Sans
+  font-style: normal
+
+heading:
+  font-family: Plus Jakarta Sans
+  font-style: bold
+
+codespan:
+  font_family: Courier
+
+code:
+  font_family: Courier
+
+title-page:
+  logo:
+    image: image:img/cyberismo-logo.png[pdfwidth=2.5in,align=right]
+  title:
+    font-color: #ff530f
+    font-style: bold
+    align: center
+
+header:
+  height: 0.5in
+  recto:
+    right:
+      content: image:img/cyberismo-logo.png[pdfwidth=12%]
+  verso:
+    left:
+      content: image:img/cyberismo-logo.png[pdfwidth=12%]
+
+footer:
+  columns: =100%
+  recto: &shared_footer
+    center:
+      content: '{page-number}'
+  verso: *shared_footer
