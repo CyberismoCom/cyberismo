@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { CommandManager } from '../src/command-manager.js';
 
 describe('module-manager', () => {
+  const skipTest = process.env.GITHUB_ACTIONS && os.platform() === 'win32';
   const baseDir = dirname(fileURLToPath(import.meta.url));
   const testDir = join(baseDir, 'tmp-module-manager-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -45,7 +46,6 @@ describe('module-manager', () => {
     expect(modules.length).equals(1);
   }).timeout(10000);
   it('import git module using credentials', async () => {
-    const skipTest = process.env.GITHUB_ACTIONS && os.platform() === 'win32';
     if (skipTest) {
       skip(
         `Importing a module causes action to jam from time to time on CI/Windows`,
@@ -96,11 +96,17 @@ describe('module-manager', () => {
     ).to.be.rejectedWith(`Input validation error: cannot find project`);
   });
   it('try to import from incorrect git path', async () => {
-    const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
-    const result = await expect(
-      commands.importCmd.importModule(gitModule, commands.project.basePath),
-    ).to.be.rejected;
-    expect(result.message).to.include('Failed to clone module');
+    if (skipTest) {
+      skip(
+        `Importing a module causes action to jam from time to time on CI/Windows`,
+      );
+    } else {
+      const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
+      const result = await expect(
+        commands.importCmd.importModule(gitModule, commands.project.basePath),
+      ).to.be.rejected;
+      expect(result.message).to.include('Failed to clone module');
+    }
   }).timeout(10000);
   it('try to import from incorrect private git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
