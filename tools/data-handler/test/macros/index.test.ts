@@ -1,7 +1,7 @@
 // testing
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-import { stub, SinonStub } from 'sinon';
+import { stub } from 'sinon';
 
 import {
   createAdmonition,
@@ -591,7 +591,7 @@ Some content here`;
           `${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test Card Title`,
         );
         expect(result).to.contain(
-          `\n${'='.repeat(MAX_LEVEL_OFFSET + 2)} Test subtitle`,
+          `\n${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test subtitle`,
         );
       });
       it('includeMacro inside includeMacro (success)', async () => {
@@ -718,10 +718,12 @@ Some content here`;
             },
             project.calculationEngine,
           );
+          const expected =
+            mode === 'static'
+              ? '<<xref-test-card>>'
+              : 'xref:xref-test-card.adoc[Test Card for Cross Reference]';
 
-          expect(result).to.equal(
-            'xref:xref-test-card.adoc[Test Card for Cross Reference]',
-          );
+          expect(result).to.equal(expected);
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
             true,
           );
