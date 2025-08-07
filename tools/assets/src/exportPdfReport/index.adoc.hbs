@@ -14,27 +14,19 @@
 toc::[]
 +
 {{#each results}}
-{{{"+"}}}
-{{{"+"}}}
   {{#include}}
      "cardKey": "{{this.key}}",
      "levelOffset": "{{this.levelOffset}}",
      "title": "only"
   {{/include}}
-{{{"+"}}}
-{{{"+"}}}
 [horizontal]
   {{#each this}}
   {{@key}}:: {{this}}
   {{/each}}
-{{{"+"}}}
-{{{"+"}}}
 {{#include}}
     "cardKey": "{{this.key}}",
     "levelOffset": "{{this.levelOffset}}",
     "title": "exclude",
     "pageTitles": "discrete"
 {{/include}}
-{{{"+"}}}
-{{{"+"}}}
 {{/each}}

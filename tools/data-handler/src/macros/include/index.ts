@@ -129,7 +129,12 @@ export default class IncludeMacro extends BaseMacro {
     if (options.title === 'only') {
       return '';
     }
-    return await evaluateMacros(cardContent ?? '', context, this.calculate);
+    return await evaluateMacros(
+      cardContent ?? '',
+      context,
+      this.calculate,
+      true,
+    );
   }
 
   // Adjust asciidoc titles to match the level offset
