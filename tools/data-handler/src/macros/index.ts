@@ -15,6 +15,7 @@ import Handlebars from 'handlebars';
 
 import createCards from './createCards/index.js';
 import graph from './graph/index.js';
+import image from './image/index.js';
 import include from './include/index.js';
 import report from './report/index.js';
 import scoreCard from './scoreCard/index.js';
@@ -139,6 +140,7 @@ export const macros: {
 } = {
   createCards,
   graph,
+  image,
   include,
   report,
   scoreCard,

@@ -14,6 +14,7 @@
 // important that this file imports only the metadata
 import createCards from './createCards/metadata.js';
 import graph from './graph/metadata.js';
+import image from './image/metadata.js';
 import include from './include/metadata.js';
 import report from './report/metadata.js';
 import scoreCard from './scoreCard/metadata.js';
@@ -25,6 +26,7 @@ import vegaLite from './vegalite/metadata.js';
 export const macroMetadata = {
   createCards,
   graph,
+  image,
   include,
   report,
   scoreCard,
