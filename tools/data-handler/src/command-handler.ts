@@ -475,7 +475,7 @@ export class Commands {
         version: '1.0.0',
         revremark: 'Initial version',
         cardKey: parentCardKey,
-        recursive: recursive ?? false,
+        recursive,
       };
       message = await this.commands?.exportCmd.exportPdf(destination, options);
     } else {

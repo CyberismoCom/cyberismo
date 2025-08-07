@@ -289,7 +289,7 @@ export class Export {
     const opts = {
       ...options,
       date: options.date?.toISOString().split('T')[0],
-      recursive: options.recursive !== true ? false : true,
+      recursive: options.recursive ?? false,
     };
 
     const result = await generateReportContent({
@@ -300,7 +300,6 @@ export class Export {
       options: opts,
     });
 
-    await writeFile(`${destination}.adoc`, result);
     const evaluated = await evaluateMacros(
       result,
       {
@@ -311,7 +310,6 @@ export class Export {
       },
       this.calculateCmd,
     );
-    await writeFile(`${destination}.evaluated.adoc`, evaluated);
     const pdf = await this.runAsciidoctorPdf(evaluated);
     await writeFile(destination, pdf);
     return `Exported PDF to ${destination}`;
