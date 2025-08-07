@@ -270,6 +270,16 @@ export class Export {
       proc.stderr.on('data', (chunk) => {
         process.stderr.write(chunk);
       });
+      proc.on('error', (error) => {
+        if ('code' in error && error.code === 'ENOENT') {
+          reject(
+            new Error(
+              'Asciidoctor-pdf not found. Please install asciidoctor-pdf to use this feature.',
+            ),
+          );
+        }
+        reject(error);
+      });
       proc.on('close', (code) => {
         if (code === 0) {
           resolve(Buffer.concat(chunks));
