@@ -58,6 +58,11 @@ export interface CardsOptions {
   logLevel?: Level;
   context?: Context;
   recursive?: boolean;
+  title?: string;
+  name?: string;
+  date?: string;
+  version?: string;
+  revremark?: string;
 }
 
 // Commands that this class supports.
@@ -269,12 +274,7 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(
-          output,
-          format as ExportFormats,
-          cardKey,
-          options.recursive,
-        );
+        await this.export(output, format as ExportFormats, cardKey, options);
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -458,7 +458,7 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
-    recursive?: boolean,
+    pdfOptions?: CardsOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
@@ -469,13 +469,12 @@ export class Commands {
     let message = '';
     if (format === 'pdf') {
       const options = {
-        title: 'Cyberismo',
-        name: 'Cyberismo',
-        date: new Date(),
-        version: '1.0.0',
-        revremark: 'Initial version',
+        title: pdfOptions?.title || 'Title',
+        name: pdfOptions?.name || 'Name',
+        version: pdfOptions?.version || '1.0.0',
+        revremark: pdfOptions?.revremark || 'Initial version',
         cardKey: parentCardKey,
-        recursive,
+        date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
       };
       message = await this.commands?.exportCmd.exportPdf(destination, options);
     } else {

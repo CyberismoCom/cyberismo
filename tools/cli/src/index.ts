@@ -400,6 +400,14 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .option('-r, --recursive', 'Export recursively(Only for pdf format)')
+  .option('-t, --title [title]', 'Title of the exported document')
+  .option('-n, --name [name]', 'Name of the exported document')
+  .option('-d, --date [date]', 'Date of the exported document')
+  .option('-v, --version [version]', 'Version of the exported document')
+  .option(
+    '-m, --revremark [revremark]',
+    'Revision remark of the exported document',
+  )
   .action(
     async (
       format: string,

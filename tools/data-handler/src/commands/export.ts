@@ -36,18 +36,9 @@ import { generateReportContent } from '../utils/report.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { spawn } from 'node:child_process';
 import { evaluateMacros } from '../macros/index.js';
+import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
 
 const attachmentFolder: string = 'a';
-
-interface ExportPdfOptions {
-  title: string;
-  name: string;
-  date?: Date;
-  version?: string;
-  revremark?: string;
-  cardKey?: string;
-  recursive?: boolean;
-}
 
 export class Export {
   constructor(
