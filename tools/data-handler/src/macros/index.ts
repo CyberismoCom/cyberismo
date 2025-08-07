@@ -227,11 +227,14 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
 /**
  * Handle the macros in the content
  * @param content - The content to handle the macros in
- * @param mode - The mode to handle the macros in. Inject mode will generate injectable placeholders for the macros while static mode will generate valid adoc. Validate mode will only validate the macros syntax and throw errors in case of issues.
+ * @param context - The context for macro generation
+ * @param calculate - The calculate function
+ * @param preserveRawBlocks - If true, don't unescape raw blocks at the end (for nested evaluations)
  */
 export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
+  preserveRawBlocks: boolean = false,
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
@@ -264,7 +267,10 @@ export async function evaluateMacros(
       context,
     );
   }
-  return result.replaceAll(CURLY_LEFT, '{').replaceAll(CURLY_RIGHT, '}');
+  // Only unescape raw blocks if we're not preserving them for nested evaluations
+  return preserveRawBlocks
+    ? result
+    : result.replaceAll(CURLY_LEFT, '{').replaceAll(CURLY_RIGHT, '}');
 }
 
 /**

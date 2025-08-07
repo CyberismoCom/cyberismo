@@ -673,6 +673,53 @@ Some content here`;
         );
         expect(result).to.contain('Card key: test-card');
       });
+
+      it('includeMacro preserves raw blocks (success)', async () => {
+        // Create a card with raw blocks that should not be evaluated
+        const testCardWithRaw: Card = {
+          key: 'test-card-with-raw',
+          path: '',
+          content:
+            'Content before raw block.\n\n{{#raw}}{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}{{/raw}}\n\nContent after raw block.',
+          metadata: {
+            title: 'Card with Raw Block',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-with-raw')
+          .resolves(testCardWithRaw);
+
+        const macro = `{{#include}}"cardKey": "test-card-with-raw"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        // The raw block content should be preserved as-is, not evaluated as a macro
+        expect(result).to.contain(
+          '{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}',
+        );
+        expect(result).to.contain('Content before raw block.');
+        expect(result).to.contain('Content after raw block.');
+        expect(result).to.contain('= Card with Raw Block');
+
+        // Verify the card was fetched
+        expect(cardDetailsByIdStub.calledWith('test-card-with-raw')).to.equal(
+          true,
+        );
+      });
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;

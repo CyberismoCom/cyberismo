@@ -31,10 +31,7 @@ export interface ImageMacroOptions {
 }
 
 export default class ImageMacro extends BaseMacro {
-  constructor(
-    tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
-  ) {
+  constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
 
