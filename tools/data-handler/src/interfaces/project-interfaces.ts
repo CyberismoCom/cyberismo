@@ -105,6 +105,16 @@ export interface ProjectFetchCardDetails extends FetchCardDetails {
   location?: CardLocation;
 }
 
+export interface ExportPdfOptions {
+  title: string;
+  name: string;
+  date?: Date;
+  version?: string;
+  revremark?: string;
+  cardKey?: string;
+  recursive?: boolean;
+}
+
 export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.

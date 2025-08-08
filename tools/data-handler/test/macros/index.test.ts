@@ -594,7 +594,7 @@ Some content here`;
           `${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test Card Title`,
         );
         expect(result).to.contain(
-          `\n${'='.repeat(MAX_LEVEL_OFFSET + 2)} Test subtitle`,
+          `\n${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test subtitle`,
         );
       });
       it('includeMacro inside includeMacro (success)', async () => {
@@ -676,6 +676,53 @@ Some content here`;
         );
         expect(result).to.contain('Card key: test-card');
       });
+
+      it('includeMacro preserves raw blocks (success)', async () => {
+        // Create a card with raw blocks that should not be evaluated
+        const testCardWithRaw: Card = {
+          key: 'test-card-with-raw',
+          path: '',
+          content:
+            'Content before raw block.\n\n{{#raw}}{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}{{/raw}}\n\nContent after raw block.',
+          metadata: {
+            title: 'Card with Raw Block',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-with-raw')
+          .resolves(testCardWithRaw);
+
+        const macro = `{{#include}}"cardKey": "test-card-with-raw"{{/include}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        // The raw block content should be preserved as-is, not evaluated as a macro
+        expect(result).to.contain(
+          '{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}',
+        );
+        expect(result).to.contain('Content before raw block.');
+        expect(result).to.contain('Content after raw block.');
+        expect(result).to.contain('= Card with Raw Block');
+
+        // Verify the card was fetched
+        expect(cardDetailsByIdStub.calledWith('test-card-with-raw')).to.equal(
+          true,
+        );
+      });
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
@@ -721,10 +768,12 @@ Some content here`;
             },
             calculate,
           );
+          const expected =
+            mode === 'static'
+              ? '<<xref-test-card>>'
+              : 'xref:xref-test-card.adoc[Test Card for Cross Reference]';
 
-          expect(result).to.equal(
-            'xref:xref-test-card.adoc[Test Card for Cross Reference]',
-          );
+          expect(result).to.equal(expected);
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
             true,
           );
@@ -777,6 +826,160 @@ Some content here`;
             mode: 'static',
             project: project,
             cardKey: '',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+      });
+    });
+    describe('imageMacro', () => {
+      it('imageMacro static mode (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.match(/^image::data:image\/heic;base64,/);
+      });
+
+      it('imageMacro inject mode (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[]',
+        );
+      });
+
+      it('imageMacro with cardKey parameter (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic", "cardKey": "decision_1"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: 'decision_5',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[]',
+        );
+      });
+
+      it('imageMacro with alt and title attributes', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic", "alt": "Test image", "title": "A test needle image"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
+        );
+      });
+      it('imageMacro inject mode with non-existent card should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "any.png", "cardKey": "non-existent-card"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain("Card 'non-existent-card' not found");
+      });
+
+      it('imageMacro with non-existent card should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "test.png", "cardKey": "non-existent-card"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain("Card 'non-existent-card' not found");
+      });
+
+      it('imageMacro with non-existent file should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "non-existent-image.png"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'decision_5',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain(
+          "Attachment file 'non-existent-image.png' not found in card 'decision_5'",
+        );
+      });
+
+      it('imageMacro with wrong schema should return warning message', async () => {
+        const macro = `{{#image}}"invalidProperty": "test-value"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'decision_5',
+            context: 'localApp',
+          },
+          calculate,
+        );
+
+        expect(result).to.contain('.Macro Error');
+      });
+
+      it('imageMacro with missing fileName should return warning message', async () => {
+        const macro = `{{#image}}{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'static',
+            project: project,
+            cardKey: 'decision_5',
             context: 'localApp',
           },
           calculate,

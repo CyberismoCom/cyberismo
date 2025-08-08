@@ -13,7 +13,13 @@
 */
 
 // node
-import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  truncate,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import type { Calculate, Show } from './index.js';
@@ -25,6 +31,11 @@ import type { CardType } from '../interfaces/resource-interfaces.js';
 import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
 import { sortItems } from '../utils/lexorank.js';
+import { generateReportContent } from '../utils/report.js';
+import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
+import { spawn } from 'node:child_process';
+import { evaluateMacros } from '../macros/index.js';
+import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
 
 const attachmentFolder: string = 'a';
 
@@ -222,6 +233,88 @@ export class Export {
     }
 
     return card;
+  }
+
+  private async runAsciidoctorPdf(content: string): Promise<Buffer> {
+    const staticRootDir = await getStaticDirectoryPath();
+    const proc = spawn(
+      'asciidoctor-pdf',
+      [
+        '--trace',
+        '-a',
+        'pdf-theme=cyberismo',
+        '-a',
+        `pdf-themesdir=${join(staticRootDir, 'pdf-themes')}`,
+        '-a',
+        `pdf-fontsdir=${join(staticRootDir, 'pdf-themes', 'fonts')};GEM_FONTS_DIR`,
+        '-',
+      ],
+      {
+        timeout: 100000,
+      },
+    );
+    proc.stdin.end(content);
+    const result = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      proc.stdout.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+      proc.stderr.on('data', (chunk) => {
+        process.stderr.write(chunk);
+      });
+      proc.on('error', (error) => {
+        if ('code' in error && error.code === 'ENOENT') {
+          reject(
+            new Error(
+              'Asciidoctor-pdf not found. Please install asciidoctor-pdf to use this feature.',
+            ),
+          );
+        }
+        reject(error);
+      });
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(Buffer.concat(chunks));
+        } else {
+          reject(new Error(`Asciidoctor-pdf failed with code ${code}`));
+        }
+      });
+    });
+    return result;
+  }
+
+  public async exportPdf(
+    destination: string,
+    options: ExportPdfOptions,
+  ): Promise<string> {
+    const opts = {
+      ...options,
+      date: options.date?.toISOString().split('T')[0],
+      recursive: options.recursive ?? false,
+    };
+
+    const result = await generateReportContent({
+      calculate: this.calculateCmd,
+      contentTemplate: pdfReport.content,
+      queryTemplate: pdfReport.query,
+      context: 'exportedDocument',
+      options: opts,
+    });
+
+    const evaluated = await evaluateMacros(
+      result,
+      {
+        context: 'exportedDocument',
+        mode: 'static',
+        project: this.project,
+        cardKey: '', // top level report does not contain any macros that use cardKey
+      },
+      this.calculateCmd,
+    );
+    await writeFile(join(dirname(destination), 'result.adoc'), evaluated);
+    const pdf = await this.runAsciidoctorPdf(evaluated);
+    await writeFile(destination, pdf);
+    return `Exported PDF to ${destination}`;
   }
 
   /**

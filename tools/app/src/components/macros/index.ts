@@ -31,7 +31,7 @@ export interface MacroContext {
 
 export type UIMacroName = Exclude<
   MacroName,
-  'report' | 'graph' | 'include' | 'xref' | 'percentage' | 'vegaLite'
+  'report' | 'graph' | 'include' | 'xref' | 'percentage' | 'vegaLite' | 'image'
 >;
 
 // We simply trust that the macro has been

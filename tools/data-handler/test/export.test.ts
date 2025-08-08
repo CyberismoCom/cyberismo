@@ -47,32 +47,32 @@ describe('export command', () => {
       force: true,
     });
   });
-  it('missing project', async () => {
+  it('missing project (adoc export)', async () => {
     optionsMini.projectPath = join(testDirForExport, 'valid/i-do-not-exist');
     const output = 'test/output/';
     const result = await commandHandler.command(
       Cmd.export,
-      ['html', output],
+      ['adoc', output],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('missing parent card', async () => {
+  it('missing parent card (adoc export)', async () => {
     const output = join(testDirForExport, 'test/output/');
     const card = 'decision_999';
     const result = await commandHandler.command(
       Cmd.export,
-      ['html', output, card],
+      ['adoc', output, card],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
   });
-  it('inaccessible destination', async () => {
+  it('inaccessible destination (adoc export)', async () => {
     const output = join(testDirForExport, '/i-do-not-exist/output');
     const card = 'decision_1';
     const result = await commandHandler.command(
       Cmd.export,
-      ['html', output, card],
+      ['adoc', output, card],
       optionsMini,
     );
     expect(result.statusCode).to.equal(400);
