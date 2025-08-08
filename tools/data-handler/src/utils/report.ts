@@ -13,6 +13,7 @@ import Handlebars from 'handlebars';
 import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
+import { resourceName } from './resource-utils.js';
 
 /**
  * Formats a value from a logic program for use to graphviz
@@ -29,6 +30,41 @@ export function formatAttributeValue(value?: string) {
   }
   // value is a normal string and needs to be wrapped in quotes
   return `"${value}"`;
+}
+
+/**
+ * Checks if a field is a custom field
+ * @param field - The field to check
+ * @returns True if the field is a custom field, false otherwise
+ */
+export function isCustomField(field: string) {
+  try {
+    const { type } = resourceName(field, true);
+    return type === 'fieldTypes';
+  } catch (e) {
+    return false;
+  }
+}
+/**
+ * Formats a value for display in a report
+ * @param value - The value to format
+ * @returns The formatted value
+ */
+export function formatValue(value: unknown): string {
+  if (typeof value === 'object') {
+    if (Array.isArray(value)) {
+      return value.map((v) => formatValue(v)).join(', ');
+    }
+    if (
+      value != null &&
+      'displayValue' in value &&
+      typeof value.displayValue === 'string'
+    ) {
+      return value.displayValue;
+    }
+    return JSON.stringify(value, null, 2);
+  }
+  return value?.toString() ?? '';
 }
 
 /**
@@ -81,6 +117,8 @@ export async function generateReportContent(
   if (graph) {
     handlebars.registerHelper('formatAttributeValue', formatAttributeValue);
   }
+  handlebars.registerHelper('isCustomField', isCustomField);
+  handlebars.registerHelper('formatValue', formatValue);
 
   return handlebars.compile(contentTemplate)({
     ...options,

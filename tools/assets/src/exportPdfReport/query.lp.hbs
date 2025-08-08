@@ -19,7 +19,7 @@ cardLevel(Card, Level + 1) :-
 % Create a path-based ordering system using string concatenation
 % For each card, create a path that represents its position in the tree
 % Root cards: just their rank (already lexicographically sortable)
-% Child cards: parent's path + "." + own rank
+% Child cards: parent's path + "!" + own rank
 
 % Base case: root cards use their rank directly as the path
 treePath(Card, Rank) :- 
@@ -40,8 +40,7 @@ treePath(Card, FullPath) :-
 % Sort by tree path (lexicographic ordering will give us depth-first)
 order(1, "results", 1, "treePath", "ASC").
 
-% Select the fields we need
-select("key";"levelOffset";"treePath").
+selectAll.
 
 % Map level to levelOffset and add tree path for sorting
 field(Card, "levelOffset", Level) :- cardLevel(Card, Level), result(Card).

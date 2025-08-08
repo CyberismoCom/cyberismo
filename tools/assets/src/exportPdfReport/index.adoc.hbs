@@ -20,7 +20,9 @@ toc::[]
   {{/include}}
 [horizontal]
   {{#each this}}
-  {{@key}}:: {{this}}
+  {{#if (isCustomField @key)}}
+  {{@key}}:: {{formatValue this}}
+  {{/if}}
   {{/each}}
 {{#include}}
     "cardKey": "{{this.key}}",
