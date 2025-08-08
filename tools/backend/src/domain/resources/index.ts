@@ -13,6 +13,7 @@
 
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
+import type { ResourceFileContentResponse } from '../../types.js';
 
 const router = new Hono();
 
@@ -42,6 +43,41 @@ router.get('/tree', async (c) => {
       500,
     );
   }
+});
+
+router.get('/:module/:type/:resource/:file', async (c) => {
+  const commands = c.get('commands');
+  const { module, type, resource, file } = c.req.param();
+  const content = await resourceService.getFileContent(
+    commands,
+    module,
+    type,
+    resource,
+    file,
+  );
+  const response: ResourceFileContentResponse = { content };
+  return c.json(response);
+});
+
+router.put('/:module/:type/:resource/:file', async (c) => {
+  const commands = c.get('commands');
+  const { module, type, resource, file } = c.req.param();
+  const changedContent = await c.req.json();
+  if (
+    changedContent.content === undefined ||
+    typeof changedContent.content !== 'string'
+  ) {
+    return c.json({ error: 'Content is required' }, 400);
+  }
+  await resourceService.updateFile(
+    commands,
+    module,
+    type,
+    resource,
+    file,
+    changedContent.content,
+  );
+  return c.json({ content: changedContent.content });
 });
 
 export default router;

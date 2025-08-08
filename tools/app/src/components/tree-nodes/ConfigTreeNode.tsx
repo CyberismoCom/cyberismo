@@ -39,7 +39,7 @@ function getResourceName(
     return node.data.data.metadata?.title || node.data.data.key;
   }
   if (node.data.type === 'file') {
-    return node.data.name;
+    return node.data.displayName;
   }
   if (node.data.type === 'resourceGroup' || node.data.type === 'modulesGroup') {
     return t(`resources.${node.data.name}`);

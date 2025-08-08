@@ -150,5 +150,7 @@
     "templates": "Templates",
     "workflows": "Workflows"
   },
-  "selectResource": "Select resource"
+  "selectResource": "Select resource",
+  "configuration": "Configuration",
+  "resourceFileContentUpdated": "Resource file content updated"
 }

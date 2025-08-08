@@ -29,6 +29,7 @@ import {
   type CardMetadata,
   CardNameRegEx,
   type FetchCardDetails,
+  MetadataContent,
 } from '../interfaces/project-interfaces.js';
 
 // asciidoctor
@@ -448,5 +449,48 @@ export class CardContainer {
       }
     });
     return cards;
+  }
+
+  /**
+   * Updates card content.
+   * @param cardKey card's ID that is updated.
+   * @param changedContent changed content
+   */
+  protected async updateCardContent(cardKey: string, changedContent: string) {
+    const card = await this.findCard(this.basePath, cardKey, {
+      content: true,
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exis`);
+    }
+    card.content = changedContent;
+    await this.saveCardContent(card);
+  }
+
+  /**
+   * Updates card metadata's single key.
+   * @param cardKey card that is updated.
+   * @param changedKey changed metadata key
+   * @param newValue changed value for the key
+   */
+  protected async updateCardMetadataKey(
+    cardKey: string,
+    changedKey: string,
+    newValue: MetadataContent,
+  ) {
+    const card = await this.findCard(this.basePath, cardKey, {
+      metadata: true,
+      content: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist`);
+    }
+    if (!card.metadata) {
+      throw new Error(`Card '${cardKey}' does not have metadata`);
+    }
+    card.metadata[changedKey] = newValue;
+    card.metadata.lastUpdated = new Date().toISOString();
+    await this.saveCardMetadata(card);
   }
 }

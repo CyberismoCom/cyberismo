@@ -18,8 +18,12 @@ import { spawnSync } from 'node:child_process';
 import { ActionGuard } from '../permissions/action-guard.js';
 import type { Calculate } from './index.js';
 import type { MetadataContent } from '../interfaces/project-interfaces.js';
-import { Project } from '../containers/project.js';
+import { Project, ResourcesFrom } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
+import { getModuleNameFromCardKey } from '../utils/card-utils.js';
+import { Template } from '../containers/template.js';
+import { ResourceName, resourceName } from '../utils/resource-utils.js';
+import { FolderResource } from '../resources/folder-resource.js';
 
 export class Edit {
   private project: Project;
@@ -83,10 +87,26 @@ export class Edit {
    * @param changedContent New content for the card.
    */
   public async editCardContent(cardKey: string, changedContent: string) {
-    // Determine the card path
-    const cardPath = this.project.pathToCard(cardKey);
-    if (!cardPath) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    const prefix = getModuleNameFromCardKey(cardKey);
+    if (prefix === this.project.projectPrefix) {
+      // Determine the card path
+      const cardPath = this.project.pathToCard(cardKey);
+      if (!cardPath) {
+        throw new Error(`Card '${cardKey}' does not exist in the project`);
+      }
+    } else {
+      for (const template of await this.project.templates(ResourcesFrom.all)) {
+        const { prefix: templatePrefix } = resourceName(template.name);
+        if (templatePrefix === prefix) {
+          const templateObject = new Template(this.project, template);
+          if (!templateObject.hasCard(cardKey)) {
+            throw new Error(`Card '${cardKey}' does not exist in the template`);
+          }
+          await templateObject.updateCardContent(cardKey, changedContent);
+          return;
+        }
+      }
+      throw new Error(`Template '${prefix}' does not exist in the project`);
     }
 
     const actionGuard = new ActionGuard(this.calculateCmd);
@@ -106,18 +126,58 @@ export class Edit {
     changedKey: string,
     newValue: MetadataContent,
   ) {
-    // Determine the card path
-    const cardPath = this.project.pathToCard(cardKey);
-    if (!cardPath) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-    if (!changedKey) {
-      throw new Error(`Changed key cannot be empty`);
+    const prefix = getModuleNameFromCardKey(cardKey);
+    if (prefix === this.project.projectPrefix) {
+      // Determine the card path
+      const cardPath = this.project.pathToCard(cardKey);
+      if (!cardPath) {
+        throw new Error(`Card '${cardKey}' does not exist in the project`);
+      }
+    } else {
+      for (const template of await this.project.templates(ResourcesFrom.all)) {
+        const { prefix: templatePrefix } = resourceName(template.name);
+        if (templatePrefix === prefix) {
+          const templateObject = new Template(this.project, template);
+          if (!templateObject.hasCard(cardKey)) {
+            throw new Error(`Card '${cardKey}' does not exist in the template`);
+          }
+          await templateObject.updateCardMetadataKey(
+            cardKey,
+            changedKey,
+            newValue,
+          );
+          return;
+        }
+      }
+      throw new Error(`Template '${prefix}' does not exist in the project`);
     }
 
     // check for editing rights
     const actionGuard = new ActionGuard(this.calculateCmd);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
     await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+  }
+
+  /**
+   * Update a file of a folder resource. Cannot be used to create a new file.
+   * @param resourceName The name of the resource to update.
+   * @param fileName The name of the file to update.
+   * @param changedContent The new content for the file.
+   */
+  public async editResourceContent(
+    resourceName: ResourceName,
+    fileName: string,
+    changedContent: string,
+  ) {
+    const resource = Project.resourceObject(this.project, resourceName);
+    if (!resource) {
+      throw new Error(
+        `Resource '${resourceName}' does not exist in the project`,
+      );
+    }
+    if (!(resource instanceof FolderResource)) {
+      throw new Error(`Resource '${resourceName}' is not a folder`);
+    }
+    return resource.updateFile(fileName, changedContent);
   }
 }

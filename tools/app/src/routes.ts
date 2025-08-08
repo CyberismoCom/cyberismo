@@ -105,7 +105,11 @@ export const router = createBrowserRouter([
             Component: Configuration,
           },
           {
-            path: '/configuration/:resource',
+            path: '/configuration/:module/:type/:resource',
+            Component: Resource,
+          },
+          {
+            path: '/configuration/:module/:type/:resource/:file',
             Component: Resource,
           },
         ],
