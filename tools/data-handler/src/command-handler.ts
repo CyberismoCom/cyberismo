@@ -274,7 +274,12 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(output, format as ExportFormats, cardKey, options);
+        return await this.export(
+          output,
+          format as ExportFormats,
+          cardKey,
+          options,
+        );
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {

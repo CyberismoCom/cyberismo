@@ -901,6 +901,21 @@ Some content here`;
           'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
         );
       });
+      it('imageMacro inject mode with non-existent card should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "any.png", "cardKey": "non-existent-card"{{/image}}`;
+        const result = await evaluateMacros(
+          macro,
+          {
+            mode: 'inject',
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          },
+          calculate,
+        );
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain("Card 'non-existent-card' not found");
+      });
 
       it('imageMacro with non-existent card should return warning message', async () => {
         const macro = `{{#image}}"fileName": "test.png", "cardKey": "non-existent-card"{{/image}}`;
