@@ -249,7 +249,7 @@ export class Export {
         '-',
       ],
       {
-        timeout: 10000,
+        timeout: 100000,
       },
     );
     proc.stdin.end(content);
@@ -306,6 +306,7 @@ export class Export {
       project: this.project,
       cardKey: '', // top level report does not contain any macros that use cardKey
     });
+    await writeFile(join(dirname(destination), 'result.adoc'), evaluated);
     const pdf = await this.runAsciidoctorPdf(evaluated);
     await writeFile(destination, pdf);
     return `Exported PDF to ${destination}`;

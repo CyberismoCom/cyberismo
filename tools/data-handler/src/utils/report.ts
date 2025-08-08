@@ -41,7 +41,7 @@ export function isCustomField(field: string) {
   try {
     const { type } = resourceName(field, true);
     return type === 'fieldTypes';
-  } catch (e) {
+  } catch {
     return false;
   }
 }
