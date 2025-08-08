@@ -250,7 +250,7 @@ export class Export {
         '-',
       ],
       {
-        timeout: 10000,
+        timeout: 100000,
       },
     );
     proc.stdin.end(content);
@@ -311,6 +311,7 @@ export class Export {
       },
       this.calculateCmd,
     );
+    await writeFile(join(dirname(destination), 'result.adoc'), evaluated);
     const pdf = await this.runAsciidoctorPdf(evaluated);
     await writeFile(destination, pdf);
     return `Exported PDF to ${destination}`;
