@@ -44,8 +44,10 @@ describe('export module', () => {
       ];
 
       const mockCommands = {
-        calculateCmd: {
-          runQuery: vi.fn().mockResolvedValue(mockCards),
+        project: {
+          calculationEngine: {
+            runQuery: vi.fn().mockResolvedValue(mockCards),
+          },
         },
       };
 
@@ -56,11 +58,9 @@ describe('export module', () => {
       const result = await getCardQueryResult('/test/project');
 
       expect(result).toEqual(mockCards);
-      expect(mockCommands.calculateCmd.runQuery).toHaveBeenCalledWith(
-        'card',
-        'exportedSite',
-        {},
-      );
+      expect(
+        mockCommands.project.calculationEngine.runQuery,
+      ).toHaveBeenCalledWith('card', 'exportedSite', {});
     });
 
     test('should return specific card when cardKey is provided', async () => {
@@ -70,8 +70,10 @@ describe('export module', () => {
       ];
 
       const mockCommands = {
-        calculateCmd: {
-          runQuery: vi.fn().mockResolvedValue(mockCards),
+        project: {
+          calculationEngine: {
+            runQuery: vi.fn().mockResolvedValue(mockCards),
+          },
         },
       };
 
@@ -88,8 +90,10 @@ describe('export module', () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
       const mockCommands = {
-        calculateCmd: {
-          runQuery: vi.fn().mockResolvedValue(mockCards),
+        project: {
+          calculationEngine: {
+            runQuery: vi.fn().mockResolvedValue(mockCards),
+          },
         },
       };
 
@@ -106,8 +110,10 @@ describe('export module', () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
       const mockCommands = {
-        calculateCmd: {
-          runQuery: vi.fn().mockResolvedValue(mockCards),
+        project: {
+          calculationEngine: {
+            runQuery: vi.fn().mockResolvedValue(mockCards),
+          },
         },
       };
 
@@ -129,7 +135,9 @@ describe('export module', () => {
       await getCardQueryResult('/test/project', 'card1');
 
       // calculate cmd should be only called once
-      expect(mockCommands.calculateCmd.runQuery).toHaveBeenCalledTimes(1);
+      expect(
+        mockCommands.project.calculationEngine.runQuery,
+      ).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -144,9 +152,11 @@ describe('export module', () => {
       };
 
       const mockCommands = {
-        calculateCmd: {
-          generate: vi.fn().mockResolvedValue(undefined),
-          runQuery: vi.fn().mockResolvedValue([]),
+        project: {
+          calculationEngine: {
+            generate: vi.fn().mockResolvedValue(undefined),
+            runQuery: vi.fn().mockResolvedValue([]),
+          },
         },
       };
 
@@ -200,9 +210,11 @@ describe('export module', () => {
       };
 
       const mockCommands = {
-        calculateCmd: {
-          generate: vi.fn().mockResolvedValue(undefined),
-          runQuery: vi.fn().mockResolvedValue([]),
+        project: {
+          calculationEngine: {
+            generate: vi.fn().mockResolvedValue(undefined),
+            runQuery: vi.fn().mockResolvedValue([]),
+          },
         },
       };
 
@@ -238,9 +250,11 @@ describe('export module', () => {
       };
 
       const mockCommands = {
-        calculateCmd: {
-          generate: vi.fn().mockResolvedValue(undefined),
-          runQuery: vi.fn().mockResolvedValue([]),
+        project: {
+          calculationEngine: {
+            generate: vi.fn().mockResolvedValue(undefined),
+            runQuery: vi.fn().mockResolvedValue([]),
+          },
         },
       };
 
@@ -273,9 +287,11 @@ describe('export module', () => {
       };
 
       const mockCommands = {
-        calculateCmd: {
-          generate: vi.fn().mockResolvedValue(undefined),
-          runQuery: vi.fn().mockResolvedValue([]),
+        project: {
+          calculationEngine: {
+            generate: vi.fn().mockResolvedValue(undefined),
+            runQuery: vi.fn().mockResolvedValue([]),
+          },
         },
       };
 

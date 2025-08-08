@@ -19,7 +19,6 @@ import Handlebars from 'handlebars';
 import BaseMacro from '../../src/macros/base-macro.js';
 import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
 import TaskQueue from '../../src/macros/task-queue.js';
-import { Calculate } from '../../src/commands/index.js';
 import { fileURLToPath } from 'node:url';
 import { Project } from '../../src/containers/project.js';
 import type { Mode } from '../../src/interfaces/macros.js';
@@ -29,7 +28,6 @@ import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-calculate-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
-let calculate: Calculate;
 let project: Project;
 
 class TestMacro extends BaseMacro {
@@ -126,8 +124,7 @@ describe('macros', () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = new Project(decisionRecordsPath);
-      calculate = new Calculate(project);
-      await calculate.generate();
+      await project.calculationEngine.generate();
     });
 
     after(() => {
@@ -145,7 +142,7 @@ describe('macros', () => {
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('<create-cards');
       });
@@ -158,7 +155,7 @@ describe('macros', () => {
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.not.contain('<create-cards>');
       });
@@ -175,7 +172,7 @@ describe('macros', () => {
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.equal(
           '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
@@ -195,7 +192,7 @@ describe('macros', () => {
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.equal(handlebarsContent);
       });
@@ -218,7 +215,7 @@ describe('macros', () => {
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.equal(mixedContent);
       });
@@ -237,7 +234,7 @@ RawContent3`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.equal(expectedResult);
       });
@@ -257,7 +254,7 @@ More outer content
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain(
           'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
@@ -275,7 +272,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain(
           'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
@@ -293,7 +290,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('<svg');
       });
@@ -307,7 +304,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('<svg');
       });
@@ -323,7 +320,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('<svg');
         expect(result).to.contain('Test Percentage');
@@ -339,7 +336,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('<svg');
         expect(result).to.contain('Static Percentage');
@@ -355,7 +352,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('title');
@@ -370,7 +367,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('value');
@@ -385,7 +382,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('legend');
@@ -400,7 +397,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('is not of a type');
@@ -415,7 +412,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Macro Error');
       });
@@ -480,7 +477,7 @@ Some content here`;
                 cardKey: '',
                 context: 'localApp',
               },
-              calculate,
+              project.calculationEngine,
             );
 
             expect(result).to.contain('= Test Card Title');
@@ -504,7 +501,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('== Test Card Title');
         expect(result).to.contain('=== Test subtitle');
@@ -519,7 +516,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         // cannot go below level 1
@@ -536,7 +533,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         expect(result).to.contain('.Macro Error');
@@ -557,7 +554,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         expect(result).to.contain('.Macro Error');
@@ -573,7 +570,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('.Macro Error');
       });
@@ -587,7 +584,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         // cannot go above level MAX LEVEL OFFSET
         expect(result).to.contain(
@@ -607,7 +604,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         // Should contain content from both cards
@@ -633,7 +630,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('== Test Card Title');
         expect(result).to.contain('=== Test subtitle');
@@ -652,7 +649,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('=== Test Card Title');
         expect(result).to.contain('==== Test subtitle');
@@ -672,7 +669,7 @@ Some content here`;
             cardKey: 'original-card-key',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
         expect(result).to.contain('Card key: test-card');
       });
@@ -719,7 +716,7 @@ Some content here`;
               cardKey: '',
               context: 'localApp',
             },
-            calculate,
+            project.calculationEngine,
           );
 
           expect(result).to.equal(
@@ -741,7 +738,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         expect(result).to.contain('.Macro Error');
@@ -763,7 +760,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         expect(result).to.contain('.Macro Error');
@@ -779,7 +776,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         );
 
         expect(result).to.contain('.Macro Error');
@@ -791,8 +788,7 @@ Some content here`;
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = new Project(decisionRecordsPath);
-      calculate = new Calculate(project);
-      await calculate.generate();
+      await project.calculationEngine.generate();
     });
 
     after(() => {
@@ -810,7 +806,7 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         },
-        calculate,
+        project.calculationEngine,
       );
       expect(result).to.not.equal(null);
     });
@@ -824,7 +820,7 @@ Some content here`;
             cardKey: '',
             context: 'localApp',
           },
-          calculate,
+          project.calculationEngine,
         ),
       ).to.be.rejected;
     });
@@ -841,7 +837,7 @@ Some content here`;
           context: 'localApp',
         },
         new TaskQueue(),
-        calculate,
+        project.calculationEngine,
       );
       expect(handlebars.helpers).to.have.property('createCards');
       expect(handlebars.helpers).to.have.property('scoreCard');
