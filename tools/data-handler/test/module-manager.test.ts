@@ -43,7 +43,7 @@ describe('module-manager', () => {
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
     const modules = await commands.showCmd.showModules();
     expect(modules.length).equals(1);
-  }).timeout(10000);
+  }).timeout(60000);
   it('import git module using credentials', async function () {
     if (skipTest) {
       this.skip();
@@ -85,7 +85,7 @@ describe('module-manager', () => {
     ).to.be.rejectedWith(
       `Imported project has a prefix 'base' that is already used in the project. Cannot import from module.`,
     );
-  }).timeout(10000);
+  }).timeout(60000);
   it('try to import from incorrect local path', async () => {
     const localModule = join(testDir, 'valid/i-do-not-exist');
     await expect(
@@ -102,7 +102,7 @@ describe('module-manager', () => {
       ).to.be.rejected;
       expect(result.message).to.include('Failed to clone module');
     }
-  }).timeout(10000);
+  }).timeout(60000);
   it('try to import from incorrect private git path', async () => {
     const gitModule = 'https://github.com/CyberismoCom/i-do-not-exist.git';
     const options = {
@@ -120,7 +120,7 @@ describe('module-manager', () => {
       ),
     ).to.be.rejected;
     expect(result.message).to.include('Failed to clone module');
-  }).timeout(10000);
+  }).timeout(60000);
   it('update all modules', async () => {
     let modules = await commands.showCmd.showModules();
     expect(modules.length).equals(0);
@@ -148,5 +148,5 @@ describe('module-manager', () => {
     await commands.importCmd.updateAllModules();
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
-  }).timeout(10000);
+  }).timeout(60000);
 });
