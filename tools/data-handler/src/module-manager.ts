@@ -31,9 +31,6 @@ import { Validate } from './commands/index.js';
 const FILE_PROTOCOL = 'file:';
 const HTTPS_PROTOCOL = 'https:';
 
-// timeout in milliseconds for git client (no stdout / stderr activity)
-const DEFAULT_TIMEOUT = 10000;
-
 // When dependencies are built to a map, use map that has
 //   key: module name,
 //   value: list of unique prefixes
@@ -144,7 +141,7 @@ export class ModuleManager {
 
       const git: SimpleGit = simpleGit({
         timeout: {
-          block: DEFAULT_TIMEOUT,
+          block: this.gitTimeout(),
         },
       });
 
@@ -201,7 +198,7 @@ export class ModuleManager {
       if (pathExists(destinationPath)) {
         const git: SimpleGit = simpleGit({
           timeout: {
-            block: DEFAULT_TIMEOUT,
+            block: this.gitTimeout(),
           },
         });
         const options = ['--abbrev-ref', 'HEAD'];
@@ -229,6 +226,19 @@ export class ModuleManager {
     return moduleConfiguration.modules
       ? new Set(moduleConfiguration.modules.map((m) => m.name))
       : new Set();
+  }
+
+  // Increase timeout for CI environments and add platform-specific adjustments
+  private gitTimeout(): number {
+    const baseTimeout = 15000;
+    const isCI = process.env.CI;
+    const isWindows = process.platform === 'win32';
+
+    let timeout = baseTimeout;
+    if (isCI) timeout *= 2; // Double timeout in CI
+    if (isWindows) timeout *= 1.5; // 50% more time on Windows
+
+    return timeout;
   }
 
   // Collects one module's dependency prefixes to 'this.modules'.
