@@ -231,7 +231,7 @@ export class ModuleManager {
   // Increase timeout for CI environments and add platform-specific adjustments
   private gitTimeout(): number {
     const baseTimeout = 15000;
-    const isCI = process.env.GITHUB_ACTIONS;
+    const isCI = process.env.CI;
     const isWindows = process.platform === 'win32';
 
     let timeout = baseTimeout;
