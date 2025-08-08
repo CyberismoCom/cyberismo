@@ -42,8 +42,11 @@ COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 RUN mkdir -p ./tools/app
 COPY --from=builder /app/tools/app/package.json ./tools/app/package.json
 
-# install clingo-libs(contains only libclingo.so)
-RUN apk add --no-cache clingo-libs git
+# install clingo-libs(contains only libclingo.so) and tools needed for PDF export
+# - ruby & rubygems for installing asciidoctor/asciidoctor-pdf
+# - build-base & ruby-dev to satisfy potential native gem extensions
+RUN apk add --no-cache clingo-libs git ruby \
+  && gem install --no-document asciidoctor-pdf rouge
 
 # node-clingo
 RUN mkdir -p ./tools/node-clingo
