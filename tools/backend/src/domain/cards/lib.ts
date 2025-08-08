@@ -18,7 +18,7 @@ import {
   ProjectFetchCardDetails,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { getCardQueryResult, isSSGContext } from '../../export.js';
+import { getCardQueryResult } from '../../export.js';
 
 export async function getCardDetails(
   commands: CommandManager,
@@ -64,7 +64,7 @@ export async function getCardDetails(
         project: commands.project,
         cardKey: key,
       },
-      commands.calculateCmd,
+      commands.project.calculationEngine,
     );
   } catch (error) {
     asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;

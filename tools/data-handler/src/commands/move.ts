@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -15,7 +16,6 @@ import { join, sep } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
-import type { Calculate } from './index.js';
 import type {
   Card,
   FetchCardDetails,
@@ -37,10 +37,7 @@ import { TemplateResource } from '../resources/template-resource.js';
 const ROOT: string = 'root';
 
 export class Move {
-  constructor(
-    private project: Project,
-    private calculateCmd: Calculate,
-  ) {}
+  constructor(private project: Project) {}
 
   // Fetches a card (either template or project card).
   private async getCard(cardKey: string, options: FetchCardDetails) {
@@ -192,7 +189,7 @@ export class Move {
     }
 
     // if both are project cards, make sure source card can be moved
-    const actionGuard = new ActionGuard(this.calculateCmd);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('move', source);
 
     // rerank the card in the new location

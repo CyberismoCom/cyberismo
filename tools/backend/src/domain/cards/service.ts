@@ -180,7 +180,7 @@ export async function parseContent(
         project: commands.project,
         cardKey: key,
       },
-      commands.calculateCmd,
+      commands.project.calculationEngine,
     );
   } catch (error) {
     asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;

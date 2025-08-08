@@ -16,8 +16,8 @@ import { evaluateMacros, validateMacroContent } from '../index.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
+import type { CalculationEngine } from '../../containers/project/calculation-engine.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
 
 export interface IncludeMacroOptions {
@@ -28,7 +28,7 @@ export interface IncludeMacroOptions {
 export default class IncludeMacro extends BaseMacro {
   constructor(
     tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
+    private readonly calculate: CalculationEngine,
   ) {
     super(macroMetadata, tasksQueue);
   }

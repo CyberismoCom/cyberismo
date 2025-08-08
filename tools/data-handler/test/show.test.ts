@@ -328,7 +328,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.calculateCmd.generate();
+    await commands.project.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -345,7 +345,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.calculateCmd.generate();
+    await commands.project.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -364,7 +364,7 @@ describe('show', () => {
         cardKey: 'decision_5',
       },
     };
-    await commands.calculateCmd.generate();
+    await commands.project.calculationEngine.generate();
     const results = await showCmd.showReportResults(
       parameters.name,
       parameters.parameters.cardKey,
@@ -383,7 +383,7 @@ describe('show', () => {
         wrongKey: 'blaah',
       },
     };
-    await commands.calculateCmd.generate();
+    await commands.project.calculationEngine.generate();
     await expect(
       showCmd.showReportResults(
         parameters.name,

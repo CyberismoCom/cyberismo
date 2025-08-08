@@ -7,12 +7,13 @@ import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import { Calculate, Remove } from '../src/commands/index.js';
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
-import { type Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
-import { type requestStatus } from '../src/interfaces/request-status-interfaces.js';
+import { Remove } from '../src/commands/index.js';
+
+import type { Card } from '../src/interfaces/project-interfaces.js';
+import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -192,8 +193,7 @@ describe('remove command', () => {
 
       // To avoid logged errors from clingo queries during tests, generate calculations.
       const project = new Project(decisionRecordsPath);
-      const calculate = new Calculate(project);
-      await calculate.generate();
+      await project.calculationEngine.generate();
 
       const cardId = card.affectsCards![0];
       await commandHandler.command(
@@ -439,8 +439,7 @@ describe('remove command', () => {
     it('remove() - try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
       const project = new Project(decisionRecordsPath);
-      const calculateCmd = new Calculate(project);
-      const removeCmd = new Remove(project, calculateCmd);
+      const removeCmd = new Remove(project);
       await removeCmd
         .remove('attachment', cardId, '')
         .then(() => {
@@ -453,8 +452,7 @@ describe('remove command', () => {
     it('remove() - try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
       const project = new Project(decisionRecordsPath);
-      const calculateCmd = new Calculate(project);
-      const removeCmd = new Remove(project, calculateCmd);
+      const removeCmd = new Remove(project);
       await removeCmd
         .remove('attachment', cardId, 'the-needle.heic')
         .then(() => {
@@ -466,8 +464,7 @@ describe('remove command', () => {
     });
     it('remove() - try to remove non-existing module', async () => {
       const project = new Project(decisionRecordsPath);
-      const calculateCmd = new Calculate(project);
-      const removeCmd = new Remove(project, calculateCmd);
+      const removeCmd = new Remove(project);
       await removeCmd
         .remove('module', 'i-dont-exist')
         .then(() => {

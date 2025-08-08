@@ -18,7 +18,7 @@ describe('remove card', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath);
-    await commands.calculateCmd.generate();
+    await commands.project.calculationEngine.generate();
   });
 
   after(() => {
@@ -27,7 +27,7 @@ describe('remove card', () => {
 
   it('Remove - remove card that has children', async () => {
     const cardId = 'decision_5';
-    const removeCmd = new Remove(commands.project, commands.calculateCmd);
+    const removeCmd = new Remove(commands.project);
     await removeCmd.remove('card', cardId);
 
     const card = await commands.project.findSpecificCard(cardId);

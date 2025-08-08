@@ -16,18 +16,15 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type { Calculate } from './index.js';
 import type { MetadataContent } from '../interfaces/project-interfaces.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 
 export class Edit {
   private project: Project;
-  private calculateCmd: Calculate;
 
-  constructor(project: Project, calculateCmd: Calculate) {
+  constructor(project: Project) {
     this.project = project;
-    this.calculateCmd = calculateCmd;
   }
 
   /**
@@ -89,7 +86,7 @@ export class Edit {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
-    const actionGuard = new ActionGuard(this.calculateCmd);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('editContent', cardKey);
 
     await this.project.updateCardContent(cardKey, changedContent);
@@ -116,7 +113,7 @@ export class Edit {
     }
 
     // check for editing rights
-    const actionGuard = new ActionGuard(this.calculateCmd);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
     await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
   }

@@ -17,7 +17,7 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
+import type { CalculationEngine } from '../../containers/project/calculation-engine.js';
 
 export interface XrefMacroOptions {
   cardKey: string;
@@ -26,7 +26,7 @@ export interface XrefMacroOptions {
 export default class XrefMacro extends BaseMacro {
   constructor(
     tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
+    private readonly calculate: CalculationEngine,
   ) {
     super(macroMetadata, tasksQueue);
   }

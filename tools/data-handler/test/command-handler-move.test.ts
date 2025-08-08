@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
-import { Calculate, Show } from '../src/commands/index.js';
+import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -53,8 +53,7 @@ describe('move command', () => {
   });
   it('move card to another card (success)', async () => {
     const project = new Project(options.projectPath!);
-    const calculate = new Calculate(project);
-    const cards = await new Show(project, calculate).showProjectCards();
+    const cards = await new Show(project).showProjectCards();
     expect(cards.length).to.be.greaterThanOrEqual(2);
 
     const sourceId = cards[cards.length - 1].key;
@@ -68,8 +67,7 @@ describe('move command', () => {
   });
   it('move child card to another card (success)', async () => {
     const project = new Project(options.projectPath!);
-    const calculate = new Calculate(project);
-    const cards = await new Show(project, calculate).showProjectCards();
+    const cards = await new Show(project).showProjectCards();
 
     const sourceId = 'decision_6';
     const destination = cards[cards.length - 1].key;

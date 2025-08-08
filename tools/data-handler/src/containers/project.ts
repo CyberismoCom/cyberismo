@@ -18,6 +18,7 @@ import { readdir } from 'node:fs/promises';
 
 import { CardContainer } from './card-container.js'; // base class
 
+import { CalculationEngine } from './project/calculation-engine.js';
 import {
   type Card,
   type CardAttachment,
@@ -71,6 +72,7 @@ export { ResourcesFrom };
  * Represents project folder.
  */
 export class Project extends CardContainer {
+  public calculationEngine: CalculationEngine;
   private resources: ResourceCollector;
   private projectPaths: ProjectPaths;
   private settings: ProjectConfiguration;
@@ -86,6 +88,8 @@ export class Project extends CardContainer {
     private watchResourceChanges?: boolean,
   ) {
     super(path, '');
+
+    this.calculationEngine = new CalculationEngine(this);
 
     this.settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
@@ -472,6 +476,30 @@ export class Project extends CardContainer {
     from: ResourcesFrom = ResourcesFrom.all,
   ): Promise<Resource[]> {
     return this.resources.resources('graphViews', from);
+  }
+
+  /**
+   * When card changes.
+   * @param changedCard Card that was changed.
+   */
+  public async handleCardChanged(changedCard: Card) {
+    return this.calculationEngine.handleCardChanged(changedCard);
+  }
+
+  /**
+   * When cards are removed.
+   * @param deletedCard Card that is to be removed.
+   */
+  public async handleDeleteCard(deletedCard: Card) {
+    return this.calculationEngine.handleDeleteCard(deletedCard);
+  }
+
+  /**
+   * When new cards are added.
+   * @param cards Added cards.
+   */
+  public async handleNewCards(cards: Card[]) {
+    return this.calculationEngine.handleNewCards(cards);
   }
 
   /**
