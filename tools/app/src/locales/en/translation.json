@@ -90,6 +90,7 @@
   "failedPolicyChecks": "Failed policy checks",
   "policyCheckPass": "PASS",
   "policyCheckFail": "FAIL",
+  "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
   "attachment": "Attachment",
   "attachments": "Attachments",
   "addAttachment": "Add attachment",

@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { Add, Remove, Autorenew, Close } from '@mui/icons-material';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 export interface SvgViewerModalProps {
   open: boolean;
@@ -58,6 +59,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
   padding = 32,
 }) => {
   useBackButtonModal(open, onClose);
+  const { t } = useTranslation();
 
   const [zoom, setZoom] = useState(1);
   const [naturalSize, setNaturalSize] = useState<Size | null>(null);
@@ -160,7 +162,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
     let moved = false;
 
     const clickBlocker = (e: MouseEvent) => {
-      if (!e.ctrlKey && !e.metaKey) {
+      if (moved) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -170,18 +172,17 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       if (e.button !== 0) return;
       dragging = true;
       moved = false;
-      el.setPointerCapture(e.pointerId);
       startX = e.clientX;
       startY = e.clientY;
       sl = el.scrollLeft;
       st = el.scrollTop;
       (el.style as CSSStyleDeclaration).cursor = 'grabbing';
-      el.addEventListener('click', clickBlocker, true);
-      e.preventDefault();
+      el.addEventListener('click', clickBlocker);
     };
 
     const move = (e: PointerEvent) => {
       if (!dragging) return;
+      el.setPointerCapture(e.pointerId);
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       if (!moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) moved = true;
@@ -194,7 +195,6 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       dragging = false;
       el.releasePointerCapture(e.pointerId);
       (el.style as CSSStyleDeclaration).cursor = 'grab';
-      setTimeout(() => el.removeEventListener('click', clickBlocker, true), 0);
     };
 
     el.addEventListener('pointerdown', down);
@@ -211,28 +211,9 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', endDrag);
       el.removeEventListener('pointerleave', endDrag);
-      el.removeEventListener('click', clickBlocker, true);
+      el.removeEventListener('click', clickBlocker);
       (el.style as CSSStyleDeclaration).cursor = 'auto';
     };
-  }, [open]);
-
-  /* ---------- intercept link clicks (non-drag) ---------- */
-  useEffect(() => {
-    if (!open) return;
-    const holder = svgHolderRef.current;
-    if (!holder) return;
-
-    const listener = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('a')) {
-        if (!e.ctrlKey && !e.metaKey) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }
-    };
-    holder.addEventListener('click', listener);
-    return () => holder.removeEventListener('click', listener);
   }, [open]);
 
   /* ---------- scaled dimensions ---------- */
@@ -282,8 +263,7 @@ const SvgViewerModal: React.FC<SvgViewerModalProps> = ({
             userSelect: 'none',
           }}
         >
-          Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan • Ctrl/Cmd+Click =
-          Follow link
+          {t('svgViewerHelpWindow')}
         </Typography>
 
         {/* control bar */}
