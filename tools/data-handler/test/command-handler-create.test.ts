@@ -1,6 +1,5 @@
 // testing
 import { expect } from 'chai';
-import * as sinon from 'sinon';
 
 // node
 import { access } from 'node:fs/promises';
@@ -11,7 +10,6 @@ import { fileURLToPath } from 'node:url';
 // cyberismo
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
-import { Calculate } from '../src/commands/index.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import type {
   Card,
@@ -29,13 +27,7 @@ const testDir = join(baseDir, 'tmp-command-handler-create-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
-const calculateStub = sinon.createStubInstance(Calculate);
-
 const commandHandler: Commands = new Commands();
-
-// would be better to use dependency injection
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(commandHandler as any).calcCmd = calculateStub;
 
 const options: CardsOptions = { projectPath: decisionRecordsPath };
 const optionsMini: CardsOptions = { projectPath: minimalPath };

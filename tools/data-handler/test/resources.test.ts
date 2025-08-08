@@ -8,7 +8,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 
-import { Calculate, Create, Import, Remove } from '../src/commands/index.js';
+import { Create, Import, Remove } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -55,7 +55,6 @@ describe('resources', function () {
   let project: Project;
 
   // Some of the commands are used in testing.
-  let calculateCmd: Calculate;
   let createCmd: Create;
   let importCmd: Import;
   let removeCmd: Remove;
@@ -66,10 +65,9 @@ describe('resources', function () {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     project = new Project(decisionRecordsPath);
-    calculateCmd = new Calculate(project);
-    createCmd = new Create(project, calculateCmd);
+    createCmd = new Create(project);
     importCmd = new Import(project, createCmd);
-    removeCmd = new Remove(project, calculateCmd);
+    removeCmd = new Remove(project);
   });
 
   after(() => {
@@ -1024,8 +1022,7 @@ describe('resources', function () {
     // all report files are reachable; even if their content is not validated.
     it('show imported report', async () => {
       const projectMini = new Project(minimalPath);
-      const calculateCmdMini = new Calculate(projectMini);
-      const createCmdMini = new Create(projectMini, calculateCmdMini);
+      const createCmdMini = new Create(projectMini);
       const importCmdMini = new Import(projectMini, createCmdMini);
       const collectorMini = new ResourceCollector(projectMini);
       await importCmdMini.importModule(

@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 import Handlebars from 'handlebars';
-import type { Calculate } from '../commands/index.js';
+import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
 
@@ -35,7 +35,7 @@ export function formatAttributeValue(value?: string) {
  * Parameters for the core generation function
  */
 interface GenerateReportContentParams {
-  calculate: Calculate;
+  calculate: CalculationEngine;
   contentTemplate: string;
   queryTemplate: string;
   options: Record<string, string>;

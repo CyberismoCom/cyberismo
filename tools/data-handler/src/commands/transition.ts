@@ -12,7 +12,6 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type { Calculate } from './calculate.js';
 import type {
   CardType,
   Workflow,
@@ -22,10 +21,7 @@ import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import type { Project } from '../containers/project.js';
 
 export class Transition {
-  constructor(
-    private project: Project,
-    private calculateCmd: Calculate,
-  ) {}
+  constructor(private project: Project) {}
 
   /**
    * Transitions a card from its current state to a new state.
@@ -93,7 +89,7 @@ export class Transition {
       );
     }
 
-    const actionGuard = new ActionGuard(this.calculateCmd);
+    const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
     details.metadata.workflowState = found.toState;
@@ -119,7 +115,7 @@ export class Transition {
   // Wrapper to run onTransition query.
   private async transitionChangesQuery(cardKey: string, transition: string) {
     if (!cardKey || !transition) return undefined;
-    return this.calculateCmd.runQuery('onTransition', 'localApp', {
+    return this.project.calculationEngine.runQuery('onTransition', 'localApp', {
       cardKey,
       transition,
     });

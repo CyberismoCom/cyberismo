@@ -16,7 +16,6 @@ import { assert } from 'node:console';
 import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
-import type { Calculate } from './index.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { type Project, ResourcesFrom } from '../containers/project.js';
@@ -41,10 +40,7 @@ export class Rename {
   private from: string = '';
   private to: string = '';
 
-  constructor(
-    private project: Project,
-    private calculateCmd: Calculate,
-  ) {}
+  constructor(private project: Project) {}
 
   // Renames a card and all of its attachments (if it is a project card).
   private async renameCard(re: RegExp, card: Card): Promise<void> {
@@ -373,6 +369,6 @@ export class Rename {
     this.project.collectLocalResources();
     console.info('Collected renamed resources');
 
-    return this.calculateCmd.generate();
+    return this.project.calculationEngine.generate();
   }
 }

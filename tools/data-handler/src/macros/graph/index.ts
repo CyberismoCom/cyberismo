@@ -12,7 +12,6 @@
 */
 
 import BaseMacro from '../base-macro.js';
-import { Calculate } from '../../commands/index.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import { join } from 'node:path';
@@ -45,8 +44,6 @@ class ReportMacro extends BaseMacro {
   };
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    const calculate = new Calculate(context.project);
-
     const resourceNameToPath = (name: string, fileName: string) => {
       const { identifier, prefix, type } = resourceName(name);
       if (prefix === context.project.projectPrefix) {
@@ -113,7 +110,11 @@ class ReportMacro extends BaseMacro {
     const modelContent = await readFile(modelLocation, { encoding: 'utf-8' });
     let result: string;
     try {
-      result = await calculate.runGraph(modelContent, view, context.context);
+      result = await context.project.calculationEngine.runGraph(
+        modelContent,
+        view,
+        context.context,
+      );
     } catch (error) {
       if (error instanceof ClingoError) {
         throw new Error(

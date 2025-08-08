@@ -10,7 +10,7 @@ import { type CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
-import { Calculate, Show, Update } from '../src/commands/index.js';
+import { Show, Update } from '../src/commands/index.js';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-update-tests');
@@ -72,8 +72,7 @@ describe('update command', () => {
   });
 
   it('update resource - rank item using string value (name)', async () => {
-    const calculate = new Calculate(project);
-    const show = new Show(project, calculate);
+    const show = new Show(project);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 0;
@@ -107,8 +106,7 @@ describe('update command', () => {
     expect(indexAfter).to.equal(moveToIndex);
   });
   it('update resource - rank item using partial object value', async () => {
-    const calculate = new Calculate(project);
-    const show = new Show(project, calculate);
+    const show = new Show(project);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 4;
