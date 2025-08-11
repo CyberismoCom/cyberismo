@@ -237,7 +237,7 @@ export class Export {
   private async runAsciidoctorPdf(content: string): Promise<Buffer> {
     const staticRootDir = await getStaticDirectoryPath();
     const proc = spawn(
-      process.platform === 'win32' ? 'asciidoctor-pdf.bat' : 'asciidoctor-pdf',
+      'asciidoctor-pdf',
       [
         '-a',
         'pdf-theme=cyberismo',
@@ -249,6 +249,7 @@ export class Export {
       ],
       {
         timeout: 100000,
+        shell: process.platform === 'win32',
       },
     );
     proc.stdin.end(content);
