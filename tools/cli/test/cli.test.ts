@@ -303,11 +303,11 @@ describe('Cli BAT test', function () {
           log(error);
         }
         // If test is about to fail, show the all of the errors in the log.
-        if (!stdout.includes('Exported PDF to ./test.pdf')) {
+        if (!stdout.includes('Content exported as PDF to ./test.pdf')) {
           log(stdout);
         }
         expect(error).to.be.null;
-        expect(stdout).to.include('Exported PDF to ./test.pdf');
+        expect(stdout).to.include('Content exported as PDF to ./test.pdf');
         expect(stdout).to.include('Project structure validated');
         done();
       },
