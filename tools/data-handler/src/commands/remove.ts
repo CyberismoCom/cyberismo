@@ -111,10 +111,10 @@ export class Remove {
       content: false,
       parent: false,
     });
+    await deleteDir(cardFolder);
     if (card) {
       await this.project.handleDeleteCard(card);
     }
-    await deleteDir(cardFolder);
   }
 
   // removes label from project

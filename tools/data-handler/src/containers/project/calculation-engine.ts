@@ -300,7 +300,6 @@ export class CalculationEngine {
 
   /**
    * Generates a logic program.
-   * @param cardKey Optional, sub-card tree defining card
    */
   public async generate() {
     await CalculationEngine.mutex.runExclusive(async () => {
@@ -359,16 +358,20 @@ export class CalculationEngine {
     if (!deletedCard) {
       return;
     }
-    await CalculationEngine.mutex.runExclusive(async () => {
-      if (!removeProgram(deletedCard.key)) {
-        this.logger.warn(
-          {
-            cardKey: deletedCard.key,
-          },
-          'Tried to remove card program that does not exist',
-        );
-      }
-    });
+    try {
+      await CalculationEngine.mutex.runExclusive(async () => {
+        if (!removeProgram(deletedCard.key)) {
+          this.logger.warn(
+            {
+              cardKey: deletedCard.key,
+            },
+            'Tried to remove card program that does not exist',
+          );
+        }
+      });
+    } catch {
+      this.logger.warn('Removing program failed');
+    }
   }
 
   /**
