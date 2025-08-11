@@ -17,17 +17,13 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
 
 export interface XrefMacroOptions {
   cardKey: string;
 }
 
 export default class XrefMacro extends BaseMacro {
-  constructor(
-    tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
-  ) {
+  constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
 

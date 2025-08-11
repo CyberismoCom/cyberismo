@@ -15,7 +15,6 @@
 import { join, sep } from 'node:path';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type { Calculate } from './index.js';
 import { deleteDir, deleteFile } from '../utils/file-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import { Project } from '../containers/project.js';
@@ -29,10 +28,7 @@ const MODULES_PATH = `${sep}modules${sep}`;
  */
 export class Remove {
   private moduleManager: ModuleManager;
-  constructor(
-    private project: Project,
-    private calculateCmd: Calculate,
-  ) {
+  constructor(private project: Project) {
     this.moduleManager = new ModuleManager(this.project);
   }
 
@@ -87,7 +83,7 @@ export class Remove {
 
     // Make sure card can be removed if it's a project card
     if (!(await this.project.isTemplateCard(cardKey))) {
-      const actionGuard = new ActionGuard(this.calculateCmd);
+      const actionGuard = new ActionGuard(this.project.calculationEngine);
       await actionGuard.checkPermission('delete', cardKey);
     }
 
@@ -115,10 +111,10 @@ export class Remove {
       content: false,
       parent: false,
     });
-    if (card) {
-      await this.calculateCmd.handleDeleteCard(card);
-    }
     await deleteDir(cardFolder);
+    if (card) {
+      await this.project.handleDeleteCard(card);
+    }
   }
 
   // removes label from project

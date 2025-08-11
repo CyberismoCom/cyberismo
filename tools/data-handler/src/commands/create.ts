@@ -20,9 +20,10 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import { type Calculate, Validate } from './index.js';
 import { errorFunction } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
+import { Validate } from './index.js';
+
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import type {
   DataType,
@@ -50,10 +51,7 @@ import { WorkflowResource } from '../resources/workflow-resource.js';
  * Handles all create commands.
  */
 export class Create {
-  constructor(
-    private project: Project,
-    private calculateCmd: Calculate,
-  ) {}
+  constructor(private project: Project) {}
 
   static JSONFileContent: ProjectFile[] = [
     {
@@ -245,7 +243,7 @@ export class Create {
 
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
-      await this.calculateCmd.handleNewCards(createdCards);
+      await this.project.handleNewCards(createdCards);
       // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
       const sorted = sortItems(createdCards, (item) => {
         return `${item.parent === 'root' ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;

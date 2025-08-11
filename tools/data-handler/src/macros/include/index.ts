@@ -17,7 +17,6 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
 
 export interface IncludeMacroOptions {
@@ -26,10 +25,7 @@ export interface IncludeMacroOptions {
 }
 
 export default class IncludeMacro extends BaseMacro {
-  constructor(
-    tasksQueue: TaskQueue,
-    private readonly calculate: Calculate,
-  ) {
+  constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
 
@@ -56,7 +52,6 @@ export default class IncludeMacro extends BaseMacro {
     const content = `= ${card.metadata?.title}\n\n${await evaluateMacros(
       card.content ?? '',
       newContext,
-      this.calculate,
     )}`;
 
     let levelOffset = 0;

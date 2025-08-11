@@ -15,7 +15,6 @@ import { validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import type { Calculate } from '../../commands/index.js';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
@@ -29,10 +28,7 @@ export interface ReportOptions {
 }
 
 class ReportMacro extends BaseMacro {
-  constructor(
-    tasks: TaskQueue,
-    private readonly calculate: Calculate,
-  ) {
+  constructor(tasks: TaskQueue) {
     super(macroMetadata, tasks);
   }
   handleValidate = (input: unknown) => {
@@ -60,7 +56,7 @@ class ReportMacro extends BaseMacro {
     }
     try {
       return await generateReportContent({
-        calculate: this.calculate,
+        calculate: context.project.calculationEngine,
         contentTemplate: report.contentTemplate,
         queryTemplate: report.queryTemplate,
         options: {

@@ -7,10 +7,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // cyberismo
-import { Calculate, Show } from '../src/commands/index.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
+import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -60,8 +60,7 @@ describe('rank command', () => {
 
     // To avoid logged errors from clingo queries during tests, generate calculations.
     const project = new Project(decisionRecordsPath);
-    const calculate = new Calculate(project);
-    await calculate.generate();
+    await project.calculationEngine.generate();
 
     childCardKey = childResult.affectsCards![0];
   });
@@ -79,8 +78,7 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const calculate = new Calculate(project);
-      const details = await new Show(project, calculate).showCardDetails(
+      const details = await new Show(project).showCardDetails(
         { metadata: true },
         rankBefore,
       );
@@ -99,8 +97,7 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const calculate = new Calculate(project);
-      const details = await new Show(project, calculate).showCardDetails(
+      const details = await new Show(project).showCardDetails(
         { metadata: true, content: true },
         rankBefore,
       );
@@ -117,8 +114,7 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
 
       const project = new Project(options.projectPath!);
-      const calculate = new Calculate(project);
-      const details = await new Show(project, calculate).showCardDetails(
+      const details = await new Show(project).showCardDetails(
         { metadata: true, content: true },
         key,
       );
@@ -138,8 +134,7 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const calculate = new Calculate(project);
-      const details = await new Show(project, calculate).showCardDetails(
+      const details = await new Show(project).showCardDetails(
         { metadata: true },
         rankBefore,
       );
@@ -154,8 +149,7 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const project = new Project(options.projectPath!);
-      const calculate = new Calculate(project);
-      const details = await new Show(project, calculate).showCardDetails(
+      const details = await new Show(project).showCardDetails(
         { metadata: true, content: true },
         key,
       );

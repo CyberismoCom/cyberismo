@@ -51,7 +51,7 @@ export async function getCardQueryResult(
   if (!_cardQueryPromise) {
     const commands = await CommandManager.getInstance(projectPath);
     // fetch all cards
-    _cardQueryPromise = commands.calculateCmd.runQuery(
+    _cardQueryPromise = commands.project.calculationEngine.runQuery(
       'card',
       'exportedSite',
       {},
@@ -147,7 +147,7 @@ async function toSsg(
   onProgress?: (current?: number, total?: number) => void,
 ) {
   reset();
-  await commands.calculateCmd.generate();
+  await commands.project.calculationEngine.generate();
 
   const promises = [];
 

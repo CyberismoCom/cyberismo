@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Calculate } from '../commands/index.js';
+import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 import type { DeniedOperationCollection } from '../types/queries.js';
 
 export type Action = keyof DeniedOperationCollection;
@@ -25,7 +25,7 @@ function checkOperation<T extends { errorMessage: string }>(data: Array<T>) {
  * This class is used to guard actions from being used without permissions
  */
 export class ActionGuard {
-  constructor(private calculate: Calculate) {}
+  constructor(private calculate: CalculationEngine) {}
 
   /**
    * Checks whether an action can be done

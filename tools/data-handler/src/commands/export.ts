@@ -16,22 +16,22 @@
 import { appendFile, copyFile, mkdir, truncate } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-import type { Calculate, Show } from './index.js';
+import { Project } from '../containers/project.js';
+import { sortItems } from '../utils/lexorank.js';
+
 import type {
   Card,
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
-import type { CardType } from '../interfaces/resource-interfaces.js';
-import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
-import { sortItems } from '../utils/lexorank.js';
+import type { CardType } from '../interfaces/resource-interfaces.js';
+import type { Show } from './index.js';
 
 const attachmentFolder: string = 'a';
 
 export class Export {
   constructor(
     protected project: Project,
-    protected calculateCmd: Calculate,
     protected showCmd: Show,
   ) {}
 
@@ -205,7 +205,6 @@ export class Export {
           project,
           cardKey: card.key,
         },
-        this.calculateCmd,
       );
     } catch (error) {
       asciiDocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciiDocContent}`;
@@ -253,8 +252,11 @@ export class Export {
       });
     }
 
-    await this.calculateCmd.generate();
-    const tree = await this.calculateCmd.runQuery('tree', 'exportedDocument');
+    await this.project.calculationEngine.generate();
+    const tree = await this.project.calculationEngine.runQuery(
+      'tree',
+      'exportedDocument',
+    );
 
     if (cardKey) {
       const targetCard = this.findCardInTree(tree, cardKey);
