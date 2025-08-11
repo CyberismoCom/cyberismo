@@ -21,7 +21,6 @@ export class Calculate {
 
   /**
    * Generates a logic program.
-   * @param cardKey Optional, sub-card tree defining card
    */
   public async generate() {
     return this.project.calculationEngine.generate();
