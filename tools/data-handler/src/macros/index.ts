@@ -35,7 +35,6 @@ import type {
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
-import type { CalculationEngine } from '../containers/project/calculation-engine.js';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 const RAW_BLOCK_OPEN = '{{#raw}}';
@@ -126,7 +125,7 @@ export interface SimpleMacroConstructor {
  * Constructor for report macros
  */
 export interface ReportMacroConstructor {
-  new (tasks: TaskQueue, calculate: CalculationEngine): BaseMacro;
+  new (tasks: TaskQueue): BaseMacro;
 }
 
 /**
@@ -186,12 +185,11 @@ export function registerMacros(
   instance: typeof Handlebars,
   context: MacroGenerationContext,
   tasks: TaskQueue,
-  calculate: CalculationEngine,
 ) {
   const macroInstances: BaseMacro[] = [];
   for (const macro of Object.keys(macros) as MacroName[]) {
     const MacroClass = macros[macro];
-    const macroInstance = new MacroClass(tasks, calculate);
+    const macroInstance = new MacroClass(tasks);
     instance.registerHelper(macro, function (this: unknown, options) {
       return macroInstance.invokeMacro(context, options);
     });
@@ -232,11 +230,10 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
 export async function evaluateMacros(
   content: string,
   context: MacroGenerationContext,
-  calculate: CalculationEngine,
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
-  registerMacros(handlebars, context, tasks, calculate);
+  registerMacros(handlebars, context, tasks);
   let result = content;
   while ((context.maxTries ?? 10) > 0) {
     tasks.reset();

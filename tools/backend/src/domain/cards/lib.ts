@@ -56,16 +56,12 @@ export async function getCardDetails(
 
   let asciidocContent = '';
   try {
-    asciidocContent = await evaluateMacros(
-      cardDetailsResponse.content || '',
-      {
-        context: staticMode ? 'exportedSite' : 'localApp',
-        mode: staticMode ? 'static' : 'inject',
-        project: commands.project,
-        cardKey: key,
-      },
-      commands.project.calculationEngine,
-    );
+    asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
+      context: staticMode ? 'exportedSite' : 'localApp',
+      mode: staticMode ? 'static' : 'inject',
+      project: commands.project,
+      cardKey: key,
+    });
   } catch (error) {
     asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciidocContent}`;
   }

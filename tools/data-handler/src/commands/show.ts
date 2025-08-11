@@ -379,10 +379,7 @@ export class Show {
       throw new Error(`Report '${reportName}' does not exist`);
     }
 
-    const reportMacro = new ReportMacro(
-      new TaskQueue(),
-      this.project.calculationEngine,
-    );
+    const reportMacro = new ReportMacro(new TaskQueue());
     const result = await reportMacro.handleInject(
       {
         project: this.project,

@@ -597,16 +597,12 @@ export class Validate {
 
           // Validate macros in content
           if (card.content) {
-            await evaluateMacros(
-              card.content,
-              {
-                context: 'localApp',
-                mode: 'validate',
-                project,
-                cardKey: card.key,
-              },
-              project.calculationEngine,
-            );
+            await evaluateMacros(card.content, {
+              context: 'localApp',
+              mode: 'validate',
+              project,
+              cardKey: card.key,
+            });
           }
         }
         if (errorMsg.length) {

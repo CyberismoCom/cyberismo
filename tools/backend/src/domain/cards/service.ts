@@ -172,16 +172,12 @@ export async function parseContent(
 ) {
   let asciidocContent = '';
   try {
-    asciidocContent = await evaluateMacros(
-      content,
-      {
-        context: 'localApp',
-        mode: 'inject',
-        project: commands.project,
-        cardKey: key,
-      },
-      commands.project.calculationEngine,
-    );
+    asciidocContent = await evaluateMacros(content, {
+      context: 'localApp',
+      mode: 'inject',
+      project: commands.project,
+      cardKey: key,
+    });
   } catch (error) {
     asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
   }

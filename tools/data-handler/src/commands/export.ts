@@ -205,7 +205,6 @@ export class Export {
           project,
           cardKey: card.key,
         },
-        this.project.calculationEngine,
       );
     } catch (error) {
       asciiDocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${asciiDocContent}`;
