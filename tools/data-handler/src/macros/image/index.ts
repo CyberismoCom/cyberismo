@@ -23,6 +23,13 @@ import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import type { Calculate } from '../../commands/index.js';
 
+/**
+ * Options for the image macro.
+ * @param fileName - Name of the file to include.
+ * @param cardKey - Key of the card to include the file from.
+ * @param alt - Alternative text for the image.
+ * @param title - Title of the image.
+ */
 export interface ImageMacroOptions {
   fileName: string;
   cardKey?: string;
@@ -30,6 +37,9 @@ export interface ImageMacroOptions {
   title?: string;
 }
 
+/**
+ * Macro for including images in the content
+ */
 export default class ImageMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
@@ -65,10 +75,7 @@ export default class ImageMacro extends BaseMacro {
     const base64Data = fileBuffer.toString('base64');
 
     // Get mime type
-    let mimeType = mime.lookup(attachmentPath);
-    if (mimeType === false) {
-      mimeType = 'application/octet-stream';
-    }
+    const mimeType = mime.lookup(attachmentPath) || 'application/octet-stream';
 
     // Build image attributes
     const attributes = this.buildImageAttributes(options);

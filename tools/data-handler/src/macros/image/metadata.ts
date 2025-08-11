@@ -13,6 +13,9 @@
 
 import type { MacroMetadata } from '../../interfaces/macros.js';
 
+/**
+ * Metadata for the image macro.
+ */
 const macroMetadata: MacroMetadata = {
   name: 'image',
   tagName: 'image',

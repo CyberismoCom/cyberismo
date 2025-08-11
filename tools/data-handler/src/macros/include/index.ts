@@ -65,7 +65,6 @@ export default class IncludeMacro extends BaseMacro {
       card.content,
       newContext,
     );
-
     const content = `\n\n${anchor}${title}${cardContent}`;
 
     let levelOffset = 0;
@@ -122,10 +121,10 @@ export default class IncludeMacro extends BaseMacro {
     cardContent: string | undefined,
     context: MacroGenerationContext,
   ): Promise<string> {
-    if (options.title === 'only') {
-      return '';
+    if (options.title !== 'only') {
+      return await evaluateMacros(cardContent ?? '', context, true);
     }
-    return await evaluateMacros(cardContent ?? '', context, true);
+    return '';
   }
 
   // Adjust asciidoc titles to match the level offset

@@ -282,6 +282,12 @@ export class Export {
     return result;
   }
 
+  /**
+   * Exports the card(s) to pdf.
+   * @param destination Path to where the resulting file(s) will be created.
+   * @param options Export options.
+   * @returns status message
+   */
   public async exportPdf(
     destination: string,
     options: ExportPdfOptions,
@@ -306,10 +312,9 @@ export class Export {
       project: this.project,
       cardKey: '', // top level report does not contain any macros that use cardKey
     });
-    await writeFile(join(dirname(destination), 'result.adoc'), evaluated);
     const pdf = await this.runAsciidoctorPdf(evaluated);
     await writeFile(destination, pdf);
-    return `Exported PDF to ${destination}`;
+    return `Content exported as PDF to ${destination}`;
   }
 
   /**

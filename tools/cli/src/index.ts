@@ -399,14 +399,20 @@ program
     'Path to a card. If defined will export only that card and its children instead of whole project.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option('-r, --recursive', 'Export recursively(Only for pdf format)')
-  .option('-t, --title [title]', 'Title of the exported document')
-  .option('-n, --name [name]', 'Name of the exported document')
-  .option('-d, --date [date]', 'Date of the exported document')
-  .option('-v, --version [version]', 'Version of the exported document')
+  .option('-r, --recursive', 'Export recursively(pdf export only)')
+  .option(
+    '-t, --title [title]',
+    'Title of the exported document(pdf export only)',
+  )
+  .option('-n, --name [name]', 'Name of the exported document(pdf export only)')
+  .option('-d, --date [date]', 'Date of the exported document(pdf export only)')
+  .option(
+    '-v, --version [version]',
+    'Version of the exported document(pdf export only)',
+  )
   .option(
     '-m, --revremark [revremark]',
-    'Revision remark of the exported document',
+    'Revision remark of the exported document(pdf export only)',
   )
   .action(
     async (

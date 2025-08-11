@@ -11,10 +11,10 @@ import queriesOnTransition from './calculations/queries/onTransition.lp';
 import queriesTree from './calculations/queries/tree.lp';
 import testModel from './calculations/test/model.lp';
 
-import graphvizReportQuery from './graphvizReport/query.lp.hbs';
-import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
-import pdfReportQuery from './exportPdfReport/query.lp.hbs';
 import pdfReportIndex from './exportPdfReport/index.adoc.hbs';
+import pdfReportQuery from './exportPdfReport/query.lp.hbs';
+import graphvizReportIndex from './graphvizReport/index.adoc.hbs';
+import graphvizReportQuery from './graphvizReport/query.lp.hbs';
 
 export const graphvizReport = {
   query: graphvizReportQuery,
