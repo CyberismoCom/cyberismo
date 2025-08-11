@@ -45,7 +45,6 @@ import { UserPreferences } from '../utils/user-preferences.js';
 
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
-import type { Calculate } from './calculate.js';
 import { evaluateMacros } from '../macros/index.js';
 
 /**

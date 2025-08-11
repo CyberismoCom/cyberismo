@@ -21,7 +21,6 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-import type { Calculate } from '../../commands/index.js';
 
 /**
  * Options for the image macro.
