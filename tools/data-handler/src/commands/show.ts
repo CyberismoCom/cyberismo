@@ -380,6 +380,7 @@ export class Show {
       throw new Error(`Report '${reportName}' does not exist`);
     }
 
+    await this.project.calculationEngine.generate();
     const reportMacro = new ReportMacro(new TaskQueue());
     let result = await reportMacro.handleInject(
       {

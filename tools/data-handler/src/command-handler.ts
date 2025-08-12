@@ -469,8 +469,6 @@ export class Commands {
       return { statusCode: 500 };
     }
     process.env.EXPORT_FORMAT = format;
-    // generate
-    await this.commands?.calculateCmd.generate();
     let message = '';
     if (format === 'pdf') {
       const options = {
@@ -590,7 +588,6 @@ export class Commands {
           'The parameters file must include a "cardKey" field included in the "parameters".',
       };
     }
-    this.commands?.calculateCmd.generate();
 
     const { name, parameters } = parametersFile;
     let result: string | undefined = '';
