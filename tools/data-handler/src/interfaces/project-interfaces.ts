@@ -105,6 +105,25 @@ export interface ProjectFetchCardDetails extends FetchCardDetails {
   location?: CardLocation;
 }
 
+/**
+ * Options for exporting to pdf.
+ * @param name - Name of the exported document.
+ * @param title - Title of the exported document.
+ * @param date - Date of the exported document.
+ * @param cardKey - Key of the card to be exported.
+ * @param recursive - Whether to export recursively ie. export all cards below the given card.
+ * @param revremark - Revision remark of the exported document.
+ */
+export interface ExportPdfOptions {
+  name: string;
+  title: string;
+  date?: Date;
+  cardKey?: string;
+  recursive?: boolean;
+  revremark?: string;
+  version?: string;
+}
+
 export type FileContentType = 'adoc' | 'html';
 
 // Metadata content type.

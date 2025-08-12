@@ -288,7 +288,26 @@ describe('Cli BAT test', function () {
           log(error);
         }
         expect(error).to.be.null;
-        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        expect(stdout).to.include('Creating output file');
+        done();
+      },
+    );
+  });
+  it('Export a PDF document', function (done) {
+    this.timeout(60000);
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo export pdf ./test.pdf ${newPageCardKey} -r -t "Test Doc" -n "BAT" -d 2024-01-01 -v 1.0.0 -m "Initial version"&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          log(error);
+        }
+        // If test is about to fail, show the all of the errors in the log.
+        if (!stdout.includes('Content exported as PDF to ./test.pdf')) {
+          log(stdout);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Content exported as PDF to ./test.pdf');
         expect(stdout).to.include('Project structure validated');
         done();
       },

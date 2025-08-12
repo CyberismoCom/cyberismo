@@ -426,11 +426,16 @@ export class CalculationEngine {
       graph: true,
       context,
     });
-    return sanitizeSvgBase64(
-      (await instance()).renderString(result, {
-        format: 'svg',
-      }),
-    );
+    let graph = (await instance()).renderString(result, {
+      format: 'svg',
+    });
+
+    // asciidoctor-pdf will error on the a elements with xtitle attribute
+    // because of the unescaped <font> tags.
+    if (context === 'exportedDocument') {
+      graph = graph.replace(/xlink:title="[^"]*"/g, '');
+    }
+    return sanitizeSvgBase64(graph);
   }
 
   /**

@@ -45,6 +45,7 @@ import { UserPreferences } from '../utils/user-preferences.js';
 
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
+import { evaluateMacros } from '../macros/index.js';
 
 /**
  * Show command.
@@ -379,8 +380,9 @@ export class Show {
       throw new Error(`Report '${reportName}' does not exist`);
     }
 
+    await this.project.calculationEngine.generate();
     const reportMacro = new ReportMacro(new TaskQueue());
-    const result = await reportMacro.handleInject(
+    let result = await reportMacro.handleInject(
       {
         project: this.project,
         cardKey: cardKey,
@@ -389,6 +391,13 @@ export class Show {
       },
       { name: reportName, ...parameters },
     );
+
+    result = await evaluateMacros(result, {
+      project: this.project,
+      cardKey: cardKey,
+      mode: 'static',
+      context,
+    });
 
     // Show the results either in the console or write to a file.
     if (outputPath) {

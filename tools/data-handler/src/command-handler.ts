@@ -57,6 +57,12 @@ export interface CardsOptions {
   showUse?: boolean;
   logLevel?: Level;
   context?: Context;
+  recursive?: boolean;
+  title?: string;
+  name?: string;
+  date?: string;
+  version?: string;
+  revremark?: string;
 }
 
 // Commands that this class supports.
@@ -85,6 +91,7 @@ export enum Cmd {
 export enum ExportFormats {
   adoc = 'adoc',
   site = 'site',
+  pdf = 'pdf',
 }
 
 export { CommandManager } from './command-manager.js';
@@ -267,7 +274,12 @@ export class Commands {
         await this.commands?.editCmd.editCard(cardKey);
       } else if (command === Cmd.export) {
         const [format, output, cardKey] = args;
-        await this.export(output, format as ExportFormats, cardKey);
+        return await this.export(
+          output,
+          format as ExportFormats,
+          cardKey,
+          options,
+        );
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -451,15 +463,29 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
+    pdfOptions?: CardsOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
     }
     process.env.EXPORT_FORMAT = format;
-    const message = await this.commands?.exportCmd.exportToADoc(
-      destination,
-      parentCardKey,
-    );
+    let message = '';
+    if (format === 'pdf') {
+      const options = {
+        title: pdfOptions?.title || 'Title',
+        name: pdfOptions?.name || 'Name',
+        version: pdfOptions?.version || '1.0.0',
+        revremark: pdfOptions?.revremark || 'Initial version',
+        cardKey: parentCardKey,
+        date: pdfOptions?.date ? new Date(pdfOptions.date) : new Date(),
+      };
+      message = await this.commands?.exportCmd.exportPdf(destination, options);
+    } else {
+      message = await this.commands?.exportCmd.exportToADoc(
+        destination,
+        parentCardKey,
+      );
+    }
     process.env.EXPORT_FORMAT = '';
     return { statusCode: 200, message: message };
   }

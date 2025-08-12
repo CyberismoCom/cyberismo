@@ -50,6 +50,13 @@ jobs:
         cache: 'pnpm'
         registry-url: 'https://npm.pkg.github.com'
         scope: '@cyberismo'
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+    - name: Install asciidoctor-pdf
+      run: |
+        gem install --no-document asciidoctor-pdf rouge
     - name: Checkout module-base repository for testing purposes
       uses: actions/checkout@v4
       with:

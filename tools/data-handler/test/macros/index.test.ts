@@ -134,29 +134,21 @@ describe('macros', () => {
     });
     describe('createCards', () => {
       it('createCards inject (success)', async () => {
-        const result = await evaluateMacros(
-          validAdoc,
-          {
-            mode: 'inject',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(validAdoc, {
+          mode: 'inject',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('<create-cards');
       });
       it('createCards static (success)', async () => {
-        const result = await evaluateMacros(
-          validAdoc,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(validAdoc, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.not.contain('<create-cards>');
       });
     });
@@ -164,16 +156,12 @@ describe('macros', () => {
       it('raw macro (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
         const withRaw = `{{#raw}}${macro}{{/raw}}`;
-        const result = await evaluateMacros(
-          withRaw,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(withRaw, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.equal(
           '{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}',
         );
@@ -184,16 +172,12 @@ describe('macros', () => {
 * {{this.title}}
 {{/each}}`;
         const withRaw = `{{#raw}}${handlebarsContent}{{/raw}}`;
-        const result = await evaluateMacros(
-          withRaw,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(withRaw, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.equal(handlebarsContent);
       });
       it('raw macro with mixed content (success)', async () => {
@@ -207,16 +191,12 @@ describe('macros', () => {
   This is conditional
 {{/if}}`;
         const withRaw = `{{#raw}}${mixedContent}{{/raw}}`;
-        const result = await evaluateMacros(
-          withRaw,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(withRaw, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.equal(mixedContent);
       });
       it('content should be able to contain multiple raw blocks', async () => {
@@ -226,16 +206,12 @@ describe('macros', () => {
         const expectedResult = `RawContent1
 RawContent2
 RawContent3`;
-        const result = await evaluateMacros(
-          nestedContent,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(nestedContent, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.equal(expectedResult);
       });
       it('nested raw macros should return error with line numbers', async () => {
@@ -246,16 +222,12 @@ Inner content
 {{/raw}}
 More outer content
 {{/raw}}`;
-        const result = await evaluateMacros(
-          nestedContent,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(nestedContent, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain(
           'Nested {{#raw}} blocks are not supported. Found nested raw block inside another raw block on line 3 (original raw block started on line 1).',
         );
@@ -264,16 +236,12 @@ More outer content
         const unclosedContent = `{{#raw}}
 This raw block has no closing tag
 Some content here`;
-        const result = await evaluateMacros(
-          unclosedContent,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(unclosedContent, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain(
           'Unclosed {{#raw}} block found on line 1. Every {{#raw}} must have a matching {{/raw}}.',
         );
@@ -282,138 +250,102 @@ Some content here`;
     describe('scoreCard', () => {
       it('scoreCard inject (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'inject',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('<svg');
       });
       it('scoreCard static (success)', async () => {
         const macro = `{{#scoreCard}}"title": "Open issues", "value": 0 {{/scoreCard}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('<svg');
       });
     });
     describe('percentage', () => {
       it('percentage inject (success)', async () => {
         const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'inject',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('<svg');
         expect(result).to.contain('Test Percentage');
         expect(result).to.contain('85%');
       });
       it('percentage static (success)', async () => {
         const macro = `{{#percentage}}"title": "Static Percentage", "value": 42, "legend": "done", "colour": "green"{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('<svg');
         expect(result).to.contain('Static Percentage');
         expect(result).to.contain('42%');
       });
       it('percentage missing title (failure)', async () => {
         const macro = `{{#percentage}}"value": 50, "legend": "missing title"{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('title');
       });
       it('percentage missing value (failure)', async () => {
         const macro = `{{#percentage}}"title": "No Value", "legend": "No Value"{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('value');
       });
       it('percentage missing legend (failure)', async () => {
         const macro = `{{#percentage}}"title": "No Legend", "value": 10{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('legend');
       });
       it('percentage value as string (failure)', async () => {
         const macro = `{{#percentage}}"title": "String Value", "value": "not a number", "legend": "fail"{{/percentage}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('Macro Error');
         expect(result).to.contain('is not of a type');
       });
       it('percentage malformed JSON (failure)', async () => {
         const macro = `{{#percentage}}"title": "Malformed", "value": 10, "legend": "fail"`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('Macro Error');
       });
     });
@@ -469,16 +401,12 @@ Some content here`;
         it(`includeMacro ${mode} (success)`, async () => {
           try {
             const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
-            const result = await evaluateMacros(
-              macro,
-              {
-                mode: mode as Mode,
-                project: project,
-                cardKey: '',
-                context: 'localApp',
-              },
-              project.calculationEngine,
-            );
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
 
             expect(result).to.contain('= Test Card Title');
             expect(result).to.contain(
@@ -493,31 +421,23 @@ Some content here`;
       });
       it('includeMacro with level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+1"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('== Test Card Title');
         expect(result).to.contain('=== Test subtitle');
       });
       it('includeMacro with negative level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "-10"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         // cannot go below level 1
         expect(result).to.contain('= Test Card Title');
@@ -525,16 +445,12 @@ Some content here`;
       });
       it('includeMacro with non-existent card should return warning message', async () => {
         const macro = `{{#include}}"cardKey": "non-existent-card"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         expect(result).to.contain('.Macro Error');
         expect(result).to.contain('Card key non-existent-card not found');
@@ -546,66 +462,50 @@ Some content here`;
       });
       it('includeMacro with a wrong type should return warning message', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "test"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         expect(result).to.contain('.Macro Error');
         expect(result).to.contain('Invalid level offset: test');
       });
       it('includeMacro with wrong schema should return warning message', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": 1{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('.Macro Error');
       });
       it('includeMacro with level offset outside of range (success)', async () => {
         const macro = `{{#include}}"cardKey": "test-card", "levelOffset": "+10"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         // cannot go above level MAX LEVEL OFFSET
         expect(result).to.contain(
           `${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test Card Title`,
         );
         expect(result).to.contain(
-          `\n${'='.repeat(MAX_LEVEL_OFFSET + 2)} Test subtitle`,
+          `\n${'='.repeat(MAX_LEVEL_OFFSET + 1)} Test subtitle`,
         );
       });
       it('includeMacro inside includeMacro (success)', async () => {
         const macro = `{{#include}}"cardKey": "testCardNested"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         // Should contain content from both cards
         expect(result).to.contain('= Parent Card with Include');
@@ -622,16 +522,12 @@ Some content here`;
       });
       it('includeMacro with level offset inside includeMacro (success)', async () => {
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('== Test Card Title');
         expect(result).to.contain('=== Test subtitle');
         expect(
@@ -641,16 +537,12 @@ Some content here`;
       });
       it('includeMacro with nested level offset (success)', async () => {
         const macro = `{{#include}}"cardKey": "testCardNestedWithOffset", "levelOffset": "+1"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
         expect(result).to.contain('=== Test Card Title');
         expect(result).to.contain('==== Test subtitle');
         expect(
@@ -661,17 +553,56 @@ Some content here`;
 
       it('includeMacro passes correct context with updated cardKey', async () => {
         const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: 'original-card-key',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'original-card-key',
+          context: 'localApp',
+        });
         expect(result).to.contain('Card key: test-card');
+      });
+
+      it('includeMacro preserves raw blocks (success)', async () => {
+        // Create a card with raw blocks that should not be evaluated
+        const testCardWithRaw: Card = {
+          key: 'test-card-with-raw',
+          path: '',
+          content:
+            'Content before raw block.\n\n{{#raw}}{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}{{/raw}}\n\nContent after raw block.',
+          metadata: {
+            title: 'Card with Raw Block',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-with-raw')
+          .resolves(testCardWithRaw);
+
+        const macro = `{{#include}}"cardKey": "test-card-with-raw"{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        // The raw block content should be preserved as-is, not evaluated as a macro
+        expect(result).to.contain(
+          '{{#scoreCard}}"title": "Should not be evaluated", "value": 42{{/scoreCard}}',
+        );
+        expect(result).to.contain('Content before raw block.');
+        expect(result).to.contain('Content after raw block.');
+        expect(result).to.contain('= Card with Raw Block');
+
+        // Verify the card was fetched
+        expect(cardDetailsByIdStub.calledWith('test-card-with-raw')).to.equal(
+          true,
+        );
       });
     });
     describe('xrefMacro', () => {
@@ -708,20 +639,18 @@ Some content here`;
       ['static', 'inject'].forEach((mode) => {
         it(`xrefMacro ${mode} (success)`, async () => {
           const macro = `{{#xref}}"cardKey": "xref-test-card"{{/xref}}`;
-          const result = await evaluateMacros(
-            macro,
-            {
-              mode: mode as Mode,
-              project: project,
-              cardKey: '',
-              context: 'localApp',
-            },
-            project.calculationEngine,
-          );
+          const result = await evaluateMacros(macro, {
+            mode: mode as Mode,
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+          const expected =
+            mode === 'static'
+              ? '<<xref-test-card>>'
+              : 'xref:xref-test-card.adoc[Test Card for Cross Reference]';
 
-          expect(result).to.equal(
-            'xref:xref-test-card.adoc[Test Card for Cross Reference]',
-          );
+          expect(result).to.equal(expected);
           expect(cardDetailsByIdStub.calledWith('xref-test-card')).to.equal(
             true,
           );
@@ -730,16 +659,12 @@ Some content here`;
 
       it('xrefMacro with non-existent card should return warning message', async () => {
         const macro = `{{#xref}}"cardKey": "non-existent-card"{{/xref}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         expect(result).to.contain('.Macro Error');
         expect(result).to.contain('Card key non-existent-card not found');
@@ -752,32 +677,142 @@ Some content here`;
 
       it('xrefMacro with wrong schema should return warning message', async () => {
         const macro = `{{#xref}}"invalidProperty": "test-value"{{/xref}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        );
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
 
         expect(result).to.contain('.Macro Error');
       });
 
       it('xrefMacro with missing cardKey should return warning message', async () => {
         const macro = `{{#xref}}{{/xref}}`;
-        const result = await evaluateMacros(
-          macro,
-          {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        expect(result).to.contain('.Macro Error');
+      });
+    });
+    describe('imageMacro', () => {
+      it('imageMacro static mode (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+
+        expect(result).to.match(/^image::data:image\/heic;base64,/);
+      });
+
+      it('imageMacro inject mode (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[]',
         );
+      });
+
+      it('imageMacro with cardKey parameter (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic", "cardKey": "decision_1"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        });
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[]',
+        );
+      });
+
+      it('imageMacro with alt and title attributes', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic", "alt": "Test image", "title": "A test needle image"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
+        );
+      });
+      it('imageMacro inject mode with non-existent card should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "any.png", "cardKey": "non-existent-card"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'inject',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain("Card 'non-existent-card' not found");
+      });
+
+      it('imageMacro with non-existent card should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "test.png", "cardKey": "non-existent-card"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain("Card 'non-existent-card' not found");
+      });
+
+      it('imageMacro with non-existent file should return warning message', async () => {
+        const macro = `{{#image}}"fileName": "non-existent-image.png"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        });
+
+        expect(result).to.contain('.Macro Error');
+        expect(result).to.contain(
+          "Attachment file 'non-existent-image.png' not found in card 'decision_5'",
+        );
+      });
+
+      it('imageMacro with wrong schema should return warning message', async () => {
+        const macro = `{{#image}}"invalidProperty": "test-value"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        });
+
+        expect(result).to.contain('.Macro Error');
+      });
+
+      it('imageMacro with missing fileName should return warning message', async () => {
+        const macro = `{{#image}}{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: 'decision_5',
+          context: 'localApp',
+        });
 
         expect(result).to.contain('.Macro Error');
       });
@@ -798,30 +833,22 @@ Some content here`;
     });
     it('validate macros (success)', async () => {
       // this should not throw an error
-      const result = await evaluateMacros(
-        validAdoc,
-        {
-          mode: 'validate',
-          project: project,
-          cardKey: '',
-          context: 'localApp',
-        },
-        project.calculationEngine,
-      );
+      const result = await evaluateMacros(validAdoc, {
+        mode: 'validate',
+        project: project,
+        cardKey: '',
+        context: 'localApp',
+      });
       expect(result).to.not.equal(null);
     });
     it('validate macros - failure', async () => {
       await expect(
-        evaluateMacros(
-          invalidAdoc,
-          {
-            mode: 'validate',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
-          },
-          project.calculationEngine,
-        ),
+        evaluateMacros(invalidAdoc, {
+          mode: 'validate',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        }),
       ).to.be.rejected;
     });
   });
@@ -837,7 +864,6 @@ Some content here`;
           context: 'localApp',
         },
         new TaskQueue(),
-        project.calculationEngine,
       );
       expect(handlebars.helpers).to.have.property('createCards');
       expect(handlebars.helpers).to.have.property('scoreCard');

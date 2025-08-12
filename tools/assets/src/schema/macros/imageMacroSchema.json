@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "$id": "imageMacroSchema",
+  "properties": {
+    "fileName": {
+      "type": "string",
+      "description": "The filename of the image attachment to display"
+    },
+    "cardKey": {
+      "type": "string",
+      "description": "The key of the card containing the image attachment. If not specified, uses the current card"
+    },
+    "alt": {
+      "type": "string",
+      "description": "Alternative text for the image"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title attribute for the image"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["fileName"]
+}

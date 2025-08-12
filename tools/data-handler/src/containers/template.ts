@@ -179,6 +179,14 @@ export class Template extends CardContainer {
         card.attachments.map(async (attachment) => {
           const attachmentUniqueName = `${card.key}-${attachment.fileName}`;
           content = content?.replace(
+            new RegExp(
+              `(\\{\\{#image\\}\\}[^}]*)"fileName": "${attachment.fileName}"([^}]*\\{\\{\\/image\\}\\})`,
+              'g',
+            ),
+            `$1"fileName": "${attachmentUniqueName}"$2`,
+          );
+          // keep fallback
+          content = content?.replace(
             new RegExp(`image::${attachment.fileName}`, 'g'),
             `image::${attachmentUniqueName}`,
           );

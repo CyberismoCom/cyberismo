@@ -1,0 +1,33 @@
+= {{title}}
+{{name}}
+:doctype: book
+:toc: macro
+:numbered:
+:imagesdir: images
+:revnumber: {{version}}
+:revdate: {{date}}
+:revremark: {{revremark}}
+:!chapter-signifier:
+:source-highlighter: rouge
+:toclevels: 5
++
+toc::[]
+{{#each results}}
+  {{#include}}
+     "cardKey": "{{this.key}}",
+     "levelOffset": "{{this.levelOffset}}",
+     "title": "only"
+  {{/include}}
+[horizontal]
+  {{#each this}}
+  {{#if (isCustomField @key)}}
+  {{@key}}:: {{formatValue this}}
+  {{/if}}
+  {{/each}}
+{{#include}}
+    "cardKey": "{{this.key}}",
+    "levelOffset": "{{this.levelOffset}}",
+    "title": "exclude",
+    "pageTitles": "discrete"
+{{/include}}
+{{/each}}
