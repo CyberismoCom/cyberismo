@@ -149,4 +149,32 @@ describe('module-manager', () => {
     modules = await commands.showCmd.showModules();
     expect(modules.length).equals(2);
   }).timeout(60000);
+  it('update a specific module', async () => {
+    let modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(0);
+    const localModule = join(testDir, 'valid/minimal');
+    await commands.importCmd.importModule(
+      localModule,
+      commands.project.basePath,
+    );
+
+    const gitModule = 'https://github.com/CyberismoCom/module-base.git';
+    await commands.importCmd.importModule(
+      gitModule,
+      commands.project.basePath,
+      {
+        credentials: {
+          username: process.env.CYBERISMO_GIT_USER,
+          token: process.env.CYBERISMO_GIT_TOKEN,
+        },
+      },
+    );
+
+    modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(2);
+
+    await commands.importCmd.updateModule('base');
+    modules = await commands.showCmd.showModules();
+    expect(modules.length).equals(2);
+  }).timeout(60000);
 });

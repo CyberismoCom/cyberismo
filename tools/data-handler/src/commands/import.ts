@@ -173,6 +173,22 @@ export class Import {
   }
 
   /**
+   * Updates a specific imported module.
+   * @param moduleName Name (prefix) of module to update.
+   * @param credentials Optional credentials for a private module.
+   * @throws if module is not part of the project
+   */
+  public async updateModule(moduleName: string, credentials?: Credentials) {
+    const module = this.project.configuration.modules.find(
+      (item) => item.name === moduleName,
+    );
+    if (!module) {
+      throw new Error(`Module '${moduleName}' is not part of the project`);
+    }
+    return this.moduleManager.updateModule(module, credentials);
+  }
+
+  /**
    * Updates all imported modules.
    * @param credentials Optional credentials for private modules.
    */
