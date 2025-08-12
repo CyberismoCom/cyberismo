@@ -186,12 +186,12 @@ describe('Resources Service', () => {
       expect(templateNode.children).toHaveLength(1);
 
       const parentCard = templateNode.children[0];
-      expect(parentCard.name).toBe('test_parent1');
+      expect(parentCard.name).toBe('test/cards/test_parent1');
       expect(parentCard.type).toBe('card');
       expect(parentCard.children).toHaveLength(1);
 
       const childCard = parentCard.children[0];
-      expect(childCard.name).toBe('test_child1');
+      expect(childCard.name).toBe('test/cards/test_child1');
       expect(childCard.type).toBe('card');
     });
 
@@ -328,7 +328,7 @@ describe('Resources Service', () => {
       expect(result[1].children[0].type).toBe('templates');
 
       // Check card node IDs and types
-      expect(result[1].children[0].children[0].id).toBe('card-test_card1');
+      expect(result[1].children[0].children[0].id).toBe('test_card1');
       expect(result[1].children[0].children[0].type).toBe('card');
     });
 

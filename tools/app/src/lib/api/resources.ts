@@ -11,11 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SWRConfiguration } from 'swr';
-import { apiPaths } from '../swr';
+import { SWRConfiguration, mutate } from 'swr';
+import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
-import { ResourceNode } from './types';
+import { ResourceFileContentResponse, ResourceNode } from './types';
 
 // Helper to check if a node has data (is a resource, not a group)
 export const hasResourceData = (
@@ -26,3 +26,36 @@ export const hasResourceData = (
 
 export const useResourceTree = (options?: SWRConfiguration) =>
   useSWRHook(apiPaths.resourceTree(), 'resourceTree', [], options);
+
+export const useResourceFileContent = (
+  resourceName: string,
+  options?: SWRConfiguration,
+) => {
+  const swrKey = apiPaths.resourceFileContent(resourceName);
+  const { callUpdate, ...rest } = useSWRHook(
+    swrKey,
+    'resourceFileContent',
+    { content: '' },
+    options,
+  );
+  return {
+    ...rest,
+    updateFileContent: async (content: string) => {
+      await callUpdate(() => updateResourceFileContent(resourceName, content));
+    },
+  };
+};
+
+export const updateResourceFileContent = async (
+  resourceName: string,
+  content: string,
+) => {
+  const swrKey = apiPaths.resourceFileContent(resourceName);
+  const result = await callApi<ResourceFileContentResponse>(swrKey, 'PUT', {
+    content,
+  });
+
+  mutate(swrKey, result, false);
+
+  return result;
+};

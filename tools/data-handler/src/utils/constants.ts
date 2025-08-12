@@ -19,6 +19,19 @@ export const INT32_MAX = 2147483647; // 2^31-1
 export const MAX_LEVEL_OFFSET = 5;
 
 /**
+ * These are file names that are valid for folder resources.
+ * Note that the folders might still contain other files, such as .schema files,
+ * but this is used for whitelisting the files that are allowed to be edited.
+ */
+export const VALID_FOLDER_RESOURCE_FILES = [
+  'index.adoc.hbs',
+  'query.lp.hbs',
+  'parameterSchema.json',
+  'view.lp.hbs',
+  'model.lp',
+];
+
+/**
  * These are field names that are non-custom fields that present in metadata
  */
 export const PREDEFINED_FIELDS = [

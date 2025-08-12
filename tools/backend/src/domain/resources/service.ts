@@ -17,6 +17,11 @@ import {
   type ResourceFolderType,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager } from '@cyberismo/data-handler';
+import {
+  isResourceFolderType,
+  moduleNameFromCardKey,
+  resourceName,
+} from '@cyberismo/data-handler';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -116,10 +121,12 @@ function parseResourcePrefix(resource: string): {
 }
 
 // Helper function to create resource node with all data from showResource
+// TODO: The types should be shared between backend and frontend
 async function createResourceNode(
-  commands: any,
+  commands: CommandManager,
   resourceType: ResourceFolderType,
-  resourceName: string,
+  name: string,
+  projectPrefix: string,
   children?: any[],
 ): Promise<{
   id: string;
@@ -127,22 +134,43 @@ async function createResourceNode(
   name: string;
   data: ResourceContent | undefined;
   children?: any[];
+  readOnly?: boolean;
 }> {
-  const resourceData = await commands.showCmd.showResource(resourceName);
+  const resourceData = await commands.showCmd.showResource(name);
   const node: {
     id: string;
     type: ResourceFolderType;
     name: string;
     data: ResourceContent | undefined;
     children?: any[];
+    readOnly?: boolean;
   } = {
-    id: `${resourceType}-${resourceName}`,
+    id: `${resourceType}-${name}`,
     type: resourceType,
-    name: resourceName,
+    name: name,
     data: resourceData,
+    readOnly: resourceName(name).prefix !== projectPrefix,
   };
 
-  if (children) {
+  // Add file children for folder resources
+  if (isResourceFolderType(resourceType) && resourceType !== 'templates') {
+    try {
+      const fileNames = await commands.showCmd.showFileNames(
+        resourceName(name),
+      );
+      const fileNodes = fileNames.map((fileName: string) => ({
+        id: `${resourceType}-${name}-${fileName}`,
+        type: 'file',
+        name: `${name}/${fileName}`,
+        displayName: fileName,
+        readOnly: resourceName(name).prefix !== projectPrefix,
+      }));
+
+      node.children = children ? [...children, ...fileNodes] : fileNodes;
+    } catch (error) {
+      console.warn(`Failed to get file names for resource '${name}'`, error);
+    }
+  } else if (children) {
     node.children = children;
   }
 
@@ -150,20 +178,27 @@ async function createResourceNode(
 }
 
 // Helper function to recursively create card nodes with children
-function createCardNode(card: Card): any {
+function createCardNode(
+  card: Card,
+  module: string,
+  projectPrefix: string,
+): any {
   // Destructure to separate children from other card data
   const { children, ...cardData } = card;
 
   const cardNode: any = {
-    id: `card-${card.key}`,
+    id: `${card.key}`,
     type: 'card',
-    name: card.key,
+    name: `${module}/cards/${card.key}`,
     data: cardData,
+    readOnly: moduleNameFromCardKey(card.key) !== projectPrefix,
   };
 
   // Recursively process children if they exist
   if (children && children.length > 0) {
-    cardNode.children = children.map(createCardNode);
+    cardNode.children = children.map((child) =>
+      createCardNode(child, module, projectPrefix),
+    );
   }
 
   return cardNode;
@@ -172,7 +207,7 @@ function createCardNode(card: Card): any {
 // Helper function to process templates using templateTree query
 async function processTemplates(
   commands: CommandManager,
-  projectPrefix?: string,
+  projectPrefix: string,
 ) {
   const templateTree = await commands.showCmd.showAllTemplateCards();
 
@@ -183,9 +218,8 @@ async function processTemplates(
 
   for (const { name, cards } of templateTree) {
     for (const card of cards) {
-      const cardNode = createCardNode(card);
-
       const { prefix } = parseResourcePrefix(name);
+      const cardNode = createCardNode(card, prefix, projectPrefix);
 
       if (prefix === projectPrefix || !prefix) {
         if (!rootTemplates[name]) {
@@ -206,7 +240,13 @@ async function processTemplates(
 
   const rootResources = await Promise.all(
     Object.entries(rootTemplates).map(([templateName, cards]) =>
-      createResourceNode(commands, 'templates', templateName, cards),
+      createResourceNode(
+        commands,
+        'templates',
+        templateName,
+        projectPrefix,
+        cards,
+      ),
     ),
   );
 
@@ -214,7 +254,13 @@ async function processTemplates(
   for (const [prefix, templates] of Object.entries(moduleTemplates)) {
     moduleResources[prefix] = await Promise.all(
       Object.entries(templates).map(([templateName, cards]) =>
-        createResourceNode(commands, 'templates', templateName, cards),
+        createResourceNode(
+          commands,
+          'templates',
+          templateName,
+          projectPrefix,
+          cards,
+        ),
       ),
     );
   }
@@ -226,12 +272,12 @@ async function processTemplates(
 async function groupResourcesByPrefix(
   commands: any,
   resourceType: ResourceFolderType,
-  projectPrefix?: string,
+  projectPrefix: string,
 ) {
   const resourceNames = await commands.showCmd.showResources(resourceType);
   const resources = await Promise.all(
     resourceNames.map((name: string) =>
-      createResourceNode(commands, resourceType, name),
+      createResourceNode(commands, resourceType, name, projectPrefix),
     ),
   );
 
@@ -251,4 +297,50 @@ async function groupResourcesByPrefix(
   });
 
   return { rootResources, moduleResources };
+}
+/**
+ * Get the content of a file in a resource.
+ * @param commands Command manager.
+ * @param module Name of the module.
+ * @param type Name of the type.
+ * @param resource Name of the resource.
+ * @param fileName Name of the file.
+ * @returns The content of the file.
+ */
+export async function getFileContent(
+  commands: CommandManager,
+  module: string,
+  type: string,
+  resource: string,
+  fileName: string,
+) {
+  return commands.showCmd.showFile(
+    resourceName(`${module}/${type}/${resource}`),
+    fileName,
+  );
+}
+
+/**
+ * Update a file of a folder resource. Cannot be used to create a new file.
+ * @param commands Command manager.
+ * @param module Name of the module.
+ * @param type Name of the type.
+ * @param resource Name of the resource.
+ * @param fileName Name of the file.
+ * @param changedContent The new content for the file.
+ * @returns The updated file content.
+ */
+export async function updateFile(
+  commands: CommandManager,
+  module: string,
+  type: string,
+  resource: string,
+  fileName: string,
+  changedContent: string,
+) {
+  return commands.editCmd.editResourceContent(
+    resourceName(`${module}/${type}/${resource}`),
+    fileName,
+    changedContent,
+  );
 }

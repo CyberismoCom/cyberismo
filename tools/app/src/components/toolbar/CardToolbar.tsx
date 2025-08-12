@@ -1,45 +1,50 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import React, { useCallback } from 'react';
-import { Box, Button, IconButton, Tooltip } from '@mui/joy';
+import { Button, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
-import { ProjectBreadcrumbs } from './ProjectBreadcrumbs';
-import { CardMode, WorkflowTransition } from '../lib/definitions';
-import StatusSelector from './StateSelector';
-import CardContextMenu from './CardContextMenu';
-import { findWorkflowForCardType } from '../lib/utils';
-import { useAppRouter } from '../lib/hooks';
-import { useTranslation } from 'react-i18next';
-import { useCard, useProject, useTree } from '../lib/api';
-import { useAppDispatch } from '../lib/hooks';
-import { addNotification } from '../lib/slices/notifications';
 import InsertLink from '@mui/icons-material/InsertLink';
+import { ProjectBreadcrumbs } from '../ProjectBreadcrumbs';
+import { CardMode, WorkflowTransition } from '../../lib/definitions';
+import StatusSelector from '../StateSelector';
+import { findWorkflowForCardType } from '../../lib/utils';
+import { useAppRouter } from '../../lib/hooks';
+import { useTranslation } from 'react-i18next';
+import { useCard, useProject, useTree } from '../../lib/api';
+import { useAppDispatch } from '../../lib/hooks';
+import { addNotification } from '../../lib/slices/notifications';
 import { config } from '@/lib/utils';
+import BaseToolbar from './BaseToolbar';
 
-interface ContentToolbarProps {
+interface CardToolbarProps {
   cardKey: string;
   mode: CardMode;
   linkButtonDisabled?: boolean;
   onUpdate?: () => void;
   onInsertLink?: () => void;
+  contextMenu?: React.ReactNode;
+  readOnly?: boolean;
 }
 
-const ContentToolbar: React.FC<ContentToolbarProps> = ({
+const CardToolbar: React.FC<CardToolbarProps> = ({
   cardKey,
   mode,
   onUpdate,
   onInsertLink,
   linkButtonDisabled,
+  contextMenu,
+  readOnly,
 }) => {
   const router = useAppRouter();
   const { t } = useTranslation();
@@ -71,14 +76,10 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
     [updateWorkFlowState, dispatch, t],
   );
 
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <Box sx={{ flexGrow: 1 }}>
-        <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />
-      </Box>
+  const breadcrumbs = <ProjectBreadcrumbs cardKey={cardKey} tree={tree} />;
 
-      {!config.staticMode && <CardContextMenu cardKey={cardKey} />}
-
+  const actions = (
+    <>
       {!config.staticMode && mode === CardMode.VIEW && (
         <Tooltip title={t('linkTooltip')} placement="top">
           <IconButton
@@ -125,36 +126,44 @@ const ContentToolbar: React.FC<ContentToolbarProps> = ({
       )}
 
       {mode === CardMode.EDIT && (
-        <Button
-          id="cancelButton"
-          variant="plain"
-          aria-label="cancel"
-          size="sm"
-          color="neutral"
-          style={{ marginLeft: 8, minWidth: 80 }}
-          onClick={() => router.safePush(`/cards/${cardKey}`)}
-          disabled={isUpdating()}
-        >
-          {t('cancel')}
-        </Button>
-      )}
+        <>
+          <Button
+            id="cancelButton"
+            variant="plain"
+            aria-label="cancel"
+            size="sm"
+            color="neutral"
+            style={{ marginLeft: 8, minWidth: 80 }}
+            onClick={() => router.safePush(`/cards/${cardKey}`)}
+            disabled={isUpdating() || readOnly}
+          >
+            {t('cancel')}
+          </Button>
 
-      {mode === CardMode.EDIT && (
-        <Button
-          variant="solid"
-          size="sm"
-          aria-label="update"
-          data-cy="updateButton"
-          style={{ marginLeft: 8, minWidth: 80 }}
-          onClick={onUpdate}
-          loading={isUpdating('update')}
-          disabled={isUpdating() && !isUpdating('update')}
-        >
-          {t('update')}
-        </Button>
+          <Button
+            variant="solid"
+            size="sm"
+            aria-label="update"
+            data-cy="updateButton"
+            style={{ marginLeft: 8, minWidth: 80 }}
+            onClick={onUpdate}
+            loading={isUpdating('update')}
+            disabled={(isUpdating() && !isUpdating('update')) || readOnly}
+          >
+            {t('update')}
+          </Button>
+        </>
       )}
-    </Box>
+    </>
+  );
+
+  return (
+    <BaseToolbar
+      breadcrumbs={breadcrumbs}
+      contextMenu={contextMenu}
+      actions={actions}
+    />
   );
 };
 
-export default ContentToolbar;
+export default CardToolbar;

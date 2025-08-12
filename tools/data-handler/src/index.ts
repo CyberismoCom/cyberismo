@@ -21,6 +21,8 @@ export * from './interfaces/project-interfaces.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 import { evaluateMacros } from './macros/index.js';
+import { isResourceFolderType, resourceName } from './utils/resource-utils.js';
+import { moduleNameFromCardKey } from './utils/card-utils.js';
 
 export {
   CardsOptions,
@@ -28,7 +30,10 @@ export {
   CommandManager,
   Commands,
   ExportFormats,
+  isResourceFolderType,
+  moduleNameFromCardKey,
   requestStatus,
+  resourceName,
   UpdateOperations,
   evaluateMacros,
 };

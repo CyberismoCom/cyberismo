@@ -81,3 +81,16 @@ export const sortCards = (a: string, b: string) => {
   if (aParts[1] < bParts[1]) return -1;
   return 0;
 };
+
+/**
+ * Returns module name from card key
+ * @param cardKey card key
+ * @returns module name
+ */
+export const moduleNameFromCardKey = (cardKey: string) => {
+  const parts = cardKey.split('_');
+  if (parts.length !== 2) {
+    throw new Error(`Invalid card key: ${cardKey}`);
+  }
+  return parts[0];
+};

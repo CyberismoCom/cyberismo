@@ -10,6 +10,78 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+
+import { useResourceTree } from '@/lib/api';
+import { ResourceNode } from '@/lib/api/types';
+import { useParams } from 'react-router';
+import {
+  TextEditor,
+  ResourceEditor,
+  ConfigCardEditor,
+} from '@/components/config-editors';
+import { useTranslation } from 'react-i18next';
+
+const resourceMap: Record<string, (node: ResourceNode) => React.ReactNode> = {
+  file: (node) => <TextEditor node={node} />,
+  graphModels: (node) => <ResourceEditor node={node} />,
+  graphViews: (node) => <ResourceEditor node={node} />,
+  reports: (node) => <ResourceEditor node={node} />,
+  templates: (node) => <ResourceEditor node={node} />,
+  workflows: (node) => <ResourceEditor node={node} />,
+  calculations: (node) => <ResourceEditor node={node} />,
+  cardTypes: (node) => <ResourceEditor node={node} />,
+  fieldTypes: (node) => <ResourceEditor node={node} />,
+  linkTypes: (node) => <ResourceEditor node={node} />,
+  card: (node) => <ConfigCardEditor node={node} />,
+};
+
+function findNode(
+  resourceTree: ResourceNode[],
+  module: string,
+  type: string,
+  resource: string,
+  file?: string,
+): ResourceNode | null {
+  const name = `${module}/${type}/${resource}${file ? `/${file}` : ''}`;
+  for (const node of resourceTree) {
+    const found = findNode(node.children || [], module, type, resource, file);
+    if (found) {
+      return found;
+    }
+    if (node.name === name) {
+      return node;
+    }
+  }
+  return null;
+}
+
 export default function Resource() {
-  return <div>Resource</div>;
+  const { resourceTree } = useResourceTree();
+  const { module, type, resource, file } = useParams();
+  const { t } = useTranslation();
+
+  if (!resourceTree) {
+    return <div>{t('loading')}</div>;
+  }
+
+  if (!module || !type || !resource) {
+    return <div>{t('invalidResource')}</div>;
+  }
+
+  const node = findNode(resourceTree, module, type, resource, file);
+
+  if (!node) {
+    return (
+      <div>
+        Resource {module}/{type}/{resource}
+        {file ? `/${file}` : ''} not found
+      </div>
+    );
+  }
+
+  if (!resourceMap[node.type]) {
+    return <div>Type {node.type} not implemented</div>;
+  }
+
+  return resourceMap[node.type](node);
 }
