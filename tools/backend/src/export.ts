@@ -23,8 +23,8 @@ import {
   runInParallel,
   staticFrontendDirRelative,
 } from './utils.js';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { Context, Hono, MiddlewareHandler } from 'hono';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { Context, Hono, MiddlewareHandler } from 'hono';
 import mime from 'mime-types';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
@@ -156,7 +156,7 @@ async function toSsg(
 
   let processedFiles = 0;
   let failed = false;
-  let errors: Error[] = [];
+  const errors: Error[] = [];
   const done = async (error?: Error) => {
     if (error) {
       failed = true;

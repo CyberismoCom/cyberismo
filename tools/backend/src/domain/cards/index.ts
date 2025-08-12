@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Context, Hono } from 'hono';
-import { ContentfulStatusCode } from 'hono/utils/http-status';
+import { type Context, Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ssgParams, isSSGContext } from '../../export.js';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
@@ -604,6 +604,7 @@ router.get(
         key,
         filename,
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload = attachmentResponse as any;
 
       return new Response(payload.fileBuffer, {

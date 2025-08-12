@@ -4,6 +4,7 @@ import type { CommandManager } from '@cyberismo/data-handler';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 // Create mock CommandManager
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     showCmd: {
@@ -14,7 +15,7 @@ const createMockCommandManager = (overrides: any = {}) => {
       ...overrides.showCmd,
     },
     ...overrides,
-  } as any as CommandManager;
+  } as unknown as CommandManager;
 };
 
 // Mock resource data

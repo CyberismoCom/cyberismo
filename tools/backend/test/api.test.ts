@@ -24,7 +24,7 @@ test('/api/cards returns a project with a list of cards', async () => {
   const response = await app.request('/api/cards');
   expect(response).not.toBe(null);
 
-  const result: any = await response.json();
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result.name).toBe('decision');
   expect(result.workflows.length).toBeGreaterThan(0);
@@ -35,7 +35,7 @@ test('/api/cards/decision_5 returns a card object', async () => {
   const response = await app.request('/api/cards/decision_5');
   expect(response).not.toBe(null);
 
-  const result: any = await response.json();
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result.title).toBe('Decision Records');
   expect(result.rawContent).not.toBe(null);
@@ -79,7 +79,7 @@ test('fieldTypes endpoint returns proper data', async () => {
   const response = await app.request('/api/fieldTypes');
   expect(response).not.toBe(null);
 
-  const result = (await response.json()) as any[];
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result.length).toBe(9);
   expect(result[0].name).toBe('decision/fieldTypes/admins');
@@ -92,7 +92,7 @@ test('linkTypes endpoint returns proper data', async () => {
   const response = await app.request('/api/linkTypes');
   expect(response).not.toBe(null);
 
-  const result = (await response.json()) as any[];
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result.length).toBe(2);
   expect(result[1].name).toBe('decision/linkTypes/testTypes');
@@ -106,7 +106,7 @@ test('templates endpoint returns proper data', async () => {
   const response = await app.request('/api/templates');
   expect(response).not.toBe(null);
 
-  const result = (await response.json()) as any[];
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result.length).toBe(3);
   expect(result[0].name).toBe('decision/templates/decision');
@@ -119,7 +119,7 @@ test('tree endpoint returns proper data', async () => {
   const response = await app.request('/api/tree');
   expect(response).not.toBe(null);
 
-  const result = (await response.json()) as any[];
+  const result = await response.json();
   expect(response.status).toBe(200);
   expect(result[0].key).toBe('decision_5');
   expect(result[0].title).toBe('Decision Records');

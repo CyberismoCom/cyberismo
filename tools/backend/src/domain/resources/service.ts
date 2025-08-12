@@ -12,18 +12,19 @@
 */
 
 import type { ResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import {
-  type Card,
-  type ResourceFolderType,
+import type {
+  Card,
+  ResourceFolderType,
   RemovableResourceTypes,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { CommandManager, resourceNameToString } from '@cyberismo/data-handler';
 import {
+  type CommandManager,
   isResourceFolderType,
   moduleNameFromCardKey,
   resourceName,
+  resourceNameToString,
 } from '@cyberismo/data-handler';
-import { ResourceParams } from './schema.js';
+import type { ResourceParams } from './schema.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -39,14 +40,15 @@ const resourceTypes: ResourceFolderType[] = [
 
 export async function buildResourceTree(commands: CommandManager) {
   const project = await commands.showCmd.showProject();
-  const tree: any[] = [];
-  const allModuleResources: { [prefix: string]: { [type: string]: any[] } } =
-    {};
+  const tree: unknown[] = [];
+  const allModuleResources: {
+    [prefix: string]: { [type: string]: unknown[] };
+  } = {};
 
   // Process each resource type
   for (const resourceType of resourceTypes) {
-    let rootResources: any[];
-    let moduleResources: { [prefix: string]: any[] };
+    let rootResources: unknown[];
+    let moduleResources: { [prefix: string]: unknown[] };
 
     if (resourceType === 'templates') {
       ({ rootResources, moduleResources } = await processTemplates(
@@ -129,13 +131,13 @@ async function createResourceNode(
   resourceType: ResourceFolderType,
   name: string,
   projectPrefix: string,
-  children?: any[],
+  children?: unknown[],
 ): Promise<{
   id: string;
   type: ResourceFolderType;
   name: string;
   data: ResourceContent | undefined;
-  children?: any[];
+  children?: unknown[];
   readOnly?: boolean;
 }> {
   const resourceData = await commands.showCmd.showResource(name);
@@ -144,7 +146,7 @@ async function createResourceNode(
     type: ResourceFolderType;
     name: string;
     data: ResourceContent | undefined;
-    children?: any[];
+    children?: unknown[];
     readOnly?: boolean;
   } = {
     id: `${resourceType}-${name}`,
@@ -184,15 +186,23 @@ function createCardNode(
   card: Card,
   module: string,
   projectPrefix: string,
-): any {
+): unknown {
   // Destructure to separate children from other card data
   const { children, ...cardData } = card;
 
-  const cardNode: any = {
+  const cardNode: {
+    id: string;
+    type: string;
+    name: string;
+    data: Omit<Card, 'children'>;
+    children: unknown[];
+    readOnly: boolean;
+  } = {
     id: `${card.key}`,
     type: 'card',
     name: `${module}/cards/${card.key}`,
     data: cardData,
+    children: [],
     readOnly: moduleNameFromCardKey(card.key) !== projectPrefix,
   };
 
@@ -214,9 +224,9 @@ async function processTemplates(
   const templates = await commands.showCmd.showResources('templates');
   const templateTree = await commands.showCmd.showAllTemplateCards();
 
-  const rootTemplates: { [templateName: string]: any[] } = {};
+  const rootTemplates: { [templateName: string]: unknown[] } = {};
   const moduleTemplates: {
-    [prefix: string]: { [templateName: string]: any[] };
+    [prefix: string]: { [templateName: string]: unknown[] };
   } = {};
 
   for (const { name, cards } of templateTree) {
@@ -255,7 +265,7 @@ async function processTemplates(
     ),
   );
 
-  const moduleResources: { [prefix: string]: any[] } = {};
+  const moduleResources: { [prefix: string]: unknown[] } = {};
   for (const [prefix, templates] of Object.entries(moduleTemplates)) {
     moduleResources[prefix] = await Promise.all(
       Object.entries(templates).map(([templateName, cards]) =>
@@ -308,7 +318,7 @@ async function processTemplates(
 
 // Helper function to group regular resources by prefix
 async function groupResourcesByPrefix(
-  commands: any,
+  commands: CommandManager,
   resourceType: ResourceFolderType,
   projectPrefix: string,
 ) {
@@ -319,8 +329,8 @@ async function groupResourcesByPrefix(
     ),
   );
 
-  const rootResources: any[] = [];
-  const moduleResources: { [prefix: string]: any[] } = {};
+  const rootResources: unknown[] = [];
+  const moduleResources: { [prefix: string]: unknown[] } = {};
 
   resources.forEach((resource) => {
     const { prefix } = parseResourcePrefix(resource.name);

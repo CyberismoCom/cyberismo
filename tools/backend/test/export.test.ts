@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { Context } from 'hono';
+import type { Context, Hono } from 'hono';
 import {
   getCardQueryResult,
   exportSite,
@@ -18,7 +18,7 @@ vi.mock('../src/app.js');
 vi.mock('node:fs/promises');
 vi.mock('../src/utils.js', () => ({
   runCbSafely: vi.fn((fn) => fn()),
-  runInParallel: vi.fn(async (promises, _concurrency) => {
+  runInParallel: vi.fn(async (promises) => {
     for (const promiseFn of promises) {
       await promiseFn();
     }
@@ -52,7 +52,7 @@ describe('export module', () => {
       };
 
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
 
       const result = await getCardQueryResult('/test/project');
@@ -78,7 +78,7 @@ describe('export module', () => {
       };
 
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
 
       const result = await getCardQueryResult('/test/project', 'card1');
@@ -98,7 +98,7 @@ describe('export module', () => {
       };
 
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
 
       await expect(
@@ -118,7 +118,7 @@ describe('export module', () => {
       };
 
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
 
       // First call
@@ -160,9 +160,9 @@ describe('export module', () => {
         },
       };
 
-      vi.mocked(createApp).mockReturnValue(mockApp as any);
+      vi.mocked(createApp).mockReturnValue(mockApp as unknown as Hono);
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
       vi.mocked(cp).mockResolvedValue(undefined);
       vi.mocked(readFile).mockResolvedValue('{"staticMode": false}');
@@ -218,9 +218,9 @@ describe('export module', () => {
         },
       };
 
-      vi.mocked(createApp).mockReturnValue(mockApp as any);
+      vi.mocked(createApp).mockReturnValue(mockApp as unknown as Hono);
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
       vi.mocked(cp).mockResolvedValue(undefined);
       vi.mocked(readFile).mockResolvedValue('{"staticMode": false}');
@@ -258,9 +258,9 @@ describe('export module', () => {
         },
       };
 
-      vi.mocked(createApp).mockReturnValue(mockApp as any);
+      vi.mocked(createApp).mockReturnValue(mockApp as unknown as Hono);
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
       vi.mocked(cp).mockResolvedValue(undefined);
       vi.mocked(readFile).mockResolvedValue('{"staticMode": false}');
@@ -295,9 +295,9 @@ describe('export module', () => {
         },
       };
 
-      vi.mocked(createApp).mockReturnValue(mockApp as any);
+      vi.mocked(createApp).mockReturnValue(mockApp as unknown as Hono);
       vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as any,
+        mockCommands as unknown as CommandManager,
       );
       vi.mocked(cp).mockResolvedValue(undefined);
       vi.mocked(readFile).mockResolvedValue('{"staticMode": false}');
@@ -315,7 +315,7 @@ describe('export module', () => {
         req: {
           header: vi.fn().mockReturnValue('true'),
         },
-      } as any as Context;
+      } as unknown as Context;
 
       const result = isSSGContext(mockContext);
 
@@ -328,7 +328,7 @@ describe('export module', () => {
         req: {
           header: vi.fn().mockReturnValue('false'),
         },
-      } as any as Context;
+      } as unknown as Context;
 
       const result = isSSGContext(mockContext);
 
@@ -340,7 +340,7 @@ describe('export module', () => {
         req: {
           header: vi.fn().mockReturnValue(undefined),
         },
-      } as any as Context;
+      } as unknown as Context;
 
       const result = isSSGContext(mockContext);
 
@@ -355,7 +355,7 @@ describe('export module', () => {
           header: vi.fn().mockReturnValue('true'),
         },
         json: vi.fn().mockReturnValue('json-response'),
-      } as any as Context;
+      } as unknown as Context;
 
       const mockFn = vi.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]);
       const middleware = ssgParams(mockFn);
@@ -374,7 +374,7 @@ describe('export module', () => {
           header: vi.fn().mockReturnValue('true'),
         },
         json: vi.fn().mockReturnValue('empty-json-response'),
-      } as any as Context;
+      } as unknown as Context;
 
       const middleware = ssgParams();
 
@@ -389,7 +389,7 @@ describe('export module', () => {
         req: {
           header: vi.fn().mockReturnValue('false'),
         },
-      } as any as Context;
+      } as unknown as Context;
 
       const mockNext = vi.fn().mockReturnValue('next-response');
       const middleware = ssgParams(vi.fn());
@@ -406,7 +406,7 @@ describe('export module', () => {
           header: vi.fn().mockReturnValue('true'),
         },
         json: vi.fn(),
-      } as any as Context;
+      } as unknown as Context;
 
       const mockFn = vi.fn().mockRejectedValue(new Error('Function error'));
       const middleware = ssgParams(mockFn);
