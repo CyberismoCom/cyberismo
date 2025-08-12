@@ -106,12 +106,7 @@ export class Rename {
             join(attachment.path, attachment.fileName),
             join(attachment.path, newAttachmentFileName),
           );
-
-          const attachmentRe = new RegExp(`image::${attachment.fileName}`, 'g');
-          card.content = card.content?.replace(
-            attachmentRe,
-            `image::${newAttachmentFileName}`,
-          );
+          // NOTE: content is renamed by updateFiles method
         }),
       );
     }

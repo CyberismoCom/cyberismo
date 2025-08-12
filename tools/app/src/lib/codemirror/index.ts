@@ -135,7 +135,7 @@ export function addAttachment(
     editor.dispatch({
       changes: {
         from: target,
-        insert: `${'\n'.repeat(2 - newLinesBefore)}image::${fileName}[]${hasNewLineAfter ? '' : '\n'}`,
+        insert: `${'\n'.repeat(2 - newLinesBefore)}{{#image}}"fileName": "${fileName}"{{/image}}${hasNewLineAfter ? '' : '\n'}`,
       },
     });
   } else {
