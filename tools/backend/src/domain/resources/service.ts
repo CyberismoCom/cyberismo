@@ -299,7 +299,9 @@ async function processTemplates(
         moduleResources[prefix] = [];
       }
       if (
-        !moduleResources[prefix].find((resource) => resource.name === template)
+        !moduleResources[prefix].find(
+          (resource) => (resource as { name: string }).name === template,
+        )
       ) {
         moduleResources[prefix].push(
           await createResourceNode(
