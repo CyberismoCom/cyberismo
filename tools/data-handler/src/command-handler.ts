@@ -364,7 +364,12 @@ export class Commands {
           newValue ? JSON.parse(newValue) : undefined,
         );
       } else if (command === Cmd.updateModules) {
-        await this.commands?.importCmd.updateAllModules(credentials);
+        const [module] = args;
+        if (module) {
+          await this.commands?.importCmd.updateModule(module, credentials);
+        } else {
+          await this.commands?.importCmd.updateAllModules(credentials);
+        }
       } else if (command === Cmd.validate) {
         return this.validate();
       } else {
