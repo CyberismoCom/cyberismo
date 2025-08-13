@@ -27,6 +27,21 @@ export const hasResourceData = (
 export const useResourceTree = (options?: SWRConfiguration) =>
   useSWRHook(apiPaths.resourceTree(), 'resourceTree', [], options);
 
+export const useResource = (resourceName: string) => {
+  return {
+    deleteResource: async () => {
+      await deleteResource(resourceName);
+    },
+  };
+};
+
+export const deleteResource = async (resourceName: string) => {
+  const swrKey = apiPaths.resource(resourceName);
+  await callApi(swrKey, 'DELETE');
+  mutate(swrKey);
+  mutate(apiPaths.resourceTree());
+};
+
 export const useResourceFileContent = (
   resourceName: string,
   options?: SWRConfiguration,

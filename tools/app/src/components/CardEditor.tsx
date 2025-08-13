@@ -83,7 +83,6 @@ import {
 } from '@/lib/utils';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
-import CardContextMenu from '@/components/CardContextMenu';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -561,7 +560,6 @@ export default function CardEditor({
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
             linkButtonDisabled={true}
-            contextMenu={<CardContextMenu cardKey={card.key} />}
             readOnly={readOnly}
           />
           <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>

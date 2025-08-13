@@ -14,6 +14,8 @@
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
 import type { ResourceFileContentResponse } from '../../types.js';
+import { resourceParamsSchema } from './schema.js';
+import { zValidator } from '@hono/zod-validator';
 
 const router = new Hono();
 
@@ -79,5 +81,16 @@ router.put('/:module/:type/:resource/:file', async (c) => {
   );
   return c.json({ content: changedContent.content });
 });
+
+router.delete(
+  '/:prefix/:type/:identifier',
+  zValidator('param', resourceParamsSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const resourceParams = c.req.valid('param');
+    await resourceService.deleteResource(commands, resourceParams);
+    return c.json({ message: 'Resource deleted' });
+  },
+);
 
 export default router;

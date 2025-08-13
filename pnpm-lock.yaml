@@ -228,6 +228,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.14.1
         version: 1.14.3(hono@4.7.11)
+      '@hono/zod-validator':
+        specifier: ^0.7.2
+        version: 0.7.2(hono@4.7.11)(zod@4.0.17)
       dotenv:
         specifier: ^16.5.0
         version: 16.5.0
@@ -237,6 +240,9 @@ importers:
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
+      zod:
+        specifier: ^4.0.17
+        version: 4.0.17
     devDependencies:
       '@cyberismo/app':
         specifier: workspace:*
@@ -836,6 +842,12 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
+
+  '@hono/zod-validator@0.7.2':
+    resolution: {integrity: sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.25.0 || ^4.0.0
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -4827,6 +4839,9 @@ packages:
     resolution: {integrity: sha512-cYVsTjKl8b+FrnidjibDWskAv7UKOfcwaVZdp/it9n1s9fU3IkgDbhdIRKCW4JDsAlECJY0ytoVPT3sK6kideA==}
     engines: {node: '>=18'}
 
+  zod@4.0.17:
+    resolution: {integrity: sha512-1PHjlYRevNxxdy2JZ8JcNAw7rX8V9P1AKkP+x/xZfxB0K5FYfuV+Ug6P/6NVSR2jHQ+FzDDoDHS04nYUsOIyLQ==}
+
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
@@ -5329,6 +5344,11 @@ snapshots:
   '@hono/node-server@1.14.3(hono@4.7.11)':
     dependencies:
       hono: 4.7.11
+
+  '@hono/zod-validator@0.7.2(hono@4.7.11)(zod@4.0.17)':
+    dependencies:
+      hono: 4.7.11
+      zod: 4.0.17
 
   '@humanfs/core@0.19.1': {}
 
@@ -9515,3 +9535,5 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yoctocolors-cjs@2.1.2: {}
+
+  zod@4.0.17: {}

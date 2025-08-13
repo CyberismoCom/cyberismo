@@ -111,6 +111,7 @@ export const apiPaths = {
   linkTypes: () => '/api/linkTypes',
   resources: (type: string) => `/api/resources/${type}`,
   resourceTree: () => '/api/resources/tree',
+  resource: (resourceName: string) => `/api/resources/${resourceName}`,
   resourceFileContent: (resourceName: string) =>
     `/api/resources/${resourceName}`,
   tree: () => '/api/tree',

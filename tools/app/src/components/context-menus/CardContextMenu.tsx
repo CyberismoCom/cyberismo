@@ -1,16 +1,16 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as React from 'react';
 import MoreIcon from '@mui/icons-material/MoreHoriz';
 import {
   MenuButton,
@@ -22,17 +22,21 @@ import {
   Tooltip,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { useModals } from '../lib/utils';
-import { MoveCardModal, DeleteModal, AddAttachmentModal } from './modals';
-import { useAppSelector, useAppRouter } from '../lib/hooks';
-import { useCard } from '../lib/api';
-import { useParentCard } from '../lib/hooks';
+import { useModals } from '@/lib/utils';
+import {
+  MoveCardModal,
+  DeleteModal,
+  AddAttachmentModal,
+} from '@/components/modals';
+import { useAppSelector, useAppRouter } from '@/lib/hooks';
+import { useCard } from '@/lib/api';
+import { useParentCard } from '@/lib/hooks';
 
 interface CardContextMenuProps {
   cardKey: string;
 }
 
-const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
+export function CardContextMenu({ cardKey }: CardContextMenuProps) {
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
     move: false,
@@ -108,6 +112,4 @@ const CardContextMenu: React.FC<CardContextMenuProps> = ({ cardKey }) => {
       />
     </>
   );
-};
-
-export default CardContextMenu;
+}

@@ -35,7 +35,12 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
   }));
 
   return (
-    <BaseEditor node={node} onUpdate={() => {}} isUpdating={false}>
+    <BaseEditor
+      node={node}
+      onUpdate={() => {}}
+      isUpdating={false}
+      enabled={{ delete: true }}
+    >
       <Typography level="h3" sx={{ mb: 2 }}>
         {node.name}
       </Typography>

@@ -15,6 +15,7 @@ import type { ResourceContent } from '@cyberismo/data-handler/interfaces/resourc
 import {
   type Card,
   type ResourceFolderType,
+  RemovableResourceTypes,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { CommandManager } from '@cyberismo/data-handler';
 import {
@@ -22,6 +23,8 @@ import {
   moduleNameFromCardKey,
   resourceName,
 } from '@cyberismo/data-handler';
+import { ResourceParams } from './schema.js';
+import { resourceNameToString } from '../../../../data-handler/dist/utils/resource-utils.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -209,6 +212,7 @@ async function processTemplates(
   commands: CommandManager,
   projectPrefix: string,
 ) {
+  const templates = await commands.showCmd.showResources('templates');
   const templateTree = await commands.showCmd.showAllTemplateCards();
 
   const rootTemplates: { [templateName: string]: any[] } = {};
@@ -223,6 +227,7 @@ async function processTemplates(
 
       if (prefix === projectPrefix || !prefix) {
         if (!rootTemplates[name]) {
+          templates.splice(templates.indexOf(name), 1);
           rootTemplates[name] = [];
         }
         rootTemplates[name].push(cardNode);
@@ -231,6 +236,7 @@ async function processTemplates(
           moduleTemplates[prefix] = {};
         }
         if (!moduleTemplates[prefix][name]) {
+          templates.splice(templates.indexOf(name), 1);
           moduleTemplates[prefix][name] = [];
         }
         moduleTemplates[prefix][name].push(cardNode);
@@ -263,6 +269,39 @@ async function processTemplates(
         ),
       ),
     );
+  }
+
+  // Add also templates that do not have any cards
+  for (const template of templates) {
+    const { prefix } = parseResourcePrefix(template);
+    if (prefix === projectPrefix) {
+      if (!rootResources.find((resource) => resource.name === template)) {
+        rootResources.push(
+          await createResourceNode(
+            commands,
+            'templates',
+            template,
+            projectPrefix,
+          ),
+        );
+      }
+    } else {
+      if (!moduleResources[prefix]) {
+        moduleResources[prefix] = [];
+      }
+      if (
+        !moduleResources[prefix].find((resource) => resource.name === template)
+      ) {
+        moduleResources[prefix].push(
+          await createResourceNode(
+            commands,
+            'templates',
+            template,
+            projectPrefix,
+          ),
+        );
+      }
+    }
   }
 
   return { rootResources, moduleResources };
@@ -298,6 +337,27 @@ async function groupResourcesByPrefix(
 
   return { rootResources, moduleResources };
 }
+
+/**
+ * Delete a resource.
+ * @param commands Command manager.
+ * @param module Name of the module.
+ * @param type Name of the type.
+ * @param resource Name of the resource.
+ */
+export async function deleteResource(
+  commands: CommandManager,
+  resource: ResourceParams,
+) {
+  return commands.removeCmd.remove(
+    resource.type.substring(
+      0,
+      resource.type.length - 1,
+    ) as RemovableResourceTypes,
+    resourceNameToString(resource),
+  );
+}
+
 /**
  * Get the content of a file in a resource.
  * @param commands Command manager.
