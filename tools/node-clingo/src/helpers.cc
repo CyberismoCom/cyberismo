@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2025
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "helpers.h"
 
@@ -25,8 +26,8 @@
 #endif
 
 #if USE_CHRONO_FROM_STREAM_FALLBACK
-#include <iomanip>
 #include <ctime>
+#include <iomanip>
 #endif
 
 namespace node_clingo
@@ -34,7 +35,7 @@ namespace node_clingo
 
     std::string get_symbol_string(clingo_symbol_t symbol)
     {
-        char *string = nullptr;
+        char* string = nullptr;
         size_t n;
         // determine size of the string representation of the next symbol in the model
         if (!clingo_symbol_to_string_size(symbol, &n))
@@ -43,7 +44,7 @@ namespace node_clingo
         }
 
         // allocate memory for the symbol's string
-        string = (char *)malloc(n);
+        string = (char*)malloc(n);
         if (!string)
         {
             return "";
@@ -60,7 +61,7 @@ namespace node_clingo
         return result;
     }
 
-    std::string html_escape(const std::string &input)
+    std::string html_escape(const std::string& input)
     {
         std::string result;
         result.reserve(input.size());
@@ -75,25 +76,25 @@ namespace node_clingo
         {
             switch (c)
             {
-            case '&':
-                result += amp;
-                break;
-            case '<':
-                result += lt;
-                break;
-            case '>':
-                result += gt;
-                break;
-            default:
-                result += c;
-                break;
+                case '&':
+                    result += amp;
+                    break;
+                case '<':
+                    result += lt;
+                    break;
+                case '>':
+                    result += gt;
+                    break;
+                default:
+                    result += c;
+                    break;
             }
         }
 
         return result;
     }
 
-    std::vector<std::string> text_wrap(const std::string &text, size_t line_width)
+    std::vector<std::string> text_wrap(const std::string& text, size_t line_width)
     {
         std::vector<std::string> result;
         std::string line;
@@ -140,7 +141,7 @@ namespace node_clingo
         return result;
     }
 
-    std::chrono::system_clock::time_point parse_iso_date(const std::string &iso_date)
+    std::chrono::system_clock::time_point parse_iso_date(const std::string& iso_date)
     {
         std::istringstream ss(iso_date);
         std::chrono::system_clock::time_point date_point;
@@ -161,7 +162,7 @@ namespace node_clingo
         };
 #endif
 
-        for (const auto &fmt : date_formats)
+        for (const auto& fmt : date_formats)
         {
             // Reset the stringstream state for each attempt
             ss.clear();
@@ -195,10 +196,7 @@ namespace node_clingo
         return std::chrono::system_clock::time_point{};
     }
 
-    bool return_string(
-        const char *str,
-        clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+    bool return_string(const char* str, clingo_symbol_callback_t symbol_callback, void* symbol_callback_data)
     {
         clingo_symbol_t sym;
         if (!clingo_symbol_create_string(str, &sym))
@@ -208,18 +206,16 @@ namespace node_clingo
         return symbol_callback(&sym, 1, symbol_callback_data);
     }
 
-    bool return_empty_string(
-        clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+    bool return_empty_string(clingo_symbol_callback_t symbol_callback, void* symbol_callback_data)
     {
         return return_string("", symbol_callback, symbol_callback_data);
     }
 
     bool extract_resource_part(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data,
+        void* symbol_callback_data,
         ResourcePart part)
     {
         if (arguments_size != 1)
@@ -234,33 +230,33 @@ namespace node_clingo
             return return_empty_string(symbol_callback, symbol_callback_data);
         }
 
-        const char *resource_name;
+        const char* resource_name;
         if (!clingo_symbol_string(arguments[0], &resource_name))
         {
             return false;
         }
 
         std::string resource_str(resource_name);
-        
+
         if (resource_str.empty())
         {
             return return_empty_string(symbol_callback, symbol_callback_data);
         }
-        
+
         size_t first_slash = resource_str.find('/');
         if (first_slash == std::string::npos)
         {
             // No slashes - invalid format
             return return_empty_string(symbol_callback, symbol_callback_data);
         }
-        
+
         size_t second_slash = resource_str.find('/', first_slash + 1);
         if (second_slash == std::string::npos)
         {
             // Only 1 slash - invalid format
             return return_empty_string(symbol_callback, symbol_callback_data);
         }
-        
+
         size_t third_slash = resource_str.find('/', second_slash + 1);
         if (third_slash != std::string::npos)
         {

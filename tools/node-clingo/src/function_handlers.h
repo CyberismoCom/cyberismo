@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2025
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #ifndef NODE_CLINGO_FUNCTION_HANDLERS_H
 #define NODE_CLINGO_FUNCTION_HANDLERS_H
@@ -21,10 +22,10 @@ namespace node_clingo
 {
 
     using FunctionHandler = std::function<bool(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)>;
+        void* symbol_callback_data)>;
 
     /**
      * Handler for the @concatenate function.
@@ -36,10 +37,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_concatenate(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @days_since function.
@@ -51,10 +52,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_days_since(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @today function.
@@ -66,10 +67,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_today(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @wrap function.
@@ -81,10 +82,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_wrap(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @resourcePrefix function.
@@ -96,10 +97,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_resource_prefix(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @resourceType function.
@@ -111,10 +112,10 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_resource_type(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Handler for the @resourceIdentifier function.
@@ -126,17 +127,17 @@ namespace node_clingo
      * @returns True on success, false on error.
      */
     bool handle_resource_identifier(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data);
+        void* symbol_callback_data);
 
     /**
      * Get the map of function names to their handlers.
      * @returns A constant reference to the unordered map containing function handlers.
      */
-    const std::unordered_map<std::string, FunctionHandler> &get_function_handlers();
+    const std::unordered_map<std::string, FunctionHandler>& get_function_handlers();
 
-}
+} // namespace node_clingo
 
 #endif // NODE_CLINGO_FUNCTION_HANDLERS_H

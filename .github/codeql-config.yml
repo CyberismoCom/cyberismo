@@ -1,2 +1,3 @@
-paths-excluded:
-  - resources/**
+# Use security and quality queries for comprehensive analysis
+queries:
+  - uses: security-and-quality

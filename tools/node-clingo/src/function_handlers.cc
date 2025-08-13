@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2025
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "function_handlers.h"
 #include "helpers.h"
@@ -24,8 +25,8 @@
 
 #if USE_FORMAT_FALLBACK
 #include <ctime>
-#include <time.h>
 #include <iomanip>
+#include <time.h>
 #else
 #include <format>
 #endif
@@ -34,10 +35,10 @@ namespace node_clingo
 {
 
     bool handle_concatenate(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
         std::string result;
 
@@ -47,7 +48,7 @@ namespace node_clingo
 
             if (type == clingo_symbol_type_string)
             {
-                const char *str;
+                const char* str;
                 if (!clingo_symbol_string(arguments[i], &str))
                 {
                     return false;
@@ -73,10 +74,10 @@ namespace node_clingo
     }
 
     bool handle_days_since(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
         if (arguments_size != 1)
         {
@@ -92,7 +93,7 @@ namespace node_clingo
             return symbol_callback(&sym, 1, symbol_callback_data);
         }
 
-        const char *date_str;
+        const char* date_str;
         if (!clingo_symbol_string(arguments[0], &date_str))
         {
             return false;
@@ -123,10 +124,10 @@ namespace node_clingo
     }
 
     bool handle_today(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
         if (arguments_size != 0)
         {
@@ -151,10 +152,10 @@ namespace node_clingo
     }
 
     bool handle_wrap(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
         if (arguments_size != 1)
         {
@@ -166,7 +167,7 @@ namespace node_clingo
 
         if (arg_type == clingo_symbol_type_string || arg_type == clingo_symbol_type_function)
         {
-            const char *text;
+            const char* text;
             if (!clingo_symbol_string(arguments[0], &text))
             {
                 return false;
@@ -204,33 +205,36 @@ namespace node_clingo
     }
 
     bool handle_resource_prefix(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
-        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::PREFIX);
+        return extract_resource_part(
+            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::PREFIX);
     }
 
     bool handle_resource_type(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
-        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::TYPE);
+        return extract_resource_part(
+            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::TYPE);
     }
 
     bool handle_resource_identifier(
-        clingo_symbol_t const *arguments,
+        clingo_symbol_t const* arguments,
         size_t arguments_size,
         clingo_symbol_callback_t symbol_callback,
-        void *symbol_callback_data)
+        void* symbol_callback_data)
     {
-        return extract_resource_part(arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::IDENTIFIER);
+        return extract_resource_part(
+            arguments, arguments_size, symbol_callback, symbol_callback_data, ResourcePart::IDENTIFIER);
     }
 
-    const std::unordered_map<std::string, FunctionHandler> &get_function_handlers()
+    const std::unordered_map<std::string, FunctionHandler>& get_function_handlers()
     {
         static const std::unordered_map<std::string, FunctionHandler> handlers = {
             {"concatenate", handle_concatenate},

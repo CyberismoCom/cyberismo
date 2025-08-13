@@ -1,0 +1,42 @@
+# Clang-Format configuration for Cyberismo C++ code
+#
+# Note: clang-format is optional for CI builds - if not available, formatting checks are skipped
+# Developers should install clang-format for automatic code formatting.
+
+# Use LLVM; try to avoid any exceptions.
+BasedOnStyle: LLVM
+Language: Cpp
+ColumnLimit: 120
+
+# Indentation
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+NamespaceIndentation: All
+IndentCaseLabels: true
+PenaltyBreakComment: 1000
+ReflowComments: false
+
+# Braces
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterStruct: true
+  AfterFunction: true
+  AfterNamespace: true
+  BeforeElse: true
+  BeforeCatch: true
+
+# Enforce parameters on own rows, function return value on same row
+AllowAllParametersOfDeclarationOnNextLine: false
+AlwaysBreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000
+BinPackArguments: false
+BinPackParameters: false
+
+# Put pointers and references to types
+PointerAlignment: Left
+
+# When bracket opens, align arguments to new lines
+AlignAfterOpenBracket: AlwaysBreak
