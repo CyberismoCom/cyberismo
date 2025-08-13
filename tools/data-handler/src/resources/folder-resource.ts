@@ -19,6 +19,7 @@ import {
   rename,
   rm,
   writeFile,
+  constants,
 } from 'node:fs/promises';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
@@ -145,7 +146,7 @@ export class FolderResource extends FileResource {
       throw new Error(`File '${fileName}' is not in the resource`);
     }
     await writeFile(filePath, changedContent, {
-      flag: 'r+',
+      flag: constants.O_RDWR | constants.O_TRUNC, // rewrites file but fails if file does not exist
     });
   }
   /**

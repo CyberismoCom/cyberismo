@@ -10,6 +10,7 @@ import type { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
 import { fileURLToPath } from 'node:url';
 import type { Show } from '../src/commands/index.js';
 import { writeJsonFile } from '../src/utils/json.js';
+import { resourceName } from '../src/resources/file-resource.js';
 
 describe('show', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
@@ -394,5 +395,92 @@ describe('show', () => {
     ).to.be.rejectedWith(
       `Report 'decision/reports/wrongReport' does not exist`,
     );
+  });
+
+  it('showFile (success)', async () => {
+    const resourceNameStr = 'decision/reports/anotherReport';
+    const fileName = 'index.adoc.hbs';
+    const result = await showCmd.showFile(
+      resourceName(resourceNameStr),
+      fileName,
+    );
+    expect(result).to.not.equal(undefined);
+    expect(result).to.be.a('string');
+    expect(result.length).to.be.greaterThan(0);
+  });
+
+  it('showFile - resource does not exist', async () => {
+    const resourceNameStr = 'decision/reports/nonExistentReport';
+    const fileName = 'index.adoc.hbs';
+    await showCmd
+      .showFile(resourceName(resourceNameStr), fileName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Resource '${resourceNameStr}' does not exist in the project`,
+        ),
+      );
+  });
+
+  it('showFile - resource is not a folder resource', async () => {
+    const resourceNameStr = 'decision/cardTypes/decision';
+    const fileName = 'some-file.txt';
+    await showCmd
+      .showFile(resourceName(resourceNameStr), fileName)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Resource '${resourceNameStr}' is not a folder resource`,
+        ),
+      );
+  });
+
+  it('showFile - file does not exist in resource', async () => {
+    const resourceNameStr = 'decision/reports/anotherReport';
+    const fileName = 'nonExistentFile.txt';
+    await showCmd
+      .showFile(resourceName(resourceNameStr), fileName)
+      .catch((error) => {
+        expect(error.code).to.equal('ENOENT');
+      });
+  });
+
+  it('showFileNames (success)', async () => {
+    const resourceNameStr = 'decision/reports/anotherReport';
+    const result = await showCmd.showFileNames(resourceName(resourceNameStr));
+    expect(result).to.not.equal(undefined);
+    expect(result).to.be.an('array');
+    expect(result).to.include('index.adoc.hbs');
+    expect(result).to.include('parameterSchema.json');
+    expect(result).to.include('query.lp.hbs');
+    expect(result.length).to.equal(3);
+  });
+
+  it('showFileNames - resource does not exist', async () => {
+    const resourceNameStr = 'decision/reports/nonExistentReport';
+    await showCmd
+      .showFileNames(resourceName(resourceNameStr))
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Resource '${resourceNameStr}' does not exist in the project`,
+        ),
+      );
+  });
+
+  it('showFileNames - resource is not a folder resource', async () => {
+    const resourceNameStr = 'decision/cardTypes/decision';
+    await showCmd
+      .showFileNames(resourceName(resourceNameStr))
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Resource '${resourceNameStr}' is not a folder resource`,
+        ),
+      );
+  });
+
+  it('showFileNames - empty folder resource', async () => {
+    const resourceNameStr = 'decision/templates/empty';
+    const result = await showCmd.showFileNames(resourceName(resourceNameStr));
+    expect(result).to.not.equal(undefined);
+    expect(result).to.be.an('array');
+    expect(result.length).to.equal(0);
   });
 });

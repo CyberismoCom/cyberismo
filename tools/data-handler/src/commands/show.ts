@@ -31,6 +31,7 @@ import type {
   Resource,
   CardLocation,
   Context,
+  ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -39,7 +40,11 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { Project, type ResourcesFrom } from '../containers/project.js';
-import { type ResourceName, resourceName } from '../utils/resource-utils.js';
+import {
+  type ResourceName,
+  resourceName,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 
@@ -313,14 +318,20 @@ export class Show {
     resourceName: ResourceName,
     fileName: string,
   ): Promise<string> {
-    const resource = Project.resourceObject(this.project, resourceName);
-    if (!resource) {
+    const resourceNameStr = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameStr,
+      ))
+    ) {
       throw new Error(
-        `Resource '${resourceName}' does not exist in the project`,
+        `Resource '${resourceNameStr}' does not exist in the project`,
       );
     }
+    const resource = Project.resourceObject(this.project, resourceName);
     if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceName}' is not a folder resource`);
+      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
     }
     return resource.showFile(fileName);
   }
@@ -331,14 +342,20 @@ export class Show {
    * @returns all file names in the resource.
    */
   public async showFileNames(resourceName: ResourceName): Promise<string[]> {
-    const resource = Project.resourceObject(this.project, resourceName);
-    if (!resource) {
+    const resourceNameStr = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameStr,
+      ))
+    ) {
       throw new Error(
-        `Resource '${resourceName}' does not exist in the project`,
+        `Resource '${resourceNameStr}' does not exist in the project`,
       );
     }
+    const resource = Project.resourceObject(this.project, resourceName);
     if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceName}' is not a folder resource`);
+      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
     }
     return resource.showFileNames();
   }

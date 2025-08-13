@@ -53,6 +53,25 @@ describe('edit card', () => {
       expect(false);
     }
   });
+  it('edit card content - template card', async () => {
+    const templateCards = await commands.project.templateCards(
+      'decision/templates/decision',
+    );
+    const firstCard = templateCards.at(0);
+    if (!firstCard) {
+      throw new Error('No template cards found');
+    }
+    await editCmd.editCardContent(firstCard.key, 'whoopie');
+    const changedCard = await commands.project.findSpecificCard(firstCard.key, {
+      metadata: true,
+      content: true,
+    });
+    if (changedCard) {
+      expect(changedCard.content).to.equal('whoopie');
+    } else {
+      expect(false);
+    }
+  });
 
   it('edit card content - no content', async () => {
     const cards = await commands.project.cards();
@@ -136,6 +155,28 @@ describe('edit card', () => {
       expect(false);
     }
   });
+  it('edit card metadata - template card', async () => {
+    const templateCards = await commands.project.templateCards(
+      'decision/templates/decision',
+    );
+    const firstCard = templateCards.at(0);
+    if (!firstCard) {
+      throw new Error('No template cards found');
+    }
+    await editCmd.editCardMetadata(firstCard.key, 'title', 'new name');
+    if (!firstCard) {
+      expect(false);
+    }
+    const changedCard = await commands.project.findSpecificCard(firstCard.key, {
+      metadata: true,
+      content: true,
+    });
+    if (changedCard) {
+      expect(changedCard.metadata?.title).to.equal('new name');
+    } else {
+      expect(false);
+    }
+  });
   it('try to edit card metadata - incorrect field name', async () => {
     const cards = await commands.project.cards();
     const firstCard = cards.at(0);
@@ -164,5 +205,18 @@ describe('edit card', () => {
       .catch(() => {
         expect(true);
       });
+  });
+  it('edit folder resource content', async () => {
+    const resourceName = {
+      prefix: 'decision',
+      type: 'graphViews',
+      identifier: 'test',
+    };
+    await editCmd.editResourceContent(resourceName, 'view.lp.hbs', 'whoopie');
+    const content = await commands.showCmd.showFile(
+      resourceName,
+      'view.lp.hbs',
+    );
+    expect(content).to.equal('whoopie');
   });
 });
