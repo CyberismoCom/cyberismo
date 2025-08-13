@@ -32,7 +32,7 @@ export async function getCardDetails(
     contentType: 'adoc',
     metadata: false,
     parent: false,
-    location: CardLocation.projectOnly,
+    location: CardLocation.all,
   };
 
   let cardDetailsResponse: Card | undefined;

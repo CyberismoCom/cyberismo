@@ -69,9 +69,7 @@ export function createApp(projectPath?: string) {
     }
     return c.json(
       {
-        error: isSSGContext(c)
-          ? err.message || 'Internal Server Error'
-          : 'Internal Server Error',
+        error: err.message || 'Internal Server Error',
       },
       500,
     );

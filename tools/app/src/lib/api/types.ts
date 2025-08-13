@@ -36,6 +36,10 @@ export type CardResponse = {
   attachments: CardAttachment[];
 } & QueryResult<'card'>;
 
+export type ResourceFileContentResponse = {
+  content: string;
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
@@ -45,6 +49,7 @@ export type Resources = {
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
   resourceTree: ResourceNode[];
+  resourceFileContent: ResourceFileContentResponse;
 };
 
 export type ResourceName = keyof Resources;
@@ -78,6 +83,7 @@ interface BaseResourceNode {
   id: string;
   name: string;
   children?: ResourceNode[];
+  readOnly?: boolean;
 }
 
 // Resource group node (e.g., "cardTypes", "templates")
@@ -153,6 +159,7 @@ interface CalculationNode extends BaseResourceNode {
 interface FileNode extends BaseResourceNode {
   type: 'file';
   name: string;
+  displayName: string;
 }
 
 // Union type for all possible resource nodes
@@ -172,10 +179,32 @@ export type ResourceNode =
   | CardNode
   | FileNode;
 
+export type NodeType = ResourceNode['type'];
+const resourceNodes = [
+  'cardTypes',
+  'fieldTypes',
+  'linkTypes',
+  'workflows',
+  'templates',
+  'reports',
+  'graphModels',
+  'graphViews',
+  'calculations',
+];
+
 // Type guard helpers for working with ResourceNode
 export const isResourceOfType = <T extends ResourceNode['type']>(
   node: ResourceNode,
   type: T,
 ): node is Extract<ResourceNode, { type: T }> => {
   return node.type === type;
+};
+
+/**
+ * Checks if a node is a resource node.
+ * @param node - The node to check.
+ * @returns True if the node is a resource node, false otherwise.
+ */
+export const isResourceNode = (node: ResourceNode): node is ResourceNode => {
+  return resourceNodes.includes(node.type);
 };

@@ -29,7 +29,16 @@ const TYPE_INDEX = 1;
 const IDENTIFIER_INDEX = 2;
 // Valid resource name has three parts
 const RESOURCE_NAME_PARTS = 3;
+const RESOURCE_FOLDER_TYPES = [
+  'graphModels',
+  'graphViews',
+  'reports',
+  'templates',
+];
 
+export function isResourceFolderType(type: string): boolean {
+  return RESOURCE_FOLDER_TYPES.includes(type);
+}
 // Checks if name is valid (3 parts, separated by '/').
 export function isResourceName(name: string): boolean {
   const partsCount = name.split('/').length;

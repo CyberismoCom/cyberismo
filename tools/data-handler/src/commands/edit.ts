@@ -16,9 +16,17 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type { MetadataContent } from '../interfaces/project-interfaces.js';
+import type {
+  MetadataContent,
+  ResourceFolderType,
+} from '../interfaces/project-interfaces.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
+import {
+  type ResourceName,
+  resourceNameToString,
+} from '../utils/resource-utils.js';
+import { FolderResource } from '../resources/folder-resource.js';
 
 export class Edit {
   private project: Project;
@@ -80,7 +88,10 @@ export class Edit {
    * @param changedContent New content for the card.
    */
   public async editCardContent(cardKey: string, changedContent: string) {
-    // Determine the card path
+    const isTemplateCard = await this.project.isTemplateCard(cardKey);
+    if (isTemplateCard) {
+      return this.project.updateCardContent(cardKey, changedContent);
+    }
     const cardPath = this.project.pathToCard(cardKey);
     if (!cardPath) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
@@ -103,18 +114,52 @@ export class Edit {
     changedKey: string,
     newValue: MetadataContent,
   ) {
+    if (!changedKey) {
+      throw new Error(`Changed key cannot be empty`);
+    }
+    const isTemplateCard = await this.project.isTemplateCard(cardKey);
+    if (isTemplateCard) {
+      return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+    }
+
     // Determine the card path
     const cardPath = this.project.pathToCard(cardKey);
     if (!cardPath) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-    if (!changedKey) {
-      throw new Error(`Changed key cannot be empty`);
     }
 
     // check for editing rights
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
     await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
+  }
+
+  /**
+   * Update a file of a folder resource. Cannot be used to create a new file.
+   * @param resourceName The name of the resource to update.
+   * @param fileName The name of the file to update.
+   * @param changedContent The new content for the file.
+   */
+  public async editResourceContent(
+    resourceName: ResourceName,
+    fileName: string,
+    changedContent: string,
+  ) {
+    const resourceNameStr = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameStr,
+      ))
+    ) {
+      throw new Error(
+        `Resource '${resourceNameStr}' does not exist in the project`,
+      );
+    }
+    const resource = Project.resourceObject(this.project, resourceName);
+    if (!(resource instanceof FolderResource)) {
+      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
+    }
+    return resource.updateFile(fileName, changedContent);
   }
 }
