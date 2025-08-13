@@ -783,15 +783,18 @@ program
     },
   );
 
-// Updates all modules in the project.
+// Updates all modules, or specific named module in the project.
 program
   .command('update-modules')
-  .description('Updates all imported modules with latest versions')
+  .description(
+    'Updates to latest versions either all modules or a specific module',
+  )
+  .argument('[moduleName]', 'Module name')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CardsOptions) => {
+  .action(async (moduleName, options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
-      [],
+      [moduleName],
       Object.assign({}, options, program.opts()),
       credentials(),
     );
