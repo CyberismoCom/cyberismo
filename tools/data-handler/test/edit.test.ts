@@ -219,4 +219,14 @@ describe('edit card', () => {
     );
     expect(content).to.equal('whoopie');
   });
+  it('try to edit folder resource content - file is not whitelisted', async () => {
+    const resourceName = {
+      prefix: 'decision',
+      type: 'graphViews',
+      identifier: 'test',
+    };
+    await expect(
+      editCmd.editResourceContent(resourceName, 'random.file', 'whoopie'),
+    ).to.be.rejectedWith("File 'random.file' is not whitelisted");
+  });
 });

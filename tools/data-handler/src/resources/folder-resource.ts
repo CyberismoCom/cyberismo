@@ -12,15 +12,9 @@
 */
 
 import { basename, dirname, join, normalize } from 'node:path';
-import {
-  mkdir,
-  readdir,
-  readFile,
-  rename,
-  rm,
-  writeFile,
-  constants,
-} from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
+
+import { writeFileSafe } from '../utils/file-utils.js';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
@@ -145,9 +139,12 @@ export class FolderResource extends FileResource {
     if (basename(normalizedFilePath) !== fileName) {
       throw new Error(`File '${fileName}' is not in the resource`);
     }
-    await writeFile(filePath, changedContent, {
-      flag: constants.O_RDWR | constants.O_TRUNC, // rewrites file but fails if file does not exist
-    });
+    // check if the file is whitelisted
+    if (!VALID_FOLDER_RESOURCE_FILES.includes(fileName)) {
+      throw new Error(`File '${fileName}' is not whitelisted`);
+    }
+
+    await writeFileSafe(filePath, changedContent, { flag: 'w' });
   }
   /**
    * Updates resource.
