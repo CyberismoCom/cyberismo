@@ -17,14 +17,13 @@ import {
   type ResourceFolderType,
   RemovableResourceTypes,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { CommandManager } from '@cyberismo/data-handler';
+import { CommandManager, resourceNameToString } from '@cyberismo/data-handler';
 import {
   isResourceFolderType,
   moduleNameFromCardKey,
   resourceName,
 } from '@cyberismo/data-handler';
 import { ResourceParams } from './schema.js';
-import { resourceNameToString } from '../../../../data-handler/dist/utils/resource-utils.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
