@@ -9,10 +9,11 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+import { dirname } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { formatJson } from './json.js';
-import { dirname } from 'path';
+import { getChildLogger } from '../utils/log-utils.js';
 
 export interface UserPreferencesObject {
   editCommand: {
@@ -95,22 +96,39 @@ export class UserPreferences {
   };
 
   constructor(private prefsFilePath: string) {
-    if (!existsSync(this.prefsFilePath)) {
-      // Create the preferences directory based on prefsFilePath dirname
-      const prefsDir = dirname(this.prefsFilePath);
+    // Create the preferences directory based on prefsFilePath dirname
+    const prefsDir = dirname(this.prefsFilePath);
 
-      try {
-        if (!existsSync(prefsDir)) {
-          mkdirSync(prefsDir, { recursive: true });
+    try {
+      // Ensure directory exists first
+      if (!existsSync(prefsDir)) {
+        mkdirSync(prefsDir, { recursive: true });
+      }
+
+      // Try to create file exclusively using 'wx' flag
+      // This will fail atomically if file already exists
+      writeFileSync(this.prefsFilePath, formatJson(UserPreferences.defaults), {
+        flag: 'wx',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        const err = error as NodeJS.ErrnoException;
+        // If file already exists (EEXIST), that's fine - we'll use the existing file
+        if (err?.code !== 'EEXIST') {
+          throw new Error(
+            `Error creating preferences file '${this.prefsFilePath}': ${error}`,
+          );
+        } else {
+          this.logger.warn('Preferences file already exists');
         }
-        // File does not exist, create it with default content
-        writeFileSync(this.prefsFilePath, formatJson(UserPreferences.defaults));
-      } catch (error) {
-        throw new Error(
-          `Error creating preferences file '${this.prefsFilePath}': ${error}`,
-        );
       }
     }
+  }
+
+  private get logger() {
+    return getChildLogger({
+      module: 'userPreferences',
+    });
   }
 
   public getPreferences(): UserPreferencesObject {
