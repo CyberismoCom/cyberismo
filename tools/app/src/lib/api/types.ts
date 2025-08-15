@@ -40,6 +40,10 @@ export type ResourceFileContentResponse = {
   content: string;
 };
 
+export type LogicProgramResponse = {
+  logicProgram: string;
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
@@ -50,6 +54,7 @@ export type Resources = {
   tree: QueryResult<'tree'>[];
   resourceTree: ResourceNode[];
   resourceFileContent: ResourceFileContentResponse;
+  logicPrograms: LogicProgramResponse;
 };
 
 export type ResourceName = keyof Resources;

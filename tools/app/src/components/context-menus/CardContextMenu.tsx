@@ -27,9 +27,10 @@ import {
   MoveCardModal,
   DeleteModal,
   AddAttachmentModal,
+  LogicProgramModal,
 } from '@/components/modals';
 import { useAppSelector, useAppRouter } from '@/lib/hooks';
-import { useCard } from '@/lib/api';
+import { useCard, useProject } from '@/lib/api';
 import { useParentCard } from '@/lib/hooks';
 
 interface CardContextMenuProps {
@@ -42,8 +43,10 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
     move: false,
     metadata: false,
     addAttachment: false,
+    logicProgram: false,
   });
 
+  const { project } = useProject();
   const { t } = useTranslation();
   const router = useAppRouter();
   const { deleteCard } = useCard(cardKey);
@@ -92,6 +95,9 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
           <MenuItem data-cy="deleteCardButton" onClick={handleDeleteClick}>
             <Typography color="danger">{t('deleteCard')}</Typography>
           </MenuItem>
+          <MenuItem onClick={openModal('logicProgram')}>
+            <Typography>{t('viewLogicProgram')}</Typography>
+          </MenuItem>
         </Menu>
       </Dropdown>
 
@@ -109,6 +115,12 @@ export function CardContextMenu({ cardKey }: CardContextMenuProps) {
         open={modalOpen.addAttachment}
         onClose={closeModal('addAttachment')}
         cardKey={cardKey}
+      />
+      <LogicProgramModal
+        open={modalOpen.logicProgram}
+        onClose={closeModal('logicProgram')}
+        title={t('logicProgram')}
+        resourceName={`${project?.prefix}/cards/${cardKey}`}
       />
     </>
   );

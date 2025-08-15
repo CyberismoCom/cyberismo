@@ -103,6 +103,7 @@ export const apiPaths = {
   project: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
   fieldTypes: () => '/api/fieldTypes',
+  logicPrograms: (resourceName: string) => `/api/logicPrograms/${resourceName}`,
   cardType: (cardType: string) => `/api/cardTypes?name=${cardType}`,
   templates: () => '/api/templates',
   templateTree: () => '/api/templates/tree',

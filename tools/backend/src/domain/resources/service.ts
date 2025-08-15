@@ -24,7 +24,7 @@ import {
   resourceName,
   resourceNameToString,
 } from '@cyberismo/data-handler';
-import type { ResourceParams } from './schema.js';
+import type { ResourceParams } from '../../common/validationSchemas.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',

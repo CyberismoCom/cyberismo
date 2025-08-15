@@ -162,5 +162,7 @@
   "saveFile": {
     "success": "File saved successfully"
   },
-  "invalidResource": "Invalid resource"
+  "invalidResource": "Invalid resource",
+  "logicProgram": "Logic program",
+  "viewLogicProgram": "View logic program"
 }
