@@ -11,25 +11,27 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from 'react';
 import { Button, Breadcrumbs, Link, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { ResourceNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
+import { ConfigContextMenu } from '../context-menus';
 
 interface ConfigToolbarProps {
   node: ResourceNode;
   onUpdate?: () => void;
-  contextMenu?: React.ReactNode;
   isUpdating?: boolean;
+  enabled?: {
+    delete?: boolean;
+  };
 }
 
-const ConfigToolbar: React.FC<ConfigToolbarProps> = ({
+export function ConfigToolbar({
   node,
   onUpdate,
-  contextMenu,
   isUpdating = false,
-}) => {
+  enabled,
+}: ConfigToolbarProps) {
   const { t } = useTranslation();
 
   // Create breadcrumbs from the node path
@@ -89,10 +91,10 @@ const ConfigToolbar: React.FC<ConfigToolbarProps> = ({
   return (
     <BaseToolbar
       breadcrumbs={breadcrumbs}
-      contextMenu={contextMenu}
+      contextMenu={<ConfigContextMenu node={node} enabled={enabled} />}
       actions={actions}
     />
   );
-};
+}
 
 export default ConfigToolbar;

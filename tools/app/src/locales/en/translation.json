@@ -16,6 +16,11 @@
     "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
     "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
   },
+  "deleteResourceModal": {
+    "title": "Delete resource",
+    "content": "Are you sure you want to delete the resource <bold>\"{{resourceName}}\"</bold>? This cannot be undone.",
+    "success": "Resource \"{{resourceName}}\" deleted successfully"
+  },
   "addAttachmentModal": {
     "title": "Add attachment",
     "dragNdrop": "Drag and drop your files here",
@@ -46,6 +51,7 @@
   },
   "deleteCardSuccess": "Card deleted successfully",
   "deleteCard": "Delete card",
+  "deleteResource": "Delete resource",
   "delete": "Delete",
   "cardKey": "Card key",
   "cardType": "Card type",

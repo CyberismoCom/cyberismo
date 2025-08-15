@@ -19,9 +19,11 @@
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/data-handler": "workspace:*",
     "@hono/node-server": "^1.14.1",
+    "@hono/zod-validator": "^0.7.2",
     "dotenv": "^16.5.0",
     "hono": "^4.7.5",
-    "mime-types": "^3.0.1"
+    "mime-types": "^3.0.1",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@cyberismo/app": "workspace:*",

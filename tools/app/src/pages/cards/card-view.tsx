@@ -29,8 +29,6 @@ import { Box, Stack, Typography } from '@mui/joy';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRequiredKeyParam } from '@/lib/hooks';
-import CardContextMenu from '@/components/CardContextMenu';
-import { config } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,11 +92,6 @@ export default function Page() {
         onUpdate={() => {}}
         onInsertLink={() => setLinkFormState('add-from-toolbar')}
         linkButtonDisabled={expandedLinkTypes.length === 0}
-        contextMenu={
-          config.staticMode ? undefined : (
-            <CardContextMenu cardKey={card?.key || ''} />
-          )
-        }
       />
       <Box flexGrow={1} minHeight={0}>
         <LoadingGate values={[card, tree]}>

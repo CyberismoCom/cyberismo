@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './DeleteModal';
+export * from './Delete';
 export * from './MoveCardModal';
 export * from './NewCardModal';
 export * from './AddAttachmentModal';

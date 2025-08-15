@@ -20,15 +20,24 @@ export default function BaseEditor({
   children,
   onUpdate,
   isUpdating,
+  enabled,
 }: {
   node: ResourceNode;
   onUpdate: () => void;
   children: React.ReactNode;
   isUpdating: boolean;
+  enabled?: {
+    delete?: boolean;
+  };
 }) {
   return (
     <Stack height="100%">
-      <ConfigToolbar node={node} onUpdate={onUpdate} isUpdating={isUpdating} />
+      <ConfigToolbar
+        node={node}
+        onUpdate={onUpdate}
+        isUpdating={isUpdating}
+        enabled={enabled}
+      />
       <Stack flexGrow={1} minHeight={0} padding={3}>
         {children}
       </Stack>

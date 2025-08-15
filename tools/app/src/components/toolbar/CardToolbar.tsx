@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { Button, IconButton, Tooltip } from '@mui/joy';
 import EditIcon from '@mui/icons-material/Edit';
 import InsertLink from '@mui/icons-material/InsertLink';
@@ -26,6 +26,7 @@ import { useAppDispatch } from '../../lib/hooks';
 import { addNotification } from '../../lib/slices/notifications';
 import { config } from '@/lib/utils';
 import BaseToolbar from './BaseToolbar';
+import { CardContextMenu } from '@/components/context-menus';
 
 interface CardToolbarProps {
   cardKey: string;
@@ -33,19 +34,17 @@ interface CardToolbarProps {
   linkButtonDisabled?: boolean;
   onUpdate?: () => void;
   onInsertLink?: () => void;
-  contextMenu?: React.ReactNode;
   readOnly?: boolean;
 }
 
-const CardToolbar: React.FC<CardToolbarProps> = ({
+export function CardToolbar({
   cardKey,
   mode,
   onUpdate,
   onInsertLink,
   linkButtonDisabled,
-  contextMenu,
   readOnly,
-}) => {
+}: CardToolbarProps) {
   const router = useAppRouter();
   const { t } = useTranslation();
 
@@ -160,10 +159,10 @@ const CardToolbar: React.FC<CardToolbarProps> = ({
   return (
     <BaseToolbar
       breadcrumbs={breadcrumbs}
-      contextMenu={contextMenu}
+      contextMenu={<CardContextMenu cardKey={cardKey} />}
       actions={actions}
     />
   );
-};
+}
 
 export default CardToolbar;
