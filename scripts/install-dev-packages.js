@@ -152,24 +152,6 @@ function installClingo(condaCommand) {
 }
 
 /**
- * Check if an executable is available in the PATH.
- * @param {*} executable name of the executable
- * @returns true if the executable is available, false otherwise
- */
-function isExecutableAvailable(executable) {
-  try {
-    const command =
-      process.platform === 'win32'
-        ? `where ${executable}`
-        : `which ${executable}`;
-    execSync(command);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
  * Check if a conda package is installed in the cyberismo environment.
  * @param {*} condaCommand path to the conda executable
  * @param {*} package name of the package
