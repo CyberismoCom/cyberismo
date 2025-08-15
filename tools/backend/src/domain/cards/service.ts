@@ -14,9 +14,9 @@
 import Processor from '@asciidoctor/core';
 import {
   CardLocation,
-  MetadataContent,
+  type MetadataContent,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardDetails } from './lib.js';
 
 export async function getProjectInfo(commands: CommandManager) {
@@ -43,15 +43,14 @@ export async function getProjectInfo(commands: CommandManager) {
 export async function updateCard(
   commands: CommandManager,
   key: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
 ) {
-  let successes = 0;
   const errors = [];
 
   if (body.state) {
     try {
       await commands.transitionCmd.cardTransition(key, body.state);
-      successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
     }
@@ -60,7 +59,6 @@ export async function updateCard(
   if (body.content != null) {
     try {
       await commands.editCmd.editCardContent(key, body.content);
-      successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
     }
@@ -72,7 +70,6 @@ export async function updateCard(
 
       try {
         await commands.editCmd.editCardMetadata(key, metadataKey, value);
-        successes++;
       } catch (error) {
         if (error instanceof Error) errors.push(error.message);
       }
@@ -82,7 +79,6 @@ export async function updateCard(
   if (body.parent) {
     try {
       await commands.moveCmd.moveCard(key, body.parent);
-      successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
     }
@@ -90,7 +86,6 @@ export async function updateCard(
   if (body.index != null) {
     try {
       await commands.moveCmd.rankByIndex(key, body.index);
-      successes++;
     } catch (error) {
       if (error instanceof Error) errors.push(error.message);
     }

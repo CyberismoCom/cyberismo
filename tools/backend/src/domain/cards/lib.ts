@@ -13,18 +13,24 @@
 
 import Processor from '@asciidoctor/core';
 import {
-  Card,
+  type Card,
   CardLocation,
-  ProjectFetchCardDetails,
+  type ProjectFetchCardDetails,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { CommandManager, evaluateMacros } from '@cyberismo/data-handler';
+import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardQueryResult } from '../../export.js';
+
+interface result {
+  status: number;
+  message?: string;
+  data?: object;
+}
 
 export async function getCardDetails(
   commands: CommandManager,
   key: string,
   staticMode?: boolean,
-): Promise<any> {
+): Promise<result> {
   const fetchCardDetails: ProjectFetchCardDetails = {
     attachments: true,
     children: false,

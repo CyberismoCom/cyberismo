@@ -8,7 +8,8 @@
     "build-prebuildify": "shx rm -rf prebuilds && prebuildify --napi",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",

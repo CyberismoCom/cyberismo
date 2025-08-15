@@ -20,7 +20,7 @@ declare module 'node-gyp-build' {
    * @param directory The directory containing the compiled addon
    * @returns The native addon module
    */
-  function build(directory: string): any;
+  function build(directory: string): unknown;
 
   export default build;
 }

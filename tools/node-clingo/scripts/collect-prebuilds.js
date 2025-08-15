@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+/* eslint-env node */
+/* globals console */
+
 /**
     Cyberismo
     Copyright © Cyberismo Ltd and contributors 2025

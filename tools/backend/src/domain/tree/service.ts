@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CommandManager } from '@cyberismo/data-handler';
+import type { CommandManager } from '@cyberismo/data-handler';
 
 export async function getCardTree(commands: CommandManager, isSsg: boolean) {
   await commands.calculateCmd.generate();

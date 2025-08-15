@@ -19,7 +19,7 @@ import { createServer } from 'node:net';
  * @param maxConcurrent - Maximum number of promises to run at a time
  * @returns - Promise that resolves when all promises have resolved
  */
-export async function runInParallel<T>(
+export async function runInParallel(
   promises: (() => Promise<unknown>)[],
   maxConcurrent: number = 2,
 ) {
@@ -47,7 +47,9 @@ export async function runCbSafely<T>(
 ): Promise<T | undefined> {
   try {
     return await cb();
-  } catch {}
+  } catch {
+    // All exceptions are ignored.
+  }
 }
 
 /**

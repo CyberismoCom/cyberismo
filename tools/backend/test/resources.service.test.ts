@@ -3,7 +3,25 @@ import { buildResourceTree } from '../src/domain/resources/service.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
+// Helper interface for tests.
+interface testDataNode {
+  name: string;
+  displayName: string;
+  description: string;
+  dataType: string;
+}
+
+// Helper interface for tests.
+interface testObjectNode {
+  name: string;
+  id: string;
+  type: string;
+  data: testDataNode;
+  children: testObjectNode[];
+}
+
 // Create mock CommandManager
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockCommandManager = (overrides: any = {}) => {
   return {
     showCmd: {
@@ -14,7 +32,7 @@ const createMockCommandManager = (overrides: any = {}) => {
       ...overrides.showCmd,
     },
     ...overrides,
-  } as any as CommandManager;
+  } as unknown as CommandManager;
 };
 
 // Mock resource data
@@ -96,7 +114,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       expect(result).toHaveLength(2); // fieldTypes and templates groups
       expect(result[0].name).toBe('fieldTypes');
@@ -135,7 +155,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       expect(result).toHaveLength(2); // fieldTypes group and modules group
 
@@ -175,7 +197,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       expect(result).toHaveLength(1); // templates group only
       expect(result[0].name).toBe('templates');
@@ -214,7 +238,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       expect(result).toHaveLength(2); // templates group and modules group
 
@@ -277,7 +303,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       expect(result).toHaveLength(resourceTypes.length); // One group per resource type
 
@@ -309,7 +337,9 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
       // Check resource group IDs and types
       expect(result[0].id).toBe('fieldTypes');

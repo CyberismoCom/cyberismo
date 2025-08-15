@@ -112,19 +112,33 @@ describe('Clingo solver', () => {
     try {
       await solve('causes syn t4x error,');
       expect.fail('Expected solve to throw an error');
-    } catch (error: any) {
+    } catch (error: unknown) {
       expect(error).toBeDefined();
-      expect(error.message).toContain('Parsing failed');
 
-      // Verify the error has details with errors and warnings
-      expect(error.details).toBeDefined();
-      expect(error.details.errors).toBeInstanceOf(Array);
-      expect(error.details.warnings).toBeInstanceOf(Array);
+      if (
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        'details' in error
+      ) {
+        const clingoError = error as {
+          message: string;
+          details: { errors: string[]; warnings: string[] };
+        };
+        expect(clingoError.message).toContain('Parsing failed');
 
-      // Verify there's at least one error (syntax error)
-      expect(error.details.errors.length).toBeGreaterThan(0);
-      expect(error.details.errors[0]).toContain('syntax error');
-      expect(error.details.errors[0]).toContain('unexpected');
+        // Verify the error has details with errors and warnings
+        expect(clingoError.details).toBeDefined();
+        expect(clingoError.details.errors).toBeInstanceOf(Array);
+        expect(clingoError.details.warnings).toBeInstanceOf(Array);
+
+        // Verify there's at least one error (syntax error)
+        expect(clingoError.details.errors.length).toBeGreaterThan(0);
+        expect(clingoError.details.errors[0]).toContain('syntax error');
+        expect(clingoError.details.errors[0]).toContain('unexpected');
+      } else {
+        throw new Error('Error does not have expected structure');
+      }
     }
   });
 
@@ -142,7 +156,7 @@ describe('Clingo solver', () => {
     it('should extract prefix from valid resource names', async () => {
       const program = `
         result(@resourcePrefix("base/fieldTypes/owner")).
-        result2(@resourcePrefix("local/cardTypes/task")).  
+        result2(@resourcePrefix("local/cardTypes/task")).
         result3(@resourcePrefix("system/workflows/review")).
       `;
       const result = await solve(program, ['show_results']);

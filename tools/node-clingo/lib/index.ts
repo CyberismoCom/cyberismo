@@ -12,12 +12,22 @@
 import build from 'node-gyp-build';
 import { resolve } from 'node:path';
 
-let binding: any;
+// Interface for clingo bindings.
+// Should match the functions in this file.
+interface ClingoBinding {
+  setProgram(key: string, program: string, categories?: string[]): void;
+  removeProgram(key: string): boolean;
+  removeProgramsByCategory(category: string): number;
+  removeAllPrograms(): void;
+  solve(program: string, categories: string[]): ClingoResult;
+}
+
+let binding: ClingoBinding;
 try {
-  binding = build(resolve(import.meta.dirname, '..'));
+  binding = build(resolve(import.meta.dirname, '..')) as ClingoBinding;
 } catch (error) {
   console.error('Error building clingo:', error);
-  binding = build(import.meta.dirname);
+  binding = build(import.meta.dirname) as ClingoBinding;
 }
 
 /**

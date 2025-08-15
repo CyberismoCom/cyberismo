@@ -1,3 +1,6 @@
+/* eslint-env node */
+/* globals console, process, fetch */
+
 /**
     Cyberismo
     Copyright © Cyberismo Ltd and contributors 2025
@@ -107,7 +110,7 @@ try {
   const extractor = extract();
 
   extractor.on('entry', (header, stream, next) => {
-    const nameParts = header.name.split(/[\/]/).filter((part) => part);
+    const nameParts = header.name.split(/[/]/).filter((part) => part);
     const strippedName = nameParts.slice(1).join(sep);
 
     if (header.type !== 'file' || !strippedName) {
