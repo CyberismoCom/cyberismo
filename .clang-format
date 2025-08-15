@@ -1,6 +1,6 @@
 # Clang-Format configuration for Cyberismo C++ code
 #
-# Note: clang-format is optional for CI builds - if not available, formatting checks are skipped
+# Note that formatting checks for CI builds are skipped if clang-format cannot be found.
 # Developers should install clang-format for automatic code formatting.
 
 # Use LLVM; try to avoid any exceptions.
