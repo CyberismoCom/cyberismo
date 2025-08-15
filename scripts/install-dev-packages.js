@@ -239,7 +239,7 @@ async function condaInstallationPath() {
  * Main function to install dependencies.
  */
 (async () => {
-  const condaCommand = condaInstallationPath();
+  const condaCommand = await condaInstallationPath();
   console.log('Conda is installed at ' + condaCommand);
 
   createCondaEnvironment(condaCommand);
