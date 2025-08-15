@@ -25,14 +25,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Check for changes in node-clingo
-      uses: dorny/paths-filter@v3
+      uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
       id: changes
       with:
         filters: |
           node_clingo:
             - 'tools/node-clingo/**'
     - name: Setup Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@505e6394dae86d6a5c7fbb6e3fb8938e3e863830 # v3
       if: steps.changes.outputs.node_clingo == 'true'
       with:
         python-version: 3.12
@@ -51,7 +51,7 @@ jobs:
         registry-url: 'https://npm.pkg.github.com'
         scope: '@cyberismo'
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
       with:
         ruby-version: '3.2'
     - name: Install asciidoctor-pdf
