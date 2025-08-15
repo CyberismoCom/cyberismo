@@ -49,7 +49,7 @@ jobs:
         registry-url: 'https://npm.pkg.github.com'
         scope: '@cyberismo'
     - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
+      uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
       with:
         ruby-version: '3.2'
     - name: Install asciidoctor-pdf
