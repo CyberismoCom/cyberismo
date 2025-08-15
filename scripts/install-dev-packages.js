@@ -210,14 +210,10 @@ function createCondaEnvironment(condaCommand) {
   console.log('Cyberismo conda environment created');
 }
 
-/**
- * Main function to install dependencies.
- */
-(async () => {
-  let condaCommand = 'conda';
-
+async function condaInstallationPath() {
   if (process.platform == 'darwin') {
     console.log('Checking if Miniconda is installed...');
+
     if (fs.existsSync(path.join(__dirname, '..', 'vendor', 'miniconda3'))) {
       console.log('Miniconda already installed.');
       condaCommand = path.join(
@@ -233,49 +229,55 @@ function createCondaEnvironment(condaCommand) {
       condaCommand = await installCondaMacOS();
       console.log('Miniconda installation complete.');
     }
-
-    console.log('Conda is installed at ' + condaCommand);
-
-    createCondaEnvironment(condaCommand);
-
-    console.log('Checking if Clingo is installed...');
-    if (isCondaPackageInstalled(condaCommand, 'clingo')) {
-      console.log('Clingo already installed');
-    } else {
-      console.log('Clingo not installed. Installing Clingo...');
-      installClingo(condaCommand);
-    }
-
-    console.log('Dependencies installed successfully.');
-    console.log(
-      '--------------------------------------------------------------------------------',
-    );
-    console.log('Ensure that you have the following in your shell profile:');
-    console.log(
-      'export PATH=$PATH:"' +
-        path.join(__dirname, '..', 'vendor', 'miniconda3', 'bin') +
-        '"',
-    );
-    console.log();
-    console.log('For example: ');
-    console.log(
-      'echo \'export PATH=$PATH:"' +
-        path.join(__dirname, '..', 'vendor', 'miniconda3', 'bin') +
-        '"\' >> ~/.zprofile',
-    );
-    console.log();
-    console.log('Without starting a new shell, you can set the path with');
-    console.log('source ~/.zprofile');
-    console.log();
-    console.log(
-      'When using Cyberismo, remember to activate the environment with',
-    );
-    console.log('source activate cyberismo');
-    console.log(
-      '--------------------------------------------------------------------------------',
-    );
   } else {
     console.error('ERROR: Unsupported platform: ' + process.platform);
     process.exit(1);
   }
+}
+
+/**
+ * Main function to install dependencies.
+ */
+(async () => {
+  const condaCommand = condaInstallationPath();
+  console.log('Conda is installed at ' + condaCommand);
+
+  createCondaEnvironment(condaCommand);
+
+  console.log('Checking if Clingo is installed...');
+  if (isCondaPackageInstalled(condaCommand, 'clingo')) {
+    console.log('Clingo already installed');
+  } else {
+    console.log('Clingo not installed. Installing Clingo...');
+    installClingo(condaCommand);
+  }
+
+  console.log('Dependencies installed successfully.');
+  console.log(
+    '--------------------------------------------------------------------------------',
+  );
+  console.log('Ensure that you have the following in your shell profile:');
+  console.log(
+    'export PATH=$PATH:"' +
+      path.join(__dirname, '..', 'vendor', 'miniconda3', 'bin') +
+      '"',
+  );
+  console.log();
+  console.log('For example: ');
+  console.log(
+    'echo \'export PATH=$PATH:"' +
+      path.join(__dirname, '..', 'vendor', 'miniconda3', 'bin') +
+      '"\' >> ~/.zprofile',
+  );
+  console.log();
+  console.log('Without starting a new shell, you can set the path with');
+  console.log('source ~/.zprofile');
+  console.log();
+  console.log(
+    'When using Cyberismo, remember to activate the environment with',
+  );
+  console.log('source activate cyberismo');
+  console.log(
+    '--------------------------------------------------------------------------------',
+  );
 })();
