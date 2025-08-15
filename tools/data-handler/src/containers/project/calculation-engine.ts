@@ -105,7 +105,7 @@ export class CalculationEngine {
       metadata: true,
     });
     if (!card) {
-      throw new Error(`Card ${cardKey} not found`);
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
     return createCardFacts(card, this.project);
   }
@@ -432,7 +432,7 @@ export class CalculationEngine {
     );
     if (!resource) {
       throw new Error(
-        `Resource ${resourceNameToString(resourceName)} not found`,
+        `Resource '${resourceNameToString(resourceName)}' does not exist in the project`,
       );
     }
 
