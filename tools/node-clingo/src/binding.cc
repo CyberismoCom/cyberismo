@@ -1,21 +1,22 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2025
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2025
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "function_handlers.h"
 #include "helpers.h"
 
 #include <chrono>
 #include <clingo.h>
-#include <ctime>
 #include <cstring>
+#include <ctime>
 #include <iostream>
 #include <napi.h>
 #include <set>
@@ -25,31 +26,34 @@
 #include <unordered_map>
 #include <vector>
 
-struct ClingoLogMessage {
+struct ClingoLogMessage
+{
     clingo_warning_t code;
     bool isError;
     std::string message;
 };
 
-struct NodeClingoLogs {
+struct NodeClingoLogs
+{
     Napi::Array errors;
     Napi::Array warnings;
 
-    NodeClingoLogs(Napi::Env env) {
+    NodeClingoLogs(Napi::Env env)
+    {
         errors = Napi::Array::New(env);
         warnings = Napi::Array::New(env);
     }
 };
 
 // Program with categories
-struct Program {
+struct Program
+{
     std::string content;
     std::vector<std::string> categories;
 };
 
 // stores all programs
 std::unordered_map<std::string, Program> g_programs;
-
 
 // For now error messsages are stored in a global vector,
 // If async/threading is needed, we cannot use a single global variable
@@ -62,7 +66,7 @@ std::vector<ClingoLogMessage> g_errorMessages;
  * @param message The warning message.
  * @param data User data (unused).
  */
-void message_collector(clingo_warning_t code, char const *message, void *data)
+void message_collector(clingo_warning_t code, char const* message, void* data)
 {
     g_errorMessages.push_back({code, code == clingo_warning_runtime_error, message});
 }
@@ -72,20 +76,25 @@ void message_collector(clingo_warning_t code, char const *message, void *data)
  * @param env The N-API environment.
  * @return NodeClingoLogs containing separated errors and warnings arrays.
  */
-NodeClingoLogs parse_clingo_logs(const Napi::Env &env) {
+NodeClingoLogs parse_clingo_logs(const Napi::Env& env)
+{
     NodeClingoLogs logs(env);
-    
+
     size_t errorIndex = 0;
     size_t warningIndex = 0;
-    
-    for (const auto& msg : g_errorMessages) {
-        if (msg.isError) {
+
+    for (const auto& msg : g_errorMessages)
+    {
+        if (msg.isError)
+        {
             logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
-        } else {
+        }
+        else
+        {
             logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
         }
     }
-    
+
     return logs;
 }
 
@@ -96,25 +105,26 @@ NodeClingoLogs parse_clingo_logs(const Napi::Env &env) {
  * @param env The N-API environment.
  * @param programKey The string identifier of the program that caused the error
  */
-void handle_clingo_error(const Napi::Env &env, const std::string& programKey = "")
+void handle_clingo_error(const Napi::Env& env, const std::string& programKey = "")
 {
     // If clingo returns an error, we throw an error to the javascript side
     if (clingo_error_code() != 0)
     {
         Napi::Error error = Napi::Error::New(env, clingo_error_message());
-        
+
         // Create an object to hold error details
         Napi::Object errorObj = Napi::Object::New(env);
-        
+
         // Parse errors and warnings using the common routine
         NodeClingoLogs logs = parse_clingo_logs(env);
-        
+
         errorObj.Set("errors", logs.errors);
         errorObj.Set("warnings", logs.warnings);
-        if(!programKey.empty()) {
+        if (!programKey.empty())
+        {
             errorObj.Set("program", Napi::String::New(env, programKey));
         }
-        
+
         error.Set("details", errorObj);
         throw error;
     }
@@ -133,16 +143,18 @@ void handle_clingo_error(const Napi::Env &env, const std::string& programKey = "
  * @param symbol_callback_data User data for the symbol_callback.
  * @returns True on success, false on error (propagated from the handler).
  */
-bool ground_callback(clingo_location_t const *location,
-                     char const *name,
-                     clingo_symbol_t const *arguments,
-                     size_t arguments_size,
-                     void *data, clingo_symbol_callback_t symbol_callback,
-                     void *symbol_callback_data)
+bool ground_callback(
+    clingo_location_t const* location,
+    char const* name,
+    clingo_symbol_t const* arguments,
+    size_t arguments_size,
+    void* data,
+    clingo_symbol_callback_t symbol_callback,
+    void* symbol_callback_data)
 {
 
     // Find the handler for the function and call it
-    const auto &handlers = node_clingo::get_function_handlers();
+    const auto& handlers = node_clingo::get_function_handlers();
 
     auto it = handlers.find(name);
     if (it != handlers.end())
@@ -163,16 +175,16 @@ bool ground_callback(clingo_location_t const *location,
  * @param go_on Output parameter; set to true to continue solving, false to stop.
  * @returns True on success, false on error (e.g., allocation failure).
  */
-bool on_model(clingo_model_t const *model, void *data, bool *go_on)
+bool on_model(clingo_model_t const* model, void* data, bool* go_on)
 {
     if (!model || !data || !go_on)
     {
         return false;
     }
 
-    std::vector<std::string> *answers = static_cast<std::vector<std::string> *>(data);
+    std::vector<std::string>* answers = static_cast<std::vector<std::string>*>(data);
 
-    clingo_symbol_t *atoms = nullptr;
+    clingo_symbol_t* atoms = nullptr;
     size_t atoms_size;
 
     // Get the size of the model
@@ -193,7 +205,7 @@ bool on_model(clingo_model_t const *model, void *data, bool *go_on)
     {
         atoms = new clingo_symbol_t[atoms_size];
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         return false;
     }
@@ -229,7 +241,7 @@ bool on_model(clingo_model_t const *model, void *data, bool *go_on)
     {
         answers->push_back(ss.str());
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         success = false;
     }
@@ -249,7 +261,7 @@ bool on_model(clingo_model_t const *model, void *data, bool *go_on)
  * @param go_on Output parameter (passed through to on_model).
  * @returns True on success or if the event is not a model, false on error from on_model.
  */
-bool solve_event_callback(uint32_t type, void *event, void *data, bool *go_on)
+bool solve_event_callback(uint32_t type, void* event, void* data, bool* go_on)
 {
     if (!event || !data || !go_on)
     {
@@ -258,7 +270,7 @@ bool solve_event_callback(uint32_t type, void *event, void *data, bool *go_on)
 
     if (type == clingo_solve_event_type_model)
     {
-        return on_model(static_cast<const clingo_model_t *>(event), data, go_on);
+        return on_model(static_cast<const clingo_model_t*>(event), data, go_on);
     }
     return true;
 }
@@ -270,14 +282,17 @@ bool solve_event_callback(uint32_t type, void *event, void *data, bool *go_on)
  * @returns undefined
  * @throws Napi::TypeError if arguments are invalid.
  */
-Napi::Value SetProgram(const Napi::CallbackInfo &info)
+Napi::Value SetProgram(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
 
     // Check arguments
     if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
     {
-        throw Napi::TypeError::New(env, "Expected arguments: key (string), program (string), optional categories (string[])");
+        throw Napi::TypeError::New(
+            env,
+            "Expected arguments: key (string), program "
+            "(string), optional categories (string[])");
     }
 
     std::string key = info[0].As<Napi::String>().Utf8Value();
@@ -288,11 +303,14 @@ Napi::Value SetProgram(const Napi::CallbackInfo &info)
     prog.content = content;
 
     // Add categories if provided
-    if (info.Length() >= 3 && info[2].IsArray()) {
+    if (info.Length() >= 3 && info[2].IsArray())
+    {
         Napi::Array categories = info[2].As<Napi::Array>();
-        for (uint32_t i = 0; i < categories.Length(); ++i) {
+        for (uint32_t i = 0; i < categories.Length(); ++i)
+        {
             Napi::Value val = categories[i];
-            if (val.IsString()) {
+            if (val.IsString())
+            {
                 prog.categories.push_back(val.As<Napi::String>().Utf8Value());
             }
         }
@@ -310,7 +328,7 @@ Napi::Value SetProgram(const Napi::CallbackInfo &info)
  * @returns Napi::Boolean indicating whether the program was found and removed.
  * @throws Napi::TypeError if the argument is invalid.
  */
-Napi::Value RemoveProgram(const Napi::CallbackInfo &info)
+Napi::Value RemoveProgram(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
     // Check arguments
@@ -332,9 +350,9 @@ Napi::Value RemoveProgram(const Napi::CallbackInfo &info)
  * @returns Napi::Number indicating the number of programs removed.
  * @throws Napi::TypeError if the argument is invalid.
  */
-Napi::Value RemoveProgramsByCategory(const Napi::CallbackInfo &info)
+Napi::Value RemoveProgramsByCategory(const Napi::CallbackInfo& info)
 {
-Napi::Env env = info.Env();
+    Napi::Env env = info.Env();
     // Check arguments
     if (info.Length() < 1 || !info[0].IsString())
     {
@@ -346,12 +364,16 @@ Napi::Env env = info.Env();
 
     // Iterate through programs and remove those with the specified category
     auto it = g_programs.begin();
-    while (it != g_programs.end()) {
+    while (it != g_programs.end())
+    {
         const auto& prog = it->second;
-        if (std::find(prog.categories.begin(), prog.categories.end(), category) != prog.categories.end()) {
+        if (std::find(prog.categories.begin(), prog.categories.end(), category) != prog.categories.end())
+        {
             it = g_programs.erase(it);
             removedCount++;
-        } else {
+        }
+        else
+        {
             ++it;
         }
     }
@@ -366,7 +388,7 @@ Napi::Env env = info.Env();
  * @returns Napi::Boolean(true) on success.
  * @throws Napi::Error on errors.
  */
-Napi::Value RemoveAllPrograms(const Napi::CallbackInfo &info)
+Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
     g_programs.clear();
@@ -384,7 +406,7 @@ Napi::Value RemoveAllPrograms(const Napi::CallbackInfo &info)
  * @throws Napi::TypeError if arguments are invalid.
  * @throws Napi::Error on Clingo errors or other exceptions.
  */
-Napi::Value Solve(const Napi::CallbackInfo &info)
+Napi::Value Solve(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
 
@@ -403,13 +425,13 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
     g_errorMessages.clear();
 
     // Initialize Clingo control
-    clingo_control_t *ctl = nullptr;
+    clingo_control_t* ctl = nullptr;
     if (!clingo_control_new(nullptr, 0, message_collector, nullptr, 20, &ctl))
     {
         handle_clingo_error(env);
     }
 
-    std::unique_ptr<clingo_control_t, void (*)(clingo_control_t *)> ctl_guard(ctl, clingo_control_free);
+    std::unique_ptr<clingo_control_t, void (*)(clingo_control_t*)> ctl_guard(ctl, clingo_control_free);
 
     // Create vector to store all parts we need to ground
     std::vector<clingo_part_t> parts;
@@ -428,35 +450,48 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         std::set<std::string> addedPrograms;
 
         Napi::Array arr = info[1].As<Napi::Array>();
-        
-        for (uint32_t i = 0; i < arr.Length(); ++i) {
+
+        for (uint32_t i = 0; i < arr.Length(); ++i)
+        {
             Napi::Value val = arr[i];
-            if (!val.IsString()) {
+            if (!val.IsString())
+            {
                 throw Napi::TypeError::New(env, "All refs must be strings");
             }
             std::string ref = val.As<Napi::String>().Utf8Value();
             refs.insert(ref);
         }
 
-        for (const auto& ref : refs) {
+        for (const auto& ref : refs)
+        {
             auto it = g_programs.find(ref);
-            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end()) {
-                    if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str())) {
-                        handle_clingo_error(env, ref);
-                    } else {
-                        parts.push_back({ref.c_str(), nullptr, 0});
-                        addedPrograms.insert(ref);
-                    }
-                    // no need to check other refs, as ref was a program, not a category
-                    continue;
+            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
+            {
+                if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str()))
+                {
+                    handle_clingo_error(env, ref);
+                }
+                else
+                {
+                    parts.push_back({ref.c_str(), nullptr, 0});
+                    addedPrograms.insert(ref);
+                }
+                // no need to check other refs, as ref was a program, not a category
+                continue;
             }
 
             // If no direct match, check categories
-            for (const auto& [key, prog] : g_programs) {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() && addedPrograms.find(key) == addedPrograms.end()) {
-                    if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str())) {
+            for (const auto& [key, prog] : g_programs)
+            {
+                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
+                    addedPrograms.find(key) == addedPrograms.end())
+                {
+                    if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
+                    {
                         handle_clingo_error(env, key);
-                    } else {
+                    }
+                    else
+                    {
                         parts.push_back({key.c_str(), nullptr, 0});
                         addedPrograms.insert(key);
                     }
@@ -466,7 +501,8 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
     }
 
     // Add the main program last and its part
-    if (!clingo_control_add(ctl, "__program__", nullptr, 0, program.c_str())) {
+    if (!clingo_control_add(ctl, "__program__", nullptr, 0, program.c_str()))
+    {
         handle_clingo_error(env, "__program__");
     }
     parts.push_back({"__program__", nullptr, 0});
@@ -479,7 +515,7 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
 
     // Solve the program
     std::vector<std::string> answers;
-    clingo_solve_handle_t *handle = nullptr;
+    clingo_solve_handle_t* handle = nullptr;
 
     // Use clingo_solve_mode_yield to get all answer sets
     if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle))
@@ -487,10 +523,8 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
         handle_clingo_error(env);
     }
 
-    std::unique_ptr<clingo_solve_handle_t, void (*)(clingo_solve_handle_t *)> handle_guard(
-        handle,
-        [](clingo_solve_handle_t *h)
-        {
+    std::unique_ptr<clingo_solve_handle_t, void (*)(clingo_solve_handle_t*)> handle_guard(
+        handle, [](clingo_solve_handle_t* h) {
             if (h)
             {
                 clingo_solve_handle_close(h);
@@ -517,45 +551,35 @@ Napi::Value Solve(const Napi::CallbackInfo &info)
     }
     resultObj.Set("answers", answersArray);
     resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
-    
+
     // Parse errors and warnings using the common routine
     NodeClingoLogs logs = parse_clingo_logs(env);
-    
+
     resultObj.Set("errors", logs.errors);
     resultObj.Set("warnings", logs.warnings);
-    
+
     return resultObj;
 }
 
 /**
  * N-API module initialization function.
- * Exports the `solve`, `setBaseProgram`, `clearBaseProgram`, and `clearAllBasePrograms` functions to JavaScript.
+ * Exports certain functions to JavaScript.
  * @param env The N-API environment.
  * @param exports The N-API exports object.
  * @returns The populated exports object.
  */
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-    exports.Set(
-        Napi::String::New(env, "solve"),
-        Napi::Function::New(env, Solve));
+    exports.Set(Napi::String::New(env, "solve"), Napi::Function::New(env, Solve));
 
-    exports.Set(
-        Napi::String::New(env, "setProgram"),
-        Napi::Function::New(env, SetProgram));
+    exports.Set(Napi::String::New(env, "setProgram"), Napi::Function::New(env, SetProgram));
 
-    exports.Set(
-        Napi::String::New(env, "removeAllPrograms"),
-        Napi::Function::New(env, RemoveAllPrograms));
+    exports.Set(Napi::String::New(env, "removeAllPrograms"), Napi::Function::New(env, RemoveAllPrograms));
 
-    exports.Set(
-        Napi::String::New(env, "removeProgram"),
-        Napi::Function::New(env, RemoveProgram));
+    exports.Set(Napi::String::New(env, "removeProgram"), Napi::Function::New(env, RemoveProgram));
 
-    exports.Set(
-        Napi::String::New(env, "removeProgramsByCategory"),
-        Napi::Function::New(env, RemoveProgramsByCategory));
-        
+    exports.Set(Napi::String::New(env, "removeProgramsByCategory"), Napi::Function::New(env, RemoveProgramsByCategory));
+
     return exports;
 }
 

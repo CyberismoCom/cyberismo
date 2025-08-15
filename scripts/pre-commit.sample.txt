@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# Sample pre-commit hook for enforcing clang-format on C++ files
+# This hook prevents commits that contain unformatted C++ code in tools/node-clingo
+#
+# To install this hook, copy it to .git/hooks/pre-commit and make it executable:
+#   cp scripts/pre-commit.sample .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+
+# Check if clang-format is available
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "⚠️  clang-format is not installed or not in PATH"
+    echo "⚠️  Skipping C++ format check"
+    echo ""
+    echo "To enable C++ format checking, install clang-format:"
+    echo "  macOS: brew install clang-format"
+    echo "  Ubuntu: sudo apt-get install clang-format"
+    echo "  Windows: choco install llvm"
+    echo ""
+    # Skip format check but allow commit
+    exit 0
+fi
+
+# Get list of staged C++ files in tools/node-clingo
+CPP_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E "tools/node-clingo/src/.*\.(cc|cpp|cxx|h|hpp)$")
+
+if [ -z "$CPP_FILES" ]; then
+    # No C++ files to check
+    exit 0
+fi
+
+echo "Checking C++ code formatting with clang-format..."
+
+# Check if any C++ files need formatting
+NEEDS_FORMAT=false
+for file in $CPP_FILES; do
+    if [ -f "$file" ]; then
+        # Check if file needs formatting (compare with clang-format output)
+        if ! clang-format --dry-run --Werror "$file" >/dev/null 2>&1; then
+            echo "❌ $file is not properly formatted"
+            NEEDS_FORMAT=true
+        else
+            echo "✅ $file"
+        fi
+    fi
+done
+
+if [ "$NEEDS_FORMAT" = true ]; then
+    echo ""
+    echo "❌ Some C++ files are not properly formatted!"
+    echo ""
+    echo "To fix the formatting, run:"
+    echo "  cd tools/node-clingo && npm run format:cpp"
+    echo ""
+    echo "Or format individual files:"
+    echo "  clang-format -i <filename>"
+    echo ""
+    echo "Then stage and commit your changes again."
+    exit 1
+fi
+
+echo "✅ All C++ files are properly formatted"
+exit 0
