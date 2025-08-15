@@ -483,4 +483,42 @@ describe('show', () => {
     expect(result).to.be.an('array');
     expect(result.length).to.equal(0);
   });
+
+  it('showCardLogicProgram (success)', async () => {
+    const cardKey = 'decision_1';
+    const result = await showCmd.showCardLogicProgram(cardKey);
+    expect(result).to.not.equal(undefined);
+    expect(result).to.be.a('string');
+  });
+
+  it('showCardLogicProgram - card does not exist', async () => {
+    const cardKey = 'nonexistent_card';
+    await showCmd
+      .showCardLogicProgram(cardKey)
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Card 'nonexistent_card' does not exist in the project`,
+        ),
+      );
+  });
+
+  it('showLogicProgram (success)', async () => {
+    const resourceNameStr = 'decision/cardTypes/decision';
+    const result = await showCmd.showLogicProgram(
+      resourceName(resourceNameStr),
+    );
+    expect(result).to.not.equal(undefined);
+    expect(result).to.be.a('string');
+  });
+
+  it('showLogicProgram - resource does not exist', async () => {
+    const resourceNameStr = 'decision/cardTypes/nonexistent';
+    await showCmd
+      .showLogicProgram(resourceName(resourceNameStr))
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `Resource 'decision/cardTypes/nonexistent' does not exist in the project`,
+        ),
+      );
+  });
 });

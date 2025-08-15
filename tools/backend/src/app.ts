@@ -24,6 +24,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isSSGContext } from './export.js';
 import resourcesRouter from './domain/resources/index.js';
+import logicProgramsRouter from './domain/logicPrograms/index.js';
 
 /**
  * Create the Hono app for the backend
@@ -51,6 +52,7 @@ export function createApp(projectPath?: string) {
   app.route('/api/templates', templatesRouter);
   app.route('/api/tree', treeRouter);
   app.route('/api/resources', resourcesRouter);
+  app.route('/api/logicPrograms', logicProgramsRouter);
 
   // serve index.html for all other routes
   app.notFound(async (c) => {

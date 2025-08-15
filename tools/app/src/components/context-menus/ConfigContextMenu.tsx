@@ -23,11 +23,13 @@ import MoreIcon from '@mui/icons-material/MoreVert';
 import { ResourceNode } from '@/lib/api/types';
 import { useModals } from '@/lib/utils';
 import { ResourceDeleteModal } from '../modals';
+import { LogicProgramModal } from '../modals/LogicProgramModal';
 
 export interface ConfigContextMenuProps {
   node: ResourceNode;
   enabled?: {
     delete?: boolean;
+    logicProgram?: boolean;
   };
 }
 
@@ -35,11 +37,12 @@ export function ConfigContextMenu({ node, enabled }: ConfigContextMenuProps) {
   const { t } = useTranslation();
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
+    logicProgram: false,
   });
 
   return (
     <>
-      {enabled?.delete && (
+      {enabled && Object.values(enabled).some((value) => value === true) && (
         <Dropdown>
           <Tooltip title={t('moreTooltip')} placement="top">
             <MenuButton
@@ -60,9 +63,20 @@ export function ConfigContextMenu({ node, enabled }: ConfigContextMenuProps) {
                 <Typography color="danger">{t('deleteResource')}</Typography>
               </MenuItem>
             )}
+            {enabled?.logicProgram && (
+              <MenuItem onClick={openModal('logicProgram')}>
+                <Typography>{t('viewLogicProgram')}</Typography>
+              </MenuItem>
+            )}
           </Menu>
         </Dropdown>
       )}
+      <LogicProgramModal
+        open={modalOpen.logicProgram}
+        onClose={closeModal('logicProgram')}
+        title={t('logicProgram')}
+        resourceName={node.name}
+      />
       <ResourceDeleteModal
         open={modalOpen.delete}
         onClose={closeModal('delete')}
