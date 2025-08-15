@@ -340,9 +340,7 @@ async function groupResourcesByPrefix(
 /**
  * Delete a resource.
  * @param commands Command manager.
- * @param module Name of the module.
- * @param type Name of the type.
- * @param resource Name of the resource.
+ * @param resource Resource to delete.
  */
 export async function deleteResource(
   commands: CommandManager,

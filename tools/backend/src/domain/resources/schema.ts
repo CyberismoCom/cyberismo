@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const resourceParamsSchema = z.object({
+  identifier: z.string(),
   prefix: z.string(),
   type: z.enum([
     'graphModels',
@@ -13,7 +14,6 @@ export const resourceParamsSchema = z.object({
     'fieldTypes',
     'linkTypes',
   ]),
-  identifier: z.string(),
 });
 
 export type ResourceParams = z.infer<typeof resourceParamsSchema>;
