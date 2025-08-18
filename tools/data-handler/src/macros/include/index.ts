@@ -81,12 +81,7 @@ export default class IncludeMacro extends BaseMacro {
 
     const adjustedContent = this.adjustTitles(
       content,
-      options.levelOffset
-        ? Math.min(
-            Math.max(parseInt(options.levelOffset, 10), -MAX_LEVEL_OFFSET),
-            MAX_LEVEL_OFFSET,
-          )
-        : 0,
+      levelOffset,
       options.pageTitles === 'discrete',
     );
     return adjustedContent;
