@@ -29,6 +29,7 @@ const createMockCommandManager = (overrides: any = {}) => {
       showResources: vi.fn(),
       showResource: vi.fn(),
       showAllTemplateCards: vi.fn(),
+      showFileNames: vi.fn().mockResolvedValue([]),
       ...overrides.showCmd,
     },
     ...overrides,
@@ -300,6 +301,7 @@ describe('Resources Service', () => {
             name,
           })),
           showAllTemplateCards: vi.fn().mockResolvedValue([]),
+          showFileNames: vi.fn().mockResolvedValue([]),
         },
       });
 
