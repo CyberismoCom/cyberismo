@@ -23,11 +23,13 @@ interface ClingoBinding {
 }
 
 let binding: ClingoBinding;
+// Use import.meta.dirname when available, fallback to __dirname for compatibility
+const currentDirname = import.meta.dirname || __dirname;
 try {
-  binding = build(resolve(import.meta.dirname, '..')) as ClingoBinding;
+  binding = build(resolve(currentDirname, '..')) as ClingoBinding;
 } catch (error) {
   console.error('Error building clingo:', error);
-  binding = build(import.meta.dirname) as ClingoBinding;
+  binding = build(currentDirname) as ClingoBinding;
 }
 
 /**
