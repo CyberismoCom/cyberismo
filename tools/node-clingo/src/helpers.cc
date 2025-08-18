@@ -144,7 +144,6 @@ namespace node_clingo
     std::chrono::system_clock::time_point parse_iso_date(const std::string& iso_date)
     {
         std::istringstream ss(iso_date);
-        std::chrono::system_clock::time_point date_point;
 
         // List of ISO date formats to try, notice that fallback does not support extended offset for now
 #if USE_CHRONO_FROM_STREAM_FALLBACK
@@ -184,6 +183,7 @@ namespace node_clingo
                 }
             }
 #else
+            std::chrono::system_clock::time_point date_point;
             if (std::chrono::from_stream(ss, fmt.c_str(), date_point))
             {
                 // Successfully parsed
