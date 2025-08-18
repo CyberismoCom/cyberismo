@@ -109,7 +109,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
-      
+
       - name: Install homebrew
         if: runner.os == 'macOS'
         run: |
@@ -118,7 +118,7 @@ jobs:
       - name: Install clingo
         if: runner.os == 'macOS'
         run: |
-          brew install clingo --ignore-dependencies
+          brew install clingo
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
@@ -155,13 +155,13 @@ jobs:
         run: |
           echo "Building Linux x64 (musl) prebuilds using Docker..."
           docker build -t node-clingo-builder-musl -f tools/node-clingo/alpine.Dockerfile .
-          
+
           echo "Creating musl output directory on runner: ./docker-prebuilds-musl-output"
           mkdir -p ./docker-prebuilds-musl-output
-          
+
           echo "Running Docker container to generate musl prebuilds..."
           docker run --rm -v "$(pwd)/docker-prebuilds-musl-output:/output" node-clingo-builder-musl
-          
+
           echo "Copying and renaming musl prebuilds from ./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/ to tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/"
           MUSL_PREBUILD_PATH="./docker-prebuilds-musl-output/linux-${{ matrix.arch }}/@cyberismo+node-clingo.node"
           TARGET_MUSL_PREBUILD_PATH="tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/@cyberismo+node-clingo.musl.node"
@@ -178,7 +178,7 @@ jobs:
             ls -LR ./docker-prebuilds-musl-output/
             exit 1
           fi
-          
+
           echo "--- Listing final contents of tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/ ---"
           ls -L tools/node-clingo/prebuilds/linux-${{ matrix.arch }}/
 
@@ -248,19 +248,19 @@ jobs:
           mkdir -p release-assets
           # Navigate to prebuilds directory correctly
           cd tools/node-clingo/prebuilds
-          
+
           # List all platform-arch directories
           for platform_arch_dir in */; do
             # Ensure that only directories are being processed
             if [ -d "$platform_arch_dir" ]; then
               platform_arch=${platform_arch_dir%/}
               echo "Packaging $platform_arch"
-              
+
               # Create tarballs directly from platform-arch directories
               tar -czf ../../../release-assets/${platform_arch}.tar.gz -C "$platform_arch_dir" .
             fi
           done
-          
+
           # Navigate to the base directory before listing assets
           cd ../../../
           ls -la release-assets

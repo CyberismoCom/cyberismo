@@ -35,7 +35,7 @@ jobs:
     - name: Install clingo
       if: runner.os == 'macOS'
       run: |
-        brew install clingo --ignore-dependencies
+        brew install clingo
 
     - name: Install pnpm
       uses: pnpm/action-setup@v4
