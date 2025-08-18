@@ -296,9 +296,7 @@ export class Show {
    * @returns the content of the logic program.
    */
   public async showCardLogicProgram(cardKey: string) {
-    const logicProgram =
-      await this.project.calculationEngine.cardLogicProgram(cardKey);
-    return logicProgram;
+    return this.project.calculationEngine.cardLogicProgram(cardKey);
   }
 
   /**
@@ -391,9 +389,7 @@ export class Show {
    * @returns the content of the logic program.
    */
   public async showLogicProgram(resource: ResourceName) {
-    const logicProgram =
-      await this.project.calculationEngine.resourceLogicProgram(resource);
-    return logicProgram;
+    return this.project.calculationEngine.resourceLogicProgram(resource);
   }
 
   /**
