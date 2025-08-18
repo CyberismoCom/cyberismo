@@ -39,7 +39,12 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       node={node}
       onUpdate={() => {}}
       isUpdating={false}
-      enabled={{ delete: true }}
+      enabled={{
+        delete: true,
+        logicProgram: !['calculations', 'graphModels', 'graphViews'].includes(
+          node.type,
+        ),
+      }}
     >
       <Typography level="h3" sx={{ mb: 2 }}>
         {node.name}

@@ -60,6 +60,10 @@ import {
 } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
+import {
+  type ResourceName,
+  resourceNameToString,
+} from '../../utils/resource-utils.js';
 
 // Define the all category that will be used for all programs
 const ALL_CATEGORY = 'all';
@@ -76,7 +80,6 @@ export class CalculationEngine {
   }
 
   // Storage for in-memory program content
-  private logicProgram: string = '';
   private modules: string = '';
 
   private modulesInitialized = false;
@@ -90,6 +93,21 @@ export class CalculationEngine {
     } catch (error) {
       this.logger.error(error, 'Failed to initialize modules');
     }
+  }
+
+  /**
+   * Gets the logic program content for a specific card
+   * @param cardKey The key of the card
+   * @returns The logic program content for the card
+   */
+  public async cardLogicProgram(cardKey: string): Promise<string> {
+    const card = await this.project.findSpecificCard(cardKey, {
+      metadata: true,
+    });
+    if (!card) {
+      throw new Error(`Card '${cardKey}' does not exist in the project`);
+    }
+    return createCardFacts(card, this.project);
   }
 
   // // Wrapper to run onCreation query.
@@ -398,6 +416,43 @@ export class CalculationEngine {
     }
     const fieldsToUpdate = queryResult.at(0)!.updateFields;
     await CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+  }
+
+  /**
+   * Gets the logic program content for a specific resource
+   * @param resourceName The name of the resource
+   * @returns The logic program content for the resource
+   */
+  public async resourceLogicProgram(
+    resourceName: ResourceName,
+  ): Promise<string> {
+    const resource = await this.project.resource(
+      resourceNameToString(resourceName),
+    );
+    if (!resource) {
+      throw new Error(
+        `Resource '${resourceNameToString(resourceName)}' does not exist in the project`,
+      );
+    }
+
+    switch (resourceName.type) {
+      case 'cardTypes':
+        return createCardTypeFacts(resource as CardType);
+      case 'fieldTypes':
+        return createFieldTypeFacts(resource as FieldType);
+      case 'linkTypes':
+        return createLinkTypeFacts(resource as LinkType);
+      case 'workflows':
+        return createWorkflowFacts(resource as Workflow);
+      case 'reports':
+        return createReportFacts(resource as ReportMetadata);
+      case 'templates':
+        return createTemplateFacts(resource as TemplateMetadata);
+      default:
+        throw new Error(
+          `Resource ${resourceNameToString(resourceName)} does not have a logic program`,
+        );
+    }
   }
 
   /**

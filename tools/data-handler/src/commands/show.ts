@@ -291,6 +291,15 @@ export class Show {
   }
 
   /**
+   * Shows the content of a logic program.
+   * @param cardKey The key of the card.
+   * @returns the content of the logic program.
+   */
+  public async showCardLogicProgram(cardKey: string) {
+    return this.project.calculationEngine.cardLogicProgram(cardKey);
+  }
+
+  /**
    * Shows all card types in a project.
    * @returns array of card type details
    */
@@ -372,6 +381,15 @@ export class Show {
 
     const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels));
+  }
+
+  /**
+   * Shows the content of a logic program.
+   * @param resource Name of the resource.
+   * @returns the content of the logic program.
+   */
+  public async showLogicProgram(resource: ResourceName) {
+    return this.project.calculationEngine.resourceLogicProgram(resource);
   }
 
   /**

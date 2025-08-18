@@ -28,6 +28,7 @@ export default function BaseEditor({
   isUpdating: boolean;
   enabled?: {
     delete?: boolean;
+    logicProgram?: boolean;
   };
 }) {
   return (
