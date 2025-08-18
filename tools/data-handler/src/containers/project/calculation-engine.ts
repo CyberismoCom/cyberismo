@@ -420,7 +420,6 @@ export class CalculationEngine {
 
   /**
    * Gets the logic program content for a specific resource
-   * @param resourceType The type of resource (cardType, fieldType, linkType, workflow, report, template)
    * @param resourceName The name of the resource
    * @returns The logic program content for the resource
    */
