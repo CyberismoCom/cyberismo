@@ -18,6 +18,7 @@ import { attachCommandManager } from './middleware/commandManager.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
+import graphModelsRouter from './domain/graphModels/index.js';
 import graphViewsRouter from './domain/graphViews/index.js';
 import linkTypesRouter from './domain/linkTypes/index.js';
 import templatesRouter from './domain/templates/index.js';
@@ -51,6 +52,7 @@ export function createApp(projectPath?: string) {
   app.route('/api/cards', cardsRouter);
   app.route('/api/cardTypes', cardTypesRouter);
   app.route('/api/fieldTypes', fieldTypesRouter);
+  app.route('/api/graphModels', graphModelsRouter);
   app.route('/api/graphViews', graphViewsRouter);
   app.route('/api/linkTypes', linkTypesRouter);
   app.route('/api/templates', templatesRouter);

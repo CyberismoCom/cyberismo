@@ -99,6 +99,11 @@ export type CreateGraphViewData = {
   identifier: string;
 };
 
+// Data for creating a new graph model
+export type CreateGraphModelData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

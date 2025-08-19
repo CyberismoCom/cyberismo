@@ -10,13 +10,8 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+import { z } from 'zod';
 
-export * from './BaseResourceModal';
-export * from './FieldTypeForm';
-export * from './CardTypeForm';
-export * from './GraphModelForm';
-export * from './GraphViewForm';
-export * from './NewCardTypeModal';
-export * from './NewFieldTypeModal';
-export * from './NewGraphModelModal';
-export * from './NewGraphViewModal';
+export const createGraphModelSchema = z.object({
+  identifier: z.string().min(1),
+});

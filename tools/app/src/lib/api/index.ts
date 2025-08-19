@@ -20,5 +20,6 @@ export * from './linkTypes';
 export * from './tree';
 export * from './resources';
 export * from './cardType';
+export * from './graphModel';
 export * from './graphView';
 export type { CardUpdate };

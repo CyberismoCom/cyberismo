@@ -10,13 +10,13 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+import { callApi } from '../swr';
+import { apiPaths } from '../swr';
+import { mutate } from 'swr';
+import { CreateGraphModelData } from '@/lib/definitions';
 
-export * from './BaseResourceModal';
-export * from './FieldTypeForm';
-export * from './CardTypeForm';
-export * from './GraphModelForm';
-export * from './GraphViewForm';
-export * from './NewCardTypeModal';
-export * from './NewFieldTypeModal';
-export * from './NewGraphModelModal';
-export * from './NewGraphViewModal';
+export const createGraphModel = async (data: CreateGraphModelData) => {
+  await callApi(apiPaths.graphModels(), 'POST', data);
+  mutate(apiPaths.graphModels());
+  mutate(apiPaths.resourceTree());
+};

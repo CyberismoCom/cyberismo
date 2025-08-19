@@ -104,6 +104,7 @@ export const apiPaths = {
   card: (key: string) => `/api/cards/${key}`,
   cardTypes: () => '/api/cardTypes',
   fieldTypes: () => '/api/fieldTypes',
+  graphModels: () => '/api/graphModels',
   graphViews: () => '/api/graphViews',
   logicPrograms: (resourceName: string) => `/api/logicPrograms/${resourceName}`,
   cardType: (cardType: string) => `/api/cardTypes?name=${cardType}`,
