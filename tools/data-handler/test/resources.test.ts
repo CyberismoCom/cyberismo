@@ -1644,6 +1644,9 @@ describe('resources', function () {
           to: 'decision/fieldTypes/afterUpdate-öööö',
         }),
       ).to.be.rejectedWith('Resource identifier must follow naming rules.');
+      // todo: the resource is still renamed, even if validation does not succeed; it should not happen
+      //       to avoid issues with other tests, delete the resource
+      await res.delete();
     });
     it('update field type - change data type (number -> integer)', async () => {
       let card6 = await project.cardDetailsById('decision_6', {
@@ -1681,6 +1684,7 @@ describe('resources', function () {
         project,
         resourceName('decision/fieldTypes/dateFieldType'),
       );
+      await res.createFieldType('shortText');
       await res.update('displayName', {
         name: 'change',
         target: '',
