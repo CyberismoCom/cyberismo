@@ -13,7 +13,7 @@
 import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
-import { useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 
 export function useRequiredKeyParam() {
   const key = useOptionalKeyParam();
@@ -286,4 +286,13 @@ export function useDocumentTitle(title: string) {
   useEffect(() => {
     document.title = title;
   }, [title]);
+}
+
+/**
+ * This hook is used to check if the current location is in the cards page.
+ * @returns true if the current location is in the cards page, false otherwise
+ */
+export function useIsInCards() {
+  const location = useLocation();
+  return location.pathname.startsWith('/cards');
 }

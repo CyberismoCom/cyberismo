@@ -12,27 +12,80 @@
 
 import { useTranslation } from 'react-i18next';
 import AddIcon from '@mui/icons-material/Add';
-import { Link, useLocation } from 'react-router';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { Link } from 'react-router';
 
-import { Stack, Button, Box } from '@mui/joy';
+import {
+  Stack,
+  Button,
+  Box,
+  Dropdown,
+  Menu,
+  MenuButton,
+  MenuItem,
+} from '@mui/joy';
 import { config } from '@/lib/utils';
-import { useKeyboardShortcut } from '@/lib/hooks';
+import { useIsInCards, useKeyboardShortcut } from '@/lib/hooks';
+import { ResourceName, RESOURCES } from '@/lib/constants';
 
 interface AppToolbarProps {
-  onNewCard: () => void;
+  onCreate: (resourceType?: ResourceName) => void;
 }
 
-export default function AppToolbar({ onNewCard }: AppToolbarProps) {
+export function CreateButton({
+  onClick,
+  type,
+}: {
+  onClick: (resourceType?: ResourceName) => void;
+  type: 'Resource' | 'Card';
+}) {
   const { t } = useTranslation();
-  const location = useLocation();
-  const inCards = location.pathname.startsWith('/cards');
+
+  if (type === 'Card') {
+    return (
+      <Button
+        variant="solid"
+        size="sm"
+        startDecorator={<AddIcon />}
+        sx={{ marginRight: '16px' }}
+        onClick={() => onClick()}
+      >
+        {t('toolbar.newCard')}
+      </Button>
+    );
+  }
+
+  return (
+    <Dropdown>
+      <MenuButton
+        variant="solid"
+        size="sm"
+        endDecorator={<ExpandMoreIcon />}
+        sx={{ marginRight: '16px' }}
+        color="primary"
+      >
+        {t('toolbar.newResource')}
+      </MenuButton>
+      <Menu>
+        {RESOURCES.map((resource) => (
+          <MenuItem key={resource} onClick={() => onClick(resource)}>
+            {t(`newResourceModal.${resource}.name`)}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Dropdown>
+  );
+}
+
+export default function AppToolbar({ onCreate }: AppToolbarProps) {
+  const inCards = useIsInCards();
   useKeyboardShortcut(
     {
       key: 'c',
     },
     () => {
-      if (!config.staticMode && inCards) {
-        onNewCard();
+      if (!config.staticMode) {
+        onCreate();
       }
     },
   );
@@ -49,17 +102,8 @@ export default function AppToolbar({ onNewCard }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
-      {!config.staticMode && inCards && (
-        <Button
-          data-cy="createNewCardButton"
-          variant="solid"
-          size="sm"
-          startDecorator={<AddIcon />}
-          sx={{ marginRight: '16px' }}
-          onClick={onNewCard}
-        >
-          {t('toolbar.newCard')}
-        </Button>
+      {!config.staticMode && (
+        <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
     </Stack>
   );

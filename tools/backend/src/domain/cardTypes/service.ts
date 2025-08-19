@@ -12,27 +12,17 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
-import type { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
-export async function getFieldTypes(commands: CommandManager) {
-  const response = await commands.showCmd.showResources('fieldTypes');
-  if (!response) {
-    throw new Error('No field types found');
-  }
-
-  const fieldTypes = await Promise.all(
-    response.map((fieldType: string) =>
-      commands.showCmd.showResource(fieldType),
-    ),
-  );
-
-  return fieldTypes;
+export async function getCardTypes(commands: CommandManager) {
+  const cardTypesWithDetails =
+    await commands.showCmd.showCardTypesWithDetails();
+  return cardTypesWithDetails;
 }
 
-export async function createFieldType(
+export async function createCardType(
   commands: CommandManager,
-  identifier: string,
-  dataType: DataType,
+  cardTypeName: string,
+  workflowName: string,
 ) {
-  await commands.createCmd.createFieldType(identifier, dataType);
+  await commands.createCmd.createCardType(cardTypeName, workflowName);
 }

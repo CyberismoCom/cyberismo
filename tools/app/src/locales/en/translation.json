@@ -1,7 +1,9 @@
 {
   "appName": "Cards",
+  "dataType": "Data Type",
   "toolbar": {
     "newCard": "Create",
+    "newResource": "Create",
     "importModules": "Import Modules"
   },
   "moveCardModal": {
@@ -39,6 +41,43 @@
     "title": "New card from template",
     "searchTemplates": "Search templates...",
     "noTemplatesFoundMessage": "No templates available"
+  },
+  "newResourceModal": {
+    "title": "Create New Resource",
+    "selectResource": "Select the type of resource you want to create:",
+    "noWorkflows": "No workflows available. Please create a workflow first.",
+    "create": "Create {{resourceType}}",
+    "identifier": "Identifier",
+    "fieldTypes": {
+      "name": "Field Type"
+    },
+    "cardTypes": {
+      "name": "Card Type"
+    },
+    "linkTypes": {
+      "name": "Link Type"
+    },
+    "workflows": {
+      "name": "Workflow"
+    },
+    "templates": {
+      "name": "Template"
+    },
+    "reports": {
+      "name": "Report"
+    },
+    "calculations": {
+      "name": "Calculation"
+    },
+    "graphModels": {
+      "name": "Graph Model"
+    },
+    "graphViews": {
+      "name": "Graph View"
+    },
+    "success": "{{resourceType}} created successfully",
+    "notImplemented": "Creating {{resourceType}} is not yet implemented",
+    "required": "{{field}} is required"
   },
   "saveCard": {
     "success": "Card saved successfully"

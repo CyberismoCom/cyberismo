@@ -10,26 +10,9 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { Hono } from 'hono';
 
-import { zValidator } from '../../middleware/zvalidator.js';
-import { resourceParamsWithCard } from '../../common/validationSchemas.js';
-import * as logicProgramService from './service.js';
-
-const router = new Hono();
-
-router.get(
-  '/:prefix/:type/:identifier',
-  zValidator('param', resourceParamsWithCard),
-  async (c) => {
-    const commands = c.get('commands');
-    const params = c.req.valid('param');
-    const logicProgram = await logicProgramService.getLogicProgram(
-      commands,
-      params,
-    );
-    return c.json({ logicProgram });
-  },
-);
-
-export default router;
+export * from './BaseResourceModal';
+export * from './FieldTypeForm';
+export * from './CardTypeForm';
+export * from './NewCardTypeModal';
+export * from './NewFieldTypeModal';

@@ -11,3 +11,8 @@
 */
 
 export const MAX_RECENTS_STORED = 20;
+
+// These are resources that can be created from the toolbar
+export const RESOURCES = ['fieldTypes', 'cardTypes'] as const;
+
+export type ResourceName = (typeof RESOURCES)[number];

@@ -13,15 +13,19 @@
 import AppToolbar from '../components/AppToolbar';
 import { useAppSelector, useOptionalKeyParam } from '@/lib/hooks';
 import { Stack, styled } from '@mui/joy';
-import { useState } from 'react';
 import { Outlet } from 'react-router';
-import { NewCardModal } from '../components/modals';
+import {
+  NewCardModal,
+  NewFieldTypeModal,
+  NewCardTypeModal,
+} from '../components/modals';
 import { Snackbar } from '@mui/joy';
 import { closeNotification } from '../lib/slices/notifications';
 import { removeNotification } from '../lib/slices/notifications';
 import { IconButton } from '@mui/joy';
 import CloseRounded from '@mui/icons-material/CloseRounded';
-import { useAppDispatch } from '../lib/hooks';
+import { useAppDispatch, useIsInCards } from '../lib/hooks';
+import { useModals } from '@/lib/utils';
 
 const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
@@ -29,7 +33,12 @@ const Main = styled('main')(() => ({
 }));
 
 export default function Layout() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const inCards = useIsInCards();
+  const { modalOpen, openModal, closeModal } = useModals({
+    card: false,
+    cardTypes: false,
+    fieldTypes: false,
+  });
   const key = useOptionalKeyParam();
 
   const dispatch = useAppDispatch();
@@ -40,14 +49,36 @@ export default function Layout() {
 
   return (
     <Stack>
-      <AppToolbar onNewCard={() => setIsCreateDialogOpen(true)} />
+      <AppToolbar
+        onCreate={(resourceType) => {
+          if (inCards) {
+            openModal('card')();
+          } else {
+            if (!resourceType) {
+              console.warn(
+                'No resource type provided when creating a new resource',
+              );
+              return;
+            }
+            openModal(resourceType)();
+          }
+        }}
+      />
       <Main>
         <Outlet />
       </Main>
       <NewCardModal
-        open={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
+        open={modalOpen.card}
+        onClose={closeModal('card')}
         cardKey={key}
+      />
+      <NewFieldTypeModal
+        open={modalOpen.fieldTypes}
+        onClose={closeModal('fieldTypes')}
+      />
+      <NewCardTypeModal
+        open={modalOpen.cardTypes}
+        onClose={closeModal('cardTypes')}
       />
       {notifications.map((notification, index) => (
         <Snackbar

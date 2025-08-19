@@ -16,6 +16,7 @@ import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachCommandManager } from './middleware/commandManager.js';
 import cardsRouter from './domain/cards/index.js';
+import cardTypesRouter from './domain/cardTypes/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
 import linkTypesRouter from './domain/linkTypes/index.js';
 import templatesRouter from './domain/templates/index.js';
@@ -47,6 +48,7 @@ export function createApp(projectPath?: string) {
 
   // Wire up routes
   app.route('/api/cards', cardsRouter);
+  app.route('/api/cardTypes', cardTypesRouter);
   app.route('/api/fieldTypes', fieldTypesRouter);
   app.route('/api/linkTypes', linkTypesRouter);
   app.route('/api/templates', templatesRouter);

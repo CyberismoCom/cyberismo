@@ -19,4 +19,5 @@ export * from './templates';
 export * from './linkTypes';
 export * from './tree';
 export * from './resources';
+export * from './cardType';
 export type { CardUpdate };

@@ -13,6 +13,7 @@
 // These are used within this file for additional definitions.
 import {
   CardType,
+  DataType,
   FieldType,
   Link,
   LinkType,
@@ -80,6 +81,18 @@ export interface CardView {
   children: string[];
   timestamp: string;
 }
+
+// Data for creating a new field type
+export type CreateFieldTypeData = {
+  identifier: string;
+  dataType: DataType;
+};
+
+// Data for creating a new card type
+export type CreateCardTypeData = {
+  identifier: string;
+  workflowName: string;
+};
 
 // Array of field types.
 export type FieldTypes = Array<FieldType>;

@@ -12,21 +12,21 @@
 */
 
 import { Hono } from 'hono';
-import * as fieldTypeService from './service.js';
-import { createFieldTypeSchema } from './schema.js';
+import * as cardTypeService from './service.js';
+import { createCardTypeSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
 
 /**
  * @swagger
- * /api/fieldTypes:
+ * /api/cardTypes:
  *   get:
- *     summary: Returns a list of all field types in the defined project.
- *     description: List of field types includes all field types in the project with all their details
+ *     summary: Returns a list of all card types in the defined project.
+ *     description: List of card types includes all card types in the project with all their details
  *     responses:
  *       200:
- *        description: Object containing the project field types. See definitions.ts/FieldTypes for the structure.
+ *        description: Object containing the project card types.
  *       400:
  *         description: Error in reading project details.
  *       500:
@@ -36,8 +36,8 @@ router.get('/', async (c) => {
   const commands = c.get('commands');
 
   try {
-    const fieldTypes = await fieldTypeService.getFieldTypes(commands);
-    return c.json(fieldTypes);
+    const cardTypes = await cardTypeService.getCardTypes(commands);
+    return c.json(cardTypes);
   } catch (error) {
     return c.json(
       {
@@ -50,10 +50,10 @@ router.get('/', async (c) => {
 
 /**
  * @swagger
- * /api/fieldTypes:
+ * /api/cardTypes:
  *   post:
- *     summary: Create a new field type
- *     description: Creates a new field type with the specified data type
+ *     summary: Create a new card type
+ *     description: Creates a new card type with the specified workflow
  *     requestBody:
  *       required: true
  *       content:
@@ -61,29 +61,28 @@ router.get('/', async (c) => {
  *           schema:
  *             type: object
  *             properties:
- *               fieldTypeName:
+ *               cardTypeName:
  *                 type: string
- *               dataType:
+ *               workflowName:
  *                 type: string
- *                 enum: [boolean, date, dateTime, enum, integer, list, longText, number, person, shortText]
  *             required:
- *               - fieldTypeName
- *               - dataType
+ *               - cardTypeName
+ *               - workflowName
  *     responses:
  *       200:
- *         description: Field type created successfully
+ *         description: Card type created successfully
  *       400:
  *         description: Invalid request body
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createFieldTypeSchema), async (c) => {
+router.post('/', zValidator('json', createCardTypeSchema), async (c) => {
   const commands = c.get('commands');
-  const { identifier, dataType } = c.req.valid('json');
+  const { identifier, workflowName } = c.req.valid('json');
 
   try {
-    await fieldTypeService.createFieldType(commands, identifier, dataType);
-    return c.json({ message: 'Field type created successfully' });
+    await cardTypeService.createCardType(commands, identifier, workflowName);
+    return c.json({ message: 'Card type created successfully' });
   } catch (error) {
     return c.json(
       {
@@ -95,3 +94,4 @@ router.post('/', zValidator('json', createFieldTypeSchema), async (c) => {
 });
 
 export default router;
+
