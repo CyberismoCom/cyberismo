@@ -90,31 +90,31 @@ describe('macros', () => {
   describe('validateMacroContent', () => {
     it('validateMacroContent (success)', () => {
       const data = { test: 'test' };
-      const result = validateMacroContent(macro.metadata, data, validator);
+      const result = validateMacroContent(macro.metadata, data, testSchema);
       expect(result).to.deep.equal({ test: 'test' });
     });
     it('try validateMacroContent using wrong value', () => {
       const data = '{"test": 1}';
       expect(() =>
-        validateMacroContent(macro.metadata, data, validator),
+        validateMacroContent(macro.metadata, data, testSchema),
       ).to.throw();
     });
     it('try validateMacroContent using wrong schema', () => {
       const data = '{"test": "test"}';
       expect(() =>
-        validateMacroContent(macroMissingSchema.metadata, data, validator),
+        validateMacroContent(macroMissingSchema.metadata, data, testSchema),
       ).to.throw();
     });
     it('try validateMacroContent using wrong data', () => {
       const data = '{"test": "test"';
       expect(() =>
-        validateMacroContent(macro.metadata, data, validator),
+        validateMacroContent(macro.metadata, data, testSchema),
       ).to.throw();
     });
     it('try validateMacroContent using wrong key', () => {
       const data = '{"test2": "test"}';
       expect(() =>
-        validateMacroContent(macro.metadata, data, validator),
+        validateMacroContent(macro.metadata, data, testSchema),
       ).to.throw();
     });
   });

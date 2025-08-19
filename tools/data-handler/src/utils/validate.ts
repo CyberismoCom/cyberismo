@@ -13,11 +13,13 @@ import { type Schema, Validator } from 'jsonschema';
 import { DHValidationError, SchemaNotFound } from '../exceptions/index.js';
 import { schemas } from '@cyberismo/assets';
 
+let validator: Validator | null = null;
+
 /**
  * Validates a JSON object against a schema
  * @param object The object to validate
  * @param schemaId The id of the schema to validate against
- * @param validator An optional validator to use. If validator is not provided or does not contain any schemas, project schemas will be used
+ * @param schema The schema to validate against. If schema is not provided, the schema with the given id will be used
  * @returns The object casted to the type T if it is valid
  * @throws DHValidationError if the object is not valid
  * @throws SchemaNotFound if the schema with the given id is not found
@@ -27,11 +29,9 @@ export function validateJson<T>(
   options: {
     schemaId?: string;
     schema?: Schema;
-    validator?: Validator;
   },
 ): T {
   const { schemaId, schema } = options;
-  let validator = options.validator;
 
   if (!schema && !schemaId) {
     throw new Error('Must either specify schema or schemaId');
