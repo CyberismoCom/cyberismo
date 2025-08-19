@@ -21,6 +21,7 @@ export const RESOURCES = [
   'linkTypes',
   'reports',
   'templates',
+  'workflows',
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

@@ -114,6 +114,7 @@ export const apiPaths = {
     `/api/cards/${cardKey}/a/${attachment}`,
   linkTypes: () => '/api/linkTypes',
   reports: () => '/api/reports',
+  workflows: () => '/api/workflows',
   resources: (type: string) => `/api/resources/${type}`,
   resourceTree: () => '/api/resources/tree',
   resource: (resourceName: string) => `/api/resources/${resourceName}`,

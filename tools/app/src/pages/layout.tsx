@@ -25,6 +25,7 @@ import {
   NewLinkTypeModal,
   NewReportModal,
   NewTemplateModal,
+  NewWorkflowModal,
 } from '../components/modals/resource-forms';
 import { Snackbar } from '@mui/joy';
 import { closeNotification } from '../lib/slices/notifications';
@@ -50,6 +51,7 @@ export default function Layout() {
     linkTypes: false,
     reports: false,
     templates: false,
+    workflows: false,
   });
   const key = useOptionalKeyParam();
 
@@ -111,6 +113,10 @@ export default function Layout() {
       <NewTemplateModal
         open={modalOpen.templates}
         onClose={closeModal('templates')}
+      />
+      <NewWorkflowModal
+        open={modalOpen.workflows}
+        onClose={closeModal('workflows')}
       />
       {notifications.map((notification, index) => (
         <Snackbar

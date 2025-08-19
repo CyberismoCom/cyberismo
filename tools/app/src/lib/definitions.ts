@@ -119,6 +119,11 @@ export type CreateTemplateData = {
   identifier: string;
 };
 
+// Data for creating a new workflow
+export type CreateWorkflowData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

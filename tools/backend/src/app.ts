@@ -24,6 +24,7 @@ import linkTypesRouter from './domain/linkTypes/index.js';
 import reportsRouter from './domain/reports/index.js';
 import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
+import workflowsRouter from './domain/workflows/index.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isSSGContext } from './export.js';
@@ -59,6 +60,7 @@ export function createApp(projectPath?: string) {
   app.route('/api/reports', reportsRouter);
   app.route('/api/templates', templatesRouter);
   app.route('/api/tree', treeRouter);
+  app.route('/api/workflows', workflowsRouter);
   app.route('/api/resources', resourcesRouter);
   app.route('/api/logicPrograms', logicProgramsRouter);
 

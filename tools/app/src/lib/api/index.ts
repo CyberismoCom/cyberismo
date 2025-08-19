@@ -23,4 +23,5 @@ export * from './cardType';
 export * from './graphModel';
 export * from './graphView';
 export * from './report';
+export * from './workflow';
 export type { CardUpdate };
