@@ -11,10 +11,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './BaseResourceModal';
-export * from './FieldTypeForm';
-export * from './CardTypeForm';
-export * from './GraphViewForm';
-export * from './NewCardTypeModal';
-export * from './NewFieldTypeModal';
-export * from './NewGraphViewModal';
+import type { CommandManager } from '@cyberismo/data-handler';
+export async function createGraphView(
+  commands: CommandManager,
+  graphViewName: string,
+) {
+  await commands.createCmd.createGraphView(graphViewName);
+}

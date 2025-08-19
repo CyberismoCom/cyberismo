@@ -94,6 +94,11 @@ export type CreateCardTypeData = {
   workflowName: string;
 };
 
+// Data for creating a new graph view
+export type CreateGraphViewData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

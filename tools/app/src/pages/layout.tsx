@@ -19,6 +19,7 @@ import {
   NewFieldTypeModal,
   NewCardTypeModal,
 } from '../components/modals';
+import { NewGraphViewModal } from '../components/modals/resource-forms';
 import { Snackbar } from '@mui/joy';
 import { closeNotification } from '../lib/slices/notifications';
 import { removeNotification } from '../lib/slices/notifications';
@@ -38,6 +39,7 @@ export default function Layout() {
     card: false,
     cardTypes: false,
     fieldTypes: false,
+    graphViews: false,
   });
   const key = useOptionalKeyParam();
 
@@ -79,6 +81,10 @@ export default function Layout() {
       <NewCardTypeModal
         open={modalOpen.cardTypes}
         onClose={closeModal('cardTypes')}
+      />
+      <NewGraphViewModal
+        open={modalOpen.graphViews}
+        onClose={closeModal('graphViews')}
       />
       {notifications.map((notification, index) => (
         <Snackbar
