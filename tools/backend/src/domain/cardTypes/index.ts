@@ -94,4 +94,3 @@ router.post('/', zValidator('json', createCardTypeSchema), async (c) => {
 });
 
 export default router;
-
