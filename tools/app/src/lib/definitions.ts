@@ -114,6 +114,11 @@ export type CreateReportData = {
   identifier: string;
 };
 
+// Data for creating a new template
+export type CreateTemplateData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

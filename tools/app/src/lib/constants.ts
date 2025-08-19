@@ -20,6 +20,7 @@ export const RESOURCES = [
   'graphViews',
   'linkTypes',
   'reports',
+  'templates',
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

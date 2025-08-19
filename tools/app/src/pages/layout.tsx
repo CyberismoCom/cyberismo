@@ -24,6 +24,7 @@ import {
   NewGraphViewModal,
   NewLinkTypeModal,
   NewReportModal,
+  NewTemplateModal,
 } from '../components/modals/resource-forms';
 import { Snackbar } from '@mui/joy';
 import { closeNotification } from '../lib/slices/notifications';
@@ -48,6 +49,7 @@ export default function Layout() {
     graphViews: false,
     linkTypes: false,
     reports: false,
+    templates: false,
   });
   const key = useOptionalKeyParam();
 
@@ -105,6 +107,10 @@ export default function Layout() {
       <NewReportModal
         open={modalOpen.reports}
         onClose={closeModal('reports')}
+      />
+      <NewTemplateModal
+        open={modalOpen.templates}
+        onClose={closeModal('templates')}
       />
       {notifications.map((notification, index) => (
         <Snackbar

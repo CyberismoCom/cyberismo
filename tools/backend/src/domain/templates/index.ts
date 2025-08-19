@@ -14,6 +14,8 @@
 import { Hono } from 'hono';
 import { isSSGContext } from '../../export.js';
 import * as templateService from './service.js';
+import { createTemplateSchema } from './schema.js';
+import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
 
@@ -49,6 +51,39 @@ router.get('/', async (c) => {
       500,
     );
   }
+});
+
+/**
+ * @swagger
+ * /api/templates:
+ *   post:
+ *     summary: Create a new template
+ *     description: Creates a new template with the specified identifier
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *             required:
+ *               - identifier
+ *     responses:
+ *       200:
+ *         description: Template created successfully
+ *       400:
+ *         description: Invalid request body
+ *       500:
+ *         description: Server error
+ */
+router.post('/', zValidator('json', createTemplateSchema), async (c) => {
+  const commands = c.get('commands');
+  const { identifier } = c.req.valid('json');
+
+  await templateService.createTemplate(commands, identifier);
+  return c.json({ message: 'Template created successfully' });
 });
 
 export default router;

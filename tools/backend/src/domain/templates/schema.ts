@@ -11,19 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import { z } from 'zod';
 
-export async function getTemplatesWithDetails(commands: CommandManager) {
-  const response = await commands.showCmd.showTemplatesWithDetails();
-  if (!response) {
-    throw new Error('No templates found');
-  }
-  return response;
-}
-
-export async function createTemplate(
-  commands: CommandManager,
-  templateName: string,
-) {
-  await commands.createCmd.createTemplate(templateName, '');
-}
+export const createTemplateSchema = z.object({
+  identifier: z.string().min(1),
+});
