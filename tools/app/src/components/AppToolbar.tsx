@@ -45,6 +45,7 @@ export function CreateButton({
     return (
       <Button
         variant="solid"
+        data-cy="createNewButton"
         size="sm"
         startDecorator={<AddIcon />}
         sx={{ marginRight: '16px' }}

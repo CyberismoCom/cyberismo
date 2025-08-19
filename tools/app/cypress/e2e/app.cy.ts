@@ -39,7 +39,7 @@ describe('Navigation', () => {
 
   it('Create a page', () => {
     // Creates a new basic document page card from templates
-    cy.get('[data-cy="createNewCardButton"]').click(); // Click new card button in top right corner
+    cy.get('[data-cy="createNewButton"]').click(); // Click new card button in top right corner
     cy.get('.templateCard').contains('Page').click(); // Select page template
     cy.get('[data-cy="confirmCreateButton"]').click(); // confirm dialog
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
@@ -49,7 +49,7 @@ describe('Navigation', () => {
 
   it('Create a decision as a child of the page', () => {
     // Creates a child card under previously created page
-    cy.get('[data-cy="createNewCardButton"]').click();
+    cy.get('[data-cy="createNewButton"]').click();
     cy.get('.templateCard').contains('Decision').click(); // Select Decision template
     cy.get('[data-cy="confirmCreateButton"]').click();
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
