@@ -14,9 +14,9 @@ export const MAX_RECENTS_STORED = 20;
 
 // These are resources that can be created from the toolbar
 export const RESOURCES = [
-  'fieldTypes',
-  'cardTypes',
   'calculations',
+  'cardTypes',
+  'fieldTypes',
   'graphModels',
   'graphViews',
   'linkTypes',
