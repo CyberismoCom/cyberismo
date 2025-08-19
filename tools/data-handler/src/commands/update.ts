@@ -34,6 +34,7 @@ export class Update {
    * @param key Property to change in resource JSON
    * @param value Value for 'key'
    * @param optionalDetail Additional detail needed for some operations. For example, 'update' needs a new value.
+   * @param mappingTable Optional mapping table for workflow state transitions (only used for workflow changes)
    */
   public async updateValue<Type>(
     name: string,
@@ -41,6 +42,7 @@ export class Update {
     key: string,
     value: Type,
     optionalDetail?: Type, // todo: for 'rank' it might be reasonable to accept also 'number'
+    mappingTable?: { stateMapping: Record<string, string> },
   ) {
     const resource = Project.resourceObject(this.project, resourceName(name));
     const op: Operation<Type> = {
@@ -60,6 +62,10 @@ export class Update {
       (op as ChangeOperation<Type>).to = optionalDetail
         ? optionalDetail
         : (value as Type);
+      // Add mapping table if provided (for workflow changes)
+      if (mappingTable) {
+        (op as ChangeOperation<Type>).mappingTable = mappingTable;
+      }
     } else if (operation === 'rank') {
       (op as RankOperation<Type>).newIndex = optionalDetail as number;
       (op as RankOperation<Type>).target = value;

@@ -63,6 +63,7 @@ export interface CardsOptions {
   date?: string;
   version?: string;
   revremark?: string;
+  mappingFile?: string;
 }
 
 // Commands that this class supports.
@@ -356,12 +357,53 @@ export class Commands {
           parsedValue = value;
         }
 
+        // Handle mapping file for workflow changes
+        let mappingTable: { stateMapping: Record<string, string> } | undefined;
+        if (
+          options.mappingFile &&
+          operation === 'change' &&
+          key === 'workflow'
+        ) {
+          try {
+            const mappingData = await readJsonFile(
+              resolveTilde(options.mappingFile),
+            );
+            if (
+              mappingData &&
+              typeof mappingData === 'object' &&
+              'stateMapping' in mappingData
+            ) {
+              mappingTable = mappingData as {
+                stateMapping: Record<string, string>;
+              };
+            } else {
+              throw new Error(
+                'Mapping file must contain a "stateMapping" object',
+              );
+            }
+          } catch (error) {
+            throw new Error(
+              `Failed to read mapping file: ${errorFunction(error)}`,
+            );
+          }
+        }
+
+        let parsedNewValue = newValue;
+        if (newValue) {
+          try {
+            parsedNewValue = JSON.parse(newValue);
+          } catch {
+            parsedNewValue = newValue;
+          }
+        }
+
         await this.commands?.updateCmd.updateValue(
           resource,
           operation as UpdateOperations,
           key,
           parsedValue,
-          newValue ? JSON.parse(newValue) : undefined,
+          parsedNewValue,
+          mappingTable,
         );
       } else if (command === Cmd.updateModules) {
         const [module] = args;

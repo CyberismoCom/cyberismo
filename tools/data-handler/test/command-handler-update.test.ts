@@ -20,16 +20,14 @@ let update: Update;
 let collector: ResourceCollector;
 
 describe('update command', () => {
-  before(async () => {
-    mkdirSync(testDir, { recursive: true });
-    await copyDir('test/test-data', testDir);
-  });
-
-  after(() => {
+  afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
   beforeEach(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+
     project = new Project(decisionRecordsPath);
     update = new Update(project);
     collector = new ResourceCollector(project);
@@ -54,9 +52,9 @@ describe('update command', () => {
     expect(found).to.equal(true);
   });
   it('update file resource name using just identifier', async () => {
-    const name = `${project.projectPrefix}/workflows/newName`;
+    const name = `${project.projectPrefix}/workflows/decision`;
     const exists = await collector.resourceExists('workflows', name);
-    const newName = `decision`;
+    const newName = `newName`;
     expect(exists).to.equal(true);
 
     await update.updateValue(name, 'change', 'name', newName);
@@ -151,5 +149,86 @@ describe('update command', () => {
     ).to.be.rejectedWith(
       "Resource identifier must follow naming rules. Identifier 'newName-ÄÄÄ' is invalid",
     );
+  });
+
+  it('update card type workflow with complete state mapping (success)', async () => {
+    const name = `${project.projectPrefix}/cardTypes/decision`;
+    const currentWorkflow = `${project.projectPrefix}/workflows/decision`;
+    const newWorkflow = `${project.projectPrefix}/workflows/simple`;
+
+    // current workflow (decision) states: Draft, Approved, Rejected, Rerejected, Deprecated
+    // new workflow (simple) states: Created, Approved, Deprecated
+    const stateMap = {
+      stateMapping: {
+        Draft: 'Created',
+        Approved: 'Approved',
+        Rejected: 'Deprecated',
+        Rerejected: 'Deprecated',
+        Deprecated: 'Deprecated',
+      },
+    };
+
+    await update.updateValue(
+      name,
+      'change',
+      'workflow',
+      currentWorkflow,
+      newWorkflow,
+      stateMap,
+    );
+
+    collector.changed();
+    const cardType = await project.resource<CardType>(name);
+    expect(cardType?.workflow).to.equal(newWorkflow);
+  });
+
+  it('try to update card type workflow with incomplete state mapping (failure)', async () => {
+    const name = `${project.projectPrefix}/cardTypes/decision`;
+    const currentWorkflow = `${project.projectPrefix}/workflows/decision`;
+    const newWorkflow = `${project.projectPrefix}/workflows/simple`;
+    const incompleteMapping = {
+      stateMapping: {
+        Draft: 'Created',
+        Approved: 'Approved',
+        // Missing: Rejected, Rerejected, Deprecated
+      },
+    };
+
+    await expect(
+      update.updateValue(
+        name,
+        'change',
+        'workflow',
+        currentWorkflow,
+        newWorkflow,
+        incompleteMapping,
+      ),
+    ).to.be.rejectedWith('State mapping validation failed');
+  });
+
+  it('try to update card type workflow with invalid target states (failure)', async () => {
+    const name = `${project.projectPrefix}/cardTypes/decision`;
+    const currentWorkflow = `${project.projectPrefix}/workflows/decision`;
+    const newWorkflow = `${project.projectPrefix}/workflows/simple`;
+    const invalidTargetMapping = {
+      stateMapping: {
+        Draft: 'InvalidState', // This state doesn't exist in simple workflow
+        Approved: 'Approved',
+        Rejected: 'Deprecated',
+        Rerejected: 'Deprecated',
+        Deprecated: 'Deprecated',
+      },
+    };
+
+    await expect(
+      update.updateValue(
+        name,
+        'change',
+        'workflow',
+        currentWorkflow,
+        newWorkflow,
+        invalidTargetMapping,
+      ),
+    ).to.be.rejectedWith('State mapping validation failed');
   });
 });

@@ -24,6 +24,7 @@ import type {
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import type { ResourceContent } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -44,6 +45,7 @@ export type AddOperation<T> = BaseOperation<T> & {
 export type ChangeOperation<T> = BaseOperation<T> & {
   name: 'change';
   to: T;
+  mappingTable?: { stateMapping: Record<string, string> }; // Optional state mapping for workflow changes
 };
 
 // Move item in an array to new position.
@@ -68,6 +70,11 @@ export type Operation<T> =
  * Abstract class for resources.
  */
 export abstract class AbstractResource {
+  protected static get logger() {
+    return getChildLogger({
+      module: 'resource',
+    });
+  }
   protected abstract calculate(): Promise<void>; // update resource specific calculations
   protected abstract create(content?: ResourceContent): Promise<void>; // create a new with the content (memory)
   protected abstract delete(): Promise<void>; // delete from disk

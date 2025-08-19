@@ -184,6 +184,31 @@ const additionalHelpForRemove = `Sub-command help:
       <identifier> name of a specific resource.
     Note that you cannot remove resources from imported modules.`;
 
+const additionalHelpForUpdate = `Sub-command help:
+  update <resourceName> <operation> <key> <value> [newValue], where
+      <resourceName> Resource name (e.g., myProject/cardTypes/myCard)
+      <operation> Type of change: "add", "change", "rank", or "remove"
+      <key> Property to change in resource
+      <value> Current value (for change/remove) or value to add
+      [newValue] New value when using "change" operation
+
+  Special case - Workflow changes with state mapping:
+    When changing a card type's workflow, you can provide a mapping file
+    to automatically update cards' workflow states:
+
+    cyberismo update myProject/cardTypes/myCard change workflow oldWorkflow newWorkflow --mapping-file mapping.json
+
+    The mapping file should be JSON with this format:
+    {
+      "stateMapping": {
+        "ExistingState1": "NewState1",
+        "ExistingState2": "NewState2"
+      }
+    }
+
+    If there are states that are skipped, a warning is produced.
+    `;
+
 const contextOption = new Option(
   '-c, --context [context]',
   'Context to run the logic programs in.',
@@ -765,18 +790,24 @@ program
     '[newValue]',
     'When using "change" define new value for detail.\nWhen using "remove" provide optional replacement value for removed value',
   )
+  .option(
+    '-m, --mapping-file [path]',
+    'Path to JSON file containing workflow state mapping (only used when changing workflow)',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .addHelpText('after', additionalHelpForUpdate)
   .action(
     async (
       resourceName: string,
-      key: string,
       operation: UpdateOperations,
+      key: string,
       value: string,
       newValue: string,
       options: CardsOptions,
     ) => {
       const result = await commandHandler.command(
         Cmd.update,
-        [resourceName, key, operation, value, newValue],
+        [resourceName, operation, key, value, newValue],
         Object.assign({}, options, program.opts()),
       );
       handleResponse(result);

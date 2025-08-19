@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { AbstractResource } from './resource-object.js';
 import type {
   CardType,
   CustomField,
@@ -150,6 +151,50 @@ export class CardTypeResource extends FileResource {
         delete card.metadata[item.name];
         await this.project.updateCardMetadata(card, card.metadata);
       }
+    }
+  }
+
+  // Apply state mapping to all cards using this card type.
+  // Checks that all states in the current workflow are updated.
+  private async handleWorkflowChange<Type>(
+    stateMapping: Record<string, string>,
+    op: ChangeOperation<Type>,
+  ) {
+    await this.verifyStateMapping(stateMapping, op);
+    const cards = await this.collectCards(
+      {
+        metadata: true,
+        content: true,
+      },
+      this.content.name,
+    );
+
+    const unmappedStates: string[] = [];
+
+    // Update each card's workflowState if it has a mapping
+    const updatePromises = cards.map(async (card) => {
+      if (card.metadata && card.metadata.workflowState) {
+        const currentState = card.metadata.workflowState as string;
+        const newState = stateMapping[currentState];
+
+        if (newState && newState !== currentState) {
+          AbstractResource.logger.info(
+            `Updating card '${card.key}': ${currentState} -> ${newState}`,
+          );
+          card.metadata.workflowState = newState;
+          await this.project.updateCardMetadata(card, card.metadata);
+        } else if (!newState && !unmappedStates.includes(currentState)) {
+          unmappedStates.push(currentState);
+        }
+      }
+    });
+
+    await Promise.all(updatePromises);
+
+    if (unmappedStates.length > 0) {
+      AbstractResource.logger.warn(
+        `Found unmapped states that were not updated: ${unmappedStates.join(', ')}`,
+      );
     }
   }
 
@@ -315,6 +360,57 @@ export class CardTypeResource extends FileResource {
     }
   }
 
+  // Verifies that:
+  // - all states in the current workflow are covered in the state mapping
+  // - the states are correct
+  private async verifyStateMapping<Type>(
+    stateMapping: Record<string, string>,
+    op: ChangeOperation<Type>,
+  ) {
+    const currentWorkflowName = op.target as string;
+    const currentWorkflow =
+      await this.project.resource<Workflow>(currentWorkflowName);
+    if (!currentWorkflow) {
+      throw new Error(
+        `Workflow '${currentWorkflowName}' does not exist in the project`,
+      );
+    }
+
+    const newWorkflow = await this.project.resource<Workflow>(op.to as string);
+    if (!newWorkflow) {
+      throw new Error(`Workflow '${op.to}' does not exist in the project`);
+    }
+
+    const currentWorkflowStates = currentWorkflow.states.map(
+      (state) => state.name,
+    );
+    const mappedSourceStates = Object.keys(stateMapping);
+    const unmappedCurrentStates = currentWorkflowStates.filter(
+      (stateName) => !mappedSourceStates.includes(stateName),
+    );
+
+    if (unmappedCurrentStates.length > 0) {
+      throw new Error(
+        `State mapping validation failed: The following states exist in the current workflow '${currentWorkflowName}' ` +
+          `but are not mapped from in the state mapping JSON file: ${unmappedCurrentStates.join(', ')}. ` +
+          `Please ensure all states in the current workflow are accounted for in the mapping to ensure all cards are properly updated.`,
+      );
+    }
+
+    // Also verify that all target states exist in the new workflow
+    const newWorkflowStates = newWorkflow.states.map((state) => state.name);
+    const mappedTargetStates = Object.values(stateMapping);
+    const invalidTargetStates = mappedTargetStates.filter(
+      (stateName) => !newWorkflowStates.includes(stateName),
+    );
+
+    if (invalidTargetStates.length > 0) {
+      throw new Error(
+        `State mapping validation failed: The following target states in the mapping do not exist in the new workflow '${op.to}': ${invalidTargetStates.join(', ')}.`,
+      );
+    }
+  }
+
   /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
@@ -404,7 +500,12 @@ export class CardTypeResource extends FileResource {
         content.optionallyVisibleFields as Type[],
       ) as string[];
     } else if (key === 'workflow') {
+      const changeOp = op as ChangeOperation<string>;
+      const stateMapping = changeOp.mappingTable?.stateMapping || {};
       content.workflow = super.handleScalar(op) as string;
+      if (Object.keys(stateMapping).length > 0) {
+        await this.handleWorkflowChange(stateMapping, changeOp);
+      }
     } else if (key === 'customFields') {
       await this.validateFieldType(key, op);
       content.customFields = super.handleArray(
