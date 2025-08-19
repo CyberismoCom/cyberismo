@@ -13,6 +13,8 @@ import { type Schema, Validator } from 'jsonschema';
 import { DHValidationError, SchemaNotFound } from '../exceptions/index.js';
 import { schemas } from '@cyberismo/assets';
 
+let validator: Validator | null = null;
+
 /**
  * Validates a JSON object against a schema
  * @param object The object to validate
@@ -27,11 +29,9 @@ export function validateJson<T>(
   options: {
     schemaId?: string;
     schema?: Schema;
-    validator?: Validator;
   },
 ): T {
   const { schemaId, schema } = options;
-  let validator = options.validator;
 
   if (!schema && !schemaId) {
     throw new Error('Must either specify schema or schemaId');

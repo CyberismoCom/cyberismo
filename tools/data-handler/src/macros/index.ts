@@ -27,7 +27,6 @@ import vegaLite from './vegalite/index.js';
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
 import type { AdmonitionType } from '../interfaces/adoc.js';
-import type { Validator } from 'jsonschema';
 import type {
   MacroGenerationContext,
   MacroMetadata,
@@ -159,7 +158,6 @@ export const macros: {
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: unknown,
-  validator?: Validator,
 ): T {
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
@@ -168,7 +166,6 @@ export function validateMacroContent<T>(
   try {
     return validateJson<T>(data, {
       schemaId: macro.schema,
-      validator,
     });
   } catch (error) {
     let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
