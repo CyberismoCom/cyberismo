@@ -27,7 +27,6 @@ import vegaLite from './vegalite/index.js';
 import { validateJson } from '../utils/validate.js';
 import { DHValidationError, MacroError } from '../exceptions/index.js';
 import type { AdmonitionType } from '../interfaces/adoc.js';
-import type { Validator } from 'jsonschema';
 import type {
   MacroGenerationContext,
   MacroMetadata,
@@ -36,6 +35,7 @@ import type {
 import type BaseMacro from './base-macro.js';
 import TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
+import type { Schema } from 'jsonschema';
 const CURLY_LEFT = '&#123;';
 const CURLY_RIGHT = '&#125;';
 const RAW_BLOCK_OPEN = '{{#raw}}';
@@ -153,13 +153,12 @@ export const macros: {
  * Validates the content inside a macro
  * @param macro - The macro to validate the content of
  * @param data - The data to validate
- * @param validator - The validator to use
  * @returns The validated data
  */
 export function validateMacroContent<T>(
   macro: MacroMetadata,
   data: unknown,
-  validator?: Validator,
+  schema?: Schema,
 ): T {
   if (!macro.schema) {
     throw new Error(`Macro ${macro.name} does not have a schema`);
@@ -168,7 +167,7 @@ export function validateMacroContent<T>(
   try {
     return validateJson<T>(data, {
       schemaId: macro.schema,
-      validator,
+      schema,
     });
   } catch (error) {
     let message = `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
