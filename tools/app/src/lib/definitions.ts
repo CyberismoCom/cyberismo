@@ -104,6 +104,11 @@ export type CreateGraphModelData = {
   identifier: string;
 };
 
+// Data for creating a new link type
+export type CreateLinkTypeData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

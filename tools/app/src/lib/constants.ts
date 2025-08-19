@@ -18,6 +18,7 @@ export const RESOURCES = [
   'cardTypes',
   'graphModels',
   'graphViews',
+  'linkTypes',
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

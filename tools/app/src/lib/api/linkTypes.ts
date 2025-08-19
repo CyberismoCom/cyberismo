@@ -11,9 +11,17 @@
 */
 
 import { useSWRHook } from './common';
-import { apiPaths } from '../swr';
+import { apiPaths, callApi } from '../swr';
+import { mutate } from 'swr';
+import { CreateLinkTypeData } from '@/lib/definitions';
 
 import { SWRConfiguration } from 'swr';
 
 export const useLinkTypes = (options?: SWRConfiguration) =>
   useSWRHook<'linkTypes'>(apiPaths.linkTypes(), 'linkTypes', null, options);
+
+export const createLinkType = async (data: CreateLinkTypeData) => {
+  await callApi(apiPaths.linkTypes(), 'POST', data);
+  mutate(apiPaths.linkTypes());
+  mutate(apiPaths.resourceTree());
+};

@@ -11,24 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CommandManager } from '@cyberismo/data-handler';
+import { z } from 'zod';
 
-export async function getLinkTypes(commands: CommandManager) {
-  const response = await commands.showCmd.showResources('linkTypes');
-  if (!response) {
-    throw new Error('No link types found');
-  }
-
-  const linkTypes = await Promise.all(
-    response.map((linkType: string) => commands.showCmd.showResource(linkType)),
-  );
-
-  return linkTypes;
-}
-
-export async function createLinkType(
-  commands: CommandManager,
-  linkTypeName: string,
-) {
-  await commands.createCmd.createLinkType(linkTypeName);
-}
+export const createLinkTypeSchema = z.object({
+  identifier: z.string().min(1),
+});
