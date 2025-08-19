@@ -16,6 +16,7 @@ export const MAX_RECENTS_STORED = 20;
 export const RESOURCES = [
   'fieldTypes',
   'cardTypes',
+  'calculations',
   'graphModels',
   'graphViews',
   'linkTypes',

@@ -15,6 +15,7 @@ import { staticFrontendDirRelative } from './utils.js';
 import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachCommandManager } from './middleware/commandManager.js';
+import calculationsRouter from './domain/calculations/index.js';
 import cardsRouter from './domain/cards/index.js';
 import cardTypesRouter from './domain/cardTypes/index.js';
 import fieldTypesRouter from './domain/fieldTypes/index.js';
@@ -51,6 +52,7 @@ export function createApp(projectPath?: string) {
   app.use(attachCommandManager(projectPath));
 
   // Wire up routes
+  app.route('/api/calculations', calculationsRouter);
   app.route('/api/cards', cardsRouter);
   app.route('/api/cardTypes', cardTypesRouter);
   app.route('/api/fieldTypes', fieldTypesRouter);

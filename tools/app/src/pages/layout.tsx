@@ -20,6 +20,7 @@ import {
   NewCardTypeModal,
 } from '../components/modals';
 import {
+  NewCalculationModal,
   NewGraphModelModal,
   NewGraphViewModal,
   NewLinkTypeModal,
@@ -45,6 +46,7 @@ export default function Layout() {
   const { modalOpen, openModal, closeModal } = useModals({
     card: false,
     cardTypes: false,
+    calculations: false,
     fieldTypes: false,
     graphModels: false,
     graphViews: false,
@@ -93,6 +95,10 @@ export default function Layout() {
       <NewCardTypeModal
         open={modalOpen.cardTypes}
         onClose={closeModal('cardTypes')}
+      />
+      <NewCalculationModal
+        open={modalOpen.calculations}
+        onClose={closeModal('calculations')}
       />
       <NewGraphModelModal
         open={modalOpen.graphModels}

@@ -124,6 +124,11 @@ export type CreateWorkflowData = {
   identifier: string;
 };
 
+// Data for creating a new calculation
+export type CreateCalculationData = {
+  fileName: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 
