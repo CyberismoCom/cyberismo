@@ -11,16 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './BaseResourceModal';
-export * from './FieldTypeForm';
-export * from './CardTypeForm';
-export * from './GraphModelForm';
-export * from './GraphViewForm';
-export * from './LinkTypeForm';
-export * from './ReportForm';
-export * from './NewCardTypeModal';
-export * from './NewFieldTypeModal';
-export * from './NewGraphModelModal';
-export * from './NewGraphViewModal';
-export * from './NewLinkTypeModal';
-export * from './NewReportModal';
+import type { CommandManager } from '@cyberismo/data-handler';
+
+export async function createReport(
+  commands: CommandManager,
+  reportName: string,
+) {
+  await commands.createCmd.createReport(reportName);
+}

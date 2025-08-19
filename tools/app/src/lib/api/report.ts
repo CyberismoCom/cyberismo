@@ -11,16 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './BaseResourceModal';
-export * from './FieldTypeForm';
-export * from './CardTypeForm';
-export * from './GraphModelForm';
-export * from './GraphViewForm';
-export * from './LinkTypeForm';
-export * from './ReportForm';
-export * from './NewCardTypeModal';
-export * from './NewFieldTypeModal';
-export * from './NewGraphModelModal';
-export * from './NewGraphViewModal';
-export * from './NewLinkTypeModal';
-export * from './NewReportModal';
+import { callApi } from '../swr';
+import { apiPaths } from '../swr';
+import { mutate } from 'swr';
+import { CreateReportData } from '@/lib/definitions';
+
+export const createReport = async (data: CreateReportData) => {
+  await callApi(apiPaths.reports(), 'POST', data);
+  mutate(apiPaths.reports());
+  mutate(apiPaths.resourceTree());
+};

@@ -109,6 +109,11 @@ export type CreateLinkTypeData = {
   identifier: string;
 };
 
+// Data for creating a new report
+export type CreateReportData = {
+  identifier: string;
+};
+
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
 

@@ -19,6 +19,7 @@ export const RESOURCES = [
   'graphModels',
   'graphViews',
   'linkTypes',
+  'reports',
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];

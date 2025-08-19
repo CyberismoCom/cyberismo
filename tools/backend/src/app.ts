@@ -21,6 +21,7 @@ import fieldTypesRouter from './domain/fieldTypes/index.js';
 import graphModelsRouter from './domain/graphModels/index.js';
 import graphViewsRouter from './domain/graphViews/index.js';
 import linkTypesRouter from './domain/linkTypes/index.js';
+import reportsRouter from './domain/reports/index.js';
 import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
 import { readFile } from 'node:fs/promises';
@@ -55,6 +56,7 @@ export function createApp(projectPath?: string) {
   app.route('/api/graphModels', graphModelsRouter);
   app.route('/api/graphViews', graphViewsRouter);
   app.route('/api/linkTypes', linkTypesRouter);
+  app.route('/api/reports', reportsRouter);
   app.route('/api/templates', templatesRouter);
   app.route('/api/tree', treeRouter);
   app.route('/api/resources', resourcesRouter);
