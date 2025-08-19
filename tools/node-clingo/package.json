@@ -35,7 +35,7 @@
   "binary": {
     "module_name": "node-clingo",
     "host": "https://github.com",
-    "remote_path": "cyberismocom/cyberismo/releases/download/node-clingo-{version}",
+    "remote_path": "CyberismoCom/cyberismo/releases/download/node-clingo-{version}",
     "package_name": "{platform}-{arch}.tar.gz",
     "package_json": "package.json"
   },

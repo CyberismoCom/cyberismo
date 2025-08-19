@@ -43,7 +43,7 @@ jobs:
         - language: javascript-typescript
           build-mode: none
         - language: c-cpp
-          build-mode: manual
+          build-mode: none
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -56,26 +56,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      if: matrix.language == 'c-cpp'
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-
-    - name: Setup Python
-      if: matrix.language == 'c-cpp'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-
-    - name: Install build dependencies
-      if: matrix.language == 'c-cpp'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential python3-dev
-        # Install clingo for node-clingo compilation
-        sudo apt-get install -y gringo || echo "Could not install gringo, continuing..."
-
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -87,22 +67,6 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
 
         # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-
-    # If the analyze step fails for one of the languages you are analyzing with
-    # "We were unable to automatically build your code", modify the matrix above
-    # to set the build mode to "manual" for that language. Then modify this step
-    # to build your code.
-    # Command-line programs to run using the OS shell.
-    # See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    # Manual build for C++ (node-clingo native addon)
-    - name: Build C++ code
-      if: matrix.build-mode == 'manual'
-      shell: bash
-      run: |
-        echo "Building node-clingo C++ native addon for CodeQL analysis..."
-        cd tools/node-clingo
-        npm install
-        echo "C++ compilation completed for CodeQL analysis"
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
