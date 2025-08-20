@@ -29,6 +29,7 @@ import {
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { SWRResponse } from 'swr';
+import { RESOURCES } from '@/lib/constants';
 
 export type CardResponse = {
   parsedContent: string;
@@ -185,17 +186,6 @@ export type ResourceNode =
   | FileNode;
 
 export type NodeType = ResourceNode['type'];
-const resourceNodes = [
-  'cardTypes',
-  'fieldTypes',
-  'linkTypes',
-  'workflows',
-  'templates',
-  'reports',
-  'graphModels',
-  'graphViews',
-  'calculations',
-];
 
 // Type guard helpers for working with ResourceNode
 export const isResourceOfType = <T extends ResourceNode['type']>(
@@ -211,5 +201,5 @@ export const isResourceOfType = <T extends ResourceNode['type']>(
  * @returns True if the node is a resource node, false otherwise.
  */
 export const isResourceNode = (node: ResourceNode): node is ResourceNode => {
-  return resourceNodes.includes(node.type);
+  return (RESOURCES as readonly string[]).includes(node.type);
 };
