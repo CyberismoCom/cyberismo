@@ -13,14 +13,11 @@
 
 export * from './BaseResourceModal';
 export * from './CalculationForm';
-export * from './FieldTypeForm';
 export * from './CardTypeForm';
+export * from './FieldTypeForm';
 export * from './GraphModelForm';
 export * from './GraphViewForm';
 export * from './LinkTypeForm';
-export * from './ReportForm';
-export * from './TemplateForm';
-export * from './WorkflowForm';
 export * from './NewCalculationModal';
 export * from './NewCardTypeModal';
 export * from './NewFieldTypeModal';
@@ -30,3 +27,6 @@ export * from './NewLinkTypeModal';
 export * from './NewReportModal';
 export * from './NewTemplateModal';
 export * from './NewWorkflowModal';
+export * from './ReportForm';
+export * from './TemplateForm';
+export * from './WorkflowForm';
