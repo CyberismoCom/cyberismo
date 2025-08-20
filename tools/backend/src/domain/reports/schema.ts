@@ -12,7 +12,8 @@
 */
 
 import { z } from 'zod';
+import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createReportSchema = z.object({
-  identifier: z.string().min(1),
+  identifier: identifierSchema,
 });

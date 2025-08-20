@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { z } from 'zod';
+import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createFieldTypeSchema = z.object({
   dataType: z.enum([
@@ -25,5 +26,5 @@ export const createFieldTypeSchema = z.object({
     'person',
     'shortText',
   ]),
-  identifier: z.string().min(1),
+  identifier: identifierSchema,
 });

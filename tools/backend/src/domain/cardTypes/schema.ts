@@ -11,8 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { z } from 'zod';
+import { identifierSchema } from '../../common/validationSchemas.js';
 
 export const createCardTypeSchema = z.object({
-  identifier: z.string().min(1),
+  identifier: identifierSchema,
   workflowName: z.string(),
 });

@@ -1,6 +1,7 @@
 import { zValidator as zv } from '@hono/zod-validator';
 import type { ZodType } from 'zod';
 import type { ValidationTargets } from 'hono';
+import { z } from 'zod';
 
 export const zValidator = <
   T extends ZodType,
@@ -11,6 +12,6 @@ export const zValidator = <
 ) =>
   zv(target, schema, (result, c) => {
     if (!result.success) {
-      return c.json({ error: result.error.message }, 400);
+      return c.json({ error: z.prettifyError(result.error) }, 400);
     }
   });
