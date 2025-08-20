@@ -82,52 +82,43 @@ export interface CardView {
   timestamp: string;
 }
 
-// Data for creating a new field type
-export type CreateFieldTypeData = {
+// Common base for create requests that use an identifier
+export interface CreateWithIdentifier {
   identifier: string;
+}
+
+// Data for creating a new field type
+export interface CreateFieldTypeData extends CreateWithIdentifier {
   dataType: DataType;
-};
+}
 
 // Data for creating a new card type
-export type CreateCardTypeData = {
-  identifier: string;
+export interface CreateCardTypeData extends CreateWithIdentifier {
   workflowName: string;
-};
+}
 
 // Data for creating a new graph view
-export type CreateGraphViewData = {
-  identifier: string;
-};
+export type CreateGraphViewData = CreateWithIdentifier;
 
 // Data for creating a new graph model
-export type CreateGraphModelData = {
-  identifier: string;
-};
+export type CreateGraphModelData = CreateWithIdentifier;
 
 // Data for creating a new link type
-export type CreateLinkTypeData = {
-  identifier: string;
-};
+export type CreateLinkTypeData = CreateWithIdentifier;
 
 // Data for creating a new report
-export type CreateReportData = {
-  identifier: string;
-};
+export type CreateReportData = CreateWithIdentifier;
 
 // Data for creating a new template
-export type CreateTemplateData = {
-  identifier: string;
-};
+export type CreateTemplateData = CreateWithIdentifier;
 
 // Data for creating a new workflow
-export type CreateWorkflowData = {
-  identifier: string;
-};
+export type CreateWorkflowData = CreateWithIdentifier;
 
 // Data for creating a new calculation
-export type CreateCalculationData = {
+export interface CreateCalculationData {
   fileName: string;
-};
+}
 
 // Array of field types.
 export type FieldTypes = Array<FieldType>;
