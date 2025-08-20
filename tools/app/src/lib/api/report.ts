@@ -11,8 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { callApi } from '../swr';
-import { apiPaths } from '../swr';
+import { callApi, apiPaths } from '../swr';
 import { mutate } from 'swr';
 import { CreateReportData } from '@/lib/definitions';
 
