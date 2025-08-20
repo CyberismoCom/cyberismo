@@ -14,3 +14,8 @@
 export interface ResourceFileContentResponse {
   content: string;
 }
+
+export interface ResourceValidationResponse {
+  errors: string;
+  isValid: boolean;
+}

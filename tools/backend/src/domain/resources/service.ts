@@ -413,3 +413,35 @@ export async function updateFile(
     changedContent,
   );
 }
+
+/**
+ * Validate a single resource.
+ * @param commands Command manager.
+ * @param module Name of the module.
+ * @param type Name of the resource type.
+ * @param resource Name of the resource.
+ * @returns Validation result with errors and validity status.
+ */
+export async function validateResource(
+  commands: CommandManager,
+  module: string,
+  type: string,
+  resource: string,
+) {
+  const resourceData = await commands.showCmd.showResource(
+    `${module}/${type}/${resource}`,
+  );
+  if (!resourceData) {
+    throw new Error(`Resource ${module}/${type}/${resource} not found`);
+  }
+
+  const errors = await commands.validateCmd.validateSingleResource(
+    resourceData,
+    type as Exclude<ResourceFolderType, 'modules' | 'calculations'>,
+  );
+
+  return {
+    errors,
+    isValid: errors.length === 0,
+  };
+}

@@ -27,6 +27,7 @@ import type {
   Card,
   DotSchemaContent,
   ProjectSettings,
+  ResourceFolderType,
   ResourceTypes,
 } from '../interfaces/project-interfaces.js';
 import type {
@@ -926,6 +927,46 @@ export class Validate {
       }
     }
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates a single resource.
+   * @param resource Resource to validate
+   * @param resourceType Type of resource (e.g., 'cardType', 'fieldType', 'workflow', etc.)
+   * @returns string containing all validation errors
+   */
+  public async validateSingleResource(
+    resource: object,
+    resourceType: Exclude<ResourceFolderType, 'modules' | 'calculations'>,
+  ): Promise<string> {
+    try {
+      const schemaId = this.getSchemaIdForResourceType(resourceType);
+      return this.validateJson(resource, schemaId);
+    } catch (error) {
+      return errorFunction(error);
+    }
+  }
+
+  /**
+   * Maps resource types to their corresponding schema IDs.
+   * @param resourceType The type of resource
+   * @returns Schema ID string
+   */
+  private getSchemaIdForResourceType(
+    resourceType: Exclude<ResourceFolderType, 'modules' | 'calculations'>,
+  ): string {
+    const schemaMap = {
+      cardTypes: 'cardTypeSchema',
+      fieldTypes: 'fieldTypeSchema',
+      linkTypes: 'linkTypeSchema',
+      reports: 'reportSchema',
+      graphModels: 'graphModelSchema',
+      graphViews: 'graphViewSchema',
+      templates: 'templateSchema',
+      workflows: 'workflowSchema',
+    };
+
+    return schemaMap[resourceType as keyof typeof schemaMap];
   }
 
   /**

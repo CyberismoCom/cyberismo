@@ -13,7 +13,10 @@
 
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
-import type { ResourceFileContentResponse } from '../../types.js';
+import type {
+  ResourceFileContentResponse,
+  ResourceValidationResponse,
+} from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 
@@ -41,6 +44,76 @@ router.get('/tree', async (c) => {
     return c.json(
       {
         error: `Failed to build resource tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * @swagger
+ * /api/resources/{module}/{type}/{resource}/validate:
+ *   get:
+ *     summary: Validates a single resource
+ *     description: Returns validation errors for a specific resource
+ *     parameters:
+ *       - in: path
+ *         name: module
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Module name (e.g., 'local')
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Resource type (e.g., 'cardTypes', 'fieldTypes')
+ *       - in: path
+ *         name: resource
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Resource identifier
+ *     responses:
+ *       200:
+ *         description: Validation result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: string
+ *                   description: Validation errors (empty string if valid)
+ *                 isValid:
+ *                   type: boolean
+ *                   description: Whether the resource is valid
+ *       404:
+ *         description: Resource not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:module/:type/:resource/validate', async (c) => {
+  const commands = c.get('commands');
+  const { module, type, resource } = c.req.param();
+
+  try {
+    const result = await resourceService.validateResource(
+      commands,
+      module,
+      type,
+      resource,
+    );
+    const response: ResourceValidationResponse = result;
+    return c.json(response);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      return c.json({ error: error.message }, 404);
+    }
+    return c.json(
+      {
+        error: `Failed to validate resource: ${error instanceof Error ? error.message : 'Unknown error'}`,
       },
       500,
     );
