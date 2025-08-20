@@ -48,6 +48,7 @@
     "noWorkflows": "No workflows available. Please create a workflow first.",
     "create": "Create {{resourceType}}",
     "identifier": "Identifier",
+    "fileName": "File name",
     "fieldTypes": {
       "name": "Field Type"
     },
