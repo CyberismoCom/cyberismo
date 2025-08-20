@@ -102,7 +102,11 @@ export function getSwrConfig(): SWRConfiguration {
 export const apiPaths = {
   project: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
+  calculations: () => '/api/calculations',
+  cardTypes: () => '/api/cardTypes',
   fieldTypes: () => '/api/fieldTypes',
+  graphModels: () => '/api/graphModels',
+  graphViews: () => '/api/graphViews',
   logicPrograms: (resourceName: string) => `/api/logicPrograms/${resourceName}`,
   cardType: (cardType: string) => `/api/cardTypes?name=${cardType}`,
   templates: () => '/api/templates',
@@ -110,6 +114,8 @@ export const apiPaths = {
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,
   linkTypes: () => '/api/linkTypes',
+  reports: () => '/api/reports',
+  workflows: () => '/api/workflows',
   resources: (type: string) => `/api/resources/${type}`,
   resourceTree: () => '/api/resources/tree',
   resource: (resourceName: string) => `/api/resources/${resourceName}`,

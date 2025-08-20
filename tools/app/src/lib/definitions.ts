@@ -13,6 +13,7 @@
 // These are used within this file for additional definitions.
 import {
   CardType,
+  DataType,
   FieldType,
   Link,
   LinkType,
@@ -79,6 +80,44 @@ export interface CardView {
   key: string;
   children: string[];
   timestamp: string;
+}
+
+// Common base for create requests that use an identifier
+export interface CreateWithIdentifier {
+  identifier: string;
+}
+
+// Data for creating a new field type
+export interface CreateFieldTypeData extends CreateWithIdentifier {
+  dataType: DataType;
+}
+
+// Data for creating a new card type
+export interface CreateCardTypeData extends CreateWithIdentifier {
+  workflowName: string;
+}
+
+// Data for creating a new graph view
+export type CreateGraphViewData = CreateWithIdentifier;
+
+// Data for creating a new graph model
+export type CreateGraphModelData = CreateWithIdentifier;
+
+// Data for creating a new link type
+export type CreateLinkTypeData = CreateWithIdentifier;
+
+// Data for creating a new report
+export type CreateReportData = CreateWithIdentifier;
+
+// Data for creating a new template
+export type CreateTemplateData = CreateWithIdentifier;
+
+// Data for creating a new workflow
+export type CreateWorkflowData = CreateWithIdentifier;
+
+// Data for creating a new calculation
+export interface CreateCalculationData {
+  fileName: string;
 }
 
 // Array of field types.

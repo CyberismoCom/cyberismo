@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { z } from 'zod';
+import { Validate } from '@cyberismo/data-handler';
 
 const resourceTypes = [
   'calculations',
@@ -24,10 +25,16 @@ const resourceTypes = [
   'workflows',
 ] as const;
 
+export const identifierSchema = z
+  .string()
+  .refine((value) => Validate.isValidIdentifierName(value), {
+    message: 'Invalid identifier',
+  });
+
 export const resourceParamsSchema = z.object({
   prefix: z.string(),
   type: z.enum(resourceTypes),
-  identifier: z.string(),
+  identifier: identifierSchema,
 });
 
 export type ResourceParams = z.infer<typeof resourceParamsSchema>;

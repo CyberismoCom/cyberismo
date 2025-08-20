@@ -15,7 +15,7 @@ import { Hono } from 'hono';
 import * as resourceService from './service.js';
 import type { ResourceFileContentResponse } from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
 

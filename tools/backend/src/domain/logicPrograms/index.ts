@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
 
+import { zValidator } from '../../middleware/zvalidator.js';
 import { resourceParamsWithCard } from '../../common/validationSchemas.js';
 import * as logicProgramService from './service.js';
 

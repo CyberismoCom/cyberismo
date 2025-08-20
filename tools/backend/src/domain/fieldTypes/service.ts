@@ -12,6 +12,7 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
+import type { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
 export async function getFieldTypes(commands: CommandManager) {
   const response = await commands.showCmd.showResources('fieldTypes');
@@ -26,4 +27,12 @@ export async function getFieldTypes(commands: CommandManager) {
   );
 
   return fieldTypes;
+}
+
+export async function createFieldType(
+  commands: CommandManager,
+  identifier: string,
+  dataType: DataType,
+) {
+  await commands.createCmd.createFieldType(identifier, dataType);
 }

@@ -204,6 +204,37 @@ export class Create {
   }
 
   /**
+   * Creates a calculation file.
+   * @param fileName name for the calculation file (without .lp extension)
+   */
+  public async createCalculation(fileName: string) {
+    const calculationFolder = this.project.paths.calculationProjectFolder;
+
+    await mkdir(calculationFolder, { recursive: true });
+
+    const calculationFileName = fileName.endsWith('.lp')
+      ? fileName
+      : `${fileName}.lp`;
+    const calculationFilePath = join(calculationFolder, calculationFileName);
+
+    const calculationContent = `% Calculation file: ${calculationFileName}
+% Add your logic programming rules here
+`;
+
+    await writeFile(calculationFilePath, calculationContent, { flag: 'wx' });
+
+    // add to cache manually
+    // TODO: remove once calculations are a proper resource
+    const resourceName = `${this.project.projectPrefix}/calculations/${fileName.replace('.lp', '')}`;
+    const resource = {
+      name: resourceName,
+      path: calculationFolder,
+    };
+
+    this.project.addResource(resource, {} as JSON);
+  }
+
+  /**
    * Creates card(s) to a project. All cards from template are instantiated to the project.
    * @param templateName name of a template to use
    * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.

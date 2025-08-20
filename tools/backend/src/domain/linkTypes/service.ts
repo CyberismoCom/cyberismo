@@ -25,3 +25,10 @@ export async function getLinkTypes(commands: CommandManager) {
 
   return linkTypes;
 }
+
+export async function createLinkType(
+  commands: CommandManager,
+  linkTypeName: string,
+) {
+  await commands.createCmd.createLinkType(linkTypeName);
+}

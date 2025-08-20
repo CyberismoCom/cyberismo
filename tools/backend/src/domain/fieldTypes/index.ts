@@ -13,6 +13,8 @@
 
 import { Hono } from 'hono';
 import * as fieldTypeService from './service.js';
+import { createFieldTypeSchema } from './schema.js';
+import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
 
@@ -40,6 +42,52 @@ router.get('/', async (c) => {
     return c.json(
       {
         error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
+      },
+      500,
+    );
+  }
+});
+
+/**
+ * @swagger
+ * /api/fieldTypes:
+ *   post:
+ *     summary: Create a new field type
+ *     description: Creates a new field type with the specified data type
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fieldTypeName:
+ *                 type: string
+ *               dataType:
+ *                 type: string
+ *                 enum: [boolean, date, dateTime, enum, integer, list, longText, number, person, shortText]
+ *             required:
+ *               - fieldTypeName
+ *               - dataType
+ *     responses:
+ *       200:
+ *         description: Field type created successfully
+ *       400:
+ *         description: Invalid request body
+ *       500:
+ *         description: Server error
+ */
+router.post('/', zValidator('json', createFieldTypeSchema), async (c) => {
+  const commands = c.get('commands');
+  const { identifier, dataType } = c.req.valid('json');
+
+  try {
+    await fieldTypeService.createFieldType(commands, identifier, dataType);
+    return c.json({ message: 'Field type created successfully' });
+  } catch (error) {
+    return c.json(
+      {
+        error: `${error instanceof Error ? error.message : 'Unknown error'}`,
       },
       500,
     );

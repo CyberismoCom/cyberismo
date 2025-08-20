@@ -17,6 +17,7 @@ import {
   CommandManager,
   ExportFormats,
 } from './command-handler.js';
+import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
@@ -40,5 +41,6 @@ export {
   resourceName,
   resourceNameToString,
   UpdateOperations,
+  Validate,
   evaluateMacros,
 };

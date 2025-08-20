@@ -20,3 +20,10 @@ export async function getTemplatesWithDetails(commands: CommandManager) {
   }
   return response;
 }
+
+export async function createTemplate(
+  commands: CommandManager,
+  templateName: string,
+) {
+  await commands.createCmd.createTemplate(templateName, '');
+}

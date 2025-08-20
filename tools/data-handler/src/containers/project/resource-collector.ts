@@ -300,6 +300,9 @@ export class ResourceCollector {
 
     const { type } = resourceName(resource.name);
     switch (type) {
+      case 'calculations':
+        addItem(this.local.calculations, resource);
+        break;
       case 'cardTypes':
         addItem(this.local.cardTypes, resource);
         break;
