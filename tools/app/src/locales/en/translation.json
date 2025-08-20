@@ -176,6 +176,18 @@
     "list": "Select",
     "label": "Add label"
   },
+  "dataTypes": {
+    "shortText": "Short Text",
+    "longText": "Long Text",
+    "number": "Number",
+    "integer": "Integer",
+    "boolean": "Boolean",
+    "date": "Date",
+    "dateTime": "Date Time",
+    "enum": "Enum",
+    "list": "List",
+    "person": "Person"
+  },
   "goToField": "Go to field",
   "createLink": {
     "success": "{{count}} link created successfully",

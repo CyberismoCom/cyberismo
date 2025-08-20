@@ -26,24 +26,12 @@ import { useTranslation } from 'react-i18next';
 import { DataType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { ResourceFormProps } from './BaseResourceModal';
 import ProjectIdentifier from './Identifier';
+import { DATA_TYPES } from '@/lib/constants';
 
 interface FieldTypeFormData {
   identifier: string;
   dataType: DataType;
 }
-
-const dataTypeOptions: Array<{ value: DataType; label: string }> = [
-  { value: 'shortText', label: 'Short Text' },
-  { value: 'longText', label: 'Long Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'integer', label: 'Integer' },
-  { value: 'boolean', label: 'Boolean' },
-  { value: 'date', label: 'Date' },
-  { value: 'dateTime', label: 'Date Time' },
-  { value: 'enum', label: 'Enum' },
-  { value: 'list', label: 'List' },
-  { value: 'person', label: 'Person' },
-];
 
 export function FieldTypeForm({
   onSubmit,
@@ -106,9 +94,9 @@ export function FieldTypeForm({
                 onChange={(_, value) => field.onChange(value)}
                 onBlur={field.onBlur}
               >
-                {dataTypeOptions.map((option) => (
-                  <Option key={option.value} value={option.value}>
-                    {option.label}
+                {DATA_TYPES.map((option) => (
+                  <Option key={option} value={option}>
+                    {t(`dataTypes.${option}`)}
                   </Option>
                 ))}
               </Select>

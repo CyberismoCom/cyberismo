@@ -26,3 +26,17 @@ export const RESOURCES = [
 ] as const;
 
 export type ResourceName = (typeof RESOURCES)[number];
+
+// Data type values for field types
+export const DATA_TYPES = [
+  'shortText',
+  'longText',
+  'number',
+  'integer',
+  'boolean',
+  'date',
+  'dateTime',
+  'enum',
+  'list',
+  'person',
+] as const;
