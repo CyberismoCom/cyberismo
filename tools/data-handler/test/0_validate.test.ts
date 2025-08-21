@@ -12,12 +12,15 @@ import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/log-utils.js';
+import { resourceName } from '../src/utils/resource-utils.js';
 import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 
 describe('validate cmd tests', () => {
   const baseDir = dirname(fileURLToPath(import.meta.url));
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
+
+  const validProject = new Project('test/test-data/valid/decision-records');
 
   it('validate() - decision-records (success)', async () => {
     const path = join(testDir, 'valid/decision-records');
@@ -157,12 +160,11 @@ describe('validate cmd tests', () => {
   });
 
   it('validateWorkflowState (success)', async () => {
-    const project = new Project('test/test-data/valid/decision-records/');
-    const card = await project.findSpecificCard('decision_5', {
+    const card = await validProject.findSpecificCard('decision_5', {
       metadata: true,
     });
     if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
+      const valid = await validateCmd.validateWorkflowState(validProject, card);
       expect(valid.length).to.equal(0);
     }
   });
@@ -215,13 +217,12 @@ describe('validate cmd tests', () => {
     }
   });
   it('validate card custom fields data (success)', async () => {
-    const project = new Project('test/test-data/valid/decision-records/');
     // card _6 has all of the types as custom fields (with null values)
-    const card = await project.findSpecificCard('decision_6', {
+    const card = await validProject.findSpecificCard('decision_6', {
       metadata: true,
     });
     if (card) {
-      const valid = await validateCmd.validateCustomFields(project, card);
+      const valid = await validateCmd.validateCustomFields(validProject, card);
       expect(valid.length).to.equal(0);
     }
   });
@@ -238,13 +239,12 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
-    const project = new Project('test/test-data/valid/decision-records/');
-    const card = await project.findSpecificCard('decision_5', {
+    const card = await validProject.findSpecificCard('decision_5', {
       metadata: false,
     });
     if (card) {
       await validateCmd
-        .validateCustomFields(project, card)
+        .validateCustomFields(validProject, card)
         .catch((error) =>
           expect(errorFunction(error)).to.equal(
             "Card 'decision_5' has no metadata. Card object needs to be instantiated with '{metadata: true}'",
@@ -399,9 +399,8 @@ describe('validate cmd tests', () => {
     }
   });
   it('validate resource names', async () => {
-    const project = new Project('test/test-data/valid/decision-records');
-    const prefixes = await project.projectPrefixes();
-    const projectPrefix = project.projectPrefix;
+    const prefixes = await validProject.projectPrefixes();
+    const projectPrefix = validProject.projectPrefix;
     const validResources: Map<ResourceTypes, string> = new Map([
       ['cardTypes', `${projectPrefix}/cardTypes/test`],
       ['fieldTypes', `${projectPrefix}/fieldTypes/test`],
@@ -441,5 +440,85 @@ describe('validate cmd tests', () => {
           expect(true);
         });
     }
+  });
+
+  it('validateSingleResource() - valid fieldType (success)', async () => {
+    const resource = resourceName('decision/fieldTypes/admins');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid cardType (success)', async () => {
+    const resource = resourceName('decision/cardTypes/decision');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid workflow (success)', async () => {
+    const resource = resourceName('decision/workflows/decision');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid template (success)', async () => {
+    const resource = resourceName('decision/templates/decision');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid linkType (success)', async () => {
+    const resource = resourceName('decision/linkTypes/test');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid report (success)', async () => {
+    const resource = resourceName('decision/reports/testReport');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid graphModel (success)', async () => {
+    const resource = resourceName('decision/graphModels/test');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
+  });
+
+  it('validateSingleResource() - valid graphView (success)', async () => {
+    const resource = resourceName('decision/graphViews/test');
+    const result = await validateCmd.validateSingleResource(
+      resource,
+      validProject,
+    );
+    expect(result).to.equal('');
+    expect(result.length).to.equal(0);
   });
 });
