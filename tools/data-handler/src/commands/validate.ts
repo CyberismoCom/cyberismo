@@ -42,7 +42,7 @@ import { isTemplateCard } from '../utils/card-utils.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
-import { resourceName } from '../utils/resource-utils.js';
+import { ResourceName, resourceName } from '../utils/resource-utils.js';
 
 const invalidNames = new RegExp(
   '[<>:"/\\|?*\x00-\x1F]|^(?:aux|con|clock$|nul|prn|com[1-9]|lpt[1-9])$', // eslint-disable-line no-control-regex
@@ -926,6 +926,25 @@ export class Validate {
       }
     }
     return validationErrors.join('\n');
+  }
+
+  /**
+   * Validates a single resource.
+   * @param resource Resource to validate
+   * @param resourceType Type of resource (e.g., 'cardType', 'fieldType', 'workflow', etc.)
+   * @returns string containing all validation errors
+   */
+  public async validateSingleResource(
+    resourceName: ResourceName,
+    project: Project,
+  ): Promise<string> {
+    try {
+      const resource = Project.resourceObject(project, resourceName);
+      await resource.validate();
+      return '';
+    } catch (error) {
+      return errorFunction(error);
+    }
   }
 
   /**

@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import { Validate } from '@cyberismo/data-handler';
 
-const resourceTypes = [
+export const resourceTypes = [
   'calculations',
   'cardTypes',
   'fieldTypes',

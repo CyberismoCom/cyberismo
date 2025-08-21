@@ -12,10 +12,16 @@
 */
 
 import { isResourceNode, ResourceNode } from '@/lib/api/types';
-import { Table, Typography } from '@mui/joy';
+import { Stack, Table, Typography } from '@mui/joy';
+import { useTranslation } from 'react-i18next';
 import BaseEditor from './BaseEditor';
+import { useValidateResource } from '@/lib/api/validate';
+import { ChecksAccordion, type CheckCollection } from '../ChecksAccordion';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
+  const { t } = useTranslation();
+  const { validateResource } = useValidateResource(node.name);
+
   if (!isResourceNode(node)) {
     return (
       <div>Attempted to render a non-resource node as a resource editor.</div>
@@ -34,6 +40,17 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         : String(value),
   }));
 
+  const validationChecks: CheckCollection = {
+    successes: [],
+    failures: validateResource
+      ? validateResource.errors.map((error) => ({
+          category: '',
+          title: t('validationError'),
+          errorMessage: error,
+        }))
+      : [],
+  };
+
   return (
     <BaseEditor
       node={node}
@@ -50,41 +67,48 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         {node.name}
       </Typography>
 
-      <Table>
-        <thead>
-          <tr>
-            <th style={{ width: '30%' }}>Property</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tableData.map(({ key, value }) => (
-            <tr key={key}>
-              <td>
-                <Typography fontWeight="bold">{key}</Typography>
-              </td>
-              <td>
-                <Typography
-                  sx={{
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {value}
-                </Typography>
-              </td>
+      <Stack direction="row" spacing={2}>
+        <Table>
+          <thead>
+            <tr>
+              <th style={{ width: '30%' }}>Property</th>
+              <th>Value</th>
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {tableData.map(({ key, value }) => (
+              <tr key={key}>
+                <td>
+                  <Typography fontWeight="bold">{key}</Typography>
+                </td>
+                <td>
+                  <Typography
+                    sx={{
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {value}
+                  </Typography>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
 
-      {tableData.length === 0 && (
-        <Typography
-          level="body-md"
-          sx={{ fontStyle: 'italic', textAlign: 'center', mt: 2 }}
-        >
-          No data available for this resource
-        </Typography>
-      )}
+        {validateResource && (
+          <ChecksAccordion
+            checks={validationChecks}
+            cardKey={node.name}
+            successTitle=""
+            failureTitle={t('validationErrors')}
+            successPassText=""
+            failureFailText={t('invalid')}
+            showGoToField={false}
+            initialSuccessesExpanded={false}
+            initialFailuresExpanded={true}
+          />
+        )}
+      </Stack>
     </BaseEditor>
   );
 }

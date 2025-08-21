@@ -43,6 +43,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MetadataView from './MetadataView';
+import { ChecksAccordion, type CheckCollection } from './ChecksAccordion';
 import {
   canCreateLinkToCard,
   createPredicate,
@@ -64,7 +65,7 @@ import Info from '@mui/icons-material/Info';
 import { Controller, useForm } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
-import { useAppDispatch, useAppRouter, useAppSelector } from '../lib/hooks';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
 import { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
@@ -407,162 +408,25 @@ const PolicyChecks = ({
   cardKey: string;
 }) => {
   const { t } = useTranslation();
-  const [successesExpanded, setSuccessesExpanded] = useState(false);
-  const [failuresExpanded, setFailuresExpanded] = useState(true);
-  const router = useAppRouter();
 
-  if (
-    policyChecks.successes.length === 0 &&
-    policyChecks.failures.length === 0
-  ) {
-    return null;
-  }
-
-  const handleGoToField = (cardKey: string, fieldName: string) => {
-    router.push(`/cards/${cardKey}/edit?focusField=${fieldName}`);
+  // Convert PolicyCheckCollection to CheckCollection format
+  const checksData: CheckCollection = {
+    successes: policyChecks.successes,
+    failures: policyChecks.failures,
   };
 
   return (
-    <Box sx={{ marginTop: 2, maxWidth: 400 }}>
-      {policyChecks.successes.length > 0 && (
-        <Box>
-          <Accordion expanded={successesExpanded}>
-            <AccordionSummary
-              indicator={<ExpandMore />}
-              onClick={() => setSuccessesExpanded(!successesExpanded)}
-              sx={{
-                borderRadius: '4px',
-                marginTop: 1,
-                marginBottom: 1,
-              }}
-            >
-              <Typography
-                level="body-xs"
-                color="primary"
-                variant="soft"
-                width={24}
-                height={24}
-                alignContent="center"
-                borderRadius={40}
-                marginLeft={0}
-                paddingX={1.1}
-              >
-                {policyChecks.successes.length}
-              </Typography>
-              <Typography
-                level="title-sm"
-                fontWeight="bold"
-                sx={{ width: '100%' }}
-              >
-                {t('passedPolicyChecks')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={1}>
-                {policyChecks.successes.map((success, index) => (
-                  <Alert
-                    key={index}
-                    color="success"
-                    variant="soft"
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box>
-                      <Typography level="title-sm" fontWeight="bold">
-                        {success.category} - {success.title}
-                      </Typography>
-                    </Box>
-                    <Typography level="title-sm" fontWeight="bold">
-                      {t('policyCheckPass')}
-                    </Typography>
-                  </Alert>
-                ))}
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
-      )}
-
-      {policyChecks.failures.length > 0 && (
-        <Box>
-          <Accordion expanded={failuresExpanded}>
-            <AccordionSummary
-              indicator={<ExpandMore />}
-              onClick={() => setFailuresExpanded(!failuresExpanded)}
-              sx={{
-                borderRadius: '4px',
-                marginTop: 1,
-                marginBottom: 1,
-              }}
-            >
-              <Typography
-                level="body-xs"
-                color="primary"
-                variant="soft"
-                width={24}
-                height={24}
-                alignContent="center"
-                borderRadius={40}
-                marginLeft={0}
-                paddingX={1.1}
-              >
-                {policyChecks.failures.length}
-              </Typography>
-              <Typography
-                level="title-sm"
-                fontWeight="bold"
-                sx={{ width: '100%' }}
-              >
-                {t('failedPolicyChecks')}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={1}>
-                {policyChecks.failures.map((failure, index) => (
-                  <Alert
-                    key={index}
-                    color="danger"
-                    variant="soft"
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Box>
-                      <Typography level="title-sm" fontWeight="bold">
-                        {failure.category} - {failure.title}
-                      </Typography>
-                      <Typography fontSize="xs">
-                        {failure.errorMessage}
-                      </Typography>
-                      {!config.staticMode && failure.fieldName && (
-                        <Link
-                          level="body-sm"
-                          component="button"
-                          onClick={() =>
-                            handleGoToField(cardKey, failure.fieldName!)
-                          }
-                          sx={{ mt: 1 }}
-                        >
-                          {t('goToField')}
-                        </Link>
-                      )}
-                    </Box>
-                    <Typography level="title-sm" fontWeight="bold">
-                      {t('policyCheckFail')}
-                    </Typography>
-                  </Alert>
-                ))}
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        </Box>
-      )}
-    </Box>
+    <ChecksAccordion
+      checks={checksData}
+      cardKey={cardKey}
+      successTitle={t('passedPolicyChecks')}
+      failureTitle={t('failedPolicyChecks')}
+      successPassText={t('policyCheckPass')}
+      failureFailText={t('policyCheckFail')}
+      goToFieldText={t('goToField')}
+      initialSuccessesExpanded={false}
+      initialFailuresExpanded={true}
+    />
   );
 };
 
