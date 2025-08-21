@@ -431,6 +431,6 @@ export async function validateResource(
   );
 
   return {
-    errors: errors.split('\n\n'),
+    errors: errors.split('\n\n').filter((error) => error !== ''),
   };
 }
