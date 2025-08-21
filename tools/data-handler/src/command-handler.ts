@@ -46,6 +46,7 @@ import { resourceName } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
+import { QueryName } from './types/queries.js';
 
 // Generic options interface
 export interface CardsOptions {
@@ -197,8 +198,9 @@ export class Commands {
         const [template, cardType, cardKey] = args;
         return await this.addCard(template, cardType, cardKey, options.repeat);
       } else if (command === Cmd.calc) {
-        const [command, cardKey] = args;
+        const [command, ...rest] = args;
         if (command === 'run') {
+          const [cardKey] = rest;
           if (!cardKey) {
             return { statusCode: 400, message: 'File path is missing' };
           }
@@ -206,7 +208,9 @@ export class Commands {
           return this.runLogicProgram(cardKey, options.context || 'localApp');
         }
         if (command === 'generate') {
-          return this.generateLogicProgram();
+          const [destination, query] = rest;
+          await this.generateLogicProgram();
+          return this.exportLogicProgram(destination, query);
         }
       } else if (command === Cmd.create) {
         const [type, ...rest] = args;
@@ -499,6 +503,22 @@ export class Commands {
   private async generateLogicProgram(): Promise<requestStatus> {
     try {
       await this.commands?.calculateCmd.generate();
+      return { statusCode: 200 };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
+  }
+
+  private async exportLogicProgram(
+    destination: string,
+    query?: string,
+  ): Promise<requestStatus> {
+    try {
+      await this.commands?.calculateCmd.exportLogicProgram(
+        destination,
+        ['all'],
+        query as QueryName, // TODO: validate with zod
+      );
       return { statusCode: 200 };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };
