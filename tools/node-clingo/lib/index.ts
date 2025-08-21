@@ -20,6 +20,7 @@ interface ClingoBinding {
   removeProgramsByCategory(category: string): number;
   removeAllPrograms(): void;
   solve(program: string, categories: string[]): ClingoResult;
+  getProgram(program: string, categories: string[]): string;
 }
 
 let binding: ClingoBinding;
@@ -133,12 +134,23 @@ function removeAllPrograms() {
   binding.removeAllPrograms();
 }
 
+/**
+ * Gets the complete assembled logic program as a string
+ * @param program The main logic program as a string
+ * @param categories Optional array of program keys or categories to include
+ * @returns The complete assembled program as a string
+ */
+function getProgram(program: string, categories?: string[]): string {
+  return binding.getProgram(program, categories ?? []);
+}
+
 export {
   solve,
   setProgram,
   removeProgram,
   removeProgramsByCategory,
   removeAllPrograms,
+  getProgram,
   ClingoResult,
 };
 export default {
@@ -147,4 +159,5 @@ export default {
   removeProgram,
   removeProgramsByCategory,
   removeAllPrograms,
+  getProgram,
 };

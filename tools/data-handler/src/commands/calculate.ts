@@ -58,4 +58,16 @@ export class Calculate {
   ): Promise<QueryResult<T>[]> {
     return this.project.calculationEngine.runQuery(queryName, context, options);
   }
+
+  public async exportLogicProgram(
+    destination: string,
+    programs: string[] = ['all'],
+    query?: QueryName,
+  ) {
+    return this.project.calculationEngine.exportLogicProgram(
+      destination,
+      programs,
+      query,
+    );
+  }
 }
