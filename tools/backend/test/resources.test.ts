@@ -1,4 +1,4 @@
-import { expect, test, beforeAll } from 'vitest';
+import { expect, test } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
