@@ -25,6 +25,7 @@ import {
   resourceNameToString,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
+import type { ValidateResourceParams } from './schema.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -412,4 +413,24 @@ export async function updateFile(
     fileName,
     changedContent,
   );
+}
+
+/**
+ * Validate a single resource.
+ * @param commands Command manager.
+ * @param resource Resource to validate.
+ * @returns Validation result with errors and validity status.
+ */
+export async function validateResource(
+  commands: CommandManager,
+  resource: ValidateResourceParams,
+) {
+  const errors = await commands.validateCmd.validateResource(
+    resource,
+    commands.project,
+  );
+
+  return {
+    errors: errors.split('\n\n').filter((error) => error !== ''),
+  };
 }

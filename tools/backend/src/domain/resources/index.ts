@@ -13,9 +13,13 @@
 
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
-import type { ResourceFileContentResponse } from '../../types.js';
+import type {
+  ResourceFileContentResponse,
+  ResourceValidationResponse,
+} from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { validateResourceParamsSchema } from './schema.js';
 
 const router = new Hono();
 
@@ -46,6 +50,70 @@ router.get('/tree', async (c) => {
     );
   }
 });
+
+/**
+ * @swagger
+ * /api/resources/{prefix}/{type}/{identifier}/validate:
+ *   get:
+ *     summary: Validates a single resource
+ *     description: Returns validation errors for a specific resource
+ *     parameters:
+ *       - in: path
+ *         name: prefix
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Prefix of the resource
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Resource type (e.g., 'cardTypes', 'fieldTypes')
+ *       - in: path
+ *         name: identifier
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Identifier of the resource
+ *     responses:
+ *       200:
+ *         description: Validation result
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   description: Validation errors (empty array if valid)
+ *                   items:
+ *                     type: string
+ *                     description: Validation error message
+ *       404:
+ *         description: Resource not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/:prefix/:type/:identifier/validate',
+  zValidator('param', validateResourceParamsSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const resourceParams = c.req.valid('param');
+
+    try {
+      return c.json(
+        await resourceService.validateResource(commands, resourceParams),
+      );
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        return c.json({ error: error.message }, 404);
+      }
+      throw error;
+    }
+  },
+);
 
 router.get('/:module/:type/:resource/:file', async (c) => {
   const commands = c.get('commands');

@@ -122,4 +122,6 @@ export const apiPaths = {
   resourceFileContent: (resourceName: string) =>
     `/api/resources/${resourceName}`,
   tree: () => '/api/tree',
+  validateResource: (resourceName: string) =>
+    `/api/resources/${resourceName}/validate`,
 };

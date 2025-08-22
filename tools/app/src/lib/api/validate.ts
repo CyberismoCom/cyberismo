@@ -11,10 +11,17 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export interface ResourceFileContentResponse {
-  content: string;
-}
+import type { SWRConfiguration } from 'swr';
+import { apiPaths } from '../swr';
+import { useSWRHook } from './common';
 
-export interface ResourceValidationResponse {
-  errors: string[];
-}
+export const useValidateResource = (
+  resourceName: string,
+  options?: SWRConfiguration,
+) =>
+  useSWRHook<'validateResource'>(
+    apiPaths.validateResource(resourceName),
+    'validateResource',
+    null,
+    options,
+  );
