@@ -425,7 +425,7 @@ export async function validateResource(
   commands: CommandManager,
   resource: ValidateResourceParams,
 ) {
-  const errors = await commands.validateCmd.validateSingleResource(
+  const errors = await commands.validateCmd.validateResource(
     resource,
     commands.project,
   );

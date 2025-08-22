@@ -442,82 +442,58 @@ describe('validate cmd tests', () => {
     }
   });
 
-  it('validateSingleResource() - valid fieldType (success)', async () => {
+  it('validateResource() - valid fieldType (success)', async () => {
     const resource = resourceName('decision/fieldTypes/admins');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid cardType (success)', async () => {
+  it('validateResource() - valid cardType (success)', async () => {
     const resource = resourceName('decision/cardTypes/decision');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid workflow (success)', async () => {
+  it('validateResource() - valid workflow (success)', async () => {
     const resource = resourceName('decision/workflows/decision');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid template (success)', async () => {
+  it('validateResource() - valid template (success)', async () => {
     const resource = resourceName('decision/templates/decision');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid linkType (success)', async () => {
+  it('validateResource() - valid linkType (success)', async () => {
     const resource = resourceName('decision/linkTypes/test');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid report (success)', async () => {
+  it('validateResource() - valid report (success)', async () => {
     const resource = resourceName('decision/reports/testReport');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid graphModel (success)', async () => {
+  it('validateResource() - valid graphModel (success)', async () => {
     const resource = resourceName('decision/graphModels/test');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });
 
-  it('validateSingleResource() - valid graphView (success)', async () => {
+  it('validateResource() - valid graphView (success)', async () => {
     const resource = resourceName('decision/graphViews/test');
-    const result = await validateCmd.validateSingleResource(
-      resource,
-      validProject,
-    );
+    const result = await validateCmd.validateResource(resource, validProject);
     expect(result).to.equal('');
     expect(result.length).to.equal(0);
   });

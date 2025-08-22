@@ -931,10 +931,9 @@ export class Validate {
   /**
    * Validates a single resource.
    * @param resource Resource to validate
-   * @param resourceType Type of resource (e.g., 'cardType', 'fieldType', 'workflow', etc.)
    * @returns string containing all validation errors
    */
-  public async validateSingleResource(
+  public async validateResource(
     resourceName: ResourceName,
     project: Project,
   ): Promise<string> {
