@@ -20,28 +20,28 @@ import { useState } from 'react';
 import { LinkDirection } from '@cyberismo/data-handler/types/queries';
 
 export type CreateCardsProps = {
-  buttonlabel: string;
+  buttonLabel: string;
   template: string;
-  cardkey?: string;
+  cardKey?: string;
   link?: {
-    linktype: string;
+    linkType: string;
     direction: LinkDirection;
-    cardkey: string;
+    cardKey: string;
     description?: string;
   };
 } & MacroContext;
 
 export default function CreateCards({
-  buttonlabel,
+  buttonLabel,
   template,
-  cardkey,
+  cardKey,
   macroKey,
   preview,
   link,
 }: CreateCardsProps) {
   const { t } = useTranslation();
-  const { createCard, isUpdating } = useCard(cardkey || macroKey);
-  const { createLink } = useCard(link?.cardkey || null);
+  const { createCard, isUpdating } = useCard(cardKey || macroKey);
+  const { createLink } = useCard(link?.cardKey || null);
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const router = useAppRouter();
@@ -79,7 +79,7 @@ export default function CreateCards({
                     rootCards.map((card) =>
                       createLink(
                         card.key,
-                        link.linktype,
+                        link.linkType,
                         link.description,
                         link.direction,
                       ),
@@ -137,7 +137,7 @@ export default function CreateCards({
         }
       }}
     >
-      {buttonlabel}
+      {buttonLabel}
     </Button>
   );
 }
