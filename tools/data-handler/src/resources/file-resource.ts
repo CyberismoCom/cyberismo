@@ -137,6 +137,16 @@ export class FileResource extends ResourceObject {
     return cards;
   }
 
+  // Get (resource folder) type name
+  protected get getType() {
+    return super.getType;
+  }
+
+  // Get logger instance
+  protected get logger() {
+    return super.getLogger(this.getType);
+  }
+
   // Initialize the resource.
   protected initialize() {
     if (this.resourceName.type === '') {

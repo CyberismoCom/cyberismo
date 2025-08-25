@@ -21,9 +21,11 @@ import type {
   Card,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
+import type { Logger } from 'pino';
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import type { ResourceContent } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
@@ -44,6 +46,7 @@ export type AddOperation<T> = BaseOperation<T> & {
 export type ChangeOperation<T> = BaseOperation<T> & {
   name: 'change';
   to: T;
+  mappingTable?: { stateMapping: Record<string, string> }; // Optional state mapping for workflow changes
 };
 
 // Move item in an array to new position.
@@ -81,6 +84,9 @@ export abstract class AbstractResource {
   protected abstract usage(cards?: Card[]): Promise<string[]>; // list of card keys or resource names where this resource is used in
   protected abstract validate(content?: object): Promise<void>; // validate the content
   protected abstract write(): Promise<void>; // write content to disk
+  // Abstract getters
+  protected abstract get getType(): string;
+  protected abstract getLogger(loggerName: string): Logger;
 }
 
 /**
@@ -109,6 +115,14 @@ export class ResourceObject extends AbstractResource {
   protected async rename(_name: ResourceName) {}
   protected async show(): Promise<ResourceContent> {
     return {} as ResourceContent;
+  }
+  protected get getType(): string {
+    return this.type;
+  }
+  protected getLogger(loggerName: string): Logger {
+    return getChildLogger({
+      module: loggerName,
+    });
   }
   protected async update<Type>(_key: string, _op: Operation<Type>) {}
   protected async usage(_cards?: Card[]): Promise<string[]> {
