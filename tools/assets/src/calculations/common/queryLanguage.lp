@@ -60,7 +60,23 @@ showField(Key, Field) :-
 % showField is also defined if showAll is defined so there is only a single show predicate for each result
 showField(Key, Field) :- showAll(Key), field(Key, Field, _).
 
-% Fields
+% Allow specifying up to 3 fields at the same time for showField, similar to field
+% For specifying 2 fields
+showField(Key, Field, Value, DataType) :-
+    showFields(Key, Field, Value, DataType, _, _, _).
+
+showField(Key, Field, Value, DataType) :-
+    showFields(Key, _, _, _, Field, Value, DataType).
+
+% For specifying 3 fields
+showField(Key, Field, Value, DataType) :-
+    showFields(Key, Field, Value, DataType, _, _, _, _, _, _).
+
+showField(Key, Field, Value, DataType) :-
+    showFields(Key, _, _, _, Field, Value, DataType, _, _, _).
+    
+showField(Key, Field, Value, DataType) :-
+    showFields(Key, _, _, _, _, _, _, Field, Value, DataType).
 %
 % field(key, field, value, data type):
 % "field" of result/child result "key" has value "value",
@@ -79,6 +95,11 @@ showField(Key, Field) :- showAll(Key), field(Key, Field, _).
     DataType != "list",
     showField(Key, Field).
 
+#show field(Key, Field, Value, DataType) :
+    DataType != "enum",
+    DataType != "list",
+    showField(Key, Field, Value, DataType).
+
 #show field(Key, Field, Value, "shortText") :
     field(Key, Field, Value),
     not dataType(Key, Field, _),
@@ -86,45 +107,83 @@ showField(Key, Field) :- showAll(Key), field(Key, Field, _).
 
 % list
 childResult(Key, (Key, Field, Value), Field) :-
+    DataType = "list",
+    showField(Key, Field, Value, DataType).
+
+showField((Key, Field, Value), "value", Value, "shortText") :-
+    childResult(Key, (Key, Field, Value), Field),
+    showField(Key, Field, Value, _).
+
+showField((Key, Field, Value), "index", Index, "integer") :-
+    childResult(Key, (Key, Field, Value), Field),
+    showField(Key, Field, Value, _),
+    field((Field, Value), "index", Index).
+
+showField((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
+    childResult(Key, (Key, Field, Value), Field),
+    showField(Key, Field, Value, _),
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
+
+childResult(Key, (Key, Field, Value), Field) :-
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     showField(Key, Field).
 
-field((Key, Field, Value), "value", Value, "shortText") :-
+showField((Key, Field, Value), "value", Value, "shortText") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "list").
 
-field((Key, Field, Value), "index", Index, "integer") :-
+showField((Key, Field, Value), "index", Index, "integer") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     field((Field, Value), "index", Index).
 
-field((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
+showField((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 % enum
+
+
+childObject(Key, (Key, Field), Field) :-
+    DataType = "enum",
+    showField(Key, Field, _, DataType).
+
+showField((Key, Field), "value", Value, "shortText") :-
+    childObject(Key, (Key, Field), Field),
+    showField(Key, Field, Value, _).
+
+showField((Key, Field), "index", Index, "integer") :-
+    childObject(Key, (Key, Field), Field),
+    showField(Key, Field, _, _),
+    field((Field, Value), "index", Index).
+
+showField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
+    childObject(Key, (Key, Field), Field),
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
+
+
 childObject(Key, (Key, Field), Field) :-
     field(Key, Field, _),
     dataType(Key, Field, "enum"),
     showField(Key, Field).
 
-field((Key, Field), "value", Value, "shortText") :-
+showField((Key, Field), "value", Value, "shortText") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum").
 
-field((Key, Field), "index", Index, "integer") :-
+showField((Key, Field), "index", Index, "integer") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
     field((Field, Value), "index", Index).
 
-field((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
+showField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
@@ -148,10 +207,6 @@ field(Key, Field, Value) :-
 
 % allow using field directly
 % fields are always shown
-% TODO: instead of creating datatype and showField facts, we should simply show the field directly with #show
-showField(Key, Field) :- field(Key, Field, _, _).
-field(Key, Field, Value) :- field(Key, Field, Value, _).
-dataType(Key, Field, DataType) :- field(Key, Field, _, DataType).
 
 
 % childResultCollection(ParentKey, Collection): Defines a childResult. Allows guaranteeing an empty list, if no elements are present
