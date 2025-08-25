@@ -6,7 +6,6 @@ import { exec, execSync } from 'child_process';
 import { log } from 'console';
 import { existsSync, rmSync } from 'fs';
 
-const baseModulePath = '../../.tmp/module-base';
 const cliPath = '../../.tmp/cyberismo-cli';
 
 let pageCardKey = '';
@@ -17,29 +16,13 @@ use(chaiAsPromised);
 
 describe('Cli BAT test', function () {
   this.timeout(20000);
-  before(() => {
-    console.log('Starting CLI acceptance test');
-    // Cloning is only needed for local development.
-    if (!process.env.GITHUB_ACTIONS) {
-      if (existsSync(baseModulePath)) {
-        // Always clone the repo.
-        rmSync(baseModulePath, { recursive: true, force: true });
-      }
-      if (!existsSync(baseModulePath)) {
-        // temp clone to a feature branch
-        execSync(
-          'cd ../../&&git clone -b main git@github.com:CyberismoCom/module-base.git .tmp/module-base',
-        );
-      }
-    }
-  });
   after(() => {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
   });
-  it('validate module-base', function (done) {
+  it('validate test-module', function (done) {
     exec(
-      'cd ../../.tmp/module-base&&cyberismo validate ',
+      `cd ../../module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -67,10 +50,9 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Import module-base', function (done) {
-    // temp use feature branch to make the tests pass
+  it('Import test-module', function (done) {
     exec(
-      'cd ../../.tmp/cyberismo-cli&&cyberismo import module https://github.com/CyberismoCom/module-base.git main&&cyberismo validate',
+      `cd ../../.tmp/cyberismo-cli&&cyberismo import module ../../module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -83,7 +65,7 @@ describe('Cli BAT test', function () {
   });
   it('Create a page', function (done) {
     exec(
-      'cd ../../.tmp/cyberismo-cli&&cyberismo create card base/templates/page&&cyberismo validate',
+      'cd ../../.tmp/cyberismo-cli&&cyberismo create card test/templates/page&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -96,9 +78,9 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Create a decision as a child of the page', function (done) {
+  it('Create a page as a child of the page', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo create card base/templates/decision ${pageCardKey}&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo create card test/templates/page ${pageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
@@ -111,9 +93,9 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('Approve the decision in its workflow', function (done) {
+  it('Approve the page in its workflow', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo transition ${decisionCardKey} Approve&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo transition ${pageCardKey} Approve&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
