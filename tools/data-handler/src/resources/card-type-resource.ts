@@ -12,7 +12,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AbstractResource } from './resource-object.js';
 import type {
   CardType,
   CustomField,
@@ -178,7 +177,7 @@ export class CardTypeResource extends FileResource {
         const newState = stateMapping[currentState];
 
         if (newState && newState !== currentState) {
-          AbstractResource.logger.info(
+          this.logger.info(
             `Updating card '${card.key}': ${currentState} -> ${newState}`,
           );
           card.metadata.workflowState = newState;
@@ -192,7 +191,7 @@ export class CardTypeResource extends FileResource {
     await Promise.all(updatePromises);
 
     if (unmappedStates.length > 0) {
-      AbstractResource.logger.warn(
+      this.logger.warn(
         `Found unmapped states that were not updated: ${unmappedStates.join(', ')}`,
       );
     }

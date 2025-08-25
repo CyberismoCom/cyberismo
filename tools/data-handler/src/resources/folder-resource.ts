@@ -76,6 +76,15 @@ export class FolderResource extends FileResource {
     await rm(this.internalFolder, { recursive: true, force: true });
   }
 
+  // Get (resource folder) type name
+  protected get getType() {
+    return super.getType;
+  }
+
+  protected get logger() {
+    return super.getLogger(this.getType);
+  }
+
   protected initialize(): void {
     super.initialize();
 
