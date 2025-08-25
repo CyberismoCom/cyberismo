@@ -52,7 +52,7 @@ describe('Cli BAT test', function () {
   });
   it('Import test-module', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo import module ../../module-test&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cp -r ../../module-test module-test&&cyberismo import module ./module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           log(error);
