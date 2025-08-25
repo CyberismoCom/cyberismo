@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { exec, execSync } from 'child_process';
+import { exec } from 'child_process';
 import { log } from 'console';
-import { existsSync, rmSync } from 'fs';
+import { rmSync } from 'fs';
 
 const cliPath = '../../.tmp/cyberismo-cli';
 
