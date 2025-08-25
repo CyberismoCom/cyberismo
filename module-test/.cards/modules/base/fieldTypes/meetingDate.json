@@ -1,5 +1,0 @@
-{
-    "name": "base/fieldTypes/meetingDate",
-    "displayName": "Meeting date",
-    "dataType": "date"
-}

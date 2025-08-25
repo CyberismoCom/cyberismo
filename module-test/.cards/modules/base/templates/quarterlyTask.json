@@ -1,6 +1,0 @@
-{
-    "displayName": "Quarterly task",
-    "description": "A task that must be revisited quarterly",
-    "category": "General",
-    "name": "base/templates/quarterlyTask"
-}

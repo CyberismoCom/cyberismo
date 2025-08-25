@@ -1,5 +1,0 @@
-{
-    "name": "base/graphViews/workflow",
-    "displayName": "Workflow",
-    "description": "A diagram of the state machine of a workflow"
-}

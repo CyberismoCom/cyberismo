@@ -1,10 +1,5 @@
 {
     "cardKeyPrefix": "test",
     "name": "Cyberismo test module",
-    "modules": [
-	{
-                "name": "base",
-                "location": "https://github.com/CyberismoCom/module-base.git"
-        }
-    ]
+    "modules": []
 }

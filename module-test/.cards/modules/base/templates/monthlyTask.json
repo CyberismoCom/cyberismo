@@ -1,6 +1,0 @@
-{
-    "displayName": "Monthly task",
-    "description": "A task that must be revisited monthly",
-    "category": "General",
-    "name": "base/templates/monthlyTask"
-}

@@ -1,5 +1,0 @@
-{
-    "name": "base/graphModels/workflow",
-    "displayName": "Workflow",
-    "description": "A model for a diagram of the state machine of a workflow"
-}

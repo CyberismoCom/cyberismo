@@ -1,6 +1,0 @@
-{
-    "displayName": "Table of child cards",
-    "description": "A table of child cards with column for owner and workflow state",
-    "category": "General",
-    "name": "base/reports/childrenTable"
-}
