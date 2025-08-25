@@ -1,0 +1,60 @@
+{
+    "name": "base/workflows/task",
+    "states": [
+        {
+            "name": "Open",
+            "category": "initial"
+        },
+        {
+            "name": "In progress",
+            "category": "active"
+        },
+        {
+            "name": "Closed as done",
+            "category": "closed"
+        },
+        {
+            "name": "Closed as not applicable",
+            "category": "closed"
+        }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [
+                ""
+            ],
+            "toState": "Open"
+        },
+        {
+            "name": "Reopen",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Open"
+        },
+        {
+            "name": "Start progress",
+            "fromState": [
+                "Open"
+            ],
+            "toState": "In progress"
+        },
+        {
+            "name": "Done",
+            "fromState": [
+                "In progress"
+            ],
+            "toState": "Closed as done"
+        },
+        {
+            "name": "Review as not applicable",
+            "fromState": [
+                "Open",
+                "In progress"
+            ],
+            "toState": "Closed as not applicable"
+        }
+    ],
+    "displayName": ""
+}

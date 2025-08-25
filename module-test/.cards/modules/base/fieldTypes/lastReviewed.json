@@ -1,0 +1,5 @@
+{
+    "name": "base/fieldTypes/lastReviewed",
+    "displayName": "Last reviewed",
+    "dataType": "date"
+}

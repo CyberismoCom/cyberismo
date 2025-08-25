@@ -1,0 +1,17 @@
+{
+    "title": "Test denied operations",
+    "cardType": "test/cardTypes/deniedOperations",
+    "workflowState": "",
+    "rank": "0|b",
+    "test/fieldTypes/denyTransition": false,
+    "test/fieldTypes/transitionErrorMessage": "Transition denied!",
+    "test/fieldTypes/denyMove": false,
+    "test/fieldTypes/moveErrorMessage": "Moving card denied!",
+    "test/fieldTypes/denyDeleting": false,
+    "test/fieldTypes/deleteErrorMessage": "Deleting card denied!",
+    "test/fieldTypes/denyEditingField": false,
+    "test/fieldTypes/editingFieldErrorMessage": "Editing shortText denied!",
+    "test/fieldTypes/shortText": "Some text",
+    "test/fieldTypes/denyEditingContent": false,
+    "test/fieldTypes/editingContentErrorMessage": "Editing card content denied!"
+}

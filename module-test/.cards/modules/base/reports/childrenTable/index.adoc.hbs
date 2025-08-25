@@ -1,0 +1,16 @@
+{{#if results}}
+
+{{#if tableCaption}}.{{tableCaption}}{{/if}}
+[cols="5,5,2"]
+|===
+| Title | Owner | State
+
+{{#each results}}
+|xref:{{this.key}}.adoc[{{this.title}}]
+|{{this.[base/fieldTypes/owner]}}
+|{{this.workflowState}}
+{{/each}}
+
+|===
+
+{{/if}}

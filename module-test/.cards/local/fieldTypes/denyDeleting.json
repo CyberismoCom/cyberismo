@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/denyDeleting",
+    "displayName": "Deleting denied",
+    "dataType": "boolean"
+}

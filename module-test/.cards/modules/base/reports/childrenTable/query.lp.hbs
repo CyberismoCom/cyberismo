@@ -1,0 +1,7 @@
+selectAll.
+{{#if cardType}}
+result(Card) :- card(Card), parent(Card, {{cardKey}}), field(Card, "cardType", "{{cardType}}").
+{{else}}
+result(Card) :- card(Card), parent(Card, {{cardKey}}).
+{{/if}}
+orderBy("rank", "ASC").

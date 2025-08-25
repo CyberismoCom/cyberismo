@@ -1,0 +1,23 @@
+{
+    "name": "base/cardTypes/decision",
+    "workflow": "base/workflows/decision",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner"
+        },
+        {
+            "name": "base/fieldTypes/informationClassification"
+        },
+        {
+            "name": "base/fieldTypes/decisionDate"
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/decisionDate"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": ""
+}

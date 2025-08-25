@@ -1,0 +1,6 @@
+{
+    "displayName": "Role assignments",
+    "description": "A table of roles and assignees",
+    "category": "General",
+    "name": "base/reports/roleAssignments"
+}

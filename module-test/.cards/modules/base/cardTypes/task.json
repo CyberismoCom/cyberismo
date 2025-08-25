@@ -1,0 +1,33 @@
+{
+    "name": "base/cardTypes/task",
+    "workflow": "base/workflows/task",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner"
+        },
+        {
+            "name": "base/fieldTypes/informationClassification"
+        },
+        {
+            "name": "base/fieldTypes/justification"
+        },
+        {
+            "name": "base/fieldTypes/dueDate"
+        },
+        {
+            "name": "base/fieldTypes/adoptionStep"
+        },
+        {
+            "name": "base/fieldTypes/identifier"
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner",
+        "base/fieldTypes/dueDate"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/justification",
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": ""
+}

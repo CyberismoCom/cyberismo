@@ -1,0 +1,15 @@
+{{#if results}}
+
+[cols="5,5,2"]
+|===
+| Role | Assignee | Status
+
+{{#each results}}
+|xref:{{this.key}}.adoc[{{this.title}}]
+|{{this.[base/fieldTypes/owner]}}
+|{{this.workflowState}}
+{{/each}}
+
+|===
+
+{{/if}}

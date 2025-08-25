@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/longText",
+    "displayName": "Long text",
+    "dataType": "longText"
+}

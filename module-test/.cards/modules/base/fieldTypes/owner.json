@@ -1,0 +1,5 @@
+{
+    "name": "base/fieldTypes/owner",
+    "displayName": "Owner",
+    "dataType": "person"
+}

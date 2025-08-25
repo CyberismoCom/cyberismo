@@ -1,0 +1,19 @@
+{
+    "name": "base/cardTypes/page",
+    "workflow": "base/workflows/page",
+    "customFields": [
+        {
+            "name": "base/fieldTypes/owner"
+        },
+        {
+            "name": "base/fieldTypes/informationClassification"
+        }
+    ],
+    "alwaysVisibleFields": [
+        "base/fieldTypes/owner"
+    ],
+    "optionallyVisibleFields": [
+        "base/fieldTypes/informationClassification"
+    ],
+    "displayName": ""
+}

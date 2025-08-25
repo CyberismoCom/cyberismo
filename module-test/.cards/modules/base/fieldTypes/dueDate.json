@@ -1,0 +1,5 @@
+{
+    "name": "base/fieldTypes/dueDate",
+    "displayName": "Due date",
+    "dataType": "date"
+}

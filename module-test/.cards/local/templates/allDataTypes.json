@@ -1,0 +1,6 @@
+{
+    "name": "test/templates/allDataTypes",
+    "displayName": "All data types",
+    "description": "A card that has a custom field of every data type",
+    "category": "Testing"
+}

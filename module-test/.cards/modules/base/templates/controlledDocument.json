@@ -1,0 +1,6 @@
+{
+    "displayName": "Controlled document",
+    "description": "A formal document that can be approved",
+    "category": "General",
+    "name": "base/templates/controlledDocument"
+}

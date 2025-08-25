@@ -1,0 +1,5 @@
+{
+    "name": "base/fieldTypes/approver",
+    "displayName": "Approver",
+    "dataType": "person"
+}

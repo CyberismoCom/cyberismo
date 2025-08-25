@@ -1,0 +1,19 @@
+{
+    "name": "base/fieldTypes/adoptionStep",
+    "displayName": "Adoption step",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "step1",
+            "enumDisplayValue": "Step 1"
+        },
+        {
+            "enumValue": "step2",
+            "enumDisplayValue": "Step 2"
+        },
+        {
+            "enumValue": "step3",
+            "enumDisplayValue": "Step 3"
+        }
+    ]
+}

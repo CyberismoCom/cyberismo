@@ -1,0 +1,78 @@
+{
+    "name": "base/workflows/reviewTask",
+    "states": [
+        {
+            "name": "Open",
+            "category": "initial"
+        },
+        {
+            "name": "In progress",
+            "category": "active"
+        },
+        {
+            "name": "Changes required",
+            "category": "active"
+        },
+        {
+            "name": "Closed as done",
+            "category": "closed"
+        },
+        {
+            "name": "Closed as not applicable",
+            "category": "closed"
+        }
+    ],
+    "transitions": [
+        {
+            "name": "Create",
+            "fromState": [
+                ""
+            ],
+            "toState": "Open"
+        },
+        {
+            "name": "Reopen",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Open"
+        },
+        {
+            "name": "Start progress",
+            "fromState": [
+                "Open"
+            ],
+            "toState": "In progress"
+        },
+        {
+            "name": "Require changes",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Changes required"
+        },
+        {
+            "name": "Done",
+            "fromState": [
+                "In progress",
+                "Changes required"
+            ],
+            "toState": "Closed as done"
+        },
+        {
+            "name": "Review as OK",
+            "fromState": [
+                "Closed as done"
+            ],
+            "toState": "Closed as done"
+        },
+        {
+            "name": "Review as not applicable",
+            "fromState": [
+                "*"
+            ],
+            "toState": "Closed as not applicable"
+        }
+    ],
+    "displayName": ""
+}

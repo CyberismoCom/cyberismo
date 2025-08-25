@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/moveErrorMessage",
+    "displayName": "Move error message",
+    "dataType": "shortText"
+}

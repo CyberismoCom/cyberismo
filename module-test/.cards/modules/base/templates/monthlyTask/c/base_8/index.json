@@ -1,0 +1,15 @@
+{
+    "title": "Untitled monthly task",
+    "cardType":  "base/cardTypes/monthlyTask",
+    "workflowState": "",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "internal",
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/reviewPeriod": 30,
+    "base/fieldTypes/lastReviewed": null,
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/identifier": null,
+    "base/fieldTypes/adoptionStep": null,
+    "rank": "0|a",
+    "lastUpdated": "2024-08-01T14:25:19.235Z"
+}

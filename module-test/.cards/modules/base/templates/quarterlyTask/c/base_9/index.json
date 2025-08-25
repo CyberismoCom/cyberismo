@@ -1,0 +1,16 @@
+{
+    "title": "Untitled quarterly task",
+    "cardType":  "base/cardTypes/quarterlyTask",
+    "workflowState": "",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "internal",
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/reviewPeriod": 90,
+    "base/fieldTypes/lastReviewed": null,
+    "base/fieldTypes/quarterlyReviewMonth": "month1",
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/identifier": null,
+    "base/fieldTypes/adoptionStep": null,
+    "rank": "0|a",
+    "lastUpdated": "2024-08-01T14:25:19.243Z"
+}

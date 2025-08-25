@@ -1,0 +1,7 @@
+select("title";"base/fieldTypes/owner";"workflowState").
+
+result(Card) :-
+    ancestor(Card, {{cardKey}}),
+    field(Card, "cardType", "base/cardTypes/roleAssignment").
+
+orderBy("rank", "ASC").

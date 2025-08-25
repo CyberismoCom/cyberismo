@@ -1,0 +1,57 @@
+This document describes __TODO: addshort description___
+
+== Introduction
+
+== Roles and responsibilities
+
+[cols="1,1,3"]
+|===============
+| Role | Person | Responsibilities
+
+|
+|
+a|
+
+|===============
+
+== Relevant requirements/controls
+
+== Definitions
+
+== Process description
+
+=== STEP 1:
+
+=== STEP 2:
+
+=== STEP 3
+
+== Document/Process Maintenance and enforcement
+
+== Related documents/processes
+
+== References
+
+
+== Version history
+
+[cols="1,1,3"]
+|===============
+|Version | Date | Changes/Author
+
+| 0.1
+| 2024-01-01
+| XYZ changed by N.N.
+
+|===============
+
+== Reviews
+
+{{#createCards}}
+    "template": "base/templates/reviewTask",
+    "buttonLabel": "Add new review task"
+{{/createCards}}
+
+{{#report}}
+  "name": "base/reports/childrenTable"
+{{/report}}

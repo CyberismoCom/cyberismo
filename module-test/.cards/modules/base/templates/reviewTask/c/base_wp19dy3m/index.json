@@ -1,0 +1,13 @@
+{
+    "title": "Document review",
+    "cardType": "base/cardTypes/reviewTask",
+    "workflowState": "",
+    "rank": "0|b",
+    "base/fieldTypes/owner": null,
+    "base/fieldTypes/informationClassification": "internal",
+    "base/fieldTypes/reviewPeriod": 365,
+    "base/fieldTypes/lastReviewed": null,
+    "base/fieldTypes/justification": null,
+    "base/fieldTypes/adoptionStep": "step1",
+    "base/fieldTypes/identifier": null
+}
