@@ -14,3 +14,4 @@ examples/
 *.hbs
 tools/assets/src/static/ui-bundle
 pnpm-lock.yaml
+module-test/

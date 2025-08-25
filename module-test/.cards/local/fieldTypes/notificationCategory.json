@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/notificationCategory",
+    "displayName": "Notification category",
+    "dataType": "shortText"
+}

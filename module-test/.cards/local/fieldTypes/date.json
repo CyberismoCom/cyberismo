@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/date",
+    "displayName": "Date",
+    "dataType": "date"
+}

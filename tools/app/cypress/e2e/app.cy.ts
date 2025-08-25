@@ -47,16 +47,16 @@ describe('Navigation', () => {
     cy.get('[data-cy="linkIconButton"]').should('be.disabled');
   });
 
-  it('Create a decision as a child of the page', () => {
+  it('Create a page content as a child of the page', () => {
     // Creates a child card under previously created page
     cy.get('[data-cy="createNewButton"]').click();
-    cy.get('.templateCard').contains('Decision').click(); // Select Decision template
+    cy.get('.templateCard').contains('Page content').click(); // Select Page content template
     cy.get('[data-cy="confirmCreateButton"]').click();
     cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
 
-    cy.get('p').contains('Untitled decision'); // Verify Title in tree menu
-    // Verify all decision content
-    cy.get('h1').contains('Untitled decision');
+    cy.get('p').contains('Untitled page content'); // Verify Title in tree menu
+    // Verify all page content content
+    cy.get('h1').contains('Untitled page content');
     cy.get('h2').contains('Context');
     cy.get('p').contains(
       'Describe background information. What is motivating this decision. Which options were considered.',
@@ -78,13 +78,13 @@ describe('Navigation', () => {
   });
 
   it('moves card with move function', () => {
-    cy.get('p').contains('Untitled decision').click(); // Navigate to Untitled decision in tree menu
-    cy.get('h1').contains('Untitled decision');
+    cy.get('p').contains('Untitled page content').click(); // Navigate to child card in tree menu
+    cy.get('h1').contains('Untitled page content');
 
     cy.get('[aria-level="2"]').should('not.exist');
     cy.get('[aria-level="1"][data-cy="ExpandMoreIcon"]').should('not.exist'); // Verifies expand more icon does not exist in tree menu
 
-    // moves Untitled decision card under Decision Records card with move function
+    // moves child card under Decision Records card with move function
     cy.get('[data-cy="contextMenuButton"]').click();
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 
@@ -106,32 +106,31 @@ describe('Navigation', () => {
     cy.get('p').contains('Untitled page').click(); // Navigate to Untitled page in tree menu
     cy.get('h1').contains('Untitled page');
 
-    cy.get('p').contains('Untitled decision').click(); // Navigate tree menu
-    cy.get('h1').contains('Untitled decision');
+    cy.get('p').contains('Untitled page content').click(); // Navigate tree menu
+    cy.get('h1').contains('Untitled page content');
 
     // Verify meatdata
     cy.get('[data-cy="metadataView"]').contains(t['cardKey']);
     cy.get('[data-cy="metadataView"]').contains(t['cardType']);
     cy.get('[data-cy="metadataView"]').contains(t['lastUpdated']);
-    cy.get('[data-cy="metadataView"]').contains('Decision');
 
     // Check that edit element is visible and clicks it
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Clicks Edit button
 
     // Check that editor elements are visible
-    cy.get('textarea').contains('Untitled decision'); // Verify textarea contains card title
+    cy.get('textarea').contains('Untitled page content'); // Verify textarea contains card title
     cy.get('.cm-editor'); // Asciidoc editor component
     cy.get('#cancelButton'); // Verifies cancel button
 
     // Clicking on Preview opens preview pane
     cy.get('[data-cy="previewTab"]').click(); // Select preview
-    cy.get('h1').contains('Untitled decision'); // Verifies page contend displayed correctly
+    cy.get('h1').contains('Untitled page content'); // Verifies page contend displayed correctly
     cy.get('h2').contains('Context'); // Verifies page contend displayed correctly
     cy.get('.toc-menu'); // Verify table of contents
     cy.get('[data-cy="editTab"]').click(); // Select edit
 
     cy.get('textarea') // Edits card title
-      .contains('Untitled decision')
+      .contains('Untitled page content')
       .clear()
       .type('Updated title');
 
@@ -185,12 +184,10 @@ describe('Navigation', () => {
     // checks trough all possible statuses by clicking trough them in dropdown menu
 
     cy.get('.MuiMenuButton-variantSoft').contains('Status: Draft').click(); // Verifies text in status button and clicks it
-    cy.get('[role="menu"]').contains('Reopen'); // options in dropdown menu
     cy.get('[role="menu"]').contains('Archive');
     cy.get('[role="menu"]').contains('Approve').click(); // Select Approve status
     cy.wait(1000);
     cy.get('.MuiMenuButton-variantSoft').contains('Status: Approved').click();
-    cy.get('[role="menu"]').contains('Reopen');
     cy.get('[role="menu"]').contains('Archive').click();
 
     cy.get('.MuiMenuButton-variantSoft').contains('Status: Deprecated').click();
@@ -206,14 +203,14 @@ describe('Navigation', () => {
     cy.get('.MuiIconButton-root').click(); // Click link button
     cy.get('p').contains(t['linkedCards']); // Verifies Linked cards text in page
     cy.get('.MuiSelect-button').contains(t.linkForm['selectLinkType']).click(); // Click select link type button
-    cy.get('.Mui-expanded').contains('blocks').click(); // Select blocks
+    cy.get('.Mui-expanded').contains('Outbound').click(); // Select outbound
 
-    cy.get('.MuiSelect-button').contains('blocks'); // checks Select Link Type text changed to previously selected blocks option
+    cy.get('.MuiSelect-button').contains('Outbound'); // checks Select Link Type text changed to previously selected blocks option
     cy.get('.MuiAutocomplete-root').get('[placeholder="Search card"]').click(); // click Search card field
     cy.get('.MuiAutocomplete-option').contains('Untitled page').click(); // Select Untitled page
     cy.get('button').contains(t.linkForm['button']).click(); // Click add link button
 
-    cy.get('[data-cy="cardLinkType"]').contains('blocks');
+    cy.get('[data-cy="cardLinkType"]').contains('Outbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Untitled page');
 
     cy.get(':nth-child(5) > :nth-child(2)').should('not.exist'); // checks 2nd link was not created
@@ -228,7 +225,7 @@ describe('Navigation', () => {
 
     // Verifies link exists in Untitled page
     cy.get('h1').contains('Untitled page');
-    cy.get('[data-cy="cardLinkType"]').contains('is blocked by');
+    cy.get('[data-cy="cardLinkType"]').contains('Inbound');
     cy.get('[data-cy="cardLinkTitle"]').contains('Updated title');
     cy.get('[data-cy="cardLink"]');
 
@@ -262,8 +259,8 @@ describe('Navigation', () => {
     cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
   });
 
-  it('delete decision', () => {
-    // Deletes decision card
+  it('delete page content', () => {
+    // Deletes page content card
     cy.get('p').contains('Untitled page').click(); // Navigate to Untitled page in tree menu
     cy.get('h1').contains('Untitled page');
 

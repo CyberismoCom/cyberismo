@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/transitionErrorMessage",
+    "displayName": "Transition Error message",
+    "dataType": "shortText"
+}

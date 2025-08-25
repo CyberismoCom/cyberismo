@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/denyTransition",
+    "displayName": "Transition denied",
+    "dataType": "boolean"
+}

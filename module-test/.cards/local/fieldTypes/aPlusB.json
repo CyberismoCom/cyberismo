@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/aPlusB",
+    "displayName": "Integer a+b",
+    "dataType": "integer"
+}

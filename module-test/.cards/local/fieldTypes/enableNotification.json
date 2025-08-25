@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/enableNotification",
+    "displayName": "Enable notification",
+    "dataType": "boolean"
+}

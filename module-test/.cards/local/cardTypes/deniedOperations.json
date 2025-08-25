@@ -1,0 +1,55 @@
+{
+  "name": "test/cardTypes/deniedOperations",
+  "workflow": "test/workflows/test",
+  "customFields": [
+    {
+      "name": "test/fieldTypes/denyTransition"
+    },
+    {
+      "name": "test/fieldTypes/transitionErrorMessage"
+    },
+    {
+      "name": "test/fieldTypes/denyMove"
+    },
+    {
+      "name": "test/fieldTypes/moveErrorMessage"
+    },
+    {
+      "name": "test/fieldTypes/denyDeleting"
+    },
+    {
+      "name": "test/fieldTypes/deleteErrorMessage"
+    },
+    {
+      "name": "test/fieldTypes/denyEditingField"
+    },
+    {
+      "name": "test/fieldTypes/editingFieldErrorMessage"
+    },
+    {
+      "name": "test/fieldTypes/shortText",
+      "displayName": "Field to edit"
+    },
+    {
+      "name": "test/fieldTypes/denyEditingContent"
+    },
+    {
+      "name": "test/fieldTypes/editingContentErrorMessage"
+    }
+  ],
+  "alwaysVisibleFields": [
+    "test/fieldTypes/denyTransition",
+    "test/fieldTypes/transitionErrorMessage",
+    "test/fieldTypes/denyMove",
+    "test/fieldTypes/moveErrorMessage",
+    "test/fieldTypes/denyDeleting",
+    "test/fieldTypes/deleteErrorMessage",
+    "test/fieldTypes/denyEditingField",
+    "test/fieldTypes/editingFieldErrorMessage",
+    "test/fieldTypes/shortText",
+    "test/fieldTypes/denyEditingContent",
+    "test/fieldTypes/editingContentErrorMessage"
+  ],
+  "optionallyVisibleFields": [],
+  "displayName": ""
+}

@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/denyMove",
+    "displayName": "Move denied",
+    "dataType": "boolean"
+}

@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/failureCategory",
+    "displayName": "Failing check category",
+    "dataType": "shortText"
+}

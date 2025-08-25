@@ -48,12 +48,6 @@ jobs:
           cache: 'pnpm'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@cyberismocom'
-      - name: Checkout module-base repository for testing purposes
-        uses: actions/checkout@v4
-        with:
-          repository: CyberismoCom/module-base
-          path: .tmp/module-base
-          ref: main
 
       - name: Checkout cyberismo-docs repository for testing purposes
         uses: actions/checkout@v4

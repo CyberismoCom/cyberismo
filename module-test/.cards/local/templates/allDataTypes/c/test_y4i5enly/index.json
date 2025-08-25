@@ -1,0 +1,18 @@
+{
+    "title": "Test all data types of custom fields",
+    "cardType": "test/cardTypes/allDataTypes",
+    "workflowState": "",
+    "rank": "0|b",
+    "test/fieldTypes/boolean": null,
+    "test/fieldTypes/date": null,
+    "test/fieldTypes/dateTime": null,
+    "test/fieldTypes/enum": null,
+    "test/fieldTypes/integer": null,
+    "test/fieldTypes/list": null,
+    "test/fieldTypes/longText": null,
+    "test/fieldTypes/number": null,
+    "test/fieldTypes/person": null,
+    "test/fieldTypes/shortText": null,
+    "test/fieldTypes/a": null,
+    "test/fieldTypes/b": null
+}

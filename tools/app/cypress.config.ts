@@ -4,8 +4,6 @@ import { existsSync, rmSync } from 'node:fs';
 
 // Path for test project that is created and modified during tests
 const batPath = '../../.tmp/cyberismo-bat';
-// Path for module-base content repo, which is cloned in Github actions on CI and in createTestProject when running locally
-const baseModulePath = '../../.tmp/module-base';
 
 export default defineConfig({
   e2e: {
@@ -17,16 +15,12 @@ export default defineConfig({
           return true;
         },
         createTestProject() {
-          // Clone base-module repository if not already present in project root. CI creates this in Github actions.
-          if (!existsSync(baseModulePath)) {
-            execSync(
-              'cd ../../&&git clone git@github.com:CyberismoCom/module-base.git .tmp/module-base',
-            );
+          if (existsSync(batPath)) {
+            rmSync(batPath, { recursive: true, force: true });
           }
-
-          // Create test project from module-base
+          // Create test project from test-module
           execSync(
-            'cd ../../.tmp&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat&&cd cyberismo-bat&&cyberismo import module https://github.com/CyberismoCom/module-base.git&&cyberismo create card base/templates/page',
+            'cd ../../.tmp&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat&&cd cyberismo-bat&&cyberismo import module ../../module-test&&cyberismo create card test/templates/pageContent',
           );
           return true;
         },

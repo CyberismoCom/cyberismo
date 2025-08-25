@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/enableSuccessfulCheck",
+    "displayName": "Enable successful check",
+    "dataType": "boolean"
+}

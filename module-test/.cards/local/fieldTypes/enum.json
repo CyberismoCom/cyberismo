@@ -1,0 +1,22 @@
+{
+    "name": "test/fieldTypes/enum",
+    "displayName": "Enum",
+    "dataType": "enum",
+    "enumValues": [
+        {
+            "enumValue": "option1",
+            "enumDisplayValue": "Option 1",
+            "enumDescription": "First option"
+        },
+        {
+            "enumValue": "option2",
+            "enumDisplayValue": "Option 2",
+            "enumDescription": "Second option"
+        },
+        {
+            "enumValue": "option3",
+            "enumDisplayValue": "Option 3",
+            "enumDescription": "Third option"
+        }
+    ]
+}

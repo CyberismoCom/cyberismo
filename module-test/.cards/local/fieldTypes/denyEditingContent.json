@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/denyEditingContent",
+    "displayName": "Editing content denied",
+    "dataType": "boolean"
+}

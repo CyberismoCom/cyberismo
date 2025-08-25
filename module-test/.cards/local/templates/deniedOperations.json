@@ -1,0 +1,6 @@
+{
+    "name": "test/templates/deniedOperations",
+    "displayName": "Test denied operations",
+    "description": "A card that supports all denied operations",
+    "category": "Testing"
+}

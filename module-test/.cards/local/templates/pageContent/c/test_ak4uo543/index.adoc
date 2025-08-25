@@ -1,0 +1,11 @@
+== Context
+
+Describe background information. What is motivating this decision. Which options were considered.
+
+== Decision
+
+Describe the change that we're proposing or doing.
+
+== Consequences
+
+Describe the benefits and drawbacks of the decision. Describe what happens next.

@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/shortText",
+    "displayName": "Short text",
+    "dataType": "shortText"
+}

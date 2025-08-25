@@ -1,0 +1,54 @@
+{
+  "name": "test/cardTypes/checks",
+  "workflow": "test/workflows/test",
+  "customFields": [
+    {
+      "name": "test/fieldTypes/enableNotification"
+    },
+    {
+      "name": "test/fieldTypes/notificationCategory"
+    },
+    {
+      "name": "test/fieldTypes/notificationTitle"
+    },
+    {
+      "name": "test/fieldTypes/notificationMessage"
+    },
+    {
+      "name": "test/fieldTypes/enableSuccessfulCheck"
+    },
+    {
+      "name": "test/fieldTypes/successCategory"
+    },
+    {
+      "name": "test/fieldTypes/successTitle"
+    },
+    {
+      "name": "test/fieldTypes/enableFailingCheck"
+    },
+    {
+      "name": "test/fieldTypes/failureCategory"
+    },
+    {
+      "name": "test/fieldTypes/failureTitle"
+    },
+    {
+      "name": "test/fieldTypes/failureMessage"
+    }
+  ],
+  "alwaysVisibleFields": [
+    "test/fieldTypes/enableNotification",
+    "test/fieldTypes/notificationCategory",
+    "test/fieldTypes/notificationTitle",
+    "test/fieldTypes/notificationMessage",
+    "test/fieldTypes/enableSuccessfulCheck",
+    "test/fieldTypes/successCategory",
+    "test/fieldTypes/successTitle",
+    "test/fieldTypes/enableFailingCheck",
+    "test/fieldTypes/failureCategory",
+    "test/fieldTypes/failureTitle",
+    "test/fieldTypes/failureMessage"
+  ],
+  "optionallyVisibleFields": [],
+  "displayName": ""
+}
