@@ -127,7 +127,7 @@ class ReportMacro extends BaseMacro {
     }
 
     if (schema) {
-      validateJson(options, { schema });
+      validateMacroContent(this.metadata, input, schema);
     }
 
     return options;
