@@ -22,7 +22,6 @@ import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { resourceName } from '../../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
-import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 
