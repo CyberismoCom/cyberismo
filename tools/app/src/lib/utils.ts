@@ -32,6 +32,7 @@ import {
 } from '@cyberismo/data-handler/types/queries';
 import { CardResponse } from './api/types';
 import { AppConfig } from './definitions';
+import type { ResourceNode } from './api/types';
 
 // Gets type of a child of an array
 type ItemType<T> = T extends (infer U)[] ? U : never;
@@ -235,6 +236,25 @@ export function findPathTo(
     }
   }
 
+  return null;
+}
+
+/**
+ * Finds a resource node anywhere in the resource tree by its full name
+ * @param nodes: resource tree
+ * @param name: name of the resource node to find
+ * @returns resource node if found, otherwise null
+ */
+export function findResourceNodeByName(
+  nodes: ResourceNode[] | undefined,
+  name: string,
+): ResourceNode | null {
+  if (!nodes) return null;
+  for (const node of nodes) {
+    if (node.name === name) return node;
+    const found = findResourceNodeByName(node.children, name);
+    if (found) return found;
+  }
   return null;
 }
 
