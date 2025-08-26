@@ -31,7 +31,7 @@ class ScoreCardMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
-  handleValidate = (data: string) => {
+  handleValidate = (_: MacroGenerationContext, data: string) => {
     this.validate(data);
   };
 

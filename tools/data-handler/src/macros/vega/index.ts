@@ -31,7 +31,7 @@ class VegaMacro extends BaseMacro {
     super(macroMetadata, tasksQueue);
   }
 
-  handleValidate = (input: unknown) => {
+  handleValidate = (_: MacroGenerationContext, input: unknown) => {
     this.validate(input);
   };
 

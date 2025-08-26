@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir } from 'node:fs/promises';
+import { cp, readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
 import type {
@@ -31,7 +31,8 @@ import type {
   GraphView,
   GraphViewMetadata,
 } from '../interfaces/resource-interfaces.js';
-import { writeFileSafe } from '../utils/file-utils.js';
+
+import { getStaticDirectoryPath } from '@cyberismo/assets';
 
 /**
  * Graph view resource class.
@@ -73,10 +74,13 @@ export class GraphViewResource extends FolderResource {
     }
 
     await super.create(newContent);
-    const handleBarFile = join(this.internalFolder, 'view.lp.hbs');
-    await writeFileSafe(handleBarFile, '', {
-      flag: 'wx',
-    });
+    await cp(
+      join(await getStaticDirectoryPath(), 'defaultGraphView'),
+      this.internalFolder,
+      {
+        recursive: true,
+      },
+    );
   }
 
   /**
