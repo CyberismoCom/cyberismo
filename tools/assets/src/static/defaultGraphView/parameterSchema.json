@@ -1,0 +1,22 @@
+{
+  "title": "Graph view",
+  "$id": "myGraphMacroSchema",
+  "description": "Parameters for the graph macro",
+  "type": "object",
+  "properties": {
+    "model": {
+      "description": "The name of the graph model",
+      "type": "string"
+    },
+    "view": {
+      "description": "The name of the graph view",
+      "type": "string"
+    },
+    "cardKey": {
+      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the graph macro is used",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": ["model", "view"]
+}
