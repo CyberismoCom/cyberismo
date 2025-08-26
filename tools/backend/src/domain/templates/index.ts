@@ -14,7 +14,7 @@
 import { Hono } from 'hono';
 import { isSSGContext } from '../../export.js';
 import * as templateService from './service.js';
-import { createTemplateSchema } from './schema.js';
+import { createTemplateSchema, addTemplateCardSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
@@ -84,6 +84,52 @@ router.post('/', zValidator('json', createTemplateSchema), async (c) => {
 
   await templateService.createTemplate(commands, identifier);
   return c.json({ message: 'Template created successfully' });
+});
+
+/**
+ * @swagger
+ * /api/templates/card:
+ *   post:
+ *     summary: Create a new template card
+ *     description: Adds a new card to a template. If parentKey is provided, the new card will be a child of the specified card.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               template:
+ *                 type: string
+ *               cardType:
+ *                 type: string
+ *               parentKey:
+ *                 type: string
+ *               count:
+ *                 type: number
+ *             required:
+ *               - template
+ *               - cardType
+ *     responses:
+ *       200:
+ *         description: Template card(s) created successfully
+ *       400:
+ *         description: Invalid request body
+ *       500:
+ *         description: Server error
+ */
+router.post('/card', zValidator('json', addTemplateCardSchema), async (c) => {
+  const commands = c.get('commands');
+  const { template, cardType, parentKey, count } = c.req.valid('json');
+
+  const added = await templateService.addTemplateCard(
+    commands,
+    template,
+    cardType,
+    parentKey,
+    count,
+  );
+  return c.json({ cards: added });
 });
 
 export default router;

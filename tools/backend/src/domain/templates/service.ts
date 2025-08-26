@@ -12,6 +12,7 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
+import { resourceName } from '@cyberismo/data-handler';
 
 export async function getTemplatesWithDetails(commands: CommandManager) {
   const response = await commands.showCmd.showTemplatesWithDetails();
@@ -26,4 +27,28 @@ export async function createTemplate(
   templateName: string,
 ) {
   await commands.createCmd.createTemplate(templateName, '');
+}
+
+export async function addTemplateCard(
+  commands: CommandManager,
+  template: string,
+  cardType: string,
+  parentKey?: string,
+  count: number = 1,
+) {
+  // support both full resource name and bare identifier
+  const { identifier, type } = resourceName(template);
+  if (type !== 'templates') {
+    throw new Error('Invalid template resource');
+  }
+  const added = await commands.createCmd.addCards(
+    cardType,
+    identifier,
+    parentKey,
+    count,
+  );
+  if (!added || added.length === 0) {
+    throw new Error('No cards created');
+  }
+  return added;
 }

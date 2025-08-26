@@ -89,6 +89,7 @@
       "preview": "Creating cards with this macro is not supported in the preview mode"
     }
   },
+  "templateCard": "Template card",
   "deleteCardSuccess": "Card deleted successfully",
   "deleteCard": "Delete card",
   "deleteResource": "Delete resource",
