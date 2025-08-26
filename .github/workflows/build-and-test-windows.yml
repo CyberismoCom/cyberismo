@@ -57,13 +57,6 @@ jobs:
     - name: Install asciidoctor-pdf
       run: |
         gem install --no-document asciidoctor-pdf rouge
-    - name: Checkout module-base repository for testing purposes
-      uses: actions/checkout@v4
-      with:
-        repository: CyberismoCom/module-base
-        path: .tmp/module-base
-        ref: main
-        set-safe-directory: false
     - name: Checkout cyberismo-docs repository for testing purposes
       uses: actions/checkout@v4
       with:

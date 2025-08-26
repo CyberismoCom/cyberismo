@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/failureMessage",
+    "displayName": "Failure message",
+    "dataType": "shortText"
+}

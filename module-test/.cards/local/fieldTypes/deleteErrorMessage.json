@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/deleteErrorMessage",
+    "displayName": "Delete error message",
+    "dataType": "shortText"
+}

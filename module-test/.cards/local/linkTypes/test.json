@@ -1,0 +1,9 @@
+{
+  "name": "test/linkTypes/test",
+  "displayName": "",
+  "outboundDisplayName": "Outbound",
+  "inboundDisplayName": "Inbound",
+  "sourceCardTypes": [],
+  "destinationCardTypes": [],
+  "enableLinkDescription": false
+}

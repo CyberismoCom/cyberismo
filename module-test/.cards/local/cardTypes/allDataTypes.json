@@ -1,0 +1,63 @@
+{
+  "name": "test/cardTypes/allDataTypes",
+  "workflow": "test/workflows/test",
+  "customFields": [
+    {
+      "name": "test/fieldTypes/boolean"
+    },
+    {
+      "name": "test/fieldTypes/date"
+    },
+    {
+      "name": "test/fieldTypes/dateTime"
+    },
+    {
+      "name": "test/fieldTypes/enum"
+    },
+    {
+      "name": "test/fieldTypes/integer"
+    },
+    {
+      "name": "test/fieldTypes/list"
+    },
+    {
+      "name": "test/fieldTypes/longText"
+    },
+    {
+      "name": "test/fieldTypes/number"
+    },
+    {
+      "name": "test/fieldTypes/person"
+    },
+    {
+      "name": "test/fieldTypes/shortText"
+    },
+    {
+      "name": "test/fieldTypes/a"
+    },
+    {
+      "name": "test/fieldTypes/b"
+    },
+    {
+      "name": "test/fieldTypes/aPlusB",
+      "isCalculated": true
+    }
+  ],
+  "alwaysVisibleFields": [
+    "test/fieldTypes/boolean",
+    "test/fieldTypes/date",
+    "test/fieldTypes/dateTime",
+    "test/fieldTypes/enum",
+    "test/fieldTypes/integer",
+    "test/fieldTypes/list",
+    "test/fieldTypes/longText",
+    "test/fieldTypes/number",
+    "test/fieldTypes/person",
+    "test/fieldTypes/shortText",
+    "test/fieldTypes/a",
+    "test/fieldTypes/b",
+    "test/fieldTypes/aPlusB"
+  ],
+  "optionallyVisibleFields": [],
+  "displayName": ""
+}

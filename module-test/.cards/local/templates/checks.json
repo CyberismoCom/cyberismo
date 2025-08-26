@@ -1,0 +1,6 @@
+{
+    "name": "test/templates/checks",
+    "displayName": "Policy checks and notifications",
+    "description": "A card for testing notifications and policy checks",
+    "category": "Testing"
+}

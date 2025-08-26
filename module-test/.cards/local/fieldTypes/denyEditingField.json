@@ -1,0 +1,5 @@
+{
+    "name": "test/fieldTypes/denyEditingField",
+    "displayName": "Editing shortText denied",
+    "dataType": "boolean"
+}
