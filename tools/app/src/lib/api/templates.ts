@@ -25,3 +25,19 @@ export const createTemplate = async (data: CreateTemplateData) => {
   mutate(apiPaths.templates());
   mutate(apiPaths.resourceTree());
 };
+
+export const createTemplateCard = async (
+  template: string,
+  cardType: string,
+  parentKey?: string,
+  count?: number,
+) => {
+  const result = await callApi<{ cards: string[] }>(
+    apiPaths.templateCard(),
+    'POST',
+    { template, cardType, parentKey, count },
+  );
+  // refresh resource tree in case UI relies on it
+  mutate(apiPaths.resourceTree());
+  return result.cards;
+};

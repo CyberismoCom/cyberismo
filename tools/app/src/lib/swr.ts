@@ -111,6 +111,7 @@ export const apiPaths = {
   logicPrograms: (resourceName: string) => `/api/logicPrograms/${resourceName}`,
   cardType: (cardType: string) => `/api/cardTypes?name=${cardType}`,
   templates: () => '/api/templates',
+  templateCard: () => '/api/templates/card',
   templateTree: () => '/api/templates/tree',
   attachment: (cardKey: string, attachment: string) =>
     `/api/cards/${cardKey}/a/${attachment}`,

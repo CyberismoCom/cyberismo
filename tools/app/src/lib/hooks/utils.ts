@@ -14,6 +14,8 @@ import { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { findParentCard } from '../utils';
 import { useTree } from '../api';
 import { useLocation, useParams } from 'react-router';
+import { useResourceTree } from '../api/resources';
+import type { ResourceNode } from '../api/types';
 
 export function useRequiredKeyParam() {
   const key = useOptionalKeyParam();
@@ -295,4 +297,73 @@ export function useDocumentTitle(title: string) {
 export function useIsInCards() {
   const location = useLocation();
   return location.pathname.startsWith('/cards');
+}
+
+/**
+ * Parses current route to determine template creation context in configuration views.
+ * Returns whether template card creation is available, the template resource name, and parent card key (if any).
+ */
+export function useConfigTemplateCreationContext(): {
+  showTemplateCard: boolean;
+  templateResource: string;
+  parentCardKey?: string;
+} {
+  const location = useLocation();
+  const parts = location.pathname.split('/');
+  const { resourceTree } = useResourceTree();
+
+  const inConfiguration = parts.length >= 3 && parts[1] === 'configuration';
+  const isTemplates =
+    inConfiguration && parts.length >= 5 && parts[3] === 'templates';
+  const isTemplateCard =
+    inConfiguration && parts.length >= 5 && parts[3] === 'cards';
+
+  let templateResource = isTemplates ? parts.slice(2, 5).join('/') : '';
+  const parentCardKey = isTemplateCard ? parts[4] : undefined;
+
+  // If inside a template card route, try to resolve the owning template from the resource tree
+  if (!templateResource && isTemplateCard && resourceTree) {
+    const cardKey = parts[4];
+    const found = findTemplateForCard(resourceTree, cardKey);
+    if (found) {
+      templateResource = found;
+    }
+  }
+
+  return {
+    showTemplateCard: isTemplates || isTemplateCard,
+    templateResource,
+    parentCardKey,
+  };
+}
+
+function findTemplateForCard(
+  nodes: ResourceNode[],
+  cardKey: string,
+): string | null {
+  function dfs(node: ResourceNode, ancestors: ResourceNode[]): string | null {
+    const newAncestors = [...ancestors, node];
+    if (node.type === 'card' && (node as any).id === cardKey) {
+      // Walk ancestors backwards to find a 'templates' node
+      for (let i = newAncestors.length - 1; i >= 0; i--) {
+        const anc = newAncestors[i];
+        if (anc.type === 'templates') {
+          return anc.name;
+        }
+      }
+    }
+    if (node.children) {
+      for (const child of node.children) {
+        const result = dfs(child as ResourceNode, newAncestors);
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+
+  for (const root of nodes) {
+    const result = dfs(root as ResourceNode, []);
+    if (result) return result;
+  }
+  return null;
 }

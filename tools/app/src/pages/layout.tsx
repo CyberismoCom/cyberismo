@@ -35,6 +35,8 @@ import { IconButton } from '@mui/joy';
 import CloseRounded from '@mui/icons-material/CloseRounded';
 import { useAppDispatch, useIsInCards } from '../lib/hooks';
 import { useModals } from '@/lib/utils';
+import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
+import { useConfigTemplateCreationContext } from '@/lib/hooks';
 
 const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
@@ -43,6 +45,8 @@ const Main = styled('main')(() => ({
 
 export default function Layout() {
   const inCards = useIsInCards();
+  const { templateResource, parentCardKey } =
+    useConfigTemplateCreationContext();
   const { modalOpen, openModal, closeModal } = useModals({
     card: false,
     cardTypes: false,
@@ -54,6 +58,7 @@ export default function Layout() {
     reports: false,
     templates: false,
     workflows: false,
+    templateCard: false,
   });
   const key = useOptionalKeyParam();
 
@@ -119,6 +124,12 @@ export default function Layout() {
       <NewTemplateModal
         open={modalOpen.templates}
         onClose={closeModal('templates')}
+      />
+      <NewTemplateCardModal
+        open={modalOpen.templateCard}
+        onClose={closeModal('templateCard')}
+        templateResource={templateResource}
+        parentCardKey={parentCardKey}
       />
       <NewWorkflowModal
         open={modalOpen.workflows}
