@@ -21,22 +21,21 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-
-import { Project } from '../containers/project.js';
-import { sortItems } from '../utils/lexorank.js';
+import { spawn } from 'node:child_process';
 
 import type {
   Card,
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
-import type { QueryResult } from '../types/queries.js';
 import type { CardType } from '../interfaces/resource-interfaces.js';
-import type { Show } from './index.js';
-import { generateReportContent } from '../utils/report.js';
-import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
-import { spawn } from 'node:child_process';
 import { evaluateMacros } from '../macros/index.js';
 import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
+import { generateReportContent } from '../utils/report.js';
+import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
+import { Project } from '../containers/project.js';
+import type { QueryResult } from '../types/queries.js';
+import type { Show } from './index.js';
+import { sortItems } from '../utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
 
