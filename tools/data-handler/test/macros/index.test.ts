@@ -42,7 +42,7 @@ class TestMacro extends BaseMacro {
     );
   }
 
-  handleValidate = (data: { content: string }) => {
+  handleValidate = (_: MacroGenerationContext, data: { content: string }) => {
     return 'test-static: ' + data.content;
   };
 

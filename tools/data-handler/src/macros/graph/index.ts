@@ -19,6 +19,7 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { resourceName } from '../../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
 import { validateJson } from '../../utils/validate.js';
@@ -35,55 +36,23 @@ class ReportMacro extends BaseMacro {
     super(macroMetadata, tasksQueue);
   }
 
-  handleValidate = (input: unknown) => {
-    this.parseOptions(input);
+  handleValidate = (context: MacroGenerationContext, input: unknown) => {
+    this.parseOptions(input, context);
   };
 
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
-    const resourceNameToPath = (name: string, fileName: string) => {
-      const { identifier, prefix, type } = resourceName(name);
-      if (prefix === context.project.projectPrefix) {
-        return join(
-          context.project.paths.resourcesFolder,
-          type,
-          identifier,
-          fileName,
-        );
-      }
-      return join(
-        context.project.paths.modulesFolder,
-        prefix,
-        type,
-        identifier,
-        fileName,
-      );
-    };
+    const options = this.parseOptions(input, context);
 
-    const options = this.parseOptions(input);
-
-    let schema: Schema | null = null;
-    try {
-      schema = JSON.parse(
-        await readFile(
-          resourceNameToPath(options.view, 'parameterSchema.json'),
-          { encoding: 'utf-8' },
-        ),
-      );
-    } catch (err) {
-      this.logger.trace(
-        err,
-        'Graph schema not found or failed to read, skipping validation',
-      );
-    }
-
-    if (schema) {
-      validateJson(options, {
-        schema,
-      });
-    }
-
-    const modelLocation = resourceNameToPath(options.model, 'model.lp');
-    const viewLocation = resourceNameToPath(options.view, 'view.lp.hbs');
+    const modelLocation = this.resolveResourcePath(
+      context,
+      options.model,
+      'model.lp',
+    );
+    const viewLocation = this.resolveResourcePath(
+      context,
+      options.view,
+      'view.lp.hbs',
+    );
 
     if (!pathExists(modelLocation)) {
       throw new Error(`Graph: Model ${options.model} does not exist`);
@@ -128,8 +97,59 @@ class ReportMacro extends BaseMacro {
     return createImage(result);
   };
 
-  private parseOptions(input: unknown): GraphOptions {
-    return validateMacroContent<GraphOptions>(this.metadata, input);
+  private parseOptions(
+    input: unknown,
+    context: MacroGenerationContext,
+  ): GraphOptions {
+    const options = validateMacroContent<GraphOptions>(this.metadata, input);
+
+    let schema: Schema | null = null;
+    try {
+      schema = JSON.parse(
+        readFileSync(
+          this.resolveResourcePath(
+            context,
+            options.view,
+            'parameterSchema.json',
+          ),
+          { encoding: 'utf-8' },
+        ),
+      );
+    } catch (err) {
+      this.logger.trace(
+        err,
+        'Graph schema not found or failed to read, skipping validation',
+      );
+    }
+
+    if (schema) {
+      validateJson(options, { schema });
+    }
+
+    return options;
+  }
+
+  private resolveResourcePath(
+    context: MacroGenerationContext,
+    name: string,
+    fileName: string,
+  ): string {
+    const { identifier, prefix, type } = resourceName(name);
+    if (prefix === context.project.projectPrefix) {
+      return join(
+        context.project.paths.resourcesFolder,
+        type,
+        identifier,
+        fileName,
+      );
+    }
+    return join(
+      context.project.paths.modulesFolder,
+      prefix,
+      type,
+      identifier,
+      fileName,
+    );
   }
 }
 
