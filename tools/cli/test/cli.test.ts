@@ -2,9 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { exec } from 'child_process';
-import { log } from 'console';
-import { rmSync } from 'fs';
+import { exec } from 'node:child_process';
+import { rmSync } from 'node:fs';
 
 const cliPath = '../../.tmp/cyberismo-cli';
 
@@ -25,11 +24,11 @@ describe('Cli BAT test', function () {
       `cd ../../module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         // If test is about to fail, show the all of the errors in the log.
         if (!stdout.includes('Project structure validated')) {
-          log(stdout);
+          console.log(stdout);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -42,7 +41,7 @@ describe('Cli BAT test', function () {
       'cd ../../.tmp&&cyberismo create project "CLI Basic Acceptance Test" bat cyberismo-cli&&cd cyberismo-cli&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -55,7 +54,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cp -r ../../module-test module-test&&cyberismo import module ./module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -83,7 +82,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create card test/templates/page ${pageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Created cards');
@@ -112,7 +111,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create workflow workflowTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -126,7 +125,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create cardType cardTypeTest bat/workflows/workflowTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -140,7 +139,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create fieldType fieldTypeTest number&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -154,7 +153,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create linkType linkTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -168,7 +167,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create template templateTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -182,7 +181,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo add bat/templates/templateTest bat/cardTypes/cardTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('was added to the template');
@@ -196,7 +195,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create card bat/templates/templateTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Created cards');
@@ -211,7 +210,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cp ../../tools/cli/test/cyberismo.png ./cyberismo.png&&cyberismo create attachment ${newPageCardKey} ./cyberismo.png&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -225,7 +224,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo create link ${pageCardKey} ${newPageCardKey} bat/linkTypes/linkTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -239,7 +238,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo move ${decisionCardKey} ${newPageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -253,7 +252,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo rank card ${pageCardKey} ${newPageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -267,7 +266,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo export adoc ${newPageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Project structure validated');
@@ -282,11 +281,11 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo export pdf ./test.pdf ${newPageCardKey} -r -t "Test Doc" -n "BAT" -d 2024-01-01 -v 1.0.0 -m "Initial version"&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         // If test is about to fail, show the all of the errors in the log.
         if (!stdout.includes('Content exported as PDF to ./test.pdf')) {
-          log(stdout);
+          console.log(stdout);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Content exported as PDF to ./test.pdf');
@@ -300,7 +299,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo export site ./out&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Exported site to');
@@ -318,7 +317,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cp ../../tools/assets/src/calculations/queries/tree.lp ./tree.lp&&cyberismo calc run ./tree.lp &&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include(decisionCardKey);
@@ -334,7 +333,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove attachment ${newPageCardKey} cyberismo.png&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -348,7 +347,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo rename cli&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -367,7 +366,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove link ${pageCardKey} ${newPageCardKey} cli/linkTypes/linkTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -381,7 +380,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove card ${newPageCardKey}&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -395,7 +394,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove template cli/templates/templateTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -409,7 +408,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove cardType cli/cardTypes/cardTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -423,7 +422,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove workflow cli/workflows/workflowTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -437,7 +436,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove linkType cli/linkTypes/linkTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
