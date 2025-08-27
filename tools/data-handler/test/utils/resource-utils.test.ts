@@ -118,6 +118,14 @@ describe('resource utils with Project instance', () => {
         },
         `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
       ],
+      [
+        {
+          prefix: project.projectPrefix,
+          type: 'calculations',
+          identifier: 'test',
+        },
+        `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
+      ],
     ]);
 
     for (const name of validNames) {

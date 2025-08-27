@@ -10,6 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { ReactCodeMirrorProps } from '@uiw/react-codemirror';
+
 export const MAX_RECENTS_STORED = 20;
 
 // These are resources that can be created from the toolbar
@@ -40,3 +42,14 @@ export const DATA_TYPES = [
   'list',
   'person',
 ] as const;
+
+export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
+  basicSetup: {
+    lineNumbers: false,
+  },
+  style: {
+    border: '1px solid',
+    borderColor: 'rgba(0,0,0,0.23)',
+    borderRadius: 4,
+  },
+};

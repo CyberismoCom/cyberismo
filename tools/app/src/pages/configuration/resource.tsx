@@ -12,24 +12,27 @@
 */
 
 import { useResourceTree } from '@/lib/api';
-import { ResourceNode } from '@/lib/api/types';
+import { NodeType, ResourceNode, CalculationNode } from '@/lib/api/types';
 import { useParams } from 'react-router';
 import {
   TextEditor,
   ResourceEditor,
   ConfigCardEditor,
+  CalculationEditor,
 } from '@/components/config-editors';
 import { useTranslation } from 'react-i18next';
 import { findResourceNodeByName } from '@/lib/utils';
 
-const resourceMap: Record<string, (node: ResourceNode) => React.ReactNode> = {
+const resourceMap: Partial<
+  Record<NodeType, (node: ResourceNode) => React.ReactNode>
+> = {
   file: (node) => <TextEditor node={node} />,
   graphModels: (node) => <ResourceEditor node={node} />,
   graphViews: (node) => <ResourceEditor node={node} />,
   reports: (node) => <ResourceEditor node={node} />,
   templates: (node) => <ResourceEditor node={node} />,
   workflows: (node) => <ResourceEditor node={node} />,
-  calculations: (node) => <ResourceEditor node={node} />,
+  calculations: (node) => <CalculationEditor node={node as CalculationNode} />,
   cardTypes: (node) => <ResourceEditor node={node} />,
   fieldTypes: (node) => <ResourceEditor node={node} />,
   linkTypes: (node) => <ResourceEditor node={node} />,
@@ -71,9 +74,10 @@ export default function Resource() {
     );
   }
 
-  if (!resourceMap[node.type]) {
+  const renderer = resourceMap[node.type];
+  if (!renderer) {
     return <div>Type {node.type} not implemented</div>;
   }
 
-  return resourceMap[node.type](node);
+  return renderer(node);
 }

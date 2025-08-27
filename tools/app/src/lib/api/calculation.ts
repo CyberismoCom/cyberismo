@@ -21,3 +21,9 @@ export const createCalculation = async (data: CreateCalculationData) => {
   mutate(apiPaths.calculations());
   mutate(apiPaths.resourceTree());
 };
+
+export const updateCalculation = async (name: string, content: string) => {
+  await callApi(apiPaths.calculation(name), 'PUT', { content });
+  mutate(apiPaths.calculations());
+  mutate(apiPaths.resourceTree());
+};
