@@ -23,13 +23,10 @@ export interface CreateTemplateCardData {
   cardType: string;
 }
 
-interface TemplateCardFormProps
-  extends ResourceFormProps<CreateTemplateCardData> {}
-
 export function TemplateCardForm({
   onSubmit,
   isSubmitting,
-}: TemplateCardFormProps) {
+}: ResourceFormProps<CreateTemplateCardData>) {
   const { t } = useTranslation();
   const { project } = useProject();
 

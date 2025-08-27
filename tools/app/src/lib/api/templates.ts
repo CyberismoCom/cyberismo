@@ -37,7 +37,6 @@ export const createTemplateCard = async (
     'POST',
     { template, cardType, parentKey, count },
   );
-  // refresh resource tree in case UI relies on it
   mutate(apiPaths.resourceTree());
   return result.cards;
 };
