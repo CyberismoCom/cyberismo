@@ -14,11 +14,14 @@ const dirname = path.dirname(fileUrl);
 export async function createTempTestData(
   testDataName: string,
 ): Promise<string> {
-  const sourceDir = path.resolve(
-    dirname,
-    '../../data-handler/test/test-data/valid',
-    testDataName,
-  );
+  const sourceDir =
+    testDataName !== 'module-test'
+      ? path.resolve(
+          dirname,
+          '../../data-handler/test/test-data/valid',
+          testDataName,
+        )
+      : path.resolve(dirname, '../../../module-test');
 
   const tempDir = await mkdtemp(path.join(tmpdir(), 'cyberismo-test-'));
   const tempTestDataDir = path.join(tempDir, testDataName);
