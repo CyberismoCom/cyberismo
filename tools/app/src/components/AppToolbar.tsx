@@ -25,7 +25,11 @@ import {
   MenuItem,
 } from '@mui/joy';
 import { config } from '@/lib/utils';
-import { useIsInCards, useKeyboardShortcut } from '@/lib/hooks';
+import {
+  useIsInCards,
+  useKeyboardShortcut,
+  useConfigTemplateCreationContext,
+} from '@/lib/hooks';
 import { ResourceName, RESOURCES } from '@/lib/constants';
 
 interface AppToolbarProps {
@@ -40,6 +44,7 @@ export function CreateButton({
   type: 'Resource' | 'Card';
 }) {
   const { t } = useTranslation();
+  const { showTemplateCard } = useConfigTemplateCreationContext();
 
   if (type === 'Card') {
     return (
@@ -68,6 +73,11 @@ export function CreateButton({
         {t('toolbar.newResource')}
       </MenuButton>
       <Menu>
+        {type === 'Resource' && showTemplateCard && (
+          <MenuItem onClick={() => onClick('templateCard' as ResourceName)}>
+            {t('templateCard')}
+          </MenuItem>
+        )}
         {RESOURCES.map((resource) => (
           <MenuItem key={resource} onClick={() => onClick(resource)}>
             {t(`newResourceModal.${resource}.name`)}
