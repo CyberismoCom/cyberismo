@@ -83,6 +83,7 @@ import {
 } from '@/lib/utils';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
+import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -622,6 +623,7 @@ export default function CardEditor({
                       />
                     </Box>
                     <CodeMirror
+                      {...CODE_MIRROR_BASE_PROPS}
                       ref={setRef}
                       extensions={extensions}
                       value={contentRef.current}
@@ -632,15 +634,7 @@ export default function CardEditor({
                         }
                         contentRef.current = value;
                       }}
-                      basicSetup={{
-                        lineNumbers: false,
-                      }}
                       readOnly={readOnly}
-                      style={{
-                        border: '1px solid',
-                        borderColor: 'rgba(0,0,0,0.23)',
-                        borderRadius: 4,
-                      }}
                     />
                   </Box>
                   <Box

@@ -103,6 +103,7 @@ export const apiPaths = {
   project: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
   calculations: () => '/api/calculations',
+  calculation: (name: string) => `/api/calculations/${name}`,
   cardTypes: () => '/api/cardTypes',
   fieldTypes: () => '/api/fieldTypes',
   graphModels: () => '/api/graphModels',

@@ -12,10 +12,21 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
+import { resourceName } from '@cyberismo/data-handler';
 
 export async function createCalculation(
   commands: CommandManager,
   fileName: string,
 ) {
   await commands.createCmd.createCalculation(fileName);
+}
+
+export async function updateCalculation(
+  commands: CommandManager,
+  prefix: string,
+  identifier: string,
+  content: string,
+) {
+  const name = resourceName(`${prefix}/calculations/${identifier}`, true);
+  await commands.editCmd.editCalculation(name, content);
 }

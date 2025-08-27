@@ -161,7 +161,7 @@ interface GraphViewNode extends BaseResourceNode {
   data: GraphView;
 }
 
-interface CalculationNode extends BaseResourceNode {
+export interface CalculationNode extends BaseResourceNode {
   type: 'calculations';
   data: CalculationMetadata;
 }

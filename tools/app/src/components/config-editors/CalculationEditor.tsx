@@ -12,35 +12,30 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { ResourceNode } from '@/lib/api/types';
-import { useResourceFileContent } from '@/lib/api';
+import { CalculationNode } from '@/lib/api/types';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
+import { updateCalculation } from '@/lib/api/calculation';
 import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
 
-export function TextEditor({ node }: { node: ResourceNode }) {
-  const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
-    useResourceFileContent(node.name);
+export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [content, setContent] = useState(resourceFileContent.content);
+  const [calculation, setCalculation] = useState(node.data.calculation);
 
   useEffect(() => {
-    setContent(resourceFileContent.content);
-  }, [resourceFileContent]);
+    setCalculation(node.data.calculation);
+  }, [node.data.calculation]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
   return (
     <BaseEditor
       node={node}
       onUpdate={async () => {
         try {
-          await updateFileContent(content);
+          await updateCalculation(node.name, calculation);
           dispatch(
             addNotification({
               message: t('saveFile.success'),
@@ -56,13 +51,13 @@ export function TextEditor({ node }: { node: ResourceNode }) {
           );
         }
       }}
-      isUpdating={isUpdating()}
+      isUpdating={false}
     >
       <CodeMirror
         {...CODE_MIRROR_BASE_PROPS}
         readOnly={node.readOnly}
-        value={content}
-        onChange={(value) => setContent(value)}
+        value={calculation}
+        onChange={(value) => setCalculation(value)}
       />
     </BaseEditor>
   );

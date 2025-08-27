@@ -211,7 +211,11 @@ export class ResourceObject extends AbstractResource {
           );
         }
 
-        const filename = join(calculation.path, basename(calculation.name));
+        const filename = join(
+          calculation.path,
+          basename(calculation.name) + '.lp',
+        );
+
         try {
           const content = await readFile(filename, 'utf-8');
           const updatedContent = content.replaceAll(from, to);
