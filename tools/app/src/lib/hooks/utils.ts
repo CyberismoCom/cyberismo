@@ -343,7 +343,7 @@ function findTemplateForCard(
 ): string | null {
   function dfs(node: ResourceNode, ancestors: ResourceNode[]): string | null {
     const newAncestors = [...ancestors, node];
-    if (node.type === 'card' && (node as any).id === cardKey) {
+    if (node.type === 'card' && node.id === cardKey) {
       // Walk ancestors backwards to find a 'templates' node
       for (let i = newAncestors.length - 1; i >= 0; i--) {
         const anc = newAncestors[i];

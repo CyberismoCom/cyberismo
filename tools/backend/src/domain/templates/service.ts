@@ -36,7 +36,6 @@ export async function addTemplateCard(
   parentKey?: string,
   count: number = 1,
 ) {
-  // support both full resource name and bare identifier
   const { identifier, type } = resourceName(template);
   if (type !== 'templates') {
     throw new Error('Invalid template resource');
