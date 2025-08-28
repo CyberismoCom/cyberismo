@@ -94,6 +94,13 @@ export default class ImageMacro extends BaseMacro {
       throw new Error(`Card '${cardKey}' not found`);
     }
 
+    const attachmentPath = join(attachmentFolder, options.fileName);
+    if (!existsSync(attachmentPath)) {
+      throw new Error(
+        `Attachment file '${options.fileName}' not found in card '${cardKey}'`,
+      );
+    }
+
     // Build image attributes
     const attributes = this.buildImageAttributes(options);
 
