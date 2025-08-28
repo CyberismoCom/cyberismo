@@ -55,12 +55,8 @@ export function formatValue(value: unknown): string {
     if (Array.isArray(value)) {
       return value.map((v) => formatValue(v)).join(', ');
     }
-    if (
-      value != null &&
-      'displayValue' in value &&
-      typeof value.displayValue === 'string'
-    ) {
-      return value.displayValue;
+    if (value != null && 'value' in value && typeof value.value === 'string') {
+      return formatValue(value.value);
     }
     return JSON.stringify(value, null, 2);
   }
