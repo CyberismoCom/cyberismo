@@ -11,6 +11,7 @@
 */
 
 import { ReactCodeMirrorProps } from '@uiw/react-codemirror';
+import type { TextareaProps } from '@mui/joy';
 
 export const MAX_RECENTS_STORED = 20;
 
@@ -51,5 +52,14 @@ export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
     border: '1px solid',
     borderColor: 'rgba(0,0,0,0.23)',
     borderRadius: 4,
+  },
+};
+
+// Default styling configuration for title input fields
+export const TITLE_FIELD_PROPS: Pick<TextareaProps, 'sx'> = {
+  sx: {
+    marginBottom: '10px',
+    fontWeight: 'bold',
+    fontSize: '1.8rem',
   },
 };

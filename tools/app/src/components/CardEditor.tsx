@@ -83,7 +83,7 @@ import {
 } from '@/lib/utils';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
-import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
+import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -604,11 +604,7 @@ export default function CardEditor({
                       control={control}
                       render={({ field: { value, onChange } }) => (
                         <Textarea
-                          sx={{
-                            marginBottom: '10px',
-                            fontWeight: 'bold',
-                            fontSize: '1.8rem',
-                          }}
+                          {...TITLE_FIELD_PROPS}
                           value={value as string}
                           onChange={onChange}
                         />

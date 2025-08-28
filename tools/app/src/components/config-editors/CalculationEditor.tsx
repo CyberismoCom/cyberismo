@@ -19,16 +19,19 @@ import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { updateCalculation } from '@/lib/api/calculation';
-import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
+import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
+import { Textarea } from '@mui/joy';
 
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const [calculation, setCalculation] = useState(node.data.calculation);
+  const [title, setTitle] = useState(node.data.displayName);
 
   useEffect(() => {
     setCalculation(node.data.calculation);
-  }, [node.data.calculation]);
+    setTitle(node.data.displayName);
+  }, [node.data]);
 
   return (
     <BaseEditor
@@ -53,6 +56,11 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
       }}
       isUpdating={false}
     >
+      <Textarea
+        {...TITLE_FIELD_PROPS}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
       <CodeMirror
         {...CODE_MIRROR_BASE_PROPS}
         readOnly={node.readOnly}
