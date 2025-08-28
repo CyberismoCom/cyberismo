@@ -19,11 +19,25 @@ toc::[]
      "title": "only"
   {{/include}}
 [horizontal]
-  {{#each this}}
-  {{#if (isCustomField @key)}}
-  {{@key}}:: {{formatValue this}}
+  Card key:: {{this.key}}
+  Card type:: {{#if this.cardTypeDisplayName}}{{this.cardTypeDisplayName}}{{else}}{{this.cardType}}{{/if}}
+  Last modified:: {{this.lastUpdated}}
+  {{#if this.labels}}
+  Labels:: {{#each this.labels}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
   {{/if}}
+  {{#each this.fields}}
+  {{fieldDisplayName}}:: {{formatValue value}}
   {{/each}}
+{empty} +
+{{#if this.links}}
+[discrete]  
+==== Linked cards
+
+{{#each this.links}}
+{{this.displayName}}:: xref:{{this.key}}[{{this.title}}]{{#if this.linkDescription}} - {{this.linkDescription}}{{/if}}
+{{/each}}
+{{/if}}
+{empty} +
 {{#include}}
     "cardKey": "{{this.key}}",
     "levelOffset": "{{this.levelOffset}}",
