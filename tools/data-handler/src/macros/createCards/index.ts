@@ -48,6 +48,11 @@ class CreateCardsMacro extends BaseMacro {
     return createHtmlPlaceholder(this.metadata, options);
   };
 
+  handleExportSite = async () => {
+    // export site does not support createCards
+    return '';
+  };
+
   private validate(input: unknown): CreateCardsOptions {
     return validateMacroContent<CreateCardsOptions>(this.metadata, input);
   }

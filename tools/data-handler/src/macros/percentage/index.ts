@@ -42,10 +42,6 @@ class PercentageMacro extends BaseMacro {
     );
   };
 
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
-  };
-
   private validate(input: unknown): PercentageOptions {
     return validateMacroContent<PercentageOptions>(this.metadata, input);
   }
