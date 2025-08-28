@@ -118,20 +118,26 @@ describe('resource utils with Project instance', () => {
         },
         `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
       ],
-      [
-        {
-          prefix: project.projectPrefix,
-          type: 'calculations',
-          identifier: 'test',
-        },
-        `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
-      ],
     ]);
 
     for (const name of validNames) {
       const resultPath = resourceNameToPath(project, name[0]);
       expect(resultPath).to.equal(name[1]);
     }
+  });
+  it('resourceNameToPath with custom extension', () => {
+    const resultPath = resourceNameToPath(
+      project,
+      {
+        prefix: project.projectPrefix,
+        type: 'calculations',
+        identifier: 'test',
+      },
+      '.lp',
+    );
+    expect(resultPath).to.equal(
+      `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
+    );
   });
   it('resourceNameToPath with empty prefix throws', () => {
     expect(() =>
