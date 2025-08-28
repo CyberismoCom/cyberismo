@@ -396,6 +396,89 @@ Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
 }
 
 /**
+ * N-API function exposed to JavaScript as `getProgram`.
+ * Assembles a complete logic program by combining the main program with stored base programs.
+ * This function provides the same program assembly logic as `solve` but returns the complete
+ * program text instead of executing it.
+ * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
+ * @returns A Napi::String containing the complete assembled logic program.
+ * @throws Napi::TypeError if arguments are invalid.
+ */
+Napi::Value GetProgram(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+
+    // Check arguments
+    if (info.Length() < 1 || !info[0].IsString())
+    {
+        throw Napi::TypeError::New(env, "String argument expected for program");
+    }
+
+    // Get the main program string
+    std::string mainProgram = info[0].As<Napi::String>().Utf8Value();
+
+    // Build the complete program string
+    std::ostringstream completeProgram;
+
+    // Apply base programs if specified
+    if (info.Length() >= 2)
+    {
+        if (!info[1].IsArray())
+        {
+            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
+        }
+
+        // Track which programs have already been added to prevent duplicates
+        std::set<std::string> addedPrograms;
+        std::set<std::string> refs;
+
+        Napi::Array arr = info[1].As<Napi::Array>();
+
+        for (uint32_t i = 0; i < arr.Length(); ++i)
+        {
+            Napi::Value val = arr[i];
+            if (!val.IsString())
+            {
+                throw Napi::TypeError::New(env, "All refs must be strings");
+            }
+            std::string ref = val.As<Napi::String>().Utf8Value();
+            refs.insert(ref);
+        }
+
+        for (const auto& ref : refs)
+        {
+            auto it = g_programs.find(ref);
+            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
+            {
+                completeProgram << "% Program: " << ref << "\n";
+                completeProgram << it->second.content << "\n\n";
+                addedPrograms.insert(ref);
+                // no need to check other refs, as ref was a program, not a category
+                continue;
+            }
+
+            // If no direct match, check categories
+            for (const auto& [key, prog] : g_programs)
+            {
+                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
+                    addedPrograms.find(key) == addedPrograms.end())
+                {
+                    completeProgram << "% Program: " << key << " (category: " << ref << ")\n";
+                    completeProgram << prog.content << "\n\n";
+                    addedPrograms.insert(key);
+                }
+            }
+        }
+    }
+
+    // Add the main program last
+    completeProgram << "% Main program\n";
+    completeProgram << mainProgram;
+
+    return Napi::String::New(env, completeProgram.str());
+}
+
+/**
  * N-API function exposed to JavaScript as `solve`.
  * Solves a given logic program, optionally combining it with stored base programs.
  * Handles grounding with external functions and collects answer sets.
@@ -571,6 +654,8 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports.Set(Napi::String::New(env, "solve"), Napi::Function::New(env, Solve));
+
+    exports.Set(Napi::String::New(env, "getProgram"), Napi::Function::New(env, GetProgram));
 
     exports.Set(Napi::String::New(env, "setProgram"), Napi::Function::New(env, SetProgram));
 
