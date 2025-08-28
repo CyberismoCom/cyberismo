@@ -798,6 +798,22 @@ Some content here`;
           'image::/api/cards/decision_1/a/the-needle.heic[alt="Test image",title="A test needle image"]',
         );
       });
+      for (const mode of ['static', 'inject', 'staticSite'] as const) {
+        it(`imageMacro with non-existent fileName should report macro error (${mode} mode)`, async () => {
+          const missingFile = 'non-existent-file-123.png';
+          const macro = `{{#image}}"fileName": "${missingFile}"{{/image}}`;
+          const result = await evaluateMacros(macro, {
+            mode,
+            project: project,
+            cardKey: 'decision_1',
+            context: 'localApp',
+          });
+
+          expect(result).to.contain('.Macro Error');
+          expect(result).to.contain(missingFile);
+          expect(result.toLowerCase()).to.contain('not found in card');
+        });
+      }
       it('imageMacro inject mode with non-existent card should return warning message', async () => {
         const macro = `{{#image}}"fileName": "any.png", "cardKey": "non-existent-card"{{/image}}`;
         const result = await evaluateMacros(macro, {
