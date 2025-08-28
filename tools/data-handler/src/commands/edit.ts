@@ -37,6 +37,44 @@ export class Edit {
   }
 
   /**
+   * Updates a calculation file.
+   * @param resourceName The name of the resource to update.
+   * @param changedContent The new content for the calculation.
+   */
+  public async editCalculation(
+    resourceName: ResourceName,
+    changedContent: string,
+  ) {
+    if (resourceName.prefix !== this.project.projectPrefix) {
+      throw new Error(
+        `Resource '${resourceName.identifier}' is not a local resource`,
+      );
+    }
+    const resourceNameStr = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameStr,
+      ))
+    ) {
+      throw new Error(
+        `Resource '${resourceNameStr}' does not exist in the project`,
+      );
+    }
+    await writeFile(
+      join(
+        this.project.paths.calculationProjectFolder,
+        resourceName.identifier + '.lp',
+      ),
+      changedContent,
+      {
+        encoding: 'utf-8',
+        flag: 'r+',
+      },
+    );
+  }
+
+  /**
    * Opens the content and metadata files for a card in the code editor
    * @param cardKey - The key of the card to open. Required.
    */
@@ -162,43 +200,5 @@ export class Edit {
       throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
     }
     return resource.updateFile(fileName, changedContent);
-  }
-
-  /**
-   * Updates a calculation file.
-   * @param resourceName The name of the resource to update.
-   * @param changedContent The new content for the calculation.
-   */
-  public async editCalculation(
-    resourceName: ResourceName,
-    changedContent: string,
-  ) {
-    if (resourceName.prefix !== this.project.projectPrefix) {
-      throw new Error(
-        `Resource '${resourceName.identifier}' is not a local resource`,
-      );
-    }
-    const resourceNameStr = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameStr,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
-      );
-    }
-    await writeFile(
-      join(
-        this.project.paths.calculationProjectFolder,
-        resourceName.identifier + '.lp',
-      ),
-      changedContent,
-      {
-        encoding: 'utf-8',
-        flag: 'r+',
-      },
-    );
   }
 }
