@@ -236,9 +236,7 @@ export class ResourceCollector {
             entry.isFile() && allowedExtensions.includes(extname(entry.name)),
         )
         .map((entry) => {
-          if (entry.name.endsWith('.json')) {
-            entry.name = stripExtension(entry.name);
-          }
+          entry.name = stripExtension(entry.name);
           return {
             name: `${this.project.projectPrefix}/${type}/${entry.name}`,
             path: entry.parentPath,

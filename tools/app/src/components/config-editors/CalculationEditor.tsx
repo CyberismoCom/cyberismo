@@ -12,35 +12,33 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { ResourceNode } from '@/lib/api/types';
-import { useResourceFileContent } from '@/lib/api';
+import { CalculationNode } from '@/lib/api/types';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
+import { updateCalculation } from '@/lib/api/calculation';
+import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
+import { Textarea } from '@mui/joy';
 
-export function TextEditor({ node }: { node: ResourceNode }) {
-  const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
-    useResourceFileContent(node.name);
+export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [content, setContent] = useState(resourceFileContent.content);
+  const [calculation, setCalculation] = useState(node.data.calculation);
+  const [title, setTitle] = useState(node.data.displayName);
 
   useEffect(() => {
-    setContent(resourceFileContent.content);
-  }, [resourceFileContent]);
+    setCalculation(node.data.calculation);
+    setTitle(node.data.displayName);
+  }, [node.data]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
   return (
     <BaseEditor
       node={node}
       onUpdate={async () => {
         try {
-          await updateFileContent(content);
+          await updateCalculation(node.name, calculation);
           dispatch(
             addNotification({
               message: t('saveFile.success'),
@@ -56,13 +54,18 @@ export function TextEditor({ node }: { node: ResourceNode }) {
           );
         }
       }}
-      isUpdating={isUpdating()}
+      isUpdating={false}
     >
+      <Textarea
+        {...TITLE_FIELD_PROPS}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
       <CodeMirror
         {...CODE_MIRROR_BASE_PROPS}
         readOnly={node.readOnly}
-        value={content}
-        onChange={(value) => setContent(value)}
+        value={calculation}
+        onChange={(value) => setCalculation(value)}
       />
     </BaseEditor>
   );
