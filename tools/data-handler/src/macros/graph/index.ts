@@ -40,10 +40,6 @@ class ReportMacro extends BaseMacro {
   };
 
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleInject(context, input);
-  };
-
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const resourceNameToPath = (name: string, fileName: string) => {
       const { identifier, prefix, type } = resourceName(name);
       if (prefix === context.project.projectPrefix) {

@@ -43,10 +43,6 @@ class ScoreCardMacro extends BaseMacro {
     );
   };
 
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
-  };
-
   private validate(input: unknown): ScoreCardOptions {
     return validateMacroContent<ScoreCardOptions>(this.metadata, input);
   }
