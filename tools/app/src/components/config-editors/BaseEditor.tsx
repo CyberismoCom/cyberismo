@@ -39,7 +39,7 @@ export default function BaseEditor({
         isUpdating={isUpdating}
         enabled={enabled}
       />
-      <Stack flexGrow={1} minHeight={0} padding={3}>
+      <Stack flexGrow={1} minHeight={0} padding={3} sx={{ overflow: 'auto' }}>
         {children}
       </Stack>
     </Stack>
