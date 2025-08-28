@@ -20,6 +20,7 @@ import {
   ConfigCardEditor,
 } from '@/components/config-editors';
 import { useTranslation } from 'react-i18next';
+import { findResourceNodeByName } from '@/lib/utils';
 
 const resourceMap: Record<string, (node: ResourceNode) => React.ReactNode> = {
   file: (node) => <TextEditor node={node} />,
@@ -43,16 +44,7 @@ function findNode(
   file?: string,
 ): ResourceNode | null {
   const name = `${module}/${type}/${resource}${file ? `/${file}` : ''}`;
-  for (const node of resourceTree) {
-    const found = findNode(node.children || [], module, type, resource, file);
-    if (found) {
-      return found;
-    }
-    if (node.name === name) {
-      return node;
-    }
-  }
-  return null;
+  return findResourceNodeByName(resourceTree, name);
 }
 
 export default function Resource() {

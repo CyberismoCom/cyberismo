@@ -15,13 +15,24 @@ import { useResourceTree } from '@/lib/api';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { ConfigTreeNode } from './tree-nodes';
 import { useProject } from '@/lib/api/project';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { findResourceNodeByName } from '@/lib/utils';
 
 export default function ConfigMenu() {
   const { resourceTree } = useResourceTree();
   const { project } = useProject();
 
   const navigate = useNavigate();
+  const { module, type, resource, file } = useParams();
+
+  const selectedName =
+    module && type && resource
+      ? `${module}/${type}/${resource}${file ? `/${file}` : ''}`
+      : null;
+  const selectedId =
+    selectedName && resourceTree
+      ? findResourceNodeByName(resourceTree, selectedName)?.id
+      : undefined;
 
   return (
     <BaseTreeComponent
@@ -29,6 +40,7 @@ export default function ConfigMenu() {
       linkTo="/configuration"
       data={resourceTree}
       nodeRenderer={ConfigTreeNode}
+      selectedId={selectedId}
       idAccessor="id"
       childrenAccessor="children"
       onNodeClick={(node) => {
