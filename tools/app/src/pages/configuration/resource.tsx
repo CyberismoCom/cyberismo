@@ -24,19 +24,21 @@ import { useTranslation } from 'react-i18next';
 import { findResourceNodeByName } from '@/lib/utils';
 
 const resourceMap: Partial<
-  Record<NodeType, (node: ResourceNode) => React.ReactNode>
+  Record<NodeType, (node: ResourceNode, key: string) => React.ReactNode>
 > = {
-  file: (node) => <TextEditor node={node} />,
-  graphModels: (node) => <ResourceEditor node={node} />,
+  file: (node, key) => <TextEditor node={node} key={key} />,
+  graphModels: (node, key) => <ResourceEditor node={node} key={key} />,
   graphViews: (node) => <ResourceEditor node={node} />,
-  reports: (node) => <ResourceEditor node={node} />,
-  templates: (node) => <ResourceEditor node={node} />,
-  workflows: (node) => <ResourceEditor node={node} />,
-  calculations: (node) => <CalculationEditor node={node as CalculationNode} />,
-  cardTypes: (node) => <ResourceEditor node={node} />,
-  fieldTypes: (node) => <ResourceEditor node={node} />,
-  linkTypes: (node) => <ResourceEditor node={node} />,
-  card: (node) => <ConfigCardEditor node={node} />,
+  reports: (node, key) => <ResourceEditor node={node} key={key} />,
+  templates: (node, key) => <ResourceEditor node={node} key={key} />,
+  workflows: (node, key) => <ResourceEditor node={node} key={key} />,
+  calculations: (node, key) => (
+    <CalculationEditor node={node as CalculationNode} key={key} />
+  ),
+  cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
+  fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,
+  linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
+  card: (node, key) => <ConfigCardEditor node={node} key={key} />,
 };
 
 function findNode(
@@ -79,5 +81,5 @@ export default function Resource() {
     return <div>Type {node.type} not implemented</div>;
   }
 
-  return renderer(node);
+  return renderer(node, node.name);
 }

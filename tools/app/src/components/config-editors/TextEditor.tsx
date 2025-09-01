@@ -56,7 +56,7 @@ export function TextEditor({ node }: { node: ResourceNode }) {
           );
         }
       }}
-      isUpdating={isUpdating()}
+      loading={isUpdating()}
     >
       <CodeMirror
         {...CODE_MIRROR_BASE_PROPS}

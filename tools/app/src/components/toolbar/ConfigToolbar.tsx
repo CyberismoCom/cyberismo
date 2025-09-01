@@ -20,16 +20,20 @@ import { ConfigContextMenu } from '../context-menus';
 interface ConfigToolbarProps {
   node: ResourceNode;
   onUpdate?: () => void;
-  isUpdating?: boolean;
+  onCancel?: () => void;
   enabled?: {
     delete?: boolean;
   };
+  disabled?: boolean;
+  loading?: boolean;
 }
 
 export function ConfigToolbar({
   node,
   onUpdate,
-  isUpdating = false,
+  onCancel,
+  loading = false,
+  disabled = false,
   enabled,
 }: ConfigToolbarProps) {
   const { t } = useTranslation();
@@ -71,6 +75,20 @@ export function ConfigToolbar({
 
   const actions = (
     <>
+      {onCancel && (
+        <Button
+          id="cancelButton"
+          variant="plain"
+          aria-label="cancel"
+          size="sm"
+          color="neutral"
+          style={{ marginLeft: 8, minWidth: 80 }}
+          onClick={onCancel}
+          disabled={disabled || loading}
+        >
+          {t('cancel')}
+        </Button>
+      )}
       {onUpdate && !node.readOnly && (
         <Button
           variant="solid"
@@ -79,8 +97,8 @@ export function ConfigToolbar({
           data-cy="updateButton"
           style={{ marginLeft: 8, minWidth: 80 }}
           onClick={onUpdate}
-          loading={isUpdating}
-          disabled={isUpdating}
+          loading={loading}
+          disabled={disabled}
         >
           {t('update')}
         </Button>

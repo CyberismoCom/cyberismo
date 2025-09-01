@@ -13,59 +13,86 @@
 
 import CodeMirror from '@uiw/react-codemirror';
 import { CalculationNode } from '@/lib/api/types';
-import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { updateCalculation } from '@/lib/api/calculation';
+import { useCalculations } from '@/lib/api/calculation';
 import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
 import { Textarea } from '@mui/joy';
+import { Controller, useForm } from 'react-hook-form';
 
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [calculation, setCalculation] = useState(node.data.calculation);
-  const [title, setTitle] = useState(node.data.displayName);
-
-  useEffect(() => {
-    setCalculation(node.data.calculation);
-    setTitle(node.data.displayName);
-  }, [node.data]);
+  const { updateCalculation, isUpdating } = useCalculations();
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isDirty },
+  } = useForm({
+    defaultValues: {
+      calculation: node.data.calculation,
+      displayName: node.data.displayName,
+    },
+  });
 
   return (
     <BaseEditor
       node={node}
-      onUpdate={async () => {
+      onCancel={() =>
+        reset({
+          calculation: node.data.calculation,
+          displayName: node.data.displayName,
+        })
+      }
+      onUpdate={handleSubmit(async (data) => {
         try {
-          await updateCalculation(node.name, calculation);
+          await updateCalculation(node.name, data.calculation);
           dispatch(
             addNotification({
               message: t('saveFile.success'),
               type: 'success',
             }),
           );
+          reset({
+            calculation: data.calculation,
+          });
         } catch (error) {
           dispatch(
             addNotification({
-              message: error instanceof Error ? error.message : '',
+              message:
+                error instanceof Error ? error.message : t('saveFile.error'),
               type: 'error',
             }),
           );
         }
-      }}
-      isUpdating={false}
+      })}
+      loading={isUpdating()}
+      isDirty={isDirty}
     >
-      <Textarea
-        {...TITLE_FIELD_PROPS}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
+      <Controller
+        control={control}
+        name="displayName"
+        render={({ field }) => (
+          <Textarea
+            {...TITLE_FIELD_PROPS}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
-      <CodeMirror
-        {...CODE_MIRROR_BASE_PROPS}
-        readOnly={node.readOnly}
-        value={calculation}
-        onChange={(value) => setCalculation(value)}
+      <Controller
+        control={control}
+        name="calculation"
+        render={({ field }) => (
+          <CodeMirror
+            {...CODE_MIRROR_BASE_PROPS}
+            value={field.value}
+            onChange={field.onChange}
+          />
+        )}
       />
     </BaseEditor>
   );

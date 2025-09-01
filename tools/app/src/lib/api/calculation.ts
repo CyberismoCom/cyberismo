@@ -15,6 +15,7 @@ import { callApi } from '../swr';
 import { apiPaths } from '../swr';
 import { mutate } from 'swr';
 import { CreateCalculationData } from '@/lib/definitions';
+import { useUpdating } from '../hooks';
 
 export const createCalculation = async (data: CreateCalculationData) => {
   await callApi(apiPaths.calculations(), 'POST', data);
@@ -26,4 +27,16 @@ export const updateCalculation = async (name: string, content: string) => {
   await callApi(apiPaths.calculation(name), 'PUT', { content });
   mutate(apiPaths.calculations());
   mutate(apiPaths.resourceTree());
+};
+
+export const useCalculations = () => {
+  const { call, isUpdating } = useUpdating(apiPaths.calculations());
+
+  return {
+    isUpdating: (action?: string) => isUpdating(action),
+    createCalculation: async (data: CreateCalculationData) =>
+      await call(() => createCalculation(data), 'create'),
+    updateCalculation: async (name: string, content: string) =>
+      await call(() => updateCalculation(name, content), 'update'),
+  };
 };
