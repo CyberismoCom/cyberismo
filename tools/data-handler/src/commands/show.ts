@@ -18,6 +18,8 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { MODULE_LIST_FULL_PATH } from './fetch.js';
+
 import mime from 'mime-types';
 
 import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
@@ -26,6 +28,8 @@ import type {
   Card,
   CardListContainer,
   ModuleContent,
+  HubSetting,
+  ModuleSettingFromHub,
   ProjectFetchCardDetails,
   ProjectMetadata,
   Resource,
@@ -53,6 +57,7 @@ import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { FolderResource } from '../resources/folder-resource.js';
+import { readJsonFile } from '../utils/json.js';
 
 /**
  * Show command.
@@ -369,6 +374,51 @@ export class Show {
     }
     return resource.showFileNames();
   }
+
+  /**
+   * Shows importable modules.
+   * @param showAll - When true, shows all importable modules, even if they have already been imported
+   * @param showDetails - When true, shows all properties of modules, not just name.
+   * @returns list of modules; the list content depends on the parameters provided
+   *          by default it is a list of module names that could be imported into the project,
+   *          with 'showDetails' true, instead of name, the list consists of full details of the modules
+   *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
+   *          Note that the two boolean options can be combined.
+   */
+  public async showImportableModules(
+    showAll?: boolean,
+    showDetails?: boolean,
+  ): Promise<ModuleSettingFromHub[]> {
+    try {
+      const moduleList = (
+        await readJsonFile(
+          resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
+        )
+      ).modules;
+      const currentModules = await this.project.modules();
+      const nonImportedModules = moduleList.filter(
+        (item: ModuleSettingFromHub) => {
+          return !currentModules.some((module) => item.name === module.name);
+        },
+      );
+
+      if (showAll && showDetails) {
+        return moduleList;
+      }
+      if (showAll) {
+        return moduleList?.map((item: ModuleSettingFromHub) => item?.name);
+      }
+      if (showDetails) {
+        return nonImportedModules;
+      }
+      // By default return the non-imported modules
+      return nonImportedModules.map((item: ModuleSettingFromHub) => item?.name);
+    } catch {
+      // Module list doesn't exist, return empty list
+      return [];
+    }
+  }
+
   /**
    * Returns all unique labels in a project
    * @returns labels in a list
@@ -404,6 +454,14 @@ export class Show {
       throw new Error(`Module '${moduleName}' does not exist in the project`);
     }
     return moduleDetails;
+  }
+
+  /**
+   * Shows hubs of the project.
+   * @returns list of hubs.
+   */
+  public showHubs(): HubSetting[] {
+    return this.project.configuration.hubs;
   }
 
   /**

@@ -268,6 +268,9 @@ importers:
       '@inquirer/confirm':
         specifier: ^5.1.16
         version: 5.1.16(@types/node@22.18.1)
+      '@inquirer/prompts':
+        specifier: ^7.8.4
+        version: 7.8.4(@types/node@22.15.29)
       cli-progress:
         specifier: ^3.12.0
         version: 3.12.0
@@ -1959,6 +1962,9 @@ packages:
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
+
+  chardet@2.1.0:
+    resolution: {integrity: sha512-bNFETTG/pM5ryzQ9Ad0lJOTa6HWD/YsScAR3EnCPZRPlQh77JocYktSHOUHelyhm8IARL+o4c4F1bP5KVOjiRA==}
 
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
@@ -5340,6 +5346,10 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.18.1
 
+  '@inquirer/type@3.0.8(@types/node@22.15.29)':
+    optionalDependencies:
+      '@types/node': 22.15.29
+
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
@@ -6383,6 +6393,8 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
+
+  chardet@2.1.0: {}
 
   check-error@2.1.1: {}
 

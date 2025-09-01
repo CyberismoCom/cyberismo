@@ -84,24 +84,6 @@ describe('remove command', () => {
       );
       expect(result2.statusCode).to.equal(200);
     });
-
-    it('try remove label - does not exist', async () => {
-      const result2 = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_6'],
-        options,
-      );
-      expect(result2.statusCode).to.equal(400);
-    });
-
-    it('try remove label - card does not exist', async () => {
-      const result2 = await commandHandler.command(
-        Cmd.remove,
-        ['label', 'decision_8', 'test'],
-        options,
-      );
-      expect(result2.statusCode).to.equal(400);
-    });
     /*
     it('remove link (success)', async () => {
       const linkName = 'testLinkName';
@@ -294,14 +276,20 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    it('try to remove workflow that this is still used', async () => {
-      const workflowName = `decision/workflows/decision`;
+    it('remove hub', async () => {
+      // todo: Change to correct one, once CyberismoCom has one.
+      const hub =
+        'https://raw.githubusercontent.com/Fuzzbender/testModuleHub/main/';
+
+      // add hub first, since test data does not have module hubs
+      await commandHandler.command(Cmd.add, ['hub', hub], options);
+      // then remove it
       const result = await commandHandler.command(
         Cmd.remove,
-        ['workflow', workflowName],
+        ['hub', hub],
         options,
       );
-      expect(result.statusCode).to.equal(400);
+      expect(result.statusCode).to.equal(200);
     });
   });
 
@@ -314,7 +302,7 @@ describe('remove command', () => {
     afterEach(() => {
       rmSync(testDir, { recursive: true, force: true });
     });
-    it('remove card - project missing', async () => {
+    it('try to remove card - project missing', async () => {
       const cardId = 'decision_5';
       const invalidProject = { projectPath: 'idontexist' };
       const result = await commandHandler.command(
@@ -324,8 +312,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-
-    it('remove card - card not found', async () => {
+    it('try to remove card - card not found', async () => {
       const cardId = 'decision_999';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -334,7 +321,23 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove linkType - linkType missing', async () => {
+    it('try to remove label - does not exist', async () => {
+      const result2 = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_6'],
+        options,
+      );
+      expect(result2.statusCode).to.equal(400);
+    });
+    it('try to remove label - card does not exist', async () => {
+      const result2 = await commandHandler.command(
+        Cmd.remove,
+        ['label', 'decision_8', 'test'],
+        options,
+      );
+      expect(result2.statusCode).to.equal(400);
+    });
+    it('try to remove linkType - linkType missing', async () => {
       const linkType = 'mini/linkTypes/lt_name';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -343,7 +346,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('try remove link - link not found', async () => {
+    it('try to remove link - link not found', async () => {
       const result = await commandHandler.command(
         Cmd.remove,
         ['link', 'decision_5', 'decision_6', 'does-not-exist'],
@@ -351,7 +354,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove attachment - project missing', async () => {
+    it('try to remove attachment - project missing', async () => {
       const cardId = 'decision_5';
       const attachment = 'the-needle.heic';
       const invalidProject = { projectPath: 'idontexist' };
@@ -362,7 +365,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove attachment - attachment not found', async () => {
+    it('try to remove attachment - attachment not found', async () => {
       const cardId = 'decision_5';
       const attachment = 'i-dont-exist.jpg';
       const result = await commandHandler.command(
@@ -372,7 +375,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove cardType - card type missing', async () => {
+    it('try to remove cardType - card type missing', async () => {
       const cardTypeName = 'decision/cardTypes/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -381,7 +384,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove fieldType - field type missing', async () => {
+    it('try to remove fieldType - field type missing', async () => {
       const fieldTypeName = 'decision/fieldTypes/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -390,7 +393,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove report - report missing', async () => {
+    it('try to remove report - report missing', async () => {
       const reportName = 'decision/reports/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -399,7 +402,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove template - template missing', async () => {
+    it('try to remove template - template missing', async () => {
       const templateName = 'decision/templates/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -408,7 +411,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove template - project missing', async () => {
+    it('try to remove template - project missing', async () => {
       const templateName = 'decision/templates/simplepage';
       const invalidProject = { projectPath: 'i-do-not-exist' };
       const result = await commandHandler.command(
@@ -418,7 +421,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove workflow - workflow missing', async () => {
+    it('try to remove workflow - workflow missing', async () => {
       const workflowName = 'decision/workflows/i-do-not-exist';
       const result = await commandHandler.command(
         Cmd.remove,
@@ -436,7 +439,7 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
-    it('remove() - try to remove non-existing attachment', async () => {
+    it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
       const project = new Project(decisionRecordsPath);
       const removeCmd = new Remove(project);
@@ -449,7 +452,7 @@ describe('remove command', () => {
           expect(true);
         });
     });
-    it('remove() - try to remove attachment from non-existing card', async () => {
+    it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
       const project = new Project(decisionRecordsPath);
       const removeCmd = new Remove(project);
@@ -462,7 +465,7 @@ describe('remove command', () => {
           expect(true);
         });
     });
-    it('remove() - try to remove non-existing module', async () => {
+    it('try to remove non-existing module', async () => {
       const project = new Project(decisionRecordsPath);
       const removeCmd = new Remove(project);
       await removeCmd
@@ -473,6 +476,24 @@ describe('remove command', () => {
         .catch(() => {
           expect(true);
         });
+    });
+    it('try to remove workflow that this is still used', async () => {
+      const workflowName = `decision/workflows/decision`;
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['workflow', workflowName],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    });
+    it('try to remove hub - not existing in the project', async () => {
+      const hub = `https://example.com/nonExisting`;
+      const result = await commandHandler.command(
+        Cmd.remove,
+        ['hub', hub],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
     });
   });
 });

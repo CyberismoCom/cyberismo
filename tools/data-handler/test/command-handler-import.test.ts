@@ -261,7 +261,7 @@ describe('import module', () => {
       const cardKey = '';
       const result = await commandHandler.command(
         Cmd.add,
-        [templateName, cardType, cardKey],
+        ['card', templateName, cardType, cardKey],
         options,
       );
       expect(result.statusCode).to.equal(400);
@@ -273,7 +273,7 @@ describe('import module', () => {
       // try to add new card to decision_2 when 'decision-records' has been imported to 'minimal'
       const result = await commandHandler.command(
         Cmd.add,
-        [templateName, cardType, cardKey],
+        ['card', templateName, cardType, cardKey],
         optionsMini,
       );
       expect(result.statusCode).to.equal(400);

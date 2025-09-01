@@ -65,6 +65,7 @@ export class Create {
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         modules: [],
+        hubs: [],
       },
       name: Project.projectConfigFileName,
     },
@@ -157,6 +158,14 @@ export class Create {
     } else {
       throw new Error('Unknown error');
     }
+  }
+
+  /**
+   * Adds a new hub location.
+   * @param hubUrl URL of the hub
+   */
+  public async addHubLocation(hubUrl: string) {
+    return this.project.configuration.addHub(hubUrl);
   }
 
   /**

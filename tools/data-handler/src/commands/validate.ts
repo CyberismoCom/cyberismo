@@ -606,16 +606,16 @@ export class Validate {
             });
           }
         }
+        // Validate that there are no duplicate card keys
+        for (const [key, count] of cardIds) {
+          if (count > 1) {
+            errorMsg.push(`Duplicate card key '${key}' found ${count} times`);
+          }
+        }
         if (errorMsg.length) {
           validationErrors += errorMsg
             .filter(this.removeDuplicateEntries)
             .join('\n');
-        }
-        // Validate that there are no duplicate card keys
-        for (const [key, count] of cardIds) {
-          if (count > 1) {
-            validationErrors += `Duplicate card key '${key}' found ${count} times\n`;
-          }
         }
       }
     } catch (error) {

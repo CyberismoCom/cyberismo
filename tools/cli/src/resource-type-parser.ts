@@ -84,6 +84,8 @@ abstract class ShowTypes {
     'attachments',
     'card',
     'cards',
+    'hubs',
+    'importableModules',
     'labels',
     'module',
     'project',
@@ -117,6 +119,7 @@ abstract class RemoveTypes {
   private static ResourceLikeTypes = [
     'attachment',
     'card',
+    'hub',
     'label',
     'link',
     'module',

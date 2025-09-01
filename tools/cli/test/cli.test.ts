@@ -38,7 +38,7 @@ describe('Cli BAT test', function () {
   });
   it('Create and validate new project', function (done) {
     exec(
-      'cd ../../.tmp&&cyberismo create project "CLI Basic Acceptance Test" bat cyberismo-cli&&cd cyberismo-cli&&cyberismo validate',
+      'cd ../../.tmp&&cyberismo create project "CLI Basic Acceptance Test" bat cyberismo-cli --skipModuleImport &&cd cyberismo-cli&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);
@@ -178,7 +178,7 @@ describe('Cli BAT test', function () {
   });
   it('Add a card of the new cardtype to the newly created template', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo add bat/templates/templateTest bat/cardTypes/cardTypeTest&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo add card bat/templates/templateTest bat/cardTypes/cardTypeTest&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);

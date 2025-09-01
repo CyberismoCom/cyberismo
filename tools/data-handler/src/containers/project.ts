@@ -681,6 +681,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         modules: moduleConfig.modules,
+        hubs: moduleConfig.hubs,
         path: modulePath,
         cardKeyPrefix: moduleConfig.cardKeyPrefix,
         calculations: [
@@ -1005,6 +1006,7 @@ export class Project extends CardContainer {
       name: this.containerName,
       path: this.basePath,
       prefix: this.projectPrefix,
+      hubs: this.configuration.hubs,
       modules: (await this.modules()).map((item) => item.name),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards
         .length,
