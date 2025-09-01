@@ -21,6 +21,8 @@ import { useCalculations } from '@/lib/api/calculation';
 import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
 import { Textarea } from '@mui/joy';
 import { Controller, useForm } from 'react-hook-form';
+import { useEffect } from 'react';
+import { isEdited } from '@/lib/slices/pageState';
 
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
@@ -37,6 +39,18 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
       displayName: node.data.displayName,
     },
   });
+
+  useEffect(() => {
+    if (isDirty) {
+      dispatch(isEdited(true));
+    }
+  }, [isDirty, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(isEdited(false));
+    };
+  }, [dispatch]);
 
   return (
     <BaseEditor
