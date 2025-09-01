@@ -15,6 +15,7 @@ import {
   Create,
   Edit,
   Export,
+  Fetch,
   Import,
   Move,
   Remove,
@@ -43,6 +44,7 @@ export class CommandManager {
   public createCmd: Create;
   public editCmd: Edit;
   public exportCmd: Export;
+  public fetchCmd: Fetch;
   public importCmd: Import;
   public moveCmd: Move;
   public removeCmd: Remove;
@@ -63,6 +65,7 @@ export class CommandManager {
     this.createCmd = new Create(this.project);
     this.editCmd = new Edit(this.project);
     this.exportCmd = new Export(this.project, this.showCmd);
+    this.fetchCmd = new Fetch(this.project);
     this.importCmd = new Import(this.project, this.createCmd);
     this.moveCmd = new Move(this.project);
     this.removeCmd = new Remove(this.project);

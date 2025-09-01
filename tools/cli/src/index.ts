@@ -12,8 +12,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
 import { Argument, Command, Option } from 'commander';
 import confirm from '@inquirer/confirm';
+import { checkbox, select } from '@inquirer/prompts';
 import dotenv from 'dotenv';
 import {
   type CardsOptions,
@@ -21,6 +25,7 @@ import {
   Commands,
   ExportFormats,
   type Credentials,
+  type ModuleSettingFromHub,
   type requestStatus,
   type UpdateOperations,
   validContexts,
@@ -31,6 +36,8 @@ import cliProgress from 'cli-progress';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
+const DEFAULT_HUB =
+  'https://raw.githubusercontent.com/Fuzzbender/testModuleHub/main/';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
@@ -84,6 +91,33 @@ function handleResponse(response: requestStatus) {
       program.error(response.message);
     }
   }
+}
+
+// Helper to get modules that have not been imported.
+async function importableModules(options: CardsOptions) {
+  const copyOptions = Object.assign({}, options);
+  copyOptions.details = true;
+  const importableModules = await commandHandler.command(
+    Cmd.show,
+    ['importableModules'],
+    copyOptions,
+  );
+
+  if (
+    !importableModules?.payload ||
+    (importableModules.payload as ModuleSettingFromHub[]).length === 0
+  ) {
+    console.error('No modules available');
+    process.exit(1);
+  }
+
+  // return potential importable modules
+  const choices =
+    (importableModules.payload as ModuleSettingFromHub[])?.map((module) => ({
+      name: module.displayName ? module.displayName : module.name,
+      value: module,
+    })) || [];
+  return choices;
 }
 
 // Load environment variables from .env file
@@ -177,6 +211,9 @@ const additionalHelpForRemove = `Sub-command help:
   remove module <name>, where
       <name> Name of the module to remove
 
+  remove hub <location>, where
+      <location> URL of module hub to remove
+
   remove <resourceName>, where
     <resourceName> is <project prefix>/<type>/<identifier>, where
       <project prefix> Prefix for the project.
@@ -227,9 +264,11 @@ program
       .default('fatal'),
   );
 
+const addCmd = program.command('add').description('Add items to the project');
+
 // Add card to a template
-program
-  .command('add')
+addCmd
+  .command('card')
   .description('Add card to a template')
   .argument(
     '<template>',
@@ -251,12 +290,26 @@ program
     ) => {
       const result = await commandHandler.command(
         Cmd.add,
-        [template, cardType, cardKey],
+        ['card', template, cardType, cardKey],
         Object.assign({}, options, program.opts()),
       );
       handleResponse(result);
     },
   );
+
+addCmd
+  .command('hub')
+  .description('Add module hub to the project')
+  .argument('<location>', 'Module hub URL')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (location: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.add,
+      ['hub', location],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
 
 const calculate = program
   .command('calc')
@@ -313,6 +366,10 @@ program
   )
   .addHelpText('after', additionalHelpForCreate)
   .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option(
+    '-s, --skipModuleImport',
+    'Skip importing modules when creating a project',
+  )
   .action(
     async (
       type: string,
@@ -384,12 +441,56 @@ program
         // Project path must be set to 'options' when creating a project.
         options.projectPath = parameter2;
       }
-
+      const commandOptions = Object.assign({}, options, program.opts());
       const result = await commandHandler.command(
         Cmd.create,
         [type, target, parameter1, parameter2, parameter3],
-        Object.assign({}, options, program.opts()),
+        commandOptions,
       );
+
+      // Post-handling after creating a new project.
+      if (type === 'project' && !commandOptions.skipModuleImport) {
+        try {
+          // add default hub
+          await commandHandler.command(
+            Cmd.add,
+            ['hub', DEFAULT_HUB],
+            commandOptions,
+          );
+
+          // fetch modules from default hub
+          await commandHandler.command(Cmd.fetch, ['hubs'], commandOptions);
+
+          // show importable modules
+          const choices = await importableModules(commandOptions);
+          const selectedModules = await checkbox({
+            message: 'Select modules to import',
+            choices,
+          });
+
+          // finally, import the selected modules
+          for (const module of selectedModules) {
+            await commandHandler.command(
+              Cmd.import,
+              [
+                'module',
+                module.location,
+                module.branch ?? '',
+                module.private ? 'true' : 'false',
+              ],
+              commandOptions,
+            );
+          }
+        } catch (error) {
+          if (error instanceof Error) {
+            console.warn('Module import setup failed:', error.message);
+          }
+          console.log(
+            'Project created successfully, but module import was skipped',
+          );
+        }
+      }
+
       handleResponse(result);
     },
   );
@@ -489,15 +590,35 @@ program
     },
   );
 
+const fetchCmd = program
+  .command('fetch')
+  .description('Retrieve external data to local file system.');
+
+fetchCmd
+  .command('modules')
+  .description('Retrieves module lists from hubs')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.fetch,
+      [],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 const importCmd = program.command('import');
 
 // Import module
 importCmd
   .command('module')
   .description(
-    'Imports another project to this project as a module. Source can be local relative file path, or git HTTPS URL.',
+    'Imports another project to this project as a module. Source can be local relative file path, git HTTPS URL, or module name from fetched module list.',
   )
-  .argument('<source>', 'Path to import from')
+  .argument(
+    '[source]',
+    'Path to import from or module name. If omitted, shows interactive selection',
+  )
   .argument('[branch]', 'When using git URL defines the branch. Default: main')
   .argument(
     '[useCredentials]',
@@ -511,9 +632,63 @@ importCmd
       useCredentials: boolean,
       options: CardsOptions,
     ) => {
+      let resolvedSource = source;
+      let resolvedBranch = branch;
+      let resolvedUseCredentials = useCredentials;
+
+      if (!source) {
+        // Interactive mode: show importable modules
+        try {
+          const choices = await importableModules(options);
+          const selectedModule = await select({
+            message: 'Select a module to import:',
+            choices,
+          });
+
+          resolvedSource = selectedModule.location;
+          resolvedBranch = branch || selectedModule.branch || '';
+          resolvedUseCredentials =
+            useCredentials ?? selectedModule.private ?? false;
+        } catch (error) {
+          console.error(
+            'Error in module selection:',
+            error instanceof Error ? error.message : String(error),
+          );
+          process.exit(1);
+        }
+      } else {
+        try {
+          const projectPath = await commandHandler.getProjectPath(
+            options.projectPath,
+          );
+          const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
+          const moduleListContent = await readFile(moduleListPath, 'utf-8');
+          const moduleList = JSON.parse(moduleListContent);
+          const modules = moduleList.modules || [];
+          const foundModule = modules?.find(
+            (m: ModuleSettingFromHub) => m.name === source,
+          );
+
+          if (foundModule) {
+            resolvedSource = foundModule.location;
+            resolvedBranch = branch || foundModule.branch || '';
+            resolvedUseCredentials =
+              useCredentials ?? foundModule.private ?? false;
+          }
+        } catch {
+          // Module list doesn't exist or source not found, treat source as direct path/URL
+          // This is fine - source will be used as-is
+        }
+      }
+
       const result = await commandHandler.command(
         Cmd.import,
-        ['module', source, branch, String(useCredentials)],
+        [
+          'module',
+          resolvedSource!,
+          resolvedBranch,
+          String(resolvedUseCredentials),
+        ],
         Object.assign({}, options, program.opts()),
         credentials(),
       );
@@ -671,6 +846,10 @@ program
           program.error('error: missing argument <linkType>');
         }
 
+        if (!parameter1 && type === 'hub') {
+          program.error('error: missing argument <location>');
+        }
+
         const result = await commandHandler.command(
           Cmd.remove,
           [type, parameter1, parameter2, parameter3],
@@ -737,6 +916,10 @@ program
   .option(
     '-d --details',
     'Certain types (such as cards) can have additional details',
+  )
+  .option(
+    '-a --showAll',
+    'Show all modules, irregardless if it has been imported or not. Only with "show importableModules"',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .option(

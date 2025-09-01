@@ -15,6 +15,7 @@ import { Calculate } from './calculate.js';
 import { Create } from './create.js';
 import { Edit } from './edit.js';
 import { Export } from './export.js';
+import { Fetch } from './fetch.js';
 import { Import } from './import.js';
 import { Move } from './move.js';
 import { Remove } from './remove.js';
@@ -29,6 +30,7 @@ export {
   Create,
   Edit,
   Export,
+  Fetch,
   Import,
   Move,
   Remove,
