@@ -50,15 +50,15 @@ export class Edit {
         `Resource '${resourceName.identifier}' is not a local resource`,
       );
     }
-    const resourceNameStr = resourceNameToString(resourceName);
+    const resourceNameString = resourceNameToString(resourceName);
     if (
       !(await this.project.resourceExists(
         resourceName.type as ResourceFolderType,
-        resourceNameStr,
+        resourceNameString,
       ))
     ) {
       throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
+        `Resource '${resourceNameString}' does not exist in the project`,
       );
     }
     await writeFile(
@@ -184,20 +184,22 @@ export class Edit {
     fileName: string,
     changedContent: string,
   ) {
-    const resourceNameStr = resourceNameToString(resourceName);
+    const resourceNameString = resourceNameToString(resourceName);
     if (
       !(await this.project.resourceExists(
         resourceName.type as ResourceFolderType,
-        resourceNameStr,
+        resourceNameString,
       ))
     ) {
       throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
+        `Resource '${resourceNameString}' does not exist in the project`,
       );
     }
     const resource = Project.resourceObject(this.project, resourceName);
     if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
+      throw new Error(
+        `Resource '${resourceNameString}' is not a folder resource`,
+      );
     }
     return resource.updateFile(fileName, changedContent);
   }
