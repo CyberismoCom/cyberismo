@@ -13,7 +13,7 @@
       "type": "string"
     },
     "cardKey": {
-      "description": "Used to override the default cardKey, which is the cardKey of the card, in which the graph macro is used",
+      "description": "Override default cardKey of the macro with another cardKey. Default cardKey is the card where the macro is defined in.",
       "type": "string"
     }
   },
