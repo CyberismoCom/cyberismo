@@ -275,6 +275,71 @@ bool solve_event_callback(uint32_t type, void* event, void* data, bool* go_on)
     return true;
 }
 
+// Shared helpers for building program parts from refs
+struct SelectedProgram
+{
+    // key, either key of a program or category
+    std::string key;
+    // empty matchedCategory means direct key match; non-empty means matched via category
+    std::string matchedCategory;
+};
+
+static std::set<std::string> extract_refs_from_info(const Napi::CallbackInfo& info)
+{
+    std::set<std::string> refs;
+    if (info.Length() >= 2)
+    {
+        if (!info[1].IsArray())
+        {
+            throw Napi::TypeError::New(info.Env(), "Second argument must be an array of strings (refs)");
+        }
+
+        Napi::Array arr = info[1].As<Napi::Array>();
+        for (uint32_t i = 0; i < arr.Length(); ++i)
+        {
+            Napi::Value val = arr[i];
+            if (!val.IsString())
+            {
+                throw Napi::TypeError::New(info.Env(), "All refs must be strings");
+            }
+            std::string ref = val.As<Napi::String>().Utf8Value();
+            refs.insert(ref);
+        }
+    }
+    return refs;
+}
+
+static std::vector<SelectedProgram> select_programs_from_refs(const std::set<std::string>& refs)
+{
+    std::vector<SelectedProgram> selected;
+    std::set<std::string> addedPrograms;
+
+    for (const auto& ref : refs)
+    {
+        auto it = g_programs.find(ref);
+        if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
+        {
+            selected.push_back({ref, ""});
+            addedPrograms.insert(ref);
+            continue;
+        }
+
+        for (const auto& kv : g_programs)
+        {
+            const std::string& key = kv.first;
+            const Program& prog = kv.second;
+            if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
+                addedPrograms.find(key) == addedPrograms.end())
+            {
+                selected.push_back({key, ref});
+                addedPrograms.insert(key);
+            }
+        }
+    }
+
+    return selected;
+}
+
 /**
  * N-API function exposed to JavaScript as `setProgram`.
  * Stores or updates a program with optional categories.
@@ -420,54 +485,27 @@ Napi::Value GetProgram(const Napi::CallbackInfo& info)
     // Build the complete program string
     std::ostringstream completeProgram;
 
-    // Apply base programs if specified
-    if (info.Length() >= 2)
+    // Use shared helper to select programs from refs
+    std::set<std::string> refs = extract_refs_from_info(info);
+    if (!refs.empty())
     {
-        if (!info[1].IsArray())
+        std::vector<SelectedProgram> selected = select_programs_from_refs(refs);
+        for (const auto& sel : selected)
         {
-            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
-        }
-
-        // Track which programs have already been added to prevent duplicates
-        std::set<std::string> addedPrograms;
-        std::set<std::string> refs;
-
-        Napi::Array arr = info[1].As<Napi::Array>();
-
-        for (uint32_t i = 0; i < arr.Length(); ++i)
-        {
-            Napi::Value val = arr[i];
-            if (!val.IsString())
+            auto it = g_programs.find(sel.key);
+            if (it == g_programs.end())
             {
-                throw Napi::TypeError::New(env, "All refs must be strings");
-            }
-            std::string ref = val.As<Napi::String>().Utf8Value();
-            refs.insert(ref);
-        }
-
-        for (const auto& ref : refs)
-        {
-            auto it = g_programs.find(ref);
-            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
-            {
-                completeProgram << "% Program: " << ref << "\n";
-                completeProgram << it->second.content << "\n\n";
-                addedPrograms.insert(ref);
-                // no need to check other refs, as ref was a program, not a category
                 continue;
             }
-
-            // If no direct match, check categories
-            for (const auto& [key, prog] : g_programs)
+            if (sel.matchedCategory.empty())
             {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
-                    addedPrograms.find(key) == addedPrograms.end())
-                {
-                    completeProgram << "% Program: " << key << " (category: " << ref << ")\n";
-                    completeProgram << prog.content << "\n\n";
-                    addedPrograms.insert(key);
-                }
+                completeProgram << "% Program: " << sel.key << "\n";
             }
+            else
+            {
+                completeProgram << "% Program: " << sel.key << " (category: " << sel.matchedCategory << ")\n";
+            }
+            completeProgram << it->second.content << "\n\n";
         }
     }
 
@@ -518,67 +556,26 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 
     // Create vector to store all parts we need to ground
     std::vector<clingo_part_t> parts;
-    // stores reference strings
-    // NOTE: Important that this is defined here, otherwise c strings will be invalidated
-    std::set<std::string> refs;
 
-    // Apply base programs if specified
-    if (info.Length() >= 2)
+    // Use shared helper to select programs from refs and add them
+    std::set<std::string> refs = extract_refs_from_info(info);
+    if (!refs.empty())
     {
-        if (!info[1].IsArray())
+        std::vector<SelectedProgram> selected = select_programs_from_refs(refs);
+        for (const auto& sel : selected)
         {
-            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
-        }
-        // Track which programs have already been added to prevent duplicates
-        std::set<std::string> addedPrograms;
-
-        Napi::Array arr = info[1].As<Napi::Array>();
-
-        for (uint32_t i = 0; i < arr.Length(); ++i)
-        {
-            Napi::Value val = arr[i];
-            if (!val.IsString())
+            auto it = g_programs.find(sel.key);
+            if (it == g_programs.end())
             {
-                throw Napi::TypeError::New(env, "All refs must be strings");
-            }
-            std::string ref = val.As<Napi::String>().Utf8Value();
-            refs.insert(ref);
-        }
-
-        for (const auto& ref : refs)
-        {
-            auto it = g_programs.find(ref);
-            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
-            {
-                if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str()))
-                {
-                    handle_clingo_error(env, ref);
-                }
-                else
-                {
-                    parts.push_back({ref.c_str(), nullptr, 0});
-                    addedPrograms.insert(ref);
-                }
-                // no need to check other refs, as ref was a program, not a category
                 continue;
             }
-
-            // If no direct match, check categories
-            for (const auto& [key, prog] : g_programs)
+            if (!clingo_control_add(ctl, sel.key.c_str(), nullptr, 0, it->second.content.c_str()))
             {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
-                    addedPrograms.find(key) == addedPrograms.end())
-                {
-                    if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
-                    {
-                        handle_clingo_error(env, key);
-                    }
-                    else
-                    {
-                        parts.push_back({key.c_str(), nullptr, 0});
-                        addedPrograms.insert(key);
-                    }
-                }
+                handle_clingo_error(env, sel.key);
+            }
+            else
+            {
+                parts.push_back({sel.key.c_str(), nullptr, 0});
             }
         }
     }
