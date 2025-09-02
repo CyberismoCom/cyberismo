@@ -93,19 +93,20 @@ export function resourceName(
 export function resourceNameToPath(
   project: Project,
   resourceName: ResourceName,
+  extension: string = '.json',
 ): string {
   if (project.projectPrefix === resourceName.prefix) {
     return join(
       project.paths.resourcesFolder,
       resourceName.type,
-      resourceName.identifier + '.json',
+      resourceName.identifier + extension,
     );
   } else if (resourceName.prefix !== '') {
     return join(
       project.paths.modulesFolder,
       resourceName.prefix,
       resourceName.type,
-      resourceName.identifier + '.json',
+      resourceName.identifier + extension,
     );
   }
   throw new Error('resourceName does not contain prefix');

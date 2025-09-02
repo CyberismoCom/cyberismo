@@ -10,6 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { ReactCodeMirrorProps } from '@uiw/react-codemirror';
+import type { TextareaProps } from '@mui/joy';
+
 export const MAX_RECENTS_STORED = 20;
 
 // These are resources that can be created from the toolbar
@@ -40,3 +43,23 @@ export const DATA_TYPES = [
   'list',
   'person',
 ] as const;
+
+export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
+  basicSetup: {
+    lineNumbers: false,
+  },
+  style: {
+    border: '1px solid',
+    borderColor: 'rgba(0,0,0,0.23)',
+    borderRadius: 4,
+  },
+};
+
+// Default styling configuration for title input fields
+export const TITLE_FIELD_PROPS: Pick<TextareaProps, 'sx'> = {
+  sx: {
+    marginBottom: '10px',
+    fontWeight: 'bold',
+    fontSize: '1.8rem',
+  },
+};

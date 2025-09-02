@@ -19,6 +19,7 @@ import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
+import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
 
 export function TextEditor({ node }: { node: ResourceNode }) {
   const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
@@ -55,17 +56,10 @@ export function TextEditor({ node }: { node: ResourceNode }) {
           );
         }
       }}
-      isUpdating={isUpdating()}
+      loading={isUpdating()}
     >
       <CodeMirror
-        basicSetup={{
-          lineNumbers: false,
-        }}
-        style={{
-          border: '1px solid',
-          borderColor: 'rgba(0,0,0,0.23)',
-          borderRadius: 4,
-        }}
+        {...CODE_MIRROR_BASE_PROPS}
         readOnly={node.readOnly}
         value={content}
         onChange={(value) => setContent(value)}

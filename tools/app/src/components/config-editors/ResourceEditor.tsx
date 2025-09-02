@@ -55,7 +55,6 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
     <BaseEditor
       node={node}
       onUpdate={() => {}}
-      isUpdating={false}
       enabled={{
         delete: true,
         logicProgram: !['calculations', 'graphModels', 'graphViews'].includes(

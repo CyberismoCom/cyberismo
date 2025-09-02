@@ -27,12 +27,51 @@ import {
   resourceNameToString,
 } from '../utils/resource-utils.js';
 import { FolderResource } from '../resources/folder-resource.js';
+import { writeFile } from 'node:fs/promises';
 
 export class Edit {
   private project: Project;
 
   constructor(project: Project) {
     this.project = project;
+  }
+
+  /**
+   * Updates a calculation file.
+   * @param resourceName The name of the resource to update.
+   * @param changedContent The new content for the calculation.
+   */
+  public async editCalculation(
+    resourceName: ResourceName,
+    changedContent: string,
+  ) {
+    if (resourceName.prefix !== this.project.projectPrefix) {
+      throw new Error(
+        `Resource '${resourceName.identifier}' is not a local resource`,
+      );
+    }
+    const resourceNameString = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameString,
+      ))
+    ) {
+      throw new Error(
+        `Resource '${resourceNameString}' does not exist in the project`,
+      );
+    }
+    await writeFile(
+      join(
+        this.project.paths.calculationProjectFolder,
+        resourceName.identifier + '.lp',
+      ),
+      changedContent,
+      {
+        encoding: 'utf-8',
+        flag: 'r+',
+      },
+    );
   }
 
   /**
@@ -145,20 +184,22 @@ export class Edit {
     fileName: string,
     changedContent: string,
   ) {
-    const resourceNameStr = resourceNameToString(resourceName);
+    const resourceNameString = resourceNameToString(resourceName);
     if (
       !(await this.project.resourceExists(
         resourceName.type as ResourceFolderType,
-        resourceNameStr,
+        resourceNameString,
       ))
     ) {
       throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
+        `Resource '${resourceNameString}' does not exist in the project`,
       );
     }
     const resource = Project.resourceObject(this.project, resourceName);
     if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
+      throw new Error(
+        `Resource '${resourceNameString}' is not a folder resource`,
+      );
     }
     return resource.updateFile(fileName, changedContent);
   }

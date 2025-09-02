@@ -125,6 +125,20 @@ describe('resource utils with Project instance', () => {
       expect(resultPath).to.equal(name[1]);
     }
   });
+  it('resourceNameToPath with custom extension', () => {
+    const resultPath = resourceNameToPath(
+      project,
+      {
+        prefix: project.projectPrefix,
+        type: 'calculations',
+        identifier: 'test',
+      },
+      '.lp',
+    );
+    expect(resultPath).to.equal(
+      `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
+    );
+  });
   it('resourceNameToPath with empty prefix throws', () => {
     expect(() =>
       resourceNameToPath(project, {

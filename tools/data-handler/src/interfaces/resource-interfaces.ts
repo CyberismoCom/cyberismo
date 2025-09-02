@@ -19,8 +19,10 @@ import type { Schema } from 'jsonschema';
  * in a correct place in folder structure.
  */
 
-// Calculation does not have own metadata.
-export type CalculationMetadata = ResourceBaseMetadata;
+// Calculation metadata.
+export interface CalculationMetadata extends ResourceBaseMetadata {
+  calculation: string;
+}
 
 // Card type content.
 export interface CardType extends ResourceBaseMetadata {

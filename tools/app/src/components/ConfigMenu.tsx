@@ -15,14 +15,14 @@ import { useResourceTree } from '@/lib/api';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { ConfigTreeNode } from './tree-nodes';
 import { useProject } from '@/lib/api/project';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { findResourceNodeByName } from '@/lib/utils';
+import { useAppRouter } from '@/lib/hooks';
 
 export default function ConfigMenu() {
   const { resourceTree } = useResourceTree();
   const { project } = useProject();
 
-  const navigate = useNavigate();
   const { module, type, resource, file } = useParams();
 
   const selectedName =
@@ -33,6 +33,7 @@ export default function ConfigMenu() {
     selectedName && resourceTree
       ? findResourceNodeByName(resourceTree, selectedName)?.id
       : undefined;
+  const { safePush } = useAppRouter();
 
   return (
     <BaseTreeComponent
@@ -47,7 +48,7 @@ export default function ConfigMenu() {
         if (!node.data.name.includes('/')) {
           return;
         }
-        navigate(`/configuration/${node.data.name}`);
+        safePush(`/configuration/${node.data.name}`);
       }}
     />
   );

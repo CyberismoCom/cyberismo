@@ -103,9 +103,9 @@ router.get(
     const resourceParams = c.req.valid('param');
 
     try {
-      return c.json(
-        await resourceService.validateResource(commands, resourceParams),
-      );
+      const response: ResourceValidationResponse =
+        await resourceService.validateResource(commands, resourceParams);
+      return c.json(response);
     } catch (error) {
       if (error instanceof Error && error.message.includes('not found')) {
         return c.json({ error: error.message }, 404);
@@ -157,7 +157,9 @@ router.delete(
     const commands = c.get('commands');
     const resourceParams = c.req.valid('param');
     await resourceService.deleteResource(commands, resourceParams);
-    return c.json({ message: 'Resource deleted' });
+    return c.json({
+      message: 'Resource deleted',
+    });
   },
 );
 

@@ -19,24 +19,30 @@ export default function BaseEditor({
   node,
   children,
   onUpdate,
-  isUpdating,
+  onCancel,
+  loading,
   enabled,
+  isDirty = true,
 }: {
   node: ResourceNode;
   onUpdate: () => void;
+  onCancel?: () => void;
   children: React.ReactNode;
-  isUpdating: boolean;
   enabled?: {
     delete?: boolean;
     logicProgram?: boolean;
   };
+  loading?: boolean;
+  isDirty?: boolean;
 }) {
   return (
     <Stack height="100%">
       <ConfigToolbar
         node={node}
         onUpdate={onUpdate}
-        isUpdating={isUpdating}
+        onCancel={onCancel}
+        loading={loading}
+        disabled={node.readOnly || !isDirty}
         enabled={enabled}
       />
       <Stack flexGrow={1} minHeight={0} padding={3} sx={{ overflow: 'auto' }}>
