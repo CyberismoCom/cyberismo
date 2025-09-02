@@ -19,7 +19,7 @@ import type { Schema } from 'jsonschema';
  * in a correct place in folder structure.
  */
 
-// Calculation does not have own metadata.
+// Calculation metadata.
 export interface CalculationMetadata extends ResourceBaseMetadata {
   calculation: string;
 }
