@@ -36,10 +36,6 @@ class ReportMacro extends BaseMacro {
   };
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
-    return this.handleInject(context, data);
-  };
-
-  handleInject = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
     const resource = new ReportResource(
       context.project,

@@ -151,6 +151,15 @@ describe('macros', () => {
         });
         expect(result).to.not.contain('<create-cards>');
       });
+      it('createCards exportSite (success)', async () => {
+        const result = await evaluateMacros(validAdoc, {
+          mode: 'staticSite',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+        expect(result).to.not.contain('<create-cards');
+      });
     });
     describe('raw', () => {
       it('raw macro (success)', async () => {
@@ -268,6 +277,16 @@ Some content here`;
         });
         expect(result).to.contain('<svg');
       });
+      it('scoreCard exportSite (success)', async () => {
+        const macro = `{{#scoreCard}}"title": "Scorecard", "value": 99, "unit": "%", "legend": "complete"{{/scoreCard}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'staticSite',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+        expect(result).to.contain('<svg');
+      });
     });
     describe('percentage', () => {
       it('percentage inject (success)', async () => {
@@ -293,6 +312,18 @@ Some content here`;
         expect(result).to.contain('<svg');
         expect(result).to.contain('Static Percentage');
         expect(result).to.contain('42%');
+      });
+      it('percentage exportSite (success)', async () => {
+        const macro = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'staticSite',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+        expect(result).to.contain('<svg');
+        expect(result).to.contain('Test Percentage');
+        expect(result).to.contain('85%');
       });
       it('percentage missing title (failure)', async () => {
         const macro = `{{#percentage}}"value": 50, "legend": "missing title"{{/percentage}}`;
@@ -397,7 +428,7 @@ Some content here`;
       afterEach(() => {
         cardDetailsByIdStub.restore();
       });
-      ['static', 'inject'].forEach((mode) => {
+      ['static', 'inject', 'staticSite'].forEach((mode) => {
         it(`includeMacro ${mode} (success)`, async () => {
           try {
             const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
@@ -636,7 +667,7 @@ Some content here`;
         cardDetailsByIdStub.restore();
       });
 
-      ['static', 'inject'].forEach((mode) => {
+      ['static', 'inject', 'staticSite'].forEach((mode) => {
         it(`xrefMacro ${mode} (success)`, async () => {
           const macro = `{{#xref}}"cardKey": "xref-test-card"{{/xref}}`;
           const result = await evaluateMacros(macro, {
@@ -716,6 +747,20 @@ Some content here`;
         const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
         const result = await evaluateMacros(macro, {
           mode: 'inject',
+          project: project,
+          cardKey: 'decision_1',
+          context: 'localApp',
+        });
+
+        expect(result).to.equal(
+          'image::/api/cards/decision_1/a/the-needle.heic[]',
+        );
+      });
+
+      it('imageMacro exportSite mode (success)', async () => {
+        const macro = `{{#image}}"fileName": "the-needle.heic"{{/image}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'staticSite',
           project: project,
           cardKey: 'decision_1',
           context: 'localApp',

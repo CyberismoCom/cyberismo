@@ -64,7 +64,7 @@ export async function getCardDetails(
   try {
     asciidocContent = await evaluateMacros(cardDetailsResponse.content || '', {
       context: staticMode ? 'exportedSite' : 'localApp',
-      mode: staticMode ? 'static' : 'inject',
+      mode: staticMode ? 'staticSite' : 'inject',
       project: commands.project,
       cardKey: key,
     });

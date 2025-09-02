@@ -15,7 +15,7 @@ import type { Project } from '../containers/project.js';
 import type { MacroError } from '../exceptions/index.js';
 import type { Context } from './project-interfaces.js';
 
-export type Mode = 'validate' | 'static' | 'inject';
+export type Mode = 'validate' | 'static' | 'inject' | 'staticSite';
 
 export interface MacroGenerationContext {
   context: Context;

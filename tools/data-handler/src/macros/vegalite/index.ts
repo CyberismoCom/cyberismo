@@ -38,10 +38,6 @@ class VegaLiteMacro extends BaseMacro {
     });
   };
 
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
-  };
-
   private validate(input: unknown): VegaLiteMacroInput {
     return validateMacroContent<VegaLiteMacroInput>(this.metadata, input);
   }

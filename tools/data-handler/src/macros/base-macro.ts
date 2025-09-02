@@ -42,10 +42,21 @@ abstract class BaseMacro {
     this.globalId = `${generateRandomString(36, 10)}`;
   }
 
-  protected abstract handleInject(
+  // Default: exportSite uses inject output unless overridden by subclass
+  protected handleStaticSite(
     context: MacroGenerationContext,
     input: unknown,
-  ): Promise<string>;
+  ): Promise<string> {
+    return this.handleInject(context, input);
+  }
+
+  // Default: inject uses static output unless overridden by subclass
+  protected handleInject(
+    context: MacroGenerationContext,
+    input: unknown,
+  ): Promise<string> {
+    return this.handleStatic(context, input);
+  }
 
   protected abstract handleStatic(
     context: MacroGenerationContext,
@@ -181,10 +192,14 @@ abstract class BaseMacro {
 
         // Select the function to execute based on context mode
         const functionToCall =
-          context.mode === 'inject' ? this.handleInject : this.handleStatic;
+          context.mode === 'inject'
+            ? this.handleInject
+            : context.mode === 'staticSite'
+              ? this.handleStaticSite
+              : this.handleStatic;
 
         // Execute the function and handle its result
-        return functionToCall(context, parsed);
+        return functionToCall.call(this, context, parsed);
       })
       .then((result) => {
         // undefined is used to indicate that the macro did not run for some reason

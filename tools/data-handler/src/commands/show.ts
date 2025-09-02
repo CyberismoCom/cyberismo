@@ -457,7 +457,7 @@ export class Show {
 
     await this.project.calculationEngine.generate();
     const reportMacro = new ReportMacro(new TaskQueue());
-    let result = await reportMacro.handleInject(
+    let result = await reportMacro.handleStatic(
       {
         project: this.project,
         cardKey: cardKey,

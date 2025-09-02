@@ -87,10 +87,6 @@ export default class IncludeMacro extends BaseMacro {
     return adjustedContent;
   };
 
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    return this.handleStatic(context, input);
-  };
-
   private validate(input: unknown): IncludeMacroOptions {
     return validateMacroContent<IncludeMacroOptions>(this.metadata, input);
   }
