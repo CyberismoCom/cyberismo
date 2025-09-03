@@ -46,6 +46,19 @@ export default function FieldEditor({
 }: FieldEditorProps) {
   const { t } = useTranslation();
   const [label, setLabel] = useState('');
+  const handleAddLabel = () => {
+    if (!label) {
+      return;
+    }
+    const copy = Array.isArray(value)
+      ? [...value].filter((item) => item !== label)
+      : [];
+    copy.push(label);
+
+    setLabel('');
+
+    onChange?.(copy as string[]);
+  };
   switch (dataType) {
     case 'integer':
     case 'number':
@@ -201,25 +214,18 @@ export default function FieldEditor({
               fullWidth
               placeholder={t('placeholder.label')}
               data-cy="labelInput"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAddLabel();
+                }
+              }}
             />
             <IconButton
               size="sm"
               color="primary"
               variant="soft"
               data-cy="labelAddButton"
-              onClick={() => {
-                if (!label) {
-                  return;
-                }
-                const copy = Array.isArray(value)
-                  ? [...value].filter((item) => item !== label)
-                  : [];
-                copy.push(label);
-
-                setLabel('');
-
-                onChange?.(copy as string[]);
-              }}
+              onClick={handleAddLabel}
             >
               <Add />
             </IconButton>
