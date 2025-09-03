@@ -27,7 +27,7 @@ jobs:
       - name: Setup node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
 
       - name: Set publishing config

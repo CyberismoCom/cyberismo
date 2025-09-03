@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm]
-        node-version: [22.x]
+        node-version: [${{ vars.NODE_VERSION }}]
     runs-on: ${{ matrix.os }}
 
     permissions:
