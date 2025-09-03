@@ -226,11 +226,6 @@ export default function FieldEditor({
               variant="soft"
               data-cy="labelAddButton"
               onClick={handleAddLabel}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddLabel();
-                }
-              }}
             >
               <Add />
             </IconButton>
