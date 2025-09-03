@@ -1,12 +1,6 @@
 % Utils extends the cyberismo query language
 
 % policy checks
-selectCollectionField("successes", "title").
-selectCollectionField("successes", "category").
-selectCollectionField("failures", "title").
-selectCollectionField("failures", "category").
-selectCollectionField("failures", "errorMessage").
-selectCollectionField("failures", "fieldName").
 
 childObject(Card, (Card, "policyChecks"), "policyChecks") :-
     showField(Card, "policyChecks").
@@ -22,7 +16,7 @@ childResult((Card, "policyChecks"), (Card, Category, Title), "successes") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckSuccess(Card, Category, Title).
 
-fields((Card, Category, Title), "category", Category, "title", Title) :-
+resultFields((Card, Category, Title), "category", Category, "shortText", "title", Title, "shortText") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckSuccess(Card, Category, Title).
 
@@ -37,11 +31,11 @@ childResult((Card, "policyChecks"), (Card, Category, Title, ErrorMessage, Field)
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
 
-fields((Card, Category, Title, ErrorMessage, Field), "category", Category, "title", Title, "errorMessage", ErrorMessage) :-
+resultFields((Card, Category, Title, ErrorMessage, Field), "category", Category, "shortText", "title", Title, "shortText", "errorMessage", ErrorMessage, "shortText") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
 
-field((Card, Category, Title, ErrorMessage, Field), "fieldName", Field) :-
+resultField((Card, Category, Title, ErrorMessage, Field), "fieldName", Field, "shortText") :-
     childObject(Card, (Card, "policyChecks"), "policyChecks"),
     Field != "",
     policyCheckFailure(Card, Category, Title, ErrorMessage, Field).
@@ -49,14 +43,6 @@ field((Card, Category, Title, ErrorMessage, Field), "fieldName", Field) :-
 
 
 % links
-selectCollectionField("links", "displayName").
-selectCollectionField("links", "linkDescription").
-selectCollectionField("links", "direction").
-selectCollectionField("links", "linkType").
-selectCollectionField("links", "displayName").
-selectCollectionField("links", "linkSource").
-selectCollectionField("links", "title").
-selectCollectionField("links", "key").
 
 childResultCollection(Card, "links") :-
     showField(Card, "links").
@@ -78,66 +64,62 @@ childResult(Card, (Source, Card, LinkType, LinkDescription, "inbound"), "links")
     showField(Card, "links").
 
 % links: displayName
-field((Source, Destination, LinkType, LinkDescription, Direction), "displayName", DisplayName, "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "displayName", DisplayName, "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     Direction = "outbound",
     field(LinkType, "outboundDisplayName", DisplayName).
 
-field((Source, Destination, LinkType, LinkDescription, Direction), "displayName", DisplayName, "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "displayName", DisplayName, "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     Direction = "inbound",
     field(LinkType, "inboundDisplayName", DisplayName).
 
 % links: link description
-field((Source, Destination, LinkType, LinkDescription, Direction), "linkDescription", LinkDescription, "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkDescription", LinkDescription, "shortText") :-
     LinkDescription != "",
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links").
 
 % links: direction and link type
-fields((Source, Destination, LinkType, LinkDescription, Direction), "direction", Direction, "linkType", LinkType) :-
+resultFields((Source, Destination, LinkType, LinkDescription, Direction), "direction", Direction, "shortText", "linkType", LinkType, "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links").
 
 % links: link source
 
-field((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "user", "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "user", "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     userLink(Source, Destination, LinkType).
 
-field((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "user", "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "user", "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     userLink(Source, Destination, LinkType, LinkDescription).
 
-field((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "calculated", "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "calculated", "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     calculatedLink(Source, Destination, LinkType).
 
-field((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "calculated", "shortText") :-
+resultField((Source, Destination, LinkType, LinkDescription, Direction), "linkSource", "calculated", "shortText") :-
     childResult(_, (Source, Destination, LinkType, LinkDescription, Direction), "links"),
     calculatedLink(Source, Destination, LinkType, LinkDescription).
 
 % links: title
-field((Card, Destination, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
+resultField((Card, Destination, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
     childResult(Card, (Card, Destination, LinkType, LinkDescription, Direction), "links"),
     field(Destination, "title", Title).
 
-field((Source, Card, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
+resultField((Source, Card, LinkType, LinkDescription, Direction), "title", Title, "shortText") :-
     childResult(Card, (Source, Card, LinkType, LinkDescription, Direction), "links"),
     field(Source, "title", Title).
 
 % links: key
-field((Card, Destination, LinkType, LinkDescription, Direction), "key", Destination, "shortText") :-
+resultField((Card, Destination, LinkType, LinkDescription, Direction), "key", Destination, "shortText") :-
     childResult(Card, (Card, Destination, LinkType, LinkDescription, Direction), "links").
 
-field((Source, Card, LinkType, LinkDescription, Direction), "key", Source, "shortText") :-
+resultField((Source, Card, LinkType, LinkDescription, Direction), "key", Source, "shortText") :-
     childResult(Card, (Source, Card, LinkType, LinkDescription, Direction), "links"),
     field(Source, "title", Title).
 
 
 % notifications
-select(2, "notifications", "title").
-select(2, "notifications", "category").
-select(2, "notifications", "message").
-
 childResultCollection(Card, "notifications") :-
     showField(Card, "notifications").
 
@@ -146,21 +128,14 @@ childResult(Card, (Card, Category, Title, Message), "notifications") :-
     showField(Card, "notifications"),
     notification(Card, Category, Title, Message).
 
-fields((Card, Category, Title, Message), "key", Card, "category", Category, "title", Title) :-
+resultFields((Card, Category, Title, Message), "key", Card, "shortText", "category", Category, "shortText", "title", Title, "shortText") :-
     childResult(Card, (Card, Category, Title, Message), "notifications").
 
-field((Card, Category, Title, Message), "message", Message) :-
+resultField((Card, Category, Title, Message), "message", Message, "shortText") :-
     childResult(Card, (Card, Category, Title, Message), "notifications").
 
 
 % denied operations
-selectCollectionField("transition", "transitionName").
-selectCollectionField("transition", "errorMessage").
-selectCollectionField("move", "errorMessage").
-selectCollectionField("delete", "errorMessage").
-selectCollectionField("editField", "fieldName").
-selectCollectionField("editField", "errorMessage").
-selectCollectionField("editContent", "errorMessage").
 
 childObject(Card, (Card, "deniedOperations"), "deniedOperations") :-
     showField(Card, "deniedOperations").
@@ -173,7 +148,7 @@ childResult((Card, "deniedOperations"), (Card, TransitionName, ErrorMessage), "t
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     transitionDenied(Card, TransitionName, ErrorMessage).
 
-fields((Card, TransitionName, ErrorMessage), "transitionName", TransitionName, "errorMessage", ErrorMessage) :-
+resultFields((Card, TransitionName, ErrorMessage), "transitionName", TransitionName, "shortText", "errorMessage", ErrorMessage, "shortText") :-
     childResult((Card, "deniedOperations"), (Card, TransitionName, ErrorMessage), "transition").
 
 % move denied operations
@@ -184,7 +159,7 @@ childResult((Card, "deniedOperations"), (Card, ErrorMessage), "move") :-
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     movingCardDenied(Card, ErrorMessage).
 
-field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
+resultField((Card, ErrorMessage), "errorMessage", ErrorMessage, "shortText") :-
     childResult((Card, "deniedOperations"), (Card, ErrorMessage), "move").
 
 % delete denied operations
@@ -195,7 +170,7 @@ childResult((Card, "deniedOperations"), (Card, ErrorMessage), "delete") :-
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     deletingCardDenied(Card, ErrorMessage).
 
-field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
+resultField((Card, ErrorMessage), "errorMessage", ErrorMessage, "shortText") :-
     childResult((Card, "deniedOperations"), (Card, ErrorMessage), "delete").
 
 % editField denied operations
@@ -206,7 +181,7 @@ childResult((Card, "deniedOperations"), (Card, FieldName, ErrorMessage), "editFi
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     editingFieldDenied(Card, FieldName, ErrorMessage).
 
-fields((Card, FieldName, ErrorMessage), "fieldName", FieldName, "errorMessage", ErrorMessage) :-
+resultFields((Card, FieldName, ErrorMessage), "fieldName", FieldName, "shortText", "errorMessage", ErrorMessage, "shortText") :-
     childResult((Card, "deniedOperations"), (Card, FieldName, ErrorMessage), "editField").
 
 % editContent denied operations
@@ -217,7 +192,7 @@ childResult((Card, "deniedOperations"), (Card, ErrorMessage), "editContent") :-
     childObject(Card, (Card, "deniedOperations"), "deniedOperations"),
     editingContentDenied(Card, ErrorMessage).
 
-field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
+resultField((Card, ErrorMessage), "errorMessage", ErrorMessage, "shortText") :-
     childResult((Card, "deniedOperations"), (Card, ErrorMessage), "editContent").
 
 
@@ -225,6 +200,6 @@ field((Card, ErrorMessage), "errorMessage", ErrorMessage) :-
 childResultCollection(Card, "labels") :-
     showField(Card, "labels").
 
-field(Card, "labels", Label, "stringList") :-
+resultField(Card, "labels", Label, "stringList") :-
     showField(Card, "labels"),
     label(Card, Label).
