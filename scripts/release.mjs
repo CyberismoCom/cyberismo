@@ -13,8 +13,6 @@ import { readFileSync } from 'fs';
  * - Create a new release branch
  * - Create a pull request to main
  * - Push the release branch to remote
- * - Create a tag for the release
- * - Push the tag to remote
  * - Push the release branch to remote
  * - Create a pull request to main using Github CLI
  */
@@ -96,11 +94,6 @@ console.log('Committing version changes...');
 execCommand('git add "**/*/package.json"');
 execCommand(`git commit -m "Bump version to ${newVersion}"`);
 
-// Create
-const tagName = `cyberismo-${newVersion}`;
-console.log(`Creating tag: ${tagName}`);
-execCommand(`git tag ${tagName}`);
-
 // Allow user to review the commit
 // add diff and log
 execCommand('git diff main');
@@ -112,10 +105,6 @@ await new Promise((resolve) => process.stdin.once('data', resolve));
 // Push release branch to remote
 console.log('Pushing release branch to remote...');
 execCommand(`git push origin ${releaseBranch}`);
-
-// Push tag to remote
-console.log('Pushing tag to remote...');
-execCommand(`git push origin ${tagName}`);
 
 // Create pull request using Github CLI
 console.log('Creating pull request...');
@@ -129,5 +118,4 @@ execCommand(
 console.log(`Release completed successfully!`);
 console.log(`   Version: ${newVersion}`);
 console.log(`   Branch: ${releaseBranch}`);
-console.log(`   Tag: ${tagName}`);
 console.log(`   Pull request created`);
