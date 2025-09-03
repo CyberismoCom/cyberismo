@@ -52,7 +52,7 @@ jobs:
     runs-on: cyberismo_ubuntu_x64
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Check out code
@@ -94,3 +94,10 @@ jobs:
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ needs.version-check.outputs.version }}
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ steps.parse.outputs.minor }}
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ steps.parse.outputs.major }}
+
+      - name: Create and push git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "cyberismo-${{ needs.version-check.outputs.version }}" -m "Release version ${{ needs.version-check.outputs.version }}"
+          git push origin "cyberismo-${{ needs.version-check.outputs.version }}"
