@@ -18,7 +18,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 2  # Fetch last 2 commits to compare
+          fetch-depth: 0  # Fetch all history to access tags
 
       - name: Check if CLI version changed
         id: check
@@ -26,15 +26,20 @@ jobs:
           # Get current version from CLI package.json
           current_version=$(node -p 'require("./tools/cli/package.json").version')
           
-          # Get previous version (from HEAD~1)
-          git checkout HEAD~1 -- tools/cli/package.json 2>/dev/null || echo "No previous commit"
-          previous_version=$(node -p 'require("./tools/cli/package.json").version' 2>/dev/null || echo "none")
+          # Get the latest cyberismo tag (previous release)
+          latest_tag=$(git tag -l "cyberismo-*" --sort=-version:refname | head -n 1)
           
-          # Restore current package.json
-          git checkout HEAD -- tools/cli/package.json
+          if [ -z "$latest_tag" ]; then
+            echo "No previous cyberismo tags found, this will be the first release"
+            previous_version="none"
+          else
+            # Extract version from tag (remove "cyberismo-" prefix)
+            previous_version=${latest_tag#cyberismo-}
+            echo "Latest tag found: $latest_tag (version: $previous_version)"
+          fi
           
           echo "Current CLI version: $current_version"
-          echo "Previous CLI version: $previous_version"
+          echo "Previous release version: $previous_version"
           
           if [ "$current_version" != "$previous_version" ]; then
             echo "CLI version changed from $previous_version to $current_version"
