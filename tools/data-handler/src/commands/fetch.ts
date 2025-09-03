@@ -12,7 +12,7 @@
 */
 
 import { mkdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import type { Project } from '../containers/project.js';
 
 import { writeJsonFile } from '../utils/json.js';
@@ -21,6 +21,7 @@ import { type ModuleSetting } from '../interfaces/project-interfaces.js';
 import { errorFunction, getChildLogger } from '../utils/log-utils.js';
 
 const FETCH_TIMEOUT = 30000; // 30s timeout for fetching a module hub file.
+const MAX_RESPONSE_SIZE = 1024 * 1024; // 1MB limit for safety
 const HUB_SCHEMA = 'hubSchema';
 const MODULE_LIST_FILE = 'moduleList.json';
 const TEMP_FOLDER = `.temp`;
@@ -36,7 +37,7 @@ export class Fetch {
     });
   }
 
-  private async fetchJSONFile(location: string) {
+  private async fetchJSON(location: string, schemaId: string) {
     try {
       const url = new URL(`${location}/${MODULE_LIST_FILE}`);
       if (!['http:', 'https:'].includes(url.protocol)) {
@@ -61,12 +62,34 @@ export class Fetch {
         );
       }
 
+      // Check content length before downloading
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) > MAX_RESPONSE_SIZE) {
+        throw new Error(
+          `Response too large: ${contentLength} bytes (max: ${MAX_RESPONSE_SIZE})`,
+        );
+      }
+
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         this.logger.warn(`Expected JSON response, got: ${contentType}`);
       }
 
-      return await response.json();
+      const json = await response.json();
+      // Validate the incoming JSON before saving it into a file.
+      await validateJson(json, { schemaId: schemaId });
+
+      // Validate JSON structure and prevent prototype pollution
+      if (typeof json !== 'object' || json === null || Array.isArray(json)) {
+        throw new Error('Response must be a JSON object');
+      }
+
+      // Additional size check after JSON parsing
+      if (JSON.stringify(json).length > MAX_RESPONSE_SIZE) {
+        throw new Error('JSON content too large after parsing');
+      }
+
+      return json;
     } catch (error) {
       const errorMessage = `Failed to fetch module list from ${location}: ${errorFunction(error)}`;
       this.logger.error(errorMessage);
@@ -83,8 +106,7 @@ export class Fetch {
     const moduleMap: Map<string, ModuleSetting> = new Map([]);
 
     for (const hub of hubs) {
-      const json = await this.fetchJSONFile(hub.location);
-      await validateJson(json, { schemaId: HUB_SCHEMA });
+      const json = await this.fetchJSON(hub.location, HUB_SCHEMA);
       json.modules.forEach((module: ModuleSetting) => {
         if (!moduleMap.has(module.name)) {
           moduleMap.set(module.name, module);
@@ -98,6 +120,18 @@ export class Fetch {
 
     try {
       const fullPath = resolve(this.project.basePath, MODULE_LIST_FULL_PATH);
+      const normalizedBasePath = resolve(this.project.basePath);
+
+      // Ensure the file is written within the project directory (prevent path traversal)
+      if (
+        !fullPath.startsWith(normalizedBasePath + sep) &&
+        fullPath !== normalizedBasePath
+      ) {
+        throw new Error(
+          'Invalid file path: attempting to write outside project directory',
+        );
+      }
+
       await mkdir(resolve(this.project.basePath, TEMP_FOLDER), {
         recursive: true,
       });
