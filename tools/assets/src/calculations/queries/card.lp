@@ -22,39 +22,38 @@ displayName(Card, (Card, Field), DisplayName) :-
 % we include the card key in the key of the fields, because the same query is used
 % when generating static sites for all project cards at the same time
 
-field((Card, Field), "key", Field) :-
+resultField((Card, Field), "key", Field, "shortText") :-
     customField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
-
-field((Card, Field), "visibility", "always") :-
+resultField((Card, Field), "visibility", "always", "shortText") :-
     alwaysVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "visibility", "optional") :-
+resultField((Card, Field), "visibility", "optional", "shortText") :-
     optionallyVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index, "integer") :-
     alwaysVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index, "integer") :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
+resultField((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     displayName(Card, (Card, Field), DisplayName).
 
-field((Card, Field), "fieldDescription", Description, "shortText") :-
+resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Field, "description", Description).
@@ -63,64 +62,47 @@ dataType((Card, Field), "isCalculated", "boolean") :-
     childResult(Card, (Card, Field), "fields"),
     field((Card, Field), "isCalculated", _).
 
-field((Card, Field), "isCalculated", true) :-
+resultField((Card, Field), "isCalculated", true, "boolean") :-
     result(Card),
     field(Card, "cardType", CardType),
     calculatedField(CardType, Field).
 
-field((Card, Field), "isCalculated", false) :-
+field((Card, Field), "isCalculated", false, "boolean") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Card, "cardType", CardType),
     not calculatedField(CardType, Field).
 
 % add dataType of field
-field((Card, Field), "dataType", DataType, "shortText") :-
+resultField((Card, Field), "dataType", DataType, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Field, "dataType", DataType).
 
 % add value
-dataType((Card, Field), "value", DataType) :-
+resultField((Card, Field), "value", Value, DataType) :-
     childResult(Card, (Card, Field), "fields"),
-    result(Card),
-    field(Card, Field, Value),
-    dataType(Card, Field, DataType).
-
-% add value
-field((Card, Field), "value", Value) :-
-    childResult(Card, (Card, Field), "fields"),
+    dataType(Card, Field, DataType),
     field(Card, Field, Value).
 
 % add cardTypeDisplayName
-field(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
+resultField(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
     result(Card),
     field(Card, "cardType", CardType),
     field(CardType, "displayName", DisplayName).
 
 % select only non-custom fields
-select(1, "cardType").
-select(1, "cardTypeDisplayName").
-select(1, "title").
-select(1, "key").
-select(1, "lastUpdated").
-select(1, "workflowState").
-select(1, "policyChecks").
-select(1, "links").
-select(1, "notifications").
-select(1, "deniedOperations").
-select(1, "labels").
-
-% Fields
-
-select(2, "fields", "key").
-select(2, "fields", "visibility").
-select(2, "fields", "index").
-select(2, "fields", "fieldDisplayName").
-select(2, "fields", "fieldDescription").
-select(2, "fields", "dataType").
-select(2, "fields", "isCalculated").
-select(2, "fields", "value").
+select(1, "results", "cardType").
+select(1, "results", "cardTypeDisplayName").
+select(1, "results", "title").
+select(1, "results", "key").
+select(1, "results", "lastUpdated").
+select(1, "results", "workflowState").
+select(1, "results", "policyChecks").
+select(1, "results", "links").
+select(1, "results", "notifications").
+select(1, "results", "deniedOperations").
+select(1, "results", "labels").
 
 childResultCollection(Card, "fields") :-
     result(Card).
@@ -136,10 +118,10 @@ childResult(Card, (Card, Field), "fields") :-
     result(Card).
 
 % for enum fields, add enum values as child results:
-select(3, "index").
-select(3, "enumDisplayValue").
-select(3, "enumDescription").
-select(3, "enumValue").
+select(3, "enumValues", "index").
+select(3, "enumValues", "enumDisplayValue").
+select(3, "enumValues", "enumDescription").
+select(3, "enumValues", "enumValue").
 
 childResult((Card, Field), (Field, EnumValue), "enumValues") :-
     enumValue(Field, EnumValue),
