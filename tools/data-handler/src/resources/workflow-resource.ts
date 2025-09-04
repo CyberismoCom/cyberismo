@@ -190,12 +190,13 @@ export class WorkflowResource extends FileResource {
   // Update card states when state is changed
   private async updateCardStates(oldState: string, newState: string) {
     const cards = await this.collectCardsUsingWorkflow();
-    cards.forEach(async (card) => {
-      if (card.metadata?.workflowState === oldState) {
-        card.metadata.workflowState = newState;
-        await this.project.updateCardMetadata(card, card.metadata);
-      }
-    });
+    const promises = cards
+      .filter((card) => card.metadata?.workflowState === oldState)
+      .map(async (card) => {
+        card.metadata!.workflowState = newState;
+        await this.project.updateCardMetadata(card, card.metadata!);
+      });
+    await Promise.all(promises);
   }
 
   // Update dependant card types.
