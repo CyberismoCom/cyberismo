@@ -89,7 +89,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ vars.NODE_VERSION }}
 
       - name: Setup Miniconda
         if: runner.os == 'Windows'
@@ -120,10 +120,10 @@ jobs:
         run: |
           brew install clingo --ignore-dependencies
 
-      - name: Use Node.js 22
+      - name: Use Node.js ${{ vars.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@cyberismo'
@@ -210,7 +210,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ vars.NODE_VERSION }}
 
       - name: Download all prebuilds
         uses: actions/download-artifact@v4

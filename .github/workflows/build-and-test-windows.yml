@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: ["${{ vars.NODE_VERSION }}"]
 
     permissions:
       contents: read
