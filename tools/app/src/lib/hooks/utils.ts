@@ -341,7 +341,10 @@ function findTemplateForCard(
   nodes: ResourceNode[],
   cardKey: string,
 ): string | null {
-  function dfs(node: ResourceNode, ancestors: ResourceNode[]): string | null {
+  function depthFirstSearch(
+    node: ResourceNode,
+    ancestors: ResourceNode[],
+  ): string | null {
     const newAncestors = [...ancestors, node];
     if (node.type === 'card' && node.id === cardKey) {
       // Walk ancestors backwards to find a 'templates' node
@@ -354,7 +357,7 @@ function findTemplateForCard(
     }
     if (node.children) {
       for (const child of node.children) {
-        const result = dfs(child as ResourceNode, newAncestors);
+        const result = depthFirstSearch(child as ResourceNode, newAncestors);
         if (result) return result;
       }
     }
@@ -362,7 +365,7 @@ function findTemplateForCard(
   }
 
   for (const root of nodes) {
-    const result = dfs(root as ResourceNode, []);
+    const result = depthFirstSearch(root as ResourceNode, []);
     if (result) return result;
   }
   return null;
