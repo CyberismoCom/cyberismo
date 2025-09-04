@@ -160,17 +160,17 @@ export class Rename {
     );
 
     // Then replace all values that match in the conversion map.
-    files.forEach(async (item) => {
-      const target = join(item.parentPath, item.name);
-      let fileContent = await readFile(target, {
-        encoding: 'utf-8',
-      });
-      for (const [key, value] of conversionMap) {
-        const re = new RegExp(key, 'g');
-        fileContent = fileContent.replaceAll(re, value);
-      }
-      await writeFile(target, fileContent);
-    });
+    await Promise.all(
+      files.map(async (item) => {
+        const target = join(item.parentPath, item.name);
+        let fileContent = await readFile(target, { encoding: 'utf-8' });
+        for (const [key, value] of conversionMap) {
+          const re = new RegExp(key, 'g');
+          fileContent = fileContent.replace(re, value);
+        }
+        await writeFile(target, fileContent);
+      }),
+    );
   }
 
   // Changes the name of a resource to match the new prefix.

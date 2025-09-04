@@ -528,20 +528,23 @@ export class Create {
         ),
       );
     });
-    Create.JSONFileContent.forEach(async (entry) => {
-      if ('cardKeyPrefix' in entry.content) {
-        if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
-          entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+
+    await Promise.all(
+      Create.JSONFileContent.map(async (entry) => {
+        if ('cardKeyPrefix' in entry.content) {
+          if (entry.content.cardKeyPrefix.includes('$PROJECT-PREFIX')) {
+            entry.content.cardKeyPrefix = projectPrefix.toLowerCase();
+          }
+          if (entry.content.name.includes('$PROJECT-NAME')) {
+            entry.content.name = projectName;
+          }
         }
-        if (entry.content.name.includes('$PROJECT-NAME')) {
-          entry.content.name = projectName;
-        }
-      }
-      await writeJsonFile(
-        join(projectPath, entry.path, entry.name),
-        entry.content,
-      );
-    });
+        await writeJsonFile(
+          join(projectPath, entry.path, entry.name),
+          entry.content,
+        );
+      }),
+    );
 
     try {
       await writeFile(

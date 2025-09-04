@@ -95,13 +95,16 @@ export class Remove {
       },
     );
     const promiseContainer: Promise<void>[] = [];
-    allCards.filter((item) => {
-      item.metadata?.links.forEach(async (link) => {
+
+    for (const item of allCards) {
+      const links = item.metadata?.links ?? [];
+      for (const link of links) {
         if (link.cardKey === cardKey) {
           promiseContainer.push(this.removeLink(item.key, link.cardKey));
         }
-      });
-    });
+      }
+    }
+
     await Promise.all(promiseContainer);
 
     // Calculations need to be updated before card is removed.

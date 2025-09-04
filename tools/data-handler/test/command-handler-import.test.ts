@@ -157,41 +157,34 @@ describe('import module', () => {
       const name = 'test-project';
       const projectDir = join(testDir, name);
       const testOptions: CardsOptions = { projectPath: projectDir };
-      await commandHandler
-        .command(Cmd.create, ['project', name, prefix], testOptions)
-        .then(async (data) => {
-          expect(data.statusCode).to.equal(200);
-          let result = await commandHandler.command(
-            Cmd.import,
-            ['module', decisionRecordsPath],
-            testOptions,
-          );
-          expect(result.statusCode).to.equal(200);
-          result = await commandHandler.command(
-            Cmd.import,
-            ['module', minimalPath],
-            testOptions,
-          );
-          expect(result.statusCode).to.equal(200);
-          result = await commandHandler.command(
-            Cmd.updateModules,
-            [],
-            testOptions,
-          );
-          expect(result.statusCode).to.equal(200);
-          result = await commandHandler.command(
-            Cmd.show,
-            ['modules'],
-            testOptions,
-          );
-          expect(result.statusCode).to.equal(200);
-          if (result.payload) {
-            const modules = Object.values(result.payload);
-            expect(modules.length).to.equal(2);
-            expect(modules).to.contain('mini');
-            expect(modules).to.contain('decision');
-          }
-        });
+      const data = await commandHandler.command(
+        Cmd.create,
+        ['project', name, prefix],
+        testOptions,
+      );
+      expect(data.statusCode).to.equal(200);
+      let result = await commandHandler.command(
+        Cmd.import,
+        ['module', decisionRecordsPath],
+        testOptions,
+      );
+      expect(result.statusCode).to.equal(200);
+      result = await commandHandler.command(
+        Cmd.import,
+        ['module', minimalPath],
+        testOptions,
+      );
+      expect(result.statusCode).to.equal(200);
+      result = await commandHandler.command(Cmd.updateModules, [], testOptions);
+      expect(result.statusCode).to.equal(200);
+      result = await commandHandler.command(Cmd.show, ['modules'], testOptions);
+      expect(result.statusCode).to.equal(200);
+      if (result.payload) {
+        const modules = Object.values(result.payload);
+        expect(modules.length).to.equal(2);
+        expect(modules).to.contain('mini');
+        expect(modules).to.contain('decision');
+      }
     }).timeout(10000);
     it('try to import module - no source', async () => {
       const stubProjectPath = sinon
