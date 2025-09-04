@@ -34,7 +34,7 @@ export async function addTemplateCard(
   template: string,
   cardType: string,
   parentKey?: string,
-  count: number = 1,
+  count?: number,
 ) {
   const { identifier, type } = resourceName(template);
   if (type !== 'templates') {
