@@ -13,7 +13,7 @@
 
 // node
 import { basename, join, resolve } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
@@ -57,6 +57,7 @@ import {
   solve,
   setProgram,
   removeProgram,
+  getProgram,
 } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
@@ -108,6 +109,19 @@ export class CalculationEngine {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
     return createCardFacts(card, this.project);
+  }
+
+  public async exportLogicProgram(
+    destination: string,
+    programs: string[],
+    query?: QueryName,
+  ) {
+    let logicProgram = '';
+    if (query) {
+      logicProgram += this.getQuery(query);
+    }
+    logicProgram += await getProgram('', programs);
+    await writeFile(destination, logicProgram);
   }
 
   // // Wrapper to run onCreation query.
@@ -503,6 +517,13 @@ export class CalculationEngine {
     return this.parseClingoResult(clingoOutput);
   }
 
+  private getQuery(queryName: QueryName, options?: unknown) {
+    const content = lpFiles.queries[queryName];
+    const handlebars = Handlebars.create();
+    const compiled = handlebars.compile(content);
+    return compiled(options || {});
+  }
+
   /**
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
@@ -514,13 +535,7 @@ export class CalculationEngine {
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    let content = lpFiles.queries[queryName];
-    const handlebars = Handlebars.create();
-    const compiled = handlebars.compile(content);
-    content = compiled(options || {});
-    if (!content) {
-      throw new Error(`Query file ${queryName} not found`);
-    }
+    const content = this.getQuery(queryName, options);
 
     this.logger.trace({ queryName }, 'Running query');
     const clingoOutput = await this.run(content, context);
