@@ -21,13 +21,14 @@ import { MacroError } from '../exceptions/index.js';
 import type TaskQueue from './task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import { getChildLogger } from '../utils/log-utils.js';
+import type { Logger } from 'pino';
 
 abstract class BaseMacro {
   private globalId: string;
   private localCounter: number = 0;
 
   // Macros share the same logger
-  protected get logger() {
+  protected get logger(): Logger {
     return getChildLogger({
       module: 'macro',
       macro: this.macroMetadata.name,

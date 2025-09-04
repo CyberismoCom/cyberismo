@@ -50,6 +50,7 @@ import type { Resource } from '../interfaces/project-interfaces.js';
 import { sortCards } from '../utils/card-utils.js';
 import { Template } from '../containers/template.js';
 import { Validate } from '../commands/index.js';
+import type { Logger } from 'pino';
 
 export {
   type AddOperation,
@@ -143,7 +144,7 @@ export class FileResource extends ResourceObject {
   }
 
   // Get logger instance
-  protected get logger() {
+  protected get logger(): Logger {
     return super.getLogger(this.getType);
   }
 

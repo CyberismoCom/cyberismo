@@ -30,6 +30,7 @@ import {
 } from './file-resource.js';
 import type { ResourceContent } from '../interfaces/resource-interfaces.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
+import type { Logger } from 'pino';
 
 export {
   type Card,
@@ -81,7 +82,7 @@ export class FolderResource extends FileResource {
     return super.getType;
   }
 
-  protected get logger() {
+  protected get logger(): Logger {
     return super.getLogger(this.getType);
   }
 
