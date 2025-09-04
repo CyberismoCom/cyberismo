@@ -1,9 +1,7 @@
 {
-  "title": "FieldType",
   "$id": "fieldTypeSchema",
-  "description": "Field type defines the workflow and optional additional fields for the cards.",
-  "type": "object",
   "additionalProperties": false,
+  "description": "Field type defines the workflow and optional additional fields for the cards.",
   "properties": {
     "name": {
       "type": "string",
@@ -44,5 +42,7 @@
       }
     }
   },
-  "required": ["displayName", "name", "dataType"]
+  "required": ["displayName", "name", "dataType"],
+  "title": "FieldType",
+  "type": "object"
 }

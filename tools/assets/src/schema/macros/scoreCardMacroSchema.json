@@ -1,6 +1,6 @@
 {
-  "type": "object",
   "$id": "scoreCardMacroSchema",
+  "additionalProperties": false,
   "properties": {
     "title": {
       "type": "string",
@@ -19,6 +19,6 @@
       "description": "Description text shown below the value (optional)"
     }
   },
-  "additionalProperties": false,
-  "required": ["value"]
+  "required": ["value"],
+  "type": "object"
 }

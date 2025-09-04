@@ -1,6 +1,6 @@
 {
-  "type": "object",
   "$id": "imageMacroSchema",
+  "additionalProperties": false,
   "properties": {
     "fileName": {
       "type": "string",
@@ -19,6 +19,6 @@
       "description": "Title attribute for the image"
     }
   },
-  "additionalProperties": false,
-  "required": ["fileName"]
+  "required": ["fileName"],
+  "type": "object"
 }

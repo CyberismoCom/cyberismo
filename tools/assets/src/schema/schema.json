@@ -1,7 +1,7 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "jsonSchema",
-  "title": "Core schema meta-schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "default": true,
   "definitions": {
     "schemaArray": {
       "type": "array",
@@ -36,7 +36,6 @@
       "default": []
     }
   },
-  "type": ["object", "boolean"],
   "properties": {
     "$id": {
       "type": "string",
@@ -162,5 +161,6 @@
     "oneOf": { "$ref": "#/definitions/schemaArray" },
     "not": { "$ref": "#" }
   },
-  "default": true
+  "title": "Core schema meta-schema",
+  "type": ["object", "boolean"]
 }

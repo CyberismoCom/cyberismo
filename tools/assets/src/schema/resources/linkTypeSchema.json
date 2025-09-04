@@ -1,9 +1,7 @@
 {
-  "title": "LinkType",
   "$id": "linkTypeSchema",
-  "description": "Link types defined different ways to link cards together.",
-  "type": "object",
   "additionalProperties": false,
+  "description": "Link types defined different ways to link cards together.",
   "properties": {
     "description": {
       "description": "A description that describes the link type",
@@ -53,5 +51,7 @@
     "sourceCardTypes",
     "destinationCardTypes",
     "enableLinkDescription"
-  ]
+  ],
+  "title": "LinkType",
+  "type": "object"
 }

@@ -1,6 +1,6 @@
 {
-  "type": "object",
   "$id": "includeMacroSchema",
+  "additionalProperties": false,
   "properties": {
     "cardKey": {
       "type": "string",
@@ -21,6 +21,6 @@
       "enum": ["normal", "discrete"]
     }
   },
-  "additionalProperties": false,
-  "required": ["cardKey"]
+  "required": ["cardKey"],
+  "type": "object"
 }

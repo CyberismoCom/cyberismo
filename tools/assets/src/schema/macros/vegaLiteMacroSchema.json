@@ -1,13 +1,6 @@
 {
   "$id": "vegaLiteMacroSchema",
-  "type": "object",
-  "properties": {
-    "spec": {
-      "$ref": "#/definitions/TopLevelSpec"
-    }
-  },
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "required": ["spec"],
   "definitions": {
     "Aggregate": {
       "anyOf": [
@@ -31707,5 +31700,12 @@
       "required": ["window"],
       "type": "object"
     }
-  }
+  },
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/TopLevelSpec"
+    }
+  },
+  "required": ["spec"],
+  "type": "object"
 }
