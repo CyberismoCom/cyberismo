@@ -91,7 +91,7 @@ router.post('/', zValidator('json', createTemplateSchema), async (c) => {
  * /api/templates/card:
  *   post:
  *     summary: Create a new template card
- *     description: Adds a new card to a template. If parentKey is provided, the new card will be a child of the specified card.
+ *     description: Adds a new card to a template. New card will be created as a child of the parentKey, if parentKey value is defined.
  *     requestBody:
  *       required: true
  *       content:
@@ -107,6 +107,7 @@ router.post('/', zValidator('json', createTemplateSchema), async (c) => {
  *                 type: string
  *               count:
  *                 type: number
+ *                 description: Number of cards to create
  *             required:
  *               - template
  *               - cardType
