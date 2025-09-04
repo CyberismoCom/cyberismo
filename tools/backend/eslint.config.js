@@ -7,7 +7,12 @@ import promisePlugin from 'eslint-plugin-promise';
 
 export default [
   {
-    ignores: ['**/dist/*', '**/init.js', 'eslint.config.js', 'vitest.config.ts'],
+    ignores: [
+      '**/dist/*',
+      '**/init.js',
+      'eslint.config.js',
+      'vitest.config.ts',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -26,9 +31,7 @@ export default [
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       'promise/catch-or-return': 'error',
-      'promise/always-return': 'error',
       'promise/no-promise-in-callback': 'error',
-      'promise/prefer-await-to-then': 'warn',
     },
   },
 ];

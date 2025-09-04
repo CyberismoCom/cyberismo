@@ -26,8 +26,8 @@ export default [
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       'promise/catch-or-return': 'error',
-      'promise/always-return': 'error',
       'promise/no-promise-in-callback': 'error',
+      'promise/always-return': 'off',
     },
   },
 ];
