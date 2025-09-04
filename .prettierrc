@@ -1,3 +1,4 @@
 {
+  "plugins": ["prettier-plugin-sort-json"],
   "singleQuote": true
 }
