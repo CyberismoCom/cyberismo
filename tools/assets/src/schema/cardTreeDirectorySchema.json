@@ -1,182 +1,4 @@
 {
-  "title": "Card directory tree schema",
-  "$id": "cardTreeDirectorySchema",
-  "description": "This schema represents the directory structure of a card tree, using the format of https://github.com/jpoehnelt/directory-schema-validator",
-  "type": "object",
-  "properties": {
-    "directories": {
-      "type": "object",
-      "properties": {
-        ".cards": {
-          "description": "Configuration for the card tree",
-          "type": "object",
-          "properties": {
-            "files": {
-              "type": "object",
-              "additionalProperties": false
-            },
-            "directories": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "modules": {
-                  "$ref": "#/$defs/cardModuleSchema"
-                },
-                "local": {
-                  "type": "object",
-                  "properties": {
-                    "files": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        ".schema": {},
-                        "cardsConfig.json": {}
-                      },
-                      "required": [".schema", "cardsConfig.json"]
-                    },
-                    "directories": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "properties": {
-                        "calculations": {
-                          "$ref": "#/$defs/calculationResourceSchema"
-                        },
-                        "cardTypes": {
-                          "$ref": "#/$defs/cardTypeResourceSchema"
-                        },
-                        "fieldTypes": {
-                          "$ref": "#/$defs/fieldTypeResourceSchema"
-                        },
-                        "graphViews": {
-                          "$ref": "#/$defs/graphViewResourceSchema"
-                        },
-                        "graphModels": {
-                          "$ref": "#/$defs/graphModelResourceSchema"
-                        },
-                        "linkTypes": {
-                          "$ref": "#/$defs/linkTypeResourceSchema"
-                        },
-                        "reports": {
-                          "$ref": "#/$defs/reportResourceSchema"
-                        },
-                        "templates": {
-                          "$ref": "#/$defs/templatesResourceSchema"
-                        },
-                        "workflows": {
-                          "$ref": "#/$defs/workflowResourceSchema"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "required": ["local"]
-            }
-          }
-        },
-        "cardRoot": {
-          "description": "The contents of the card tree. Each subdirectory contains a top level card. The name of the directory is the card key.",
-          "type": "object",
-          "properties": {
-            "files": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                ".gitkeep": {},
-                ".schema": {}
-              }
-            },
-            "directories": {
-              "type": "object",
-              "additionalProperties": false,
-              "patternProperties": {
-                "^[a-z]+_[0-9a-z]+$": {
-                  "$ref": "#/$defs/cardDirectorySchema#"
-                }
-              }
-            }
-          }
-        },
-        ".calc": {
-          "description": "Temporary files for calculations.",
-          "type": "object",
-          "properties": {
-            "directories": {
-              "type": "object",
-              "properties": {
-                "resources": {
-                  "description": "Schema of the .calc resource folder",
-                  "type": "object",
-                  "properties": {
-                    "files": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "patternProperties": {
-                        "^.+\\.lp$": {
-                          "type": "object"
-                        }
-                      }
-                    }
-                  }
-                },
-                "cards": {
-                  "description": "Directory that contains separate logic program files for each card",
-                  "type": "object",
-                  "properties": {
-                    "files": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "patternProperties": {
-                        "^.+\\.lp$": {
-                          "type": "object"
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "additionalProperties": false
-            },
-            "files": {
-              "type": "object",
-              "properties": {
-                "base.lp": {
-                  "description": "A logic program that contains basic common definitions that are the same in all cards projects",
-                  "type": "object"
-                },
-                "calculations.lp": {
-                  "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
-                  "type": "object"
-                },
-                "cardTree.lp": {
-                  "description": "A logic program that only includes all the card-specific logic programs",
-                  "type": "object"
-                },
-                "resourceImports.lp": {
-                  "description": "A logic program that only includes all the logic programs generated from resources",
-                  "type": "object"
-                },
-                "main.lp": {
-                  "description": "The main logic program",
-                  "type": "object"
-                },
-                "modules.lp": {
-                  "description": "",
-                  "type": "object"
-                },
-                "queryLanguage.lp": {
-                  "description": "A logic program that defines the Cyberismo query language",
-                  "type": "object"
-                }
-              },
-              "additionalProperties": true
-            }
-          }
-        }
-      },
-      "required": [".cards", "cardRoot"]
-    }
-  },
   "$defs": {
     "cardModuleSchema": {
       "description": "The schema for modules. Each module is in a named directory containing 'cardTypes', 'templates' and 'workflows'. ",
@@ -659,5 +481,183 @@
         }
       ]
     }
-  }
+  },
+  "$id": "cardTreeDirectorySchema",
+  "description": "This schema represents the directory structure of a card tree, using the format of https://github.com/jpoehnelt/directory-schema-validator",
+  "properties": {
+    "directories": {
+      "type": "object",
+      "properties": {
+        ".cards": {
+          "description": "Configuration for the card tree",
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false
+            },
+            "directories": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "modules": {
+                  "$ref": "#/$defs/cardModuleSchema"
+                },
+                "local": {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        ".schema": {},
+                        "cardsConfig.json": {}
+                      },
+                      "required": [".schema", "cardsConfig.json"]
+                    },
+                    "directories": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "calculations": {
+                          "$ref": "#/$defs/calculationResourceSchema"
+                        },
+                        "cardTypes": {
+                          "$ref": "#/$defs/cardTypeResourceSchema"
+                        },
+                        "fieldTypes": {
+                          "$ref": "#/$defs/fieldTypeResourceSchema"
+                        },
+                        "graphViews": {
+                          "$ref": "#/$defs/graphViewResourceSchema"
+                        },
+                        "graphModels": {
+                          "$ref": "#/$defs/graphModelResourceSchema"
+                        },
+                        "linkTypes": {
+                          "$ref": "#/$defs/linkTypeResourceSchema"
+                        },
+                        "reports": {
+                          "$ref": "#/$defs/reportResourceSchema"
+                        },
+                        "templates": {
+                          "$ref": "#/$defs/templatesResourceSchema"
+                        },
+                        "workflows": {
+                          "$ref": "#/$defs/workflowResourceSchema"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "required": ["local"]
+            }
+          }
+        },
+        "cardRoot": {
+          "description": "The contents of the card tree. Each subdirectory contains a top level card. The name of the directory is the card key.",
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                ".gitkeep": {},
+                ".schema": {}
+              }
+            },
+            "directories": {
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^[a-z]+_[0-9a-z]+$": {
+                  "$ref": "#/$defs/cardDirectorySchema#"
+                }
+              }
+            }
+          }
+        },
+        ".calc": {
+          "description": "Temporary files for calculations.",
+          "type": "object",
+          "properties": {
+            "directories": {
+              "type": "object",
+              "properties": {
+                "resources": {
+                  "description": "Schema of the .calc resource folder",
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^.+\\.lp$": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                },
+                "cards": {
+                  "description": "Directory that contains separate logic program files for each card",
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "patternProperties": {
+                        "^.+\\.lp$": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "files": {
+              "type": "object",
+              "properties": {
+                "base.lp": {
+                  "description": "A logic program that contains basic common definitions that are the same in all cards projects",
+                  "type": "object"
+                },
+                "calculations.lp": {
+                  "description": "A logic program that only includes all the logic programs from modules, including the calculations from the local content",
+                  "type": "object"
+                },
+                "cardTree.lp": {
+                  "description": "A logic program that only includes all the card-specific logic programs",
+                  "type": "object"
+                },
+                "resourceImports.lp": {
+                  "description": "A logic program that only includes all the logic programs generated from resources",
+                  "type": "object"
+                },
+                "main.lp": {
+                  "description": "The main logic program",
+                  "type": "object"
+                },
+                "modules.lp": {
+                  "description": "",
+                  "type": "object"
+                },
+                "queryLanguage.lp": {
+                  "description": "A logic program that defines the Cyberismo query language",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "required": [".cards", "cardRoot"]
+    }
+  },
+  "title": "Card directory tree schema",
+  "type": "object"
 }

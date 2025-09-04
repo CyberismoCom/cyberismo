@@ -1,8 +1,7 @@
 {
-  "title": "GraphModel",
   "$id": "graphModelSchema",
+  "additionalProperties": false,
   "description": "A graph model object provides data for graph views",
-  "type": "object",
   "properties": {
     "name": {
       "description": "The name of this graph model",
@@ -24,5 +23,6 @@
     }
   },
   "required": ["displayName", "name", "displayName"],
-  "additionalProperties": false
+  "title": "GraphModel",
+  "type": "object"
 }

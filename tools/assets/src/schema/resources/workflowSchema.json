@@ -1,9 +1,7 @@
 {
-  "title": "Workflow",
   "$id": "workflowSchema",
-  "description": "A state machine for the workflow of cards",
-  "type": "object",
   "additionalProperties": false,
+  "description": "A state machine for the workflow of cards",
   "properties": {
     "description": {
       "description": "A description that describes the workflow",
@@ -71,5 +69,7 @@
       }
     }
   },
-  "required": ["displayName", "name", "states", "transitions"]
+  "required": ["displayName", "name", "states", "transitions"],
+  "title": "Workflow",
+  "type": "object"
 }

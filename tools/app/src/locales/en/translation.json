@@ -1,28 +1,6 @@
 {
-  "appName": "Cards",
-  "dataType": "Data Type",
-  "toolbar": {
-    "newCard": "Create",
-    "newResource": "Create",
-    "importModules": "Import Modules"
-  },
-  "moveCardModal": {
-    "title": "Move",
-    "search": "Search or paste a link",
-    "success": "Card moved successfully"
-  },
-  "deleteCardModal": {
-    "title": "Delete card",
-    "warning": "I acknowledge I want to delete {{cardAmount}} cards",
-    "delete": "Delete",
-    "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
-    "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
-  },
-  "deleteResourceModal": {
-    "title": "Delete resource",
-    "content": "Are you sure you want to delete the resource <bold>\"{{resourceName}}\"</bold>? This cannot be undone.",
-    "success": "Resource \"{{resourceName}}\" deleted successfully"
-  },
+  "add": "Add",
+  "addAttachment": "Add attachment",
   "addAttachmentModal": {
     "title": "Add attachment",
     "dragNdrop": "Drag and drop your files here",
@@ -31,12 +9,103 @@
     "success": "Attachment(s) added successfully",
     "acceptedFormats": "Accepted file types: ..."
   },
-  "editLinkModal": {
-    "title": "Edit link"
+  "all": "All",
+  "appName": "Cards",
+  "attachment": "Attachment",
+  "attachments": "Attachments",
+  "cancel": "Cancel",
+  "cardKey": "Card key",
+  "cardNotFound": "Could not find card",
+  "cardType": "Card type",
+  "close": "Close",
+  "configuration": "Configuration",
+  "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
+  "create": "Create",
+  "createCard": {
+    "success": "Card created successfully",
+    "macro": {
+      "preview": "Creating cards with this macro is not supported in the preview mode"
+    }
   },
   "createCardModal": {
     "success": "Card created successfully"
   },
+  "createLink": {
+    "success": "{{count}} link created successfully",
+    "success_plural": "{{count}} links created successfully",
+    "partialFailure": "{{count}} link failed to create",
+    "partialFailure_plural": "{{count}} links failed to create"
+  },
+  "createUnder": "Create under \"{{parent}}\"",
+  "dataType": "Data Type",
+  "dataTypes": {
+    "shortText": "Short Text",
+    "longText": "Long Text",
+    "number": "Number",
+    "integer": "Integer",
+    "boolean": "Boolean",
+    "date": "Date",
+    "dateTime": "Date Time",
+    "enum": "Enum",
+    "list": "List",
+    "person": "Person"
+  },
+  "delete": "Delete",
+  "deleteCard": "Delete card",
+  "deleteCardModal": {
+    "title": "Delete card",
+    "warning": "I acknowledge I want to delete {{cardAmount}} cards",
+    "delete": "Delete",
+    "content_other": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold> and the tree under it? This cannot be undone.",
+    "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
+  },
+  "deleteCardSuccess": "Card deleted successfully",
+  "deleteLink": "Delete link",
+  "deleteLinkConfirm": "Are you sure you want to delete this link?",
+  "deleteResource": "Delete resource",
+  "deleteResourceModal": {
+    "title": "Delete resource",
+    "content": "Are you sure you want to delete the resource <bold>\"{{resourceName}}\"</bold>? This cannot be undone.",
+    "success": "Resource \"{{resourceName}}\" deleted successfully"
+  },
+  "edit": "Edit",
+  "editLinkModal": {
+    "title": "Edit link"
+  },
+  "emptyProject": "Project is empty",
+  "failedPolicyChecks": "Failed policy checks",
+  "failedToLoad": "Failed to load",
+  "false": "False",
+  "goToField": "Go to field",
+  "insertToContent": "Insert to content",
+  "invalid": "Invalid",
+  "invalidResource": "Invalid resource",
+  "labels": "Labels",
+  "lastTransitioned": "Last transitioned",
+  "lastUpdated": "Last updated",
+  "linkForm": {
+    "selectLinkType": "Select link type",
+    "searchCard": "Search card",
+    "writeDescription": "Write a link description",
+    "button": "Add link",
+    "buttonEdit": "Update",
+    "calculatedLink": "This is an automatic link that cannot be deleted"
+  },
+  "linkTooltip": "Link to another card",
+  "linkedCards": "Linked cards",
+  "loading": "Loading...",
+  "logicProgram": "Logic program",
+  "metadata": "Metadata",
+  "metadataNotFound": "Metadata not found",
+  "moreTooltip": "More actions",
+  "move": "Move card",
+  "moveCardModal": {
+    "title": "Move",
+    "search": "Search or paste a link",
+    "success": "Card moved successfully"
+  },
+  "name": "Name",
+  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
   "newCardDialog": {
     "title": "New card from template",
     "searchTemplates": "Search templates...",
@@ -80,96 +149,12 @@
     "notImplemented": "Creating {{resourceType}} is not yet implemented",
     "required": "{{field}} is required"
   },
-  "saveCard": {
-    "success": "Card saved successfully"
-  },
-  "createCard": {
-    "success": "Card created successfully",
-    "macro": {
-      "preview": "Creating cards with this macro is not supported in the preview mode"
-    }
-  },
-  "templateCard": "Template card",
-  "deleteCardSuccess": "Card deleted successfully",
-  "deleteCard": "Delete card",
-  "deleteResource": "Delete resource",
-  "delete": "Delete",
-  "cardKey": "Card key",
-  "cardType": "Card type",
-  "lastUpdated": "Last updated",
-  "labels": "Labels",
-  "value": "Value",
-  "name": "Name",
-  "title": "Title",
-  "workflowState": "Workflow state",
-  "metadata": "Metadata",
-  "close": "Close",
-  "cardNotFound": "Could not find card",
-  "loading": "Loading...",
-  "update": "Update",
-  "edit": "Edit",
-  "selectCard": "Please select a card",
-  "emptyProject": "Project is empty",
-  "preview": "Preview",
-  "cancel": "Cancel",
-  "moreTooltip": "More actions",
-  "showMore": "Show more",
-  "showLess": "Show less",
-  "true": "True",
-  "false": "False",
-  "create": "Create",
   "no": "No",
-  "yes": "Yes",
-  "or": "or",
-  "createUnder": "Create under \"{{parent}}\"",
-  "viewedAgo": "Viewed {{time}} ago",
-  "lastTransitioned": "Last transitioned",
-  "metadataNotFound": "Metadata not found",
-  "recents": "Recents",
-  "all": "All",
-  "move": "Move card",
-  "stateSelector": {
-    "status": "Status: {{state}}"
-  },
   "none": "None",
-  "tableOfContents": "Table of contents",
-  "passedPolicyChecks": "Passed policy checks",
-  "failedPolicyChecks": "Failed policy checks",
-  "policyCheckPass": "PASS",
-  "policyCheckFail": "FAIL",
-  "validationErrors": "Validation errors",
-  "validationError": "Validation error",
-  "invalid": "Invalid",
-  "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
-  "attachment": "Attachment",
-  "attachments": "Attachments",
-  "addAttachment": "Add attachment",
-  "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
-  "add": "Add",
-  "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
-  "linkTooltip": "Link to another card",
-  "linkedCards": "Linked cards",
-  "linkForm": {
-    "selectLinkType": "Select link type",
-    "searchCard": "Search card",
-    "writeDescription": "Write a link description",
-    "button": "Add link",
-    "buttonEdit": "Update",
-    "calculatedLink": "This is an automatic link that cannot be deleted"
-  },
-  "deleteLink": "Delete link",
-  "deleteLinkConfirm": "Are you sure you want to delete this link?",
-  "failedToLoad": "Failed to load",
-  "unknownError": "An unknown error occurred",
-  "insertToContent": "Insert to content",
-  "openInEditor": "Open in editor",
-  "saveCopy": "Save copy",
   "notifications": "Notifications",
-  "policyCheck": {
-    "successes": "Successes",
-    "failures": "Failures",
-    "title": "Policy checks"
-  },
+  "openInEditor": "Open in editor",
+  "or": "or",
+  "passedPolicyChecks": "Passed policy checks",
   "placeholder": {
     "integer": "Enter number (integer)",
     "number": "Enter number (decimal)",
@@ -181,25 +166,16 @@
     "list": "Select",
     "label": "Add label"
   },
-  "dataTypes": {
-    "shortText": "Short Text",
-    "longText": "Long Text",
-    "number": "Number",
-    "integer": "Integer",
-    "boolean": "Boolean",
-    "date": "Date",
-    "dateTime": "Date Time",
-    "enum": "Enum",
-    "list": "List",
-    "person": "Person"
+  "policyCheck": {
+    "successes": "Successes",
+    "failures": "Failures",
+    "title": "Policy checks"
   },
-  "goToField": "Go to field",
-  "createLink": {
-    "success": "{{count}} link created successfully",
-    "success_plural": "{{count}} links created successfully",
-    "partialFailure": "{{count}} link failed to create",
-    "partialFailure_plural": "{{count}} links failed to create"
-  },
+  "policyCheckFail": "FAIL",
+  "policyCheckPass": "PASS",
+  "preview": "Preview",
+  "recents": "Recents",
+  "resourceFileContentUpdated": "Resource file content updated",
   "resources": {
     "calculations": "Calculations",
     "cardTypes": "Card types",
@@ -212,13 +188,37 @@
     "templates": "Templates",
     "workflows": "Workflows"
   },
-  "selectResource": "Select resource",
-  "configuration": "Configuration",
-  "resourceFileContentUpdated": "Resource file content updated",
+  "saveCard": {
+    "success": "Card saved successfully"
+  },
+  "saveCopy": "Save copy",
   "saveFile": {
     "success": "File saved successfully"
   },
-  "invalidResource": "Invalid resource",
-  "logicProgram": "Logic program",
-  "viewLogicProgram": "View logic program"
+  "selectCard": "Please select a card",
+  "selectResource": "Select resource",
+  "showLess": "Show less",
+  "showMore": "Show more",
+  "stateSelector": {
+    "status": "Status: {{state}}"
+  },
+  "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
+  "tableOfContents": "Table of contents",
+  "templateCard": "Template card",
+  "title": "Title",
+  "toolbar": {
+    "newCard": "Create",
+    "newResource": "Create",
+    "importModules": "Import Modules"
+  },
+  "true": "True",
+  "unknownError": "An unknown error occurred",
+  "update": "Update",
+  "validationError": "Validation error",
+  "validationErrors": "Validation errors",
+  "value": "Value",
+  "viewLogicProgram": "View logic program",
+  "viewedAgo": "Viewed {{time}} ago",
+  "workflowState": "Workflow state",
+  "yes": "Yes"
 }

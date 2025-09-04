@@ -1,7 +1,7 @@
 {
-  "extension": ["ts"],
-  "spec": "test/**/*.test.ts",
   "$schema": "https://json.schemastore.org/mocharc.json",
+  "extension": ["ts"],
   "require": "tsx",
+  "spec": "test/**/*.test.ts",
   "timeout": 5000
 }

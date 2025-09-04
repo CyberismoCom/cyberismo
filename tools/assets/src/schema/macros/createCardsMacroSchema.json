@@ -1,6 +1,6 @@
 {
-  "type": "object",
   "$id": "createCardsMacroSchema",
+  "additionalProperties": false,
   "properties": {
     "buttonLabel": {
       "type": "string",
@@ -34,6 +34,6 @@
       "required": ["linkType", "direction", "cardKey"]
     }
   },
-  "additionalProperties": false,
-  "required": ["buttonLabel", "template"]
+  "required": ["buttonLabel", "template"],
+  "type": "object"
 }

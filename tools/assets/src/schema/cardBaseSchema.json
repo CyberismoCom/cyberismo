@@ -1,9 +1,7 @@
 {
-  "title": "Card",
   "$id": "cardBaseSchema",
-  "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
-  "type": "object",
   "additionalProperties": true,
+  "description": "Cards represent different types of tickets, issues and documents. All cards must be valid against this parent schema.",
   "properties": {
     "cardType": {
       "type": "string",
@@ -72,5 +70,7 @@
       "description": "Card key from which this card has been instantiated"
     }
   },
-  "required": ["title", "cardType", "workflowState", "rank"]
+  "required": ["title", "cardType", "workflowState", "rank"],
+  "title": "Card",
+  "type": "object"
 }

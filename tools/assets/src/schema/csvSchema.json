@@ -1,8 +1,6 @@
 {
-  "title": "Csv content",
   "$id": "csvSchema",
   "description": "Contains the content of a CSV file as an array of objects. Each object represents a row in the CSV file.",
-  "type": "array",
   "items": {
     "type": "object",
     "additionalProperties": true,
@@ -26,5 +24,7 @@
       }
     },
     "required": ["title", "template"]
-  }
+  },
+  "title": "Csv content",
+  "type": "array"
 }

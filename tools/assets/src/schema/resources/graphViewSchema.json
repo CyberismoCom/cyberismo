@@ -1,8 +1,7 @@
 {
-  "title": "GraphView",
   "$id": "graphViewSchema",
+  "additionalProperties": false,
   "description": "A graph view object provides means to show graph model data to users",
-  "type": "object",
   "properties": {
     "name": {
       "description": "The name of this graph view",
@@ -24,5 +23,6 @@
     }
   },
   "required": ["displayName", "name", "displayName"],
-  "additionalProperties": false
+  "title": "GraphView",
+  "type": "object"
 }

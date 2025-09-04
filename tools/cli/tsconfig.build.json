@@ -1,5 +1,4 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "declaration": true,
     "outDir": "./dist",
@@ -7,5 +6,6 @@
     "types": ["node"],
     "skipLibCheck": true
   },
+  "extends": "./tsconfig.json",
   "include": ["src/**/*"]
 }

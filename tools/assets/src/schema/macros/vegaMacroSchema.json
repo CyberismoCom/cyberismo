@@ -1,14 +1,6 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Vega Visualization Specification Language",
   "$id": "vegaMacroSchema",
-  "type": "object",
-  "properties": {
-    "spec": {
-      "$ref": "#/definitions/TopLevelSpec"
-    }
-  },
-  "required": ["spec"],
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
     "autosize": {
       "oneOf": [
@@ -14927,5 +14919,13 @@
         }
       ]
     }
-  }
+  },
+  "properties": {
+    "spec": {
+      "$ref": "#/definitions/TopLevelSpec"
+    }
+  },
+  "required": ["spec"],
+  "title": "Vega Visualization Specification Language",
+  "type": "object"
 }

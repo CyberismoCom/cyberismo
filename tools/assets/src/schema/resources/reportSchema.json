@@ -1,8 +1,7 @@
 {
-  "title": "Report",
   "$id": "reportSchema",
+  "additionalProperties": false,
   "description": "A report object provides supplemental information about a report",
-  "type": "object",
   "properties": {
     "name": {
       "description": "The name of this report",
@@ -24,5 +23,6 @@
     }
   },
   "required": ["name", "displayName", "category"],
-  "additionalProperties": false
+  "title": "Report",
+  "type": "object"
 }

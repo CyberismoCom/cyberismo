@@ -1,9 +1,7 @@
 {
-  "title": "CardsConfig",
   "$id": "cardsConfigSchema",
-  "description": "General configuration settings for the card tree.",
-  "type": "object",
   "additionalProperties": false,
+  "description": "General configuration settings for the card tree.",
   "properties": {
     "cardKeyPrefix": {
       "type": "string",
@@ -45,5 +43,7 @@
       }
     }
   },
-  "required": ["cardKeyPrefix"]
+  "required": ["cardKeyPrefix"],
+  "title": "CardsConfig",
+  "type": "object"
 }

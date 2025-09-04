@@ -1,6 +1,6 @@
 {
-  "type": "object",
   "$id": "percentageMacroSchema",
+  "additionalProperties": false,
   "properties": {
     "title": {
       "type": "string",
@@ -20,6 +20,6 @@
       "description": "Colour of the progress arc (optional)"
     }
   },
-  "additionalProperties": false,
-  "required": ["title", "value", "legend"]
+  "required": ["title", "value", "legend"],
+  "type": "object"
 }

@@ -1,8 +1,6 @@
 {
-  "title": "Dot Schema",
   "$id": "dotSchema",
   "description": "Schema of the .schema ",
-  "type": "array",
   "items": {
     "type": "object",
     "additionalProperties": false,
@@ -21,5 +19,7 @@
       }
     },
     "required": ["version", "id"]
-  }
+  },
+  "title": "Dot Schema",
+  "type": "array"
 }
