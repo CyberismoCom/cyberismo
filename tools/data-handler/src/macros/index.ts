@@ -240,7 +240,7 @@ export async function evaluateMacros(
   registerMacros(handlebars, context, tasks);
   let result = content;
   while ((context.maxTries ?? 10) > 0) {
-    tasks.reset();
+    void tasks.reset();
     try {
       const compiled = handlebars.compile(preprocessRawBlocks(result), {
         strict: true,

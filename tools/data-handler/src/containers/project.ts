@@ -110,23 +110,25 @@ export class Project extends CardContainer {
       this.resourceWatcher = new ContentWatcher(
         ignoreRenameFileChanges,
         this.paths.resourcesFolder,
-        async (fileName: string) => {
-          let resource;
-          try {
-            resource = pathToResourceName(
-              this,
-              join(this.paths.resourcesFolder, fileName),
-            );
-            if (!resource) {
+        (fileName: string) => {
+          void (async () => {
+            let resource;
+            try {
+              resource = pathToResourceName(
+                this,
+                join(this.paths.resourcesFolder, fileName),
+              );
+              if (!resource) {
+                return;
+              }
+            } catch {
+              // it wasn't a resource that changed, so ignore the change
               return;
             }
-          } catch {
-            // it wasn't a resource that changed, so ignore the change
-            return;
-          }
-          const resourceName = `${resource.prefix}/${resource.type}/${resource.identifier}`;
-          await this.replaceCacheValue(resourceName);
-          this.resources.collectLocalResources();
+            const resourceName = `${resource.prefix}/${resource.type}/${resource.identifier}`;
+            await this.replaceCacheValue(resourceName);
+            this.resources.collectLocalResources();
+          })();
         },
       );
     }
@@ -626,41 +628,35 @@ export class Project extends CardContainer {
       cardsFrom === CardLocation.templatesOnly
     ) {
       promises.push(
-        this.templates().then((templates) =>
-          Promise.allSettled(
-            templates.map(
-              (template) =>
-                new TemplateResource(this, resourceName(template.name)),
-            ),
-          )
-            .then((results) =>
-              results
-                .filter(
-                  (
-                    result,
-                  ): result is PromiseFulfilledResult<TemplateResource> =>
-                    result.status === 'fulfilled' && result.value !== null,
-                )
-                .map((result) => result.value),
+        (async () => {
+          const templates = await this.templates();
+          const templateResources = templates.map(
+            (template) =>
+              new TemplateResource(this, resourceName(template.name)),
+          );
+          const templateObjectsResults =
+            await Promise.allSettled(templateResources);
+          const templateObjects = templateObjectsResults
+            .filter(
+              (result): result is PromiseFulfilledResult<TemplateResource> =>
+                result.status === 'fulfilled' && result.value !== null,
             )
-            .then((templateObjects) =>
-              Promise.allSettled(
-                templateObjects.map((obj) => obj.templateObject().listCards()),
-              ),
+            .map((result) => result.value);
+
+          const listCardsResults = await Promise.allSettled(
+            templateObjects.map((obj) => obj.templateObject().listCards()),
+          );
+          const templateCardIds = new Set<string>();
+          listCardsResults
+            .filter(
+              (result): result is PromiseFulfilledResult<Card[]> =>
+                result.status === 'fulfilled',
             )
-            .then((results) => {
-              const templateCardIds = new Set<string>();
-              results
-                .filter(
-                  (result): result is PromiseFulfilledResult<Card[]> =>
-                    result.status === 'fulfilled',
-                )
-                .forEach((result) => {
-                  result.value.forEach((card) => templateCardIds.add(card.key));
-                });
-              return templateCardIds;
-            }),
-        ),
+            .forEach((result) => {
+              result.value.forEach((card) => templateCardIds.add(card.key));
+            });
+          return templateCardIds;
+        })(),
       );
     }
     const allCardIdSets = await Promise.all(promises);

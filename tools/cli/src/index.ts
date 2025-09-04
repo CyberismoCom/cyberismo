@@ -889,7 +889,7 @@ program
         return;
       }
     }
-    startServer(await commandHandler.getProjectPath(options.projectPath));
+    await startServer(await commandHandler.getProjectPath(options.projectPath));
   });
 
 export default program;
