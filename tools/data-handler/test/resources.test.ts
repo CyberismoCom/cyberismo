@@ -791,117 +791,101 @@ describe('resources', function () {
         project,
         resourceName('decision/cardTypes/newCT'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/cardTypes/newCT',
-          displayName: '',
-          workflow: 'decision/workflows/decision',
-          customFields: [],
-          alwaysVisibleFields: [],
-          optionallyVisibleFields: [],
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/cardTypes/newCT',
+        displayName: '',
+        workflow: 'decision/workflows/decision',
+        customFields: [],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      });
     });
     it('data of field type', async () => {
       const res = new FieldTypeResource(
         project,
         resourceName('decision/fieldTypes/newFT'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/fieldTypes/newFT',
-          displayName: '',
-          dataType: 'shortText',
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/fieldTypes/newFT',
+        displayName: '',
+        dataType: 'shortText',
+      });
     });
     it('data of graph model', async () => {
       const res = new GraphModelResource(
         project,
         resourceName('decision/graphModels/newGM'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/graphModels/newGM',
-          displayName: '',
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/graphModels/newGM',
+        displayName: '',
+      });
     });
     it('data of graph view', async () => {
       const res = new GraphViewResource(
         project,
         resourceName('decision/graphViews/newGV'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/graphViews/newGV',
-          displayName: '',
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/graphViews/newGV',
+        displayName: '',
+      });
     });
     it('data of link type', async () => {
       const res = new LinkTypeResource(
         project,
         resourceName('decision/linkTypes/newLT'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/linkTypes/newLT',
-          displayName: '',
-          outboundDisplayName: 'decision/linkTypes/newLT',
-          inboundDisplayName: 'decision/linkTypes/newLT',
-          sourceCardTypes: [],
-          destinationCardTypes: [],
-          enableLinkDescription: false,
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/linkTypes/newLT',
+        displayName: '',
+        outboundDisplayName: 'decision/linkTypes/newLT',
+        inboundDisplayName: 'decision/linkTypes/newLT',
+        sourceCardTypes: [],
+        destinationCardTypes: [],
+        enableLinkDescription: false,
+      });
     });
     it('data of report', async () => {
       const res = new ReportResource(
         project,
         resourceName('decision/reports/newREP'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/reports/newREP',
-          displayName: '',
-          category: 'Uncategorised report',
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/reports/newREP',
+        displayName: '',
+        category: 'Uncategorised report',
+      });
     });
     it('data of template', async () => {
       const res = new TemplateResource(
         project,
         resourceName('decision/templates/newTEMP'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/templates/newTEMP',
-          displayName: '',
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/templates/newTEMP',
+        displayName: '',
+      });
     });
     it('data of workflow', async () => {
       const res = new WorkflowResource(
         project,
         resourceName('decision/workflows/newWF'),
       );
-      expect(JSON.stringify(res.data)).to.equal(
-        JSON.stringify({
-          name: 'decision/workflows/newWF',
-          displayName: '',
-          states: [
-            { name: 'Draft', category: 'initial' },
-            { name: 'Approved', category: 'closed' },
-            { name: 'Deprecated', category: 'closed' },
-          ],
-          transitions: [
-            { name: 'Create', fromState: [''], toState: 'Draft' },
-            { name: 'Approve', fromState: ['Draft'], toState: 'Approved' },
-            { name: 'Archive', fromState: ['*'], toState: 'Deprecated' },
-          ],
-        }),
-      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/workflows/newWF',
+        displayName: '',
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Approved', category: 'closed' },
+          { name: 'Deprecated', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Approve', fromState: ['Draft'], toState: 'Approved' },
+          { name: 'Archive', fromState: ['*'], toState: 'Deprecated' },
+        ],
+      });
     });
     // Show is basically same as '.data' - it just has extra validation.
     it('show card type', async () => {
@@ -910,16 +894,14 @@ describe('resources', function () {
         resourceName('decision/cardTypes/newCT'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/cardTypes/newCT',
-          displayName: '',
-          workflow: 'decision/workflows/decision',
-          customFields: [],
-          alwaysVisibleFields: [],
-          optionallyVisibleFields: [],
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/cardTypes/newCT',
+        displayName: '',
+        workflow: 'decision/workflows/decision',
+        customFields: [],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      });
     });
     it('show field type', async () => {
       const res = new FieldTypeResource(
@@ -927,13 +909,11 @@ describe('resources', function () {
         resourceName('decision/fieldTypes/newFT'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/fieldTypes/newFT',
-          displayName: '',
-          dataType: 'shortText',
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/fieldTypes/newFT',
+        displayName: '',
+        dataType: 'shortText',
+      });
     });
     it('show graph model', async () => {
       const res = new GraphModelResource(
@@ -941,13 +921,11 @@ describe('resources', function () {
         resourceName('decision/graphModels/newGM'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/graphModels/newGM',
-          displayName: '',
-          calculationFile: 'model.lp',
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/graphModels/newGM',
+        displayName: '',
+        calculationFile: 'model.lp',
+      });
     });
     it('show graph view', async () => {
       const res = new GraphViewResource(
@@ -955,13 +933,11 @@ describe('resources', function () {
         resourceName('decision/graphViews/newGV'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/graphViews/newGV',
-          displayName: '',
-          handleBarFile: 'view.lp.hbs',
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/graphViews/newGV',
+        displayName: '',
+        handleBarFile: 'view.lp.hbs',
+      });
     });
     it('show link type', async () => {
       const res = new LinkTypeResource(
@@ -969,17 +945,15 @@ describe('resources', function () {
         resourceName('decision/linkTypes/newLT'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/linkTypes/newLT',
-          displayName: '',
-          outboundDisplayName: 'decision/linkTypes/newLT',
-          inboundDisplayName: 'decision/linkTypes/newLT',
-          sourceCardTypes: [],
-          destinationCardTypes: [],
-          enableLinkDescription: false,
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/linkTypes/newLT',
+        displayName: '',
+        outboundDisplayName: 'decision/linkTypes/newLT',
+        inboundDisplayName: 'decision/linkTypes/newLT',
+        sourceCardTypes: [],
+        destinationCardTypes: [],
+        enableLinkDescription: false,
+      });
     });
     it('show report', async () => {
       const res = new ReportResource(
@@ -989,34 +963,33 @@ describe('resources', function () {
       const data = await res.show();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { contentTemplate, queryTemplate, ...others } = data;
-      expect(JSON.stringify(others)).to.equal(
-        JSON.stringify({
+      expect(others).to.deep.equal({
+        description: undefined,
+        name: 'decision/reports/newREP',
+        displayName: '',
+        metadata: {
           name: 'decision/reports/newREP',
           displayName: '',
-          metadata: {
-            name: 'decision/reports/newREP',
-            displayName: '',
-            category: 'Uncategorised report',
-          },
-          schema: {
-            title: 'Report',
-            $id: 'reportMacroDefaultSchema',
-            description:
-              'A report object provides supplemental information about a report',
-            type: 'object',
-            properties: {
-              name: { description: 'The name of the report', type: 'string' },
-              cardKey: {
-                description:
-                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-                type: 'string',
-              },
+          category: 'Uncategorised report',
+        },
+        schema: {
+          title: 'Report',
+          $id: 'reportMacroDefaultSchema',
+          description:
+            'A report object provides supplemental information about a report',
+          type: 'object',
+          properties: {
+            name: { description: 'The name of the report', type: 'string' },
+            cardKey: {
+              description:
+                'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
+              type: 'string',
             },
-            additionalProperties: false,
-            required: ['name'],
           },
-        }),
-      );
+          additionalProperties: false,
+          required: ['name'],
+        },
+      });
     });
     // Tests that report data can be shown from a module; ensures that
     // all report files are reachable; even if their content is not validated.
@@ -1037,34 +1010,33 @@ describe('resources', function () {
       const data = await res.show();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { contentTemplate, queryTemplate, ...others } = data;
-      expect(JSON.stringify(others)).to.equal(
-        JSON.stringify({
+      expect(others).to.deep.equal({
+        name: 'decision/reports/newREP',
+        description: undefined,
+        displayName: '',
+        metadata: {
           name: 'decision/reports/newREP',
           displayName: '',
-          metadata: {
-            name: 'decision/reports/newREP',
-            displayName: '',
-            category: 'Uncategorised report',
-          },
-          schema: {
-            title: 'Report',
-            $id: 'reportMacroDefaultSchema',
-            description:
-              'A report object provides supplemental information about a report',
-            type: 'object',
-            properties: {
-              name: { description: 'The name of the report', type: 'string' },
-              cardKey: {
-                description:
-                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-                type: 'string',
-              },
+          category: 'Uncategorised report',
+        },
+        schema: {
+          title: 'Report',
+          $id: 'reportMacroDefaultSchema',
+          description:
+            'A report object provides supplemental information about a report',
+          type: 'object',
+          properties: {
+            name: { description: 'The name of the report', type: 'string' },
+            cardKey: {
+              description:
+                'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
+              type: 'string',
             },
-            additionalProperties: false,
-            required: ['name'],
           },
-        }),
-      );
+          additionalProperties: false,
+          required: ['name'],
+        },
+      });
     });
 
     it('show template', async () => {
@@ -1075,17 +1047,16 @@ describe('resources', function () {
       const data = await res.show();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { path, ...others } = data;
-      expect(JSON.stringify(others)).to.equal(
-        JSON.stringify({
-          metadata: {
-            name: 'decision/templates/newTEMP',
-            displayName: '',
-          },
+      expect(others).to.deep.equal({
+        description: undefined,
+        metadata: {
           name: 'decision/templates/newTEMP',
           displayName: '',
-          numberOfCards: 0,
-        }),
-      );
+        },
+        name: 'decision/templates/newTEMP',
+        displayName: '',
+        numberOfCards: 0,
+      });
     });
     it('show workflow', async () => {
       const res = new WorkflowResource(
@@ -1093,22 +1064,20 @@ describe('resources', function () {
         resourceName('decision/workflows/newWF'),
       );
       const data = await res.show();
-      expect(JSON.stringify(data)).to.equal(
-        JSON.stringify({
-          name: 'decision/workflows/newWF',
-          displayName: '',
-          states: [
-            { name: 'Draft', category: 'initial' },
-            { name: 'Approved', category: 'closed' },
-            { name: 'Deprecated', category: 'closed' },
-          ],
-          transitions: [
-            { name: 'Create', fromState: [''], toState: 'Draft' },
-            { name: 'Approve', fromState: ['Draft'], toState: 'Approved' },
-            { name: 'Archive', fromState: ['*'], toState: 'Deprecated' },
-          ],
-        }),
-      );
+      expect(data).to.deep.equal({
+        name: 'decision/workflows/newWF',
+        displayName: '',
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Approved', category: 'closed' },
+          { name: 'Deprecated', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Approve', fromState: ['Draft'], toState: 'Approved' },
+          { name: 'Archive', fromState: ['*'], toState: 'Deprecated' },
+        ],
+      });
     });
     it('validate resources', async () => {
       const resources = [
