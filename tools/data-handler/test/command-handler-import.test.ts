@@ -4,8 +4,7 @@ import * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
@@ -14,7 +13,7 @@ import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-import-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');

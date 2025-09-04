@@ -58,6 +58,7 @@ import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { FolderResource } from '../resources/folder-resource.js';
 import { readJsonFile } from '../utils/json.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 /**
  * Show command.
@@ -79,6 +80,12 @@ export class Show {
       ['templates', this.project.templates.bind(this.project)],
       ['workflows', this.project.workflows.bind(this.project)],
     ]);
+  }
+
+  private get logger() {
+    return getChildLogger({
+      module: 'show',
+    });
   }
 
   // Collect all labels from cards.
@@ -413,7 +420,10 @@ export class Show {
       }
       // By default return the non-imported modules
       return nonImportedModules.map((item: ModuleSettingFromHub) => item?.name);
-    } catch {
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
       // Module list doesn't exist, return empty list
       return [];
     }

@@ -595,13 +595,13 @@ const fetchCmd = program
   .description('Retrieve external data to local file system.');
 
 fetchCmd
-  .command('modules')
+  .command('hubs')
   .description('Retrieves module lists from hubs')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CardsOptions) => {
     const result = await commandHandler.command(
       Cmd.fetch,
-      [],
+      ['hubs'],
       Object.assign({}, options, program.opts()),
     );
     handleResponse(result);
@@ -662,7 +662,14 @@ importCmd
             options.projectPath,
           );
           const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
-          const moduleListContent = await readFile(moduleListPath, 'utf-8');
+          let moduleListContent = '';
+          try {
+            moduleListContent = await readFile(moduleListPath, 'utf-8');
+          } catch {
+            // if file is missing, either project that was created before hub support, or
+            // creation of project done with 'skipModuleImport' flag.
+            // TODO: The item should be logged once we have log that is shareable between applications.
+          }
           const moduleList = JSON.parse(moduleListContent);
           const modules = moduleList.modules || [];
           const foundModule = modules?.find(
@@ -675,9 +682,11 @@ importCmd
             resolvedUseCredentials =
               useCredentials ?? foundModule.private ?? false;
           }
-        } catch {
-          // Module list doesn't exist or source not found, treat source as direct path/URL
-          // This is fine - source will be used as-is
+        } catch (error) {
+          if (error instanceof Error) {
+            // TODO: The item should be logged.
+            console.error(error.message);
+          }
         }
       }
 
