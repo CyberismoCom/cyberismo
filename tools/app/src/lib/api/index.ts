@@ -23,6 +23,7 @@ export * from './resources';
 export * from './cardType';
 export * from './graphModel';
 export * from './graphView';
+export * from './templates';
 export * from './report';
 export * from './workflow';
 export type { CardUpdate };
