@@ -13,7 +13,7 @@ import pino, { type ChildLoggerOptions, type Logger } from 'pino';
 
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
 // silent logger as default
-let _logger: Logger = pino.default({ level: 'silent' });
+let _logger: Logger = pino({ level: 'silent' });
 
 export function setLogger(logger: Logger) {
   _logger = logger;
