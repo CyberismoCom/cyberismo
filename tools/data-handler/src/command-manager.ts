@@ -99,7 +99,7 @@ export class CommandManager {
     ];
 
     setLogger(
-      pino.default({
+      pino({
         level: 'trace',
         transport: {
           targets: all,
