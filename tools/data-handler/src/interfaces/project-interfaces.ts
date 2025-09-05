@@ -164,6 +164,7 @@ export interface ProjectMetadata {
   path: string;
   prefix: string;
   modules: string[];
+  hubs: HubSetting[];
   numberOfCards: number;
 }
 
@@ -172,6 +173,20 @@ export interface ProjectSettings {
   cardKeyPrefix: string;
   name: string;
   modules: ModuleSetting[];
+  hubs: HubSetting[];
+}
+
+// Hub configuration
+export interface HubSetting {
+  location: string;
+  description?: string;
+  displayName?: string;
+}
+
+// Module configuration for a hub.
+export interface ModuleSettingFromHub extends ModuleSetting {
+  documentationLocation: string;
+  displayName: string;
 }
 
 // Module configuration.
@@ -195,6 +210,7 @@ export type RemovableResourceTypes =
   | 'fieldType'
   | 'graphModel'
   | 'graphView'
+  | 'hub'
   | 'link'
   | 'linkType'
   | 'module'
@@ -229,6 +245,8 @@ export type ResourceTypes =
   | 'attachments'
   | 'calculation'
   | 'cards'
+  | 'hubs'
+  | 'importableModules'
   | 'label'
   | 'labels'
   | 'links'

@@ -13,9 +13,11 @@
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 
-import { resolve } from 'path';
+import { resolve } from 'node:path';
+import { URL } from 'node:url';
 
 import type {
+  HubSetting,
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
@@ -31,6 +33,7 @@ export class ProjectConfiguration implements ProjectSettings {
   name: string;
   cardKeyPrefix: string;
   modules: ModuleSetting[];
+  hubs: HubSetting[];
   private settingPath: string;
 
   constructor(path: string) {
@@ -38,6 +41,7 @@ export class ProjectConfiguration implements ProjectSettings {
     this.settingPath = path;
     this.cardKeyPrefix = '';
     this.modules = [];
+    this.hubs = [];
     this.readSettings();
   }
 
@@ -70,6 +74,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.modules = settings.modules || [];
+      this.hubs = settings.hubs || [];
     } else {
       throw new Error(`Invalid configuration file '${this.settingPath}'`);
     }
@@ -81,7 +86,49 @@ export class ProjectConfiguration implements ProjectSettings {
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
       modules: this.modules,
+      hubs: this.hubs,
     };
+  }
+
+  /**
+   * Adds a new hub.
+   * @param hubName URL of the hub to add
+   * @throws if hub is already in the project or URL is invalid
+   */
+  public async addHub(hubName: string) {
+    const trimmedHub = hubName?.trim();
+    if (!trimmedHub) {
+      throw new Error(`Cannot add empty hub to the project`);
+    }
+
+    const exists = this.hubs.find((item) => item.location === trimmedHub);
+    if (exists) {
+      throw new Error(
+        `Hub '${trimmedHub}' already exists as a hub for the project`,
+      );
+    }
+
+    try {
+      const hubUrl = new URL(trimmedHub);
+      if (!['http:', 'https:'].includes(hubUrl.protocol)) {
+        throw new Error(
+          `Invalid URL protocol '${hubUrl.protocol}'. Only HTTP and HTTPS protocols are supported for hubs.`,
+        );
+      }
+      if (!hubUrl.hostname) {
+        throw new Error('Hub URL must have a valid hostname.');
+      }
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(
+          `Invalid hub URL '${trimmedHub}'. Please provide a valid HTTP or HTTPS URL.`,
+        );
+      }
+      throw error;
+    }
+
+    this.hubs.push({ location: trimmedHub });
+    return this.save();
   }
 
   /**
@@ -102,6 +149,20 @@ export class ProjectConfiguration implements ProjectSettings {
       module.location = `file:${resolve(filePath)}`;
     }
     this.modules.push(module);
+    return this.save();
+  }
+
+  /**
+   * Removes a hub.
+   * @param hubName Name of the hub to remove.
+   * @throws if hub is not part of the project
+   */
+  public async removeHub(hubName: string) {
+    const exists = this.hubs.find((item) => item.location === hubName);
+    if (!exists) {
+      throw new Error(`Hub '${hubName}' not part of the project`);
+    }
+    this.hubs = this.hubs.filter((item) => item.location !== hubName);
     return this.save();
   }
 
