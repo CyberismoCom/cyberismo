@@ -305,6 +305,7 @@ export class FieldTypeResource extends FileResource {
   /**
    * Creates a new field type object. Base class writes the object to disk automatically.
    * @param dataType Type for the new field type.
+   * @throws if called with unknown data type
    */
   public async createFieldType(dataType: DataType) {
     if (!FieldTypeResource.fieldDataTypes().includes(dataType)) {
@@ -418,6 +419,10 @@ export class FieldTypeResource extends FileResource {
    * Updates field type resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
+   * @throws
+   *  - when called with unknown data type
+   *  - when called with data type conversion that cannot be done
+   *  - when called with unknown property to update
    */
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';

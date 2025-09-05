@@ -153,6 +153,7 @@ export const macros: {
  * Validates the content inside a macro
  * @param macro - The macro to validate the content of
  * @param data - The data to validate
+ * @param schema - Schema to use in validation
  * @returns The validated data
  */
 export function validateMacroContent<T>(
@@ -180,7 +181,10 @@ export function validateMacroContent<T>(
 
 /**
  * Registers the macros with Handlebars
- * @param {Mode} mode - The mode to register the macros in
+ * @param instance - Handlebar instance
+ * @param context - The context for macro generation
+ * @param tasks - Tasks to register
+ * @returns macro instances
  */
 export function registerMacros(
   instance: typeof Handlebars,
@@ -201,7 +205,8 @@ export function registerMacros(
 }
 /**
  * Calculate amount of handlebars templates inside a string
- * @param input
+ * @param input - String to calculate templates from
+ * @returns number of macros
  */
 export function macroCount(input: string): number {
   const regex = /{{#[\w\s-]+?}}/g;
@@ -224,11 +229,11 @@ export function registerEmptyMacros(instance: typeof Handlebars) {
 }
 
 /**
- * Handle the macros in the content
+ * Handle the macros in the content.
  * @param content - The content to handle the macros in
  * @param context - The context for macro generation
- * @param calculate - The calculate function
  * @param preserveRawBlocks - If true, don't unescape raw blocks at the end (for nested evaluations)
+ * @returns macro result
  */
 export async function evaluateMacros(
   content: string,
@@ -240,7 +245,7 @@ export async function evaluateMacros(
   registerMacros(handlebars, context, tasks);
   let result = content;
   while ((context.maxTries ?? 10) > 0) {
-    void tasks.reset();
+    await tasks.reset();
     try {
       const compiled = handlebars.compile(preprocessRawBlocks(result), {
         strict: true,
@@ -313,6 +318,7 @@ export function applyMacroResults(
  * Handles errors that come when handling macros
  * @param error - The error that was thrown
  * @param macro - The macro that caused the error
+ * @param context - General context for the macro evaluation process
  * @returns The error message that is valid adoc
  */
 export function handleMacroError(
@@ -350,9 +356,14 @@ export function handleMacroError(
 }
 
 // This is used to generate unique keys for macros
-// There might be a better way to do this
+// TODO: There might be a better way to do this
 let macroCounter = 0;
 
+/**
+ * Converts object to base64
+ * @param obj Object to convert
+ * @returns base64 conversion (as a Buffer)
+ */
 function objectToBase64(obj: unknown): string {
   return Buffer.from(JSON.stringify(obj), 'utf-8').toString('base64');
 }
@@ -393,8 +404,9 @@ export function createCodeBlock(content: string) {
 }
 
 /**
- * Helper function for including base64 encoded images for now
+ * Helper function for including base64 encoded images
  * @param image base64 encoded image
+ * @param controls Add controls
  * @returns valid asciidoc with the image
  */
 export function createImage(image: string, controls: boolean = true) {

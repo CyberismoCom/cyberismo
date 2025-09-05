@@ -166,6 +166,7 @@ export class Project extends CardContainer {
   /**
    * Add a given 'resource' to the local resource arrays.
    * @param resource Resource to add.
+   * @param data JSON data for the resource.
    */
   public addResource(resource: Resource, data: JSON) {
     this.resources.add(resource);
@@ -254,6 +255,7 @@ export class Project extends CardContainer {
    * Returned parts are: prefix, card key, array of parents and template name. Template name is returned only for template cards.
    * @param cardPath path to a card
    * @returns card path logical parts
+   * @throws when called with wrong path, or wrong card owner
    * todo: if prefix would be parameter; this could be static, or util method
    */
   public cardPathParts(cardPath: string) {
@@ -460,7 +462,7 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the graph models in the project.
-   * @param from  Defines where resources are collected from.
+   * @param from Defines where resources are collected from.
    * @returns array of all the graph models in the project.
    */
   public async graphModels(
@@ -471,7 +473,7 @@ export class Project extends CardContainer {
 
   /**
    * Returns an array of all the graph views in the project.
-   * @param from  Defines where resources are collected from.
+   * @param from Defines where resources are collected from.
    * @returns array of all the graph views in the project.
    */
   public async graphViews(
@@ -515,7 +517,7 @@ export class Project extends CardContainer {
 
   /**
    * Adds a module from project.
-   * @param moduleName Name of the module
+   * @param module Name of the module
    */
   public async importModule(module: ModuleSetting) {
     // Add module as a dependency.
@@ -536,6 +538,7 @@ export class Project extends CardContainer {
    * Returns whether card is a template card or not
    * @param cardKey card to check.
    * @todo: This is only used from 'remove'. Could it use the static checker?
+   * @returns true, if card is template card; false otherwise
    */
   public async isTemplateCard(cardKey: string): Promise<boolean> {
     const templateCards = await this.allTemplateCards();
@@ -556,7 +559,7 @@ export class Project extends CardContainer {
   /**
    * Returns an array of cards in the project, in the templates or both.
    * Cards don't have content and nor metadata.
-   * @param includeCardsFrom Where to return cards from (project, templates, or both)
+   * @param cardsFrom Where to return cards from (project, templates, or both)
    * @returns all cards in the project.
    */
   public async listCards(
@@ -605,7 +608,7 @@ export class Project extends CardContainer {
 
   /**
    * Return cardIDs of the cards in the project or from templates, or both.
-   * @param includeCardsFrom Where to return cards from (project, templates, or both)
+   * @param cardsFrom Where to return cards from (project, templates, or both)
    * @returns Array of cardIDs.
    * @note that cardIDs are not sorted.
    */
@@ -750,6 +753,7 @@ export class Project extends CardContainer {
   /**
    * Returns a new unique card key with project prefix (e.g. test_x649it4x).
    * Random part of string will be always 8 characters in base-36 (0-9a-z)
+   * @param cardIds map of card ids in use already
    * @returns a new card key string
    * @throws if a unique key could not be created within set number of attempts
    */
@@ -768,12 +772,14 @@ export class Project extends CardContainer {
       return newKey;
     }
 
-    throw 'Could not generate unique card key';
+    throw new Error('Could not generate unique card key');
   }
 
   /**
    * Returns an array of new unique card keys with project prefix (e.g. test_x649it4x).
    * Random part of string will be always 8 characters in base-36 (0-9a-z)
+   * @param keysToCreate How many new cards are to be created.
+   * @param cardIds map of card ids in use already
    * @returns an array of new card key strings
    * @throws if a unique key could not be created within set number of attempts
    */
@@ -805,7 +811,7 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Getter. Returns a class that handles the project's paths.
+   * Returns a class that handles the project's paths.
    */
   public get paths(): ProjectPaths {
     return this.projectPaths;
@@ -824,14 +830,14 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Getter. Returns project name.
+   * Returns project name.
    */
   public get projectName(): string {
     return this.settings.name;
   }
 
   /**
-   * Getter. Returns project prefix.
+   * Returns project prefix.
    */
   public get projectPrefix(): string {
     return this.settings.cardKeyPrefix;
@@ -865,7 +871,7 @@ export class Project extends CardContainer {
       const configurationPrefixes = await Promise.all(configurationPromises);
       prefixes.push(...configurationPrefixes);
     } catch {
-      // do nothing if readdir throws
+      // do nothing if readdir throws // TODO: Log it
     }
 
     return prefixes;
@@ -933,6 +939,9 @@ export class Project extends CardContainer {
     return data;
   }
 
+  /**
+   * Returns resource cache.
+   */
   public get resourceCache(): Map<string, JSON> {
     return this.createdResources;
   }
@@ -1127,6 +1136,7 @@ export class Project extends CardContainer {
   /**
    * Validates that card's data is valid.
    * @param card Card to validate.
+   * @returns validation errors, if any
    */
   public async validateCard(card: Card): Promise<string> {
     const invalidCustomData = await this.validator.validateCustomFields(
