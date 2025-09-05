@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Vega as VegaComponent } from 'react-vega';
+import { VegaEmbed } from 'react-vega';
 import { MacroContext } from '.';
 import * as vega from 'vega';
 
@@ -24,7 +24,7 @@ function Vega({ spec }: VegaProps) {
   if (!spec) {
     return <div style={{ color: 'red' }}>No Vega spec provided.</div>;
   }
-  return <VegaComponent spec={spec} actions={false} />;
+  return <VegaEmbed spec={spec} options={{ actions: false }} />;
 }
 
 export default Vega;
