@@ -122,13 +122,13 @@ export class Create {
       ? await templateObject.findSpecificCard(card)
       : undefined;
     if (card && !specificCard) {
-      throw Error(
+      throw new Error(
         `Card '${card}' was not found from template '${origTemplateName}'`,
       );
     }
 
     if (templateObject.templateFolder().includes(`${sep}modules${sep}`)) {
-      throw Error(`Cannot add cards to imported module templates`);
+      throw new Error(`Cannot add cards to imported module templates`);
     }
 
     // Collect all add-card promises and settle them in parallel.

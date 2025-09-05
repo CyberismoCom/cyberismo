@@ -150,13 +150,13 @@ export class FieldTypeResource extends FileResource {
     const allCards = [...projectCards, ...templateCards];
 
     // Finally, convert values and update the cards.
-    allCards.forEach(async (card) => {
+    for (const card of allCards) {
       const metadata = card.metadata!;
       const fieldName = resourceNameToString(this.resourceName);
       try {
         metadata[fieldName] = this.convertValue(metadata[fieldName]);
         // Either value was already null, or couldn't convert.
-        if (metadata[fieldName] === null) return;
+        if (metadata[fieldName] === null) continue;
 
         await this.project.updateCardMetadata(card, metadata);
       } catch (error) {
@@ -164,7 +164,7 @@ export class FieldTypeResource extends FileResource {
           `In card '${card.key}': ${error instanceof Error ? error.message : String(error)}`,
         );
       }
-    });
+    }
   }
 
   // Checks that enum with 'enumValue' exists.
@@ -305,6 +305,7 @@ export class FieldTypeResource extends FileResource {
   /**
    * Creates a new field type object. Base class writes the object to disk automatically.
    * @param dataType Type for the new field type.
+   * @throws if called with unknown data type
    */
   public async createFieldType(dataType: DataType) {
     if (!FieldTypeResource.fieldDataTypes().includes(dataType)) {
@@ -418,6 +419,10 @@ export class FieldTypeResource extends FileResource {
    * Updates field type resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
+   * @throws
+   *  - when called with unknown data type
+   *  - when called with data type conversion that cannot be done
+   *  - when called with unknown property to update
    */
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';

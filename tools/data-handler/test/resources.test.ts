@@ -48,7 +48,7 @@ import type {
 } from '../src/resources/resource-object.js';
 
 describe('resources', function () {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-resource-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   const minimalPath = join(testDir, 'valid/minimal');
@@ -346,14 +346,15 @@ describe('resources', function () {
           removeType as RemovableResourceTypes,
           nameForResource,
         );
+        collector.collectLocalResources();
         exists = await collector.resourceExists(resourceType, nameForResource);
         expect(exists).to.equal(false);
       }
 
-      checkResource('graphModels');
-      checkResource('graphViews');
-      checkResource('reports');
-      checkResource('templates');
+      await checkResource('graphModels');
+      await checkResource('graphViews');
+      await checkResource('reports');
+      await checkResource('templates');
     });
   });
 

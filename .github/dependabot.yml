@@ -36,6 +36,7 @@ updates:
         patterns:
           - "eslint"
           - "eslint-config-prettier"
+          - "eslint-plugin-promise"
           - "typescript-eslint"
           - "@eslint/js"
           - "@typescript-eslint/parser"

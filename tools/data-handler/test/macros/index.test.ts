@@ -42,7 +42,7 @@ class TestMacro extends BaseMacro {
     );
   }
 
-  handleValidate = async (data: { content: string }) => {
+  handleValidate = (data: { content: string }) => {
     return 'test-static: ' + data.content;
   };
 
