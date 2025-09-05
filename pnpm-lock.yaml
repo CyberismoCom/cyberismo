@@ -31,11 +31,11 @@ importers:
         specifier: ^8.38.0
         version: 8.39.0(eslint@9.32.0)(typescript@5.8.3)
       chai:
-        specifier: ^5.2.1
-        version: 5.2.1
+        specifier: ^6.0.1
+        version: 6.0.1
       chai-as-promised:
-        specifier: ^8.0.1
-        version: 8.0.1(chai@5.2.1)
+        specifier: ^8.0.2
+        version: 8.0.2(chai@6.0.1)
       chokidar-cli:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1941,13 +1941,17 @@ packages:
   caseless@0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
 
-  chai-as-promised@8.0.1:
-    resolution: {integrity: sha512-OIEJtOL8xxJSH8JJWbIoRjybbzR52iFuDHuF8eb+nTPD6tgXLjRqsgnUGqQfFODxYvq5QdirT0pN9dZ0+Gz6rA==}
+  chai-as-promised@8.0.2:
+    resolution: {integrity: sha512-1GadL+sEJVLzDjcawPM4kjfnL+p/9vrxiEUonowKOAzvVg0PixJUdtuDzdkDeQhK3zfOE76GqGkZIQ7/Adcrqw==}
     peerDependencies:
-      chai: '>= 2.1.2 < 6'
+      chai: '>= 2.1.2 < 7'
 
-  chai@5.2.1:
-    resolution: {integrity: sha512-5nFxhUrX0PqtyogoYOA8IPswy5sZFTOsBFl/9bNsmDLgsxYTzSZQJDPppDnZPTQbzSEm0hqGjWPzRemQCYbD6A==}
+  chai@5.3.3:
+    resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
+    engines: {node: '>=18'}
+
+  chai@6.0.1:
+    resolution: {integrity: sha512-/JOoU2//6p5vCXh00FpNgtlw0LjvhGttaWc+y7wpW9yjBm3ys0dI8tSKZxIOgNruz5J0RleccatSIC3uxEZP0g==}
     engines: {node: '>=18'}
 
   chalk@2.4.2:
@@ -6100,7 +6104,7 @@ snapshots:
       '@types/chai': 5.2.2
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
-      chai: 5.2.1
+      chai: 5.3.3
       tinyrainbow: 2.0.0
 
   '@vitest/mocker@3.1.1(vite@7.0.6(@types/node@22.15.29)(terser@5.40.0)(tsx@4.19.4))':
@@ -6390,18 +6394,20 @@ snapshots:
 
   caseless@0.12.0: {}
 
-  chai-as-promised@8.0.1(chai@5.2.1):
+  chai-as-promised@8.0.2(chai@6.0.1):
     dependencies:
-      chai: 5.2.1
+      chai: 6.0.1
       check-error: 2.1.1
 
-  chai@5.2.1:
+  chai@5.3.3:
     dependencies:
       assertion-error: 2.0.1
       check-error: 2.1.1
       deep-eql: 5.0.2
       loupe: 3.2.0
       pathval: 2.0.1
+
+  chai@6.0.1: {}
 
   chalk@2.4.2:
     dependencies:
@@ -9264,7 +9270,7 @@ snapshots:
       '@vitest/snapshot': 3.2.4
       '@vitest/spy': 3.2.4
       '@vitest/utils': 3.2.4
-      chai: 5.2.1
+      chai: 5.3.3
       debug: 4.4.1(supports-color@8.1.1)
       expect-type: 1.2.2
       magic-string: 0.30.17
