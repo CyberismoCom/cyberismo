@@ -1,9 +1,7 @@
 {
-  "title": "Hub",
   "$id": "hubSchema",
-  "description": "The contents of a Cyberismo hub.",
-  "type": "object",
   "additionalProperties": false,
+  "description": "The contents of a Cyberismo hub.",
   "properties": {
     "displayName": {
       "description": "Display name of the hub",
@@ -54,5 +52,7 @@
       }
     }
   },
-  "required": ["displayName", "description"]
+  "required": ["displayName", "description"],
+  "title": "Hub",
+  "type": "object"
 }
