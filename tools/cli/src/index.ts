@@ -465,6 +465,7 @@ program
           const choices = await importableModules(commandOptions);
           const selectedModules = await checkbox({
             message: 'Select modules to import',
+            theme: { helpMode: 'always' },
             choices,
           });
 
