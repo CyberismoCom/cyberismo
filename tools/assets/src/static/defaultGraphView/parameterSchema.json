@@ -1,8 +1,7 @@
 {
-  "title": "Graph view",
   "$id": "myGraphMacroSchema",
+  "additionalProperties": false,
   "description": "Parameters for the graph macro",
-  "type": "object",
   "properties": {
     "model": {
       "description": "The name of the graph model",
@@ -17,6 +16,7 @@
       "type": "string"
     }
   },
-  "additionalProperties": false,
-  "required": ["model", "view"]
+  "required": ["model", "view"],
+  "title": "Graph view",
+  "type": "object"
 }

@@ -247,7 +247,7 @@ describe('resource utils with Project instance', () => {
           prefix: 'base',
           type: 'type',
           identifier: 'identifier',
-        }
+        },
       ],
     ]);
     for (const name of validNames) {
