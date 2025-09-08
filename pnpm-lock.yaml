@@ -294,8 +294,8 @@ importers:
         specifier: workspace:*
         version: link:../node-clingo
       '@viz-js/viz':
-        specifier: ^3.12.0
-        version: 3.12.0
+        specifier: ^3.17.0
+        version: 3.17.0
       async-mutex:
         specifier: ^0.5.0
         version: 0.5.0
@@ -1691,8 +1691,8 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@viz-js/viz@3.12.0':
-    resolution: {integrity: sha512-Xca1HNJJYvoRzR3oKFX8eIl4fynNMupsp7s8bkyOcORuX+t416bxKFhplenWu5TliIgpW++5+0Yag/DzIxWYUQ==}
+  '@viz-js/viz@3.17.0':
+    resolution: {integrity: sha512-oft6Hub0dRPXQcsx0oUMYTmTgU3RM9QVcr23/mrDUvcPeiHijEFNQxpigH8h399xLURoq6RrC9fYpYGEoqqIIA==}
 
   abbrev@3.0.1:
     resolution: {integrity: sha512-AO2ac6pjRB3SJmGJo+v5/aK6Omggp6fsLrs6wN9bd35ulu4cCwaAU9+7ZhXjeqHVkaHThLuzH0nZr0YpCDhygg==}
@@ -6146,7 +6146,7 @@ snapshots:
       loupe: 3.1.4
       tinyrainbow: 2.0.0
 
-  '@viz-js/viz@3.12.0': {}
+  '@viz-js/viz@3.17.0': {}
 
   abbrev@3.0.1: {}
 
