@@ -52,7 +52,7 @@
     "jsonschema": "^1.5.0",
     "mime-types": "^3.0.1",
     "pino": "^9.9.4",
-    "simple-git": "^3.2.0",
+    "simple-git": "^3.28.0",
     "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
     "vega": "^6.1.2",
