@@ -233,16 +233,16 @@ importers:
         version: link:../data-handler
       '@hono/node-server':
         specifier: ^1.19.1
-        version: 1.19.1(hono@4.7.11)
+        version: 1.19.1(hono@4.9.6)
       '@hono/zod-validator':
         specifier: ^0.7.2
-        version: 0.7.2(hono@4.7.11)(zod@4.1.5)
+        version: 0.7.2(hono@4.9.6)(zod@4.1.5)
       dotenv:
         specifier: ^17.2.2
         version: 17.2.2
       hono:
-        specifier: ^4.7.5
-        version: 4.7.11
+        specifier: ^4.9.6
+        version: 4.9.6
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
@@ -2995,8 +2995,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.7.11:
-    resolution: {integrity: sha512-rv0JMwC0KALbbmwJDEnxvQCeJh+xbS3KEWW5PC9cMJ08Ur9xgatI0HmtgYZfOdOSOeYsp5LO2cOhdI8cLEbDEQ==}
+  hono@4.9.6:
+    resolution: {integrity: sha512-doVjXhSFvYZ7y0dNokjwwSahcrAfdz+/BCLvAMa/vHLzjj8+CFyV5xteThGUsKdkaasgN+gF2mUxao+SGLpUeA==}
     engines: {node: '>=16.9.0'}
 
   html-dom-parser@5.1.1:
@@ -3363,8 +3363,8 @@ packages:
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
-  magic-string@0.30.18:
-    resolution: {integrity: sha512-yi8swmWbO17qHhwIBNeeZxTceJMeBvWJaId6dyvTSOwTipqeHhMhOrz6513r1sOKnpvQ7zkhlG8tPrpilwTxHQ==}
+  magic-string@0.30.19:
+    resolution: {integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==}
 
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
@@ -5558,13 +5558,13 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hono/node-server@1.19.1(hono@4.7.11)':
+  '@hono/node-server@1.19.1(hono@4.9.6)':
     dependencies:
-      hono: 4.7.11
+      hono: 4.9.6
 
-  '@hono/zod-validator@0.7.2(hono@4.7.11)(zod@4.1.5)':
+  '@hono/zod-validator@0.7.2(hono@4.9.6)(zod@4.1.5)':
     dependencies:
-      hono: 4.7.11
+      hono: 4.9.6
       zod: 4.1.5
 
   '@humanfs/core@0.19.1': {}
@@ -6313,7 +6313,7 @@ snapshots:
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/mocker': 3.1.1(vite@7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5))
       '@vitest/utils': 3.1.1
-      magic-string: 0.30.18
+      magic-string: 0.30.19
       sirv: 3.0.2
       tinyrainbow: 2.0.0
       vitest: 3.2.4(@types/node@22.18.1)(@vitest/browser@3.1.1)(jsdom@26.1.0)(terser@5.40.0)(tsx@4.20.5)
@@ -6336,7 +6336,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 3.1.1
       estree-walker: 3.0.3
-      magic-string: 0.30.18
+      magic-string: 0.30.19
     optionalDependencies:
       vite: 7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5)
 
@@ -7625,7 +7625,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.7.11: {}
+  hono@4.9.6: {}
 
   html-dom-parser@5.1.1:
     dependencies:
@@ -7967,7 +7967,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  magic-string@0.30.18:
+  magic-string@0.30.19:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
