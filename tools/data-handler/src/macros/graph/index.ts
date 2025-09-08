@@ -14,16 +14,16 @@
 import BaseMacro from '../base-macro.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
-import { join } from 'node:path';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { resourceName } from '../../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
 import type TaskQueue from '../task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
+import { resourceFilePath } from '../../utils/resource-utils.js';
+import { resourceName } from '../../utils/resource-utils.js';
 
 export interface GraphOptions {
   model: string;
@@ -42,14 +42,14 @@ class ReportMacro extends BaseMacro {
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.parseOptions(input, context);
 
-    const modelLocation = this.resolveResourcePath(
-      context,
-      options.model,
+    const modelLocation = resourceFilePath(
+      context.project,
+      resourceName(options.model),
       'model.lp',
     );
-    const viewLocation = this.resolveResourcePath(
-      context,
-      options.view,
+    const viewLocation = resourceFilePath(
+      context.project,
+      resourceName(options.view),
       'view.lp.hbs',
     );
 
@@ -106,9 +106,9 @@ class ReportMacro extends BaseMacro {
     try {
       schema = JSON.parse(
         readFileSync(
-          this.resolveResourcePath(
-            context,
-            options.view,
+          resourceFilePath(
+            context.project,
+            resourceName(options.view),
             'parameterSchema.json',
           ),
           { encoding: 'utf-8' },
@@ -126,29 +126,6 @@ class ReportMacro extends BaseMacro {
     }
 
     return options;
-  }
-
-  private resolveResourcePath(
-    context: MacroGenerationContext,
-    name: string,
-    fileName: string,
-  ): string {
-    const { identifier, prefix, type } = resourceName(name);
-    if (prefix === context.project.projectPrefix) {
-      return join(
-        context.project.paths.resourcesFolder,
-        type,
-        identifier,
-        fileName,
-      );
-    }
-    return join(
-      context.project.paths.modulesFolder,
-      prefix,
-      type,
-      identifier,
-      fileName,
-    );
   }
 }
 
