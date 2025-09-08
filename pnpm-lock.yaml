@@ -121,8 +121,8 @@ importers:
         specifier: ^19.1.5
         version: 19.1.5(@types/react@19.1.6)
       '@uiw/react-codemirror':
-        specifier: ^4.23.12
-        version: 4.24.2(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+        specifier: ^4.25.1
+        version: 4.25.1(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@vitejs/plugin-react':
         specifier: ^5.0.2
         version: 5.0.2(vite@7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5))
@@ -1748,8 +1748,8 @@ packages:
     resolution: {integrity: sha512-3WbiuzoEowaEn8RSnhJBrxSwX8ULYE9CXaPepS2C2W3NSA5NNIvBaslpBSBElPq0UGr0xVJlXFWOAKIkyylydQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@uiw/codemirror-extensions-basic-setup@4.24.2':
-    resolution: {integrity: sha512-wW/gjLRvVUeYyhdh2TApn25cvdcR+Rhg6R/j3eTOvXQzU1HNzNYCVH4YKVIfgtfdM/Xs+N8fkk+rbr1YvBppCg==}
+  '@uiw/codemirror-extensions-basic-setup@4.25.1':
+    resolution: {integrity: sha512-zxgA2QkvP3ZDKxTBc9UltNFTrSeFezGXcZtZj6qcsBxiMzowoEMP5mVwXcKjpzldpZVRuY+JCC+RsekEgid4vg==}
     peerDependencies:
       '@codemirror/autocomplete': '>=6.0.0'
       '@codemirror/commands': '>=6.0.0'
@@ -1759,8 +1759,8 @@ packages:
       '@codemirror/state': '>=6.0.0'
       '@codemirror/view': '>=6.0.0'
 
-  '@uiw/react-codemirror@4.24.2':
-    resolution: {integrity: sha512-kp7DhTq4RR+M2zJBQBrHn1dIkBrtOskcwJX4vVsKGByReOvfMrhqRkGTxYMRDTX6x75EG2mvBJPDKYcUQcHWBw==}
+  '@uiw/react-codemirror@4.25.1':
+    resolution: {integrity: sha512-eESBKHndoYkaEGlKCwRO4KrnTw1HkWBxVpEeqntoWTpoFEUYxdLWUYmkPBVk4/u8YzVy9g91nFfIRpqe5LjApg==}
     peerDependencies:
       '@babel/runtime': '>=7.11.0'
       '@codemirror/state': '>=6.0.0'
@@ -3363,8 +3363,8 @@ packages:
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
 
-  magic-string@0.30.18:
-    resolution: {integrity: sha512-yi8swmWbO17qHhwIBNeeZxTceJMeBvWJaId6dyvTSOwTipqeHhMhOrz6513r1sOKnpvQ7zkhlG8tPrpilwTxHQ==}
+  magic-string@0.30.19:
+    resolution: {integrity: sha512-2N21sPY9Ws53PZvsEpVtNuSW+ScYbQdp4b9qUaL+9QkHUrGFKo56Lg9Emg5s9V/qrtNBmiR01sYhUOwu3H+VOw==}
 
   make-dir@4.0.0:
     resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
@@ -5142,7 +5142,7 @@ snapshots:
 
   '@codemirror/commands@6.8.1':
     dependencies:
-      '@codemirror/language': 6.11.0
+      '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@codemirror/view': 6.38.2
       '@lezer/common': 1.2.3
@@ -6268,7 +6268,7 @@ snapshots:
       '@typescript-eslint/types': 8.42.0
       eslint-visitor-keys: 4.2.1
 
-  '@uiw/codemirror-extensions-basic-setup@4.24.2(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/commands@6.8.1)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-extensions-basic-setup@4.25.1(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/commands@6.8.1)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
     dependencies:
       '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3)
       '@codemirror/commands': 6.8.1
@@ -6278,14 +6278,14 @@ snapshots:
       '@codemirror/state': 6.5.2
       '@codemirror/view': 6.38.2
 
-  '@uiw/react-codemirror@4.24.2(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+  '@uiw/react-codemirror@4.25.1(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.2.3))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
       '@babel/runtime': 7.28.4
       '@codemirror/commands': 6.8.1
       '@codemirror/state': 6.5.2
       '@codemirror/theme-one-dark': 6.1.2
       '@codemirror/view': 6.38.2
-      '@uiw/codemirror-extensions-basic-setup': 4.24.2(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/commands@6.8.1)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+      '@uiw/codemirror-extensions-basic-setup': 4.25.1(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.2.3))(@codemirror/commands@6.8.1)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
       codemirror: 6.0.1(@lezer/common@1.2.3)
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -6313,7 +6313,7 @@ snapshots:
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/mocker': 3.1.1(vite@7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5))
       '@vitest/utils': 3.1.1
-      magic-string: 0.30.18
+      magic-string: 0.30.19
       sirv: 3.0.2
       tinyrainbow: 2.0.0
       vitest: 3.2.4(@types/node@22.18.1)(@vitest/browser@3.1.1)(jsdom@26.1.0)(terser@5.40.0)(tsx@4.20.5)
@@ -6336,7 +6336,7 @@ snapshots:
     dependencies:
       '@vitest/spy': 3.1.1
       estree-walker: 3.0.3
-      magic-string: 0.30.18
+      magic-string: 0.30.19
     optionalDependencies:
       vite: 7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5)
 
@@ -7967,7 +7967,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  magic-string@0.30.18:
+  magic-string@0.30.19:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
