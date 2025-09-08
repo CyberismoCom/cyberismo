@@ -52,7 +52,7 @@
     "react-resizable-panels": "^3.0.2",
     "react-router": "^7.7.1",
     "redux-persist": "^6.0.0",
-    "react-vega": "^7.7.1",
+    "react-vega": "^8.0.0",
     "rollup-plugin-license": "^3.6.0",
     "start-server-and-test": "^2.0.13",
     "swr": "^2.3.6",
