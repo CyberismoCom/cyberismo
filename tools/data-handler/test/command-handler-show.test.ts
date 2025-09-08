@@ -505,7 +505,7 @@ describe('shows command', () => {
         Cmd.add,
         [
           'hub',
-          'https://raw.githubusercontent.com/Fuzzbender/testModuleHub/main/',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
         ],
         optionsDecision,
       );
@@ -518,7 +518,7 @@ describe('shows command', () => {
         Cmd.remove,
         [
           'hub',
-          'https://raw.githubusercontent.com/Fuzzbender/testModuleHub/main/',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
         ],
         optionsDecision,
       );
@@ -533,9 +533,11 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length === 2);
+      expect(payloadAsArray.length === 4);
       expect(payloadAsArray.at(0)).to.equal('base');
-      expect(payloadAsArray.at(1)).to.equal('ismsa');
+      expect(payloadAsArray.at(1)).to.equal('eucra');
+      expect(payloadAsArray.at(2)).to.equal('ismsa');
+      expect(payloadAsArray.at(3)).to.equal('secdeva');
     });
 
     it('show importable modules details - success()', async () => {
@@ -547,11 +549,15 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length === 2);
+      expect(payloadAsArray.length === 4);
       expect(payloadAsArray.at(0).name).to.equal('base');
-      expect(payloadAsArray.at(1).name).to.equal('ismsa');
+      expect(payloadAsArray.at(1).name).to.equal('eucra');
+      expect(payloadAsArray.at(2).name).to.equal('ismsa');
+      expect(payloadAsArray.at(3).name).to.equal('secdeva');
       expect(payloadAsArray.at(0).category).to.equal('essentials');
       expect(payloadAsArray.at(1).category).to.equal('essentials');
+      expect(payloadAsArray.at(2).category).to.equal('essentials');
+      expect(payloadAsArray.at(3).category).to.equal('essentials');
     });
 
     it('show importableModule all - success()', async () => {

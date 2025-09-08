@@ -278,7 +278,7 @@ describe('remove command', () => {
     it('remove hub', async () => {
       // todo: Change to correct one, once CyberismoCom has one.
       const hub =
-        'https://raw.githubusercontent.com/Fuzzbender/testModuleHub/main/';
+        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/';
 
       // add hub first, since test data does not have module hubs
       await commandHandler.command(Cmd.add, ['hub', hub], options);
