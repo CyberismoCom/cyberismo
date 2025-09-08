@@ -58,7 +58,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/node": "^22.15.29",
+      "@types/node": "^22.18.1",
       "rollup": "^4.45.1"
     }
   }
