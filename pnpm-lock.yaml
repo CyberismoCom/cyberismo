@@ -254,8 +254,8 @@ importers:
         specifier: workspace:*
         version: link:../app
       '@types/mime-types':
-        specifier: ^3.0.0
-        version: 3.0.0
+        specifier: ^3.0.1
+        version: 3.0.1
 
   tools/cli:
     dependencies:
@@ -358,8 +358,8 @@ importers:
         specifier: ^7.0.15
         version: 7.0.15
       '@types/mime-types':
-        specifier: ^3.0.0
-        version: 3.0.0
+        specifier: ^3.0.1
+        version: 3.0.1
       '@types/sinon':
         specifier: ^17.0.4
         version: 17.0.4
@@ -1640,8 +1640,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/mime-types@3.0.0':
-    resolution: {integrity: sha512-9gFWMsVgEtbsD6yY/2z8pAtnZhdRKl4Q9xmKQJy5gv0fMpzJeeWtQyd7WpdhaIbRSwPCfnjXOsNMcoQvu5giGg==}
+  '@types/mime-types@3.0.1':
+    resolution: {integrity: sha512-xRMsfuQbnRq1Ef+C+RKaENOxXX87Ygl38W1vDfPHRku02TgQr+Qd8iivLtAMcR0KF5/29xlnFihkTlbqFrGOVQ==}
 
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
@@ -6142,7 +6142,7 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/mime-types@3.0.0': {}
+  '@types/mime-types@3.0.1': {}
 
   '@types/mocha@10.0.10': {}
 
