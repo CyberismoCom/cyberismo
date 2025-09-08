@@ -125,7 +125,7 @@ export function resourceFilePath(
   fileName: string,
 ): string {
   const resourcePath = resourceNameToPath(project, resourceName, '');
-  return join(resourcePath, resourceName.identifier, fileName);
+  return join(resourcePath, fileName);
 }
 
 /**
