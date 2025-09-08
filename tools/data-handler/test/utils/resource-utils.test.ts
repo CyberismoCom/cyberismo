@@ -234,7 +234,7 @@ describe('resource utils with Project instance', () => {
   it('resourceFilePath with extension', () => {
     const validNames: Map<string, ResourceName> = new Map([
       [
-        `${project.paths.resourcesFolder}${sep}type${sep}identifier${sep}identifier${sep}fileName.extension`,
+        `${project.paths.resourcesFolder}${sep}type${sep}identifier${sep}fileName.extension`,
         {
           prefix: project.projectPrefix,
           type: 'type',
@@ -242,7 +242,7 @@ describe('resource utils with Project instance', () => {
         },
       ],
       [
-        `${project.paths.modulesFolder}${sep}base${sep}type${sep}identifier${sep}identifier${sep}fileName.extension`,
+        `${project.paths.modulesFolder}${sep}base${sep}type${sep}identifier${sep}fileName.extension`,
         {
           prefix: 'base',
           type: 'type',
