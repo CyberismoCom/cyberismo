@@ -31,7 +31,7 @@ class ReportMacro extends BaseMacro {
   constructor(tasks: TaskQueue) {
     super(macroMetadata, tasks);
   }
-  handleValidate = (input: unknown) => {
+  handleValidate = (_: MacroGenerationContext, input: unknown) => {
     this.validate(input);
   };
 

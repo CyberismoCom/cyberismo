@@ -113,6 +113,22 @@ export function resourceNameToPath(
 }
 
 /**
+ * Return path to a file in a folder resource
+ * @param project Project
+ * @param resourceName Resource name
+ * @param fileName File name
+ * @returns Path to file in folder resource
+ */
+export function resourceFilePath(
+  project: Project,
+  resourceName: ResourceName,
+  fileName: string,
+): string {
+  const resourcePath = resourceNameToPath(project, resourceName, '');
+  return join(resourcePath, resourceName.identifier, fileName);
+}
+
+/**
  * Resource metadata file path to resource name (e.g. <prefix>/<type>/<name>)
  * @param project Project where resource is in
  * @param path Path to resource metadata file

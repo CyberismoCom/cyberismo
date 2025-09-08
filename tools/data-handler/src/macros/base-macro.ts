@@ -63,7 +63,10 @@ abstract class BaseMacro {
     input: unknown,
   ): Promise<string>;
 
-  protected abstract handleValidate(input: unknown): void;
+  protected abstract handleValidate(
+    context: MacroGenerationContext,
+    input: unknown,
+  ): void;
 
   public get metadata() {
     return this.macroMetadata;
@@ -127,7 +130,7 @@ abstract class BaseMacro {
 
     if (context.mode === 'validate') {
       try {
-        this.handleValidate(JSON.parse(input));
+        this.handleValidate(context, JSON.parse(input));
       } catch (error) {
         if (error instanceof Error) {
           const errorMessage = `From card '${context.cardKey}' a macro validation error:\n\n${error.message}.\n\nCard content:\n ${input}`;

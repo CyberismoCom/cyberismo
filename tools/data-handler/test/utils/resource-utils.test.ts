@@ -12,6 +12,7 @@ import {
   resourceNameToPath,
   resourceName,
   resourceNameToString,
+  resourceFilePath,
 } from '../../src/utils/resource-utils.js';
 
 import { Project } from '../../src/containers/project.js';
@@ -149,6 +150,31 @@ describe('resource utils with Project instance', () => {
     ).to.throw('resourceName does not contain prefix');
   });
 
+  it('resourceNameToPath with extension', () => {
+    const validNames: Map<string, ResourceName> = new Map([
+      [
+        `${project.paths.resourcesFolder}${sep}test${sep}test.test`,
+        {
+          prefix: project.projectPrefix,
+          type: 'test',
+          identifier: 'test',
+        },
+      ],
+      [
+        `${project.paths.modulesFolder}${sep}base${sep}test${sep}test.test`,
+        {
+          prefix: 'base',
+          type: 'test',
+          identifier: 'test',
+        },
+      ],
+    ]);
+    for (const name of validNames) {
+      const filePath = resourceNameToPath(project, name[1], '.test');
+      expect(filePath).to.equal(name[0]);
+    }
+  });
+
   it('pathToResourceName with valid values', () => {
     const validNames: Map<string, ResourceName> = new Map([
       [
@@ -202,6 +228,31 @@ describe('resource utils with Project instance', () => {
       expect(() => pathToResourceName(project, name[0])).to.throw(
         `${name[1]} ${name[0]}`,
       );
+    }
+  });
+
+  it('resourceFilePath with extension', () => {
+    const validNames: Map<string, ResourceName> = new Map([
+      [
+        `${project.paths.resourcesFolder}${sep}type${sep}identifier${sep}identifier${sep}fileName.extension`,
+        {
+          prefix: project.projectPrefix,
+          type: 'type',
+          identifier: 'identifier',
+        },
+      ],
+      [
+        `${project.paths.modulesFolder}${sep}base${sep}type${sep}identifier${sep}identifier${sep}fileName.extension`,
+        {
+          prefix: 'base',
+          type: 'type',
+          identifier: 'identifier',
+        },
+      ],
+    ]);
+    for (const name of validNames) {
+      const filePath = resourceFilePath(project, name[1], 'fileName.extension');
+      expect(filePath).to.equal(name[0]);
     }
   });
 });

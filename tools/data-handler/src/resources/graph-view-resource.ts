@@ -31,7 +31,9 @@ import type {
   GraphView,
   GraphViewMetadata,
 } from '../interfaces/resource-interfaces.js';
-import { writeFileSafe } from '../utils/file-utils.js';
+
+import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { copyDir } from '../utils/file-utils.js';
 
 /**
  * Graph view resource class.
@@ -73,10 +75,10 @@ export class GraphViewResource extends FolderResource {
     }
 
     await super.create(newContent);
-    const handleBarFile = join(this.internalFolder, 'view.lp.hbs');
-    await writeFileSafe(handleBarFile, '', {
-      flag: 'wx',
-    });
+    await copyDir(
+      join(await getStaticDirectoryPath(), 'defaultGraphView'),
+      this.internalFolder,
+    );
   }
 
   /**
