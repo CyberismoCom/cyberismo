@@ -19,7 +19,7 @@
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/data-handler": "workspace:*",
-    "@hono/node-server": "^1.14.1",
+    "@hono/node-server": "^1.19.1",
     "@hono/zod-validator": "^0.7.2",
     "dotenv": "^17.2.2",
     "hono": "^4.7.5",

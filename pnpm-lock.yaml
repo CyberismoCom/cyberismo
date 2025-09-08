@@ -232,8 +232,8 @@ importers:
         specifier: workspace:*
         version: link:../data-handler
       '@hono/node-server':
-        specifier: ^1.14.1
-        version: 1.14.3(hono@4.7.11)
+        specifier: ^1.19.1
+        version: 1.19.1(hono@4.7.11)
       '@hono/zod-validator':
         specifier: ^0.7.2
         version: 0.7.2(hono@4.7.11)(zod@4.1.5)
@@ -1002,8 +1002,8 @@ packages:
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
 
-  '@hono/node-server@1.14.3':
-    resolution: {integrity: sha512-KuDMwwghtFYSmIpr4WrKs1VpelTrptvJ+6x6mbUcZnFcc213cumTF5BdqfHyW93B19TNI4Vaev14vOI2a0Ie3w==}
+  '@hono/node-server@1.19.1':
+    resolution: {integrity: sha512-h44e5s+ByUriaRIbeS/C74O8v90m0A95luyYQGMF7KEn96KkYMXO7bZAwombzTpjQTU4e0TkU8U1WBIXlwuwtA==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -5570,7 +5570,7 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hono/node-server@1.14.3(hono@4.7.11)':
+  '@hono/node-server@1.19.1(hono@4.7.11)':
     dependencies:
       hono: 4.7.11
 
