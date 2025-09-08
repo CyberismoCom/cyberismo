@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { cp, readdir } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
 import type {
@@ -33,6 +33,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 
 import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { copyDir } from '../utils/file-utils.js';
 
 /**
  * Graph view resource class.
@@ -74,12 +75,9 @@ export class GraphViewResource extends FolderResource {
     }
 
     await super.create(newContent);
-    await cp(
+    await copyDir(
       join(await getStaticDirectoryPath(), 'defaultGraphView'),
       this.internalFolder,
-      {
-        recursive: true,
-      },
     );
   }
 
