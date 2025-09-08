@@ -217,8 +217,8 @@ importers:
   tools/assets:
     devDependencies:
       esbuild:
-        specifier: ^0.25.4
-        version: 0.25.4
+        specifier: ^0.25.9
+        version: 0.25.9
       esbuild-plugin-import-glob:
         specifier: ^0.1.1
         version: 0.1.1
