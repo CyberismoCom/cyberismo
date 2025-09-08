@@ -79,8 +79,8 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.18.1)(@vitest/browser@3.1.1)(jsdom@26.1.0)(terser@5.40.0)(tsx@4.20.5)
       vitest-browser-react:
-        specifier: ^0.1.1
-        version: 0.1.1(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(@vitest/browser@3.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vitest@3.2.4)
+        specifier: ^1.0.1
+        version: 1.0.1(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(@vitest/browser@3.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vitest@3.2.4)
 
   tools/app:
     devDependencies:
@@ -4754,16 +4754,16 @@ packages:
       yaml:
         optional: true
 
-  vitest-browser-react@0.1.1:
-    resolution: {integrity: sha512-n9l+sIAexKqqfBuEkjVGdfZ4xAn1Gn/+wc4Mo8KsUSUOVoM9evSY0rVXdMIzCQqloT/zvmFGAtziFINkqu+t7g==}
-    engines: {node: ^18.0.0 || >=20.0.0}
+  vitest-browser-react@1.0.1:
+    resolution: {integrity: sha512-LqiGFCdknrbMoSDWXTCTrPsED3SvdIXIgYOOZyYUNj2dkJusW2eF6NENOlBlxwq+FBQqzNK1X59b+b03pXFpAQ==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     peerDependencies:
-      '@types/react': '>18.0.0'
-      '@types/react-dom': '>18.0.0'
-      '@vitest/browser': '>=2.1.0'
-      react: '>18.0.0'
-      react-dom: '>18.0.0'
-      vitest: '>=2.1.0'
+      '@types/react': ^18.0.0 || ^19.0.0
+      '@types/react-dom': ^18.0.0 || ^19.0.0
+      '@vitest/browser': ^2.1.0 || ^3.0.0 || ^4.0.0-0
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+      vitest: ^2.1.0 || ^3.0.0 || ^4.0.0-0
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -9523,7 +9523,7 @@ snapshots:
       terser: 5.40.0
       tsx: 4.20.5
 
-  vitest-browser-react@0.1.1(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(@vitest/browser@3.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vitest@3.2.4):
+  vitest-browser-react@1.0.1(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(@vitest/browser@3.1.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(vitest@3.2.4):
     dependencies:
       '@vitest/browser': 3.1.1(vite@7.0.6(@types/node@22.18.1)(terser@5.40.0)(tsx@4.20.5))(vitest@3.2.4)
       react: 19.1.0
