@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@cyberismo/app": "workspace:*",
-    "@types/mime-types": "^3.0.0"
+    "@types/mime-types": "^3.0.1"
   },
   "types": "dist/index.d.ts",
   "exports": {
