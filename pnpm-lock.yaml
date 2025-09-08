@@ -193,8 +193,8 @@ importers:
         specifier: ^3.6.0
         version: 3.6.0(picomatch@4.0.3)(rollup@4.45.1)
       start-server-and-test:
-        specifier: ^2.0.13
-        version: 2.0.13
+        specifier: ^2.1.0
+        version: 2.1.0
       swr:
         specifier: ^2.3.6
         version: 2.3.6(react@19.1.0)
@@ -4245,8 +4245,8 @@ packages:
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
-  start-server-and-test@2.0.13:
-    resolution: {integrity: sha512-G42GCIUjBv/nDoK+QsO+nBdX2Cg3DSAKhSic2DN0GLlK4Q+63TkOeN1cV9PHZKnVOzDKGNVZGCREjpvAIAOdiQ==}
+  start-server-and-test@2.1.0:
+    resolution: {integrity: sha512-yJg/GR9z7+8qxhZqDPmCEKbU/BO/zpyXUZGLmY1Nv4rmJJDC89NnzIEUWXEG4e1J4MRFoDF50eJK8bGHKrSdlg==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -8874,7 +8874,7 @@ snapshots:
 
   stackback@0.0.2: {}
 
-  start-server-and-test@2.0.13:
+  start-server-and-test@2.1.0:
     dependencies:
       arg: 5.0.2
       bluebird: 3.7.2
