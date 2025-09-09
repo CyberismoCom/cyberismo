@@ -45,7 +45,7 @@
     "node-html-parser": "^7.0.1",
     "react": "^19.1.1",
     "react-arborist": "^3.4.3",
-    "react-dom": "^19.0.0",
+    "react-dom": "^19.1.1",
     "react-hook-form": "^7.62.0",
     "react-i18next": "^15.7.3",
     "react-redux": "^9.2.0",
