@@ -198,9 +198,6 @@ importers:
       swr:
         specifier: ^2.3.6
         version: 2.3.6(react@19.1.1)
-      typescript:
-        specifier: ~5.9.2
-        version: 5.9.2
       vega:
         specifier: ^6.1.2
         version: 6.1.2
