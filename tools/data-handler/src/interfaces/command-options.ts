@@ -101,11 +101,11 @@ export type ValidateCommandOptions = BaseCommandOptions;
 
 // Comprehensive interface that contains all possible options for the main command method
 // This allows the command handler to access any option that might be passed
-export interface AllCommandOptions extends
-  AddCommandOptions,
-  ContextualCommandOptions,
-  CreateCommandOptions,
-  ExportCommandOptions,
-  ShowCommandOptions,
-  StartCommandOptions,
-  UpdateCommandOptions {}
+export interface AllCommandOptions
+  extends AddCommandOptions,
+    ContextualCommandOptions,
+    CreateCommandOptions,
+    ExportCommandOptions,
+    ShowCommandOptions,
+    StartCommandOptions,
+    UpdateCommandOptions {}
