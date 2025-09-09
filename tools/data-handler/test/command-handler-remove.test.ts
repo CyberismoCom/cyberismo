@@ -276,9 +276,8 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(200);
     });
     it('remove hub', async () => {
-      // todo: Change to correct one, once CyberismoCom has one.
       const hub =
-        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/';
+        'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
 
       // add hub first, since test data does not have hubs
       await commandHandler.command(Cmd.add, ['hub', hub], options);

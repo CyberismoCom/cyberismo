@@ -37,7 +37,7 @@ import cliProgress from 'cli-progress';
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
 const DEFAULT_HUB =
-  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/';
+  'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/';
 
 // To avoid duplication, fetch description and version from package.json file.
 // Importing dynamically allows filtering of warnings in cli/bin/run.
