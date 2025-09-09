@@ -280,7 +280,7 @@ describe('remove command', () => {
       const hub =
         'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/';
 
-      // add hub first, since test data does not have module hubs
+      // add hub first, since test data does not have hubs
       await commandHandler.command(Cmd.add, ['hub', hub], options);
       // then remove it
       const result = await commandHandler.command(
@@ -321,20 +321,20 @@ describe('remove command', () => {
       expect(result.statusCode).to.equal(400);
     });
     it('try to remove label - does not exist', async () => {
-      const result2 = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['label', 'decision_6'],
         options,
       );
-      expect(result2.statusCode).to.equal(400);
+      expect(result.statusCode).to.equal(400);
     });
     it('try to remove label - card does not exist', async () => {
-      const result2 = await commandHandler.command(
+      const result = await commandHandler.command(
         Cmd.remove,
         ['label', 'decision_8', 'test'],
         options,
       );
-      expect(result2.statusCode).to.equal(400);
+      expect(result.statusCode).to.equal(400);
     });
     it('try to remove linkType - linkType missing', async () => {
       const linkType = 'mini/linkTypes/lt_name';

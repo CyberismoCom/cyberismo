@@ -212,7 +212,7 @@ const additionalHelpForRemove = `Sub-command help:
       <name> Name of the module to remove
 
   remove hub <location>, where
-      <location> URL of module hub to remove
+      <location> URL of hub to remove
 
   remove <resourceName>, where
     <resourceName> is <project prefix>/<type>/<identifier>, where
@@ -299,8 +299,8 @@ addCmd
 
 addCmd
   .command('hub')
-  .description('Add module hub to the project')
-  .argument('<location>', 'Module hub URL')
+  .description('Add a hub to the project')
+  .argument('<location>', 'Hub URL')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (location: string, options: CardsOptions) => {
     const result = await commandHandler.command(

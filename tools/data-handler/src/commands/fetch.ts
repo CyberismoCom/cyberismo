@@ -20,7 +20,7 @@ import { validateJson } from '../utils/validate.js';
 import { type ModuleSetting } from '../interfaces/project-interfaces.js';
 import { errorFunction, getChildLogger } from '../utils/log-utils.js';
 
-const FETCH_TIMEOUT = 30000; // 30s timeout for fetching a module hub file.
+const FETCH_TIMEOUT = 30000; // 30s timeout for fetching a hub file.
 const MAX_RESPONSE_SIZE = 1024 * 1024; // 1MB limit for safety
 const HUB_SCHEMA = 'hubSchema';
 const MODULE_LIST_FILE = 'moduleList.json';
@@ -91,9 +91,11 @@ export class Fetch {
 
       return json;
     } catch (error) {
-      const errorMessage = `Failed to fetch module list from ${location}: ${errorFunction(error)}`;
-      this.logger.error(errorMessage);
-      throw new Error(errorMessage);
+      this.logger.error(
+        error,
+        `Failed to fetch module list from ${location}: ${errorFunction(error)}`,
+      );
+      throw error;
     }
   }
 
@@ -140,9 +142,11 @@ export class Fetch {
       });
       this.logger.info(`Module list written to: ${fullPath}`);
     } catch (error) {
-      const errorMessage = `Failed to write module list to local file: ${errorFunction(error)}`;
-      this.logger.error(errorMessage);
-      throw new Error(errorMessage);
+      this.logger.error(
+        error,
+        `Failed to write module list to local file: ${errorFunction(error)}`,
+      );
+      throw error;
     }
   }
 }

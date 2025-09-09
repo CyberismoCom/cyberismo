@@ -185,7 +185,7 @@ export class Remove {
     await this.project.updateCardMetadataKey(sourceCardKey, 'links', newLinks);
   }
 
-  // Remove module hub from project.
+  // Remove a hub from project.
   private async removeHubLocation(name: string) {
     await this.project.configuration.removeHub(name);
   }

@@ -14,7 +14,7 @@
       "minLength": 1
     },
     "modules": {
-      "description": "List of modules that are available in the module hub",
+      "description": "List of modules that are available in the hub",
       "type": "array",
       "items": {
         "type": "object",

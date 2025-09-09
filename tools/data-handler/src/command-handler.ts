@@ -82,7 +82,6 @@ export enum Cmd {
   move = 'move',
   rank = 'rank',
   remove = 'remove',
-  removeHub = 'removeHub',
   rename = 'rename',
   report = 'report',
   show = 'show',
@@ -505,7 +504,7 @@ export class Commands {
     };
   }
 
-  // Adds module hub to the project.
+  // Adds a hub to the project.
   private async addHub(name: string) {
     await this.commands?.createCmd.addHubLocation(name);
     return {
