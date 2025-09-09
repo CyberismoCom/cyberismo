@@ -13,7 +13,7 @@
 
 import { callApi, apiPaths } from '../swr';
 import { mutate } from 'swr';
-import { CreateReportData } from '@/lib/definitions';
+import type { CreateReportData } from '@/lib/definitions';
 
 export const createReport = async (data: CreateReportData) => {
   await callApi(apiPaths.reports(), 'POST', data);

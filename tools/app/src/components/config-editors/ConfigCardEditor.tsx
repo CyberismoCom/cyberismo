@@ -13,7 +13,7 @@
 
 import { useCard } from '@/lib/api';
 import CardEditor from '../CardEditor';
-import { AnyNode } from '@/lib/api/types';
+import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
