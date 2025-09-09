@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createReport, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { ReportForm } from './ReportForm';
-import { CreateReportData } from '@/lib/definitions';
+import type { CreateReportData } from '@/lib/definitions';
 
 interface NewReportModalProps {
   open: boolean;

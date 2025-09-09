@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createWorkflow, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { WorkflowForm } from './WorkflowForm';
-import { CreateWorkflowData } from '@/lib/definitions';
+import type { CreateWorkflowData } from '@/lib/definitions';
 
 interface NewWorkflowModalProps {
   open: boolean;

@@ -14,7 +14,7 @@
 import { callApi } from '../swr';
 import { apiPaths } from '../swr';
 import { mutate } from 'swr';
-import { CreateCalculationData } from '@/lib/definitions';
+import type { CreateCalculationData } from '@/lib/definitions';
 import { useUpdating } from '../hooks';
 
 export const createCalculation = async (data: CreateCalculationData) => {

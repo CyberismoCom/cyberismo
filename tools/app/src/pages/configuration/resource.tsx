@@ -12,7 +12,7 @@
 */
 
 import { useResourceTree } from '@/lib/api';
-import { NodeType, ResourceNode, CalculationNode } from '@/lib/api/types';
+import type { NodeType, ResourceNode, CalculationNode } from '@/lib/api/types';
 import { useParams } from 'react-router';
 import {
   TextEditor,

@@ -22,9 +22,9 @@ import {
   Divider,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { ExpandedLinkType } from '@/lib/definitions';
+import type { ExpandedLinkType } from '@/lib/definitions';
 import { LinkForm } from '../ContentArea';
-import {
+import type {
   QueryResult,
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';

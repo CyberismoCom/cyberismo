@@ -21,7 +21,7 @@ import {
   Stack,
   IconButton,
 } from '@mui/joy';
-import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
+import type { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import Add from '@mui/icons-material/Add';
 import Person from '@mui/icons-material/Person';
