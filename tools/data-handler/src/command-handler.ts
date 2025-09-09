@@ -32,6 +32,11 @@ import type {
   DataType,
   ResourceContent,
 } from './interfaces/resource-interfaces.js';
+import type {
+  AllCommandOptions,
+  ExportCommandOptions,
+  ShowCommandOptions,
+} from './interfaces/command-options.js';
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
@@ -47,27 +52,6 @@ import { resourceName } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
-
-// Generic options interface
-export interface CardsOptions {
-  context?: Context;
-  date?: string;
-  details?: boolean;
-  forceStart?: boolean;
-  logLevel?: Level;
-  mappingFile?: string;
-  name?: string;
-  projectPath?: string;
-  recursive?: boolean;
-  repeat?: number;
-  revremark?: string;
-  showAll?: boolean;
-  showUse?: boolean;
-  skipModuleImport?: boolean;
-  title?: string;
-  version?: string;
-  watchResourceChanges?: boolean;
-}
 
 // Commands that this class supports.
 // todo: Could be inside the `CommandHandler` ?
@@ -130,7 +114,7 @@ export class Commands {
   public async command(
     command: Cmd,
     args: string[],
-    options: CardsOptions,
+    options: AllCommandOptions,
     credentials?: Credentials,
   ): Promise<requestStatus> {
     // Set project path and validate it.
@@ -163,7 +147,7 @@ export class Commands {
   }
 
   // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(options: CardsOptions) {
+  private async doSetProject(options: AllCommandOptions) {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
@@ -194,7 +178,7 @@ export class Commands {
   private async doHandleCommand(
     command: Cmd,
     args: string[],
-    options: CardsOptions,
+    options: AllCommandOptions,
     credentials?: Credentials,
   ) {
     try {
@@ -534,7 +518,7 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
-    pdfOptions?: CardsOptions,
+    pdfOptions?: ExportCommandOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
@@ -682,7 +666,7 @@ export class Commands {
   private async show(
     type: ResourceTypes,
     typeDetail: string,
-    options: CardsOptions,
+    options: ShowCommandOptions,
   ): Promise<requestStatus> {
     const detail = typeDetail || '';
     let promise: Promise<
