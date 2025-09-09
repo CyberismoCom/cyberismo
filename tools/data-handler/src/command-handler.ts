@@ -23,6 +23,7 @@ import type {
   Credentials,
   FileContentType,
   ModuleContent,
+  ModuleSettingFromHub,
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
@@ -49,21 +50,23 @@ import { type Context } from './interfaces/project-interfaces.js';
 
 // Generic options interface
 export interface CardsOptions {
+  context?: Context;
+  date?: string;
   details?: boolean;
   forceStart?: boolean;
-  watchResourceChanges?: boolean;
-  projectPath?: string;
-  repeat?: number;
-  showUse?: boolean;
   logLevel?: Level;
-  context?: Context;
-  recursive?: boolean;
-  title?: string;
-  name?: string;
-  date?: string;
-  version?: string;
-  revremark?: string;
   mappingFile?: string;
+  name?: string;
+  projectPath?: string;
+  recursive?: boolean;
+  repeat?: number;
+  revremark?: string;
+  showAll?: boolean;
+  showUse?: boolean;
+  skipModuleImport?: boolean;
+  title?: string;
+  version?: string;
+  watchResourceChanges?: boolean;
 }
 
 // Commands that this class supports.
@@ -74,6 +77,7 @@ export enum Cmd {
   create = 'create',
   edit = 'edit',
   export = 'export',
+  fetch = 'fetch',
   import = 'import',
   move = 'move',
   rank = 'rank',
@@ -195,8 +199,13 @@ export class Commands {
   ) {
     try {
       if (command === Cmd.add) {
-        const [template, cardType, cardKey] = args;
-        return await this.addCard(template, cardType, cardKey, options.repeat);
+        const [type, target, cardType, cardKey] = args;
+        if (type === 'card') {
+          return await this.addCard(target, cardType, cardKey, options.repeat);
+        }
+        if (type === 'hub') {
+          return await this.addHub(target);
+        }
       } else if (command === Cmd.calc) {
         const [command, cardKey] = args;
         if (command === 'run') {
@@ -281,6 +290,12 @@ export class Commands {
           cardKey,
           options,
         );
+      } else if (command === Cmd.fetch) {
+        const [target] = args;
+        if (target !== 'hubs') {
+          throw new Error(`Unknown type to fetch: '${target}'`);
+        }
+        await this.commands?.fetchCmd.fetchHubs();
       } else if (command === Cmd.import) {
         const target = args.splice(0, 1)[0];
         if (target === 'module') {
@@ -489,6 +504,15 @@ export class Commands {
     };
   }
 
+  // Adds a hub to the project.
+  private async addHub(name: string) {
+    await this.commands?.createCmd.addHubLocation(name);
+    return {
+      statusCode: 200,
+      message: `Hub '${name}' was added to the project`,
+    };
+  }
+
   // Creates a new card to a project, or to a template.
   private async createCard(
     templateName: string,
@@ -666,6 +690,7 @@ export class Commands {
       | CardAttachment[]
       | CardListContainer[]
       | ModuleContent
+      | ModuleSettingFromHub[]
       | ProjectMetadata
       | ResourceContent
       | string[]
@@ -712,12 +737,23 @@ export class Commands {
       case 'workflows':
         promise = this.commands!.showCmd.showResources(type);
         break;
+      case 'importableModules':
+        promise = this.commands!.showCmd.showImportableModules(
+          options?.showAll,
+          options?.details,
+        );
+        break;
       case 'labels':
         promise = this.commands!.showCmd.showLabels();
         break;
       case 'module':
         promise = this.commands!.showCmd.showModule(detail);
         break;
+      case 'hubs':
+        return {
+          statusCode: 200,
+          payload: this.commands!.showCmd.showHubs(),
+        };
       case 'modules':
         promise = this.commands!.showCmd.showModules();
         break;

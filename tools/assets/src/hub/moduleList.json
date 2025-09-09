@@ -1,0 +1,34 @@
+{
+  "description": "Cyberismo default hub",
+  "displayName": "Cyberismo default hub",
+  "modules": [
+    {
+      "name": "base",
+      "displayName": "Base module",
+      "category": "essentials",
+      "location": "git@github.com:CyberismoCom/module-base.git",
+      "documentationLocation": "https://github.com/CyberismoCom/module-base/blob/main/README.adoc"
+    },
+    {
+      "name": "eucra",
+      "displayName": "Cyberismo EU Cyber Resilience Act",
+      "category": "essentials",
+      "location": "git@github.com:CyberismoCom/module-eu-cra.git",
+      "documentationLocation": "https://github.com/CyberismoCom/module-eu-cra/blob/main/README.adoc"
+    },
+    {
+      "name": "ismsa",
+      "displayName": "ISMS Essentials",
+      "category": "essentials",
+      "location": "git@github.com:CyberismoCom/module-isms-essentials.git",
+      "documentationLocation": "https://github.com/CyberismoCom/module-isms-essentials/blob/main/README.adoc"
+    },
+    {
+      "name": "secdeva",
+      "displayName": "Secure development essentials",
+      "category": "essentials",
+      "location": "git@github.com:CyberismoCom/module-secure-development-essentials.git",
+      "documentationLocation": "https://github.com/CyberismoCom/module-secure-development-essentials/blob/main/README.adoc"
+    }
+  ]
+}

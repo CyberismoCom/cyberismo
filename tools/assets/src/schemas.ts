@@ -22,6 +22,7 @@ import fieldTypeSchema from './schema/resources/fieldTypeSchema.json' with { typ
 import graphMacroBaseSchema from './schema/macros/graphMacroBaseSchema.json' with { type: 'json' };
 import graphModelSchema from './schema/resources/graphModelSchema.json' with { type: 'json' };
 import graphViewSchema from './schema/resources/graphViewSchema.json' with { type: 'json' };
+import hubSchema from './schema/hubSchema.json' with { type: 'json' };
 import imageMacroSchema from './schema/macros/imageMacroSchema.json' with { type: 'json' };
 import includeMacroSchema from './schema/macros/includeMacroSchema.json' with { type: 'json' };
 import linkTypeSchema from './schema/resources/linkTypeSchema.json' with { type: 'json' };
@@ -48,6 +49,7 @@ export const schemas = [
   graphMacroBaseSchema,
   graphModelSchema,
   graphViewSchema,
+  hubSchema,
   imageMacroSchema,
   includeMacroSchema,
   linkTypeSchema,

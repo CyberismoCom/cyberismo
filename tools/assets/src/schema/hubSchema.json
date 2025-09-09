@@ -1,40 +1,42 @@
 {
-  "$id": "cardsConfigSchema",
+  "$id": "hubSchema",
   "additionalProperties": false,
-  "description": "General configuration settings for the card tree.",
+  "description": "The contents of a Cyberismo hub.",
   "properties": {
-    "cardKeyPrefix": {
+    "displayName": {
+      "description": "Display name of the hub",
       "type": "string",
-      "description": "The prefix or the fist component of the card key. For example, ABC",
-      "pattern": "^[a-z]+$",
-      "minLength": 3,
-      "maxLength": 10
+      "minLength": 1
     },
-    "name": {
-      "description": "Name of the project",
+    "description": {
+      "description": "Description of the hub",
       "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z ._-]+$"
-    },
-    "hubs": {
-      "description": "List of hubs from where to fetch module information",
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      "minLength": 1
     },
     "modules": {
-      "description": "List of modules that have been included in the project",
+      "description": "List of modules that are available in the hub",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "description": "Module name (project prefix). Must be unique.",
+            "description": "Module name (project prefix). Must be unique globally.",
+            "type": "string"
+          },
+          "displayName": {
+            "description": "Display name of the module",
+            "type": "string"
+          },
+          "category": {
+            "description": "Category of the module",
             "type": "string"
           },
           "location": {
             "description": "Git remote URL, or relative file reference.",
+            "type": "string"
+          },
+          "documentationLocation": {
+            "description": "URI to the documentation of the module",
             "type": "string"
           },
           "branch": {
@@ -50,7 +52,7 @@
       }
     }
   },
-  "required": ["cardKeyPrefix"],
-  "title": "CardsConfig",
+  "required": ["displayName", "description"],
+  "title": "Hub",
   "type": "object"
 }

@@ -3,8 +3,7 @@ import { expect } from 'chai';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // cyberismo
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
@@ -15,7 +14,7 @@ import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
 
 // validation tests do not modify the content - so they can use the original files
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-show-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -171,6 +170,15 @@ describe('shows command', () => {
         expect(false).to.equal(true);
       }
     });
+    it('show hubs - success()', async () => {
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['hubs'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+    });
+    it('show importableModules - success()', async () => {});
     it('shows labels - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -488,6 +496,107 @@ describe('shows command', () => {
       expect(payloadAsArray.length).to.equal(1);
       expect(payloadAsArray.at(0).card).to.equal('decision_1');
       expect(payloadAsArray.at(0).fileName).to.equal('the-needle.heic');
+    });
+  });
+  describe('show importable modules', () => {
+    beforeEach(async () => {
+      // add default hub
+      await commandHandler.command(
+        Cmd.add,
+        [
+          'hub',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
+        ],
+        optionsDecision,
+      );
+      await commandHandler.command(Cmd.fetch, ['hubs'], optionsDecision);
+    });
+
+    afterEach(async () => {
+      // remove hub
+      await commandHandler.command(
+        Cmd.remove,
+        [
+          'hub',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
+        ],
+        optionsDecision,
+      );
+    });
+
+    it('show importable modules - success()', async () => {
+      optionsDecision.details = false;
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      const payloadAsArray = Object.values(result.payload!);
+      expect(payloadAsArray.length === 4);
+      expect(payloadAsArray.at(0)).to.equal('base');
+      expect(payloadAsArray.at(1)).to.equal('eucra');
+      expect(payloadAsArray.at(2)).to.equal('ismsa');
+      expect(payloadAsArray.at(3)).to.equal('secdeva');
+    });
+
+    it('show importable modules details - success()', async () => {
+      optionsDecision.details = true;
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      const payloadAsArray = Object.values(result.payload!);
+      expect(payloadAsArray.length === 4);
+      expect(payloadAsArray.at(0).name).to.equal('base');
+      expect(payloadAsArray.at(1).name).to.equal('eucra');
+      expect(payloadAsArray.at(2).name).to.equal('ismsa');
+      expect(payloadAsArray.at(3).name).to.equal('secdeva');
+      expect(payloadAsArray.at(0).category).to.equal('essentials');
+      expect(payloadAsArray.at(1).category).to.equal('essentials');
+      expect(payloadAsArray.at(2).category).to.equal('essentials');
+      expect(payloadAsArray.at(3).category).to.equal('essentials');
+    });
+
+    it('show importableModule all - success()', async () => {
+      optionsDecision.details = false;
+      let result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      let payloadAsArray = Object.values(result.payload!);
+      // initially, all modules from hub are importable
+      expect(payloadAsArray.length === 2);
+
+      // import 'base'
+      await commandHandler.command(
+        Cmd.import,
+        ['module', payloadAsArray.at(0)],
+        optionsDecision,
+      );
+      result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      payloadAsArray = Object.values(result.payload!);
+      // then, importable module count goes down by one
+      expect(payloadAsArray.length === 1);
+      optionsDecision.showAll = true;
+      result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      expect(result.statusCode).to.equal(200);
+      payloadAsArray = Object.values(result.payload!);
+      // all modules are still contain 'base'
+      expect(payloadAsArray.length === 2);
     });
   });
 });
