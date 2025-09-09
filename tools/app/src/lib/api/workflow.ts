@@ -14,7 +14,7 @@
 import { callApi } from '../swr';
 import { apiPaths } from '../swr';
 import { mutate } from 'swr';
-import { CreateWorkflowData } from '@/lib/definitions';
+import type { CreateWorkflowData } from '@/lib/definitions';
 
 export const createWorkflow = async (data: CreateWorkflowData) => {
   await callApi(apiPaths.workflows(), 'POST', data);

@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createCardType, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { CardTypeForm } from './CardTypeForm';
-import { CreateCardTypeData } from '@/lib/definitions';
+import type { CreateCardTypeData } from '@/lib/definitions';
 
 interface NewCardTypeModalProps {
   open: boolean;

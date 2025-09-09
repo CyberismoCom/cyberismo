@@ -12,12 +12,12 @@
 */
 
 import { Box, Chip, Typography } from '@mui/joy';
-import { NodeRendererProps, NodeApi } from 'react-arborist';
+import type { NodeRendererProps, NodeApi } from 'react-arborist';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;

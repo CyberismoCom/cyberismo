@@ -13,7 +13,7 @@
 import { useSWRHook } from './common';
 import { apiPaths } from '../swr';
 
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 
 export const useTree = (options?: SWRConfiguration) =>
   useSWRHook<'tree'>(apiPaths.tree(), 'tree', null, options);

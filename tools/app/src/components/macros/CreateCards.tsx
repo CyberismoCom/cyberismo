@@ -13,11 +13,11 @@
 import { useCard } from '@/lib/api';
 import { Button } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { MacroContext } from '.';
+import type { MacroContext } from '.';
 import { useAppDispatch, useAppRouter } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useState } from 'react';
-import { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
 
 export type CreateCardsProps = {
   buttonLabel: string;

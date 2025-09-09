@@ -10,8 +10,8 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Project, FieldTypes, MetadataValue } from '../definitions';
-import {
+import type { Project, FieldTypes, MetadataValue } from '../definitions';
+import type {
   Calculation,
   CardType,
   LinkType,
@@ -22,13 +22,13 @@ import {
   TemplateConfiguration,
   Workflow,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import {
+import type {
   Card,
   CardAttachment,
   ResourceFolderType,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { SWRResponse } from 'swr';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { SWRResponse } from 'swr';
 import { RESOURCES } from '@/lib/constants';
 
 export type CardResponse = {

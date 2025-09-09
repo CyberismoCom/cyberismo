@@ -12,7 +12,8 @@
 */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CardMode, MetadataValue } from '@/lib/definitions';
+import type { MetadataValue } from '@/lib/definitions';
+import { CardMode } from '@/lib/definitions';
 
 import {
   Box,
@@ -33,10 +34,8 @@ import {
   Tooltip,
 } from '@mui/joy';
 
-import CodeMirror, {
-  EditorState,
-  ReactCodeMirrorRef,
-} from '@uiw/react-codemirror';
+import type { EditorState, ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';

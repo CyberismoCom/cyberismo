@@ -11,7 +11,11 @@
 */
 
 import { Select, Option, Input, Textarea } from '@mui/joy';
-import { DataType, EnumDefinition, MetadataValue } from '../lib/definitions';
+import type {
+  DataType,
+  EnumDefinition,
+  MetadataValue,
+} from '../lib/definitions';
 import { useTranslation } from 'react-i18next';
 import Person from '@mui/icons-material/Person';
 import LabelEditor from './LabelEditor';

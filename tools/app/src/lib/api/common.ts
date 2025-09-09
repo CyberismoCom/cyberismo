@@ -10,9 +10,10 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import useSWR, { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
+import useSWR from 'swr';
 
-import { Resources, ResourceName, SwrResult } from './types';
+import type { Resources, ResourceName, SwrResult } from './types';
 import { useUpdating } from '../hooks';
 
 export function useSWRHook<T extends ResourceName, InitialData = null>(

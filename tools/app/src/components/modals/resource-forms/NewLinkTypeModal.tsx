@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createLinkType, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { LinkTypeForm } from './LinkTypeForm';
-import { CreateLinkTypeData } from '@/lib/definitions';
+import type { CreateLinkTypeData } from '@/lib/definitions';
 
 interface NewLinkTypeModalProps {
   open: boolean;

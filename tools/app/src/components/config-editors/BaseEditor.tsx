@@ -13,7 +13,7 @@
 
 import { Stack } from '@mui/joy';
 import ConfigToolbar from '../toolbar/ConfigToolbar';
-import { AnyNode } from '@/lib/api/types';
+import type { AnyNode } from '@/lib/api/types';
 
 export default function BaseEditor({
   node,

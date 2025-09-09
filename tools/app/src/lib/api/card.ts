@@ -13,18 +13,19 @@
 import { useSWRHook } from './common';
 import { callApi, apiPaths } from '../swr';
 
-import { SWRConfiguration, mutate } from 'swr';
-import { CardUpdate } from './types';
-import { CardDetails } from '../definitions';
+import type { SWRConfiguration } from 'swr';
+import { mutate } from 'swr';
+import type { CardUpdate } from './types';
+import type { CardDetails } from '../definitions';
 import { useAppDispatch } from '../hooks';
 import { cardDeleted } from '../actions';
 import { createLink, removeLink } from './actions';
-import { LinkDirection } from '@cyberismo/data-handler/types/queries';
-import { CardAction } from './action-types';
+import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import type { CardAction } from './action-types';
 import { setRecentlyCreated } from '../slices/card';
 import { addNotification } from '../slices/notifications';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 export const useCard = (key: string | null, options?: SWRConfiguration) => {
   const dispatch = useAppDispatch();

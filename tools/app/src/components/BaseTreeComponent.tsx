@@ -13,7 +13,8 @@
 
 import { useEffect, useRef } from 'react';
 import { Stack, Typography } from '@mui/joy';
-import { Tree, NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
+import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
+import { Tree } from 'react-arborist';
 import { Link } from 'react-router';
 import { useResizeObserver } from '../lib/hooks';
 import { config } from '@/lib/utils';
