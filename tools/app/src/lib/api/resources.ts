@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { SWRConfiguration} from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
 import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';

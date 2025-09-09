@@ -12,14 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type {
-  ReactElement} from 'react';
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useRef,
-} from 'react';
+import type { ReactElement } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
@@ -71,7 +65,7 @@ import { viewChanged } from '../lib/slices/pageState';
 
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
-import type { UIMacroName} from './macros';
+import type { UIMacroName } from './macros';
 import { macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 import type {

@@ -22,11 +22,8 @@ import type {
   Workflow,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import type {
-  LinkType} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import {
-  WorkflowCategory,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { LinkType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type {
   QueryResult,
   CalculationLink,

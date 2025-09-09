@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { useRef } from 'react';
 import { Provider } from 'react-redux';
 import type { AppStore } from '../lib/store';

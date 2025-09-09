@@ -13,7 +13,7 @@
 import { useSWRHook } from './common';
 import { callApi, apiPaths } from '../swr';
 
-import type { SWRConfiguration} from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { mutate } from 'swr';
 import type { CardUpdate } from './types';
 import type { CardDetails } from '../definitions';

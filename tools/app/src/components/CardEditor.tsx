@@ -34,10 +34,7 @@ import {
   Tooltip,
 } from '@mui/joy';
 
-import type {
-  EditorState,
-  ReactCodeMirrorRef,
-} from '@uiw/react-codemirror';
+import type { EditorState, ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';

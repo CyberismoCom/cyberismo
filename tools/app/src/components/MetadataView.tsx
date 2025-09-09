@@ -13,13 +13,12 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Accordion, AccordionDetails, Box, Link, Stack } from '@mui/joy';
-import type {
-  UseFormReturn} from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 import {
   Controller,
   FormProvider,
   useForm,
-  useFormContext
+  useFormContext,
 } from 'react-hook-form';
 import type { DataType, MetadataValue } from '../lib/definitions';
 import type { EditableFieldProps } from './EditableField';
