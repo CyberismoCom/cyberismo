@@ -71,6 +71,7 @@
             }]
           ],
           "xcode_settings": {
+            "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
             "OTHER_LDFLAGS": [
               "-Wl,-rpath,@loader_path"
             ]
