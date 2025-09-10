@@ -23,12 +23,10 @@
     "@hono/zod-validator": "^0.7.2",
     "dotenv": "^17.2.2",
     "hono": "^4.9.6",
-    "mime-types": "^3.0.1",
     "zod": "^4.1.5"
   },
   "devDependencies": {
-    "@cyberismo/app": "workspace:*",
-    "@types/mime-types": "^3.0.1"
+    "@cyberismo/app": "workspace:*"
   },
   "types": "dist/index.d.ts",
   "exports": {
