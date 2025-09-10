@@ -22,28 +22,11 @@ import dotenv from 'dotenv';
 import cliProgress from 'cli-progress';
 
 import type {
-  AddCommandOptions,
-  CalcCommandOptions,
-  CreateCommandOptions,
+  CommandOptions,
   Credentials,
-  EditCommandOptions,
-  ExportCommandOptions,
-  FetchCommandOptions,
-  ImportCommandOptions,
   ModuleSettingFromHub,
-  MoveCommandOptions,
-  RankCommandOptions,
-  RemoveCommandOptions,
-  RenameCommandOptions,
   requestStatus,
-  ReportCommandOptions,
-  ShowCommandOptions,
-  StartCommandOptions,
-  TransitionCommandOptions,
-  UpdateCommandOptions,
-  UpdateModulesCommandOptions,
   UpdateOperations,
-  ValidateCommandOptions,
 } from '@cyberismo/data-handler';
 import {
   Cmd,
@@ -114,7 +97,7 @@ function handleResponse(response: requestStatus) {
 }
 
 // Helper to get modules that have not been imported.
-async function importableModules(options: ShowCommandOptions) {
+async function importableModules(options: CommandOptions<'show'>) {
   const copyOptions = Object.assign({}, options);
   copyOptions.details = true;
   const importableModules = await commandHandler.command(
@@ -306,7 +289,7 @@ addCmd
       template: string,
       cardType: string,
       cardKey: string,
-      options: AddCommandOptions,
+      options: CommandOptions<'add'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.add,
@@ -322,7 +305,7 @@ addCmd
   .description('Add a hub to the project')
   .argument('<location>', 'Hub URL')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (location: string, options: AddCommandOptions) => {
+  .action(async (location: string, options: CommandOptions<'add'>) => {
     const result = await commandHandler.command(
       Cmd.add,
       ['hub', location],
@@ -352,7 +335,7 @@ calculate
   .argument('<filePath>', 'Path to the logic program')
   .addOption(contextOption)
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (filePath: string, options: CalcCommandOptions) => {
+  .action(async (filePath: string, options: CommandOptions<'calc'>) => {
     const result = await commandHandler.command(
       Cmd.calc,
       ['run', filePath],
@@ -397,7 +380,7 @@ program
       parameter1: string,
       parameter2: string,
       parameter3: string,
-      options: CreateCommandOptions,
+      options: CommandOptions<'create'>,
     ) => {
       if (!type) {
         program.error(`missing required argument <type>`);
@@ -522,7 +505,7 @@ program
   .description('Edit a card')
   .argument('<cardKey>', 'Card key of card')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: EditCommandOptions) => {
+  .action(async (cardKey: string, options: CommandOptions<'edit'>) => {
     const result = await commandHandler.command(
       Cmd.edit,
       [cardKey],
@@ -566,7 +549,7 @@ program
       format: string,
       output: ExportFormats,
       cardKey: string,
-      options: ExportCommandOptions,
+      options: CommandOptions<'export'>,
     ) => {
       if (format === 'site') {
         const progress = new cliProgress.SingleBar(
@@ -619,7 +602,7 @@ fetchCmd
   .command('hubs')
   .description('Retrieves module lists from hubs')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: FetchCommandOptions) => {
+  .action(async (options: CommandOptions<'fetch'>) => {
     const result = await commandHandler.command(
       Cmd.fetch,
       ['hubs'],
@@ -651,7 +634,7 @@ importCmd
       source: string,
       branch: string,
       useCredentials: boolean,
-      options: ImportCommandOptions,
+      options: CommandOptions<'import'>,
     ) => {
       let resolvedSource = source;
       let resolvedBranch = branch;
@@ -737,7 +720,11 @@ importCmd
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
-    async (csvFile: string, cardKey: string, options: ImportCommandOptions) => {
+    async (
+      csvFile: string,
+      cardKey: string,
+      options: CommandOptions<'import'>,
+    ) => {
       const result = await commandHandler.command(
         Cmd.import,
         ['csv', csvFile, cardKey],
@@ -763,7 +750,7 @@ program
     async (
       source: string,
       destination: string,
-      options: MoveCommandOptions,
+      options: CommandOptions<'move'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.move,
@@ -802,7 +789,7 @@ rank
     async (
       cardKey: string,
       afterCardKey: string,
-      options: RankCommandOptions,
+      options: CommandOptions<'rank'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.rank,
@@ -823,7 +810,7 @@ rank
     'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: RankCommandOptions) => {
+  .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
     const result = await commandHandler.command(
       Cmd.rank,
       ['rebalance', cardKey],
@@ -860,7 +847,7 @@ program
       parameter1: string,
       parameter2: string,
       parameter3: string,
-      options: RemoveCommandOptions,
+      options: CommandOptions<'remove'>,
     ) => {
       if (type) {
         if (!parameter1) {
@@ -908,7 +895,7 @@ program
   )
   .argument('<to>', 'New project prefix')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (to: string, options: RenameCommandOptions) => {
+  .action(async (to: string, options: CommandOptions<'rename'>) => {
     const result = await commandHandler.command(
       Cmd.rename,
       [to],
@@ -935,7 +922,7 @@ program
     async (
       parameters: string,
       output: string,
-      options: ReportCommandOptions,
+      options: CommandOptions<'report'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.report,
@@ -972,7 +959,7 @@ program
     '-u --show-use',
     'Show where resource is used. Only used with resources, otherwise will be ignored.',
   )
-  .action(async (type: string, typeDetail, options: ShowCommandOptions) => {
+  .action(async (type: string, typeDetail, options: CommandOptions<'show'>) => {
     if (type !== '') {
       const result = await commandHandler.command(
         Cmd.show,
@@ -997,7 +984,7 @@ program
     async (
       cardKey: string,
       transition: string,
-      options: TransitionCommandOptions,
+      options: CommandOptions<'transition'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.transition,
@@ -1036,7 +1023,7 @@ program
       key: string,
       value: string,
       newValue: string,
-      options: UpdateCommandOptions,
+      options: CommandOptions<'update'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.update,
@@ -1055,7 +1042,7 @@ program
   )
   .argument('[moduleName]', 'Module name')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (moduleName, options: UpdateModulesCommandOptions) => {
+  .action(async (moduleName, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
       [moduleName],
@@ -1070,7 +1057,7 @@ program
   .command('validate')
   .description('Validate project structure')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: ValidateCommandOptions) => {
+  .action(async (options: CommandOptions<'validate'>) => {
     const result = await commandHandler.command(
       Cmd.validate,
       [],
@@ -1094,7 +1081,7 @@ program
     'Project watches changes in .cards folder resources',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: StartCommandOptions) => {
+  .action(async (options: CommandOptions<'start'>) => {
     // validate project
     const result = await commandHandler.command(
       Cmd.validate,

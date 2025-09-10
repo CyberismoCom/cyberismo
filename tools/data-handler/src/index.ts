@@ -49,6 +49,7 @@ export {
 
 // Export command-specific option interfaces
 export type {
+  CommandOptions,
   AllCommandOptions,
   AddCommandOptions,
   CalcCommandOptions,
