@@ -6,7 +6,7 @@
   "targets": [
     {
       "target_name": "node-clingo",
-      "cflags_cc": [ "-std=c++20", "-mmacosx-version-min=10.13" ],
+      "cflags_cc": [ "-std=c++20" ],
       "sources": [ 
         "src/binding.cc",
         "src/helpers.cc",
@@ -53,6 +53,8 @@
               ]
             }],
             ["target_arch!='arm64'", {
+              "cflags_cc": [ "-mmacosx-version-min=10.13" ],
+              "ldflags": [ "-mmacosx-version-min=10.13" ],
               "libraries": [
                 "-L/usr/local/lib",
                 "-lclingo"
