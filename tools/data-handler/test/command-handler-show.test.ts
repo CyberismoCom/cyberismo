@@ -505,7 +505,7 @@ describe('shows command', () => {
         Cmd.add,
         [
           'hub',
-          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
         ],
         optionsDecision,
       );
@@ -518,7 +518,7 @@ describe('shows command', () => {
         Cmd.remove,
         [
           'hub',
-          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/feature/samimerila/modules-list/tools/assets/src/hub/',
+          'https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/',
         ],
         optionsDecision,
       );
