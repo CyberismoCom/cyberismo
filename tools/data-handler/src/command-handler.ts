@@ -47,7 +47,7 @@ import { resourceName } from './utils/resource-utils.js';
 
 import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
-import { QueryName } from './types/queries.js';
+import { type QueryName } from './types/queries.js';
 
 // Generic options interface
 export interface CardsOptions {

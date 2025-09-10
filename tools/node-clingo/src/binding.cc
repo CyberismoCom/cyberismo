@@ -19,6 +19,7 @@
 #include <ctime>
 #include <iostream>
 #include <napi.h>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <stdint.h>
@@ -26,111 +27,177 @@
 #include <unordered_map>
 #include <vector>
 
-struct ClingoLogMessage
+// unnamed namespace to avoid polluting the global namespace
+namespace
 {
-    clingo_warning_t code;
-    bool isError;
-    std::string message;
-};
-
-struct NodeClingoLogs
-{
-    Napi::Array errors;
-    Napi::Array warnings;
-
-    NodeClingoLogs(Napi::Env env)
+    struct ClingoLogMessage
     {
-        errors = Napi::Array::New(env);
-        warnings = Napi::Array::New(env);
-    }
-};
+        clingo_warning_t code;
+        bool isError;
+        std::string message;
+    };
 
-// Program with categories
-struct Program
-{
-    std::string content;
-    std::vector<std::string> categories;
-};
-
-// stores all programs
-std::unordered_map<std::string, Program> g_programs;
-
-// For now error messsages are stored in a global vector,
-// If async/threading is needed, we cannot use a single global variable
-std::vector<ClingoLogMessage> g_errorMessages;
-
-/**
- * A logger function for Clingo that captures messages.
- * Collects warnings and errors from Clingo for later processing.
- * @param code The warning code.
- * @param message The warning message.
- * @param data User data (unused).
- */
-void message_collector(clingo_warning_t code, char const* message, void* data)
-{
-    g_errorMessages.push_back({code, code == clingo_warning_runtime_error, message});
-}
-
-/**
- * Helper function to parse the error messages from Clingo
- * @param env The N-API environment.
- * @return NodeClingoLogs containing separated errors and warnings arrays.
- */
-NodeClingoLogs parse_clingo_logs(const Napi::Env& env)
-{
-    NodeClingoLogs logs(env);
-
-    size_t errorIndex = 0;
-    size_t warningIndex = 0;
-
-    for (const auto& msg : g_errorMessages)
+    struct NodeClingoLogs
     {
-        if (msg.isError)
+        Napi::Array errors;
+        Napi::Array warnings;
+
+        NodeClingoLogs(Napi::Env env)
         {
-            logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
+            errors = Napi::Array::New(env);
+            warnings = Napi::Array::New(env);
         }
-        else
-        {
-            logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
-        }
+    };
+
+    // Program with categories
+    struct Program
+    {
+        std::string content;
+        std::vector<std::string> categories;
+    };
+
+    // stores all programs
+    std::unordered_map<std::string, Program> g_programs;
+
+    // For now error messsages are stored in a global vector,
+    // If async/threading is needed, we cannot use a single global variable
+    std::vector<ClingoLogMessage> g_errorMessages;
+
+    /**
+    * A logger function for Clingo that captures messages.
+    * Collects warnings and errors from Clingo for later processing.
+    * @param code The warning code.
+    * @param message The warning message.
+    * @param data User data (unused).
+    */
+    void message_collector(clingo_warning_t code, char const* message, void* data)
+    {
+        g_errorMessages.push_back({code, code == clingo_warning_runtime_error, message});
     }
 
-    return logs;
-}
-
-/**
- * Helper function to check for and handle Clingo errors.
- * If a Clingo error has occurred (clingo_error_code() != 0),
- * it throws a Napi::Error with the Clingo error message.
- * @param env The N-API environment.
- * @param programKey The string identifier of the program that caused the error
- */
-void handle_clingo_error(const Napi::Env& env, const std::string& programKey = "")
-{
-    // If clingo returns an error, we throw an error to the javascript side
-    if (clingo_error_code() != 0)
+    /**
+    * Helper function to parse the error messages from Clingo
+    * @param env The N-API environment.
+    * @return NodeClingoLogs containing separated errors and warnings arrays.
+    */
+    NodeClingoLogs parse_clingo_logs(const Napi::Env& env)
     {
-        Napi::Error error = Napi::Error::New(env, clingo_error_message());
+        NodeClingoLogs logs(env);
 
-        // Create an object to hold error details
-        Napi::Object errorObj = Napi::Object::New(env);
+        size_t errorIndex = 0;
+        size_t warningIndex = 0;
 
-        // Parse errors and warnings using the common routine
-        NodeClingoLogs logs = parse_clingo_logs(env);
-
-        errorObj.Set("errors", logs.errors);
-        errorObj.Set("warnings", logs.warnings);
-        if (!programKey.empty())
+        for (const auto& msg : g_errorMessages)
         {
-            errorObj.Set("program", Napi::String::New(env, programKey));
+            if (msg.isError)
+            {
+                logs.errors.Set(errorIndex++, Napi::String::New(env, msg.message));
+            }
+            else
+            {
+                logs.warnings.Set(warningIndex++, Napi::String::New(env, msg.message));
+            }
         }
 
-        error.Set("details", errorObj);
-        throw error;
+        return logs;
     }
-}
 
-/**
+    /**
+    * Helper function to check for and handle Clingo errors.
+    * If a Clingo error has occurred (clingo_error_code() != 0),
+    * it throws a Napi::Error with the Clingo error message.
+    * @param env The N-API environment.
+    * @param programKey The string identifier of the program that caused the error
+    */
+    void handle_clingo_error(const Napi::Env& env, const std::string& programKey = "")
+    {
+        // If clingo returns an error, we throw an error to the javascript side
+        if (clingo_error_code() != 0)
+        {
+            Napi::Error error = Napi::Error::New(env, clingo_error_message());
+
+            // Create an object to hold error details
+            Napi::Object errorObj = Napi::Object::New(env);
+
+            // Parse errors and warnings using the common routine
+            NodeClingoLogs logs = parse_clingo_logs(env);
+
+            errorObj.Set("errors", logs.errors);
+            errorObj.Set("warnings", logs.warnings);
+            if (!programKey.empty())
+            {
+                errorObj.Set("program", Napi::String::New(env, programKey));
+            }
+
+            error.Set("details", errorObj);
+            throw error;
+        }
+    }
+
+    /**
+    * Parse refs array argument from N-API info at given index.
+    * Throws TypeError if not an array of strings. Returns a set of refs.
+    */
+    std::set<std::string> parse_refs_or_throw(const Napi::CallbackInfo& info, size_t index = 1)
+    {
+        Napi::Env env = info.Env();
+        if (!info[index].IsArray())
+        {
+            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
+        }
+
+        std::set<std::string> refs;
+        Napi::Array arr = info[index].As<Napi::Array>();
+        for (uint32_t i = 0; i < arr.Length(); ++i)
+        {
+            Napi::Value val = arr[i];
+            if (!val.IsString())
+            {
+                throw Napi::TypeError::New(env, "All refs must be strings");
+            }
+            std::string ref = val.As<Napi::String>().Utf8Value();
+            refs.insert(ref);
+        }
+        return refs;
+    }
+
+    /**
+    * Expand refs into concrete programs by exact key or matching category.
+    * Calls handler once per unique program. If the program came from a category
+    * match, category contains the category string; otherwise it is empty.
+    */
+    template <std::invocable<const std::string&, const Program&, std::optional<std::string>> Handler>
+    void expand_refs_to_programs(const std::set<std::string>& refs, Handler handler)
+    {
+        std::set<std::string> addedPrograms;
+
+        for (const auto& ref : refs)
+        {
+            auto it = g_programs.find(ref);
+            // insert.second is true if element was inserted
+            // thus, if it is false, the element was already in the set
+            if (it != g_programs.end() && addedPrograms.insert(ref).second)
+            {
+                handler(ref, it->second, std::optional<std::string>());
+                // no need to check other refs, as ref was a program, not a category
+                continue;
+            }
+
+            // If no direct match, check categories
+            for (const auto& kv : g_programs)
+            {
+                const std::string& key = kv.first;
+                const Program& prog = kv.second;
+                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
+                    addedPrograms.insert(key).second)
+                {
+                    handler(key, prog, std::optional<std::string>(ref));
+                }
+            }
+        }
+    }
+
+    /**
  * Callback function provided to clingo_control_ground.
  * This function is called by Clingo for each external function encountered during grounding.
  * It looks up the function name in the registered handlers and executes the corresponding handler.
@@ -143,30 +210,30 @@ void handle_clingo_error(const Napi::Env& env, const std::string& programKey = "
  * @param symbol_callback_data User data for the symbol_callback.
  * @returns True on success, false on error (propagated from the handler).
  */
-bool ground_callback(
-    clingo_location_t const* location,
-    char const* name,
-    clingo_symbol_t const* arguments,
-    size_t arguments_size,
-    void* data,
-    clingo_symbol_callback_t symbol_callback,
-    void* symbol_callback_data)
-{
-
-    // Find the handler for the function and call it
-    const auto& handlers = node_clingo::get_function_handlers();
-
-    auto it = handlers.find(name);
-    if (it != handlers.end())
+    bool ground_callback(
+        clingo_location_t const* location,
+        char const* name,
+        clingo_symbol_t const* arguments,
+        size_t arguments_size,
+        void* data,
+        clingo_symbol_callback_t symbol_callback,
+        void* symbol_callback_data)
     {
-        return it->second(arguments, arguments_size, symbol_callback, symbol_callback_data);
+
+        // Find the handler for the function and call it
+        const auto& handlers = node_clingo::get_function_handlers();
+
+        auto it = handlers.find(name);
+        if (it != handlers.end())
+        {
+            return it->second(arguments, arguments_size, symbol_callback, symbol_callback_data);
+        }
+
+        // If function name not matched, we simply do not handle it
+        return true;
     }
 
-    // If function name not matched, we simply do not handle it
-    return true;
-}
-
-/**
+    /**
  * Callback function provided to clingo_control_solve (via solve_event_callback).
  * This function is called by Clingo for each model (answer set) found.
  * It extracts the symbols from the model, converts them to strings, and stores them.
@@ -175,83 +242,83 @@ bool ground_callback(
  * @param go_on Output parameter; set to true to continue solving, false to stop.
  * @returns True on success, false on error (e.g., allocation failure).
  */
-bool on_model(clingo_model_t const* model, void* data, bool* go_on)
-{
-    if (!model || !data || !go_on)
+    bool on_model(clingo_model_t const* model, void* data, bool* go_on)
     {
-        return false;
-    }
-
-    std::vector<std::string>* answers = static_cast<std::vector<std::string>*>(data);
-
-    clingo_symbol_t* atoms = nullptr;
-    size_t atoms_size;
-
-    // Get the size of the model
-    if (!clingo_model_symbols_size(model, clingo_show_type_shown, &atoms_size))
-    {
-        return false;
-    }
-
-    if (atoms_size == 0)
-    {
-        answers->push_back("");
-        *go_on = true;
-        return true;
-    }
-
-    // Allocate space for the atoms
-    try
-    {
-        atoms = new clingo_symbol_t[atoms_size];
-    }
-    catch (const std::bad_alloc&)
-    {
-        return false;
-    }
-
-    // Get the model symbols
-    if (!clingo_model_symbols(model, clingo_show_type_shown, atoms, atoms_size))
-    {
-        delete[] atoms;
-        return false;
-    }
-
-    std::stringstream ss;
-    bool success = true;
-
-    // Convert each symbol to string
-    for (size_t i = 0; i < atoms_size && success; ++i)
-    {
-        // Get the string representation
-        std::string str = node_clingo::get_symbol_string(atoms[i]);
-
-        // If the string is empty, we skip it
-        if (str.empty())
+        if (!model || !data || !go_on)
         {
-            continue;
+            return false;
         }
 
-        if (i > 0)
-            ss << std::endl;
-        ss << str;
+        std::vector<std::string>* answers = static_cast<std::vector<std::string>*>(data);
+
+        clingo_symbol_t* atoms = nullptr;
+        size_t atoms_size;
+
+        // Get the size of the model
+        if (!clingo_model_symbols_size(model, clingo_show_type_shown, &atoms_size))
+        {
+            return false;
+        }
+
+        if (atoms_size == 0)
+        {
+            answers->push_back("");
+            *go_on = true;
+            return true;
+        }
+
+        // Allocate space for the atoms
+        try
+        {
+            atoms = new clingo_symbol_t[atoms_size];
+        }
+        catch (const std::bad_alloc&)
+        {
+            return false;
+        }
+
+        // Get the model symbols
+        if (!clingo_model_symbols(model, clingo_show_type_shown, atoms, atoms_size))
+        {
+            delete[] atoms;
+            return false;
+        }
+
+        std::stringstream ss;
+        bool success = true;
+
+        // Convert each symbol to string
+        for (size_t i = 0; i < atoms_size && success; ++i)
+        {
+            // Get the string representation
+            std::string str = node_clingo::get_symbol_string(atoms[i]);
+
+            // If the string is empty, we skip it
+            if (str.empty())
+            {
+                continue;
+            }
+
+            if (i > 0)
+                ss << std::endl;
+            ss << str;
+        }
+
+        try
+        {
+            answers->push_back(ss.str());
+        }
+        catch (const std::bad_alloc&)
+        {
+            success = false;
+        }
+
+        delete[] atoms;
+        *go_on = success;
+        return success;
     }
 
-    try
-    {
-        answers->push_back(ss.str());
-    }
-    catch (const std::bad_alloc&)
-    {
-        success = false;
-    }
-
-    delete[] atoms;
-    *go_on = success;
-    return success;
-}
-
-/**
+    /**
  * Wrapper callback for clingo_control_solve.
  * This function receives different types of solve events from Clingo.
  * If the event type is a model (clingo_solve_event_type_model), it calls the on_model handler.
@@ -261,20 +328,21 @@ bool on_model(clingo_model_t const* model, void* data, bool* go_on)
  * @param go_on Output parameter (passed through to on_model).
  * @returns True on success or if the event is not a model, false on error from on_model.
  */
-bool solve_event_callback(uint32_t type, void* event, void* data, bool* go_on)
-{
-    if (!event || !data || !go_on)
+    bool solve_event_callback(uint32_t type, void* event, void* data, bool* go_on)
     {
-        return false;
+        if (!event || !data || !go_on)
+        {
+            return false;
+        }
+
+        if (type == clingo_solve_event_type_model)
+        {
+            return on_model(static_cast<const clingo_model_t*>(event), data, go_on);
+        }
+        return true;
     }
 
-    if (type == clingo_solve_event_type_model)
-    {
-        return on_model(static_cast<const clingo_model_t*>(event), data, go_on);
-    }
-    return true;
-}
-
+} // namespace
 /**
  * N-API function exposed to JavaScript as `setProgram`.
  * Stores or updates a program with optional categories.
@@ -423,52 +491,20 @@ Napi::Value GetProgram(const Napi::CallbackInfo& info)
     // Apply base programs if specified
     if (info.Length() >= 2)
     {
-        if (!info[1].IsArray())
-        {
-            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
-        }
+        std::set<std::string> refs = parse_refs_or_throw(info);
 
-        // Track which programs have already been added to prevent duplicates
-        std::set<std::string> addedPrograms;
-        std::set<std::string> refs;
-
-        Napi::Array arr = info[1].As<Napi::Array>();
-
-        for (uint32_t i = 0; i < arr.Length(); ++i)
-        {
-            Napi::Value val = arr[i];
-            if (!val.IsString())
-            {
-                throw Napi::TypeError::New(env, "All refs must be strings");
-            }
-            std::string ref = val.As<Napi::String>().Utf8Value();
-            refs.insert(ref);
-        }
-
-        for (const auto& ref : refs)
-        {
-            auto it = g_programs.find(ref);
-            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
-            {
-                completeProgram << "% Program: " << ref << "\n";
-                completeProgram << it->second.content << "\n\n";
-                addedPrograms.insert(ref);
-                // no need to check other refs, as ref was a program, not a category
-                continue;
-            }
-
-            // If no direct match, check categories
-            for (const auto& [key, prog] : g_programs)
-            {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
-                    addedPrograms.find(key) == addedPrograms.end())
+        expand_refs_to_programs(
+            refs, [&](const std::string& key, const Program& prog, std::optional<std::string> category) {
+                if (category.has_value())
                 {
-                    completeProgram << "% Program: " << key << " (category: " << ref << ")\n";
-                    completeProgram << prog.content << "\n\n";
-                    addedPrograms.insert(key);
+                    completeProgram << "% Program: " << key << " (category: " << category.value() << ")\n";
                 }
-            }
-        }
+                else
+                {
+                    completeProgram << "% Program: " << key << "\n";
+                }
+                completeProgram << prog.content << "\n\n";
+            });
     }
 
     // Add the main program last
@@ -525,62 +561,20 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     // Apply base programs if specified
     if (info.Length() >= 2)
     {
-        if (!info[1].IsArray())
-        {
-            throw Napi::TypeError::New(env, "Second argument must be an array of strings (refs)");
-        }
-        // Track which programs have already been added to prevent duplicates
-        std::set<std::string> addedPrograms;
+        refs = parse_refs_or_throw(info);
 
-        Napi::Array arr = info[1].As<Napi::Array>();
-
-        for (uint32_t i = 0; i < arr.Length(); ++i)
-        {
-            Napi::Value val = arr[i];
-            if (!val.IsString())
-            {
-                throw Napi::TypeError::New(env, "All refs must be strings");
-            }
-            std::string ref = val.As<Napi::String>().Utf8Value();
-            refs.insert(ref);
-        }
-
-        for (const auto& ref : refs)
-        {
-            auto it = g_programs.find(ref);
-            if (it != g_programs.end() && addedPrograms.find(ref) == addedPrograms.end())
-            {
-                if (!clingo_control_add(ctl, ref.c_str(), nullptr, 0, it->second.content.c_str()))
+        expand_refs_to_programs(
+            refs, [&](const std::string& key, const Program& prog, std::optional<std::string> category) {
+                (void)category; // unused
+                if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
                 {
-                    handle_clingo_error(env, ref);
+                    handle_clingo_error(env, key);
                 }
                 else
                 {
-                    parts.push_back({ref.c_str(), nullptr, 0});
-                    addedPrograms.insert(ref);
+                    parts.push_back({key.c_str(), nullptr, 0});
                 }
-                // no need to check other refs, as ref was a program, not a category
-                continue;
-            }
-
-            // If no direct match, check categories
-            for (const auto& [key, prog] : g_programs)
-            {
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
-                    addedPrograms.find(key) == addedPrograms.end())
-                {
-                    if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
-                    {
-                        handle_clingo_error(env, key);
-                    }
-                    else
-                    {
-                        parts.push_back({key.c_str(), nullptr, 0});
-                        addedPrograms.insert(key);
-                    }
-                }
-            }
-        }
+            });
     }
 
     // Add the main program last and its part
