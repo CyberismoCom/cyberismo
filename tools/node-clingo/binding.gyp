@@ -72,6 +72,7 @@
           ],
           "xcode_settings": {
             "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
+            "MACOSX_DEPLOYMENT_TARGET": "10.13",
             "OTHER_LDFLAGS": [
               "-Wl,-rpath,@loader_path"
             ]
