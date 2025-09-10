@@ -12,6 +12,8 @@
 
 import {
   Cmd,
+  CmdKey,
+  CmdValue,
   Commands,
   CommandManager,
   ExportFormats,
@@ -30,6 +32,8 @@ import { moduleNameFromCardKey } from './utils/card-utils.js';
 
 export {
   Cmd,
+  CmdKey,
+  CmdValue,
   CommandManager,
   Commands,
   ExportFormats,

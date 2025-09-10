@@ -11,8 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type Level } from 'pino';
-import { type Context } from './project-interfaces.js';
+import type { Level } from 'pino';
+import type { Context } from './project-interfaces.js';
+import type { CmdKey } from '../command-handler.js';
 
 // Base options shared across multiple commands
 export interface BaseCommandOptions {
@@ -99,13 +100,45 @@ export type UpdateModulesCommandOptions = BaseCommandOptions;
 // Options for 'validate' command
 export type ValidateCommandOptions = BaseCommandOptions;
 
-// Comprehensive interface that contains all possible options for the main command method
-// This allows the command handler to access any option that might be passed
-export interface AllCommandOptions
-  extends AddCommandOptions,
-    ContextualCommandOptions,
-    CreateCommandOptions,
-    ExportCommandOptions,
-    ShowCommandOptions,
-    StartCommandOptions,
-    UpdateCommandOptions {}
+// All possible command options
+export type AllCommandOptions =
+  | AddCommandOptions
+  | CalcCommandOptions
+  | CreateCommandOptions
+  | EditCommandOptions
+  | ExportCommandOptions
+  | FetchCommandOptions
+  | ImportCommandOptions
+  | MoveCommandOptions
+  | RankCommandOptions
+  | RemoveCommandOptions
+  | RenameCommandOptions
+  | ReportCommandOptions
+  | ShowCommandOptions
+  | StartCommandOptions
+  | TransitionCommandOptions
+  | UpdateCommandOptions
+  | UpdateModulesCommandOptions
+  | ValidateCommandOptions;
+
+// Map command keys to their option types
+export type CommandOptions<T extends CmdKey> = {
+  add: AddCommandOptions;
+  calc: CalcCommandOptions;
+  create: CreateCommandOptions;
+  edit: EditCommandOptions;
+  export: ExportCommandOptions;
+  fetch: FetchCommandOptions;
+  import: ImportCommandOptions;
+  move: MoveCommandOptions;
+  rank: RankCommandOptions;
+  remove: RemoveCommandOptions;
+  rename: RenameCommandOptions;
+  report: ReportCommandOptions;
+  show: ShowCommandOptions;
+  start: StartCommandOptions;
+  transition: TransitionCommandOptions;
+  update: UpdateCommandOptions;
+  updateModules: UpdateModulesCommandOptions;
+  validate: ValidateCommandOptions;
+}[T];
