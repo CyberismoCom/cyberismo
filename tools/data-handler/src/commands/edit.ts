@@ -1,13 +1,14 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 // node
@@ -16,6 +17,8 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
+import { CalculationResource } from '../resources/calculation-resource.js';
+import { FolderResource } from '../resources/folder-resource.js';
 import type {
   MetadataContent,
   ResourceFolderType,
@@ -26,8 +29,6 @@ import {
   type ResourceName,
   resourceNameToString,
 } from '../utils/resource-utils.js';
-import { FolderResource } from '../resources/folder-resource.js';
-import { writeFile } from 'node:fs/promises';
 
 export class Edit {
   private project: Project;
@@ -51,27 +52,15 @@ export class Edit {
       );
     }
     const resourceNameString = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameString,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameString}' does not exist in the project`,
-      );
-    }
-    await writeFile(
-      join(
-        this.project.paths.calculationProjectFolder,
-        resourceName.identifier + '.lp',
-      ),
-      changedContent,
-      {
-        encoding: 'utf-8',
-        flag: 'r+',
-      },
+    const calculationResource = new CalculationResource(
+      this.project,
+      resourceName,
     );
+    await calculationResource.update('calculation', {
+      name: 'change',
+      target: resourceNameString,
+      to: changedContent,
+    });
   }
 
   /**

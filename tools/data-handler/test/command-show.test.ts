@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
-import { errorFunction } from '../src/utils/log-utils.js';
+import { errorFunction } from '../src/utils/error-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/resources/file-resource.js';
 import { ReportResource } from '../src/resources/report-resource.js';

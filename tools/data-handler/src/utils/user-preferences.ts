@@ -12,6 +12,7 @@
 import { dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
+import { hasCode } from './error-utils.js';
 import { formatJson } from './json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 
@@ -111,16 +112,19 @@ export class UserPreferences {
         flag: 'wx',
       });
     } catch (error) {
-      if (error instanceof Error) {
-        const err = error as NodeJS.ErrnoException;
+      if (hasCode(error)) {
         // If file already exists (EEXIST), that's fine - we'll use the existing file
-        if (err?.code !== 'EEXIST') {
+        if (error.code !== 'EEXIST') {
           throw new Error(
             `Error creating preferences file '${this.prefsFilePath}': ${error}`,
           );
         } else {
           this.logger.warn('Preferences file already exists');
         }
+      } else {
+        throw new Error(
+          `Error creating preferences file '${this.prefsFilePath}': ${error}`,
+        );
       }
     }
   }

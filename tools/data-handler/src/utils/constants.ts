@@ -29,6 +29,7 @@ export const VALID_FOLDER_RESOURCE_FILES = [
   'parameterSchema.json',
   'view.lp.hbs',
   'model.lp',
+  'calculation.lp',
 ];
 
 /**
