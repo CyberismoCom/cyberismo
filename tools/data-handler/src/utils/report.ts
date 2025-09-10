@@ -62,7 +62,13 @@ export function formatValue(value: unknown): string {
     ) {
       return value.displayValue;
     }
+    if (value != null && 'value' in value && typeof value.value === 'string') {
+      return formatValue(value.value);
+    }
     return JSON.stringify(value, null, 2);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
   }
   return value?.toString() ?? '';
 }
