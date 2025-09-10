@@ -64,34 +64,34 @@ field((Card, Field), "key", Field) :-
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "visibility", "always") :-
+resultField((Card, Field), "visibility", "always") :-
     alwaysVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "visibility", "optional") :-
+resultField((Card, Field), "visibility", "optional") :-
     optionallyVisibleField(CardType, Field),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index) :-
     alwaysVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index) :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-field((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
+resultField((Card, Field), "fieldDisplayName", DisplayName, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     displayName(Card, (Card, Field), DisplayName).
 
-field((Card, Field), "fieldDescription", Description, "shortText") :-
+resultField((Card, Field), "fieldDescription", Description, "shortText") :-
     childResult(Card, (Card, Field), "fields"),
     result(Card),
     field(Field, "description", Description).
@@ -109,7 +109,7 @@ field((Card, Field), "value", Value) :-
     field(Card, Field, Value).
 
 % add cardTypeDisplayName
-field(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
+resultField(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
     result(Card),
     field(Card, "cardType", CardType),
     field(CardType, "displayName", DisplayName).
@@ -126,10 +126,6 @@ select(1, "treePath").
 
 % Fields
 select(2, "fields", "key").
-select(2, "fields", "visibility").
-select(2, "fields", "index").
-select(2, "fields", "fieldDisplayName").
-select(2, "fields", "fieldDescription").
 select(2, "fields", "value").
 
 childResultCollection(Card, "fields") :-
