@@ -35,6 +35,7 @@ import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
+import { CalculationResource } from '../resources/calculation-resource.js';
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
 import { GraphModelResource } from '../resources/graph-model-resource.js';
@@ -213,34 +214,15 @@ export class Create {
   }
 
   /**
-   * Creates a calculation file.
-   * @param fileName name for the calculation file (without .lp extension)
+   * Creates a calculation resource.
+   * @param calculationName name for the calculation resource
    */
-  public async createCalculation(fileName: string) {
-    const calculationFolder = this.project.paths.calculationProjectFolder;
-
-    await mkdir(calculationFolder, { recursive: true });
-
-    const calculationFileName = fileName.endsWith('.lp')
-      ? fileName
-      : `${fileName}.lp`;
-    const calculationFilePath = join(calculationFolder, calculationFileName);
-
-    const calculationContent = `% Calculation file: ${calculationFileName}
-% Add your logic programming rules here
-`;
-
-    await writeFile(calculationFilePath, calculationContent, { flag: 'wx' });
-
-    // add to cache manually
-    // TODO: remove once calculations are a proper resource
-    const resourceName = `${this.project.projectPrefix}/calculations/${fileName.replace('.lp', '')}`;
-    const resource = {
-      name: resourceName,
-      path: calculationFolder,
-    };
-
-    this.project.addResource(resource, {} as JSON);
+  public async createCalculation(calculationName: string) {
+    const calculation = new CalculationResource(
+      this.project,
+      resourceName(calculationName),
+    );
+    await calculation.create();
   }
 
   /**

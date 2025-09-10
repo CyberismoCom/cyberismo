@@ -27,7 +27,7 @@ import {
   resourceNameToString,
 } from '../utils/resource-utils.js';
 import { FolderResource } from '../resources/folder-resource.js';
-import { writeFile } from 'node:fs/promises';
+import { CalculationResource } from '../resources/calculation-resource.js';
 
 export class Edit {
   private project: Project;
@@ -61,17 +61,12 @@ export class Edit {
         `Resource '${resourceNameString}' does not exist in the project`,
       );
     }
-    await writeFile(
-      join(
-        this.project.paths.calculationProjectFolder,
-        resourceName.identifier + '.lp',
-      ),
-      changedContent,
-      {
-        encoding: 'utf-8',
-        flag: 'r+',
-      },
+
+    const calculationResource = new CalculationResource(
+      this.project,
+      resourceName,
     );
+    await calculationResource.updateCalculationContent(changedContent);
   }
 
   /**

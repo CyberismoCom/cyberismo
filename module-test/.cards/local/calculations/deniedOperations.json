@@ -1,0 +1,5 @@
+{
+  "name": "test/calculations/deniedOperations",
+  "displayName": "Denied Operations",
+  "description": "Defines operations that are denied for cards"
+}

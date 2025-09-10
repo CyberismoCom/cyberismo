@@ -242,6 +242,11 @@ export class FileResource extends ResourceObject {
           references.push(calculation.name);
         }
       } catch (error) {
+        // Skip files that don't exist (they may have been renamed or deleted)
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          console.warn(`Skipping non-existent file: ${filename}`);
+          continue;
+        }
         throw new Error(
           `Failed to process file ${filename}: ${(error as Error).message}`,
         );

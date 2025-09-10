@@ -1,0 +1,5 @@
+{
+  "name": "test/calculations/checks",
+  "displayName": "Policy Checks",
+  "description": "Policy checks for notifications and failures"
+}

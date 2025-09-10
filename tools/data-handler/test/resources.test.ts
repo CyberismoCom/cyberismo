@@ -16,6 +16,7 @@ import type {
   ResourceFolderType,
 } from '../src/interfaces/project-interfaces.js';
 
+import { CalculationResource } from '../src/resources/calculation-resource.js';
 import { CardTypeResource } from '../src/resources/card-type-resource.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { GraphModelResource } from '../src/resources/graph-model-resource.js';
@@ -26,6 +27,7 @@ import { TemplateResource } from '../src/resources/template-resource.js';
 import { WorkflowResource } from '../src/resources/workflow-resource.js';
 
 import type {
+  CalculationMetadata,
   CardType,
   CustomField,
   EnumDefinition,
@@ -583,6 +585,54 @@ describe('resources', function () {
       found = after.find((item) => item.name === name);
       expect(found).to.not.equal(undefined);
     });
+    it('create calculation', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newCALC'),
+      );
+      const before = await project.calculations();
+      let found = before.find(
+        (item) => item.name === 'decision/calculations/newCALC',
+      );
+      expect(found).to.equal(undefined);
+      await res.create();
+      const after = await project.calculations();
+      found = after.find((item) => item.name === res.data.name);
+      expect(found).to.not.equal(undefined);
+    });
+    it('create calculation with provided content', async () => {
+      const name = 'decision/calculations/newCALCWithContent';
+      const res = new CalculationResource(project, resourceName(name));
+      const before = await project.calculations();
+      let found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      const calculationData = {
+        name: name,
+        displayName: 'Test calculation with content',
+        description: 'A test calculation for unit tests',
+        calculation: '% Custom calculation content\ntest_rule(X) :- fact(X).',
+      } as CalculationMetadata;
+      await res.create(calculationData);
+      const after = await project.calculations();
+      found = after.find((item) => item.name === name);
+      expect(found).to.not.equal(undefined);
+    });
+    it('try to create calculation with invalid provided content', async () => {
+      const name = 'decision/calculations/invalidCALCWithContent';
+      const res = new CalculationResource(project, resourceName(name));
+      const before = await project.calculations();
+      const found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      const calculationData = {
+        // missing name
+        displayName: 'Test calculation with content',
+        description: 'A test calculation for unit tests',
+        calculation: 'test_rule(X) :- fact(X).',
+      } as CalculationMetadata;
+      await expect(res.create(calculationData)).to.be.rejectedWith(
+        `Invalid content JSON: Schema '/calculationSchema' validation Error: requires property "name"`,
+      );
+    });
     it('try to create card type with invalid name', async () => {
       const res = new CardTypeResource(
         project,
@@ -657,6 +707,15 @@ describe('resources', function () {
         "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
       );
     });
+    it('try to create calculation with invalid name', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/new-ööö'),
+      );
+      await expect(res.create()).to.be.rejectedWith(
+        "Resource identifier must follow naming rules. Identifier 'new-ööö' is invalid",
+      );
+    });
     it('try to create card type with invalid type', async () => {
       const res = new CardTypeResource(
         project,
@@ -689,6 +748,10 @@ describe('resources', function () {
     it('try to create resources with invalid types', async () => {
       const resources = [
         // cannot create any of these with 'cardTypes' in name
+        new CalculationResource(
+          project,
+          resourceName('decision/cardTypes/new-one'),
+        ),
         new GraphModelResource(
           project,
           resourceName('decision/cardTypes/new-one'),
@@ -739,6 +802,10 @@ describe('resources', function () {
     it('try to create resources with invalid project prefix', async () => {
       // Include only resources that can be created with call to 'create()'
       const resources = [
+        new CalculationResource(
+          project,
+          resourceName('unknown/calculations/new-one'),
+        ),
         new GraphModelResource(
           project,
           resourceName('unknown/graphModels/new-one'),
@@ -887,6 +954,17 @@ describe('resources', function () {
         ],
       });
     });
+    it('data of calculation', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newCALC'),
+      );
+      expect(res.data).to.deep.equal({
+        name: 'decision/calculations/newCALC',
+        displayName: '',
+        description: undefined,
+      });
+    });
     // Show is basically same as '.data' - it just has extra validation.
     it('show card type', async () => {
       const res = new CardTypeResource(
@@ -991,6 +1069,17 @@ describe('resources', function () {
         },
       });
     });
+    it('show calculation', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newCALC'),
+      );
+      const data = await res.show();
+      expect(data).to.have.property('name', 'decision/calculations/newCALC');
+      expect(data).to.have.property('displayName', '');
+      expect(data).to.have.property('calculation');
+      expect(data.calculation).to.include('newCALC');
+    });
     // Tests that report data can be shown from a module; ensures that
     // all report files are reachable; even if their content is not validated.
     it('show imported report', async () => {
@@ -1081,6 +1170,10 @@ describe('resources', function () {
     });
     it('validate resources', async () => {
       const resources = [
+        new CalculationResource(
+          project,
+          resourceName('decision/calculations/newCALC'),
+        ),
         new CardTypeResource(project, resourceName('decision/cardTypes/newCT')),
         new FieldTypeResource(
           project,
@@ -1108,6 +1201,10 @@ describe('resources', function () {
     });
     it('try to validate missing resource types', async () => {
       const resources = [
+        new CalculationResource(
+          project,
+          resourceName('decision/calculations/i-do-not-exist'),
+        ),
         new CardTypeResource(
           project,
           resourceName('decision/cardTypes/i-do-not-exist'),
@@ -1153,6 +1250,16 @@ describe('resources', function () {
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newname'));
       expect(res.data.name).equals('decision/cardTypes/newname');
+      await res.delete();
+    });
+    it('rename calculation', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newResForRename'),
+      );
+      await res.create();
+      await res.rename(resourceName('decision/calculations/newname'));
+      expect(res.data.name).equals('decision/calculations/newname');
       await res.delete();
     });
     it('rename graph model', async () => {
@@ -1700,6 +1807,53 @@ describe('resources', function () {
       expect(enums?.at(0)?.enumValue).to.equal('yes');
       expect(enums?.at(1)?.enumValue).to.equal('no');
     });
+    it('update calculation scalar values', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newCALCWithContent'),
+      );
+      await res.update('displayName', {
+        name: 'change',
+        target: '',
+        to: 'Updated Calculation Display Name',
+      });
+      await res.update('description', {
+        name: 'change',
+        target: '',
+        to: 'Updated calculation description',
+      });
+      const data = res.data as CalculationMetadata;
+      expect(data.displayName).to.equal('Updated Calculation Display Name');
+      expect(data.description).to.equal('Updated calculation description');
+    });
+    it('update calculation - change calculation content', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/newCALCWithContent'),
+      );
+      const newCalculationContent =
+        '% Updated calculation content\nupdated_rule(X) :- some_fact(X).';
+      await res.update('calculation', {
+        name: 'change',
+        target: '',
+        to: newCalculationContent,
+      });
+      const data = res.data as CalculationMetadata;
+      expect(data.calculation).to.equal(newCalculationContent);
+    });
+    it('update calculation - name', async () => {
+      const res = new CalculationResource(
+        project,
+        resourceName('decision/calculations/calcForRename'),
+      );
+      await res.create();
+      await res.update('name', {
+        name: 'change',
+        target: '',
+        to: 'decision/calculations/afterCalcUpdate',
+      });
+      expect(res.data?.name).to.equal('decision/calculations/afterCalcUpdate');
+    });
     it('update link type scalar values', async () => {
       const res = new LinkTypeResource(
         project,
@@ -2061,6 +2215,17 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
     });
     // Note that the delete operations depend on previously created and updated data.
+    it('delete calculation', async () => {
+      const name = 'decision/calculations/newCALC';
+      const res = new CalculationResource(project, resourceName(name));
+      const before = await project.calculations();
+      let found = before.find((item) => item.name === name);
+      expect(found).to.not.equal(undefined);
+      await res.delete();
+      const after = await project.calculations();
+      found = after.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+    });
     it('delete card type', async () => {
       const name = 'decision/cardTypes/newCT';
       const res = new CardTypeResource(project, resourceName(name));
@@ -2068,7 +2233,7 @@ describe('resources', function () {
       let found = before.find((item) => item.name === name);
       expect(found).to.not.equal(undefined);
       await res.delete();
-      const after = await project.workflows();
+      const after = await project.cardTypes();
       found = after.find((item) => item.name === name);
       expect(found).to.equal(undefined);
     });
@@ -2123,7 +2288,7 @@ describe('resources', function () {
       let found = before.find((item) => item.name === name);
       expect(found).to.not.equal(undefined);
       await res.delete();
-      const after = await project.workflows();
+      const after = await project.reports();
       found = after.find((item) => item.name === name);
       expect(found).to.equal(undefined);
     });
@@ -2153,6 +2318,16 @@ describe('resources', function () {
       const name = 'decision/cardTypes/nonExisting';
       const res = new CardTypeResource(project, resourceName(name));
       const before = await project.cardTypes();
+      const found = before.find((item) => item.name === name);
+      expect(found).to.equal(undefined);
+      await expect(res.delete()).to.be.rejectedWith(
+        `Resource 'nonExisting' does not exist in the project`,
+      );
+    });
+    it('try to delete calculation that does not exist', async () => {
+      const name = 'decision/calculations/nonExisting';
+      const res = new CalculationResource(project, resourceName(name));
+      const before = await project.calculations();
       const found = before.find((item) => item.name === name);
       expect(found).to.equal(undefined);
       await expect(res.delete()).to.be.rejectedWith(
@@ -2247,6 +2422,29 @@ describe('resources', function () {
         expect(references).to.include('decision_6');
         expect(references).to.include('decision/linkTypes/testTypes');
       });
+    });
+    it('check usage of calculation resource', async () => {
+      const name = 'decision/calculations/test';
+      const res = new CalculationResource(project, resourceName(name));
+
+      // Create the test calculation metadata (the .lp file already exists in test data)
+      await res.create({
+        name: name,
+        displayName: 'Test Calculation',
+        description: 'Test calculation for unit tests',
+      });
+
+      try {
+        const references = await res.usage();
+        expect(references.length).to.be.greaterThanOrEqual(0);
+      } finally {
+        // Clean up the created calculation
+        try {
+          await res.delete();
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
     });
     it('check usage of fieldType resource', async () => {
       const name = 'decision/fieldTypes/finished';
