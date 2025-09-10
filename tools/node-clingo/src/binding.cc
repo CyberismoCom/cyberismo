@@ -19,7 +19,6 @@
 #include <ctime>
 #include <iostream>
 #include <napi.h>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <stdint.h>
@@ -166,7 +165,7 @@ namespace
     * Calls handler once per unique program. If the program came from a category
     * match, category contains the category string; otherwise it is empty.
     */
-    template <std::invocable<const std::string&, const Program&, std::optional<std::string>> Handler>
+    template <std::invocable<const std::string&, const Program&, std::string> Handler>
     void expand_refs_to_programs(const std::set<std::string>& refs, Handler handler)
     {
         std::set<std::string> addedPrograms;
@@ -178,7 +177,7 @@ namespace
             // thus, if it is false, the element was already in the set
             if (it != g_programs.end() && addedPrograms.insert(ref).second)
             {
-                handler(ref, it->second, std::optional<std::string>());
+                handler(ref, it->second, std::string());
                 // no need to check other refs, as ref was a program, not a category
                 continue;
             }
@@ -191,7 +190,7 @@ namespace
                 if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
                     addedPrograms.insert(key).second)
                 {
-                    handler(key, prog, std::optional<std::string>(ref));
+                    handler(key, prog, ref);
                 }
             }
         }
@@ -493,18 +492,17 @@ Napi::Value GetProgram(const Napi::CallbackInfo& info)
     {
         std::set<std::string> refs = parse_refs_or_throw(info);
 
-        expand_refs_to_programs(
-            refs, [&](const std::string& key, const Program& prog, std::optional<std::string> category) {
-                if (category.has_value())
-                {
-                    completeProgram << "% Program: " << key << " (category: " << category.value() << ")\n";
-                }
-                else
-                {
-                    completeProgram << "% Program: " << key << "\n";
-                }
-                completeProgram << prog.content << "\n\n";
-            });
+        expand_refs_to_programs(refs, [&](const std::string& key, const Program& prog, std::string category) {
+            if (!category.empty())
+            {
+                completeProgram << "% Program: " << key << " (category: " << category << ")\n";
+            }
+            else
+            {
+                completeProgram << "% Program: " << key << "\n";
+            }
+            completeProgram << prog.content << "\n\n";
+        });
     }
 
     // Add the main program last
@@ -563,18 +561,17 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     {
         refs = parse_refs_or_throw(info);
 
-        expand_refs_to_programs(
-            refs, [&](const std::string& key, const Program& prog, std::optional<std::string> category) {
-                (void)category; // unused
-                if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
-                {
-                    handle_clingo_error(env, key);
-                }
-                else
-                {
-                    parts.push_back({key.c_str(), nullptr, 0});
-                }
-            });
+        expand_refs_to_programs(refs, [&](const std::string& key, const Program& prog, std::string category) {
+            (void)category; // unused
+            if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
+            {
+                handle_clingo_error(env, key);
+            }
+            else
+            {
+                parts.push_back({key.c_str(), nullptr, 0});
+            }
+        });
     }
 
     // Add the main program last and its part

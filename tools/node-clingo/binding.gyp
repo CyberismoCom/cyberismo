@@ -53,8 +53,6 @@
               ]
             }],
             ["target_arch!='arm64'", {
-              "cflags_cc": [ "-mmacosx-version-min=10.13" ],
-              "ldflags": [ "-mmacosx-version-min=10.13" ],
               "libraries": [
                 "-L/usr/local/lib",
                 "-lclingo"
