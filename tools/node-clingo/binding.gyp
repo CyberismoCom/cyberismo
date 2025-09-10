@@ -6,7 +6,7 @@
   "targets": [
     {
       "target_name": "node-clingo",
-      "cflags_cc": [ "-std=c++20" ],
+      "cflags_cc": [ "-std=c++20", "-mmacosx-version-min=10.13" ],
       "sources": [ 
         "src/binding.cc",
         "src/helpers.cc",
