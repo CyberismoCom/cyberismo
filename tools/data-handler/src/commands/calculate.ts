@@ -20,6 +20,24 @@ export class Calculate {
   constructor(private project: Project) {}
 
   /**
+   * Exports logic program to a given file with given programs and query
+   * @param destination Destination file path
+   * @param programs Programs or categories to export
+   * @param query Query to export, if not provided, all programs will be exported
+   */
+  public async exportLogicProgram(
+    destination: string,
+    programs: string[] = ['all'],
+    query?: QueryName,
+  ) {
+    await this.project.calculationEngine.exportLogicProgram(
+      destination,
+      programs,
+      query,
+    );
+  }
+
+  /**
    * Generates a logic program.
    */
   public async generate() {
@@ -57,17 +75,5 @@ export class Calculate {
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
     return this.project.calculationEngine.runQuery(queryName, context, options);
-  }
-
-  public async exportLogicProgram(
-    destination: string,
-    programs: string[] = ['all'],
-    query?: QueryName,
-  ) {
-    return this.project.calculationEngine.exportLogicProgram(
-      destination,
-      programs,
-      query,
-    );
   }
 }

@@ -111,6 +111,12 @@ export class CalculationEngine {
     return createCardFacts(card, this.project);
   }
 
+  /**
+   * Exports logic program to a given file with given programs and query
+   * @param destination Destination file path
+   * @param programs Programs or categories to export
+   * @param query Query to export, if not provided, all programs will be exported
+   */
   public async exportLogicProgram(
     destination: string,
     programs: string[],
