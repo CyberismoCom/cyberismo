@@ -53,6 +53,7 @@ import {
 import type { Template } from './template.js';
 import { Validate } from '../commands/validate.js';
 
+import { CalculationResource } from '../resources/calculation-resource.js';
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
 import { GraphModelResource } from '../resources/graph-model-resource.js';
@@ -977,7 +978,9 @@ export class Project extends CardContainer {
    * @returns Created resource.
    */
   public static resourceObject(project: Project, name: ResourceName) {
-    if (name.type === 'cardTypes') {
+    if (name.type === 'calculations') {
+      return new CalculationResource(project, name);
+    } else if (name.type === 'cardTypes') {
       return new CardTypeResource(project, name);
     } else if (name.type === 'fieldTypes') {
       return new FieldTypeResource(project, name);

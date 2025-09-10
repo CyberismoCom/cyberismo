@@ -121,25 +121,46 @@
     },
     "calculationResourceSchema": {
       "type": "object",
-      "properties": {
-        "directories": {
-          "type": "object",
-          "additionalProperties": false
-        },
-        "files": {
-          "type": "object",
-          "$comment": "Each file must be a logic program file",
-          "additionalProperties": false,
-          "patternProperties": {
-            "^.+\\.lp$": {
-              "type": "object"
-            }
-          },
+      "allOf": [
+        {
           "properties": {
-            ".gitkeep": {}
+            "directories": {
+              "type": "object",
+              "additionalProperties": false
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "$comment": "Each JSON file needs to be separately validated against 'contentSchema'",
+              "contentSchema": "calculationSchema.json"
+            }
+          }
+        },
+        {
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": false,
+              "patternProperties": {
+                "^.+\\.lp$": {
+                  "type": "object"
+                },
+                "^[A-Za-z0-9-_]+\\.json$": {
+                  "type": "object"
+                }
+              },
+              "properties": {
+                ".schema": {},
+                ".gitkeep": {}
+              },
+              "required": [".schema"]
+            }
           }
         }
-      }
+      ]
     },
     "cardTypeResourceSchema": {
       "type": "object",

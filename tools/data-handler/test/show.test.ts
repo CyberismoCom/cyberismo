@@ -267,6 +267,7 @@ describe('show', () => {
   });
   it('showResources - valid types', async () => {
     const validResourceTypes = [
+      'calculations',
       'cardTypes',
       'fieldTypes',
       'graphViews',

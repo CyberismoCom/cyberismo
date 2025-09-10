@@ -211,19 +211,26 @@ export class ResourceObject extends AbstractResource {
           );
         }
 
-        const filename = join(
-          calculation.path,
-          basename(calculation.name) + '.lp',
-        );
+        const base = basename(calculation.name);
+        const fileNameWithExtension = base.endsWith('.lp')
+          ? base
+          : base + '.lp';
+        const filename = join(calculation.path, fileNameWithExtension);
 
         try {
           const content = await readFile(filename, 'utf-8');
           const updatedContent = content.replaceAll(from, to);
           await writeFile(filename, updatedContent);
         } catch (error) {
-          throw new Error(
-            `Failed to process file ${filename}: ${(error as Error).message}`,
-          );
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            // Skip files that don't exist (they may have been renamed or deleted)
+            return;
+          }
+          if (error instanceof Error) {
+            throw new Error(
+              `Failed to process file while updating calculation ${filename}: ${error.message}`,
+            );
+          }
         }
       }),
     );
