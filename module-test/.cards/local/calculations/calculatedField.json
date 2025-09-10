@@ -1,0 +1,5 @@
+{
+  "name": "test/calculations/calculatedField",
+  "displayName": "Calculated Field A+B",
+  "description": "Calculates sum of fields a and b"
+}

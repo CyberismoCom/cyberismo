@@ -22,6 +22,7 @@ import { type Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
 import { Template } from '../containers/template.js';
 
+import { CalculationResource } from '../resources/calculation-resource.js';
 import { CardTypeResource } from '../resources/card-type-resource.js';
 import { FieldTypeResource } from '../resources/field-type-resource.js';
 import { GraphModelResource } from '../resources/graph-model-resource.js';
@@ -192,6 +193,17 @@ export class Rename {
     return cardType.rename(resourceName(this.updateResourceName(cardTypeName)));
   }
 
+  // Rename calculations.
+  private async updateCalculation(calculationName: string) {
+    const calculation = new CalculationResource(
+      this.project,
+      resourceName(calculationName),
+    );
+    return calculation.rename(
+      resourceName(this.updateResourceName(calculationName)),
+    );
+  }
+
   // Updates field type's metadata.
   private async updateFieldTypeMetadata(fieldTypeName: string) {
     const fieldType = new FieldTypeResource(
@@ -340,6 +352,14 @@ export class Rename {
       await this.updateTemplate(template.name);
     }
     console.info('Updated templates');
+
+    const calculations = await this.project.calculations(
+      ResourcesFrom.localOnly,
+    );
+    for (const calculation of calculations) {
+      await this.updateCalculation(calculation.name);
+    }
+    console.info('Updated calculations');
 
     // Rename all local template cards.
     templates = await this.project.templates(ResourcesFrom.localOnly);

@@ -30,6 +30,7 @@ import {
 } from './resource-object.js';
 import { DefaultContent } from './create-defaults.js';
 import { deleteFile, pathExists } from '../utils/file-utils.js';
+import { hasCode } from '../utils/error-utils.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   readJsonFile,
@@ -242,6 +243,11 @@ export class FileResource extends ResourceObject {
           references.push(calculation.name);
         }
       } catch (error) {
+        // Skip files that don't exist (they may have been renamed or deleted)
+        if (hasCode(error) && error.code === 'ENOENT') {
+          this.logger.warn(`Skipping non-existent file: ${filename}`);
+          continue;
+        }
         throw new Error(
           `Failed to process file ${filename}: ${(error as Error).message}`,
         );
@@ -397,9 +403,9 @@ export class FileResource extends ResourceObject {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _op: Operation<Type>,
   ): Promise<void> {
-    const content = this.data;
-    if (!content) {
-      throw new Error(`Resource '${this.fileName}' does not exist`);
+    if (!this.data) {
+      const name = resourceNameToString(this.resourceName);
+      throw new Error(`Resource '${name}' does not exist in the project`);
     }
     if (this.moduleResource) {
       throw new Error(`Cannot update module resources`);

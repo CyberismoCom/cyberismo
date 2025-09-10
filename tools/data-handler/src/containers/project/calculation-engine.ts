@@ -12,8 +12,7 @@
 */
 
 // node
-import { basename, join, resolve } from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 
 import { sanitizeSvgBase64 } from '../../utils/sanitize-svg.js';
 import { instance } from '@viz-js/viz';
@@ -26,7 +25,6 @@ import type {
 } from '../../types/queries.js';
 import type { Card, Context } from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
-import { pathExists } from '../../utils/file-utils.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
 import { type Project, ResourcesFrom } from '../../containers/project.js';
@@ -52,6 +50,7 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
+import { CalculationResource } from '../../resources/calculation-resource.js';
 import {
   removeAllPrograms,
   solve,
@@ -62,6 +61,7 @@ import {
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import {
+  resourceName,
   type ResourceName,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
@@ -123,7 +123,7 @@ export class CalculationEngine {
     query?: QueryName,
   ) {
     let logicProgram = query ? this.queryContent(query) : '';
-    logicProgram += await buildProgram('', programs);
+    logicProgram += buildProgram('', programs);
     await writeFile(destination, logicProgram);
   }
 
@@ -259,26 +259,28 @@ export class CalculationEngine {
     const calculations = await this.project.calculations(ResourcesFrom.all);
 
     for (const calculationFile of calculations) {
-      if (calculationFile.path) {
-        const moduleLogicFile = resolve(
-          join(calculationFile.path, basename(calculationFile.name)),
+      try {
+        const calculationResource = new CalculationResource(
+          this.project,
+          resourceName(calculationFile.name),
         );
-
-        const filePath = moduleLogicFile.endsWith('.lp')
-          ? moduleLogicFile
-          : moduleLogicFile + '.lp';
-
-        if (pathExists(filePath)) {
-          try {
-            const moduleContent = await readFile(filePath, 'utf-8');
-            setProgram(calculationFile.name, moduleContent, [ALL_CATEGORY]);
-          } catch (error) {
-            this.logger.warn(
-              error,
-              `Failed to read calculation ${calculationFile.name}`,
+        if (calculationResource) {
+          const resource = await calculationResource.show();
+          if (!resource?.content.calculation) {
+            this.logger.info(
+              `Calculation resource '${resource.name}' does not have calculation file`,
             );
+            continue;
           }
+          setProgram(calculationFile.name, resource.content.calculation, [
+            ALL_CATEGORY,
+          ]);
         }
+      } catch (error) {
+        this.logger.warn(
+          error,
+          `Failed to read calculation ${calculationFile.name}`,
+        );
       }
     }
   }
