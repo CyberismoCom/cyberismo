@@ -108,6 +108,18 @@ field((Card, Field), "value", Value) :-
     childResult(Card, (Card, Field), "fields"),
     field(Card, Field, Value).
 
+resultField(((Card, Field), "value"), "displayValue", EnumDisplayValue, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    dataType(Card, Field, "enum"),
+    field((Card, Field), "value", Value),
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
+
+resultField(((Card, Field), "value", Value), "displayValue", EnumDisplayValue, "shortText") :-
+    childResult(Card, (Card, Field), "fields"),
+    dataType(Card, Field, "list"),
+    field(Card, Field, Value),
+    field((Field, Value), "enumDisplayValue", EnumDisplayValue).
+
 % add cardTypeDisplayName
 resultField(Card, "cardTypeDisplayName", DisplayName, "shortText") :-
     result(Card),
