@@ -2,8 +2,7 @@
 import { expect } from 'chai';
 
 // node
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
@@ -359,7 +358,7 @@ describe('resources', function () {
   });
 
   describe('resource basic operations', () => {
-    const baseDir = dirname(fileURLToPath(import.meta.url));
+    const baseDir = import.meta.dirname;
     const testDir = join(baseDir, 'tmp-resource-classes-tests');
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     let project: Project;

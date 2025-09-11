@@ -1,15 +1,13 @@
 import { expect } from 'chai';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { Remove } from '../src/commands/remove.js';
 
-import { fileURLToPath } from 'node:url';
-
 describe('remove card', () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;

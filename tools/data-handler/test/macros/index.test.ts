@@ -3,6 +3,17 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { stub } from 'sinon';
 
+// node
+import { join } from 'node:path';
+import { mkdirSync, rmSync } from 'node:fs';
+
+// dependencies
+import { Validator } from 'jsonschema';
+import Handlebars from 'handlebars';
+
+// cyberismo
+import BaseMacro from '../../src/macros/base-macro.js';
+import { copyDir } from '../../src/utils/file-utils.js';
 import {
   createAdmonition,
   createHtmlPlaceholder,
@@ -11,21 +22,16 @@ import {
   registerMacros,
   validateMacroContent,
 } from '../../src/macros/index.js';
-import { copyDir } from '../../src/utils/file-utils.js';
-import { dirname, join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
-import { Validator } from 'jsonschema';
-import Handlebars from 'handlebars';
-import BaseMacro from '../../src/macros/base-macro.js';
-import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
-import TaskQueue from '../../src/macros/task-queue.js';
-import { fileURLToPath } from 'node:url';
 import { Project } from '../../src/containers/project.js';
-import type { Mode } from '../../src/interfaces/macros.js';
-import type { Card } from '../../src/interfaces/project-interfaces.js';
+import TaskQueue from '../../src/macros/task-queue.js';
+
 import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
 
-const baseDir = dirname(fileURLToPath(import.meta.url));
+import type { Card } from '../../src/interfaces/project-interfaces.js';
+import type { MacroGenerationContext } from '../../src/interfaces/macros.js';
+import type { Mode } from '../../src/interfaces/macros.js';
+
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-calculate-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;

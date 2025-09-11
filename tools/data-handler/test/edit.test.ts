@@ -1,16 +1,15 @@
 import { expect } from 'chai';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { type Edit } from '../src/commands/index.js';
-import { fileURLToPath } from 'node:url';
 import type { ResourceName } from '../src/resources/file-resource.js';
 
 describe('edit card', () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-edit-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;

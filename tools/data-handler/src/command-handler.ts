@@ -11,9 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 
 import type {
@@ -773,7 +772,7 @@ export class Commands {
   // Starts the Cyberismo app by running npm start in the app project folder
   private async startApp(forceStart: boolean = false): Promise<requestStatus> {
     // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
-    const baseDir = dirname(fileURLToPath(import.meta.url));
+    const baseDir = import.meta.dirname;
     const appPath = resolve(baseDir, '../../app');
 
     // since current working directory changes, we need to resolve the project path
