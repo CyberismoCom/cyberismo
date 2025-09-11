@@ -15,14 +15,9 @@ updates:
       react-dependencies: # Update all React dependencies in one PR
         patterns:
           - "react"
-          - "react-arborist"
           - "react-dom"
-          - "react-hook-form"
-          - "react-redux"
-          - "react-router"
           - "@types/react"
           - "@types/react-dom"
-          - "@uiw/react-codemirror"
       chai-dependencies: # Update all Chai dependencies in one PR
         patterns:
           - "@types/chai"
