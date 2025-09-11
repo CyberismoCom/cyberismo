@@ -1,19 +1,18 @@
 import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import type { FetchCardDetails } from '../src/interfaces/project-interfaces.js';
-import { fileURLToPath } from 'node:url';
 import type { Show } from '../src/commands/index.js';
 import { writeJsonFile } from '../src/utils/json.js';
 import { resourceName } from '../src/resources/file-resource.js';
 
 describe('show', () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-show-tests');
   mkdirSync(testDir, { recursive: true });
   const decisionRecordsPath = join(testDir, 'valid/decision-records');

@@ -4,16 +4,15 @@ import { describe, it } from 'mocha';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import * as os from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { fileURLToPath } from 'node:url';
 import { CommandManager } from '../src/command-manager.js';
 
 describe('module-manager', () => {
   const skipTest = process.env.CI && os.platform() === 'win32';
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-module-manager-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;

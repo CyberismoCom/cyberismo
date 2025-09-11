@@ -1,7 +1,6 @@
 // node
 import { readdir } from 'node:fs/promises';
-import { dirname, join, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, resolve, sep } from 'node:path';
 
 // testing
 import { expect } from 'chai';
@@ -16,7 +15,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 
 describe('validate cmd tests', () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
 

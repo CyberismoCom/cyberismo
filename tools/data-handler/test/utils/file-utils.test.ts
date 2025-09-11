@@ -5,8 +5,7 @@ import { after, describe, it } from 'mocha';
 // node
 import { rmSync } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, sep } from 'node:path';
 
 import {
   copyDir,
@@ -18,7 +17,7 @@ import {
   stripExtension,
 } from '../../src/utils/file-utils.js';
 
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-file-utils-tests');
 
 before(async () => {

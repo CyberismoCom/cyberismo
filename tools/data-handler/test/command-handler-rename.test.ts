@@ -3,8 +3,7 @@ import { expect } from 'chai';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
@@ -12,7 +11,7 @@ import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 
 // Create test artifacts in a temp folder.
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-rename-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');

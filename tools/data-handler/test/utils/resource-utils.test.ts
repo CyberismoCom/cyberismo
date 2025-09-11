@@ -3,8 +3,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
 // node
-import { dirname, join, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, sep } from 'node:path';
 
 import {
   pathToResourceName,
@@ -14,7 +13,6 @@ import {
   resourceNameToString,
   resourceFilePath,
 } from '../../src/utils/resource-utils.js';
-
 import { Project } from '../../src/containers/project.js';
 
 describe('resource utils', () => {
@@ -93,7 +91,7 @@ describe('resource utils', () => {
 describe('resource utils with Project instance', () => {
   let project: Project;
   before(() => {
-    const baseDir = dirname(fileURLToPath(import.meta.url));
+    const baseDir = import.meta.dirname;
     const decisionRecordsPath = join(
       baseDir,
       '../test-data/valid/decision-records',

@@ -4,8 +4,7 @@ import { expect } from 'chai';
 // node
 import { access } from 'node:fs/promises';
 import { constants as fsConstants, mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // cyberismo
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
@@ -21,7 +20,7 @@ import { resourceName } from '../src/utils/resource-utils.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
 
 // Create test artifacts in a temp folder.
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-create-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');

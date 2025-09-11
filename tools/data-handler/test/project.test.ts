@@ -4,8 +4,7 @@ import { after, before, describe, it } from 'mocha';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { basename, dirname, join, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { basename, join, resolve, sep } from 'node:path';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import {
@@ -31,7 +30,7 @@ import type { WorkflowResource } from '../src/resources/workflow-resource.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-project-tests');
 
   before(async () => {

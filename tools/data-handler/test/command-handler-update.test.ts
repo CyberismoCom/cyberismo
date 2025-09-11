@@ -2,8 +2,7 @@
 import { expect } from 'chai';
 
 // node
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { type CardType } from '../src/interfaces/resource-interfaces.js';
@@ -12,7 +11,7 @@ import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { Show, Update } from '../src/commands/index.js';
 
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;

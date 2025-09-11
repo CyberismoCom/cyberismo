@@ -4,15 +4,14 @@ import { expect } from 'chai';
 // node
 import { mkdirSync, rmSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 // cyberismo
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-command-handler-report-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');

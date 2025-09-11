@@ -4,8 +4,7 @@ import { after, before, describe, it } from 'mocha';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join, sep } from 'node:path';
 
 import type {
   Card,
@@ -18,7 +17,7 @@ import { Template } from '../src/containers/template.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
 
 // Create test artifacts in a temp directory.
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-template-tests');
 let project: Project;
 let decisionRecordsPath: string;
