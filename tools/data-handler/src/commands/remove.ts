@@ -53,9 +53,6 @@ export class Remove {
     }
 
     const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
-    if (!attachmentFolder) {
-      throw new Error(`Card '${cardKey}' not found`);
-    }
 
     // Imported templates cannot be modified.
     if (attachmentFolder.includes(MODULES_PATH)) {

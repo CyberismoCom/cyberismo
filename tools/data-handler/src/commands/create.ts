@@ -44,6 +44,8 @@ import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
 
+const MODULES_PATH = `${sep}modules${sep}`;
+
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
 
@@ -185,12 +187,10 @@ export class Create {
       );
     }
     const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
-    if (!attachmentFolder) {
-      throw new Error(`Attachment folder for '${cardKey}' not found`);
-    }
 
     // Imported templates cannot be modified.
-    if (attachmentFolder.includes(`${sep}modules${sep}`)) {
+    // @todo: make MODULES_PATH project level constant
+    if (attachmentFolder.includes(MODULES_PATH)) {
       throw new Error(`Cannot modify imported module`);
     }
 

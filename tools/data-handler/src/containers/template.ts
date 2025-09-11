@@ -439,7 +439,7 @@ export class Template extends CardContainer {
   public async cardAttachmentFolder(cardKey: string): Promise<string> {
     const pathToCard = await this.cardFolder(cardKey);
     if (!pathToCard) {
-      return '';
+      throw new Error(`Template card '${cardKey}' not found`);
     }
     return join(pathToCard, 'a');
   }

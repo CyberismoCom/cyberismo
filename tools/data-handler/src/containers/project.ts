@@ -196,6 +196,7 @@ export class Project extends CardContainer {
    * Returns path to card's attachment folder.
    * @param cardKey card key
    * @returns path to card's attachment folder.
+   * @throws if card path cannot be found
    */
   public async cardAttachmentFolder(cardKey: string): Promise<string> {
     // Check if it is a template card.
@@ -205,9 +206,10 @@ export class Project extends CardContainer {
     }
 
     const pathToProjectCard = this.pathToCard(cardKey);
-    return pathToProjectCard
-      ? join(this.paths.cardRootFolder, pathToProjectCard, 'a')
-      : '';
+    if (!pathToProjectCard) {
+      throw new Error(`Card '${cardKey}' not found`);
+    }
+    return join(this.paths.cardRootFolder, pathToProjectCard, 'a');
   }
 
   /**

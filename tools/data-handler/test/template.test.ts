@@ -327,13 +327,13 @@ describe('template', () => {
     // Project can fetch the template's attachment's folder.
     const attachmentFolder1 = await project.cardAttachmentFolder('decision_1');
     const attachmentFolder2 = await template.cardAttachmentFolder('decision_1');
-    const nonExistingAttachmentFolder =
-      await template.cardAttachmentFolder('decision_999');
     expect(attachmentFolder1).to.include('decision_1');
     expect(attachmentFolder1).to.include(sep + 'a');
     expect(attachmentFolder1).to.equal(attachmentFolder2);
 
-    expect(nonExistingAttachmentFolder).to.equal('');
+    await expect(
+      template.cardAttachmentFolder('decision_999'),
+    ).to.be.rejectedWith(`Template card 'decision_999' not found`);
 
     const templateAttachments = await template.attachments();
     expect(templateAttachments.length).to.equal(1);
