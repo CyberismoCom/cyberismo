@@ -20,7 +20,12 @@
       "description": "List of hubs from where to fetch module information",
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string"
+          }
+        }
       }
     },
     "modules": {
