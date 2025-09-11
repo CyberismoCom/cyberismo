@@ -11,8 +11,9 @@
 */
 
 import {
-  CardsOptions,
   Cmd,
+  CmdKey,
+  CmdValue,
   Commands,
   CommandManager,
   ExportFormats,
@@ -30,8 +31,9 @@ import {
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 
 export {
-  CardsOptions,
   Cmd,
+  CmdKey,
+  CmdValue,
   CommandManager,
   Commands,
   ExportFormats,
@@ -44,3 +46,27 @@ export {
   Validate,
   evaluateMacros,
 };
+
+// Export command-specific option interfaces
+export type {
+  CommandOptions,
+  AllCommandOptions,
+  AddCommandOptions,
+  CalcCommandOptions,
+  CreateCommandOptions,
+  EditCommandOptions,
+  ExportCommandOptions,
+  FetchCommandOptions,
+  ImportCommandOptions,
+  MoveCommandOptions,
+  RankCommandOptions,
+  RemoveCommandOptions,
+  RenameCommandOptions,
+  ReportCommandOptions,
+  ShowCommandOptions,
+  StartCommandOptions,
+  TransitionCommandOptions,
+  UpdateCommandOptions,
+  UpdateModulesCommandOptions,
+  ValidateCommandOptions,
+} from './interfaces/command-options.js';

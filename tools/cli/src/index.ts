@@ -19,20 +19,23 @@ import { Argument, Command, Option } from 'commander';
 import confirm from '@inquirer/confirm';
 import { checkbox, select } from '@inquirer/prompts';
 import dotenv from 'dotenv';
+import cliProgress from 'cli-progress';
+
+import type {
+  CommandOptions,
+  Credentials,
+  ModuleSettingFromHub,
+  requestStatus,
+  UpdateOperations,
+} from '@cyberismo/data-handler';
 import {
-  type CardsOptions,
   Cmd,
   Commands,
   ExportFormats,
-  type Credentials,
-  type ModuleSettingFromHub,
-  type requestStatus,
-  type UpdateOperations,
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer, exportSite, previewSite } from '@cyberismo/backend';
-import cliProgress from 'cli-progress';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
@@ -94,7 +97,7 @@ function handleResponse(response: requestStatus) {
 }
 
 // Helper to get modules that have not been imported.
-async function importableModules(options: CardsOptions) {
+async function importableModules(options: CommandOptions<'show'>) {
   const copyOptions = Object.assign({}, options);
   copyOptions.details = true;
   const importableModules = await commandHandler.command(
@@ -286,7 +289,7 @@ addCmd
       template: string,
       cardType: string,
       cardKey: string,
-      options: CardsOptions,
+      options: CommandOptions<'add'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.add,
@@ -302,7 +305,7 @@ addCmd
   .description('Add a hub to the project')
   .argument('<location>', 'Hub URL')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (location: string, options: CardsOptions) => {
+  .action(async (location: string, options: CommandOptions<'add'>) => {
     const result = await commandHandler.command(
       Cmd.add,
       ['hub', location],
@@ -332,7 +335,7 @@ calculate
   .argument('<filePath>', 'Path to the logic program')
   .addOption(contextOption)
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (filePath: string, options: CardsOptions) => {
+  .action(async (filePath: string, options: CommandOptions<'calc'>) => {
     const result = await commandHandler.command(
       Cmd.calc,
       ['run', filePath],
@@ -377,7 +380,7 @@ program
       parameter1: string,
       parameter2: string,
       parameter3: string,
-      options: CardsOptions,
+      options: CommandOptions<'create'>,
     ) => {
       if (!type) {
         program.error(`missing required argument <type>`);
@@ -502,7 +505,7 @@ program
   .description('Edit a card')
   .argument('<cardKey>', 'Card key of card')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: CardsOptions) => {
+  .action(async (cardKey: string, options: CommandOptions<'edit'>) => {
     const result = await commandHandler.command(
       Cmd.edit,
       [cardKey],
@@ -546,7 +549,7 @@ program
       format: string,
       output: ExportFormats,
       cardKey: string,
-      options: CardsOptions,
+      options: CommandOptions<'export'>,
     ) => {
       if (format === 'site') {
         const progress = new cliProgress.SingleBar(
@@ -599,7 +602,7 @@ fetchCmd
   .command('hubs')
   .description('Retrieves module lists from hubs')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CardsOptions) => {
+  .action(async (options: CommandOptions<'fetch'>) => {
     const result = await commandHandler.command(
       Cmd.fetch,
       ['hubs'],
@@ -631,7 +634,7 @@ importCmd
       source: string,
       branch: string,
       useCredentials: boolean,
-      options: CardsOptions,
+      options: CommandOptions<'import'>,
     ) => {
       let resolvedSource = source;
       let resolvedBranch = branch;
@@ -716,14 +719,20 @@ importCmd
     'Card key of the parent. If defined, cards are created as children of this card',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (csvFile: string, cardKey: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.import,
-      ['csv', csvFile, cardKey],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+  .action(
+    async (
+      csvFile: string,
+      cardKey: string,
+      options: CommandOptions<'import'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.import,
+        ['csv', csvFile, cardKey],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
 
 // Move command
 program
@@ -738,7 +747,11 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
-    async (source: string, destination: string, options: CardsOptions) => {
+    async (
+      source: string,
+      destination: string,
+      options: CommandOptions<'move'>,
+    ) => {
       const result = await commandHandler.command(
         Cmd.move,
         [source, destination],
@@ -773,7 +786,11 @@ rank
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
-    async (cardKey: string, afterCardKey: string, options: CardsOptions) => {
+    async (
+      cardKey: string,
+      afterCardKey: string,
+      options: CommandOptions<'rank'>,
+    ) => {
       const result = await commandHandler.command(
         Cmd.rank,
         ['card', cardKey, afterCardKey],
@@ -793,7 +810,7 @@ rank
     'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: CardsOptions) => {
+  .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
     const result = await commandHandler.command(
       Cmd.rank,
       ['rebalance', cardKey],
@@ -830,7 +847,7 @@ program
       parameter1: string,
       parameter2: string,
       parameter3: string,
-      options: CardsOptions,
+      options: CommandOptions<'remove'>,
     ) => {
       if (type) {
         if (!parameter1) {
@@ -878,7 +895,7 @@ program
   )
   .argument('<to>', 'New project prefix')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (to: string, options: CardsOptions) => {
+  .action(async (to: string, options: CommandOptions<'rename'>) => {
     const result = await commandHandler.command(
       Cmd.rename,
       [to],
@@ -901,14 +918,20 @@ program
   )
   .addOption(contextOption)
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (parameters: string, output: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.report,
-      [parameters, output],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+  .action(
+    async (
+      parameters: string,
+      output: string,
+      options: CommandOptions<'report'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.report,
+        [parameters, output],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
 
 // Show command
 program
@@ -936,7 +959,7 @@ program
     '-u --show-use',
     'Show where resource is used. Only used with resources, otherwise will be ignored.',
   )
-  .action(async (type: string, typeDetail, options: CardsOptions) => {
+  .action(async (type: string, typeDetail, options: CommandOptions<'show'>) => {
     if (type !== '') {
       const result = await commandHandler.command(
         Cmd.show,
@@ -958,7 +981,11 @@ program
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
-    async (cardKey: string, transition: string, options: CardsOptions) => {
+    async (
+      cardKey: string,
+      transition: string,
+      options: CommandOptions<'transition'>,
+    ) => {
       const result = await commandHandler.command(
         Cmd.transition,
         [cardKey, transition],
@@ -996,7 +1023,7 @@ program
       key: string,
       value: string,
       newValue: string,
-      options: CardsOptions,
+      options: CommandOptions<'update'>,
     ) => {
       const result = await commandHandler.command(
         Cmd.update,
@@ -1015,7 +1042,7 @@ program
   )
   .argument('[moduleName]', 'Module name')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (moduleName, options: CardsOptions) => {
+  .action(async (moduleName, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
       [moduleName],
@@ -1030,7 +1057,7 @@ program
   .command('validate')
   .description('Validate project structure')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CardsOptions) => {
+  .action(async (options: CommandOptions<'validate'>) => {
     const result = await commandHandler.command(
       Cmd.validate,
       [],
@@ -1054,7 +1081,7 @@ program
     'Project watches changes in .cards folder resources',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CardsOptions) => {
+  .action(async (options: CommandOptions<'start'>) => {
     // validate project
     const result = await commandHandler.command(
       Cmd.validate,
