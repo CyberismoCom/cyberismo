@@ -3,15 +3,17 @@
     "cardType": "test/cardTypes/checks",
     "workflowState": "",
     "rank": "0|b",
-    "test/fieldTypes/enableNotification": false,
+    "test/fieldTypes/enableNotification": true,
     "test/fieldTypes/notificationCategory": "Category 1",
     "test/fieldTypes/notificationTitle": "Notification title",
     "test/fieldTypes/notificationMessage": "This is a notification!",
-    "test/fieldTypes/enableSuccessfulCheck": false,
+    "test/fieldTypes/enableSuccessfulCheck": true,
     "test/fieldTypes/successCategory": "Category 2",
     "test/fieldTypes/successTitle": "Successful check title",
-    "test/fieldTypes/enableFailingCheck": false,
+    "test/fieldTypes/enableFailingCheck": true,
     "test/fieldTypes/failureCategory": "Category 3",
     "test/fieldTypes/failureTitle": "Failing check title",
-    "test/fieldTypes/failureMessage": "This is a failure"
+    "test/fieldTypes/failureMessage": "This is a failure",
+    "links": [],
+    "lastUpdated": "2025-09-11T07:02:15.177Z"
 }

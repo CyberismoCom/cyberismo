@@ -955,6 +955,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           overflowY: 'auto',
           scrollbarWidth: 'thin',
         }}
+        data-cy="cardSidebar"
       >
         <Box sx={{ marginBottom: 1 }}>
           {renderTableOfContents(

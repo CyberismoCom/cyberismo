@@ -272,4 +272,37 @@ describe('Navigation', () => {
     cy.get('[data-cy="confirmDeleteButton"]').click();
     cy.get('[role="presentation"]').contains(t['deleteCardSuccess']); // Verify text in popup infobox
   });
+  it('test notifications and policy checks', () => {
+    // first create a card with notifications and policy checks
+    cy.get('[data-cy="createNewButton"]').click();
+    cy.get('.templateCard').contains('Policy checks and notifications').click();
+    cy.get('[data-cy="confirmCreateButton"]').click();
+    cy.get('[role="presentation"]').contains(t.createCardModal['success']); // Verify text in popup infobox
+
+    cy.get('h1').contains('Test notifications and policy checks');
+
+    // Scope assertions to the actual sidebar
+    cy.get('[data-cy="cardSidebar"]').as('sidebar');
+
+    // Make sure notifications and policy checks sections are displayed in the sidebar
+    cy.get('@sidebar').within(() => {
+      cy.contains(t['notifications']);
+      cy.contains(t['passedPolicyChecks']); // summary visible (collapsed by default)
+      cy.contains(t['failedPolicyChecks']); // summary visible (expanded by default)
+
+      // Verify notification content
+      cy.contains('Category 1 - Notification title');
+      cy.contains('This is a notification!');
+
+      // Verify failed policy check details
+      cy.contains('Category 3 - Failing check title');
+      cy.contains('This is a failure');
+      cy.contains(t['policyCheckFail']); // FAIL label
+
+      // Expand Passed policy checks and verify PASS label and success title
+      cy.contains(t['passedPolicyChecks']).click();
+      cy.contains(t['policyCheckPass']); // PASS label
+      cy.contains('Category 2 - Successful check title');
+    });
+  });
 });
