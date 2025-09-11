@@ -1,5 +1,10 @@
 {
     "cardKeyPrefix": "test",
     "name": "Cyberismo test module",
-    "modules": []
+    "modules": [],
+    "hubs": [
+        {
+            "location": "https://raw.githubusercontent.com/CyberismoCom/cyberismo/main/tools/assets/src/hub/"
+        }
+    ]
 }
