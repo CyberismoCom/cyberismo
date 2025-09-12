@@ -11,12 +11,12 @@
       "description": "Optional offset to adjust the heading levels of the included content. Should be a number as string (e.g., '+1', '+2' or '-1')."
     },
     "title": {
-      "type": "enum",
+      "type": "string",
       "description": "Whether to include the title of the card in the included content. If 'only' is selected, the title will be the only content included.",
       "enum": ["include", "exclude", "only"]
     },
     "pageTitles": {
-      "type": "enum",
+      "type": "string",
       "description": "If discrete, page titles will be included as discrete headings(read asciidoctor docs for more info). If normal, page titles will be included as normal headings.",
       "enum": ["normal", "discrete"]
     }
