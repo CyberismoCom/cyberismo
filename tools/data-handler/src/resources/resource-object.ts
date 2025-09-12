@@ -215,7 +215,9 @@ export class ResourceObject extends AbstractResource {
         // calculation.name can be either 'prefix/calculations/identifier' or include '.lp'
         // We should always join the directory path with just the file name (identifier + .lp)
         const base = basename(calculation.name);
-        const fileNameWithExtension = base.endsWith('.lp') ? base : base + '.lp';
+        const fileNameWithExtension = base.endsWith('.lp')
+          ? base
+          : base + '.lp';
         const filename = join(calculation.path, fileNameWithExtension);
 
         try {
