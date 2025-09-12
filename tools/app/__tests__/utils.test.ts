@@ -1,10 +1,10 @@
-import { Project } from '@/lib/definitions';
+import type { Project } from '@/lib/definitions';
 
-import {
+import type {
   QueryResult,
   CalculationLink,
 } from '@cyberismo/data-handler/types/queries';
-import { ExpandedLinkType } from '@/lib/definitions';
+import type { ExpandedLinkType } from '@/lib/definitions';
 
 import { expect, test, describe } from 'vitest';
 

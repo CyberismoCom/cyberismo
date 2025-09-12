@@ -13,7 +13,7 @@
 */
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import {
+import type {
   DataType,
   EnumDefinition,
   ExpandedLinkType,
@@ -22,16 +22,14 @@ import {
   Workflow,
 } from './definitions';
 import { useForm } from 'react-hook-form';
-import {
-  LinkType,
-  WorkflowCategory,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import {
+import type { LinkType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type {
   QueryResult,
   CalculationLink,
 } from '@cyberismo/data-handler/types/queries';
-import { CardResponse } from './api/types';
-import { AppConfig } from './definitions';
+import type { CardResponse } from './api/types';
+import type { AppConfig } from './definitions';
 import type { ResourceNode } from './api/types';
 
 // Gets type of a child of an array

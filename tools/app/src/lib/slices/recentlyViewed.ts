@@ -13,7 +13,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { cardDeleted, cardViewed } from '../actions';
 import { MAX_RECENTS_STORED } from '../constants';
-import { CardView } from '../definitions';
+import type { CardView } from '../definitions';
 
 export interface RecentlyViewedState {
   pages: CardView[];
