@@ -12,7 +12,7 @@ import { writeJsonFile } from '../src/utils/json.js';
 import { resourceName } from '../src/resources/file-resource.js';
 
 describe('show', () => {
-  const baseDir = import.meta.url;
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-show-tests');
   mkdirSync(testDir, { recursive: true });
   const decisionRecordsPath = join(testDir, 'valid/decision-records');

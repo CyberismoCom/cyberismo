@@ -1,10 +1,9 @@
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
-import { fileURLToPath } from 'node:url';
 import { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
 import { lpFiles } from '@cyberismo/assets';
@@ -29,7 +28,7 @@ const expectedTree: QueryResult<'tree'>[] = [
 ];
 
 describe('calculate', () => {
-  const baseDir = dirname(fileURLToPath(import.meta.url));
+  const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-calculate-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let project: Project;
