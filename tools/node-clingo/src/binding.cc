@@ -283,7 +283,7 @@ namespace
             return false;
         }
 
-        std::stringstream ss;
+        std::stringstream answerStream;
         bool success = true;
 
         // Convert each symbol to string
@@ -299,13 +299,13 @@ namespace
             }
 
             if (i > 0)
-                ss << std::endl;
-            ss << str;
+                answerStream << std::endl;
+            answerStream << str;
         }
 
         try
         {
-            answers->push_back(ss.str());
+            answers->push_back(answerStream.str());
         }
         catch (const std::bad_alloc&)
         {
