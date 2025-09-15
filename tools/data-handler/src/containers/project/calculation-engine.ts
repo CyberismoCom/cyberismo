@@ -122,7 +122,7 @@ export class CalculationEngine {
     programs: string[],
     query?: QueryName,
   ) {
-    let logicProgram = query ? this.getQuery(query) : '';
+    let logicProgram = query ? this.queryContent(query) : '';
     logicProgram += await getProgram('', programs);
     await writeFile(destination, logicProgram);
   }
@@ -520,7 +520,7 @@ export class CalculationEngine {
     return this.parseClingoResult(clingoOutput);
   }
 
-  private getQuery(queryName: QueryName, options?: unknown) {
+  private queryContent(queryName: QueryName, options?: unknown) {
     const content = lpFiles.queries[queryName];
     const handlebars = Handlebars.create();
     const compiled = handlebars.compile(content);
@@ -538,7 +538,7 @@ export class CalculationEngine {
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    const content = this.getQuery(queryName, options);
+    const content = this.queryContent(queryName, options);
 
     this.logger.trace({ queryName }, 'Running query');
     const clingoOutput = await this.run(content, context);
