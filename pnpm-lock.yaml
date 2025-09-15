@@ -236,8 +236,8 @@ importers:
         specifier: workspace:*
         version: link:../data-handler
       '@hono/node-server':
-        specifier: ^1.19.1
-        version: 1.19.1(hono@4.9.7)
+        specifier: ^1.19.2
+        version: 1.19.2(hono@4.9.7)
       '@hono/zod-validator':
         specifier: ^0.7.2
         version: 0.7.2(hono@4.9.7)(zod@4.1.5)
@@ -840,8 +840,8 @@ packages:
   '@hapi/topo@5.1.0':
     resolution: {integrity: sha512-foQZKJig7Ob0BMAYBfcJk8d77QtOe7Wo4ox7ff1lQYoNNAb6jwcY1ncdoy2e9wQZzvNy7ODZCYJkK8kzmcAnAg==}
 
-  '@hono/node-server@1.19.1':
-    resolution: {integrity: sha512-h44e5s+ByUriaRIbeS/C74O8v90m0A95luyYQGMF7KEn96KkYMXO7bZAwombzTpjQTU4e0TkU8U1WBIXlwuwtA==}
+  '@hono/node-server@1.19.2':
+    resolution: {integrity: sha512-lndWsd9De/btN998Aiv6gkeMVV2h9Cc0AR0qwFTmxx/YFh/PbrjgoxTpHaNaRn6F4GAkPiVJwI0W0gQF4Wn8EA==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -1034,6 +1034,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.30':
     resolution: {integrity: sha512-GQ7Nw5G2lTu/BtHTKfXhKHok2WGetd4XYcVKGx00SjAk8GMwgJM3zr6zORiPGuOE+/vkc90KtTosSSvaCjKb2Q==}
+
+  '@jridgewell/trace-mapping@0.3.31':
+    resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
   '@kwsites/file-exists@1.1.1':
     resolution: {integrity: sha512-m9/5YGR18lIwxSFDwfE3oA7bWuq9kdau6ugN4H2rJeyhFQZcG9AgSHkQtSD15a8WvTgfz9aikZMrKPHvbpqFiw==}
@@ -5391,7 +5394,7 @@ snapshots:
     dependencies:
       '@hapi/hoek': 9.3.0
 
-  '@hono/node-server@1.19.1(hono@4.9.7)':
+  '@hono/node-server@1.19.2(hono@4.9.7)':
     dependencies:
       hono: 4.9.7
 
@@ -5564,7 +5567,7 @@ snapshots:
   '@jridgewell/source-map@0.3.11':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
-      '@jridgewell/trace-mapping': 0.3.30
+      '@jridgewell/trace-mapping': 0.3.31
     optional: true
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
@@ -5580,6 +5583,12 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@jridgewell/trace-mapping@0.3.31':
+    dependencies:
+      '@jridgewell/resolve-uri': 3.1.2
+      '@jridgewell/sourcemap-codec': 1.5.5
+    optional: true
 
   '@kwsites/file-exists@1.1.1':
     dependencies:
