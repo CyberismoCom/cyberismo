@@ -183,10 +183,10 @@ namespace
             }
 
             // If no direct match, check categories
-            for (const auto& kv : g_programs)
+            for (const auto& entry : g_programs)
             {
-                const std::string& key = kv.first;
-                const Program& prog = kv.second;
+                const std::string& key = entry.first;
+                const Program& prog = entry.second;
                 if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
                     addedPrograms.insert(key).second)
                 {
