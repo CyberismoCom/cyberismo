@@ -132,18 +132,21 @@ childResult(Key, (Key, Field, Value), Field) :-
 resultField((Key, Field, Value), "value", Value, "shortText") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
+    not resultField(Key, Field, Value, "list"),
     dataType(Key, Field, "list").
 
 resultField((Key, Field, Value), "index", Index, "integer") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
+    not resultField(Key, Field, Value, "list"),
     field((Field, Value), "index", Index).
 
 resultField((Key, Field, Value), "displayName", EnumDisplayValue, "shortText") :-
     childResult(Key, (Key, Field, Value), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "list"),
+    not resultField(Key, Field, Value, "list"),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 % enum
@@ -159,11 +162,12 @@ resultField((Key, Field), "value", Value, "shortText") :-
 
 resultField((Key, Field), "index", Index, "integer") :-
     childObject(Key, (Key, Field), Field),
-    resultField(Key, Field, _, _),
+    resultField(Key, Field, Value, _),
     field((Field, Value), "index", Index).
 
 resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
     childObject(Key, (Key, Field), Field),
+    resultField(Key, Field, Value, _),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 
@@ -175,18 +179,21 @@ childObject(Key, (Key, Field), Field) :-
 resultField((Key, Field), "value", Value, "shortText") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
+    not resultField(Key, Field, Value, "enum"),
     dataType(Key, Field, "enum").
 
 resultField((Key, Field), "index", Index, "integer") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
+    not resultField(Key, Field, Value, "enum"),
     field((Field, Value), "index", Index).
 
 resultField((Key, Field), "displayValue", EnumDisplayValue, "shortText") :-
     childObject(Key, (Key, Field), Field),
     field(Key, Field, Value),
     dataType(Key, Field, "enum"),
+    not resultField(Key, Field, Value, "enum"),
     field((Field, Value), "enumDisplayValue", EnumDisplayValue).
 
 % Allow specifying up to 3 fields at the same time
