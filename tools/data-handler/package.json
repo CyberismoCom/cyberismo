@@ -46,7 +46,7 @@
     "dompurify": "^3.2.6",
     "email-validator": "^2.0.4",
     "handlebars": "^4.7.8",
-    "jsdom": "^26.1.0",
+    "jsdom": "^27.0.0",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
     "pino": "^9.9.4",
