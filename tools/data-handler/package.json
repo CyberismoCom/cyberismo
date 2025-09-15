@@ -1,7 +1,7 @@
 {
   "name": "@cyberismo/data-handler",
   "description": "Command handler for cards and web service",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "author": "sami.merila@cyberismo.com",
   "license": "AGPL-3.0",
   "homepage": "https://github.com/CyberismoCom/cyberismo",
