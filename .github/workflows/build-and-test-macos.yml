@@ -4,11 +4,11 @@
 name: Build & test (macOS)
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches: [ "main", "temp-main" ]
+  schedule:
+    # Run every Monday at 08:00 UTC
+    - cron: '0 8 * * 1'
+  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
