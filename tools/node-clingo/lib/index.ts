@@ -20,7 +20,7 @@ interface ClingoBinding {
   removeProgramsByCategory(category: string): number;
   removeAllPrograms(): void;
   solve(program: string, categories: string[]): ClingoResult;
-  getProgram(program: string, categories: string[]): string;
+  buildProgram(program: string, categories: string[]): string;
 }
 
 let binding: ClingoBinding;
@@ -140,8 +140,8 @@ function removeAllPrograms() {
  * @param categories Optional array of program keys or categories to include
  * @returns The complete assembled program as a string
  */
-function getProgram(program: string, categories?: string[]): string {
-  return binding.getProgram(program, categories ?? []);
+function buildProgram(program: string, categories?: string[]): string {
+  return binding.buildProgram(program, categories ?? []);
 }
 
 export {
@@ -150,7 +150,7 @@ export {
   removeProgram,
   removeProgramsByCategory,
   removeAllPrograms,
-  getProgram,
+  buildProgram,
   ClingoResult,
 };
 export default {
@@ -159,5 +159,5 @@ export default {
   removeProgram,
   removeProgramsByCategory,
   removeAllPrograms,
-  getProgram,
+  buildProgram,
 };

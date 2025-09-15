@@ -463,7 +463,7 @@ Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
 }
 
 /**
- * N-API function exposed to JavaScript as `getProgram`.
+ * N-API function exposed to JavaScript as `buildProgram`.
  * Assembles a complete logic program by combining the main program with stored base programs.
  * This function provides the same program assembly logic as `solve` but returns the complete
  * program text instead of executing it.
@@ -471,7 +471,7 @@ Napi::Value RemoveAllPrograms(const Napi::CallbackInfo& info)
  * @returns A Napi::String containing the complete assembled logic program.
  * @throws Napi::TypeError if arguments are invalid.
  */
-Napi::Value GetProgram(const Napi::CallbackInfo& info)
+Napi::Value BuildProgram(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
 
@@ -646,7 +646,7 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports.Set(Napi::String::New(env, "solve"), Napi::Function::New(env, Solve));
 
-    exports.Set(Napi::String::New(env, "getProgram"), Napi::Function::New(env, GetProgram));
+    exports.Set(Napi::String::New(env, "buildProgram"), Napi::Function::New(env, BuildProgram));
 
     exports.Set(Napi::String::New(env, "setProgram"), Napi::Function::New(env, SetProgram));
 

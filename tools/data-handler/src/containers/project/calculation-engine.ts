@@ -57,7 +57,7 @@ import {
   solve,
   setProgram,
   removeProgram,
-  getProgram,
+  buildProgram,
 } from '@cyberismo/node-clingo';
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
@@ -123,7 +123,7 @@ export class CalculationEngine {
     query?: QueryName,
   ) {
     let logicProgram = query ? this.queryContent(query) : '';
-    logicProgram += await getProgram('', programs);
+    logicProgram += await buildProgram('', programs);
     await writeFile(destination, logicProgram);
   }
 
