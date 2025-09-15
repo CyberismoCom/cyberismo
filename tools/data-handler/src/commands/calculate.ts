@@ -20,7 +20,7 @@ export class Calculate {
   constructor(private project: Project) {}
 
   /**
-   * Exports logic program to a given file with given programs and query
+   * Exports logic program to a given file
    * @param destination Destination file path
    * @param programs Programs or categories to export
    * @param query Query to export, if not provided, all programs will be exported
