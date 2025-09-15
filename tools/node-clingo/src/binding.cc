@@ -186,11 +186,11 @@ namespace
             for (const auto& entry : g_programs)
             {
                 const std::string& key = entry.first;
-                const Program& prog = entry.second;
-                if (std::find(prog.categories.begin(), prog.categories.end(), ref) != prog.categories.end() &&
+                const Program& program = entry.second;
+                if (std::find(program.categories.begin(), program.categories.end(), ref) != program.categories.end() &&
                     addedPrograms.insert(key).second)
                 {
-                    handler(key, prog, ref);
+                    handler(key, program, ref);
                 }
             }
         }
@@ -366,8 +366,8 @@ Napi::Value SetProgram(const Napi::CallbackInfo& info)
     std::string content = info[1].As<Napi::String>().Utf8Value();
 
     // Create program entry
-    Program prog;
-    prog.content = content;
+    Program program;
+    program.content = content;
 
     // Add categories if provided
     if (info.Length() >= 3 && info[2].IsArray())
@@ -378,13 +378,13 @@ Napi::Value SetProgram(const Napi::CallbackInfo& info)
             Napi::Value val = categories[i];
             if (val.IsString())
             {
-                prog.categories.push_back(val.As<Napi::String>().Utf8Value());
+                program.categories.push_back(val.As<Napi::String>().Utf8Value());
             }
         }
     }
 
     // Store the program
-    g_programs[key] = std::move(prog);
+    g_programs[key] = std::move(program);
     return env.Undefined();
 }
 
@@ -433,8 +433,8 @@ Napi::Value RemoveProgramsByCategory(const Napi::CallbackInfo& info)
     auto it = g_programs.begin();
     while (it != g_programs.end())
     {
-        const auto& prog = it->second;
-        if (std::find(prog.categories.begin(), prog.categories.end(), category) != prog.categories.end())
+        const auto& program = it->second;
+        if (std::find(program.categories.begin(), program.categories.end(), category) != program.categories.end())
         {
             it = g_programs.erase(it);
             removedCount++;
@@ -492,7 +492,7 @@ Napi::Value GetProgram(const Napi::CallbackInfo& info)
     {
         std::set<std::string> refs = parse_refs_or_throw(info);
 
-        expand_refs_to_programs(refs, [&](const std::string& key, const Program& prog, std::string category) {
+        expand_refs_to_programs(refs, [&](const std::string& key, const Program& program, std::string category) {
             if (!category.empty())
             {
                 completeProgram << "% Program: " << key << " (category: " << category << ")\n";
@@ -501,7 +501,7 @@ Napi::Value GetProgram(const Napi::CallbackInfo& info)
             {
                 completeProgram << "% Program: " << key << "\n";
             }
-            completeProgram << prog.content << "\n\n";
+            completeProgram << program.content << "\n\n";
         });
     }
 
@@ -561,9 +561,9 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     {
         refs = parse_refs_or_throw(info);
 
-        expand_refs_to_programs(refs, [&](const std::string& key, const Program& prog, std::string category) {
+        expand_refs_to_programs(refs, [&](const std::string& key, const Program& program, std::string category) {
             (void)category; // unused
-            if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, prog.content.c_str()))
+            if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, program.content.c_str()))
             {
                 handle_clingo_error(env, key);
             }
