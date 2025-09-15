@@ -5,6 +5,7 @@ import {
   removeAllPrograms,
   removeProgramsByCategory,
   removeProgram,
+  buildProgram,
 } from '../lib/index.js';
 
 describe('Clingo solver', () => {
@@ -578,6 +579,141 @@ describe('Clingo solver', () => {
       removeAllPrograms();
       removeAllPrograms();
       removeAllPrograms();
+    });
+  });
+
+  describe('buildProgram function', () => {
+    it('should return just the main program when no base programs are specified', () => {
+      const mainProgram = 'a. b. c(1).';
+      const result = buildProgram(mainProgram);
+
+      expect(result).toContain('% Main program');
+      expect(result).toContain(mainProgram);
+      expect(result).not.toContain('% Program:');
+    });
+
+    it('should combine main program with a single base program', () => {
+      setProgram('base', 'base_fact(value).');
+
+      const mainProgram = 'main_fact.';
+      const result = buildProgram(mainProgram, ['base']);
+
+      expect(result).toContain('% Program: base');
+      expect(result).toContain('base_fact(value).');
+      expect(result).toContain('% Main program');
+      expect(result).toContain('main_fact.');
+
+      // Base program should come before main program
+      const baseIndex = result.indexOf('base_fact(value)');
+      const mainIndex = result.indexOf('main_fact.');
+      expect(baseIndex).toBeLessThan(mainIndex);
+    });
+
+    it('should combine main program with multiple base programs', () => {
+      setProgram('colors', 'color(red). color(blue).');
+      setProgram('shapes', 'shape(circle). shape(square).');
+      setProgram('sizes', 'size(small). size(large).');
+
+      const mainProgram = 'valid :- color(X), shape(Y), size(Z).';
+      const result = buildProgram(mainProgram, ['colors', 'shapes', 'sizes']);
+
+      expect(result).toContain('% Program: colors');
+      expect(result).toContain('color(red). color(blue).');
+      expect(result).toContain('% Program: shapes');
+      expect(result).toContain('shape(circle). shape(square).');
+      expect(result).toContain('% Program: sizes');
+      expect(result).toContain('size(small). size(large).');
+      expect(result).toContain('% Main program');
+      expect(result).toContain(mainProgram);
+    });
+
+    it('should work with category-based program inclusion', () => {
+      setProgram('query_rules', 'type(query).', ['query']);
+      setProgram('graph_rules', 'type(graph).', ['query']);
+      setProgram('base_rules', 'base(fact).', ['base']);
+
+      const mainProgram = 'valid :- type(X), base(Y).';
+      const result = buildProgram(mainProgram, ['query']);
+
+      expect(result).toContain('% Program: query_rules (category: query)');
+      expect(result).toContain('type(query).');
+      expect(result).toContain('% Program: graph_rules (category: query)');
+      expect(result).toContain('type(graph).');
+      expect(result).toContain('% Main program');
+      expect(result).toContain(mainProgram);
+      expect(result).not.toContain('base(fact).');
+    });
+
+    it('should prevent duplicate programs when using mixed refs and categories', () => {
+      setProgram('common', 'common(value).', ['shared']);
+      setProgram('specific', 'specific(value).', ['shared']);
+
+      const mainProgram = 'test.';
+      const result = buildProgram(mainProgram, ['common', 'shared']);
+
+      // 'common' should appear only once, even though it matches both direct ref and category
+      const commonMatches = (result.match(/common\(value\)/g) || []).length;
+      expect(commonMatches).toBe(1);
+
+      // 'specific' should appear once from category match
+      expect(result).toContain('specific(value)');
+    });
+
+    it('should handle non-existent program references gracefully', () => {
+      setProgram('exists', 'exists(fact).');
+
+      const mainProgram = 'main.';
+      const result = buildProgram(mainProgram, [
+        'exists',
+        'non_existent',
+        'also_missing',
+      ]);
+
+      expect(result).toContain('% Program: exists');
+      expect(result).toContain('exists(fact).');
+      expect(result).toContain('% Main program');
+      expect(result).toContain('main.');
+      // Non-existent programs should not appear in output
+      expect(result).not.toContain('non_existent');
+      expect(result).not.toContain('also_missing');
+    });
+
+    it('should handle empty categories array', () => {
+      setProgram('unused', 'unused(fact).');
+
+      const mainProgram = 'only_main.';
+      const result = buildProgram(mainProgram, []);
+
+      expect(result).toContain('% Main program');
+      expect(result).toContain('only_main.');
+      expect(result).not.toContain('unused(fact)');
+    });
+
+    it('should handle programs with categories that have multiple programs', () => {
+      setProgram('rule1', 'type(a).', ['group']);
+      setProgram('rule2', 'type(b).', ['group']);
+      setProgram('rule3', 'type(c).', ['group']);
+      setProgram('other', 'other(fact).', ['different']);
+
+      const mainProgram = 'collect :- type(X).';
+      const result = buildProgram(mainProgram, ['group']);
+
+      expect(result).toContain('% Program: rule1 (category: group)');
+      expect(result).toContain('type(a).');
+      expect(result).toContain('% Program: rule2 (category: group)');
+      expect(result).toContain('type(b).');
+      expect(result).toContain('% Program: rule3 (category: group)');
+      expect(result).toContain('type(c).');
+      expect(result).not.toContain('other(fact)');
+    });
+
+    it('should throw TypeError for invalid arguments', () => {
+      expect(() => buildProgram('test', 'not_an_array' as any)).toThrow(
+        'Second argument must be an array of strings (refs)',
+      );
+      expect(() =>
+        buildProgram('test', ['valid', 123, 'also_valid'] as any),
+      ).toThrow('All refs must be strings');
     });
   });
 });

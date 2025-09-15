@@ -317,13 +317,20 @@ const calculate = program
 
 calculate
   .command('generate')
-  .description('DEPRECATED: Generate a logic program')
-  .argument('[cardKey]', 'If given, calculates on the subtree of the card')
+  .description('Generate a logic program')
+  .argument(
+    '<destination>',
+    'Path to an output file. Command writes the logic program to this file.',
+  )
+  .argument('[query]', 'Query to run')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async () => {
-    console.warn(
-      'This command is deprecated. Use "cyberismo calc run" directly instead.',
+  .action(async (destination: string, query: string, options: CardsOptions) => {
+    const result = await commandHandler.command(
+      Cmd.calc,
+      ['generate', destination, query],
+      Object.assign({}, options, program.opts()),
     );
+    handleResponse(result);
   });
 
 calculate
