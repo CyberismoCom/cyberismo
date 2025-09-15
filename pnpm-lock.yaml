@@ -273,8 +273,8 @@ importers:
         specifier: ^3.12.0
         version: 3.12.0
       commander:
-        specifier: ^14.0.0
-        version: 14.0.0
+        specifier: ^14.0.1
+        version: 14.0.1
       dotenv:
         specifier: ^17.2.2
         version: 17.2.2
@@ -2209,8 +2209,8 @@ packages:
     resolution: {integrity: sha512-sH5ZSPr+7UStsloltmDh7Ce5fb8XPlHyoPzTpyyMuYCtervL65+ubVZ6Q61cFtFl62UyJlc8/JwERRbAFPUqgw==}
     engines: {node: '>=8.0.0'}
 
-  commander@14.0.0:
-    resolution: {integrity: sha512-2uM9rYjPvyq39NwLRqaiLtWHyDC1FvryJDa2ATTVims5YAS4PupsEQsDvP14FqhFr0P49CYDugi59xaxJlTXRA==}
+  commander@14.0.1:
+    resolution: {integrity: sha512-2JkV3gUZUVrbNA+1sjBOYLsMZ5cEEl8GTFP2a4AVz5hvasAMCQ1D2l2le/cX+pV4N6ZU17zjUahLpIXRrnWL8A==}
     engines: {node: '>=20'}
 
   commander@2.20.3:
@@ -6809,7 +6809,7 @@ snapshots:
       table-layout: 1.0.2
       typical: 5.2.0
 
-  commander@14.0.0: {}
+  commander@14.0.1: {}
 
   commander@2.20.3: {}
 
