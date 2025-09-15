@@ -1,13 +1,12 @@
 import { expect } from 'chai';
 
 import { mkdirSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { fileURLToPath } from 'node:url';
 
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
 const testDirForExport = join(baseDir, 'tmp-command-export-site-tests');
 

@@ -14,7 +14,6 @@
 // node
 import { type Dirent } from 'node:fs';
 import { basename, dirname, extname, join, parse, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { readdir } from 'node:fs/promises';
 
 // dependencies
@@ -52,7 +51,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
-const baseDir = dirname(fileURLToPath(import.meta.url));
+const baseDir = import.meta.dirname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
 export interface LengthProvider {
