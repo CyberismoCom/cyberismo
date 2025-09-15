@@ -318,7 +318,10 @@ const calculate = program
 calculate
   .command('generate')
   .description('Generate a logic program')
-  .argument('<destination>', 'Path to the logic program')
+  .argument(
+    '<destination>',
+    'Path to an output file. Command writes the logic program to this file.',
+  )
   .argument('[query]', 'Query to run')
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (destination: string, query: string, options: CardsOptions) => {
