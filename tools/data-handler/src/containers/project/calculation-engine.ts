@@ -122,10 +122,7 @@ export class CalculationEngine {
     programs: string[],
     query?: QueryName,
   ) {
-    let logicProgram = '';
-    if (query) {
-      logicProgram += this.getQuery(query);
-    }
+    let logicProgram = query ? this.getQuery(query) : '';
     logicProgram += await getProgram('', programs);
     await writeFile(destination, logicProgram);
   }
