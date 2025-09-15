@@ -290,17 +290,17 @@ namespace
         for (size_t i = 0; i < atoms_size && success; ++i)
         {
             // Get the string representation
-            std::string str = node_clingo::get_symbol_string(atoms[i]);
+            std::string symbolString = node_clingo::get_symbol_string(atoms[i]);
 
             // If the string is empty, we skip it
-            if (str.empty())
+            if (symbolString.empty())
             {
                 continue;
             }
 
             if (i > 0)
                 answerStream << std::endl;
-            answerStream << str;
+            answerStream << symbolString;
         }
 
         try
