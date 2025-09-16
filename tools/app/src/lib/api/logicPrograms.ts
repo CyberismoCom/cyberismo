@@ -14,7 +14,7 @@
 import { useSWRHook } from './common';
 import { apiPaths } from '../swr';
 
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 
 export const useLogicPrograms = (
   resourceName: string,

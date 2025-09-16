@@ -11,8 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { NodeApi } from 'react-arborist';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { NodeApi } from 'react-arborist';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { CardTreeNode } from './tree-nodes';
 

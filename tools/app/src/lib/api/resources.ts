@@ -11,11 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SWRConfiguration, mutate } from 'swr';
+import type { SWRConfiguration } from 'swr';
+import { mutate } from 'swr';
 import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
-import { ResourceFileContentResponse, ResourceNode } from './types';
+import type { ResourceFileContentResponse, ResourceNode } from './types';
 
 // Helper to check if a node has data (is a resource, not a group)
 export const hasResourceData = (

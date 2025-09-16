@@ -12,7 +12,7 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { ResourceNode } from '@/lib/api/types';
+import type { ResourceNode } from '@/lib/api/types';
 import { useResourceFileContent } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';

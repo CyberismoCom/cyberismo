@@ -1,19 +1,12 @@
-// @ts-check
-
-import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import eslintConfigPrettier from 'eslint-config-prettier';
+import { baseConfig } from '../../eslint.config.js';
 
 export default [
+  ...baseConfig,
   {
-    ignores: ['**/dist/*', '**/init.js'],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  eslintConfigPrettier,
-  {
-    rules: {
-      '@typescript-eslint/consistent-type-imports': 'error',
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
 ];

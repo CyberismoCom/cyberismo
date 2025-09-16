@@ -12,10 +12,10 @@
 */
 
 import { Box, Typography } from '@mui/joy';
-import { NodeRendererProps, NodeApi } from 'react-arborist';
+import type { NodeRendererProps, NodeApi } from 'react-arborist';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { hasResourceData } from '@/lib/api/resources';
-import { ResourceNode } from '@/lib/api/types';
+import type { ResourceNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
 
 interface ConfigTreeNodeProps extends NodeRendererProps<ResourceNode> {

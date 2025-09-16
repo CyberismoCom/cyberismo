@@ -13,8 +13,8 @@
 import { useSWRHook } from './common';
 import { apiPaths } from '../swr';
 
-import { SWRConfiguration } from 'swr';
-import { CardUpdate } from './types';
+import type { SWRConfiguration } from 'swr';
+import type { CardUpdate } from './types';
 import { updateCard } from './card';
 
 export const useProject = (options?: SWRConfiguration) => {

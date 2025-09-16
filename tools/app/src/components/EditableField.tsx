@@ -11,11 +11,11 @@
 */
 
 import { Box, Chip, Stack, Tooltip, Typography } from '@mui/joy';
-import { DataType, MetadataValue } from '../lib/definitions';
+import type { DataType, MetadataValue } from '../lib/definitions';
 import FieldEditor from './FieldEditor';
 import { metadataValueToString } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
-import { EnumDefinition } from '@cyberismo/data-handler/types/queries';
+import type { EnumDefinition } from '@cyberismo/data-handler/types/queries';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 
 export type EditableFieldProps = {
