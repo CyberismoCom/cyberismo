@@ -327,14 +327,20 @@ calculate
   )
   .argument('[query]', 'Query to run')
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (destination: string, query: string, options: CardsOptions) => {
-    const result = await commandHandler.command(
-      Cmd.calc,
-      ['generate', destination, query],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+  .action(
+    async (
+      destination: string,
+      query: string,
+      options: CommandOptions<'calc'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.calc,
+        ['generate', destination, query],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
 
 calculate
   .command('run')
