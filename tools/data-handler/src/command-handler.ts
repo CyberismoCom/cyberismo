@@ -31,6 +31,16 @@ import type {
   DataType,
   ResourceContent,
 } from './interfaces/resource-interfaces.js';
+import type {
+  AddCommandOptions,
+  AllCommandOptions,
+  CalcCommandOptions,
+  ExportCommandOptions,
+  ReportCommandOptions,
+  ShowCommandOptions,
+  StartCommandOptions,
+  UpdateCommandOptions,
+} from './interfaces/command-options.js';
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
@@ -48,49 +58,30 @@ import { type Level } from 'pino';
 import { type Context } from './interfaces/project-interfaces.js';
 import { type QueryName } from './types/queries.js';
 
-// Generic options interface
-export interface CardsOptions {
-  context?: Context;
-  date?: string;
-  details?: boolean;
-  forceStart?: boolean;
-  logLevel?: Level;
-  mappingFile?: string;
-  name?: string;
-  projectPath?: string;
-  recursive?: boolean;
-  repeat?: number;
-  revremark?: string;
-  showAll?: boolean;
-  showUse?: boolean;
-  skipModuleImport?: boolean;
-  title?: string;
-  version?: string;
-  watchResourceChanges?: boolean;
-}
-
 // Commands that this class supports.
-// todo: Could be inside the `CommandHandler` ?
-export enum Cmd {
-  add = 'add',
-  calc = 'calc',
-  create = 'create',
-  edit = 'edit',
-  export = 'export',
-  fetch = 'fetch',
-  import = 'import',
-  move = 'move',
-  rank = 'rank',
-  remove = 'remove',
-  rename = 'rename',
-  report = 'report',
-  show = 'show',
-  start = 'start',
-  transition = 'transition',
-  update = 'update',
-  updateModules = 'update-modules',
-  validate = 'validate',
-}
+export const Cmd = {
+  add: 'add',
+  calc: 'calc',
+  create: 'create',
+  edit: 'edit',
+  export: 'export',
+  fetch: 'fetch',
+  import: 'import',
+  move: 'move',
+  rank: 'rank',
+  remove: 'remove',
+  rename: 'rename',
+  report: 'report',
+  show: 'show',
+  start: 'start',
+  transition: 'transition',
+  update: 'update',
+  updateModules: 'update-modules',
+  validate: 'validate',
+};
+
+export type CmdKey = keyof typeof Cmd;
+export type CmdValue = (typeof Cmd)[CmdKey];
 
 // To what format the content can be exported to.
 export enum ExportFormats {
@@ -128,9 +119,9 @@ export class Commands {
    * @returns request status; 200 if success; 400 in handled error; 500 in unknown error
    */
   public async command(
-    command: Cmd,
+    command: CmdValue,
     args: string[],
-    options: CardsOptions,
+    options: AllCommandOptions,
     credentials?: Credentials,
   ): Promise<requestStatus> {
     // Set project path and validate it.
@@ -163,7 +154,7 @@ export class Commands {
   }
 
   // Handles initializing the project so that it can be used in the class.
-  private async doSetProject(options: CardsOptions) {
+  private async doSetProject(options: AllCommandOptions) {
     const path = options.projectPath || '';
     this.projectPath = resolveTilde(await this.setProjectPath(path));
     if (!Validate.validateFolder(this.projectPath)) {
@@ -182,7 +173,8 @@ export class Commands {
 
     this.commands = await CommandManager.getInstance(this.projectPath, {
       logLevel: options.logLevel,
-      watchResourceChanges: options.watchResourceChanges,
+      watchResourceChanges: (options as StartCommandOptions)
+        .watchResourceChanges,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
@@ -192,16 +184,21 @@ export class Commands {
 
   // Handles actual command. Sets returns values correctly.
   private async doHandleCommand(
-    command: Cmd,
+    command: CmdValue,
     args: string[],
-    options: CardsOptions,
+    options: AllCommandOptions,
     credentials?: Credentials,
   ) {
     try {
       if (command === Cmd.add) {
         const [type, target, cardType, cardKey] = args;
         if (type === 'card') {
-          return await this.addCard(target, cardType, cardKey, options.repeat);
+          return await this.addCard(
+            target,
+            cardType,
+            cardKey,
+            (options as AddCommandOptions).repeat,
+          );
         }
         if (type === 'hub') {
           return await this.addHub(target);
@@ -214,7 +211,10 @@ export class Commands {
             return { statusCode: 400, message: 'File path is missing' };
           }
           await this.generateLogicProgram();
-          return this.runLogicProgram(cardKey, options.context || 'localApp');
+          return this.runLogicProgram(
+            cardKey,
+            (options as CalcCommandOptions).context || 'localApp',
+          );
         }
         if (command === 'generate') {
           const [destination, query] = rest;
@@ -356,11 +356,11 @@ export class Commands {
         const [parameters, outputPath] = args;
         return this.runReport(
           parameters,
-          options.context || 'localApp',
+          (options as ReportCommandOptions).context || 'localApp',
           outputPath,
         );
       } else if (command === Cmd.start) {
-        return this.startApp(options.forceStart);
+        return this.startApp((options as StartCommandOptions).forceStart);
       } else if (command === Cmd.transition) {
         const [cardKey, state] = args;
         await this.commands?.transitionCmd.cardTransition(cardKey, {
@@ -378,13 +378,13 @@ export class Commands {
         // Handle mapping file for workflow changes
         let mappingTable: { stateMapping: Record<string, string> } | undefined;
         if (
-          options.mappingFile &&
+          (options as UpdateCommandOptions).mappingFile &&
           operation === 'change' &&
           key === 'workflow'
         ) {
           try {
             const mappingData = await readJsonFile(
-              resolveTilde(options.mappingFile),
+              resolveTilde((options as UpdateCommandOptions).mappingFile!),
             );
             if (
               mappingData &&
@@ -537,7 +537,7 @@ export class Commands {
     destination: string = 'output',
     format: ExportFormats,
     parentCardKey?: string,
-    pdfOptions?: CardsOptions,
+    pdfOptions?: ExportCommandOptions,
   ): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500 };
@@ -701,7 +701,7 @@ export class Commands {
   private async show(
     type: ResourceTypes,
     typeDetail: string,
-    options: CardsOptions,
+    options: ShowCommandOptions,
   ): Promise<requestStatus> {
     const detail = typeDetail || '';
     let promise: Promise<

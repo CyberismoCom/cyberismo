@@ -5,13 +5,14 @@ import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-// cyberismo
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
-import { type ModuleContent } from '../src/interfaces/project-interfaces.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
+
+import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
+import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = import.meta.dirname;
@@ -21,8 +22,10 @@ const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
 const commandHandler: Commands = new Commands();
-const optionsDecision: CardsOptions = { projectPath: decisionRecordsPath };
-const optionsMini: CardsOptions = { projectPath: minimalPath };
+const optionsDecision: ShowCommandOptions = {
+  projectPath: decisionRecordsPath,
+};
+const optionsMini: ShowCommandOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
   before(async () => {

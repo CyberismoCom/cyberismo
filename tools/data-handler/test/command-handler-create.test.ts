@@ -6,18 +6,19 @@ import { access } from 'node:fs/promises';
 import { constants as fsConstants, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-// cyberismo
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
-import type {
-  Card,
-  CardListContainer,
-} from '../src/interfaces/project-interfaces.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
+
+import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
+import type {
+  Card,
+  CardListContainer,
+} from '../src/interfaces/project-interfaces.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -28,13 +29,13 @@ const minimalPath = join(testDir, 'valid/minimal');
 
 const commandHandler: Commands = new Commands();
 
-const options: CardsOptions = { projectPath: decisionRecordsPath };
-const optionsMini: CardsOptions = { projectPath: minimalPath };
+const options: CreateCommandOptions = { projectPath: decisionRecordsPath };
+const optionsMini: CreateCommandOptions = { projectPath: minimalPath };
 
 // Helper to get current resource count.
 async function countOfResources(
   parameters: string[],
-  opts: CardsOptions = options,
+  opts: CreateCommandOptions = options,
 ): Promise<number> {
   const resources = await commandHandler.command(
     Cmd.show,
@@ -619,7 +620,7 @@ describe('create command', () => {
     const prefix = 'proj';
     const name = 'test-project';
     const projectDir = join(testDir, name);
-    const testOptions: CardsOptions = { projectPath: projectDir };
+    const testOptions: CreateCommandOptions = { projectPath: projectDir };
     const result = await commandHandler.command(
       Cmd.create,
       ['project', name, prefix],
@@ -632,7 +633,7 @@ describe('create command', () => {
     const path = '~/project-name-unique';
     const prefix = 'proj';
     const name = 'test-project';
-    const testOptions: CardsOptions = { projectPath: path };
+    const testOptions: CreateCommandOptions = { projectPath: path };
 
     const result = await commandHandler.command(
       Cmd.create,
