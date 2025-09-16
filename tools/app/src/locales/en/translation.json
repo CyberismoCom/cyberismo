@@ -10,6 +10,7 @@
     "acceptedFormats": "Accepted file types: ..."
   },
   "all": "All",
+  "alwaysVisibleFields": "Always visible fields",
   "appName": "Cards",
   "attachment": "Attachment",
   "attachments": "Attachments",
@@ -68,15 +69,22 @@
     "content": "Are you sure you want to delete the resource <bold>\"{{resourceName}}\"</bold>? This cannot be undone.",
     "success": "Resource \"{{resourceName}}\" deleted successfully"
   },
+  "description": "Description",
+  "destinationCardTypes": "Destination card types",
+  "displayName": "Display name",
   "edit": "Edit",
   "editLinkModal": {
     "title": "Edit link"
   },
   "emptyProject": "Project is empty",
+  "enableLinkDescription": "Enable link description",
   "failedPolicyChecks": "Failed policy checks",
   "failedToLoad": "Failed to load",
   "false": "False",
+  "fieldSaved": "Field saved",
   "goToField": "Go to field",
+  "identifier": "Identifier",
+  "inboundDisplayName": "Inbound display name",
   "insertToContent": "Insert to content",
   "invalid": "Invalid",
   "invalidResource": "Invalid resource",
@@ -153,7 +161,9 @@
   "none": "None",
   "notifications": "Notifications",
   "openInEditor": "Open in editor",
+  "optionallyVisibleFields": "Optionally visible fields",
   "or": "or",
+  "outboundDisplayName": "Outbound display name",
   "passedPolicyChecks": "Passed policy checks",
   "placeholder": {
     "integer": "Enter number (integer)",
@@ -199,6 +209,7 @@
   "selectResource": "Select resource",
   "showLess": "Show less",
   "showMore": "Show more",
+  "sourceCardTypes": "Source card types",
   "stateSelector": {
     "status": "Status: {{state}}"
   },
@@ -219,6 +230,7 @@
   "value": "Value",
   "viewLogicProgram": "View logic program",
   "viewedAgo": "Viewed {{time}} ago",
+  "workflow": "Workflow",
   "workflowState": "Workflow state",
   "yes": "Yes"
 }

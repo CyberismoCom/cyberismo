@@ -515,6 +515,10 @@ export class CardTypeResource extends FileResource {
       if (op.name === 'remove') {
         this.removeValueFromOtherArrays(op);
       }
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }

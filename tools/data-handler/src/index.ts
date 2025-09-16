@@ -21,6 +21,14 @@ import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
+export type {
+  Operation,
+  OperationFor,
+  AddOperation,
+  ChangeOperation,
+  RankOperation,
+  RemoveOperation,
+} from './resources/resource-object.js';
 import { evaluateMacros } from './macros/index.js';
 import {
   isResourceFolderType,

@@ -25,7 +25,7 @@ import {
   resourceNameToString,
 } from '@cyberismo/data-handler';
 import type { ResourceParams } from '../../common/validationSchemas.js';
-import type { ValidateResourceParams } from './schema.js';
+import type { ValidateResourceParams, UpdateOperationBody } from './schema.js';
 
 const resourceTypes: ResourceFolderType[] = [
   'calculations',
@@ -433,4 +433,21 @@ export async function validateResource(
   return {
     errors: errors.split('\n\n').filter((error) => error !== ''),
   };
+}
+
+/**
+ * Perform an updateOperation on a resource key.
+ * This delegates to data-handler Update.applyResourceOperation.
+ */
+export async function updateResourceWithOperation(
+  commands: CommandManager,
+  resource: ResourceParams,
+  body: UpdateOperationBody,
+) {
+  const { key, operation } = body;
+  await commands.updateCmd.applyResourceOperation(
+    resourceNameToString(resource),
+    key,
+    operation,
+  );
 }

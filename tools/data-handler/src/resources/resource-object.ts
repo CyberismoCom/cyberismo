@@ -67,6 +67,17 @@ export type Operation<T> =
   | RankOperation<T>
   | RemoveOperation<T>;
 
+// Utility mapping from operation name to its concrete operation type
+export type OperationMap<T> = {
+  add: AddOperation<T>;
+  change: ChangeOperation<T>;
+  rank: RankOperation<T>;
+  remove: RemoveOperation<T>;
+};
+
+// Given an operation name, get the corresponding operation type
+export type OperationFor<T, N extends UpdateOperations> = OperationMap<T>[N];
+
 /**
  * Abstract class for resources.
  */

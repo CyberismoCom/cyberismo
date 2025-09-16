@@ -11,25 +11,31 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCard } from '@/lib/api';
-import CardEditor from '../CardEditor';
-import { AnyNode } from '@/lib/api/types';
-import { useTranslation } from 'react-i18next';
+import { Checkbox, FormControl, FormLabel } from '@mui/joy';
+import type { BaseInputProps } from './types';
 
-export function ConfigCardEditor({ node }: { node: AnyNode }) {
-  const { isLoading, error } = useCard(node.id);
-  const { t } = useTranslation();
-  if (isLoading) {
-    return <div>{t('loading')}</div>;
-  }
-  if (error) {
-    return <div>{error.message}</div>;
-  }
+export interface BooleanInputProps extends BaseInputProps {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}
+
+export function BooleanInput({
+  label,
+  value,
+  onChange,
+  onBlur,
+}: BooleanInputProps) {
   return (
-    <CardEditor
-      cardKey={node.id}
-      afterSave={() => {}}
-      readOnly={node?.readOnly}
-    />
+    <FormControl orientation="horizontal" sx={{ alignItems: 'center' }}>
+      <Checkbox
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+        onBlur={onBlur}
+      />
+      <FormLabel sx={{ ml: 1 }}>{label}</FormLabel>
+    </FormControl>
   );
 }
+
+export default BooleanInput;
