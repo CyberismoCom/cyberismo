@@ -31,6 +31,7 @@ import type {
   GraphView,
   GraphViewMetadata,
 } from '../interfaces/resource-interfaces.js';
+import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
 
 import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { copyDir } from '../utils/file-utils.js';
@@ -126,11 +127,10 @@ export class GraphViewResource extends FolderResource {
    * @returns graph view metadata.
    */
   public async show(): Promise<GraphView> {
-    const showOnlyFileName = true;
     const baseData = (await super.show()) as GraphViewMetadata;
     return {
       ...baseData,
-      handleBarFile: await this.handleBarFile(showOnlyFileName),
+      content: (await super.contentData()) as GraphViewContent,
     };
   }
 
@@ -143,6 +143,11 @@ export class GraphViewResource extends FolderResource {
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';
     const existingName = this.content.name;
+    if (key === 'content' || super.isContentFilePath(key)) {
+      return key === 'content'
+        ? await super.handleContentUpdate(op)
+        : await super.handleContentFileUpdate(key, op);
+    }
 
     await super.update(key, op);
 
@@ -156,6 +161,8 @@ export class GraphViewResource extends FolderResource {
       content.description = super.handleScalar(op) as string;
     } else if (key === 'category') {
       content.category = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for GraphView`);
     }
 
     await super.postUpdate(content, key, op);

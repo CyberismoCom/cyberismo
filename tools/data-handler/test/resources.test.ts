@@ -33,6 +33,7 @@ import type {
   GraphModel,
   GraphView,
   LinkType,
+  Report,
   ReportMetadata,
   TemplateMetadata,
   Workflow,
@@ -358,6 +359,17 @@ describe('resources', function () {
   });
 
   describe('resource basic operations', () => {
+    // Helper to avoid OS specific linebreaks in comparisons
+    function removeLineBreaks(data: Report): Report {
+      const re = /[\r\n]+/gm;
+      data.content.contentTemplate = data.content.contentTemplate.replace(
+        re,
+        ' ',
+      );
+      data.content.queryTemplate = data.content.queryTemplate.replace(re, ' ');
+      return data;
+    }
+
     const baseDir = import.meta.dirname;
     const testDir = join(baseDir, 'tmp-resource-classes-tests');
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -924,7 +936,7 @@ describe('resources', function () {
       expect(data).to.deep.equal({
         name: 'decision/graphModels/newGM',
         displayName: '',
-        calculationFile: 'model.lp',
+        content: { model: "% add your calculations here for 'newGM'" },
       });
     });
     it('show graph view', async () => {
@@ -934,9 +946,34 @@ describe('resources', function () {
       );
       const data = await res.show();
       expect(data).to.deep.equal({
+        content: {
+          schema: {
+            $id: 'myGraphMacroSchema',
+            additionalProperties: false,
+            description: 'Parameters for the graph macro',
+            properties: {
+              model: {
+                description: 'The name of the graph model',
+                type: 'string',
+              },
+              view: {
+                description: 'The name of the graph view',
+                type: 'string',
+              },
+              cardKey: {
+                description:
+                  'Override default cardKey of the macro with another cardKey. Default cardKey is the card where the macro is defined in.',
+                type: 'string',
+              },
+            },
+            required: ['model', 'view'],
+            title: 'Graph view',
+            type: 'object',
+          },
+          viewTemplate: '',
+        },
         name: 'decision/graphViews/newGV',
         displayName: '',
-        handleBarFile: 'view.lp.hbs',
       });
     });
     it('show link type', async () => {
@@ -960,35 +997,36 @@ describe('resources', function () {
         project,
         resourceName('decision/reports/newREP'),
       );
-      const data = await res.show();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { contentTemplate, queryTemplate, ...others } = data;
-      expect(others).to.deep.equal({
-        description: undefined,
-        name: 'decision/reports/newREP',
-        displayName: '',
-        metadata: {
-          name: 'decision/reports/newREP',
-          displayName: '',
-          category: 'Uncategorised report',
-        },
-        schema: {
-          title: 'Report',
-          $id: 'reportMacroDefaultSchema',
-          description:
-            'A report object provides supplemental information about a report',
-          type: 'object',
-          properties: {
-            name: { description: 'The name of the report', type: 'string' },
-            cardKey: {
-              description:
-                'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-              type: 'string',
+      let data = await res.show();
+      data = removeLineBreaks(data);
+      expect(data).to.deep.equal({
+        content: {
+          contentTemplate: `{{#each results}} * {{this.title}} {{/each}} `,
+          schema: {
+            $id: 'reportMacroDefaultSchema',
+            additionalProperties: false,
+            description:
+              'A report object provides supplemental information about a report',
+            properties: {
+              cardKey: {
+                description:
+                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
+                type: 'string',
+              },
+              name: {
+                description: 'The name of the report',
+                type: 'string',
+              },
             },
+            required: ['name'],
+            title: 'Report',
+            type: 'object',
           },
-          additionalProperties: false,
-          required: ['name'],
+          queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
         },
+        name: 'decision/reports/newREP',
+        category: 'Uncategorised report',
+        displayName: '',
       });
     });
     // Tests that report data can be shown from a module; ensures that
@@ -1007,35 +1045,37 @@ describe('resources', function () {
         projectMini,
         resourceName('decision/reports/newREP'),
       );
-      const data = await res.show();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { contentTemplate, queryTemplate, ...others } = data;
-      expect(others).to.deep.equal({
-        name: 'decision/reports/newREP',
-        description: undefined,
-        displayName: '',
-        metadata: {
-          name: 'decision/reports/newREP',
-          displayName: '',
-          category: 'Uncategorised report',
-        },
-        schema: {
-          title: 'Report',
-          $id: 'reportMacroDefaultSchema',
-          description:
-            'A report object provides supplemental information about a report',
-          type: 'object',
-          properties: {
-            name: { description: 'The name of the report', type: 'string' },
-            cardKey: {
-              description:
-                'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
-              type: 'string',
+      let data = await res.show();
+      data = removeLineBreaks(data);
+
+      expect(data).to.deep.equal({
+        content: {
+          contentTemplate: `{{#each results}} * {{this.title}} {{/each}} `,
+          schema: {
+            $id: 'reportMacroDefaultSchema',
+            additionalProperties: false,
+            description:
+              'A report object provides supplemental information about a report',
+            properties: {
+              cardKey: {
+                description:
+                  'Used to override the default cardKey, which is the cardKey of the card, in which the report macro is used',
+                type: 'string',
+              },
+              name: {
+                description: 'The name of the report',
+                type: 'string',
+              },
             },
+            required: ['name'],
+            title: 'Report',
+            type: 'object',
           },
-          additionalProperties: false,
-          required: ['name'],
+          queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
         },
+        name: 'decision/reports/newREP',
+        displayName: '',
+        category: 'Uncategorised report',
       });
     });
 
@@ -1903,6 +1943,32 @@ describe('resources', function () {
       expect(data.description).to.include('Updated');
       expect(data.displayName).to.include('Updated');
       expect(data.category).to.include('Updated');
+    });
+    it('update report content file', async () => {
+      const res = new ReportResource(
+        project,
+        resourceName('decision/reports/newREP'),
+      );
+      await res.update('content/contentTemplate', {
+        name: 'change',
+        target: '',
+        to: 'Updated template',
+      });
+      const data = await res.show();
+      expect(data.content.contentTemplate).to.include('Updated');
+    });
+    it('try to update report content that is not valid', async () => {
+      const res = new ReportResource(
+        project,
+        resourceName('decision/reports/newREP'),
+      );
+      await expect(
+        res.update('content/nonExists', {
+          name: 'change',
+          target: '',
+          to: 'Updated description',
+        }),
+      ).to.be.rejectedWith("File 'nonExists' is not allowed");
     });
     it('update template scalar values', async () => {
       const res = new TemplateResource(

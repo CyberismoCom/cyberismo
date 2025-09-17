@@ -384,6 +384,7 @@ export async function getFileContent(
   resource: string,
   fileName: string,
 ) {
+  // TODO: Use resource APIs to fetch resource content; showFile will be removed
   return commands.showCmd.showFile(
     resourceName(`${module}/${type}/${resource}`),
     fileName,

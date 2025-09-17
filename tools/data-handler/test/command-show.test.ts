@@ -11,6 +11,7 @@ import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/resources/file-resource.js';
+import { ReportResource } from '../src/resources/report-resource.js';
 import { Show } from '../src/commands/index.js';
 import { writeJsonFile } from '../src/utils/json.js';
 import type {
@@ -1019,18 +1020,20 @@ describe('show', () => {
   });
 
   it('showFile (success)', async () => {
+    // TODO: Test to be renamed and moved to resource tests once showFile has been removed
     const resourceNameStr = 'decision/reports/anotherReport';
-    const fileName = 'index.adoc.hbs';
-    const result = await showCmd.showFile(
+    const res = new ReportResource(
+      commands.project,
       resourceName(resourceNameStr),
-      fileName,
     );
+    const result = (await res.show()).content.contentTemplate;
     expect(result).to.not.equal(undefined);
     expect(result).to.be.a('string');
     expect(result.length).to.be.greaterThan(0);
   });
 
   it('showFile - resource does not exist', async () => {
+    // TODO: Test to be removed once showFile has been removed
     const resourceNameStr = 'decision/reports/nonExistentReport';
     const fileName = 'index.adoc.hbs';
     await showCmd
@@ -1043,6 +1046,7 @@ describe('show', () => {
   });
 
   it('showFile - resource is not a folder resource', async () => {
+    // TODO: Test to be removed once showFile has been removed
     const resourceNameStr = 'decision/cardTypes/decision';
     const fileName = 'some-file.txt';
     await showCmd
@@ -1055,6 +1059,7 @@ describe('show', () => {
   });
 
   it('showFile - file does not exist in resource', async () => {
+    // TODO: Test to be removed once showFile has been removed
     const resourceNameStr = 'decision/reports/anotherReport';
     const fileName = 'nonExistentFile.txt';
     await showCmd

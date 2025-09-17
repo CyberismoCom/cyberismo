@@ -7,6 +7,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
 import { type Edit } from '../src/commands/index.js';
 import type { ResourceName } from '../src/resources/file-resource.js';
+import { GraphViewResource } from '../src/resources/graph-view-resource.js';
 
 describe('edit card', () => {
   const baseDir = import.meta.dirname;
@@ -214,13 +215,11 @@ describe('edit card', () => {
       identifier: 'test',
     };
     await editCmd.editResourceContent(resourceName, 'view.lp.hbs', 'whoopie');
-    const content = await commands.showCmd.showFile(
-      resourceName,
-      'view.lp.hbs',
-    );
-    expect(content).to.equal('whoopie');
+    const res = new GraphViewResource(commands.project, resourceName);
+    const data = await res.show();
+    expect(data.content.viewTemplate).to.equal('whoopie');
   });
-  it('try to edit folder resource content - file is not whitelisted', async () => {
+  it('try to edit folder resource content - file is not allowed', async () => {
     const resourceName = {
       prefix: 'decision',
       type: 'graphViews',
@@ -228,7 +227,7 @@ describe('edit card', () => {
     };
     await expect(
       editCmd.editResourceContent(resourceName, 'random.file', 'whoopie'),
-    ).to.be.rejectedWith("File 'random.file' is not whitelisted");
+    ).to.be.rejectedWith("File 'random.file' is not allowed");
   });
   describe('edit calculation', () => {
     before(async () => {

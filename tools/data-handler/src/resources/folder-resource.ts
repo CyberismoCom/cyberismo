@@ -14,7 +14,10 @@
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
+import type { Schema } from 'jsonschema';
+
 import { writeFileSafe } from '../utils/file-utils.js';
+import { readJsonFile } from '../utils/json.js';
 
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
 import {
@@ -30,6 +33,10 @@ import {
 } from './file-resource.js';
 import type { ResourceContent } from '../interfaces/resource-interfaces.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
+import {
+  propertyName,
+  filename,
+} from '../interfaces/folder-content-interfaces.js';
 
 export {
   type Card,
@@ -50,6 +57,17 @@ export class FolderResource extends FileResource {
 
   constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
     super(project, name, type);
+  }
+
+  /**
+   * Extracts the filename from a content file path.
+   * @param key The content file path (format: 'content/filename' or 'content/property').
+   * @returns the actual filename part.
+   */
+  protected contentFileName(key: string): string {
+    const nameOrFilename = key.split('/')[1];
+    const actualFilename = filename(nameOrFilename);
+    return actualFilename || nameOrFilename;
   }
 
   /**
@@ -85,13 +103,77 @@ export class FolderResource extends FileResource {
     return super.getLogger(this.getType);
   }
 
-  protected initialize(): void {
+  protected initialize() {
     super.initialize();
 
     this.internalFolder = join(
       this.resourceFolder,
       this.resourceName.identifier,
     );
+  }
+
+  /**
+   * Checks if a key represents a content file path (format: 'content/filename').
+   * @param key The key to check.
+   * @returns true if it's a content file path, false otherwise.
+   */
+  protected isContentFilePath(key: string): boolean {
+    return key.startsWith('content/') && key.split('/').length === 2;
+  }
+
+  /**
+   * Handles content updates for folder resources.
+   * @param op Operation containing the content to update
+   * @param contentTransformer Optional function to transform content before writing to files
+   */
+  protected async handleContentUpdate<Type>(
+    op: Operation<Type>,
+    contentTransformer?: (
+      propertyName: string,
+      content: string,
+    ) => string | undefined,
+  ): Promise<void> {
+    const contentFiles = super.handleScalar(op) as Record<string, string>;
+    const fileNameContent: Record<string, string> = {};
+
+    for (const [propertyName, content] of Object.entries(contentFiles)) {
+      const fileName = this.contentFileName(`content/${propertyName}`);
+      if (fileName && content !== undefined) {
+        let fileContent: string;
+        if (contentTransformer) {
+          const transformed = contentTransformer(propertyName, content);
+          if (transformed === undefined) {
+            continue; // Skip this property
+          }
+          fileContent = transformed;
+        } else {
+          fileContent =
+            typeof content === 'string'
+              ? content
+              : JSON.stringify(content, null, 2);
+        }
+        fileNameContent[fileName] = fileContent;
+      }
+    }
+
+    await this.updateContentFiles(fileNameContent);
+  }
+
+  /**
+   * Handles individual content file updates (e.g., 'content/filename').
+   * @param key The key being updated
+   * @param op Operation containing the new content
+   */
+  protected async handleContentFileUpdate<Type>(
+    key: string,
+    op: Operation<Type>,
+  ): Promise<void> {
+    if (!this.isContentFilePath(key)) {
+      return;
+    }
+    const fileName = this.contentFileName(key);
+    const fileContent = super.handleScalar(op) as string;
+    await this.updateFile(fileName, fileContent);
   }
 
   /**
@@ -111,22 +193,57 @@ export class FolderResource extends FileResource {
   }
 
   /**
+   * TODO: to be made protected - no direct access to files
    * Shows the content of a file in the resource.
    * @param fileName Name of the file to show.
+   * @param json Content is JSON file.
    * @returns the content of the file.
    */
-  public async showFile(fileName: string): Promise<string> {
+  public async showFile(
+    fileName: string,
+    json: boolean = false,
+  ): Promise<string> {
     const filePath = join(this.internalFolder, fileName);
-    return readFile(filePath, 'utf8');
+    return json ? readJsonFile(filePath) : readFile(filePath, 'utf8');
   }
 
   /**
+   * TODO: to be made protected - no direct access to files
    * Shows all file names in the resource.
    * @returns all file names in the resource.
    */
   public async showFileNames(): Promise<string[]> {
     const files = await readdir(this.internalFolder);
     return files.filter((file) => VALID_FOLDER_RESOURCE_FILES.includes(file));
+  }
+
+  /**
+   * Gets content of all files to properties.
+   * @returns object with property names as keys and file contents as values.
+   */
+  public async contentData(): Promise<Record<string, string | Schema>> {
+    const fileNames = await this.showFileNames();
+    const content: Record<string, string | Schema> = {};
+
+    for (const fileName of fileNames) {
+      const name = propertyName(fileName);
+      if (name) {
+        const JSONFile = name === 'schema';
+        content[name] = await this.showFile(fileName, JSONFile);
+      }
+    }
+
+    return content;
+  }
+
+  /**
+   * Updates content files from a content object.
+   * @param contentFiles Object with file names as keys and file contents as values.
+   */
+  public async updateContentFiles(contentFiles: Record<string, string>) {
+    for (const [fileName, fileContent] of Object.entries(contentFiles)) {
+      await this.updateFile(fileName, fileContent);
+    }
   }
 
   /**
@@ -148,13 +265,14 @@ export class FolderResource extends FileResource {
     if (basename(normalizedFilePath) !== fileName) {
       throw new Error(`File '${fileName}' is not in the resource`);
     }
-    // check if the file is whitelisted
+    // check if the file is allow-listed
     if (!VALID_FOLDER_RESOURCE_FILES.includes(fileName)) {
-      throw new Error(`File '${fileName}' is not whitelisted`);
+      throw new Error(`File '${fileName}' is not allowed`);
     }
 
     await writeFileSafe(filePath, changedContent, { flag: 'w' });
   }
+
   /**
    * Updates resource.
    * @param key Key to modify
