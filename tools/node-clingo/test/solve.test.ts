@@ -708,12 +708,14 @@ describe('Clingo solver', () => {
     });
 
     it('should throw TypeError for invalid arguments', () => {
-      expect(() => buildProgram('test', 'not_an_array' as any)).toThrow(
+      // @ts-expect-error Testing invalid argument type
+      expect(() => buildProgram('test', 'not_an_array')).toThrow(
         'Second argument must be an array of strings (refs)',
       );
-      expect(() =>
-        buildProgram('test', ['valid', 123, 'also_valid'] as any),
-      ).toThrow('All refs must be strings');
+      // @ts-expect-error Testing invalid argument type
+      expect(() => buildProgram('test', ['valid', 123, 'also_valid'])).toThrow(
+        'All refs must be strings',
+      );
     });
   });
 });
