@@ -11,7 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Schema } from 'jsonschema';
+import type {
+  ReportContent,
+  GraphModelContent,
+  GraphViewContent,
+} from './folder-content-interfaces.js';
 
 /**
  * Each resource represents a file (or a folder in some cases) with metadata stored
@@ -73,18 +77,16 @@ export interface GraphModelMetadata extends ResourceBaseMetadata {
 }
 
 export interface GraphModel extends GraphModelMetadata {
-  calculationFile: string;
+  content: GraphModelContent;
 }
-
 // Graph view content.
 export interface GraphViewMetadata extends ResourceBaseMetadata {
   category?: string;
 }
 
 export interface GraphView extends GraphViewMetadata {
-  handleBarFile: string;
+  content: GraphViewContent;
 }
-
 // Link content.
 export interface Link {
   linkType: string;
@@ -103,11 +105,7 @@ export interface LinkType extends ResourceBaseMetadata {
 
 // Report resource.
 export interface Report extends ResourceBaseMetadata {
-  name: string;
-  metadata: ReportMetadata;
-  contentTemplate: string;
-  queryTemplate: string;
-  schema?: Schema;
+  content: ReportContent;
 }
 
 // Metadata for report

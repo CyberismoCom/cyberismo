@@ -31,6 +31,7 @@ import type {
   GraphModel,
   GraphModelMetadata,
 } from '../interfaces/resource-interfaces.js';
+import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 
 /**
@@ -130,11 +131,10 @@ export class GraphModelResource extends FolderResource {
    * @returns graph model metadata.
    */
   public async show(): Promise<GraphModel> {
-    const showOnlyFileName = true;
     const baseData = (await super.show()) as GraphModelMetadata;
     return {
       ...baseData,
-      calculationFile: await this.calculationFile(showOnlyFileName),
+      content: (await super.contentData()) as GraphModelContent,
     };
   }
 
@@ -147,6 +147,11 @@ export class GraphModelResource extends FolderResource {
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';
     const existingName = this.content.name;
+    if (key === 'content' || super.isContentFilePath(key)) {
+      return key === 'content'
+        ? await super.handleContentUpdate(op)
+        : await super.handleContentFileUpdate(key, op);
+    }
 
     await super.update(key, op);
 
@@ -160,6 +165,8 @@ export class GraphModelResource extends FolderResource {
       content.description = super.handleScalar(op) as string;
     } else if (key === 'category') {
       content.category = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for GraphModel`);
     }
 
     await super.postUpdate(content, key, op);
