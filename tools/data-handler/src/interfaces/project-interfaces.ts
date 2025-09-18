@@ -252,7 +252,13 @@ export type ResourceTypes =
   | 'links'
   | 'modules'
   | 'project'
-  | 'projects';
+  | 'projects'
+  | 'version';
+
+// System version information.
+export interface VersionInfo {
+  version: string;
+}
 
 // Re-export Template Configuration to avoid unnecessary changes to other files.
 export { TemplateConfiguration };

@@ -26,6 +26,7 @@ import type {
   ProjectMetadata,
   RemovableResourceTypes,
   ResourceTypes,
+  VersionInfo,
 } from './interfaces/project-interfaces.js';
 import type {
   DataType,
@@ -712,6 +713,7 @@ export class Commands {
       | ModuleSettingFromHub[]
       | ProjectMetadata
       | ResourceContent
+      | VersionInfo
       | string[]
       | undefined
     >;
@@ -778,6 +780,9 @@ export class Commands {
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();
+        break;
+      case 'version':
+        promise = this.commands!.showCmd.showVersion();
         break;
       case 'attachment': // fallthrough - not implemented yet
       case 'link': // fallthrough - not implemented yet

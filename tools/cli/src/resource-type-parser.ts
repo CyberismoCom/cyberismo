@@ -88,6 +88,7 @@ abstract class ShowTypes {
     'importableModules',
     'labels',
     'module',
+    'version',
     'project',
   ];
 
