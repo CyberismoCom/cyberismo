@@ -11,7 +11,10 @@ import { errorFunction } from '../src/utils/log-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
 
-import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
+import type {
+  ModuleContent,
+  VersionInfo,
+} from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 
 // validation tests do not modify the content - so they can use the original files
@@ -601,5 +604,14 @@ describe('shows command', () => {
       // all modules are still contain 'base'
       expect(payloadAsArray.length === 2);
     });
+  });
+  it('show version - success()', async () => {
+    const result = await commandHandler.command(
+      Cmd.show,
+      ['version'],
+      optionsDecision,
+    );
+    const vers = (result.payload as VersionInfo).version;
+    expect(vers).to.not.equal(null);
   });
 });

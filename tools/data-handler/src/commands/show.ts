@@ -36,6 +36,7 @@ import type {
   CardLocation,
   Context,
   ResourceFolderType,
+  VersionInfo,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -618,6 +619,19 @@ export class Show {
     );
     const result = await Promise.all(promiseContainer);
     return result.filter(Boolean) as TemplateConfiguration[];
+  }
+
+  /**
+   * Shows data-handler version.
+   * @returns data-handler version.
+   */
+  public async showVersion(): Promise<VersionInfo> {
+    const pack = (
+      await import('../../package.json', {
+        with: { type: 'json' },
+      })
+    ).default;
+    return { version: pack.version };
   }
 
   /**
