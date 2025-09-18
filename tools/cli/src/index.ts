@@ -129,6 +129,16 @@ dotenv.config({ quiet: true });
 // Commander
 const program = new Command();
 
+// Version information
+program.command('--version', 'show binary version').action(async () => {
+  const pack = (
+    await import('../package.json', {
+      with: { type: 'json' },
+    })
+  ).default;
+  console.log(pack.version);
+});
+
 // CLI command handler
 const commandHandler = new Commands();
 
