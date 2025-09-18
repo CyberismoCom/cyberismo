@@ -45,16 +45,16 @@ class ReportMacro extends BaseMacro {
 
     if (!report) throw new Error(`Report ${options.name} does not exist`);
 
-    if (report.schema) {
+    if (report.content.schema) {
       validateJson(options, {
-        schema: report.schema,
+        schema: report.content.schema,
       });
     }
     try {
       return await generateReportContent({
         calculate: context.project.calculationEngine,
-        contentTemplate: report.contentTemplate,
-        queryTemplate: report.queryTemplate,
+        contentTemplate: report.content.contentTemplate,
+        queryTemplate: report.content.queryTemplate,
         options: {
           cardKey: context.cardKey,
           ...options,

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
@@ -32,12 +32,11 @@ import type {
   Report,
   ReportMetadata,
 } from '../interfaces/resource-interfaces.js';
+import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
 import { Validate } from '../commands/validate.js';
 
-const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
-const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
@@ -151,19 +150,16 @@ export class ReportResource extends FolderResource {
    * @returns report metadata.
    */
   public async show(): Promise<Report> {
-    const reportMetadata = (await super.show()) as ReportMetadata;
+    const baseData = (await super.show()) as ReportMetadata;
+    const fileContents = await super.contentData();
+    const content: ReportContent = {
+      contentTemplate: fileContents.contentTemplate as string,
+      queryTemplate: fileContents.queryTemplate as string,
+      schema: fileContents.schema ? (fileContents.schema as Schema) : undefined,
+    };
     return {
-      name: resourceNameToString(this.resourceName),
-      displayName: reportMetadata.displayName,
-      description: reportMetadata.description,
-      metadata: reportMetadata,
-      contentTemplate: (
-        await readFile(join(this.internalFolder, CARD_CONTENT_HANDLEBAR_FILE))
-      ).toString(),
-      queryTemplate: (
-        await readFile(join(this.internalFolder, QUERY_HANDLEBAR_FILE))
-      ).toString(),
-      schema: this.reportSchema,
+      ...baseData,
+      content: content,
     };
   }
 
@@ -176,6 +172,19 @@ export class ReportResource extends FolderResource {
   public async update<Type>(key: string, op: Operation<Type>) {
     const nameChange = key === 'name';
     const existingName = this.content.name;
+    if (key === 'content' || super.isContentFilePath(key)) {
+      if (key === 'content') {
+        await super.handleContentUpdate(op, (propertyName, content) => {
+          if (propertyName === 'schema') {
+            return JSON.stringify(content, null, 2);
+          }
+          return content;
+        });
+      } else {
+        await super.handleContentFileUpdate(key, op);
+      }
+      return;
+    }
 
     await super.update(key, op);
 
@@ -189,6 +198,8 @@ export class ReportResource extends FolderResource {
       content.description = super.handleScalar(op) as string;
     } else if (key === 'category') {
       content.category = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for Report`);
     }
 
     await super.postUpdate(content, key, op);

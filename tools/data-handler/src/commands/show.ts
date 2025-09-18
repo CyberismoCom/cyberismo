@@ -332,6 +332,8 @@ export class Show {
 
   /**
    * Shows the content of a file in a resource.
+   * TODO: To be removed
+   * @deprecated
    * @param resourceName Name of the resource.
    * @param fileName Name of the file to show.
    * @returns the content of the file.
@@ -360,6 +362,8 @@ export class Show {
 
   /**
    * Shows all file names in a folder resource.
+   * TODO: To be removed
+   * @deprecated
    * @param resourceName Name of the resource.
    * @returns all file names in the resource.
    */
