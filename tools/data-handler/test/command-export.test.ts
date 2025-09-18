@@ -3,8 +3,9 @@ import { expect } from 'chai';
 import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
+import type { ExportCommandOptions } from '../src/interfaces/command-options.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-export-tests');
@@ -12,7 +13,7 @@ const testDirForExport = join(baseDir, 'tmp-command-export-site-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
-const optionsMini: CardsOptions = { projectPath: minimalPath };
+const optionsMini: ExportCommandOptions = { projectPath: minimalPath };
 
 describe('export command', () => {
   const commandHandler = new Commands();
