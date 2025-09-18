@@ -3,9 +3,9 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { render, screen } from '@testing-library/react';
 
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
-import type { ResourceNode } from '@/lib/api/types';
+import type { AnyNode } from '@/lib/api/types';
 
-let mockedResourceTree: ResourceNode[] | null = null;
+let mockedResourceTree: AnyNode[] | null = null;
 
 // Mock useResourceTree to control resource tree structure
 vi.mock('@/lib/api/resources', async () => {
@@ -64,9 +64,9 @@ describe('useConfigTemplateCreationContext', () => {
             id: 'test_ic2n3e7w',
             name: 'test/cards/test_ic2n3e7w',
             type: 'card',
-          } as unknown as ResourceNode,
+          } as unknown as AnyNode,
         ],
-      } as unknown as ResourceNode,
+      } as unknown as AnyNode,
     ];
 
     renderAt('/configuration/test/cards/test_ic2n3e7w');
@@ -111,11 +111,11 @@ describe('useConfigTemplateCreationContext', () => {
                 id: 'nested_card',
                 name: 'test/cards/nested_card',
                 type: 'card',
-              } as unknown as ResourceNode,
+              } as unknown as AnyNode,
             ],
-          } as unknown as ResourceNode,
+          } as unknown as AnyNode,
         ],
-      } as unknown as ResourceNode,
+      } as unknown as AnyNode,
     ];
 
     renderAt('/configuration/test/cards/nested_card');

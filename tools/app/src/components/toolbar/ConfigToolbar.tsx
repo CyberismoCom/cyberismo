@@ -13,12 +13,12 @@
 
 import { Button, Breadcrumbs, Link, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { ResourceNode } from '../../lib/api/types';
+import { AnyNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
 import { ConfigContextMenu } from '../context-menus';
 
 interface ConfigToolbarProps {
-  node: ResourceNode;
+  node: AnyNode;
   onUpdate?: () => void;
   onCancel?: () => void;
   enabled?: {

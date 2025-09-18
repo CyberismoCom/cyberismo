@@ -12,7 +12,7 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { ResourceNode } from '@/lib/api/types';
+import { AnyNode } from '@/lib/api/types';
 import { useResourceFileContent } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
@@ -21,7 +21,7 @@ import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
 
-export function TextEditor({ node }: { node: ResourceNode }) {
+export function TextEditor({ node }: { node: AnyNode }) {
   const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
     useResourceFileContent(node.name);
   const dispatch = useAppDispatch();

@@ -14,6 +14,7 @@ import type {
   AddOperation,
   ChangeOperation,
   Operation,
+  OperationFor,
   RankOperation,
   RemoveOperation,
   UpdateOperations,
@@ -44,7 +45,6 @@ export class Update {
     optionalDetail?: Type, // todo: for 'rank' it might be reasonable to accept also 'number'
     mappingTable?: { stateMapping: Record<string, string> },
   ) {
-    const resource = Project.resourceObject(this.project, resourceName(name));
     const op: Operation<Type> = {
       name: operation,
       target: '' as Type,
@@ -76,7 +76,23 @@ export class Update {
         : undefined;
     }
 
-    await resource?.update(key, op);
+    await this.applyResourceOperation(name, key, op);
+  }
+
+  /**
+   * Update single resource property
+   * This is similar to updateValue, but allows the operation to be fully specified
+   * @param name Name of the resource to operate on.
+   * @param key Property to change in resource JSON
+   * @param operation The full operation object
+   */
+  public async applyResourceOperation<Type, T extends UpdateOperations>(
+    name: string,
+    key: string,
+    operation: OperationFor<Type, T>,
+  ) {
+    const resource = Project.resourceObject(this.project, resourceName(name));
+    await resource?.update(key, operation);
     this.project.collectLocalResources();
   }
 }

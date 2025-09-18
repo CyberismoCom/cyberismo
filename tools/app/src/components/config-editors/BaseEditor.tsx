@@ -13,7 +13,7 @@
 
 import { Stack } from '@mui/joy';
 import ConfigToolbar from '../toolbar/ConfigToolbar';
-import { ResourceNode } from '@/lib/api/types';
+import { AnyNode } from '@/lib/api/types';
 
 export default function BaseEditor({
   node,
@@ -24,8 +24,8 @@ export default function BaseEditor({
   enabled,
   isDirty = true,
 }: {
-  node: ResourceNode;
-  onUpdate: () => void;
+  node: AnyNode;
+  onUpdate?: () => void;
   onCancel?: () => void;
   children: React.ReactNode;
   enabled?: {

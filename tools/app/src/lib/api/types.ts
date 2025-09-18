@@ -57,7 +57,7 @@ export type Resources = {
   templates: TemplateConfiguration[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
-  resourceTree: ResourceNode[];
+  resourceTree: AnyNode[];
   resourceFileContent: ResourceFileContentResponse;
   logicPrograms: LogicProgramResponse;
   validateResource: ValidateResourceResponse;
@@ -93,7 +93,7 @@ export type CardUpdate = Partial<FullCardUpdate>;
 interface BaseResourceNode {
   id: string;
   name: string;
-  children?: ResourceNode[];
+  children?: AnyNode[];
   readOnly?: boolean;
 }
 
@@ -174,10 +174,36 @@ interface FileNode extends BaseResourceNode {
 }
 
 // Union type for all possible resource nodes
-export type ResourceNode =
+export type AnyNode =
+  | FileNode
   | ResourceGroupNode
   | ModuleNode
   | ModulesGroupNode
+  | CardNode
+  | ResourceNode;
+
+export type NodeKey = AnyNode['type'];
+// map key to node type
+export type NodeTypeMap = {
+  file: FileNode;
+  resourceGroup: ResourceGroupNode;
+  module: ModuleNode;
+  modulesGroup: ModulesGroupNode;
+  card: CardNode;
+  cardTypes: CardTypeNode;
+  fieldTypes: FieldTypeNode;
+  linkTypes: LinkTypeNode;
+  workflows: WorkflowNode;
+  templates: TemplateNode;
+  reports: ReportNode;
+  graphModels: GraphModelNode;
+  graphViews: GraphViewNode;
+  calculations: CalculationNode;
+};
+
+export type GenericNode<T extends NodeKey> = NodeTypeMap[T];
+
+export type ResourceNode =
   | CardTypeNode
   | FieldTypeNode
   | LinkTypeNode
@@ -186,17 +212,15 @@ export type ResourceNode =
   | ReportNode
   | GraphModelNode
   | GraphViewNode
-  | CalculationNode
-  | CardNode
-  | FileNode;
+  | CalculationNode;
 
-export type NodeType = ResourceNode['type'];
+export type NodeType = AnyNode['type'];
 
 // Type guard helpers for working with ResourceNode
 export const isResourceOfType = <T extends ResourceNode['type']>(
-  node: ResourceNode,
+  node: AnyNode,
   type: T,
-): node is Extract<ResourceNode, { type: T }> => {
+): node is Extract<AnyNode, { type: T }> => {
   return node.type === type;
 };
 
@@ -205,6 +229,6 @@ export const isResourceOfType = <T extends ResourceNode['type']>(
  * @param node - The node to check.
  * @returns True if the node is a resource node, false otherwise.
  */
-export const isResourceNode = (node: ResourceNode): node is ResourceNode => {
+export const isResourceNode = (node: AnyNode): node is ResourceNode => {
   return (RESOURCES as readonly string[]).includes(node.type);
 };

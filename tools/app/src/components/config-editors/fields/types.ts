@@ -11,25 +11,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCard } from '@/lib/api';
-import CardEditor from '../CardEditor';
-import { AnyNode } from '@/lib/api/types';
-import { useTranslation } from 'react-i18next';
+// Base props that all input components should accept for keyboard and focus handling
+export interface BaseInputProps {
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+  onBlur?: (e: React.FocusEvent) => void;
+}
 
-export function ConfigCardEditor({ node }: { node: AnyNode }) {
-  const { isLoading, error } = useCard(node.id);
-  const { t } = useTranslation();
-  if (isLoading) {
-    return <div>{t('loading')}</div>;
-  }
-  if (error) {
-    return <div>{error.message}</div>;
-  }
-  return (
-    <CardEditor
-      cardKey={node.id}
-      afterSave={() => {}}
-      readOnly={node?.readOnly}
-    />
-  );
+// Common option item interface for select components
+export interface OptionItem {
+  id: string;
+  displayName: string;
 }

@@ -19,7 +19,10 @@ import type {
 } from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
-import { validateResourceParamsSchema } from './schema.js';
+import {
+  validateResourceParamsSchema,
+  updateOperationBodySchema,
+} from './schema.js';
 
 const router = new Hono();
 
@@ -160,6 +163,24 @@ router.delete(
     return c.json({
       message: 'Resource deleted',
     });
+  },
+);
+
+router.post(
+  '/:prefix/:type/:identifier/operation',
+  zValidator('param', resourceParamsSchema),
+  zValidator('json', updateOperationBodySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const resourceParams = c.req.valid('param');
+    const { key, operation } = c.req.valid('json');
+
+    await resourceService.updateResourceWithOperation(
+      commands,
+      resourceParams,
+      { key, operation },
+    );
+    return c.json({ message: 'Updated' });
   },
 );
 

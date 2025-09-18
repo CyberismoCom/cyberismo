@@ -11,25 +11,33 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCard } from '@/lib/api';
-import CardEditor from '../CardEditor';
-import { AnyNode } from '@/lib/api/types';
-import { useTranslation } from 'react-i18next';
+import { FormControl, FormLabel, Input } from '@mui/joy';
+import type { BaseInputProps } from './types';
 
-export function ConfigCardEditor({ node }: { node: AnyNode }) {
-  const { isLoading, error } = useCard(node.id);
-  const { t } = useTranslation();
-  if (isLoading) {
-    return <div>{t('loading')}</div>;
-  }
-  if (error) {
-    return <div>{error.message}</div>;
-  }
+export interface TextInputProps extends BaseInputProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+export function TextInput({
+  label,
+  value,
+  onChange,
+  onKeyDown,
+  onBlur,
+}: TextInputProps) {
   return (
-    <CardEditor
-      cardKey={node.id}
-      afterSave={() => {}}
-      readOnly={node?.readOnly}
-    />
+    <FormControl>
+      <FormLabel>{label}</FormLabel>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        onBlur={onBlur}
+      />
+    </FormControl>
   );
 }
+
+export default TextInput;

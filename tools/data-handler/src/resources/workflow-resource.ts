@@ -283,6 +283,10 @@ export class WorkflowResource extends FileResource {
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
     } else if (key === 'states') {
       content.states = super.handleArray(
         op,

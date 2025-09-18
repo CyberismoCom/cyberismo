@@ -17,3 +17,35 @@ export const validateResourceParamsSchema = resourceParamsSchema.extend({
 export type ValidateResourceParams = z.infer<
   typeof validateResourceParamsSchema
 >;
+
+// Body schema for update operation-based resource update
+export const updateOperationBodySchema = z.object({
+  key: z.string(),
+  operation: z.discriminatedUnion('name', [
+    z.object({
+      name: z.literal('add'),
+      target: z.unknown(),
+    }),
+    z.object({
+      name: z.literal('change'),
+      target: z.unknown(),
+      to: z.unknown(),
+      mappingTable: z
+        .object({
+          stateMapping: z.record(z.string(), z.string()),
+        })
+        .optional(),
+    }),
+    z.object({
+      name: z.literal('remove'),
+      target: z.unknown(),
+    }),
+    z.object({
+      name: z.literal('rank'),
+      target: z.unknown(),
+      newIndex: z.number(),
+    }),
+  ]),
+});
+
+export type UpdateOperationBody = z.infer<typeof updateOperationBodySchema>;
