@@ -6,8 +6,9 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 // cyberismo
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
+import type { AddCommandOptions } from '../src/interfaces/command-options.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -16,7 +17,7 @@ const testDir = join(baseDir, 'tmp-command-handler-add-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
 const commandHandler: Commands = new Commands();
-const options: CardsOptions = { projectPath: decisionRecordsPath };
+const options: AddCommandOptions = { projectPath: decisionRecordsPath };
 
 describe('add command', () => {
   before(async () => {

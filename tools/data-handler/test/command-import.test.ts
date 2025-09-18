@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
 
@@ -20,8 +20,8 @@ const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
 const commandHandler: Commands = new Commands();
-const optionsMini: CardsOptions = { projectPath: minimalPath };
-const options: CardsOptions = { projectPath: decisionRecordsPath };
+const optionsMini = { projectPath: minimalPath };
+const options = { projectPath: decisionRecordsPath };
 
 describe('import csv command', () => {
   before(async () => {
@@ -155,7 +155,7 @@ describe('import module', () => {
       const prefix = 'proj';
       const name = 'test-project';
       const projectDir = join(testDir, name);
-      const testOptions: CardsOptions = { projectPath: projectDir };
+      const testOptions = { projectPath: projectDir };
       const data = await commandHandler.command(
         Cmd.create,
         ['project', name, prefix],

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { errorFunction } from '../src/utils/log-utils.js';
 
 // Create test artifacts in a temp folder.
@@ -16,9 +16,9 @@ const testDir = join(baseDir, 'tmp-command-handler-rename-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const commandHandler: Commands = new Commands();
-const options: CardsOptions = { projectPath: decisionRecordsPath };
+const options = { projectPath: decisionRecordsPath };
 const minimalPath = join(testDir, 'valid/minimal');
-const optionsMini: CardsOptions = { projectPath: minimalPath };
+const optionsMini = { projectPath: minimalPath };
 
 describe('rename command', () => {
   beforeEach(async () => {

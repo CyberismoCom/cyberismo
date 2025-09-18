@@ -7,7 +7,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 // cyberismo
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
@@ -17,7 +17,7 @@ const testDir = join(baseDir, 'tmp-command-handler-report-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 
 const commandHandler: Commands = new Commands();
-const optionsDecision: CardsOptions = {
+const optionsDecision = {
   projectPath: decisionRecordsPath,
   context: 'localApp',
 };
