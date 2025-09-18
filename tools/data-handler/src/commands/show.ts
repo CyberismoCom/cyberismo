@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 
 import { MODULE_LIST_FULL_PATH } from './fetch.js';
 
@@ -47,7 +47,6 @@ import { Project, type ResourcesFrom } from '../containers/project.js';
 import {
   type ResourceName,
   resourceName,
-  resourceNameToPath,
   resourceNameToString,
 } from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
@@ -567,17 +566,6 @@ export class Show {
     name: string,
     showUse: boolean = false,
   ): Promise<ResourceContent | undefined> {
-    // TODO: remove this workaround once calculations are implemented as a resource class
-    if (resourceName(name).type === 'calculations') {
-      const nameObj = resourceName(name);
-      const path = resourceNameToPath(this.project, nameObj, '.lp');
-      return {
-        name,
-        displayName: nameObj.identifier,
-        calculation: await readFile(path, 'utf-8'),
-      };
-    }
-
     const strictNameCheck = true;
     const resource = Project.resourceObject(
       this.project,
