@@ -60,6 +60,11 @@ import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
 
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
+
 // Re-export this, so that classes that use Project do not need to have separate import.
 export { ResourcesFrom };
 
@@ -633,13 +638,30 @@ export class Project extends CardContainer {
   /**
    * Adds a module from project.
    * @param module Module to add
+   * @param skipMigrationLog If true, skip logging to migration log. Used during project creation.
    */
-  public async importModule(module: ModuleSetting) {
+  public async importModule(module: ModuleSetting, skipMigrationLog = false) {
     // Add module as a dependency.
     await this.configuration.addModule(module);
     this.resources.changedModules();
     this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
+
+    // Log configuration change
+    if (!skipMigrationLog) {
+      await ConfigurationLogger.log(
+        this.basePath,
+        ConfigurationOperation.MODULE_ADD,
+        module.name,
+        {
+          parameters: {
+            location: module.location,
+            branch: module.branch,
+            private: module.private,
+          },
+        },
+      );
+    }
     this.logger.info(`Imported module '${module.name}'`);
   }
 
@@ -928,6 +950,14 @@ export class Project extends CardContainer {
 
     // Refresh cached module prefixes after removal
     this.refreshAllModulePrefixes();
+
+    // Log configuration change
+    await ConfigurationLogger.log(
+      this.basePath,
+      ConfigurationOperation.MODULE_REMOVE,
+      moduleName,
+      {},
+    );
 
     this.logger.info(`Removed module '${moduleName}'`);
   }
