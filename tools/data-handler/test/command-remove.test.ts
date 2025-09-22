@@ -6,7 +6,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 // cyberismo
-import { type CardsOptions, Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Remove } from '../src/commands/index.js';
@@ -21,8 +21,8 @@ const testDir = join(baseDir, 'tmp-command-handler-remove-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 const minimalPath = join(testDir, 'valid/minimal');
 
-const options: CardsOptions = { projectPath: decisionRecordsPath };
-const optionsMini: CardsOptions = { projectPath: minimalPath };
+const options = { projectPath: decisionRecordsPath };
+const optionsMini = { projectPath: minimalPath };
 
 async function createLinkType(
   commandHandler: Commands,
@@ -493,5 +493,35 @@ describe('remove command', () => {
       );
       expect(result.statusCode).to.equal(400);
     });
+  });
+});
+
+describe('remove card', () => {
+  const baseDir = import.meta.dirname;
+  const testDir = join(baseDir, 'tmp-remove-tests');
+  const decisionRecordsPath = join(testDir, 'valid/decision-records');
+  let commands: CommandManager;
+
+  before(async () => {
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data/', testDir);
+    commands = new CommandManager(decisionRecordsPath);
+    await commands.project.calculationEngine.generate();
+  });
+
+  after(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('Remove - remove card that has children', async () => {
+    const cardId = 'decision_5';
+    const removeCmd = new Remove(commands.project);
+    await removeCmd.remove('card', cardId);
+
+    const card = await commands.project.findSpecificCard(cardId);
+    expect(card).to.equal(undefined);
+    // Since decision_6 is decision_5's child, it should have been removed as well.
+    const card6 = await commands.project.findSpecificCard('decision_6');
+    expect(card6).to.equal(undefined);
   });
 });
