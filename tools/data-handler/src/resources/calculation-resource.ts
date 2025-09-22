@@ -58,10 +58,7 @@ export class CalculationResource extends FileResource {
 
   // When resource name changes
   private async handleNameChange(existingName: string) {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-    ]);
+    await super.updateCalculations(existingName, this.content.name);
     await this.write();
   }
 
@@ -199,7 +196,7 @@ export class CalculationResource extends FileResource {
   }
 
   /**
-   * List where calculation is used.
+   * List where calculation resource is used in cards, or other calculation resources.
    * Always returns card key references first, then calculation references.
    *
    * @param cards Optional. Check these cards for usage of this resource. If undefined, will check all cards.
