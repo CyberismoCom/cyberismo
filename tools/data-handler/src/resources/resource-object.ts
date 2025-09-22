@@ -16,6 +16,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
+import { hasCode } from '../utils/error-utils.js';
+
 import { ArrayHandler } from './array-handler.js';
 import type {
   Card,
@@ -222,7 +224,7 @@ export class ResourceObject extends AbstractResource {
           const updatedContent = content.replaceAll(from, to);
           await writeFile(filename, updatedContent);
         } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          if (hasCode(error) && error.code === 'ENOENT') {
             // Skip files that don't exist (they may have been renamed or deleted)
             return;
           }

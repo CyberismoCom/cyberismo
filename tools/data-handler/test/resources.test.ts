@@ -2426,25 +2426,8 @@ describe('resources', function () {
     it('check usage of calculation resource', async () => {
       const name = 'decision/calculations/test';
       const res = new CalculationResource(project, resourceName(name));
-
-      // Create the test calculation metadata (the .lp file already exists in test data)
-      await res.create({
-        name: name,
-        displayName: 'Test Calculation',
-        description: 'Test calculation for unit tests',
-      });
-
-      try {
-        const references = await res.usage();
-        expect(references.length).to.be.greaterThanOrEqual(0);
-      } finally {
-        // Clean up the created calculation
-        try {
-          await res.delete();
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
+      const references = await res.usage();
+      expect(references.length).to.be.greaterThanOrEqual(0);
     });
     it('check usage of fieldType resource', async () => {
       const name = 'decision/fieldTypes/finished';

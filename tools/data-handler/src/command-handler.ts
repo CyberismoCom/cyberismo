@@ -50,7 +50,7 @@ import type { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
-import { errorFunction } from './utils/log-utils.js';
+import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 

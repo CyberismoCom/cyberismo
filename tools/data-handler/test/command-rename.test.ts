@@ -8,7 +8,7 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { errorFunction } from '../src/utils/log-utils.js';
+import { errorFunction } from '../src/utils/error-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;

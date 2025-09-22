@@ -36,7 +36,7 @@ import type {
   ResourceContent,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { errorFunction } from '../utils/log-utils.js';
+import { errorFunction } from '../utils/error-utils.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { pathExists } from '../utils/file-utils.js';
 import { Project } from '../containers/project.js';

@@ -30,6 +30,7 @@ import {
 } from './resource-object.js';
 import { DefaultContent } from './create-defaults.js';
 import { deleteFile, pathExists } from '../utils/file-utils.js';
+import { hasCode } from '../utils/error-utils.js';
 import { Project, ResourcesFrom } from '../containers/project.js';
 import {
   readJsonFile,
@@ -243,7 +244,7 @@ export class FileResource extends ResourceObject {
         }
       } catch (error) {
         // Skip files that don't exist (they may have been renamed or deleted)
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        if (hasCode(error) && error.code === 'ENOENT') {
           console.warn(`Skipping non-existent file: ${filename}`);
           continue;
         }

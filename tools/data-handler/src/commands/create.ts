@@ -20,7 +20,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 
-import { errorFunction } from '../utils/log-utils.js';
+import { errorFunction } from '../utils/error-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './index.js';
 
