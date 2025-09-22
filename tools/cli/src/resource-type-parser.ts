@@ -13,6 +13,7 @@
 // Resource types that have commands affecting them.
 const Resources = [
   'cardType',
+  'calculation',
   'fieldType',
   'graphModel',
   'graphView',
@@ -24,6 +25,7 @@ const Resources = [
 
 // Lookup table for plural forms for command targets that have plural form commands.
 const pluralLookUpForResources = new Map([
+  ['calculation', 'calculations'],
   ['cardType', 'cardTypes'],
   ['fieldType', 'fieldTypes'],
   ['graphModel', 'graphModels'],

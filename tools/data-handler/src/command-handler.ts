@@ -736,6 +736,7 @@ export class Commands {
       case 'cards':
         promise = this.commands!.showCmd.showCards();
         break;
+      case 'calculation':
       case 'cardType':
       case 'fieldType':
       case 'graphView':
@@ -746,6 +747,7 @@ export class Commands {
       case 'workflow':
         promise = this.commands!.showCmd.showResource(detail, options.showUse);
         break;
+      case 'calculations':
       case 'cardTypes':
       case 'fieldTypes':
       case 'graphModels':
