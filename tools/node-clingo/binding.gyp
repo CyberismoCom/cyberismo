@@ -10,7 +10,8 @@
       "sources": [ 
         "src/binding.cc",
         "src/helpers.cc",
-        "src/function_handlers.cc"
+        "src/function_handlers.cc",
+        "external/xxhash/xxhash.c"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
