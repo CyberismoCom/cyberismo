@@ -72,9 +72,14 @@ Solves a logic program, optionally combining with one or more stored programs re
 **Returns:** `ClingoResult` object with:
 
 - `answers: string[]` - Array of answer sets (each answer set as a single string with atoms separated by newlines)
-- `executionTime: number` - Execution time in microseconds
 - `errors: string[]` - Any error messages from Clingo
 - `warnings: string[]` - Any warning messages from Clingo
+- `stats: { glue: number; add: number; ground: number; solve: number }` - Microsecond timings for each phase:
+  - `glue`: building/expanding referenced base programs
+  - `add`: adding parts (base and main) to Clingo
+  - `ground`: grounding all parts
+  - `solve`: solving and collecting models
+
 
 ### `setProgram(key: string, program: string, categories?: string[])`
 

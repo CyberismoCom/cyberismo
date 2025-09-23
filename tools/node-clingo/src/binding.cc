@@ -519,12 +519,19 @@ Napi::Value BuildProgram(const Napi::CallbackInfo& info)
  * @param info N-API callback info containing arguments (program string, optional base program key(s) string or array).
  * @returns A Napi::Object containing:
  *   - `answers`: A Napi::Array of strings, each representing an answer set.
- *   - `executionTime`: A Napi::Number representing the solve time in microseconds.
+ *   - `stats`: A Napi::Object containing:
+ *     - `glue`: A Napi::Number representing the glue time in microseconds.
+ *     - `add`: A Napi::Number representing the add time in microseconds.
+ *     - `ground`: A Napi::Number representing the ground time in microseconds.
+ *     - `solve`: A Napi::Number representing the solve time in microseconds.
+ *   - `errors`: A Napi::Array of strings, each representing an error message.
+ *   - `warnings`: A Napi::Array of strings, each representing a warning message.
  * @throws Napi::TypeError if arguments are invalid.
  * @throws Napi::Error on Clingo errors or other exceptions.
  */
 Napi::Value Solve(const Napi::CallbackInfo& info)
 {
+    auto t = std::chrono::high_resolution_clock::now();
     Napi::Env env = info.Env();
 
     // Check arguments
@@ -532,9 +539,6 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     {
         throw Napi::TypeError::New(env, "String argument expected for program");
     }
-
-    auto start = std::chrono::high_resolution_clock::now();
-
     // Create the program string once
     std::string program = info[0].As<Napi::String>().Utf8Value();
 
@@ -561,7 +565,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     {
         refs = parse_refs_or_throw(info);
 
-        expand_refs_to_programs(refs, [&](const std::string& key, const Program& program, std::string category) {
+        expand_refs_to_programs(refs, [&](const std::string& key, const auto& program, std::string category) {
             (void)category; // unused
             if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, program.content.c_str()))
             {
@@ -573,6 +577,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
             }
         });
     }
+    auto t2 = std::chrono::high_resolution_clock::now();
 
     // Add the main program last and its part
     if (!clingo_control_add(ctl, "__program__", nullptr, 0, program.c_str()))
@@ -581,6 +586,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     }
     parts.push_back({"__program__", nullptr, 0});
 
+    auto t3 = std::chrono::high_resolution_clock::now();
     // Ground the program
     if (!clingo_control_ground(ctl, parts.data(), parts.size(), ground_callback, nullptr))
     {
@@ -590,6 +596,8 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     // Solve the program
     std::vector<std::string> answers;
     clingo_solve_handle_t* handle = nullptr;
+
+    auto t4 = std::chrono::high_resolution_clock::now();
 
     // Use clingo_solve_mode_yield to get all answer sets
     if (!clingo_control_solve(ctl, clingo_solve_mode_yield, nullptr, 0, solve_event_callback, &answers, &handle))
@@ -612,10 +620,8 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         handle_clingo_error(env);
     }
 
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    auto t5 = std::chrono::high_resolution_clock::now();
 
-    // Create result object with answers and execution time
     Napi::Object resultObj = Napi::Object::New(env);
 
     Napi::Array answersArray = Napi::Array::New(env, answers.size());
@@ -624,7 +630,12 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         answersArray[i] = Napi::String::New(env, answers[i]);
     }
     resultObj.Set("answers", answersArray);
-    resultObj.Set("executionTime", Napi::Number::New(env, duration.count()));
+    Napi::Object statsObj = Napi::Object::New(env);
+    statsObj.Set("glue", std::chrono::duration_cast<std::chrono::microseconds>(t2 - t).count());
+    statsObj.Set("add", std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count());
+    statsObj.Set("ground", std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count());
+    statsObj.Set("solve", std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count());
+    resultObj.Set("stats", statsObj);
 
     // Parse errors and warnings using the common routine
     NodeClingoLogs logs = parse_clingo_logs(env);

@@ -55,7 +55,12 @@ export class ClingoError extends Error {
  */
 interface ClingoResult {
   answers: string[];
-  executionTime: number;
+  stats: {
+    glue: number;
+    add: number;
+    ground: number;
+    solve: number;
+  };
 }
 
 /**
@@ -101,8 +106,7 @@ async function solve(
   }
 
   try {
-    const result = binding.solve(program, categories ?? []);
-    return result;
+    return binding.solve(program, categories ?? []);
   } catch (error) {
     if (
       error instanceof Error &&
