@@ -18,6 +18,7 @@
 #include <cstring>
 #include <ctime>
 #include <iostream>
+#include <map>
 #include <napi.h>
 #include <set>
 #include <sstream>
@@ -165,34 +166,38 @@ namespace
     * Calls handler once per unique program. If the program came from a category
     * match, category contains the category string; otherwise it is empty.
     */
-    template <typename Handler>
-    void expand_refs_to_programs(const std::set<std::string>& refs, Handler handler)
+    template <typename Handler> void expand_refs_to_programs(const std::set<std::string>& refs, Handler handler)
     {
-        std::set<std::string> addedPrograms;
+
+        // if more optimization is needed, could use a reference to the program instead of a copy
+        std::map<std::string, std::pair<Program, std::string>> selected;
 
         for (const auto& ref : refs)
         {
             auto it = g_programs.find(ref);
-            // insert.second is true if element was inserted
-            // thus, if it is false, the element was already in the set
-            if (it != g_programs.end() && addedPrograms.insert(ref).second)
+
+            // direct match
+            if (it != g_programs.end())
             {
-                handler(ref, it->second, std::string());
-                // no need to check other refs, as ref was a program, not a category
+                selected.emplace(ref, std::pair<Program, std::string>(it->second, ""));
                 continue;
             }
 
-            // If no direct match, check categories
+            // category match
             for (const auto& entry : g_programs)
             {
                 const std::string& key = entry.first;
                 const Program& program = entry.second;
-                if (std::find(program.categories.begin(), program.categories.end(), ref) != program.categories.end() &&
-                    addedPrograms.insert(key).second)
+                if (std::find(program.categories.begin(), program.categories.end(), ref) != program.categories.end())
                 {
-                    handler(key, program, ref);
+                    selected.emplace(key, std::pair<Program, std::string>(program, ref));
                 }
             }
+        }
+
+        for (const auto& [key, programAndCategory] : selected)
+        {
+            handler(key, programAndCategory.first, programAndCategory.second);
         }
     }
 
