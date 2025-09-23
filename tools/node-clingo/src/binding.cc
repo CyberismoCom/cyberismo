@@ -12,6 +12,7 @@
 */
 #include "function_handlers.h"
 #include "helpers.h"
+#include "xxhash.h"
 
 #include <chrono>
 #include <clingo.h>
@@ -49,15 +50,39 @@ namespace
         }
     };
 
+    struct Stats
+    {
+        std::chrono::microseconds glue;
+        std::chrono::microseconds add;
+        std::chrono::microseconds ground;
+        std::chrono::microseconds solve;
+    };
+
+    struct SolveResult
+    {
+        std::vector<std::string> answers;
+        std::vector<ClingoLogMessage> logs;
+        Stats stats;
+    };
+
+    struct CacheEntry
+    {
+        SolveResult result;
+    };
+
     // Program with categories
     struct Program
     {
         std::string content;
         std::vector<std::string> categories;
+        XXH64_hash_t hash;
     };
 
     // stores all programs
     std::unordered_map<std::string, Program> g_programs;
+
+    // stores previous results
+    std::unordered_map<XXH64_hash_t, CacheEntry> g_results;
 
     // For now error messsages are stored in a global vector,
     // If async/threading is needed, we cannot use a single global variable
@@ -80,14 +105,14 @@ namespace
     * @param env The N-API environment.
     * @return NodeClingoLogs containing separated errors and warnings arrays.
     */
-    NodeClingoLogs parse_clingo_logs(const Napi::Env& env)
+    NodeClingoLogs parse_clingo_logs(const Napi::Env& env, const std::vector<ClingoLogMessage>& logMessages)
     {
         NodeClingoLogs logs(env);
 
         size_t errorIndex = 0;
         size_t warningIndex = 0;
 
-        for (const auto& msg : g_errorMessages)
+        for (const auto& msg : logMessages)
         {
             if (msg.isError)
             {
@@ -100,6 +125,29 @@ namespace
         }
 
         return logs;
+    }
+
+    Napi::Object create_napi_object_from_solve_result(const Napi::Env& env, const SolveResult& result)
+    {
+        Napi::Object resultObj = Napi::Object::New(env);
+        Napi::Array answersArray = Napi::Array::New(env, result.answers.size());
+        for (size_t i = 0; i < result.answers.size(); ++i)
+        {
+            answersArray[i] = Napi::String::New(env, result.answers[i]);
+        }
+        resultObj.Set("answers", answersArray);
+        Napi::Object statsObj = Napi::Object::New(env);
+        statsObj.Set("glue", result.stats.glue.count());
+        statsObj.Set("add", result.stats.add.count());
+        statsObj.Set("ground", result.stats.ground.count());
+        statsObj.Set("solve", result.stats.solve.count());
+        resultObj.Set("stats", statsObj);
+
+        NodeClingoLogs logs = parse_clingo_logs(env, result.logs);
+        resultObj.Set("errors", logs.errors);
+        resultObj.Set("warnings", logs.warnings);
+
+        return resultObj;
     }
 
     /**
@@ -120,7 +168,7 @@ namespace
             Napi::Object errorObj = Napi::Object::New(env);
 
             // Parse errors and warnings using the common routine
-            NodeClingoLogs logs = parse_clingo_logs(env);
+            NodeClingoLogs logs = parse_clingo_logs(env, g_errorMessages);
 
             errorObj.Set("errors", logs.errors);
             errorObj.Set("warnings", logs.warnings);
@@ -373,6 +421,7 @@ Napi::Value SetProgram(const Napi::CallbackInfo& info)
     // Create program entry
     Program program;
     program.content = content;
+    program.hash = XXH3_64bits(content.c_str(), content.size());
 
     // Add categories if provided
     if (info.Length() >= 3 && info[2].IsArray())
@@ -546,6 +595,34 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
     }
     // Create the program string once
     std::string program = info[0].As<Napi::String>().Utf8Value();
+    // stores reference strings
+    // NOTE: Important that this is defined here, otherwise c strings will be invalidated
+    std::set<std::string> refs;
+
+    XXH3_state_t* state = XXH3_createState();
+    XXH3_64bits_reset(state);
+    XXH3_64bits_update(state, program.c_str(), program.size());
+
+    // Apply base programs if specified
+    if (info.Length() >= 2)
+    {
+        refs = parse_refs_or_throw(info);
+
+        expand_refs_to_programs(refs, [&](const std::string& key, const auto& program, std::string category) {
+            (void)category; // unused
+            XXH3_64bits_update(state, &program.hash, 8);
+        });
+    }
+
+    XXH64_hash_t hash = XXH3_64bits_digest(state);
+    XXH3_freeState(state);
+
+    if (g_results.find(hash) != g_results.end())
+    {
+        // create a copy of the result
+        Napi::Object result = create_napi_object_from_solve_result(env, g_results[hash].result);
+        return result;
+    }
 
     // Error messages must be cleared before grounding
     g_errorMessages.clear();
@@ -561,27 +638,20 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
 
     // Create vector to store all parts we need to ground
     std::vector<clingo_part_t> parts;
-    // stores reference strings
-    // NOTE: Important that this is defined here, otherwise c strings will be invalidated
-    std::set<std::string> refs;
 
-    // Apply base programs if specified
-    if (info.Length() >= 2)
-    {
-        refs = parse_refs_or_throw(info);
+    // inefficient to call this twice
+    expand_refs_to_programs(refs, [&](const std::string& key, const auto& program, std::string category) {
+        (void)category; // unused
+        if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, program.content.c_str()))
+        {
+            handle_clingo_error(env, key);
+        }
+        else
+        {
+            parts.push_back({key.c_str(), nullptr, 0});
+        }
+    });
 
-        expand_refs_to_programs(refs, [&](const std::string& key, const auto& program, std::string category) {
-            (void)category; // unused
-            if (!clingo_control_add(ctl, key.c_str(), nullptr, 0, program.content.c_str()))
-            {
-                handle_clingo_error(env, key);
-            }
-            else
-            {
-                parts.push_back({key.c_str(), nullptr, 0});
-            }
-        });
-    }
     auto t2 = std::chrono::high_resolution_clock::now();
 
     // Add the main program last and its part
@@ -619,34 +689,28 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         });
 
     // Wait for solving to finish
-    clingo_solve_result_bitset_t result;
-    if (!clingo_solve_handle_get(handle, &result))
+    clingo_solve_result_bitset_t clingo_result;
+    if (!clingo_solve_handle_get(handle, &clingo_result))
     {
         handle_clingo_error(env);
     }
 
     auto t5 = std::chrono::high_resolution_clock::now();
 
-    Napi::Object resultObj = Napi::Object::New(env);
+    SolveResult result = {
+        .answers = answers,
+        .logs = g_errorMessages,
+        .stats =
+            {.glue = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t),
+             .add = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2),
+             .ground = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3),
+             .solve = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4)},
+    };
 
-    Napi::Array answersArray = Napi::Array::New(env, answers.size());
-    for (size_t i = 0; i < answers.size(); ++i)
-    {
-        answersArray[i] = Napi::String::New(env, answers[i]);
-    }
-    resultObj.Set("answers", answersArray);
-    Napi::Object statsObj = Napi::Object::New(env);
-    statsObj.Set("glue", std::chrono::duration_cast<std::chrono::microseconds>(t2 - t).count());
-    statsObj.Set("add", std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2).count());
-    statsObj.Set("ground", std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3).count());
-    statsObj.Set("solve", std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4).count());
-    resultObj.Set("stats", statsObj);
+    Napi::Object resultObj = create_napi_object_from_solve_result(env, result);
 
-    // Parse errors and warnings using the common routine
-    NodeClingoLogs logs = parse_clingo_logs(env);
-
-    resultObj.Set("errors", logs.errors);
-    resultObj.Set("warnings", logs.warnings);
+    // Store the result
+    g_results[hash] = {result};
 
     return resultObj;
 }
