@@ -14,7 +14,8 @@
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "<(conda_prefix)/Library/include"
+        "<(conda_prefix)/Library/include",
+        "external/xxhash"
       ],
       "dependencies": [
         "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except_all"

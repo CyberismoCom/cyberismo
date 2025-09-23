@@ -42,6 +42,7 @@
   "files": [
     "dist",
     "src",
-    "scripts/download-prebuild.js"
+    "scripts/download-prebuild.js",
+    "external"
   ]
 }

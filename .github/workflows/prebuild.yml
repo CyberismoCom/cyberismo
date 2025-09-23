@@ -217,9 +217,6 @@ jobs:
         with:
           path: all-prebuilds
 
-      - name: Download Clingo LICENSE
-        run: curl -L -o CLINGO_LICENSE.md https://raw.githubusercontent.com/potassco/clingo/master/LICENSE.md
-
       - name: Organize prebuilds
         shell: bash
         run: |
@@ -228,11 +225,11 @@ jobs:
           ls -la tools/node-clingo/prebuilds/
           node tools/node-clingo/scripts/collect-prebuilds.js
 
-          # Now, copy the CLINGO_LICENSE.md
+          # Now, copy the THIRD-PARTY.txt
           for platform_arch_dir in tools/node-clingo/prebuilds/*/; do
             if [ -d "$platform_arch_dir" ]; then
               echo "Copying CLINGO_LICENSE.md to ${platform_arch_dir}LICENSE.md"
-              cp CLINGO_LICENSE.md "${platform_arch_dir}LICENSE.md"
+              cp tools/node-clingo/THIRD-PARTY.txt "${platform_arch_dir}THIRD-PARTY.txt"
             fi
           done
 
