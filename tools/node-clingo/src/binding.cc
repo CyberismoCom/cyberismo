@@ -165,7 +165,7 @@ namespace
     * Calls handler once per unique program. If the program came from a category
     * match, category contains the category string; otherwise it is empty.
     */
-    template <std::invocable<const std::string&, const Program&, std::string> Handler>
+    template <typename Handler>
     void expand_refs_to_programs(const std::set<std::string>& refs, Handler handler)
     {
         std::set<std::string> addedPrograms;
