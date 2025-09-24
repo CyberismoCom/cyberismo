@@ -433,7 +433,7 @@ export class FieldTypeResource extends FileResource {
 
     await super.update(key, op);
 
-    const content = this.content as FieldType;
+    const content = structuredClone(this.content) as FieldType;
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'dataType') {

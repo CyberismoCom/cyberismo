@@ -6,8 +6,8 @@
     "name": {
       "description": "The name of the card type",
       "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9]*/?[A-Za-z]*/?[A-Za-z-_]+[.json]*$"
+      "minLength": 7,
+      "pattern": "^[A-Za-z0-9/._-]+$"
     },
     "description": {
       "description": "A description that describes the card type",
@@ -20,8 +20,8 @@
     "workflow": {
       "description": "The name of the workflow",
       "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9]*/?[A-Za-z0-9]*/?[A-Za-z-_]+[.json]*$"
+      "minLength": 7,
+      "pattern": "^[A-Za-z0-9/._-]+$"
     },
     "customFields": {
       "type": "array",
