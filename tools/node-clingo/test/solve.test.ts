@@ -28,7 +28,6 @@ describe('Clingo solver', () => {
     const result = await solve(program);
     const result2 = await solve(program);
 
-
     expect(result.stats).toBeDefined();
     expect(result.stats.glue).toBeGreaterThan(0);
     expect(result.stats.add).toBeGreaterThan(0);

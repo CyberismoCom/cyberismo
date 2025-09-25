@@ -78,7 +78,6 @@ Solves a logic program, optionally combining with one or more stored programs re
   - `ground`: grounding all parts
   - `solve`: solving and collecting models
 
-
 ### `setProgram(key: string, program: string, categories?: string[])`
 
 Stores a program under a key. Optionally assign categories for easier program management.
