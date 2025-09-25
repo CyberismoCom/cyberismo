@@ -11,7 +11,10 @@
         "src/binding.cc",
         "src/helpers.cc",
         "src/function_handlers.cc",
-        "external/xxhash/xxhash.c"
+        "external/xxhash/xxhash.c",
+        "src/clingo_solver.cc",
+        "src/program_store.cc",
+        "src/solve_result_cache.cc"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",

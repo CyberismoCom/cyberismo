@@ -21,7 +21,6 @@ import {
   setProgram,
   removeProgram,
   removeAllPrograms,
-  removeProgramsByCategory,
 } from '@cyberismo/node-clingo';
 
 // Solve a simple logic program
@@ -57,7 +56,6 @@ const result5 = await solve('happy(X) :- friend(X,Y).', ['facts', 'rules']);
 
 // Remove programs
 removeProgram('query'); // removes specific program
-removeProgramsByCategory('facts'); // removes all programs with 'facts' category
 removeAllPrograms(); // clears all programs
 ```
 
@@ -96,12 +94,6 @@ Stores a program under a key. Optionally assign categories for easier program ma
 Removes a stored program by key.
 
 **Returns:** `true` if the program was found and removed, `false` if it didn't exist.
-
-### `removeProgramsByCategory(category: string): number`
-
-Removes all stored programs that have the specified category.
-
-**Returns:** Number of programs removed.
 
 ### `removeAllPrograms()`
 

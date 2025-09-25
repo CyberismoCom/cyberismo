@@ -14,15 +14,20 @@
 #define NODE_CLINGO_HELPERS_H
 
 #include <chrono>
-#include <clingo.h>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include <clingo.h>
+
+#include "xxhash.h"
+
 namespace node_clingo
 {
+
+    using Hash = XXH64_hash_t;
 
     /**
      * Enum for resource name parts.
