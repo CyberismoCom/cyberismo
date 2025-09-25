@@ -20,15 +20,27 @@ describe('Clingo solver', () => {
     expect(result).toBeDefined();
     expect(result.answers).toBeInstanceOf(Array);
     expect(result.answers.length).toBeGreaterThan(0);
+    expect(result.stats).toBeDefined();
   });
+  // TODO: could consider c++ tests so that we can test the cache directly
   it('should return stats object', async () => {
-    const program = 'a. b. c(1). c(2).';
+    const program = 'a. b. c(1). c(3).';
     const result = await solve(program);
+    const result2 = await solve(program);
+
+
     expect(result.stats).toBeDefined();
     expect(result.stats.glue).toBeGreaterThan(0);
     expect(result.stats.add).toBeGreaterThan(0);
     expect(result.stats.ground).toBeGreaterThan(0);
     expect(result.stats.solve).toBeGreaterThan(0);
+
+    // second solve uses cache
+    expect(result2.stats).toBeDefined();
+    expect(result2.stats.glue).toBeGreaterThan(0);
+    expect(result2.stats.add).toBe(0);
+    expect(result2.stats.ground).toBe(0);
+    expect(result2.stats.solve).toBe(0);
   });
 
   it('should reuse default base program across multiple solves', async () => {
