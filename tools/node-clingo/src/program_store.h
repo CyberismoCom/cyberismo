@@ -58,6 +58,7 @@ namespace node_clingo
         std::vector<std::shared_ptr<const Program>> programByReferences(const std::vector<std::string>& references);
 
         KeyHash getOrCreateHash(const std::string& key);
+        bool removeProgram(KeyHash keyHash);
 
       public:
         ProgramStore() = default;

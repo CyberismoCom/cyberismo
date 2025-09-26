@@ -14,6 +14,25 @@
 
 namespace node_clingo
 {
+    bool ProgramStore::removeProgram(KeyHash keyHash)
+    {
+        auto it = programs.find(keyHash);
+        if (it != programs.end())
+        {
+
+            // Remove from category mapping
+            for (const auto& category : it->second->categories)
+            {
+                auto& program_vector = programs_by_category[category];
+                program_vector.erase(
+                    std::remove(program_vector.begin(), program_vector.end(), it->second), program_vector.end());
+            }
+            programs.erase(it);
+
+            return true;
+        }
+        return false;
+    }
     void ProgramStore::addProgram(
         const std::string& key,
         const std::string& content,
@@ -25,11 +44,8 @@ namespace node_clingo
 
         KeyHash hash = getOrCreateHash(key);
 
-        auto it = programs.find(hash);
-        if (it != programs.end())
-        {
-            programs.erase(it);
-        }
+        // remove the previous program
+        removeProgram(hash);
 
         std::vector<KeyHash> categories_hashed;
         categories_hashed.reserve(categories.size());
@@ -50,25 +66,7 @@ namespace node_clingo
             programs_by_category[getOrCreateHash(category)].push_back(shared_program);
         }
     }
-    bool ProgramStore::removeProgramByKey(const std::string& key)
-    {
-        auto it = programs.find(key_to_hash[key]);
-        if (it != programs.end())
-        {
-
-            // Remove from category mapping
-            for (const auto& category : it->second->categories)
-            {
-                auto& program_vector = programs_by_category[category];
-                program_vector.erase(
-                    std::remove(program_vector.begin(), program_vector.end(), it->second), program_vector.end());
-            }
-            programs.erase(it);
-
-            return true;
-        }
-        return false;
-    }
+    bool ProgramStore::removeProgramByKey(const std::string& key) { return removeProgram(getOrCreateHash(key)); }
     void ProgramStore::removeAllPrograms()
     {
         programs.clear();
