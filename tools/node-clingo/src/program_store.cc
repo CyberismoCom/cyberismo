@@ -33,9 +33,10 @@ namespace node_clingo
 
         std::vector<KeyHash> categories_hashed;
         categories_hashed.reserve(categories.size());
-        std::transform(categories.begin(), categories.end(), categories_hashed.begin(), [this](auto const& category) {
-            return getOrCreateHash(category);
-        });
+        std::transform(
+            categories.begin(), categories.end(), std::back_inserter(categories_hashed), [this](auto const& category) {
+                return getOrCreateHash(category);
+            });
 
         auto shared_program = std::make_shared<const Program>(key, content, categories_hashed, content_hash);
         programs[hash] = shared_program;
@@ -58,16 +59,9 @@ namespace node_clingo
             // Remove from category mapping
             for (const auto& category : it->second->categories)
             {
-                auto program_vector = programs_by_category[category];
+                auto& program_vector = programs_by_category[category];
                 program_vector.erase(
-                    std::remove_if(
-                        program_vector.begin(),
-                        program_vector.end(),
-                        [&it](const std::weak_ptr<const Program>& w) {
-                            // same object
-                            return !w.owner_before(it->second) && !it->second.owner_before(w);
-                        }),
-                    program_vector.end());
+                    std::remove(program_vector.begin(), program_vector.end(), it->second), program_vector.end());
             }
             programs.erase(it);
 
@@ -109,12 +103,9 @@ namespace node_clingo
             {
                 for (auto program_ptr : it_category->second)
                 {
-                    if (auto shared_program = program_ptr.lock())
+                    if (seen.insert(program_ptr.get()).second)
                     {
-                        if (seen.insert(shared_program.get()).second)
-                        {
-                            result.push_back(shared_program);
-                        }
+                        result.push_back(program_ptr);
                     }
                 }
             }

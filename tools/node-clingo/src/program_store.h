@@ -48,7 +48,7 @@ namespace node_clingo
 
       private:
         std::unordered_map<KeyHash, std::shared_ptr<const Program>> programs;
-        std::unordered_map<KeyHash, std::vector<std::weak_ptr<const Program>>> programs_by_category;
+        std::unordered_map<KeyHash, std::vector<std::shared_ptr<const Program>>> programs_by_category;
         std::unordered_map<std::string, KeyHash> key_to_hash;
         std::atomic<int> next_key = 0;
         std::vector<std::shared_ptr<const Program>> programByReferences(const std::vector<std::string>& references);
