@@ -71,7 +71,7 @@ jobs:
           # Native builds
           - os: ubuntu-latest
             arch: x64
-          - os: macos-13
+          - os: macos-15-intel
             arch: x64
           - os: macos-latest # Apple Silicon runner
             arch: arm64
@@ -130,7 +130,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: tools/node-clingo
-        run: pnpm install
+        run: pnpm install --ignore-scripts
 
       - name: Prebuild Linux (glibc)
         if: runner.os == 'Linux'
