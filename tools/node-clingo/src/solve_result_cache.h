@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -51,14 +52,25 @@ namespace node_clingo
         std::string key;
     };
 
-    struct CacheEntry
-    {
-        SolveResult result;
-    };
-
     class SolveResultCache {
       private:
-        std::unordered_map<Hash, SolveResult> results;
+        static constexpr std::size_t CACHE_CAPACITY_MB = 16;
+        static constexpr std::size_t CACHE_CAPACITY_BYTES = CACHE_CAPACITY_MB * 1024ull * 1024ull;
+        static constexpr std::size_t VECTOR_OVERHEAD_BYTES = sizeof(std::vector<std::string>);
+
+        struct Entry
+        {
+            SolveResult result;
+            std::size_t sizeBytes;
+            std::list<Hash>::iterator lruIt;
+        };
+
+        std::unordered_map<Hash, Entry> entries;
+        // front = most recently used, back = least recently used
+        std::list<Hash> lru;
+        std::size_t currentBytes = 0;
+
+        static std::size_t estimateSizeBytes(const SolveResult& result);
 
       public:
         SolveResultCache();
