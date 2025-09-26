@@ -35,6 +35,10 @@ namespace node_clingo
         std::string content;
         std::vector<KeyHash> categories;
         Hash hash;
+        Program(std::string key_, std::string content_, std::vector<KeyHash> categories_, Hash hash_)
+            : key(std::move(key_)), content(std::move(content_)), categories(std::move(categories_)), hash(hash_)
+        {
+        }
     };
 
     struct Query
