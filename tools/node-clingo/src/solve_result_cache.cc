@@ -79,6 +79,15 @@ namespace node_clingo
         auto it = entries.find(hash);
         if (it != entries.end())
         {
+            // Expire stale entries based on valid_until
+            if (it->second.result.valid_until > 0 && current_epoch_ms() > it->second.result.valid_until)
+            {
+                // Remove expired entry
+                lru.erase(it->second.lruIt);
+                currentBytes -= it->second.sizeBytes;
+                entries.erase(it);
+                return false;
+            }
             lru.erase(it->second.lruIt);
             lru.push_front(hash);
             it->second.lruIt = lru.begin();

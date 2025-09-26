@@ -50,6 +50,7 @@ namespace node_clingo
         std::vector<ClingoLogMessage> logs;
         Stats stats;
         std::string key;
+        int64_t valid_until = 0;
     };
 
     class SolveResultCache {

@@ -34,6 +34,12 @@ namespace node_clingo
         auto it = handlers.find(name);
         if (it != handlers.end())
         {
+            // Mark solver as time dependent when calling the @today handler
+            if (it->first == std::string("today"))
+            {
+                ClingoSolver* solver = static_cast<ClingoSolver*>(data);
+                solver->todayCalled = true;
+            }
             return it->second(arguments, arguments_size, symbol_callback, symbol_callback_data);
         }
 
@@ -146,6 +152,7 @@ namespace node_clingo
     SolveResult ClingoSolver::solve(const Query& query)
     {
         errorMessages.clear();
+        todayCalled = false;
         auto t1 = std::chrono::high_resolution_clock::now();
 
         // Initialize Clingo control
@@ -184,7 +191,7 @@ namespace node_clingo
 
         auto t2 = std::chrono::high_resolution_clock::now();
         // Ground the program
-        if (!clingo_control_ground(ctl, parts.data(), parts.size(), ground_callback, nullptr))
+        if (!clingo_control_ground(ctl, parts.data(), parts.size(), ground_callback, this))
         {
             return errorResult();
         }
@@ -229,7 +236,8 @@ namespace node_clingo
                     .ground = std::chrono::duration_cast<std::chrono::microseconds>(t3 - t2),
                     .solve = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3),
                 },
-            .key = ""
+            .key = "",
+            .valid_until = todayCalled ? next_local_midnight_epoch_ms() : 0,
 
         };
         return result;

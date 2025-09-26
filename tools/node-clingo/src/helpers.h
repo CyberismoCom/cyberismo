@@ -105,6 +105,16 @@ namespace node_clingo
         void* symbol_callback_data,
         ResourcePart part);
 
+    /**
+     * Returns current epoch milliseconds.
+     */
+    int64_t current_epoch_ms();
+
+    /**
+     * Returns epoch milliseconds for the next local midnight.
+     */
+    int64_t next_local_midnight_epoch_ms();
+
 } // namespace node_clingo
 
 #endif // NODE_CLINGO_HELPERS_H

@@ -13,8 +13,10 @@
 #ifndef NODE_CLINGO_CLINGO_SOLVER_H
 #define NODE_CLINGO_CLINGO_SOLVER_H
 
+#include <ctime>
 #include <memory>
 #include <sstream>
+#include <time.h>
 
 #include <clingo.h>
 
@@ -29,6 +31,7 @@ namespace node_clingo
       private:
         std::vector<ClingoLogMessage> errorMessages;
         std::vector<std::string> answers;
+        bool todayCalled = false;
 
         /**
         * Callback function provided to clingo_control_ground.
