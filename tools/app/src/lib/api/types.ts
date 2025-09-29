@@ -204,16 +204,15 @@ export type NodeTypeMap = {
 export type GenericNode<T extends NodeKey> = NodeTypeMap[T];
 
 export type ResourceNode =
+  | CalculationNode
   | CardTypeNode
   | FieldTypeNode
-  | LinkTypeNode
-  | WorkflowNode
-  | TemplateNode
-  | ReportNode
   | GraphModelNode
   | GraphViewNode
-  | CalculationNode;
-
+  | LinkTypeNode
+  | ReportNode
+  | WorkflowNode
+  | TemplateNode;
 export type NodeType = AnyNode['type'];
 
 // Type guard helpers for working with ResourceNode
