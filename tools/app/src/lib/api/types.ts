@@ -185,20 +185,20 @@ export type AnyNode =
 export type NodeKey = AnyNode['type'];
 // map key to node type
 export type NodeTypeMap = {
-  file: FileNode;
-  resourceGroup: ResourceGroupNode;
-  module: ModuleNode;
-  modulesGroup: ModulesGroupNode;
+  calculations: CalculationNode;
   card: CardNode;
   cardTypes: CardTypeNode;
   fieldTypes: FieldTypeNode;
-  linkTypes: LinkTypeNode;
-  workflows: WorkflowNode;
-  templates: TemplateNode;
-  reports: ReportNode;
+  file: FileNode;
   graphModels: GraphModelNode;
   graphViews: GraphViewNode;
-  calculations: CalculationNode;
+  linkTypes: LinkTypeNode;
+  module: ModuleNode;
+  modulesGroup: ModulesGroupNode;
+  reports: ReportNode;
+  resourceGroup: ResourceGroupNode;
+  templates: TemplateNode;
+  workflows: WorkflowNode;
 };
 
 export type GenericNode<T extends NodeKey> = NodeTypeMap[T];
