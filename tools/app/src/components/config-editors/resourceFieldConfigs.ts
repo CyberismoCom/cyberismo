@@ -12,6 +12,7 @@
 */
 
 import type { AnyNode, ResourceNode } from '@/lib/api/types';
+import { DATA_TYPES } from '@/lib/constants';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
 export type FieldType =
@@ -39,18 +40,7 @@ const commonFields: FieldConfig[] = [
   { key: 'description', type: 'textarea', label: 'description' },
 ];
 
-const dataTypeOptions = [
-  'boolean',
-  'date',
-  'dateTime',
-  'enum',
-  'integer',
-  'list',
-  'longText',
-  'number',
-  'person',
-  'shortText',
-].map((dt) => ({ id: dt, displayName: dt }));
+const dataTypeOptions = DATA_TYPES.map((dt) => ({ id: dt, displayName: dt }));
 
 // Helper functions for options
 const getWorkflowOptions = (resourceTree: AnyNode[]) =>
