@@ -54,7 +54,7 @@ jobs:
   build-and-publish:
     needs: version-check
     if: needs.version-check.outputs.version-changed == 'true'
-    runs-on: cyberismo_ubuntu_x64
+    runs-on: ubuntu-latest
 
     permissions:
       contents: write
