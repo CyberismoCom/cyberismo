@@ -175,11 +175,11 @@ interface FileNode extends BaseResourceNode {
 
 // Union type for all possible resource nodes
 export type AnyNode =
+  | CardNode
   | FileNode
-  | ResourceGroupNode
   | ModuleNode
   | ModulesGroupNode
-  | CardNode
+  | ResourceGroupNode
   | ResourceNode;
 
 export type NodeKey = AnyNode['type'];
