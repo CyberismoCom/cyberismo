@@ -28,17 +28,17 @@ type ResourceRendererMap = {
 };
 
 const resourceMap: Partial<ResourceRendererMap> = {
+  calculations: (node, key) => <CalculationEditor node={node} key={key} />,
+  card: (node, key) => <ConfigCardEditor node={node} key={key} />,
+  cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
+  fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   file: (node, key) => <TextEditor node={node} key={key} />,
   graphModels: (node, key) => <ResourceEditor node={node} key={key} />,
   graphViews: (node, key) => <ResourceEditor node={node} key={key} />,
+  linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   reports: (node, key) => <ResourceEditor node={node} key={key} />,
   templates: (node, key) => <ResourceEditor node={node} key={key} />,
   workflows: (node, key) => <ResourceEditor node={node} key={key} />,
-  calculations: (node, key) => <CalculationEditor node={node} key={key} />,
-  cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  card: (node, key) => <ConfigCardEditor node={node} key={key} />,
 };
 
 function findNode(
