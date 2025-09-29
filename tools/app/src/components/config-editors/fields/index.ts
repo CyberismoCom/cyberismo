@@ -1,15 +1,6 @@
-import BooleanInput from './BooleanInput';
-import IdentifierInput from './IdentifierInput';
-import MultiSelectInput from './MultiSelectInput';
-import SelectInput from './SelectInput';
-import TextareaInput from './TextareaInput';
-import TextInput from './TextInput';
-
-export {
-  BooleanInput,
-  IdentifierInput,
-  MultiSelectInput,
-  SelectInput,
-  TextareaInput,
-  TextInput,
-};
+  export {default as BooleanInput} from './BooleanInput';
+  export {default as IdentifierInput} from './IdentifierInput';
+  export {default as MultiSelectInput} from './MultiSelectInput';
+  export {default as SelectInput} from './SelectInput';
+  export {default as TextareaInput} from './TextareaInput';
+  export {default as TextInput} from './TextInput';
