@@ -117,7 +117,7 @@ export class LinkTypeResource extends FileResource {
 
     await super.update(key, op);
 
-    const content = this.content as LinkType;
+    const content = structuredClone(this.content) as LinkType;
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'destinationCardTypes') {

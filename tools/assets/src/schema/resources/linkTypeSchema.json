@@ -12,9 +12,10 @@
       "type": "string"
     },
     "name": {
-      "type": "string",
       "description": "The technical name by which the field is referred to in JSON files.",
-      "pattern": "^[A-Za-z0-9/._-]+$"
+      "minLength": 7,
+      "pattern": "^[A-Za-z0-9/._-]+$",
+      "type": "string"
     },
     "outboundDisplayName": {
       "type": "string",

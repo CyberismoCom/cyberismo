@@ -1155,6 +1155,22 @@ describe('resources', function () {
       expect(res.data.name).equals('decision/cardTypes/newname');
       await res.delete();
     });
+    it('rename card type to contain number', async () => {
+      const res = new CardTypeResource(
+        project,
+        resourceName('decision/cardTypes/newResForRename'),
+      );
+      await res.createCardType('decision/workflows/decision');
+      await res.rename(resourceName('decision/cardTypes/newnameWithNumber2'));
+      expect(res.data.name).equals('decision/cardTypes/newnameWithNumber2');
+      await res.update('name', {
+        name: 'change',
+        to: 'decision/cardTypes/newnameWithNumber3',
+        target: 'name',
+      });
+      expect(res.data.name).equals('decision/cardTypes/newnameWithNumber3');
+      await res.delete();
+    });
     it('rename graph model', async () => {
       const res = new GraphModelResource(
         project,
@@ -1468,6 +1484,14 @@ describe('resources', function () {
       );
     });
     it('update card type - add element to customFields', async () => {
+      const fieldType = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/newOne'),
+      );
+      if (!fieldType.data) {
+        await fieldType.createFieldType('shortText');
+      }
+
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/customFields'),
@@ -1538,10 +1562,33 @@ describe('resources', function () {
       ).to.be.rejected;
     });
     it('update card type - remove element from customFields', async () => {
+      const fieldType = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/newOne'),
+      );
+      if (!fieldType.data) {
+        await fieldType.createFieldType('shortText');
+      }
+
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/customFields'),
       );
+      if (!res.data) {
+        await res.createCardType('decision/workflows/decision');
+      }
+
+      // Ensure we have a field to remove by adding it first (if not already present)
+      const hasField = (res.data as CardType).customFields.some(
+        (field) => field.name === 'decision/fieldTypes/newOne',
+      );
+      if (!hasField) {
+        await res.update('customFields', {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        });
+      }
+
       // First add the to-be-removed field to optionally and always visible fields.
       // todo: probably couldn't really exist in both arrays?
       await res.update('optionallyVisibleFields', {
@@ -1563,10 +1610,37 @@ describe('resources', function () {
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
     });
     it('update card type - add two elements to customFields, then move last one to first', async () => {
+      const fieldType1 = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/newOne'),
+      );
+      const fieldType2 = new FieldTypeResource(
+        project,
+        resourceName('decision/fieldTypes/secondNewOne'),
+      );
+
+      if (!fieldType1.data) {
+        await fieldType1.createFieldType('shortText');
+      }
+      if (!fieldType2.data) {
+        await fieldType2.createFieldType('shortText');
+      }
+
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/customFields'),
       );
+      if (!res.data) {
+        await res.createCardType('decision/workflows/decision');
+      }
+      const currentFields = [...(res.data as CardType).customFields];
+      for (const field of currentFields) {
+        await res.update('customFields', {
+          name: 'remove',
+          target: { name: field.name },
+        });
+      }
+
       expect((res.data as CardType).customFields.length).to.equal(0);
       await res.update('customFields', {
         name: 'add',

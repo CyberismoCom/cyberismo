@@ -233,7 +233,10 @@ export class CardTypeResource extends FileResource {
   }
 
   // If value from 'customFields' is removed, remove it also from 'optionallyVisible' and 'alwaysVisible' arrays.
-  private removeValueFromOtherArrays<Type>(op: Operation<Type>) {
+  private removeValueFromOtherArrays<Type>(
+    op: Operation<Type>,
+    content: CardType,
+  ) {
     // Update target can be a string, or an object. Of object, fetch only 'name'
     // todo: fetching 'name' or using string as name could be function in resource base class.
     const target = (op as RemoveOperation<Type>).target as Type;
@@ -242,8 +245,8 @@ export class CardTypeResource extends FileResource {
       field = { name: target['name' as keyof Type] };
     }
     const fieldName = (field ? field.name : target) as string;
-    this.removeValue(this.data.alwaysVisibleFields, fieldName);
-    this.removeValue(this.data.optionallyVisibleFields, fieldName);
+    this.removeValue(content.alwaysVisibleFields, fieldName);
+    this.removeValue(content.optionallyVisibleFields, fieldName);
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -481,7 +484,7 @@ export class CardTypeResource extends FileResource {
     const existingName = this.content.name;
     await super.update(key, op);
 
-    const content = this.content as CardType;
+    const content = structuredClone(this.content) as CardType;
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'alwaysVisibleFields') {
@@ -513,12 +516,11 @@ export class CardTypeResource extends FileResource {
         content.customFields as Type[],
       ) as CustomField[];
       if (op.name === 'remove') {
-        this.removeValueFromOtherArrays(op);
+        this.removeValueFromOtherArrays(op, content);
       }
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }
-
     await super.postUpdate(content, key, op);
 
     // Renaming this card type causes that references to its name must be updated.

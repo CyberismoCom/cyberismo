@@ -5,9 +5,9 @@
   "properties": {
     "cardType": {
       "type": "string",
-      "minLength": 1,
+      "minLength": 7,
       "description": "The name of the card type",
-      "pattern": "^[A-Za-z]*/?[A-Za-z]*/?[A-Za-z-_]+$"
+      "pattern": "^[A-Za-z0-9/._-]+$"
     },
     "title": {
       "type": "string",
