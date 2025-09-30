@@ -186,7 +186,6 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
     });
-    it('show importableModules - success()', async () => {});
     it('shows labels - success()', async () => {
       const result = await commandHandler.command(
         Cmd.show,
@@ -517,7 +516,21 @@ describe('shows command', () => {
         ],
         optionsDecision,
       );
-      await commandHandler.command(Cmd.fetch, ['hubs'], optionsDecision);
+      const fetchResult = await commandHandler.command(
+        Cmd.fetch,
+        ['hubs'],
+        optionsDecision,
+      );
+      expect(fetchResult.statusCode, 'BeforeEach fetch failed').to.equal(200);
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      const modules = Object.values(result.payload!);
+      if (modules.length === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     });
 
     afterEach(async () => {
@@ -541,7 +554,7 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length === 4);
+      expect(payloadAsArray.length).to.equal(4);
       expect(payloadAsArray.at(0)).to.equal('base');
       expect(payloadAsArray.at(1)).to.equal('eucra');
       expect(payloadAsArray.at(2)).to.equal('ismsa');
@@ -557,7 +570,7 @@ describe('shows command', () => {
       );
       expect(result.statusCode).to.equal(200);
       const payloadAsArray = Object.values(result.payload!);
-      expect(payloadAsArray.length === 4);
+      expect(payloadAsArray.length).to.equal(4);
       expect(payloadAsArray.at(0).name).to.equal('base');
       expect(payloadAsArray.at(1).name).to.equal('eucra');
       expect(payloadAsArray.at(2).name).to.equal('ismsa');
@@ -569,7 +582,7 @@ describe('shows command', () => {
     });
 
     it('show importableModule all - success()', async () => {
-      optionsDecision.details = false;
+      optionsDecision.details = true;
       let result = await commandHandler.command(
         Cmd.show,
         ['importableModules'],
@@ -578,14 +591,25 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       let payloadAsArray = Object.values(result.payload!);
       // initially, all modules from hub are importable
-      expect(payloadAsArray.length === 2);
+      expect(payloadAsArray.length).to.equal(4);
+
+      // Convert SSH URL to HTTPS URL for CI compatibility
+      let baseModuleLocation = payloadAsArray.at(0).location;
+      if (baseModuleLocation.startsWith('git@github.com:')) {
+        baseModuleLocation = baseModuleLocation.replace(
+          'git@github.com:',
+          'https://github.com/',
+        );
+      }
 
       // import 'base'
-      await commandHandler.command(
+      const res = await commandHandler.command(
         Cmd.import,
-        ['module', payloadAsArray.at(0)],
+        ['module', baseModuleLocation],
         optionsDecision,
       );
+
+      expect(res.statusCode, 'Importing "base" failed').to.equal(200);
       result = await commandHandler.command(
         Cmd.show,
         ['importableModules'],
@@ -594,7 +618,7 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       payloadAsArray = Object.values(result.payload!);
       // then, importable module count goes down by one
-      expect(payloadAsArray.length === 1);
+      expect(payloadAsArray.length).to.equal(3);
       optionsDecision.showAll = true;
       result = await commandHandler.command(
         Cmd.show,
@@ -604,8 +628,8 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       payloadAsArray = Object.values(result.payload!);
       // all modules are still contain 'base'
-      expect(payloadAsArray.length === 2);
-    });
+      expect(payloadAsArray.length).to.equal(4);
+    }).timeout(30000);
   });
 });
 
