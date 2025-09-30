@@ -30,6 +30,7 @@ import {
 import type {
   GraphModel,
   GraphModelMetadata,
+  GraphModelUpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
 import { writeFileSafe } from '../utils/file-utils.js';
@@ -47,8 +48,11 @@ export class GraphModelResource extends FolderResource {
     this.initialize();
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
+  /**
+   * Handle name changes for graph models
+   * @param existingName The previous name before the change
+   */
+  protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name, [
         await this.calculationFile(),
@@ -123,7 +127,7 @@ export class GraphModelResource extends FolderResource {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -142,39 +146,17 @@ export class GraphModelResource extends FolderResource {
    * Updates graph model resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
-   * @throws if key is unknown.
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
-    if (key === 'content' || super.isContentFilePath(key)) {
-      return key === 'content'
-        ? await super.handleContentUpdate(op)
-        : await super.handleContentFileUpdate(key, op);
+  public async update<Type>(key: GraphModelUpdateKey, op: Operation<Type>) {
+    if (key === 'category') {
+      const content = structuredClone(this.content) as GraphModelMetadata;
+      content.category = super.handleScalar(op) as string;
+
+      await super.postUpdate(content, key, op);
+      return;
     }
 
     await super.update(key, op);
-
-    const content = structuredClone(this.content) as GraphModel;
-
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'category') {
-      content.category = super.handleScalar(op) as string;
-    } else {
-      throw new Error(`Unknown property '${key}' for GraphModel`);
-    }
-
-    await super.postUpdate(content, key, op);
-
-    // Renaming this graph model causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
-    }
   }
 
   /**

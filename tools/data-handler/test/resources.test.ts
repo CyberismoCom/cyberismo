@@ -1949,26 +1949,19 @@ describe('resources', function () {
         project,
         resourceName('decision/reports/newREP'),
       );
-      await res.update('content/contentTemplate', {
-        name: 'change',
-        target: '',
-        to: 'Updated template',
-      });
-      const data = await res.show();
-      expect(data.content.contentTemplate).to.include('Updated');
-    });
-    it('try to update report content that is not valid', async () => {
-      const res = new ReportResource(
-        project,
-        resourceName('decision/reports/newREP'),
-      );
-      await expect(
-        res.update('content/nonExists', {
+      await res.update(
+        {
+          key: 'content',
+          subKey: 'contentTemplate',
+        },
+        {
           name: 'change',
           target: '',
-          to: 'Updated description',
-        }),
-      ).to.be.rejectedWith("File 'nonExists' is not allowed");
+          to: 'Updated template',
+        },
+      );
+      const data = await res.show();
+      expect(data.content.contentTemplate).to.include('Updated');
     });
     it('update template scalar values', async () => {
       const res = new TemplateResource(

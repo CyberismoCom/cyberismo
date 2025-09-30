@@ -57,13 +57,15 @@ export class TemplateResource extends FolderResource {
     });
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
+  /**
+   * Handle name changes for templates
+   * @param existingName The previous name before the change
+   */
+  protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
     ]);
-    // Finally, write updated content.
     await this.write();
   }
 
@@ -105,7 +107,7 @@ export class TemplateResource extends FolderResource {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -144,7 +146,10 @@ export class TemplateResource extends FolderResource {
     const nameChange = key === 'name';
     const existingName = this.content.name;
 
-    await super.update(key, op);
+    // Only call super.update for keys that base class supports
+    if (key === 'name' || key === 'displayName' || key === 'description') {
+      await super.update(key, op);
+    }
 
     const content = structuredClone(this.content) as TemplateMetadata;
 
@@ -164,7 +169,7 @@ export class TemplateResource extends FolderResource {
 
     // Renaming this template causes that references to its name must be updated.
     if (nameChange) {
-      await this.handleNameChange(existingName);
+      await this.onNameChange(existingName);
     }
   }
 

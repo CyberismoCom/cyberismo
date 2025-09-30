@@ -12,9 +12,9 @@
 */
 
 import type {
-  ReportContent,
   GraphModelContent,
   GraphViewContent,
+  ReportContent,
 } from './folder-content-interfaces.js';
 
 /**
@@ -34,6 +34,12 @@ export interface CardType extends ResourceBaseMetadata {
   customFields: CustomField[];
   alwaysVisibleFields: string[];
   optionallyVisibleFields: string[];
+}
+
+// Base content update key interface
+export interface ContentUpdateKey {
+  key: 'content';
+  subKey: string; // Resource-specific types should narrow this
 }
 
 // Custom field
@@ -75,18 +81,30 @@ export interface FieldType extends ResourceBaseMetadata {
 export interface GraphModelMetadata extends ResourceBaseMetadata {
   category?: string;
 }
-
 export interface GraphModel extends GraphModelMetadata {
   content: GraphModelContent;
 }
+export type GraphModelContentPropertyName = 'model';
+export interface GraphModelContentUpdateKey {
+  key: 'content';
+  subKey: GraphModelContentPropertyName;
+}
+export type GraphModelUpdateKey = string | GraphModelContentUpdateKey;
+
 // Graph view content.
 export interface GraphViewMetadata extends ResourceBaseMetadata {
   category?: string;
 }
-
+export type GraphViewContentPropertyName = 'viewTemplate';
 export interface GraphView extends GraphViewMetadata {
   content: GraphViewContent;
 }
+export interface GraphViewContentUpdateKey {
+  key: 'content';
+  subKey: GraphViewContentPropertyName;
+}
+export type GraphViewUpdateKey = string | GraphViewContentUpdateKey;
+
 // Link content.
 export interface Link {
   linkType: string;
@@ -107,6 +125,18 @@ export interface LinkType extends ResourceBaseMetadata {
 export interface Report extends ResourceBaseMetadata {
   content: ReportContent;
 }
+
+// Resource-specific content names
+export type ReportContentPropertyName =
+  | 'contentTemplate'
+  | 'queryTemplate'
+  | 'schema';
+// Resource-specific content update keys
+export interface ReportContentUpdateKey {
+  key: 'content';
+  subKey: ReportContentPropertyName;
+}
+export type ReportUpdateKey = string | ReportContentUpdateKey;
 
 // Metadata for report
 export interface ReportMetadata extends ResourceBaseMetadata {
@@ -144,6 +174,9 @@ export interface TemplateConfiguration extends ResourceBaseMetadata {
 export interface TemplateMetadata extends ResourceBaseMetadata {
   category?: string;
 }
+
+// Generic update key (content updates only use typed keys)
+export type UpdateKey = string | ContentUpdateKey;
 
 // Workflow's json file content.
 export interface Workflow extends ResourceBaseMetadata {

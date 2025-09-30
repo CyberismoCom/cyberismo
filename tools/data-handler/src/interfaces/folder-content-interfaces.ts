@@ -13,29 +13,14 @@
 
 import type { Schema } from 'jsonschema';
 
-// File mappings for Report resources
-export const REPORT_FILE_MAPPINGS = {
+// All file mappings for lookup (filename -> property name)
+export const ALL_FILE_MAPPINGS = {
   'index.adoc.hbs': 'contentTemplate',
   'query.lp.hbs': 'queryTemplate',
   'parameterSchema.json': 'schema',
-};
-
-// File mappings for Graph Model resources
-export const GRAPH_MODEL_FILE_MAPPINGS = {
   'model.lp': 'model',
-};
-
-// File mappings for Graph View resources
-export const GRAPH_VIEW_FILE_MAPPINGS = {
   'view.lp.hbs': 'viewTemplate',
-};
-
-// All file mappings combined for lookup
-export const ALL_FILE_MAPPINGS = {
-  ...REPORT_FILE_MAPPINGS,
-  ...GRAPH_MODEL_FILE_MAPPINGS,
-  ...GRAPH_VIEW_FILE_MAPPINGS,
-};
+} as const;
 
 // Reverse mappings from property names to filenames
 export const REVERSE_FILE_MAPPINGS = {
@@ -44,7 +29,7 @@ export const REVERSE_FILE_MAPPINGS = {
   schema: 'parameterSchema.json',
   model: 'model.lp',
   viewTemplate: 'view.lp.hbs',
-};
+} as const;
 
 // Content interface for Report resources
 export interface ReportContent {
@@ -61,27 +46,6 @@ export interface GraphModelContent {
 // Content interface for Graph View resources
 export interface GraphViewContent {
   viewTemplate?: string;
-}
-
-// Check if a filename is a report file
-export function isReportFile(
-  filename: string,
-): filename is keyof typeof REPORT_FILE_MAPPINGS {
-  return filename in REPORT_FILE_MAPPINGS;
-}
-
-// Check if a filename is a graph model file
-export function isGraphModelFile(
-  filename: string,
-): filename is keyof typeof GRAPH_MODEL_FILE_MAPPINGS {
-  return filename in GRAPH_MODEL_FILE_MAPPINGS;
-}
-
-// Check if a filename is a graph view file
-export function isGraphViewFile(
-  filename: string,
-): filename is keyof typeof GRAPH_VIEW_FILE_MAPPINGS {
-  return filename in GRAPH_VIEW_FILE_MAPPINGS;
 }
 
 // Get property name for a filename
