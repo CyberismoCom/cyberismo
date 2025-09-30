@@ -19,6 +19,20 @@ describe('Cli BAT test', function () {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
   });
+  it('check version', function (done) {
+    exec('cyberismo --version', (error, stdout, _stderr) => {
+      if (error != null) {
+        console.log(error);
+      }
+      expect(error).to.be.null;
+      // Expect version information to be <int>.<int>.<int>,
+      // where each can be single or multiple digits (0-9)
+      const re = /^(\d+\.)?(\d+\.)?(\d+)$/gm;
+      const valid = re.test(stdout.trim());
+      expect(valid).to.equal(true);
+      done();
+    });
+  });
   it('validate test-module', function (done) {
     exec(
       `cd ../../module-test&&cyberismo validate`,
