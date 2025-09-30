@@ -9,7 +9,8 @@
     You should have received a copy of the GNU Affero General Public
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-import { DragEventHandler, ReactNode, useState } from 'react';
+import type { DragEventHandler, ReactNode } from 'react';
+import { useState } from 'react';
 
 function DnDFile({
   children,

@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createTemplate, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { TemplateForm } from './TemplateForm';
-import { CreateTemplateData } from '@/lib/definitions';
+import type { CreateTemplateData } from '@/lib/definitions';
 
 interface NewTemplateModalProps {
   open: boolean;

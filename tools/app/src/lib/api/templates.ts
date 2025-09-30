@@ -13,9 +13,9 @@
 import { useSWRHook } from './common';
 import { apiPaths, callApi } from '../swr';
 import { mutate } from 'swr';
-import { CreateTemplateData } from '@/lib/definitions';
+import type { CreateTemplateData } from '@/lib/definitions';
 
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 
 export const useTemplates = (options?: SWRConfiguration) =>
   useSWRHook<'templates'>(apiPaths.templates(), 'templates', null, options);

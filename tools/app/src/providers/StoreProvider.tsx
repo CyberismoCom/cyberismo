@@ -10,11 +10,13 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ReactNode, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { useRef } from 'react';
 import { Provider } from 'react-redux';
-import { makeStore, AppStore } from '../lib/store';
+import type { AppStore } from '../lib/store';
+import { makeStore } from '../lib/store';
 import { PersistGate } from 'redux-persist/integration/react';
-import { Persistor } from 'redux-persist';
+import type { Persistor } from 'redux-persist';
 
 export default function StoreProvider({ children }: { children: ReactNode }) {
   const storeRef = useRef<AppStore>(null);

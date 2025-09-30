@@ -12,8 +12,8 @@
 */
 
 import { useTranslation } from 'react-i18next';
-import { ResourceFormProps } from './BaseResourceModal';
-import { CreateGraphModelData } from '@/lib/definitions';
+import type { ResourceFormProps } from './BaseResourceModal';
+import type { CreateGraphModelData } from '@/lib/definitions';
 import BaseCreateForm from './BaseCreateForm';
 import IdentifierField from './IdentifierField';
 
