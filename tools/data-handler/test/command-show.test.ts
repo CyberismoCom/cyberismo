@@ -522,20 +522,15 @@ describe('shows command', () => {
         optionsDecision,
       );
       expect(fetchResult.statusCode, 'BeforeEach fetch failed').to.equal(200);
-      let modules;
-      let attempts = 0;
-      do {
-        const result = await commandHandler.command(
-          Cmd.show,
-          ['importableModules'],
-          optionsDecision,
-        );
-        modules = Object.values(result.payload!);
-        attempts++;
-        if (modules.length === 0 && attempts < 10) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      } while (modules.length === 0 && attempts < 10);
+      const result = await commandHandler.command(
+        Cmd.show,
+        ['importableModules'],
+        optionsDecision,
+      );
+      const modules = Object.values(result.payload!);
+      if (modules.length === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     });
 
     afterEach(async () => {
