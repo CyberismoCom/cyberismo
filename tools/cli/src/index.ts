@@ -679,7 +679,7 @@ importCmd
             options.projectPath,
           );
           const moduleListPath = resolve(projectPath, '.temp/moduleList.json');
-          let moduleListContent = '{ modules: [] }';
+          let moduleListContent = '{ "modules": [] }';
           try {
             moduleListContent = await readFile(moduleListPath, 'utf-8');
           } catch {
