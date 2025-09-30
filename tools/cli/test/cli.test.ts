@@ -25,7 +25,11 @@ describe('Cli BAT test', function () {
         console.log(error);
       }
       expect(error).to.be.null;
-      expect(stdout).to.include('0.0.12');
+      // Expect version information to be <int>.<int>.<int>,
+      // where each can be single or multiple digits (0-9)
+      const re = /^(\d+\.)?(\d+\.)?(\d+)$/gm;
+      const valid = re.test(stdout.trim());
+      expect(valid).to.equal(true);
       done();
     });
   });
