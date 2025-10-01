@@ -85,6 +85,8 @@ export class Update {
    * @param name Name of the resource to operate on.
    * @param key Property to change in resource JSON
    * @param operation The full operation object
+   * @template Type Type of the target of the operation
+   * @template T Type of operation ('add', 'remove', 'change', 'rank')
    */
   public async applyResourceOperation<Type, T extends UpdateOperations>(
     name: string,
