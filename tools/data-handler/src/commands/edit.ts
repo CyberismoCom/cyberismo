@@ -19,16 +19,17 @@ import { spawnSync } from 'node:child_process';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { CalculationResource } from '../resources/calculation-resource.js';
 import { FolderResource } from '../resources/folder-resource.js';
+import { Project } from '../containers/project.js';
+import { propertyName } from '../interfaces/folder-content-interfaces.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { UserPreferences } from '../utils/user-preferences.js';
+
+import type { ContentPropertyName } from '../interfaces/folder-content-interfaces.js';
 import type {
   MetadataContent,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
-import { Project } from '../containers/project.js';
-import { UserPreferences } from '../utils/user-preferences.js';
-import {
-  type ResourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 export class Edit {
   private project: Project;
@@ -52,15 +53,33 @@ export class Edit {
       );
     }
     const resourceNameString = resourceNameToString(resourceName);
+    if (
+      !(await this.project.resourceExists(
+        resourceName.type as ResourceFolderType,
+        resourceNameString,
+      ))
+    ) {
+      throw new Error(
+        `Resource '${resourceNameString}' does not exist in the project`,
+      );
+    }
     const calculationResource = new CalculationResource(
       this.project,
       resourceName,
     );
-    await calculationResource.update('calculation', {
-      name: 'change',
-      target: resourceNameString,
-      to: changedContent,
-    });
+    const contentUpdateKey = {
+      key: 'content',
+      subKey: 'calculation',
+    };
+    await calculationResource.update(
+      // TODO: Let's fix this while we get rid of updating filenames directly a bit later.
+      contentUpdateKey as unknown as ContentPropertyName,
+      {
+        name: 'change',
+        target: resourceNameString,
+        to: changedContent,
+      },
+    );
   }
 
   /**
@@ -190,6 +209,23 @@ export class Edit {
         `Resource '${resourceNameString}' is not a folder resource`,
       );
     }
-    return resource.updateFile(fileName, changedContent);
+
+    // TODO: The caller should not pass filename, but content type
+    // Once that is in place, this check can be removed
+    const propName: ContentPropertyName | undefined = propertyName(fileName);
+    if (!propName) {
+      throw new Error(`File '${fileName}' is not allowed`);
+    }
+
+    const contentUpdateKey = {
+      key: 'content',
+      subKey: propName,
+    };
+    // TODO: Let's fix this while we get rid of updating filenames directly a bit later.
+    return resource.update(contentUpdateKey as unknown as ContentPropertyName, {
+      name: 'change',
+      target: '',
+      to: changedContent,
+    });
   }
 }

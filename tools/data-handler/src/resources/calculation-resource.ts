@@ -13,7 +13,6 @@
 */
 
 import { join } from 'node:path';
-import { readFile } from 'node:fs/promises';
 
 import {
   DefaultContent,
@@ -21,9 +20,14 @@ import {
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import { pathExists, writeFileSafe } from '../utils/file-utils.js';
+import { writeFileSafe } from '../utils/file-utils.js';
 
-import type { CalculationMetadata } from '../interfaces/resource-interfaces.js';
+import type {
+  Calculation,
+  CalculationMetadata,
+  CalculationUpdateKey,
+} from '../interfaces/resource-interfaces.js';
+import type { CalculationContent } from '../interfaces/folder-content-interfaces.js';
 import type {
   Card,
   Operation,
@@ -46,40 +50,9 @@ export class CalculationResource extends FolderResource {
   }
 
   // When resource name changes
-  private async handleNameChange(existingName: string) {
+  protected async onNameChange(existingName: string) {
     await super.updateCalculations(existingName, this.content.name);
     await this.write();
-  }
-
-  /**
-   * Returns calculation file name for this resource.
-   * @returns calculation file name.
-   */
-  public async calculationFile(nameOnly: boolean = false): Promise<string> {
-    const calculationsFileFullPath = join(
-      this.internalFolder,
-      this.calculationsFile,
-    );
-
-    const exists = pathExists(calculationsFileFullPath);
-    if (exists) {
-      return nameOnly ? this.calculationsFile : calculationsFileFullPath;
-    }
-    return '';
-  }
-
-  /**
-   * Returns the content of the calculation file.
-   * @returns the content of the calculation file as a string.
-   */
-  public async calculationContent(): Promise<string> {
-    const calculationFilePath = await this.calculationFile();
-    if (!calculationFilePath) {
-      throw new Error(
-        `No calculation file found for resource '${this.resourceName.identifier}'`,
-      );
-    }
-    return readFile(calculationFilePath, 'utf-8');
   }
 
   /**
@@ -127,18 +100,23 @@ export class CalculationResource extends FolderResource {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
    * Shows metadata of the resource.
    * @returns calculation metadata.
    */
-  public async show(): Promise<CalculationMetadata> {
-    const showOnlyFileName = true;
-    const metadata = (await super.show()) as CalculationMetadata;
-    metadata.calculation = await this.calculationFile(showOnlyFileName);
-    return metadata;
+  public async show(): Promise<Calculation> {
+    const baseData = (await super.show()) as CalculationMetadata;
+    const fileContents = await super.contentData();
+    const content: CalculationContent = {
+      calculation: fileContents.calculation as string,
+    };
+    return {
+      ...baseData,
+      content: content,
+    };
   }
 
   /**
@@ -146,37 +124,23 @@ export class CalculationResource extends FolderResource {
    * @template Type The type of the operation being operated on for the given key.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
-   * @throws if 'key' is unknown, or if the operation cannot be performed on 'key'
    * @example
    * // Update the description
-   * await calculation.update('description', { name: 'change', to: 'New description' });
+   *    await calculation.update('description', { name: 'change', to: 'New description' });
+   *    await calculation.update({ key: 'content', subKey: 'calculation' }, { name: 'change', to: 'new content' });
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
+  public async update<Type>(key: CalculationUpdateKey, op: Operation<Type>) {
+    if (
+      typeof key === 'object' &&
+      key.key === 'content' &&
+      key.subKey === 'calculation'
+    ) {
+      const calculationContent = super.handleScalar(op) as string;
+      await this.updateFile(this.calculationsFile, calculationContent);
+      return;
+    }
 
     await super.update(key, op);
-
-    const content = this.content as CalculationMetadata;
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'calculation') {
-      content.calculation = super.handleScalar(op) as string;
-      await super.updateFile(this.calculationsFile, content.calculation);
-    } else {
-      throw new Error(`Unknown property '${key}' for Calculation`);
-    }
-
-    await super.postUpdate(content, key, op);
-
-    // Renaming this calculation causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
-    }
   }
 
   /**

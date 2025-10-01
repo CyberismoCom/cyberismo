@@ -1935,13 +1935,16 @@ describe('resources', function () {
       );
       const newCalculationContent =
         '% Updated calculation content\nupdated_rule(X) :- some_fact(X).';
-      await res.update('calculation', {
-        name: 'change',
-        target: '',
-        to: newCalculationContent,
-      });
-      const data = res.data as CalculationMetadata;
-      expect(data.calculation).to.equal(newCalculationContent);
+      await res.update(
+        { key: 'content', subKey: 'calculation' },
+        {
+          name: 'change',
+          target: '',
+          to: newCalculationContent,
+        },
+      );
+      const data = await res.show();
+      expect(data.content.calculation).to.equal(newCalculationContent);
     });
     it('update calculation - name', async () => {
       const res = new CalculationResource(

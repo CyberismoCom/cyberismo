@@ -265,8 +265,11 @@ export class CalculationEngine {
           resourceName(calculationFile.name),
         );
         if (calculationResource) {
-          const content = await calculationResource.calculationContent();
-          setProgram(calculationFile.name, content, [ALL_CATEGORY]);
+          //const content = await calculationResource.calculationContent();
+          const resource = await calculationResource.show();
+          setProgram(calculationFile.name, resource.calculation, [
+            ALL_CATEGORY,
+          ]);
         }
       } catch (error) {
         this.logger.warn(

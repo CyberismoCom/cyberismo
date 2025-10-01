@@ -12,6 +12,7 @@
 */
 
 import type {
+  CalculationContent,
   GraphModelContent,
   GraphViewContent,
   ReportContent,
@@ -27,6 +28,15 @@ import type {
 export interface CalculationMetadata extends ResourceBaseMetadata {
   calculation: string;
 }
+export interface Calculation extends CalculationMetadata {
+  content: CalculationContent;
+}
+export type CalculationContentPropertyName = 'calculation';
+export interface CalculationContentUpdateKey {
+  key: 'content';
+  subKey: CalculationContentPropertyName;
+}
+export type CalculationUpdateKey = string | CalculationContentUpdateKey;
 
 // Card type content.
 export interface CardType extends ResourceBaseMetadata {
