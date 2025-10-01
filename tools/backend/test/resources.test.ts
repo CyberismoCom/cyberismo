@@ -283,7 +283,7 @@ test('/api/resources/decision/cardTypes/decision/operation returns 500 for inval
         operation: {
           name: 'remove',
           target: '',
-          to: 'New Display Name'
+          to: 'New Display Name',
         },
       }),
     },
