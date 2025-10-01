@@ -131,7 +131,6 @@ export type ReportContentPropertyName =
   | 'contentTemplate'
   | 'queryTemplate'
   | 'schema';
-// Resource-specific content update keys
 export interface ReportContentUpdateKey {
   key: 'content';
   subKey: ReportContentPropertyName;
@@ -164,10 +163,9 @@ export type ResourceContent =
   | Workflow;
 
 // Template configuration details.
-export interface TemplateConfiguration extends ResourceBaseMetadata {
+export interface TemplateConfiguration extends TemplateMetadata {
   path: string;
   numberOfCards: number;
-  metadata: TemplateMetadata;
 }
 
 // Template configuration content details.
@@ -175,7 +173,7 @@ export interface TemplateMetadata extends ResourceBaseMetadata {
   category?: string;
 }
 
-// Generic update key (content updates only use typed keys)
+// Generic update key
 export type UpdateKey = string | ContentUpdateKey;
 
 // Workflow's json file content.

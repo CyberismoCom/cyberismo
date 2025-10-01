@@ -15,33 +15,30 @@
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
-import type { Schema } from 'jsonschema';
-
-import { writeFileSafe } from '../utils/file-utils.js';
-import { readJsonFile } from '../utils/json.js';
-
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-import {
-  type Card,
-  DefaultContent,
-  FileResource,
-  type Operation,
-  Project,
-  resourceName,
-  type ResourceName,
-  resourceNameToString,
-  sortCards,
-} from './file-resource.js';
+import type { Card, Operation, ResourceName } from './file-resource.js';
 import type {
   ContentUpdateKey,
   ResourceContent,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
-import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import type { Schema } from 'jsonschema';
+
 import {
-  propertyName,
+  DefaultContent,
+  FileResource,
+  Project,
+  resourceName,
+  resourceNameToString,
+  sortCards,
+} from './file-resource.js';
+import {
   filename,
+  propertyName,
 } from '../interfaces/folder-content-interfaces.js';
+import { readJsonFile } from '../utils/json.js';
+import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
+import { writeFileSafe } from '../utils/file-utils.js';
 
 export {
   type Card,
@@ -87,6 +84,25 @@ export class FolderResource extends FileResource {
   }
 
   /**
+   * Gets content of all files to properties.
+   * @returns object with property names as keys and file contents as values.
+   */
+  public async contentData(): Promise<Record<string, string | Schema>> {
+    const fileNames = await this.showFileNames();
+    const content: Record<string, string | Schema> = {};
+
+    for (const fileName of fileNames) {
+      const name = propertyName(fileName);
+      if (name) {
+        const JSONFile = name === 'schema';
+        content[name] = await this.showFile(fileName, JSONFile);
+      }
+    }
+
+    return content;
+  }
+
+  /**
    * Returns content data.
    */
   public get data() {
@@ -107,10 +123,14 @@ export class FolderResource extends FileResource {
     return super.getType;
   }
 
+  // Get logger instance
   protected get logger() {
     return super.getLogger(this.getType);
   }
 
+  /**
+   * Initialize the resource item.
+   */
   protected initialize() {
     super.initialize();
 
@@ -159,6 +179,7 @@ export class FolderResource extends FileResource {
       ? await readJsonFile(filePath)
       : await readFile(filePath, 'utf8');
 
+    // Update cache
     const contentStr =
       typeof content === 'string' ? content : JSON.stringify(content, null, 2);
     this.contentFilesCache.set(fileName, contentStr);
@@ -183,31 +204,12 @@ export class FolderResource extends FileResource {
       VALID_FOLDER_RESOURCE_FILES.includes(file),
     );
 
-    // Populate cache by reading all files
+    // Update cache by reading all files. Each method call updates specific cache item.
     for (const fileName of validFiles) {
       await this.showFile(fileName);
     }
 
     return validFiles;
-  }
-
-  /**
-   * Gets content of all files to properties.
-   * @returns object with property names as keys and file contents as values.
-   */
-  public async contentData(): Promise<Record<string, string | Schema>> {
-    const fileNames = await this.showFileNames();
-    const content: Record<string, string | Schema> = {};
-
-    for (const fileName of fileNames) {
-      const name = propertyName(fileName);
-      if (name) {
-        const JSONFile = name === 'schema';
-        content[name] = await this.showFile(fileName, JSONFile);
-      }
-    }
-
-    return content;
   }
 
   /**
@@ -251,7 +253,7 @@ export class FolderResource extends FileResource {
   }
 
   /**
-   * Updates resource with key values.
+   * Updates resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
    * @throws if key is unknown.
@@ -281,7 +283,6 @@ export class FolderResource extends FileResource {
 
     await super.postUpdate(content, key, op);
 
-    // Handle name changes if needed; derived classes know what to do.
     if (nameChange) {
       await this.onNameChange?.(existingName);
     }

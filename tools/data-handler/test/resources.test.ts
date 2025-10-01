@@ -1089,10 +1089,7 @@ describe('resources', function () {
       const { path, ...others } = data;
       expect(others).to.deep.equal({
         description: undefined,
-        metadata: {
-          name: 'decision/templates/newTEMP',
-          displayName: '',
-        },
+        category: undefined,
         name: 'decision/templates/newTEMP',
         displayName: '',
         numberOfCards: 0,

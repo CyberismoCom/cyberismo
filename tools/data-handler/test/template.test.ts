@@ -390,12 +390,15 @@ describe('template', () => {
     );
 
     const templateDetails = await template.show();
+
+    console.error(templateDetails);
+
     expect(templateDetails.name).to.equal('decision/templates/decision');
     expect(templateDetails.path).includes('.cards');
     expect(templateDetails.path).includes('decision');
-    expect(templateDetails.metadata.description).to.equal('description');
-    expect(templateDetails.metadata.category).to.equal('category');
-    expect(templateDetails.metadata.displayName).to.equal('Decision');
+    expect(templateDetails.description).to.equal('description');
+    expect(templateDetails.category).to.equal('category');
+    expect(templateDetails.displayName).to.equal('Decision');
   });
   it('list template cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');

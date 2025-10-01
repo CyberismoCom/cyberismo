@@ -119,8 +119,8 @@ export class TemplateResource extends FolderResource {
     const container = this.templateObject();
 
     return {
-      metadata: templateMetadata,
       name: resourceNameToString(this.resourceName),
+      category: templateMetadata.category,
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,

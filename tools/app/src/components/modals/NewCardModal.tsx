@@ -136,15 +136,13 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
   const categories = (templates || []).reduce<
     Record<string, TemplateConfiguration[]>
   >((acc, template) => {
-    const category = template.metadata.category || 'Uncategorized';
+    const category = template.category || 'Uncategorized';
     if (!acc[category]) {
       acc[category] = [];
     }
     if (
       !filter ||
-      template.metadata.displayName
-        ?.toLowerCase()
-        .includes(filter.toLowerCase()) ||
+      template.displayName?.toLowerCase().includes(filter.toLowerCase()) ||
       category.toLowerCase().includes(filter.toLowerCase())
     ) {
       acc[category].push(template);
@@ -238,10 +236,8 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
                             key={template.name}
                             isChosen={chosenTemplate === template.name}
                             onClick={() => setChosenTemplate(template.name)}
-                            name={
-                              template.metadata.displayName ?? template.name
-                            }
-                            description={template.metadata.description ?? ''}
+                            name={template.displayName ?? template.name}
+                            description={template.description ?? ''}
                           />
                         ))}
                       </Grid>

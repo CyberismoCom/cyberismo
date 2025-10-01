@@ -17,17 +17,21 @@ import { readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
 import {
   DefaultContent,
   FolderResource,
   resourceNameToString,
   sortCards,
+} from './folder-resource.js';
+import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { filename } from '../interfaces/folder-content-interfaces.js';
+import { Validate } from '../commands/validate.js';
+
+import type {
+  Card,
+  Operation,
+  Project,
+  ResourceName,
 } from './folder-resource.js';
 import type {
   Report,
@@ -36,8 +40,6 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
-import { getStaticDirectoryPath } from '@cyberismo/assets';
-import { Validate } from '../commands/validate.js';
 
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
@@ -180,7 +182,7 @@ export class ReportResource extends FolderResource {
       key.subKey === 'schema'
     ) {
       const fileContent = JSON.stringify(super.handleScalar(op), null, 2);
-      await this.updateFile('parameterSchema.json', fileContent);
+      await this.updateFile(filename(key.subKey)!, fileContent);
       return;
     }
 

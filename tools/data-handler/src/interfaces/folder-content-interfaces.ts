@@ -31,13 +31,6 @@ export const REVERSE_FILE_MAPPINGS = {
   viewTemplate: 'view.lp.hbs',
 } as const;
 
-// Content interface for Report resources
-export interface ReportContent {
-  contentTemplate: string;
-  queryTemplate: string;
-  schema?: Schema;
-}
-
 // Content interface for Graph Model resources
 export interface GraphModelContent {
   model?: string;
@@ -48,14 +41,29 @@ export interface GraphViewContent {
   viewTemplate?: string;
 }
 
-// Get property name for a filename
-export function propertyName(filename: string): string | undefined {
-  return ALL_FILE_MAPPINGS[filename as keyof typeof ALL_FILE_MAPPINGS];
+// Content interface for Report resources
+export interface ReportContent {
+  contentTemplate: string;
+  queryTemplate: string;
+  schema?: Schema;
 }
 
-// Get filename with property name
+/**
+ * Get filename with property name
+ * @param propertyName Property name.
+ * @returns filename that matches property name
+ */
 export function filename(propertyName: string): string | undefined {
   return REVERSE_FILE_MAPPINGS[
     propertyName as keyof typeof REVERSE_FILE_MAPPINGS
   ];
+}
+
+/**
+ * Get property name for a filename
+ * @param filename Filename.
+ * @returns property name that matches filename
+ */
+export function propertyName(filename: string): string | undefined {
+  return ALL_FILE_MAPPINGS[filename as keyof typeof ALL_FILE_MAPPINGS];
 }
