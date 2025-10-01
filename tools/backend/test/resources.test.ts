@@ -269,3 +269,26 @@ test('/api/resources/decision/cardTypes/decision/operation returns 400 for inval
   expect(response).not.toBe(null);
   expect(response.status).toBe(400);
 });
+
+test('/api/resources/decision/cardTypes/decision/operation returns 500 for invalid key', async () => {
+  const response = await app.request(
+    '/api/resources/decision/cardTypes/decision/operation',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: 'displayNameButNot',
+        operation: {
+          name: 'remove',
+          target: '',
+          to: 'New Display Name'
+        },
+      }),
+    },
+  );
+
+  expect(response).not.toBe(null);
+  expect(response.status).toBe(500);
+});
