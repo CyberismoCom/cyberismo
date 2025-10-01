@@ -1,35 +1,44 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
+
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation.
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-  details. You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
-import { writeFileSafe } from '../utils/file-utils.js';
-
+import type { Card, Operation, ResourceName } from './file-resource.js';
+import type {
+  ContentUpdateKey,
+  ResourceContent,
+  UpdateKey,
+} from '../interfaces/resource-interfaces.js';
 import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import type { Schema } from 'jsonschema';
+
 import {
-  type Card,
   DefaultContent,
   FileResource,
-  type Operation,
   Project,
   resourceName,
-  type ResourceName,
   resourceNameToString,
   sortCards,
 } from './file-resource.js';
-import type { ResourceContent } from '../interfaces/resource-interfaces.js';
+import {
+  filename,
+  propertyName,
+} from '../interfaces/folder-content-interfaces.js';
+import { readJsonFile } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
+import { writeFileSafe } from '../utils/file-utils.js';
 
 export {
   type Card,
@@ -48,8 +57,21 @@ export {
 export class FolderResource extends FileResource {
   protected internalFolder: string = '';
 
+  // Cache for content files to avoid repeated filesystem operations. Content is stored as string.
+  private contentFilesCache = new Map<string, string>();
+
   constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
     super(project, name, type);
+  }
+
+  // Clears the content files cache.
+  private clearContentCache() {
+    this.contentFilesCache.clear();
+  }
+
+  // Type guard to check if a key is a ContentUpdateKey
+  private isContentUpdateKey(key: UpdateKey): key is ContentUpdateKey {
+    return typeof key === 'object' && key.key === 'content' && 'subKey' in key;
   }
 
   /**
@@ -59,6 +81,25 @@ export class FolderResource extends FileResource {
   protected async create(newContent?: ResourceContent) {
     await super.create(newContent);
     await mkdir(this.internalFolder, { recursive: true });
+  }
+
+  /**
+   * Gets content of all files to properties.
+   * @returns object with property names as keys and file contents as values.
+   */
+  public async contentData(): Promise<Record<string, string | Schema>> {
+    const fileNames = await this.showFileNames();
+    const content: Record<string, string | Schema> = {};
+
+    for (const fileName of fileNames) {
+      const name = propertyName(fileName);
+      if (name) {
+        const JSONFile = name === 'schema';
+        content[name] = await this.showFile(fileName, JSONFile);
+      }
+    }
+
+    return content;
   }
 
   /**
@@ -74,6 +115,7 @@ export class FolderResource extends FileResource {
   protected async delete() {
     await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
+    this.clearContentCache();
   }
 
   // Get (resource folder) type name
@@ -81,11 +123,15 @@ export class FolderResource extends FileResource {
     return super.getType;
   }
 
+  // Get logger instance
   protected get logger() {
     return super.getLogger(this.getType);
   }
 
-  protected initialize(): void {
+  /**
+   * Initialize the resource item.
+   */
+  protected initialize() {
     super.initialize();
 
     this.internalFolder = join(
@@ -111,22 +157,69 @@ export class FolderResource extends FileResource {
   }
 
   /**
+   * TODO: to be made protected - no direct access to files
    * Shows the content of a file in the resource.
    * @param fileName Name of the file to show.
+   * @param json Content is JSON file.
    * @returns the content of the file.
    */
-  public async showFile(fileName: string): Promise<string> {
+  public async showFile(
+    fileName: string,
+    json: boolean = false,
+  ): Promise<string> {
+    // Always first check cache...
+    if (this.contentFilesCache.has(fileName)) {
+      const cached = this.contentFilesCache.get(fileName)!;
+      return json ? JSON.parse(cached) : cached;
+    }
+
+    // ...cache miss, read from filesystem
     const filePath = join(this.internalFolder, fileName);
-    return readFile(filePath, 'utf8');
+    const content = json
+      ? await readJsonFile(filePath)
+      : await readFile(filePath, 'utf8');
+
+    // Update cache
+    const contentStr =
+      typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+    this.contentFilesCache.set(fileName, contentStr);
+
+    return json ? content : contentStr;
   }
 
   /**
+   * TODO: to be made protected - no direct access to files
    * Shows all file names in the resource.
    * @returns all file names in the resource.
    */
   public async showFileNames(): Promise<string[]> {
+    // Always first check cache...
+    if (this.contentFilesCache.size > 0) {
+      return Array.from(this.contentFilesCache.keys());
+    }
+
+    // ...cache miss, read from filesystem and populate cache
     const files = await readdir(this.internalFolder);
-    return files.filter((file) => VALID_FOLDER_RESOURCE_FILES.includes(file));
+    const validFiles = files.filter((file) =>
+      VALID_FOLDER_RESOURCE_FILES.includes(file),
+    );
+
+    // Update cache by reading all files. Each method call updates specific cache item.
+    for (const fileName of validFiles) {
+      await this.showFile(fileName);
+    }
+
+    return validFiles;
+  }
+
+  /**
+   * Updates content files from a content object.
+   * @param contentFiles Object with file names as keys and file contents as values.
+   */
+  public async updateContentFiles(contentFiles: Record<string, string>) {
+    for (const [fileName, fileContent] of Object.entries(contentFiles)) {
+      await this.updateFile(fileName, fileContent);
+    }
   }
 
   /**
@@ -148,21 +241,58 @@ export class FolderResource extends FileResource {
     if (basename(normalizedFilePath) !== fileName) {
       throw new Error(`File '${fileName}' is not in the resource`);
     }
-    // check if the file is whitelisted
+    // check if the file is allow-listed
     if (!VALID_FOLDER_RESOURCE_FILES.includes(fileName)) {
-      throw new Error(`File '${fileName}' is not whitelisted`);
+      throw new Error(`File '${fileName}' is not allowed`);
     }
 
     await writeFileSafe(filePath, changedContent, { flag: 'w' });
+
+    // Update cache with new content
+    this.contentFilesCache.set(fileName, changedContent);
   }
+
   /**
    * Updates resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
+   * @throws if key is unknown.
    */
-  protected async update<Type>(key: string, op: Operation<Type>) {
-    return super.update(key, op);
+  protected async update<Type>(key: UpdateKey, op: Operation<Type>) {
+    if (this.isContentUpdateKey(key)) {
+      const fileName = filename(key.subKey)!;
+      const fileContent = super.handleScalar(op) as string;
+      await this.updateFile(fileName, fileContent);
+      return;
+    }
+
+    const nameChange = key === 'name';
+    const existingName = this.content.name;
+    await super.update(key, op);
+    const content = structuredClone(this.content);
+
+    if (key === 'name') {
+      content.name = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for folder resource`);
+    }
+
+    await super.postUpdate(content, key, op);
+
+    if (nameChange) {
+      await this.onNameChange?.(existingName);
+    }
   }
+
+  /**
+   * For handling name changes.
+   * @param previousName The previous name before the change
+   */
+  protected async onNameChange?(previousName: string): Promise<void>;
 
   /**
    * Returns an array of card keys, and/or resource names where this resource is used.

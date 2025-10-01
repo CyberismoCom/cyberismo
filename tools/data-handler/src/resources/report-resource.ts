@@ -1,43 +1,46 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2024
+
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation.
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-  details. You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
 import {
   DefaultContent,
   FolderResource,
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
+import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { filename } from '../interfaces/folder-content-interfaces.js';
+import { Validate } from '../commands/validate.js';
+
+import type {
+  Card,
+  Operation,
+  Project,
+  ResourceName,
+} from './folder-resource.js';
 import type {
   Report,
   ReportMetadata,
+  ReportUpdateKey,
 } from '../interfaces/resource-interfaces.js';
+import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
-import { getStaticDirectoryPath } from '@cyberismo/assets';
-import { Validate } from '../commands/validate.js';
 
-const CARD_CONTENT_HANDLEBAR_FILE = 'index.adoc.hbs';
-const QUERY_HANDLEBAR_FILE = 'query.lp.hbs';
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
@@ -67,8 +70,21 @@ export class ReportResource extends FolderResource {
     'defaultReport',
   );
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
+  // Try to read schema file content
+  private readSchemaFile(path: string) {
+    try {
+      const schema = readFileSync(path);
+      return JSON.parse(schema.toString());
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Handle name changes for reports
+   * @param existingName The previous name before the change
+   */
+  protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(
         existingName,
@@ -79,16 +95,6 @@ export class ReportResource extends FolderResource {
     ]);
     // Finally, write updated content.
     await this.write();
-  }
-
-  // Try to read schema file content
-  private readSchemaFile(path: string) {
-    try {
-      const schema = readFileSync(path);
-      return JSON.parse(schema.toString());
-    } catch {
-      return undefined;
-    }
   }
 
   /**
@@ -143,7 +149,7 @@ export class ReportResource extends FolderResource {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -151,19 +157,16 @@ export class ReportResource extends FolderResource {
    * @returns report metadata.
    */
   public async show(): Promise<Report> {
-    const reportMetadata = (await super.show()) as ReportMetadata;
+    const baseData = (await super.show()) as ReportMetadata;
+    const fileContents = await super.contentData();
+    const content: ReportContent = {
+      contentTemplate: fileContents.contentTemplate as string,
+      queryTemplate: fileContents.queryTemplate as string,
+      schema: fileContents.schema ? (fileContents.schema as Schema) : undefined,
+    };
     return {
-      name: resourceNameToString(this.resourceName),
-      displayName: reportMetadata.displayName,
-      description: reportMetadata.description,
-      metadata: reportMetadata,
-      contentTemplate: (
-        await readFile(join(this.internalFolder, CARD_CONTENT_HANDLEBAR_FILE))
-      ).toString(),
-      queryTemplate: (
-        await readFile(join(this.internalFolder, QUERY_HANDLEBAR_FILE))
-      ).toString(),
-      schema: this.reportSchema,
+      ...baseData,
+      content: content,
     };
   }
 
@@ -171,32 +174,27 @@ export class ReportResource extends FolderResource {
    * Updates report resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
-   * @throws if key is unknown.
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
+  public async update<Type>(key: ReportUpdateKey, op: Operation<Type>) {
+    if (
+      typeof key === 'object' &&
+      key.key === 'content' &&
+      key.subKey === 'schema'
+    ) {
+      const fileContent = JSON.stringify(super.handleScalar(op), null, 2);
+      await this.updateFile(filename(key.subKey)!, fileContent);
+      return;
+    }
+
+    if (key === 'category') {
+      const content = structuredClone(this.content) as ReportMetadata;
+      content.category = super.handleScalar(op) as string;
+
+      await super.postUpdate(content, key, op);
+      return;
+    }
 
     await super.update(key, op);
-
-    const content = structuredClone(this.content) as ReportMetadata;
-
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'category') {
-      content.category = super.handleScalar(op) as string;
-    }
-
-    await super.postUpdate(content, key, op);
-
-    // Renaming this report causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
-    }
   }
 
   /**

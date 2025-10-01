@@ -11,7 +11,11 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { Schema } from 'jsonschema';
+import type {
+  GraphModelContent,
+  GraphViewContent,
+  ReportContent,
+} from './folder-content-interfaces.js';
 
 /**
  * Each resource represents a file (or a folder in some cases) with metadata stored
@@ -30,6 +34,12 @@ export interface CardType extends ResourceBaseMetadata {
   customFields: CustomField[];
   alwaysVisibleFields: string[];
   optionallyVisibleFields: string[];
+}
+
+// Base content update key interface
+export interface ContentUpdateKey {
+  key: 'content';
+  subKey: string; // Resource-specific types should narrow this
 }
 
 // Custom field
@@ -71,19 +81,29 @@ export interface FieldType extends ResourceBaseMetadata {
 export interface GraphModelMetadata extends ResourceBaseMetadata {
   category?: string;
 }
-
 export interface GraphModel extends GraphModelMetadata {
-  calculationFile: string;
+  content: GraphModelContent;
 }
+export type GraphModelContentPropertyName = 'model';
+export interface GraphModelContentUpdateKey {
+  key: 'content';
+  subKey: GraphModelContentPropertyName;
+}
+export type GraphModelUpdateKey = string | GraphModelContentUpdateKey;
 
 // Graph view content.
 export interface GraphViewMetadata extends ResourceBaseMetadata {
   category?: string;
 }
-
+export type GraphViewContentPropertyName = 'viewTemplate';
 export interface GraphView extends GraphViewMetadata {
-  handleBarFile: string;
+  content: GraphViewContent;
 }
+export interface GraphViewContentUpdateKey {
+  key: 'content';
+  subKey: GraphViewContentPropertyName;
+}
+export type GraphViewUpdateKey = string | GraphViewContentUpdateKey;
 
 // Link content.
 export interface Link {
@@ -103,12 +123,19 @@ export interface LinkType extends ResourceBaseMetadata {
 
 // Report resource.
 export interface Report extends ResourceBaseMetadata {
-  name: string;
-  metadata: ReportMetadata;
-  contentTemplate: string;
-  queryTemplate: string;
-  schema?: Schema;
+  content: ReportContent;
 }
+
+// Resource-specific content names
+export type ReportContentPropertyName =
+  | 'contentTemplate'
+  | 'queryTemplate'
+  | 'schema';
+export interface ReportContentUpdateKey {
+  key: 'content';
+  subKey: ReportContentPropertyName;
+}
+export type ReportUpdateKey = string | ReportContentUpdateKey;
 
 // Metadata for report
 export interface ReportMetadata extends ResourceBaseMetadata {
@@ -136,16 +163,18 @@ export type ResourceContent =
   | Workflow;
 
 // Template configuration details.
-export interface TemplateConfiguration extends ResourceBaseMetadata {
+export interface TemplateConfiguration extends TemplateMetadata {
   path: string;
   numberOfCards: number;
-  metadata: TemplateMetadata;
 }
 
 // Template configuration content details.
 export interface TemplateMetadata extends ResourceBaseMetadata {
   category?: string;
 }
+
+// Generic update key
+export type UpdateKey = string | ContentUpdateKey;
 
 // Workflow's json file content.
 export interface Workflow extends ResourceBaseMetadata {

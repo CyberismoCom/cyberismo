@@ -110,9 +110,9 @@ test('templates endpoint returns proper data', async () => {
   expect(response.status).toBe(200);
   expect(result.length).toBe(3);
   expect(result[0].name).toBe('decision/templates/decision');
-  expect(result[0].metadata.description).toBe('description');
-  expect(result[0].metadata.displayName).toBe('Decision');
-  expect(result[0].metadata.category).toBe('category');
+  expect(result[0].description).toBe('description');
+  expect(result[0].displayName).toBe('Decision');
+  expect(result[0].category).toBe('category');
 });
 
 test('tree endpoint returns proper data', async () => {

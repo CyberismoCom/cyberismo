@@ -989,6 +989,16 @@ program
         [type, typeDetail],
         Object.assign({}, options, program.opts()),
       );
+      // By default, do not show resources' content files
+      if (!options.details) {
+        if (
+          typeof result.payload === 'object' &&
+          result.payload !== null &&
+          'content' in result.payload
+        ) {
+          delete (result.payload as { content?: unknown }).content;
+        }
+      }
       handleResponse(result);
     }
   });
