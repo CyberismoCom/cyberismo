@@ -254,7 +254,8 @@ describe('edit card', () => {
 
       const filePath = join(
         commands.project.paths.calculationProjectFolder,
-        name.identifier + '.lp',
+        name.identifier,
+        'calculation.lp',
       );
       const fileContent = await readFile(filePath, { encoding: 'utf-8' });
       expect(fileContent).to.equal(newContent);

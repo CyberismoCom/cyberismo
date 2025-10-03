@@ -35,6 +35,7 @@ export class Remove {
   // True, if resource is a project resource
   private projectResource(type: RemovableResourceTypes): boolean {
     return (
+      type === 'calculation' ||
       type === 'cardType' ||
       type === 'fieldType' ||
       type === 'graphModel' ||
@@ -229,12 +230,12 @@ export class Remove {
       if (type === 'attachment')
         return this.removeAttachment(targetName, rest[0]);
       else if (type === 'card') return this.removeCard(targetName);
+      else if (type === 'hub') return this.removeHubLocation(targetName);
+      else if (type === 'label') return this.removeLabel(targetName, rest[0]);
       else if (type === 'link')
         return this.removeLink(targetName, rest[0], rest[1], rest.at(2));
       else if (type === 'module')
         return this.moduleManager.removeModule(targetName);
-      else if (type === 'label') return this.removeLabel(targetName, rest[0]);
-      else if (type === 'hub') return this.removeHubLocation(targetName);
     }
     throw new Error(`Unknown resource type '${type}'`);
   }
