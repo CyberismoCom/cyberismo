@@ -48,6 +48,7 @@ namespace node_clingo
 
         if (bytes > CACHE_CAPACITY_BYTES)
         {
+            // TODO: log that this happened
             return;
         }
         // make space for the new result
