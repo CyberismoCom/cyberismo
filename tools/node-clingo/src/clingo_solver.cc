@@ -148,8 +148,8 @@ namespace node_clingo
         // Initialize Clingo control
         clingo_control_t* ctl = nullptr;
         if (!clingo_control_new(
-                nullptr,
-                0,
+                nullptr, // command line args(as c-style array)
+                0, // length of args
                 [](clingo_warning_t code, char const* message, void* data) {
                     // Use data parameter to pass the instance
                     if (data)
@@ -159,7 +159,7 @@ namespace node_clingo
                     }
                 },
                 this,
-                20,
+                MAX_CLINGO_LOG_MESSAGES,
                 &ctl))
         {
             return errorResult();
