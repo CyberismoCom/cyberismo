@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 #include "clingo_solver.h"
+#include <exception>
+#include <memory>
 
 namespace node_clingo
 {
@@ -51,71 +53,62 @@ namespace node_clingo
             return false;
         }
 
-        clingo_symbol_t* atoms = nullptr;
-        size_t atoms_size;
-
-        // Get the size of the model
-        if (!clingo_model_symbols_size(model, clingo_show_type_shown, &atoms_size))
+        try
         {
-            return false;
-        }
+            size_t atoms_size = 0;
+            *go_on = false;
 
-        if (atoms_size == 0)
-        {
-            data->answers.push_back("");
+            // Get the size of the model
+            if (!clingo_model_symbols_size(model, clingo_show_type_shown, &atoms_size))
+            {
+                return false;
+            }
+
+            if (atoms_size == 0)
+            {
+                data->answers.push_back("");
+                *go_on = true;
+                return true;
+            }
+
+            auto atoms = std::make_unique<clingo_symbol_t[]>(atoms_size);
+
+            // Get the model symbols
+            if (!clingo_model_symbols(model, clingo_show_type_shown, atoms.get(), atoms_size))
+            {
+                return false;
+            }
+
+            std::stringstream answerStream;
+
+            // Convert each symbol to string
+            for (size_t i = 0; i < atoms_size; ++i)
+            {
+                // Get the string representation
+                std::string symbolString = node_clingo::get_symbol_string(atoms[i]);
+
+                // If the string is empty, we skip it
+                if (symbolString.empty())
+                {
+                    continue;
+                }
+
+                if (i > 0)
+                {
+                    answerStream << std::endl;
+                }
+                answerStream << symbolString;
+            }
+
+            data->answers.push_back(answerStream.str());
+
             *go_on = true;
             return true;
         }
-
-        // Allocate space for the atoms
-        try
-        {
-            atoms = new clingo_symbol_t[atoms_size];
-        }
-        catch (const std::bad_alloc&)
+        catch (...)
         {
             return false;
         }
-
-        // Get the model symbols
-        if (!clingo_model_symbols(model, clingo_show_type_shown, atoms, atoms_size))
-        {
-            delete[] atoms;
-            return false;
-        }
-
-        std::stringstream answerStream;
-        bool success = true;
-
-        // Convert each symbol to string
-        for (size_t i = 0; i < atoms_size && success; ++i)
-        {
-            // Get the string representation
-            std::string symbolString = node_clingo::get_symbol_string(atoms[i]);
-
-            // If the string is empty, we skip it
-            if (symbolString.empty())
-            {
-                continue;
-            }
-
-            if (i > 0)
-                answerStream << std::endl;
-            answerStream << symbolString;
-        }
-
-        try
-        {
-            data->answers.push_back(answerStream.str());
-        }
-        catch (const std::bad_alloc&)
-        {
-            success = false;
-        }
-
-        delete[] atoms;
-        *go_on = success;
-        return success;
     }
 
     bool ClingoSolver::solve_event_callback(uint32_t type, void* event, void* data, bool* go_on)
