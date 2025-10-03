@@ -46,18 +46,11 @@ export default class IncludeMacro extends BaseMacro {
     if (!options.pageTitles) {
       options.pageTitles = 'normal';
     }
-    const card = await context.project.cardDetailsById(options.cardKey, {
-      content: true,
-      metadata: true,
-    });
-    if (!card) {
-      throw new Error(`Card key ${options.cardKey} not found`);
-    }
     const newContext = {
       ...context,
       cardKey: options.cardKey,
     };
-
+    const card = this.getCard(options.cardKey, context);
     const anchor = this.generateAnchor(options);
     const title = this.generateTitle(options, card.metadata?.title);
     const cardContent = await this.generateCardContent(
@@ -116,6 +109,10 @@ export default class IncludeMacro extends BaseMacro {
       return await evaluateMacros(cardContent ?? '', context, true);
     }
     return '';
+  }
+
+  private getCard(cardKey: string, context: MacroGenerationContext) {
+    return context.project.findCard(cardKey);
   }
 
   // Adjust asciidoc titles to match the level offset

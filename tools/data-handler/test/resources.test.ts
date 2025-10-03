@@ -67,6 +67,7 @@ describe('resources', function () {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     project = new Project(decisionRecordsPath);
+    await project.populateCaches();
     createCmd = new Create(project);
     importCmd = new Import(project, createCmd);
     removeCmd = new Remove(project);
@@ -206,7 +207,6 @@ describe('resources', function () {
 
     it('collect resources locally and from module', async () => {
       const collector = new ResourceCollector(project);
-
       // Store the resource counts before import.
       // Note that minimal project does not have fieldTypes, graphModels, graphViews, linkTypes or reports
       collector.collectLocalResources();
@@ -216,7 +216,7 @@ describe('resources', function () {
       const workflowsCount = (await collector.resources('workflows')).length;
 
       await importCmd.importModule(minimalPath, project.basePath);
-      await collector.moduleImported();
+      collector.moduleImported();
 
       const calcCountAgain = (await collector.resources('calculations')).length;
       const cardTypesCountAgain = (await collector.resources('cardTypes'))
@@ -233,18 +233,16 @@ describe('resources', function () {
     });
 
     it('add and remove workflow', async () => {
+      await project.populateCaches();
+
       const collector = new ResourceCollector(project);
       collector.collectLocalResources();
 
       const initialCacheSize = project.resourceCache.size;
-
       const workflowsCount = (await collector.resources('workflows')).length;
       const nameForWorkflow = `${project.projectPrefix}/workflows/newOne`;
       const fileName = nameForWorkflow;
 
-      // Creating new resources automatically updates collector arrays, but only for
-      // instance that is owned by the Project. The tested 'collector' instance needs
-      // to be updated by calling 'collectLocalResources()'.
       await createCmd.createWorkflow(fileName, '');
       collector.collectLocalResources();
       let exists = await collector.resourceExists('workflows', fileName);
@@ -255,6 +253,7 @@ describe('resources', function () {
 
       // Creating a resource puts it automatically to cache.
       expect(project.resourceCache.size).to.equal(initialCacheSize + 1);
+      //expect(project.resourceCache.size).to.equal(5);
 
       // Removing resources automatically updates collector arrays, but only for
       // instance that is owned by the Project (and it is not public).
@@ -270,6 +269,7 @@ describe('resources', function () {
     });
 
     it('add and remove other file based resources', async () => {
+      await project.populateCaches();
       const collector = new ResourceCollector(project);
 
       async function checkResource(type: string) {
@@ -313,6 +313,7 @@ describe('resources', function () {
     });
 
     it('add and remove folder based resources', async () => {
+      await project.populateCaches();
       const collector = new ResourceCollector(project);
       collector.collectLocalResources();
 
@@ -380,6 +381,7 @@ describe('resources', function () {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = new Project(decisionRecordsPath);
+      await project.populateCaches();
     });
 
     after(() => {
@@ -864,7 +866,7 @@ describe('resources', function () {
         "Workflow 'decision/workflows/does-not-exist' does not exist in the project",
       );
     });
-    it('data of card type', async () => {
+    it('data of card type', () => {
       const res = new CardTypeResource(
         project,
         resourceName('decision/cardTypes/newCT'),
@@ -878,7 +880,7 @@ describe('resources', function () {
         optionallyVisibleFields: [],
       });
     });
-    it('data of field type', async () => {
+    it('data of field type', () => {
       const res = new FieldTypeResource(
         project,
         resourceName('decision/fieldTypes/newFT'),
@@ -889,7 +891,7 @@ describe('resources', function () {
         dataType: 'shortText',
       });
     });
-    it('data of graph model', async () => {
+    it('data of graph model', () => {
       const res = new GraphModelResource(
         project,
         resourceName('decision/graphModels/newGM'),
@@ -899,7 +901,7 @@ describe('resources', function () {
         displayName: '',
       });
     });
-    it('data of graph view', async () => {
+    it('data of graph view', () => {
       const res = new GraphViewResource(
         project,
         resourceName('decision/graphViews/newGV'),
@@ -909,7 +911,7 @@ describe('resources', function () {
         displayName: '',
       });
     });
-    it('data of link type', async () => {
+    it('data of link type', () => {
       const res = new LinkTypeResource(
         project,
         resourceName('decision/linkTypes/newLT'),
@@ -924,7 +926,7 @@ describe('resources', function () {
         enableLinkDescription: false,
       });
     });
-    it('data of report', async () => {
+    it('data of report', () => {
       const res = new ReportResource(
         project,
         resourceName('decision/reports/newREP'),
@@ -935,7 +937,7 @@ describe('resources', function () {
         category: 'Uncategorised report',
       });
     });
-    it('data of template', async () => {
+    it('data of template', () => {
       const res = new TemplateResource(
         project,
         resourceName('decision/templates/newTEMP'),
@@ -945,7 +947,7 @@ describe('resources', function () {
         displayName: '',
       });
     });
-    it('data of workflow', async () => {
+    it('data of workflow', () => {
       const res = new WorkflowResource(
         project,
         resourceName('decision/workflows/newWF'),
@@ -1122,6 +1124,7 @@ describe('resources', function () {
     // all report files are reachable; even if their content is not validated.
     it('show imported report', async () => {
       const projectMini = new Project(minimalPath);
+      await projectMini.populateCaches();
       const createCmdMini = new Create(projectMini);
       const importCmdMini = new Import(projectMini, createCmdMini);
       const collectorMini = new ResourceCollector(projectMini);
@@ -1826,9 +1829,7 @@ describe('resources', function () {
       await res.delete();
     });
     it('update field type - change data type (number -> integer)', async () => {
-      let card6 = await project.cardDetailsById('decision_6', {
-        metadata: true,
-      });
+      let card6 = project.findCard('decision_6');
       if (card6 && card6.metadata) {
         expect(card6.metadata['decision/fieldTypes/numberOfCommits']).equals(
           1.5,
@@ -1846,9 +1847,7 @@ describe('resources', function () {
         to: 'integer',
       });
       expect((res.data as FieldType).dataType).to.equal('integer');
-      card6 = await project.cardDetailsById('decision_6', {
-        metadata: true,
-      });
+      card6 = project.findCard('decision_6');
       // Since data type was changed from number to integer, value has changed from 1.5 -> 1
       if (card6 && card6.metadata) {
         expect(card6.metadata['decision/fieldTypes/numberOfCommits']).equals(1);
@@ -2163,9 +2162,7 @@ describe('resources', function () {
         project,
         resourceName('decision/workflows/decision'),
       );
-      const cards = await project.cards(project.paths.cardRootFolder, {
-        metadata: true,
-      });
+      const cards = project.cards(project.paths.cardRootFolder);
       const cardsWithThisWorkflow = cards.filter((card) => {
         const ct = new CardTypeResource(
           project,
@@ -2186,9 +2183,8 @@ describe('resources', function () {
       await res.update('states', op);
 
       // Check that card metadata is updated.
-      const updatedCard = await project.findSpecificCard(
+      const updatedCard = project.findCard(
         cardsWithThisWorkflow.at(0)?.key as string,
-        { metadata: true },
       );
       expect(updatedCard?.metadata?.workflowState).to.equal('ReallyApproved');
       // Change the state name back to the original to avoid issues in other tests.
@@ -2240,11 +2236,11 @@ describe('resources', function () {
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
       await res.update('transitions', op);
-      found = (res.data as Workflow).transitions.find(
+      found = res.data.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).to.equal(undefined);
-      found = (res.data as Workflow).transitions.find(
+      found = res.data.transitions.find(
         (item) => item.name === updatedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2255,18 +2251,14 @@ describe('resources', function () {
         resourceName('decision/workflows/newWF'),
       );
       const newState = { name: 'OrphanState', category: 'closed' };
-      let found = (res.data as Workflow).states.find(
-        (item) => item.name === newState.name,
-      );
+      let found = res.data.states.find((item) => item.name === newState.name);
       expect(found).to.equal(undefined);
       const op = {
         name: 'add',
         target: newState,
       } as AddOperation<WorkflowState>;
       await res.update('states', op);
-      found = (res.data as Workflow).states.find(
-        (item) => item.name === newState.name,
-      );
+      found = res.data.states.find((item) => item.name === newState.name);
       expect(found).to.not.equal(undefined);
     });
     it('update workflow - add transition', async () => {
@@ -2279,7 +2271,7 @@ describe('resources', function () {
         fromState: ['*'],
         toState: 'OrphanState',
       };
-      let found = (res.data as Workflow).transitions.find(
+      let found = res.data.transitions.find(
         (item) => item.name === newTransition.name,
       );
       expect(found).to.equal(undefined);
@@ -2288,7 +2280,7 @@ describe('resources', function () {
         target: newTransition,
       } as AddOperation<WorkflowState>;
       await res.update('transitions', op);
-      found = (res.data as Workflow).transitions.find(
+      found = res.data.transitions.find(
         (item) => item.name === newTransition.name,
       );
       expect(found).to.not.equal(undefined);
@@ -2299,7 +2291,7 @@ describe('resources', function () {
         resourceName('decision/workflows/newWF'),
       );
       const expectedItem = { name: 'ReallyDeprecated', category: 'closed' };
-      let found = (res.data as Workflow).states.find(
+      let found = res.data.states.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2308,9 +2300,7 @@ describe('resources', function () {
         target: expectedItem,
       } as RemoveOperation<WorkflowState>;
       await res.update('states', op);
-      found = (res.data as Workflow).states.find(
-        (item) => item.name === expectedItem.name,
-      );
+      found = res.data.states.find((item) => item.name === expectedItem.name);
       expect(found).to.equal(undefined);
     });
     it('update workflow - remove transition', async () => {
@@ -2323,7 +2313,7 @@ describe('resources', function () {
         fromState: ['Draft'],
         toState: 'Approved',
       };
-      let found = (res.data as Workflow).transitions.find(
+      let found = res.data.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2332,7 +2322,7 @@ describe('resources', function () {
         target: expectedItem,
       } as RemoveOperation<WorkflowTransition>;
       await res.update('transitions', op);
-      found = (res.data as Workflow).transitions.find(
+      found = res.data.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).to.equal(undefined);

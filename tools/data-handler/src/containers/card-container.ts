@@ -13,28 +13,23 @@
 */
 
 // node
-import { basename, join, sep } from 'node:path';
-import type { Dirent } from 'node:fs';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
 
-import { findParentPath } from '../utils/card-utils.js';
-import { getFilesSync } from '../utils/file-utils.js';
-import { readJsonFile } from '../utils/json.js';
+import { CardCache } from './project/card-cache.js';
+import { cardPathParts } from '../utils/card-utils.js';
+import { deleteDir } from '../utils/file-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
-// interfaces
-import {
-  type CardAttachment,
-  type Card,
-  type CardMetadata,
-  CardNameRegEx,
-  type FetchCardDetails,
+import type {
+  CardAttachment,
+  Card,
+  FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
-// asciidoctor
 import asciidoctor from '@asciidoctor/core';
 
-import mime from 'mime-types';
+import { ROOT } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -42,411 +37,256 @@ import mime from 'mime-types';
  */
 export class CardContainer {
   public basePath: string;
+  protected cardCache: CardCache;
   protected containerName: string;
+  protected prefix: string;
 
-  static projectConfigFileName = 'cardsConfig.json';
-  static cardMetadataFile = 'index.json';
   static cardContentFile = 'index.adoc';
+  static cardMetadataFile = 'index.json';
+  static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, name: string) {
+  constructor(path: string, prefix: string, name: string) {
     this.basePath = path;
     this.containerName = name;
+    this.prefix = prefix;
+    this.cardCache = new CardCache(this.prefix);
   }
 
-  // Lists all direct children.
-  private async childrenCards(cardPath: string, details?: FetchCardDetails) {
-    const containerCards: Card[] = [];
-    await this.doCollectCards(cardPath, containerCards, details, true);
-    return containerCards;
+  // Filters one card to only include the details requested.
+  private filterCardDetails(
+    card: Card,
+    details: FetchCardDetails = {
+      attachments: true,
+      children: true,
+      content: true,
+      metadata: true,
+      parent: true,
+    },
+  ): Card {
+    const filteredCard: Card = {
+      key: card.key,
+      path: card.path,
+      children: details.children ? card.children : [],
+      attachments: details.attachments ? card.attachments : [],
+    };
+
+    if (details.content) {
+      filteredCard.content = card.content;
+    }
+    if (details.metadata) {
+      filteredCard.metadata = structuredClone(card.metadata);
+    }
+    if (details.parent) {
+      filteredCard.parent = card.parent;
+    }
+    if (details.calculations) {
+      filteredCard.calculations = card.calculations;
+    }
+
+    return filteredCard;
   }
 
-  // Function collects attachments from all cards in one folder.
-  private async doCollectAttachments(
-    folder: string,
-    attachments: CardAttachment[],
-  ): Promise<CardAttachment[]> {
-    const currentPaths: string[] = [];
-    let entries: Dirent[] = [];
-    try {
-      entries = (await readdir(folder, { withFileTypes: true })).filter(
-        (item) => item.isDirectory(),
-      );
-    } catch {
-      // ignore throws, if currentPaths does not have more values, recursion will stop
-    }
-    for (const entry of entries) {
-      // Investigate the content of card folders' attachment folders, but do not continue to children cards.
-      // For each attachment folder, collect all files.
-      if (CardNameRegEx.test(entry.name)) {
-        currentPaths.push(join(entry.parentPath, entry.name));
-      } else if (entry.name === 'c') {
-        continue;
-      } else if (entry.name === 'a') {
-        const attachmentFolder = join(entry.parentPath, entry.name);
-        const cardItem = basename(entry.parentPath) || '';
-        let entryAttachments: Dirent[] = [];
-        try {
-          entryAttachments = await readdir(attachmentFolder, {
-            withFileTypes: true,
-          });
-        } catch {
-          // ignore readdir errors
-        }
-        entryAttachments.forEach((attachment) =>
-          attachments.push({
-            card: cardItem,
-            fileName: attachment.name,
-            path: attachment.parentPath,
-            mimeType: mime.lookup(attachment.name) || null,
-          }),
-        );
-      }
-    }
-
-    if (currentPaths) {
-      const promises = currentPaths.map((item) =>
-        this.doCollectAttachments(item, attachments),
-      );
-      await Promise.all(promises);
-    }
-    return attachments;
-  }
-
-  // Collects all cards from container.
-  private async doCollectCards(
-    path: string,
+  // Filters cards to only include the details requested.
+  private filterCardsDetails(
     cards: Card[],
-    details: FetchCardDetails = {},
-    directChildrenOnly: boolean = false,
-  ): Promise<Card[]> {
-    let entries = [];
-    try {
-      entries = await readdir(path, { withFileTypes: true });
-    } catch {
-      return cards;
-    }
-    let finish = false;
-    const currentPaths: string[] = [];
-
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        currentPaths.push(currentPath);
-        if (CardNameRegEx.test(entry.name)) {
-          if (directChildrenOnly) {
-            // Make recursion stop on the level where first children cards are found.
-            finish = true;
-          }
-
-          const attachmentFiles: CardAttachment[] = [];
-          const promiseContainer = [
-            this.getContent(currentPath, details.content),
-            this.getMetadata(currentPath, details.metadata),
-            this.getChildren(currentPath, details),
-            this.getAttachments(
-              currentPath,
-              attachmentFiles,
-              details.attachments,
-            ),
-          ];
-          const [cardContent, cardMetadata, cardChildren] =
-            await Promise.all(promiseContainer);
-
-          cards.push({
-            key: entry.name,
-            path: currentPath,
-            children: details.children ? (cardChildren as Card[]) : [],
-            attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: cardContent as string }),
-            ...(details.metadata && {
-              metadata: JSON.parse(cardMetadata as string),
-            }),
-            ...(details.parent && { parent: this.parentCard(currentPath) }),
-          });
-        }
-      }
-    }
-
-    // Continue collecting cards from children
-    if (!finish && currentPaths) {
-      const promises = currentPaths.map((item) =>
-        this.doCollectCards(item, cards, details, directChildrenOnly),
-      );
-      await Promise.all(promises);
-    }
-    return cards;
+    details?: FetchCardDetails,
+  ): Card[] {
+    return cards.map((card) => {
+      return this.filterCardDetails(card, details);
+    });
   }
 
-  // Find specific card
-  private async doFindCard(
-    path: string,
-    cardKey: string,
-    details: FetchCardDetails = {},
-    foundCards: Card[],
-  ): Promise<Card[]> {
-    const entries = await readdir(path, { withFileTypes: true });
-    let asciiDocProcessor;
-    // optimization: do not create AsciiDoctor Processor, unless it is needed.
-    if (details.contentType && details.contentType === 'html') {
-      asciiDocProcessor = asciidoctor();
-    }
-
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const currentPath = join(entry.parentPath, entry.name);
-        if (entry.name === cardKey) {
-          const attachmentFiles: CardAttachment[] = [];
-          const promiseContainer = [
-            this.getContent(currentPath, details.content),
-            this.getMetadata(currentPath, details.metadata),
-            this.getChildren(currentPath, details),
-            this.getAttachments(
-              currentPath,
-              attachmentFiles,
-              details.attachments,
-            ),
-          ];
-          const [cardContent, cardMetadata, cardChildren] =
-            await Promise.all(promiseContainer);
-
-          const content =
-            details.contentType && details.contentType === 'html'
-              ? asciiDocProcessor?.convert(cardContent as string)
-              : cardContent;
-
-          foundCards.push({
-            key: entry.name,
-            path: currentPath,
-            children: details.children ? (cardChildren as Card[]) : [],
-            attachments: details.attachments ? [...attachmentFiles] : [],
-            ...(details.content && { content: content as string }),
-            ...(details.metadata && {
-              metadata: JSON.parse(cardMetadata as string),
-            }),
-            ...(details.parent && { parent: this.parentCard(currentPath) }),
-            ...(details.calculations && { calculations: [] }),
-          });
-          break; //optimization - there can only be one.
-        }
-        // Only continue, if the card has not been found.
-        if (foundCards.length === 0) {
-          await this.doFindCard(currentPath, cardKey, details, foundCards);
-        }
-      }
-    }
-    return foundCards;
+  /**
+   * Determines the container from a given path.
+   * @param path The filesystem path to analyze
+   * @returns Location string: 'project' for project cards, template name for template cards
+   */
+  protected determineContainer(path: string): string {
+    return cardPathParts(this.prefix, path).template || 'project';
   }
 
-  // Gets conditionally attachments
-  private async getAttachments(
-    currentPath: string,
-    files: CardAttachment[],
-    include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include ? this.doCollectAttachments(currentPath, files) : [];
-  }
+  /**
+   * Populates the card cache with all cards from all locations.
+   */
+  protected async populateCardsCache(): Promise<void> {}
 
-  // Gets conditionally children
-  private async getChildren(
-    currentPath: string,
-    details: FetchCardDetails = {},
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return details.children ? this.childrenCards(currentPath, details) : [];
-  }
+  /**
+   * Populates template cards into the cache.
+   */
+  protected async populateTemplateCards(): Promise<void> {}
 
-  // Gets conditionally content
-  private async getContent(
-    currentPath: string,
-    include?: boolean,
-  ): Promise<string | CardAttachment[] | Card[]> {
-    return include
-      ? readFile(join(currentPath, CardContainer.cardContentFile), {
-          encoding: 'utf-8',
-        })
-      : '';
-  }
-
-  // Gets conditionally metadata
-  private async getMetadata(
-    currentPath: string,
-    include?: boolean,
-  ): Promise<string> {
-    let metadata = include
-      ? await readFile(join(currentPath, CardContainer.cardMetadataFile), {
-          encoding: 'utf-8',
-        })
-      : '';
-    metadata = this.injectLinksIfMissing(metadata);
-    return metadata;
-  }
-
-  // Injects 'links' member - if it is missing - to a string representation of a card.
-  private injectLinksIfMissing(metadata: string): string {
-    if (metadata !== '' && !metadata.includes('"links":')) {
-      const end = metadata.lastIndexOf('}');
-      metadata = metadata.slice(0, end - 1) + ',\n    "links": []\n' + '}';
-    }
-    return metadata;
-  }
-
-  // Finds parent
-  private parentCard(cardPath: string) {
-    const pathParts = cardPath.split(sep);
-    if (
-      pathParts.at(pathParts.length - 2) === 'cardRoot' ||
-      (pathParts.length > 3 &&
-        pathParts.at(pathParts.length - 4) === 'templates')
-    ) {
-      return 'root';
-    } else {
-      return pathParts.at(pathParts.length - 3);
-    }
-  }
-
-  // Lists all attachments from container.
-  protected async attachments(path: string): Promise<CardAttachment[]> {
+  /**
+   * Lists all attachments from the container.
+   * @param path Path where attachments should be collected.
+   * @returns attachments from the container.
+   */
+  protected attachments(path: string): CardAttachment[] {
     const attachments: CardAttachment[] = [];
-    const cards: Card[] = [];
-    await this.doCollectCards(path, cards, { attachments: true });
 
-    cards.forEach((card) => {
-      if (card.attachments) {
-        attachments.push(...card.attachments.flat());
+    const targetLocation = this.determineContainer(path);
+    const cards = [...this.cardCache.getCards()];
+    const filteredCards = cards.filter((card) => {
+      if (card.attachments.length === 0) {
+        return false;
       }
+      return card.location === targetLocation;
     });
 
+    filteredCards.forEach((item) => attachments.push(...item.attachments));
     return attachments;
   }
 
-  // Lists all cards from container.
-  protected async cards(
-    path: string,
-    details: FetchCardDetails = {},
-    directChildrenOnly: boolean = false,
-  ): Promise<Card[]> {
-    const containerCards: Card[] = [];
-    await this.doCollectCards(
-      path,
-      containerCards,
-      details,
-      directChildrenOnly,
-    );
-    return containerCards;
+  /**
+   * Shows all cards from the container with the given details (by default all of them).
+   * @param path Path where cards should be listed.
+   * @param details Which details of the card should be included
+   * @returns all cards from the container
+   */
+  protected cards(path: string, details?: FetchCardDetails): Card[] {
+    if (!this.cardCache.isPopulated) {
+      throw new Error('Cards cache is not populated!');
+    }
+
+    const targetLocation = this.determineContainer(path);
+    const relevantCards = this.cardCache
+      .getCards()
+      .filter((cachedCard) => cachedCard.location === targetLocation);
+    return this.filterCardsDetails(relevantCards, details);
   }
 
-  // Finds a specific card.
-  protected async findCard(
-    path: string,
-    cardKey: string,
-    details: FetchCardDetails = {},
-  ): Promise<Card | undefined> {
-    const foundCards: Card[] = [];
-    await this.doFindCard(path, cardKey, details, foundCards);
-    return foundCards.at(0);
+  /**
+   * Finds a specific card.
+   * @param cardKey Card key to find
+   * @param details Card details to be included in the card
+   * @throws if card does not exist in the container
+   */
+  protected findCard(cardKey: string, details?: FetchCardDetails): Card {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    if (cachedCard) {
+      // Apply content type transformation if needed
+      const content = cachedCard.content;
+      if (details?.contentType === 'html' && content) {
+        const processor = asciidoctor();
+        processor.convert(content) as string;
+      }
+      return this.filterCardDetails(cachedCard, details);
+    }
+    throw new Error(`Card '${cardKey}' does not exist in the project`);
   }
 
-  // Checks if container has the specified card.
-  protected hasCard(cardKey: string, path: string): boolean {
-    const allFiles = getFilesSync(path);
-    const cardIndexJsonFile = join(cardKey, CardContainer.cardMetadataFile);
-    const found = allFiles.findIndex((file) =>
-      file.includes(cardIndexJsonFile),
-    );
-    return found !== -1;
+  /**
+   * Removes a card. If card has children, they are removed as well.
+   * @param cardKey Card key to remove.
+   * @returns true, if card was removed; false otherwise
+   */
+  protected async removeCard(cardKey: string): Promise<boolean> {
+    const card = this.cardCache.getCard(cardKey);
+    if (card) {
+      // Children must removed first
+      const children = card.children;
+      for (const child of children) {
+        await this.removeCard(child);
+      }
+      await deleteDir(card.path);
+      return this.cardCache.deleteCard(cardKey);
+    }
+    return false;
   }
 
-  // Persists card content.
+  /**
+   * Persists the whole card.
+   * @param card Card to persist
+   */
   protected async saveCard(card: Card) {
     await this.saveCardContent(card);
     await this.saveCardMetadata(card);
   }
 
-  // Persists card metadata.
-  protected async saveCardContent(card: Card) {
+  /**
+   * Persists card content.
+   * @param card Card to persist.
+   * @returns true if card was updated; false otherwise.
+   */
+  protected async saveCardContent(card: Card): Promise<boolean> {
     if (card.content != null) {
       const contentFile = join(card.path, CardContainer.cardContentFile);
       await writeFile(contentFile, card.content);
+      return this.cardCache.updateCardContent(card.key, card.content);
     }
+    return false;
   }
 
-  // Persists card metadata.
-  protected async saveCardMetadata(card: Card) {
+  /**
+   * Persists card metadata.
+   * @param card Card to persist
+   * @returns true if card was updated; false otherwise.
+   */
+  protected async saveCardMetadata(card: Card): Promise<boolean> {
     if (card.metadata != null) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
       await writeJsonFile(metadataFile, card.metadata);
+      return this.cardCache.updateCardMetadata(card.key, card.metadata);
     }
+    return false;
   }
 
   /**
    * Show cards with hierarchy structure from a given path.
-   * @param path The path to read cards from
+   * @param path The path to get cards from
    * @returns an array of cards with proper parent-child relationships.
    */
-  protected async showCards(path: string): Promise<Card[]> {
-    const cards: Card[] = [];
-    const cardPathMap = new Map<string, Card>();
-    const entries = await readdir(path, {
-      withFileTypes: true,
-      recursive: true,
-    });
-
-    // Checks if Dirent folder is a card folder
-    function cardFolder(
-      entry: Dirent,
-      cardPathMap: Map<string, Card>,
-    ): Card | undefined {
-      const fullPath = join(entry.parentPath, entry.name);
-      if (!cardPathMap.has(fullPath)) {
-        const newCard: Card = {
-          key: entry.name,
-          path: fullPath,
-          children: [],
-          attachments: [],
-        };
-        cardPathMap.set(fullPath, newCard);
-        return newCard;
-      }
-    }
-
-    // Process card directories first
-    entries
-      .filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name))
-      .forEach((entry) => {
-        const card = cardFolder(entry, cardPathMap);
-        if (card) cards.push(card);
-      });
-
-    // Process metadata files in parallel
-    await Promise.all(
-      entries
-        .filter(
-          (entry) =>
-            entry.isFile() && entry.name === CardContainer.cardMetadataFile,
-        )
-        .map(async (entry) => {
-          const parentCard = cardPathMap.get(entry.parentPath);
-          if (!parentCard) return;
-          parentCard.metadata = (await readJsonFile(
-            join(entry.parentPath, entry.name),
-          )) as CardMetadata;
-        }),
+  protected showCards(path: string): Card[] {
+    const container = this.determineContainer(path);
+    const rootCards: Card[] = [];
+    const relevantCards = Array.from(this.cardCache.getCards()).filter(
+      (cachedCard) => cachedCard.location === container,
     );
 
-    // Finally, build the card hierarchy
-    Array.from(cardPathMap.entries()).map(([cardPath, card]) => {
-      const parentPath = findParentPath(cardPath);
-      if (!parentPath) return;
-      const parentCard = cardPathMap.get(parentPath);
-      if (!parentCard) return;
-
-      parentCard.children.push(card);
-      const index = cards.indexOf(card);
-      if (index > -1) {
-        cards.splice(index, 1);
+    relevantCards.forEach((card) => {
+      if (
+        card.parent === ROOT ||
+        !card.parent ||
+        !relevantCards.find((cachedCard) => cachedCard.key === card.parent)
+      ) {
+        const cardWithChildren: Card = {
+          ...card,
+          children: card.children,
+        };
+        rootCards.push(cardWithChildren);
       }
     });
-    return cards;
+
+    return rootCards;
+  }
+
+  /**
+   * Checks if container has the specified card.
+   * @param cardKey Card key to check
+   * @return true, if card is in the container
+   */
+  public hasCard(cardKey: string): boolean {
+    return this.cardCache.hasCard(cardKey);
+  }
+
+  /**
+   * Checks if container has the specified project card.
+   * @param cardKey Card key to check
+   * @return true, if card is in the container
+   */
+  public hasProjectCard(cardKey: string): boolean {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    return cachedCard ? cachedCard.location === 'project' : false;
+  }
+
+  /**
+   * Checks if container has the specified template card.
+   * @param cardKey Card key to check
+   * @return true, if card is in the container
+   */
+  public hasTemplateCard(cardKey: string): boolean {
+    const cachedCard = this.cardCache.getCard(cardKey);
+    return cachedCard ? cachedCard.location !== 'project' : false;
   }
 }

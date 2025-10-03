@@ -973,11 +973,12 @@ describe('create command', () => {
   });
   it('access default values for card using real card type and template cards (success)', async () => {
     const project = new Project(decisionRecordsPath);
+    await project.populateCaches();
     const template = new TemplateResource(
       project,
       resourceName('decision/templates/decision'),
     ).templateObject();
-    const templateCards = await template?.cards('', { metadata: true });
+    const templateCards = template?.cards('');
 
     const cardType = DefaultContent.cardType(
       'decision/cardTypes/decision',

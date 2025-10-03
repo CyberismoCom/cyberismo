@@ -166,7 +166,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs add operatio
 test('/api/resources/decision/cardTypes/decision/operation performs rank operation successfully', async () => {
   const targetField = 'decision/fieldTypes/commitDescription';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
-  let beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
+  const beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
 
   const initialIndex = beforeFields.indexOf(targetField);
   expect(initialIndex).toBeGreaterThan(-1);
@@ -210,7 +210,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs rank operati
 test('/api/resources/decision/cardTypes/decision/operation performs remove operation successfully', async () => {
   const targetField = 'decision/fieldTypes/commitDescription';
   const cardTypeBefore = await getCardTypeByName('decision/cardTypes/decision');
-  let beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
+  const beforeFields = [...(cardTypeBefore.alwaysVisibleFields ?? [])];
 
   expect(beforeFields).toContain(targetField);
 

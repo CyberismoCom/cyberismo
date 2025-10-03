@@ -9,8 +9,6 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Project } from '../src/containers/project.js';
-import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -31,10 +29,17 @@ describe('transition command', () => {
   });
 
   it('transition to new state - success()', async () => {
-    const project = new Project(decisionRecordsPath);
-    const show = new Show(project);
-    const card = await show.showCardDetails({ metadata: true }, 'decision_5');
+    // Get card details before transition using command handler
+    const cardResult = await commandHandler.command(
+      Cmd.show,
+      ['card', 'decision_5'],
+      options,
+    );
+    const card = cardResult.payload as {
+      metadata?: { lastTransitioned?: unknown; lastUpdated?: unknown };
+    };
 
+    // Execute transition
     const result = await commandHandler.command(
       Cmd.transition,
       ['decision_5', 'Approve'],
@@ -42,7 +47,17 @@ describe('transition command', () => {
     );
 
     expect(result.statusCode).to.equal(200);
-    const card2 = await show.showCardDetails({ metadata: true }, 'decision_5');
+
+    // Get card details after transition using command handler
+    const card2Result = await commandHandler.command(
+      Cmd.show,
+      ['card', 'decision_5'],
+      options,
+    );
+    const card2 = card2Result.payload as {
+      metadata?: { lastTransitioned?: unknown; lastUpdated?: unknown };
+    };
+
     expect(card2.metadata?.lastTransitioned).to.not.equal(
       card.metadata?.lastTransitioned,
     );

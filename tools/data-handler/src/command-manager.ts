@@ -80,14 +80,15 @@ export class CommandManager {
    * Add such calls here.
    */
   public async initialize() {
-    await this.project.collectModuleResources();
+    this.project.collectModuleResources();
+    await this.project.populateCaches();
   }
 
   /**
    * Sets the logger for the command manager.
    * @param level Log level.
    */
-  public async setLogger(level: Level) {
+  public setLogger(level: Level) {
     const all: TransportTargetOptions[] = [
       {
         target: 'pino/file',
@@ -136,7 +137,7 @@ export class CommandManager {
     }
 
     if (options?.logLevel) {
-      await CommandManager.instance.setLogger(options?.logLevel);
+      CommandManager.instance.setLogger(options?.logLevel);
     }
     return CommandManager.instance;
   }

@@ -21,8 +21,13 @@ export interface Card {
   content?: string;
   metadata?: CardMetadata;
   parent?: string;
-  children: Card[];
+  children: string[];
   attachments: CardAttachment[];
+  calculations?: unknown[];
+}
+
+export interface CardWithChildrenCards extends Card {
+  childrenCards: CardWithChildrenCards[];
 }
 
 // Attachment details

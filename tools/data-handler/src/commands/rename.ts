@@ -280,11 +280,6 @@ export class Rename {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);
     }
-    const cardContent = {
-      metadata: true,
-      attachments: true,
-      content: true,
-    };
 
     this.from = this.project.configuration.cardKeyPrefix;
     this.to = to;
@@ -365,13 +360,13 @@ export class Rename {
     templates = await this.project.templates(ResourcesFrom.localOnly);
     for (const template of templates) {
       const templateObject = new Template(this.project, template);
-      await this.renameCards(await templateObject.cards('', cardContent));
+      await this.renameCards(templateObject.cards());
     }
     console.info('Renamed template cards and updated the content');
 
     // Rename all project cards.
     await this.renameCards(
-      await this.project.cards(this.project.paths.cardRootFolder, cardContent),
+      this.project.cards(this.project.paths.cardRootFolder),
     );
     console.info('Renamed project cards and updated the content');
 

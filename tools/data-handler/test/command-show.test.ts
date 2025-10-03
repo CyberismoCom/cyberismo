@@ -7,17 +7,13 @@ import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
-import { copyDir, writeFileSafe } from '../src/utils/file-utils.js';
+import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/resources/file-resource.js';
 import { ReportResource } from '../src/resources/report-resource.js';
 import { Show } from '../src/commands/index.js';
-import { writeJsonFile } from '../src/utils/json.js';
-import type {
-  FetchCardDetails,
-  ModuleContent,
-} from '../src/interfaces/project-interfaces.js';
+import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
 
 // validation tests do not modify the content - so they can use the original files
@@ -55,8 +51,9 @@ describe('shows command', () => {
     it('show attachment file', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const showCommand = new Show(project);
-      const result = await showCommand.showAttachment(
+      const result = showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
       );
@@ -67,26 +64,22 @@ describe('shows command', () => {
     it('show attachment file, card not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const showCommand = new Show(project);
-      await showCommand
-        .showAttachment('invalid_key', 'does-not-exist.png')
-        .catch((error) =>
-          expect(errorFunction(error)).to.equal(
-            `Card 'invalid_key' does not exist in the project`,
-          ),
-        );
+      expect(() =>
+        showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
+      ).to.throw(`Card 'invalid_key' does not exist in the project`);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const showCommand = new Show(project);
-      await showCommand
-        .showAttachment('decision_1', 'does-not-exist.png')
-        .catch((error) =>
-          expect(errorFunction(error)).to.equal(
-            `Attachment 'does-not-exist.png' not found for card decision_1`,
-          ),
-        );
+      expect(() =>
+        showCommand.showAttachment('decision_1', 'does-not-exist.png'),
+      ).to.throw(
+        `Attachment 'does-not-exist.png' not found for card decision_1`,
+      );
     });
     it('show cards - success()', async () => {
       const result = await commandHandler.command(
@@ -270,7 +263,7 @@ describe('shows command', () => {
       expect(result.statusCode).to.equal(200);
       if (result.payload) {
         const payloadAsArray = Object.values(result.payload);
-        expect(payloadAsArray.length).to.equal(4); // project + templates
+        expect(payloadAsArray.length).to.equal(3); // project + templates with cards (empty template excluded)
         const cards = payloadAsArray.map((item) => item.cards);
         expect(cards.at(0)).to.include('decision_5');
       }
@@ -637,7 +630,6 @@ describe('shows command', () => {
 describe('show', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-show-tests');
-  mkdirSync(testDir, { recursive: true });
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
   let showCmd: Show;
@@ -646,6 +638,7 @@ describe('show', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath);
+    await commands.initialize();
     showCmd = commands.showCmd;
   });
 
@@ -657,133 +650,66 @@ describe('show', () => {
     const results = await showCmd.showAttachments();
     expect(results).to.not.equal(undefined);
   });
-  it('showAttachment (success)', async () => {
+  it('showAttachment (success)', () => {
     const cardId = 'decision_1';
     const attachmentName = 'the-needle.heic';
-    const results = await showCmd.showAttachment(cardId, attachmentName);
+    const results = showCmd.showAttachment(cardId, attachmentName);
     expect(results).to.not.equal(undefined);
   });
-  it('showAttachment - empty card key', async () => {
+  it('showAttachment - empty card key', () => {
     const cardId = '';
     const attachmentName = 'the-needle.heic';
-    await showCmd
-      .showAttachment(cardId, attachmentName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Mandatory parameter 'cardKey' missing`,
-        ),
-      );
+    expect(() => showCmd.showAttachment(cardId, attachmentName)).to.throw(
+      `Mandatory parameter 'cardKey' missing`,
+    );
   });
-  it('showAttachment - card does not have particular attachment', async () => {
+  it('showAttachment - card does not have particular attachment', () => {
     const cardId = 'decision_1';
     const attachmentName = 'i-dont-exist';
-    await showCmd
-      .showAttachment(cardId, attachmentName)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Attachment 'i-dont-exist' not found for card decision_1`,
-        ),
-      );
+    expect(() => showCmd.showAttachment(cardId, attachmentName)).to.throw(
+      `Attachment 'i-dont-exist' not found for card decision_1`,
+    );
   });
-  it('showCardDetails (success)', async () => {
+  it('showCardDetails (success)', () => {
     const cardId = 'decision_1';
-    const details: FetchCardDetails = {
-      content: true,
-      metadata: true,
-      attachments: true,
-    };
-    const results = await showCmd.showCardDetails(details, cardId);
-    expect(results).to.not.equal(undefined);
+    const result = showCmd.showCardDetails(cardId);
+    expect(result.key).to.equal('decision_1');
   });
-  it('showCardDetails - empty card key', async () => {
+  it('showCardDetails - empty card key', () => {
     const cardId = '';
-    const details: FetchCardDetails = {
-      content: true,
-      metadata: true,
-      attachments: true,
-    };
-    await showCmd
-      .showCardDetails(details, cardId)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Mandatory parameter 'cardKey' missing`,
-        ),
-      );
+    expect(() => showCmd.showCardDetails(cardId)).to.throw(
+      `Mandatory parameter 'cardKey' missing`,
+    );
   });
-  it('showCardDetails - card not in project', async () => {
+  it('showCardDetails - card not in project', () => {
     const cardId = 'decision_999';
-    const details: FetchCardDetails = {
-      content: true,
-      metadata: true,
-      attachments: true,
-    };
-    await showCmd
-      .showCardDetails(details, cardId)
-      .catch((error) =>
-        expect(errorFunction(error)).to.equal(
-          `Card 'decision_999' does not exist in the project`,
-        ),
-      );
+    expect(() => showCmd.showCardDetails(cardId)).to.throw(
+      `Card 'decision_999' does not exist in the project`,
+    );
   });
-  it('showCardDetails - empty attachment folder', async () => {
-    const details: FetchCardDetails = {
-      content: false,
-      metadata: true,
-      attachments: true,
-    };
-    const cardRoot = join(decisionRecordsPath, 'cardRoot');
-    // First create a test setup where there is a parent and child cards.
-    // Parent has empty attachment folder, child has attachment in attachment folder.
-    // Use just filesystem operations to create the setup.
-    const cardMetadata = {
-      title: 'A title',
-      cardType: 'decision/cardTypes/decision',
-      workflowState: 'Approved',
-    };
-    // Parent
-    const cardIdParent = 'decision_my_card';
-    await writeFileSafe(join(cardRoot, cardIdParent, 'index.adoc'), '');
-    const parentWrite = await writeJsonFile(
-      join(cardRoot, cardIdParent, 'index.json'),
-      cardMetadata,
-    );
-    expect(parentWrite).to.equal(true);
-    mkdirSync(join(decisionRecordsPath, 'cardRoot', cardIdParent, 'a'));
+  it('showCardDetails - empty attachment folder', () => {
+    // Use existing cards from test data
+    // decision_1 (template) has the-needle.heic, decision_2 (template) has no attachments
+    // decision_5 (project) has games.jpg, decision_6 (project child) has no attachments
+    const cardWithNoAttachments = 'decision_2'; // template card with no attachments
+    const cardWithAttachments = 'decision_1'; // template card with attachment
 
-    // Child
-    const cardIChild = 'decision_child';
-    await writeFileSafe(
-      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.adoc'),
-      '',
-    );
-    const childWrite = await writeJsonFile(
-      join(cardRoot, cardIdParent, 'c', cardIChild, 'index.json'),
-      cardMetadata,
-    );
-    expect(childWrite).to.equal(true);
-    await writeFileSafe(
-      join(cardRoot, cardIdParent, 'c', cardIChild, 'a', 'image.png'),
-      '',
-    );
+    // Test card with no attachments
+    const noAttachmentResult = showCmd.showCardDetails(cardWithNoAttachments);
+    expect(noAttachmentResult.attachments.length).equals(0);
 
-    // Expect that parent has no attachments.
-    const parentResult = await showCmd.showCardDetails(details, cardIdParent);
-    expect(parentResult.attachments.length).equals(0);
-
-    // Child must have one attachment that is owned by the child.
-    const childResult = await showCmd.showCardDetails(details, cardIChild);
-    expect(childResult.attachments.length).equals(1);
-    const childAttachment = childResult.attachments.at(0);
-    expect(childAttachment?.card).equals(cardIChild);
-
-    rmSync(join(cardRoot, cardIdParent), { recursive: true, force: true });
+    // Test card with attachments
+    const withAttachmentResult = showCmd.showCardDetails(cardWithAttachments);
+    expect(withAttachmentResult.attachments.length).to.be.greaterThan(0);
+    const firstAttachment = withAttachmentResult.attachments.at(0);
+    expect(firstAttachment?.card).equals(cardWithAttachments);
   });
   it('showCards (success)', async () => {
     const results = await showCmd.showCards();
     expect(results).to.not.equal(undefined);
   });
-  it('showProjectCards (success)', async () => {
-    const results = await showCmd.showProjectCards();
+  it('showProjectCards (success)', () => {
+    const results = showCmd.showProjectCards();
     expect(results).to.not.equal(undefined);
   });
   it('showResource - card type (success)', async () => {

@@ -168,6 +168,7 @@ export const createWorkflowFacts = (workflow: Workflow) => {
  */
 export const createCardFacts = async (card: Card, project: Project) => {
   // Small helper to deduce parent path
+  // todo: Should use card-utils
   function parentPath(cardPath: string) {
     const pathParts = cardPath.split(sep);
     if (pathParts.at(pathParts.length - 2) === 'cardRoot') {
@@ -178,6 +179,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
   }
 
   // Helper to deduce template parent path.
+  // todo: Should use card-utils
   function parentPathFromTemplate(card: Card) {
     const cardPath = card.path;
     const pathParts = cardPath.split(sep);
@@ -201,10 +203,18 @@ export const createCardFacts = async (card: Card, project: Project) => {
     }
   }
 
-  const parentsPath = isTemplateCard(card)
-    ? parentPathFromTemplate(card)
-    : parentPath(card.path);
+  // Use card.parent if available, otherwise fall back to path-based calculation
+  const parentsPath =
+    card.parent && card.parent !== 'root'
+      ? card.parent
+      : isTemplateCard(card)
+        ? parentPathFromTemplate(card)
+        : parentPath(card.path);
+
   const builder = new ClingoProgramBuilder().addComment(card.key);
+  if (!isTemplateCard(card)) {
+    builder.addCustomFact('card', (b) => b.addLiteralArgument(card.key));
+  }
 
   if (card.metadata) {
     for (const [field, value] of Object.entries(card.metadata)) {

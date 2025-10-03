@@ -102,12 +102,7 @@ export class CalculationEngine {
    * @returns The logic program content for the card
    */
   public async cardLogicProgram(cardKey: string): Promise<string> {
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-    });
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
+    const card = this.project.findCard(cardKey);
     return createCardFacts(card, this.project);
   }
 
@@ -137,8 +132,7 @@ export class CalculationEngine {
 
   // Generate card tree content
   private async setCardTreeContent() {
-    const cards = await this.getCards(undefined);
-
+    const cards = this.getCards(undefined);
     for (const card of cards) {
       await this.setCardContent(card);
     }
@@ -245,7 +239,7 @@ export class CalculationEngine {
       if (!template) continue;
 
       const templateContent = createTemplateFacts(template);
-      const cards = await this.getCards(template.name);
+      const cards = this.getCards(template.name);
       for (const card of cards) {
         const cardContent = await createCardFacts(card, this.project);
         setProgram(card.key, cardContent, [ALL_CATEGORY]);
@@ -286,10 +280,12 @@ export class CalculationEngine {
   }
 
   // Gets either all the cards (no parent), or a subtree.
-  private async getCards(templateName?: string): Promise<Card[]> {
-    return templateName
-      ? this.project.templateCards(templateName)
-      : this.project.cards();
+  private getCards(templateName?: string): Card[] {
+    if (templateName) {
+      return this.project.templateCards(templateName);
+    }
+
+    return this.project.cards();
   }
 
   // Checks that Clingo successfully returned result.
@@ -384,6 +380,18 @@ export class CalculationEngine {
   public async handleCardChanged(changedCard: Card) {
     await CalculationEngine.mutex.runExclusive(async () => {
       await this.setCardContent(changedCard);
+    });
+  }
+
+  /**
+   * When card is moved, rebuild the entire card tree structure.
+   * Moving cards changes parent-child relationships, so we need to rebuild
+   * the complete card tree facts to ensure consistency.
+   */
+  public async handleCardMoved() {
+    await CalculationEngine.mutex.runExclusive(async () => {
+      // Rebuild entire tree structure from scratch to ensure all relationships are correct
+      await this.setCardTreeContent();
     });
   }
 

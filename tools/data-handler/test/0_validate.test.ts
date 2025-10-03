@@ -18,8 +18,11 @@ describe('validate cmd tests', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
-
   const validProject = new Project('test/test-data/valid/decision-records');
+
+  before(async () => {
+    await validProject.populateCaches();
+  });
 
   it('validate() - decision-records (success)', async () => {
     const path = join(testDir, 'valid/decision-records');
@@ -158,68 +161,52 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.be.greaterThan(0);
   });
 
-  it('validateWorkflowState (success)', async () => {
-    const card = await validProject.findSpecificCard('decision_5', {
-      metadata: true,
-    });
-    if (card) {
-      const valid = await validateCmd.validateWorkflowState(validProject, card);
-      expect(valid.length).to.equal(0);
-    }
+  it('validateWorkflowState (success)', () => {
+    const card = validProject.findCard('decision_5');
+    const valid = validateCmd.validateWorkflowState(validProject, card);
+    expect(valid.length).to.equal(0);
   });
   it('try to validateWorkflowState - invalid state', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    const card = await project.findSpecificCard('decision_6', {
-      metadata: true,
-    });
-    if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
-      expect(valid.length).to.be.greaterThan(0);
-    }
+    await project.populateCaches();
+    const card = project.findCard('decision_6');
+    const valid = validateCmd.validateWorkflowState(project, card);
+    expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - card type not found', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    const card = await project.findSpecificCard('decision_5', {
-      metadata: true,
-    });
-    if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
-      expect(valid.length).to.be.greaterThan(0);
-    }
+    await project.populateCaches();
+    const card = project.findCard('decision_5');
+    const valid = validateCmd.validateWorkflowState(project, card);
+    expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from project', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    const card = await project.findSpecificCard('decision_7', {
-      metadata: true,
-    });
-    if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
-      expect(valid.length).to.be.greaterThan(0);
-    }
+    await project.populateCaches();
+    const card = project.findCard('decision_7');
+    const valid = validateCmd.validateWorkflowState(project, card);
+    expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from card', async () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    const card = await project.findSpecificCard('decision_8', {
-      metadata: true,
-    });
+    await project.populateCaches();
+    const card = project.findCard('decision_8');
     if (card) {
-      const valid = await validateCmd.validateWorkflowState(project, card);
+      const valid = validateCmd.validateWorkflowState(project, card);
       expect(valid.length).to.be.greaterThan(0);
     }
   });
   it('validate card custom fields data (success)', async () => {
     // card _6 has all of the types as custom fields (with null values)
-    const card = await validProject.findSpecificCard('decision_6', {
-      metadata: true,
-    });
+    const card = validProject.findCard('decision_6');
     if (card) {
       const valid = await validateCmd.validateCustomFields(validProject, card);
       expect(valid.length).to.equal(0);
@@ -229,18 +216,15 @@ describe('validate cmd tests', () => {
     const project = new Project(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
-    const card = await project.findSpecificCard('decision_5', {
-      metadata: true,
-    });
+    await project.populateCaches();
+    const card = project.findCard('decision_5');
     if (card) {
       const valid = await validateCmd.validateCustomFields(project, card);
       expect(valid.length).to.be.greaterThan(0);
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
-    const card = await validProject.findSpecificCard('decision_5', {
-      metadata: false,
-    });
+    const card = validProject.findCard('decision_5');
     if (card) {
       await validateCmd
         .validateCustomFields(validProject, card)
@@ -270,6 +254,7 @@ describe('validate cmd tests', () => {
     const project = new Project(
       'test/test-data/invalid/invalid-wrong-resource-names/',
     );
+    await project.populateCaches();
     const errors = await validateCmd.validate(project.basePath, () => project);
     const separatedErrors = errors.split('\n');
     const expectWrongPrefix1 =
@@ -284,7 +269,7 @@ describe('validate cmd tests', () => {
     expect(separatedErrors[3]).to.equal(expectWrongType);
   });
 
-  it('validate that identifier follows naming rules', async () => {
+  it('validate that identifier follows naming rules', () => {
     const validNames: string[] = [
       'test',
       'test-too',
@@ -319,7 +304,7 @@ describe('validate cmd tests', () => {
       expect(invalid).to.equal(false);
     }
   });
-  it('validate that folder name follows naming rules', async () => {
+  it('validate that folder name follows naming rules', () => {
     const validNames: string[] = [
       'test',
       'test_too',
@@ -341,7 +326,7 @@ describe('validate cmd tests', () => {
       expect(invalid).to.equal(false);
     }
   });
-  it('validate project names', async () => {
+  it('validate project names', () => {
     const validNames: string[] = [
       'test',
       'test-too',
@@ -375,7 +360,7 @@ describe('validate cmd tests', () => {
       expect(invalid).to.equal(false);
     }
   });
-  it('validate label names', async () => {
+  it('validate label names', () => {
     const validNames: string[] = [
       'test',
       'test-too',
@@ -421,26 +406,22 @@ describe('validate cmd tests', () => {
     ]);
 
     for (const resourceType of validResources) {
-      await validateCmd
-        .validResourceName(resourceType[0], resourceType[1], prefixes)
-        .then(() => {
-          expect(true);
-        })
-        .catch(() => {
-          // Valid names should not throw.
-          expect(false);
-        });
+      expect(() =>
+        validateCmd.validResourceName(
+          resourceType[0],
+          resourceType[1],
+          prefixes,
+        ),
+      ).to.not.throw();
     }
     for (const resourceType of invalidResources) {
-      await validateCmd
-        .validResourceName(resourceType[0], resourceType[1], prefixes)
-        .then(() => {
-          // invalid names should throw; fail test if this does not happen.
-          expect(false);
-        })
-        .catch(() => {
-          expect(true);
-        });
+      expect(() => {
+        return validateCmd.validResourceName(
+          resourceType[0],
+          resourceType[1],
+          prefixes,
+        );
+      }).throw();
     }
   });
 

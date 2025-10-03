@@ -589,7 +589,7 @@ router.get(
     const commands = c.get('commands');
     return await cardService.getAllAttachments(commands);
   }),
-  async (c) => {
+  (c) => {
     const commands = c.get('commands');
     const { key, attachment } = c.req.param();
     const filename = decodeURI(attachment);
@@ -599,7 +599,7 @@ router.get(
     }
 
     try {
-      const attachmentResponse = await cardService.getAttachment(
+      const attachmentResponse = cardService.getAttachment(
         commands,
         key,
         filename,

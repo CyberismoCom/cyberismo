@@ -77,7 +77,7 @@ export class CardMetadataUpdater {
 
     if (change.field === 'title' || change.field === 'workflowState') {
       metadata[change.field] = FieldTypeResource.fromClingoResult(
-        change.newValue as string,
+        change.newValue,
         'shortText',
       );
       return result;
@@ -101,7 +101,7 @@ export class CardMetadataUpdater {
     }
 
     metadata[change.field] = FieldTypeResource.fromClingoResult(
-      change.newValue as string,
+      change.newValue,
       fieldType.dataType,
     );
 
@@ -156,9 +156,7 @@ export class CardMetadataUpdater {
       errors: [],
     };
 
-    const card = await project.findSpecificCard(cardKey, {
-      metadata: true,
-    });
+    const card = project.findCard(cardKey);
     if (!card || !card.metadata) {
       result.success = false;
       result.errors.push(

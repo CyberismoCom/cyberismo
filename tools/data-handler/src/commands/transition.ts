@@ -29,21 +29,15 @@ export class Transition {
    * @param transition which transition to do
    */
   public async cardTransition(cardKey: string, transition: WorkflowState) {
-    // Card details
-    const details = await this.project.cardDetailsById(cardKey, {
-      metadata: true,
-    });
-    if (!details || !details.metadata) {
-      throw new Error(`Card ${cardKey} does not exist in the project`);
-    }
+    const card = this.project.findCard(cardKey);
 
     // Card type
-    const cardType = await this.project.resource<CardType>(
-      details.metadata?.cardType,
+    const cardType = this.project.resource<CardType>(
+      card.metadata?.cardType || '',
     );
     if (cardType === undefined) {
       throw new Error(
-        `Card's card type '${details.metadata?.cardType}' does not exist in the project`,
+        `Card's card type '${card.metadata?.cardType}' does not exist in the project`,
       );
     }
 
@@ -58,13 +52,13 @@ export class Transition {
     // Check that the state transition can be made "from".
     const foundFrom = workflow.transitions.find(
       (item) =>
-        (details.metadata &&
-          item.fromState.includes(details.metadata?.workflowState)) ||
+        (card.metadata &&
+          item.fromState.includes(card.metadata?.workflowState)) ||
         item.fromState.includes('*'),
     );
     if (!foundFrom) {
       throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain transition from card's current state '${details.metadata?.workflowState}'`,
+        `Card's workflow '${cardType.workflow}' does not contain transition from card's current state '${card.metadata?.workflowState}'`,
       );
     }
 
@@ -80,36 +74,39 @@ export class Transition {
 
     if (
       !(
-        found.fromState.includes(details.metadata?.workflowState) ||
+        (card.metadata?.workflowState &&
+          found.fromState.includes(card.metadata.workflowState)) ||
         found.fromState.includes('*')
       )
     ) {
       throw new Error(
-        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${details.metadata?.workflowState}' for '${transition.name}`,
+        `Card's workflow '${cardType.workflow}' does not contain state transition from state '${card.metadata?.workflowState}' for '${transition.name}`,
       );
     }
 
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('transition', cardKey, transition.name);
 
-    details.metadata.workflowState = found.toState;
-    details.metadata.lastUpdated = new Date().toISOString();
-    details.metadata.lastTransitioned = new Date().toISOString();
-    return this.project
-      .updateCardMetadata(details, details.metadata)
-      .then(async () => this.transitionChangesQuery(cardKey, transition.name))
-      .then(async (queryResult) => {
-        if (
-          !queryResult ||
-          queryResult.at(0) === undefined ||
-          queryResult.at(0)?.updateFields === undefined
-        ) {
-          return;
-        }
-        const fieldsToUpdate = queryResult.at(0)!.updateFields;
-        return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
-      })
-      .catch((error) => console.error(error));
+    if (card.metadata) {
+      card.metadata.workflowState = found.toState;
+      card.metadata.lastUpdated = new Date().toISOString();
+      card.metadata.lastTransitioned = new Date().toISOString();
+      return this.project
+        .updateCardMetadata(card, card.metadata)
+        .then(async () => this.transitionChangesQuery(cardKey, transition.name))
+        .then(async (queryResult) => {
+          if (
+            !queryResult ||
+            queryResult.at(0) === undefined ||
+            queryResult.at(0)?.updateFields === undefined
+          ) {
+            return;
+          }
+          const fieldsToUpdate = queryResult.at(0)!.updateFields;
+          return CardMetadataUpdater.apply(this.project, fieldsToUpdate);
+        })
+        .catch((error) => console.error(error));
+    }
   }
 
   // Wrapper to run onTransition query.

@@ -4,16 +4,12 @@ import { describe, it } from 'mocha';
 import { UserPreferences } from '../../src/utils/user-preferences.js';
 import { platform, tmpdir } from 'os';
 import { join } from 'path';
-import { unlinkSync, writeFileSync } from 'fs';
+import { unlinkSync, writeFileSync } from 'node:fs';
 
 describe('UserPreferences', () => {
   const TMP_PREFS_PATH = join(tmpdir(), '.cards.prefs.json');
 
   let userPrefs: UserPreferences;
-
-  //
-  // Setup & teardown
-  //
 
   beforeEach(() => {
     userPrefs = new UserPreferences(TMP_PREFS_PATH);
@@ -22,10 +18,6 @@ describe('UserPreferences', () => {
   afterEach(() => {
     unlinkSync(TMP_PREFS_PATH);
   });
-
-  //
-  // Tests
-  //
 
   it('gets preferences', () => {
     expect(userPrefs.getPreferences()).to.be.an('object');

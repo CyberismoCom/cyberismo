@@ -20,6 +20,7 @@ describe('edit card', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath);
+    await commands.initialize();
     editCmd = commands.editCmd;
   });
 
@@ -28,7 +29,7 @@ describe('edit card', () => {
   });
 
   it('edit card content (success)', async () => {
-    const cards = await commands.project.cards();
+    const cards = commands.project.cards();
     const firstCard = cards.at(0);
 
     // Modify content
@@ -36,13 +37,7 @@ describe('edit card', () => {
       await editCmd.editCardContent(firstCard.key, 'whoopie');
 
       // Fetch the changed card again
-      const changedCard = await commands.project.findSpecificCard(
-        firstCard.key,
-        {
-          metadata: true,
-          content: true,
-        },
-      );
+      const changedCard = commands.project.findCard(firstCard.key);
       if (changedCard) {
         expect(changedCard.content).to.equal('whoopie');
         expect(changedCard.metadata?.lastUpdated).to.not.equal(
@@ -56,7 +51,7 @@ describe('edit card', () => {
     }
   });
   it('edit card content - template card', async () => {
-    const templateCards = await commands.project.templateCards(
+    const templateCards = commands.project.templateCards(
       'decision/templates/decision',
     );
     const firstCard = templateCards.at(0);
@@ -64,10 +59,7 @@ describe('edit card', () => {
       throw new Error('No template cards found');
     }
     await editCmd.editCardContent(firstCard.key, 'whoopie');
-    const changedCard = await commands.project.findSpecificCard(firstCard.key, {
-      metadata: true,
-      content: true,
-    });
+    const changedCard = commands.project.findCard(firstCard.key);
     if (changedCard) {
       expect(changedCard.content).to.equal('whoopie');
     } else {
@@ -76,7 +68,7 @@ describe('edit card', () => {
   });
 
   it('edit card content - no content', async () => {
-    const cards = await commands.project.cards();
+    const cards = commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
       await editCmd
@@ -102,10 +94,10 @@ describe('edit card', () => {
   });
 
   it('try to edit card from CLI - no project', async () => {
-    const cards = await commands.project.cards();
+    const cards = commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
-      await expect(editCmd.editCard(firstCard.key + 1)).to.be.rejectedWith(
+      expect(() => editCmd.editCard(firstCard.key + 1)).throws(
         "Card 'decision_51' does not exist in the project",
       );
     }
@@ -114,7 +106,7 @@ describe('edit card', () => {
   // it('try to edit card from CLI (success)', async () => {
   //     const decisionRecordsPath = join(testDir, 'valid/decision-records');
   //     const project = new Project(decisionRecordsPath);
-  //     const cards = await project.cards();
+  //     const cards = project.cards();
   //     const firstCard = cards.at(0);
   //     if (firstCard) {
   //         const EditCmd = new Edit();
@@ -124,7 +116,7 @@ describe('edit card', () => {
   // });
 
   it('edit card metadata (success)', async () => {
-    const cards = await commands.project.cards();
+    const cards = commands.project.cards();
     const firstCard = cards.at(0);
 
     // Modify metadata - title
@@ -139,48 +131,49 @@ describe('edit card', () => {
         });
 
       // Fetch the changed card again
-      const changedCard = await commands.project.findSpecificCard(
-        firstCard.key,
-        {
-          metadata: true,
-          content: true,
-        },
-      );
-      if (changedCard) {
-        if (changedCard.metadata) {
-          expect(changedCard.metadata.title).to.equal('new name');
-        }
-      } else {
-        expect(false);
-      }
-    } else {
-      expect(false);
-    }
-  });
-  it('edit card metadata - template card', async () => {
-    const templateCards = await commands.project.templateCards(
-      'decision/templates/decision',
-    );
-    const firstCard = templateCards.at(0);
-    if (!firstCard) {
-      throw new Error('No template cards found');
-    }
-    await editCmd.editCardMetadata(firstCard.key, 'title', 'new name');
-    if (!firstCard) {
-      expect(false);
-    }
-    const changedCard = await commands.project.findSpecificCard(firstCard.key, {
-      metadata: true,
-      content: true,
-    });
-    if (changedCard) {
+      const changedCard = commands.project.findCard(firstCard.key);
       expect(changedCard.metadata?.title).to.equal('new name');
     } else {
       expect(false);
     }
   });
+  it('edit card metadata - template card', async () => {
+    // Create a fresh CommandManager instance to avoid test isolation issues
+    const freshTestDir = join(baseDir, 'tmp-edit-template-test');
+    mkdirSync(freshTestDir, { recursive: true });
+    try {
+      await copyDir('test/test-data/', freshTestDir);
+      const freshDecisionRecordsPath = join(
+        freshTestDir,
+        'valid/decision-records',
+      );
+      const freshCommands = new CommandManager(freshDecisionRecordsPath);
+      await freshCommands.initialize();
+      const freshEditCmd = freshCommands.editCmd;
+
+      const templateCards = freshCommands.project.templateCards(
+        'decision/templates/decision',
+      );
+      const firstCard = templateCards.at(0);
+      if (!firstCard) {
+        throw new Error('No template cards found');
+      }
+      await freshEditCmd.editCardMetadata(firstCard.key, 'title', 'new name');
+      if (!firstCard) {
+        expect(false);
+      }
+      const changedCard = freshCommands.project.findCard(firstCard.key);
+      if (changedCard) {
+        expect(changedCard.metadata?.title).to.equal('new name');
+      } else {
+        expect(false);
+      }
+    } finally {
+      rmSync(freshTestDir, { recursive: true, force: true });
+    }
+  });
   it('try to edit card metadata - incorrect field name', async () => {
-    const cards = await commands.project.cards();
+    const cards = commands.project.cards();
     const firstCard = cards.at(0);
     if (firstCard) {
       await editCmd
@@ -234,6 +227,7 @@ describe('edit card', () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       commands = new CommandManager(decisionRecordsPath);
+      await commands.initialize();
       editCmd = commands.editCmd;
     });
 

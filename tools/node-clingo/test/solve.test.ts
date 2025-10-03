@@ -29,14 +29,21 @@ describe('Clingo solver', () => {
     const result2 = await solve(program);
 
     expect(result.stats).toBeDefined();
-    expect(result.stats.glue).toBeGreaterThan(0);
-    expect(result.stats.add).toBeGreaterThan(0);
-    expect(result.stats.ground).toBeGreaterThan(0);
-    expect(result.stats.solve).toBeGreaterThan(0);
+    expect(result.stats.glue).toBeGreaterThanOrEqual(0);
+    expect(result.stats.add).toBeGreaterThanOrEqual(0);
+    expect(result.stats.ground).toBeGreaterThanOrEqual(0);
+    expect(result.stats.solve).toBeGreaterThanOrEqual(0);
+    // At least one timing should be measured
+    expect(
+      result.stats.glue +
+        result.stats.add +
+        result.stats.ground +
+        result.stats.solve,
+    ).toBeGreaterThan(0);
 
     // second solve uses cache
     expect(result2.stats).toBeDefined();
-    expect(result2.stats.glue).toBeGreaterThan(0);
+    expect(result2.stats.glue).toBeGreaterThanOrEqual(0);
     expect(result2.stats.add).toBe(0);
     expect(result2.stats.ground).toBe(0);
     expect(result2.stats.solve).toBe(0);

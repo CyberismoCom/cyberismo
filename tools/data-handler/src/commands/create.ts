@@ -12,25 +12,20 @@
 */
 
 // node
-import { basename, join, resolve, sep } from 'node:path';
-import {
-  constants as fsConstants,
-  copyFile,
-  mkdir,
-  writeFile,
-} from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 import { errorFunction } from '../utils/error-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './index.js';
 
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
+import { isModulePath } from '../utils/card-utils.js';
 import type {
   DataType,
   Link,
   LinkType,
 } from '../interfaces/resource-interfaces.js';
-import { pathExists } from '../utils/file-utils.js';
 import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -44,8 +39,6 @@ import { LinkTypeResource } from '../resources/link-type-resource.js';
 import { ReportResource } from '../resources/report-resource.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { WorkflowResource } from '../resources/workflow-resource.js';
-
-const MODULES_PATH = `${sep}modules${sep}`;
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -114,24 +107,14 @@ export class Create {
     if (cardTypeName === undefined) {
       throw new Error(`Input validation error: card type cannot be empty`);
     }
-    // Use slice to get a copy of a string.
-    const origTemplateName = templateName.slice(0);
     const templateResource = new TemplateResource(
       this.project,
       resourceName(templateName),
     );
     const templateObject = templateResource.templateObject();
+    const specificCard = card ? templateObject.findCard(card) : undefined;
 
-    const specificCard = card
-      ? await templateObject.findSpecificCard(card)
-      : undefined;
-    if (card && !specificCard) {
-      throw new Error(
-        `Card '${card}' was not found from template '${origTemplateName}'`,
-      );
-    }
-
-    if (templateObject.templateFolder().includes(`${sep}modules${sep}`)) {
+    if (isModulePath(templateObject.templateFolder())) {
       throw new Error(`Cannot add cards to imported module templates`);
     }
 
@@ -182,32 +165,12 @@ export class Create {
     attachment: string,
     buffer?: Buffer,
   ) {
-    if (!buffer && !pathExists(attachment)) {
-      throw new Error(
-        `Input validation error: cannot find attachment '${attachment}'`,
-      );
-    }
-    const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
-
-    // Imported templates cannot be modified.
-    // @todo: make MODULES_PATH project level constant
-    if (attachmentFolder.includes(MODULES_PATH)) {
-      throw new Error(`Cannot modify imported module`);
-    }
-
     try {
-      await mkdir(attachmentFolder, { recursive: true }).then(async () => {
-        if (!buffer) {
-          return copyFile(
-            attachment,
-            join(attachmentFolder, basename(attachment)),
-            fsConstants.COPYFILE_EXCL,
-          );
-        }
-        return writeFile(join(attachmentFolder, basename(attachment)), buffer, {
-          flag: 'wx',
-        });
-      });
+      await this.project.createCardAttachment(
+        cardKey,
+        attachment,
+        buffer || attachment,
+      );
     } catch (error) {
       throw new Error(errorFunction(error));
     }
@@ -240,7 +203,7 @@ export class Create {
       resourceName(templateName),
     );
 
-    await Validate.getInstance().validResourceName(
+    Validate.getInstance().validResourceName(
       'templates',
       resourceNameToString(resourceName(templateName)),
       await this.project.projectPrefixes(),
@@ -249,15 +212,8 @@ export class Create {
     await templateResource.validate();
 
     const specificCard = parentCardKey
-      ? await this.project.findSpecificCard(parentCardKey, {
-          metadata: true,
-          children: true,
-        })
+      ? this.project.findCard(parentCardKey)
       : undefined;
-    if (parentCardKey && !specificCard) {
-      throw new Error(`Card '${parentCardKey}' not found from project`);
-    }
-
     const templateObject = templateResource.templateObject();
     if (!templateObject || !templateObject.isCreated()) {
       throw new Error(`Template '${templateName}' not found from project`);
@@ -265,7 +221,6 @@ export class Create {
 
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
-      await this.project.handleNewCards(createdCards);
       // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
       const sorted = sortItems(createdCards, (item) => {
         return `${item.parent === 'root' ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
@@ -336,13 +291,8 @@ export class Create {
       throw new Error(`Not a valid label name'`);
     }
 
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-    });
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-    const labels = card.metadata?.labels ?? [];
+    const card = this.project.findCard(cardKey);
+    const labels = structuredClone(card.metadata?.labels) ?? [];
 
     if (labels.includes(label)) {
       throw new Error('Label already exists');
@@ -382,26 +332,10 @@ export class Create {
     }
 
     // Determine the card path
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-    });
-    if (!card) {
-      throw new Error(`Card '${cardKey}' does not exist in the project`);
-    }
-
-    const destinationCard = await this.project.findSpecificCard(
-      destinationCardKey,
-      {
-        metadata: true,
-      },
-    );
-    if (!destinationCard) {
-      throw new Error(
-        `Card '${destinationCardKey}' does not exist in the project`,
-      );
-    }
+    const card = this.project.findCard(cardKey);
+    const destinationCard = this.project.findCard(destinationCardKey);
     // make sure the link type exists
-    const linkTypeObject = await this.project.resource<LinkType>(linkType);
+    const linkTypeObject = this.project.resource<LinkType>(linkType);
     if (!linkTypeObject) {
       throw new Error(`Link type '${linkType}' does not exist in the project`);
     }
