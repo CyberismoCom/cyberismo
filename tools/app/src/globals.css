@@ -1112,3 +1112,31 @@
 .contentSidebar {
   min-width: 160px;
 }
+
+/* ------------------------------------------------------------
+   Responsive video embeds for AsciiDoc-generated videoblock
+   (.doc .videoblock). This wraps the existing iframe in an
+   intrinsic ratio box using the .content div.
+   ------------------------------------------------------------ */
+.doc .videoblock .content {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+}
+
+.doc .videoblock .content::before {
+  content: '';
+  display: block;
+  padding-top: 56.25%; /* 16:9 */
+}
+
+.doc .videoblock .content > iframe,
+.doc .videoblock .content > video {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0;
+  background: #000;
+  display: block;
+}
