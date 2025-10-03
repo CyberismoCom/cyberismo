@@ -64,7 +64,7 @@ export class WorkflowResource extends FileResource {
           resourceNameToString(this.resourceName)
       ) {
         // fetch all cards with card type
-        promises.push(this.collectCards({ metadata: true }, cardType.name));
+        promises.push(this.collectCards(cardType.name));
       }
     }
     return (await Promise.all(promises)).flat();
@@ -153,7 +153,7 @@ export class WorkflowResource extends FileResource {
   }
 
   // Potentially updates the changed transition with current properties.
-  private async transitionObject(op: ChangeOperation<WorkflowTransition>) {
+  private transitionObject(op: ChangeOperation<WorkflowTransition>) {
     const content = structuredClone(this.content) as Workflow;
     const targetTransitionName = this.targetName(op);
     const currentTransition = content.transitions.filter(
@@ -381,7 +381,7 @@ export class WorkflowResource extends FileResource {
    */
   public async usage(cards?: Card[]): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
-    const allCards = cards ?? (await super.cards());
+    const allCards = cards ?? super.cards();
     const cardTypes = await this.project.cardTypes(ResourcesFrom.all);
     const cardTypeReferences = await Promise.all(
       cardTypes.map(async (cardType) => {

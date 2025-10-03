@@ -11,17 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-// node
-import { join, sep } from 'node:path';
-
 import { ActionGuard } from '../permissions/action-guard.js';
-import { deleteDir, deleteFile } from '../utils/file-utils.js';
+import { isModuleCard } from '../utils/card-utils.js';
 import { ModuleManager } from '../module-manager.js';
 import { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 import { resourceName } from '../utils/resource-utils.js';
-
-const MODULES_PATH = `${sep}modules${sep}`;
 
 /**
  * Remove command.
@@ -52,45 +47,29 @@ export class Remove {
       throw new Error(`Attachment filename required`);
     }
 
-    const attachmentFolder = await this.project.cardAttachmentFolder(cardKey);
-
-    // Imported templates cannot be modified.
-    if (attachmentFolder.includes(MODULES_PATH)) {
-      throw new Error(`Cannot modify imported module`);
-    }
-
-    // Attachment's reside in 'a' folders.
-    const success = await deleteFile(join(attachmentFolder, attachment));
-    if (!success) {
-      throw new Error('No such file');
-    }
+    return this.project.removeCardAttachment(cardKey, attachment);
   }
 
   // Removes card from project or template
   private async removeCard(cardKey: string) {
-    const cardFolder = await this.project.cardFolder(cardKey);
-    if (!cardFolder) {
+    const card = this.project.findCard(cardKey);
+    if (!card) {
       throw new Error(`Card '${cardKey}' not found`);
     }
 
     // Imported templates cannot be modified.
-    if (cardFolder.includes(MODULES_PATH)) {
+    if (isModuleCard(card)) {
       throw new Error(`Cannot modify imported module`);
     }
 
     // Make sure card can be removed if it's a project card
-    if (!(await this.project.isTemplateCard(cardKey))) {
+    if (!this.project.isTemplateCard(cardKey)) {
       const actionGuard = new ActionGuard(this.project.calculationEngine);
       await actionGuard.checkPermission('delete', cardKey);
     }
 
     // If card is destination of a link, remove the link.
-    const allCards = await this.project.cards(
-      this.project.paths.cardRootFolder,
-      {
-        metadata: true,
-      },
-    );
+    const allCards = this.project.cards(this.project.paths.cardRootFolder);
     const promiseContainer: Promise<void>[] = [];
 
     for (const item of allCards) {
@@ -104,24 +83,14 @@ export class Remove {
 
     await Promise.all(promiseContainer);
 
-    // Calculations need to be updated before card is removed.
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-      children: true,
-      content: false,
-      parent: false,
-    });
-    await deleteDir(cardFolder);
     if (card) {
-      await this.project.handleDeleteCard(card);
+      await this.project.handleCardDeleted(card);
     }
   }
 
   // removes label from project
   private async removeLabel(cardKey: string, label: string) {
-    const card = await this.project.findSpecificCard(cardKey, {
-      metadata: true,
-    });
+    const card = this.project.findCard(cardKey);
     if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -151,9 +120,7 @@ export class Remove {
     linkType?: string,
     linkDescription?: string,
   ) {
-    const sourceCard = await this.project.findSpecificCard(sourceCardKey, {
-      metadata: true,
-    });
+    const sourceCard = this.project.findCard(sourceCardKey);
     if (!sourceCard) {
       throw new Error(`Card '${sourceCardKey}' not found`);
     }

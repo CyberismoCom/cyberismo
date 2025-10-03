@@ -13,12 +13,10 @@
 
 // node
 import { basename, join, sep } from 'node:path';
-import { mkdir, rename } from 'node:fs/promises';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, rename } from 'node:fs/promises';
 
 import type {
   Card,
-  FetchCardDetails,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import {
@@ -107,33 +105,28 @@ export class FileResource extends ResourceObject {
   }
 
   // Collects cards that are using the 'cardTypeName'.
-  protected async collectCards(
-    cardContent: FetchCardDetails,
-    cardTypeName: string,
-  ) {
-    async function filteredCards(
-      cardSource: Promise<Card[]>,
-      cardTypeName: string,
-    ): Promise<Card[]> {
-      const cards = await cardSource;
+  protected async collectCards(cardTypeName: string) {
+    function filteredCards(cardSource: Card[], cardTypeName: string): Card[] {
+      const cards = cardSource;
       return cards.filter((card) => card.metadata?.cardType === cardTypeName);
     }
 
     // Collect both project cards ...
-    const projectCardsPromise = filteredCards(
-      this.project.cards(this.project.paths.cardRootFolder, cardContent),
+    const projectCards = filteredCards(
+      this.project.cards(this.project.paths.cardRootFolder),
       cardTypeName,
     );
     // ... and cards from each template that would be affected.
     const templates = await this.project.templates(ResourcesFrom.localOnly);
-    const templateCardsPromises = templates.map((template) => {
+    const templateCards = templates.map((template) => {
       const templateObject = new Template(this.project, template);
-      return filteredCards(templateObject.cards('', cardContent), cardTypeName);
+      return filteredCards(templateObject.cards(), cardTypeName);
     });
     // Return all affected cards
-    const cards = (
-      await Promise.all([projectCardsPromise, ...templateCardsPromises])
-    ).reduce((accumulator, value) => accumulator.concat(value), []);
+    const cards = [projectCards, ...templateCards].reduce(
+      (accumulator, value) => accumulator.concat(value),
+      [],
+    );
     return cards;
   }
 
@@ -251,17 +244,8 @@ export class FileResource extends ResourceObject {
   }
 
   // Cards from project.
-  protected async cards(): Promise<Card[]> {
-    return [
-      ...(await this.project.cards(undefined, {
-        content: true,
-        metadata: true,
-      })),
-      ...(await this.project.allTemplateCards({
-        content: true,
-        metadata: true,
-      })),
-    ];
+  protected cards(): Card[] {
+    return [...this.project.cards(), ...this.project.allTemplateCards()];
   }
 
   // Returns memory resident data as JSON.
@@ -381,7 +365,7 @@ export class FileResource extends ResourceObject {
 
   // Show resource data as JSON.
   protected async show(): Promise<ResourceContent> {
-    if (!pathExists(this.fileName)) {
+    if (!this.cache.has(resourceNameToString(this.resourceName))) {
       const resourceType = `${this.type[0].toUpperCase()}${this.type.slice(1, this.type.length - 1)}`;
       const name = resourceNameToString(this.resourceName);
       throw new Error(
@@ -421,18 +405,14 @@ export class FileResource extends ResourceObject {
   }
 
   // Check if there are references to the resource in the card content.
+  // @note that this needs to be async, since inherited classes need to async operations
   protected async usage(cards?: Card[]): Promise<string[]> {
     if (!pathExists(this.fileName)) {
       throw new Error(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length
-      ? cards
-      : await this.project.cards(undefined, {
-          content: true,
-          metadata: true,
-        });
+    const cardArray = cards?.length ? cards : this.project.cards();
 
     return cardArray
       .filter((card) =>

@@ -208,3 +208,18 @@ export function resourceNameToString(resourceName: ResourceName): string {
     ? `${resourceName.prefix}/${resourceName.type}/${resourceName.identifier}`
     : `${resourceName.identifier}`;
 }
+
+/**
+ * Validates that a template name follows the correct format: prefix/templates/identifier
+ * @param templateName The template name to validate
+ * @throws Error if the template name format is invalid
+ */
+export function validateTemplateName(templateName: string) {
+  const templateNameRegex = /^[^/]+\/templates\/[^/]+$/;
+  if (!templateNameRegex.test(templateName)) {
+    throw new Error(
+      `Invalid template name format: '${templateName}'. ` +
+        `Template names must follow the format 'prefix/templates/identifier'.`,
+    );
+  }
+}

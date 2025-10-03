@@ -78,10 +78,9 @@ export class Edit {
    * Opens the content and metadata files for a card in the code editor
    * @param cardKey - The key of the card to open. Required.
    */
-  public async editCard(cardKey: string) {
-    // Determine the card path
-    const cardPath = this.project.pathToCard(cardKey);
-    if (!cardPath) {
+  public editCard(cardKey: string) {
+    const card = this.project.findCard(cardKey);
+    if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
@@ -91,9 +90,8 @@ export class Edit {
     ).getPreferences();
 
     // Construct paths for the card components (json and adoc)
-    const cardDirPath = join(this.project.paths.cardRootFolder, cardPath);
-    const cardContentPath = join(cardDirPath, Project.cardContentFile);
-    const cardJsonPath = join(cardDirPath, Project.cardMetadataFile);
+    const cardContentPath = join(card.path, Project.cardContentFile);
+    const cardJsonPath = join(card.path, Project.cardMetadataFile);
 
     // Extract the editor settings from the preferences.
     const editorPrefs = prefs.editCommand[process.platform];
@@ -104,7 +102,7 @@ export class Edit {
     const editorArgs = editorArgPrefs.map((arg) => {
       arg = arg.replace(/\{\{\s*cardContentPath\s*\}\}/, cardContentPath);
       arg = arg.replace(/\{\{\s*cardJsonPath\s*\}\}/, cardJsonPath);
-      arg = arg.replace(/\{\{\s*cardDirPath\s*\}\}/, cardDirPath);
+      arg = arg.replace(/\{\{\s*cardDirPath\s*\}\}/, card.path);
 
       return arg;
     });
@@ -127,12 +125,11 @@ export class Edit {
    * @param changedContent New content for the card.
    */
   public async editCardContent(cardKey: string, changedContent: string) {
-    const isTemplateCard = await this.project.isTemplateCard(cardKey);
-    if (isTemplateCard) {
+    if (this.project.isTemplateCard(cardKey)) {
       return this.project.updateCardContent(cardKey, changedContent);
     }
-    const cardPath = this.project.pathToCard(cardKey);
-    if (!cardPath) {
+    const card = this.project.findCard(cardKey);
+    if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 
@@ -156,14 +153,12 @@ export class Edit {
     if (!changedKey) {
       throw new Error(`Changed key cannot be empty`);
     }
-    const isTemplateCard = await this.project.isTemplateCard(cardKey);
-    if (isTemplateCard) {
+    if (this.project.isTemplateCard(cardKey)) {
       return this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
     }
 
-    // Determine the card path
-    const cardPath = this.project.pathToCard(cardKey);
-    if (!cardPath) {
+    const card = this.project.findCard(cardKey);
+    if (!card) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
 

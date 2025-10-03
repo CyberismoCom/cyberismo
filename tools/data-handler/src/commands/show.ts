@@ -26,15 +26,17 @@ import type { attachmentPayload } from '../interfaces/request-status-interfaces.
 import type {
   CardAttachment,
   Card,
+  CardLocation,
+  CardWithChildrenCards,
   CardListContainer,
-  ModuleContent,
+  Context,
+  FetchCardDetails,
+  FileContentType,
   HubSetting,
+  ModuleContent,
   ModuleSettingFromHub,
-  ProjectFetchCardDetails,
   ProjectMetadata,
   Resource,
-  CardLocation,
-  Context,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import type {
@@ -59,6 +61,7 @@ import { evaluateMacros } from '../macros/index.js';
 import { FolderResource } from '../resources/folder-resource.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { buildCardHierarchy } from '../utils/card-utils.js';
 
 /**
  * Show command.
@@ -95,24 +98,13 @@ export class Show {
       if (card.metadata?.labels) {
         labels.push(...card.metadata.labels);
       }
-      // Recursively collect labels from subcards, if they exist
-      if (card.children) {
-        labels.push(...this.collectLabels(card.children));
-      }
       return labels;
     }, []);
   };
 
   // Returns attachment details
-  private async getAttachment(cardKey: string, filename: string) {
-    const details = {
-      content: false,
-      metadata: true,
-      children: false,
-      parent: false,
-      attachments: true,
-    };
-    const card = await this.project.cardDetailsById(cardKey, details);
+  private getAttachment(cardKey: string, filename: string) {
+    const card = this.project.findCard(cardKey);
     if (card === undefined) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -142,17 +134,38 @@ export class Show {
    * @returns all template cards in a project.
    */
   public async showAllTemplateCards(): Promise<
-    { name: string; cards: Card[] }[]
+    { name: string; cards: CardWithChildrenCards[] }[]
   > {
+    function cardWithChildrenCards(cards: Card[]): CardWithChildrenCards[] {
+      const cardMap = new Map(cards.map((card) => [card.key, card]));
+
+      function convert(card: Card): CardWithChildrenCards {
+        const childrenCards = card.children.map((childKey) => {
+          const childCard = cardMap.get(childKey)!;
+          return convert(childCard);
+        });
+
+        return {
+          ...card,
+          childrenCards,
+        };
+      }
+
+      return cards.map(convert);
+    }
+
     return Promise.all(
-      (await this.project.templates()).map(async (template) => {
+      (await this.project.templates()).map((template) => {
         const templateResource = new TemplateResource(
           this.project,
           resourceName(template.name),
         );
+        const cards = templateResource.templateObject().listCards();
+        const buildCards = cardWithChildrenCards(buildCardHierarchy(cards));
+
         return {
           name: template.name,
-          cards: await templateResource.templateObject().showTemplateCards(),
+          cards: buildCards,
         };
       }),
     );
@@ -163,20 +176,8 @@ export class Show {
    * @returns array of card attachments
    */
   public async showAttachments(): Promise<CardAttachment[]> {
-    const attachments: CardAttachment[] = await this.project.attachments();
-    const templateAttachments: CardAttachment[] = [];
-    const templates = await this.project.templates();
-    for (const template of templates) {
-      const templateResource = new TemplateResource(
-        this.project,
-        resourceName(template.name),
-      );
-      const templateObject = templateResource.templateObject();
-      if (templateObject) {
-        templateAttachments.push(...(await templateObject.attachments()));
-      }
-    }
-
+    const attachments = this.project.attachments();
+    const templateAttachments = await this.project.attachmentsFromTemplates();
     attachments.push(...templateAttachments);
     return attachments;
   }
@@ -187,15 +188,12 @@ export class Show {
    * @param filename attachment filename
    * @returns attachment details
    */
-  public async showAttachment(
-    cardKey: string,
-    filename: string,
-  ): Promise<attachmentPayload> {
+  public showAttachment(cardKey: string, filename: string): attachmentPayload {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
 
-    const attachment = await this.getAttachment(cardKey, filename);
+    const attachment = this.getAttachment(cardKey, filename);
 
     let attachmentPath: string = '';
     if (attachment) {
@@ -227,7 +225,7 @@ export class Show {
     filename: string,
     waitDelay: number = 1000,
   ) {
-    const attachment = await this.getAttachment(cardKey, filename);
+    const attachment = this.getAttachment(cardKey, filename);
 
     if (!attachment) {
       throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
@@ -274,18 +272,29 @@ export class Show {
   /**
    * Shows details of a particular card (template card, or project card)
    * @note Note that parameter 'cardKey' is optional due to technical limitations of class calling this class. It must be defined to get valid results.
-   * @param details card details to show
    * @param cardKey card key to find
+   * @param contentType Content format in which content is to be shown
    * @returns card details
    */
-  public async showCardDetails(
-    details: ProjectFetchCardDetails,
+  public showCardDetails(
     cardKey?: string,
-  ): Promise<Card> {
+    contentType?: FileContentType,
+  ): Card {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
-    const cardDetails = await this.project.cardDetailsById(cardKey, details);
+    // todo: Make a constant about this
+    const details: FetchCardDetails = {
+      parent: true,
+      metadata: true,
+      children: true,
+      attachments: true,
+      content: true,
+    };
+    if (contentType) {
+      details.contentType = contentType;
+    }
+    const cardDetails = this.project.findCard(cardKey, details);
     if (cardDetails === undefined) {
       throw new Error(`Card '${cardKey}' does not exist in the project`);
     }
@@ -437,12 +446,9 @@ export class Show {
    * Returns all unique labels in a project
    * @returns labels in a list
    */
-  public async showLabels(): Promise<string[]> {
-    const cards = await this.project.showProjectCards();
-    const templateCards = await this.project.allTemplateCards({
-      metadata: true,
-      children: true,
-    });
+  public showLabels(): string[] {
+    const cards = this.project.showProjectCards();
+    const templateCards = this.project.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);
     return Array.from(new Set(labels));
@@ -480,12 +486,10 @@ export class Show {
 
   /**
    * Returns all project cards in the project. Cards don't have content and nor metadata.
-   * @note AppUi uses this method.
    * @returns array of cards
    */
-  public async showProjectCards(): Promise<Card[]> {
-    const projectCards = await this.project.showProjectCards();
-    return projectCards;
+  public showProjectCards(): Card[] {
+    return this.project.showProjectCards();
   }
 
   /**

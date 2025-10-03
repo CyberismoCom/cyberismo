@@ -103,7 +103,7 @@ class ClingoParser {
     childObject: (parentKey: string, name: string, collection: string) => {
       this.childObjectQueue.push({ parentKey, name, collection });
     },
-    field: async (
+    field: (
       key: string,
       fieldName: string,
       fieldValue: string,

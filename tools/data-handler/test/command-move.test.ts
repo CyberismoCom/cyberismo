@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 // cyberismo
 import { Cmd, Commands } from '../src/command-handler.js';
@@ -13,25 +13,22 @@ import { Show } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
-const testDir = join(baseDir, 'tmp-command-handler-move-tests');
-
-const decisionRecordsPath = join(testDir, 'valid/decision-records');
-
 const commandHandler: Commands = new Commands();
-const options = { projectPath: decisionRecordsPath };
 
 describe('move command', () => {
-  before(async () => {
+  let testDir: string;
+  let decisionRecordsPath: string;
+  let options: { projectPath: string };
+
+  beforeEach(async () => {
+    testDir = join(baseDir, `tmp-command-handler-move-tests`);
+    decisionRecordsPath = join(testDir, 'valid/decision-records');
+    options = { projectPath: decisionRecordsPath };
+
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
-  });
 
-  after(() => {
-    rmSync(testDir, { recursive: true, force: true });
-  });
-
-  it('move card to root (success)', async () => {
-    // Create few more cards to play with.
+    // Create few more cards to play with (moved from first test)
     const template = 'decision/templates/decision';
     const parent = '';
     const done = await commandHandler.command(
@@ -39,9 +36,22 @@ describe('move command', () => {
       ['card', template, parent],
       options,
     );
-    expect(done.statusCode).to.equal(200);
+    if (done.statusCode !== 200) {
+      throw new Error(`Failed to create test card: ${done.message}`);
+    }
+  });
 
-    const sourceId = done.affectsCards![0];
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('move card to root (success)', async () => {
+    const project = new Project(options.projectPath!);
+    await project.populateCaches();
+    const cards = new Show(project).showProjectCards();
+
+    // Use the card created in beforeEach
+    const sourceId = cards[cards.length - 1].key;
     const destination = 'root';
     const result = await commandHandler.command(
       Cmd.move,
@@ -52,7 +62,8 @@ describe('move command', () => {
   });
   it('move card to another card (success)', async () => {
     const project = new Project(options.projectPath!);
-    const cards = await new Show(project).showProjectCards();
+    await project.populateCaches();
+    const cards = new Show(project).showProjectCards();
     expect(cards.length).to.be.greaterThanOrEqual(2);
 
     const sourceId = cards[cards.length - 1].key;
@@ -66,7 +77,8 @@ describe('move command', () => {
   });
   it('move child card to another card (success)', async () => {
     const project = new Project(options.projectPath!);
-    const cards = await new Show(project).showProjectCards();
+    await project.populateCaches();
+    const cards = new Show(project).showProjectCards();
 
     const sourceId = 'decision_6';
     const destination = cards[cards.length - 1].key;
@@ -180,5 +192,87 @@ describe('move command', () => {
       options,
     );
     expect(result.statusCode).to.equal(400);
+  });
+
+  it('verify card cache after move operation', async () => {
+    // First establish the command handler's project instance by running a command
+    await commandHandler.command(Cmd.show, ['project'], options);
+
+    // Get the CommandManager instance to access its project
+    const { CommandManager } = await import('../src/command-manager.js');
+    const commandManager = await CommandManager.getInstance(
+      options.projectPath!,
+    );
+    const project = commandManager.project;
+
+    // Create two cards - parent and child
+    const template = 'decision/templates/decision';
+    let result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const parentCardKey = result.affectsCards?.[0];
+    expect(parentCardKey).to.be.a('string');
+
+    result = await commandHandler.command(
+      Cmd.create,
+      ['card', template, ''],
+      options,
+    );
+    const childCardKey = result.affectsCards?.[0];
+    expect(childCardKey).to.be.a('string');
+
+    // Verify initial state - both cards should be findable in the same project instance used by commandHandler
+    const parentBefore = project.findCard(parentCardKey!);
+    const childBefore = project.findCard(childCardKey!);
+    const allCardsBefore = project.cards(undefined);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(parentBefore, 'Parent card should be findable after creation').to.not
+      .be.undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(childBefore, 'Child card should be findable after creation').to.not
+      .be.undefined;
+    expect(childBefore!.parent).to.equal('root'); // Should be at root initially
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(
+      allCardsBefore.some((c) => c.key === childCardKey),
+      'Child should be found in project.cards() result',
+    ).to.be.true;
+
+    // Move child under parent
+    result = await commandHandler.command(
+      Cmd.move,
+      [childCardKey!, parentCardKey!],
+      options,
+    );
+    expect(result.statusCode).to.equal(200);
+
+    // Verify state after move
+    const parentAfter = project.findCard(parentCardKey!);
+    const childAfter = project.findCard(childCardKey!);
+    const allCardsAfter = project.cards(undefined);
+
+    // Verify expectations
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(childAfter, 'Child card should still be findable after move').to.not
+      .be.undefined;
+    expect(
+      childAfter!.parent,
+      'Child card should have correct parent',
+    ).to.equal(parentCardKey);
+    expect(childAfter!.path, 'Child card should have correct path').to.include(
+      `${parentCardKey}${sep}c${sep}${childCardKey}`,
+    );
+    expect(
+      parentAfter!.children,
+      'Parent should list child in children array',
+    ).to.include(childCardKey);
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    expect(
+      allCardsAfter.some((c) => c.key === childCardKey),
+      'Child should be found in project.cards() result after move',
+    ).to.be.true;
   });
 });

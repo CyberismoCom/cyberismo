@@ -36,7 +36,7 @@ export default class XrefMacro extends BaseMacro {
     input: unknown,
   ): Promise<string> => {
     const options = this.validate(input);
-    const card = await this.getCard(options.cardKey, context);
+    const card = this.getCard(options.cardKey, context);
 
     if (!card || !card.metadata) {
       throw new Error(`Card key ${options.cardKey} not found`);
@@ -48,7 +48,7 @@ export default class XrefMacro extends BaseMacro {
 
   handleInject = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.validate(input);
-    const card = await this.getCard(options.cardKey, context);
+    const card = this.getCard(options.cardKey, context);
 
     if (!card || !card.metadata) {
       throw new Error(`Card key ${options.cardKey} not found`);
@@ -57,10 +57,8 @@ export default class XrefMacro extends BaseMacro {
     return `xref:${options.cardKey}.adoc[${card.metadata.title}]`;
   };
 
-  private async getCard(cardKey: string, context: MacroGenerationContext) {
-    const card = await context.project.cardDetailsById(cardKey, {
-      metadata: true,
-    });
+  private getCard(cardKey: string, context: MacroGenerationContext) {
+    const card = context.project.findCard(cardKey);
     if (!card || !card.metadata) {
       throw new Error(`Card key ${cardKey} not found`);
     }
