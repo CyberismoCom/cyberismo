@@ -14,9 +14,6 @@
 
 namespace node_clingo
 {
-    ClingoSolver::ClingoSolver() {}
-
-    ClingoSolver::~ClingoSolver() {}
 
     bool ClingoSolver::ground_callback(
         clingo_location_t const* location,

@@ -79,8 +79,8 @@ namespace node_clingo
         SolveResult errorResult(const std::string& key = "");
 
       public:
-        ClingoSolver();
-        ~ClingoSolver();
+        ClingoSolver() = default;
+        ~ClingoSolver() = default;
         SolveResult solve(const Query& query);
     };
 } // namespace node_clingo
