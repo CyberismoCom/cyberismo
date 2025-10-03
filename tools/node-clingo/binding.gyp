@@ -1,7 +1,8 @@
 {
   "variables": {
       "openssl_fips": "",
-      "conda_prefix": "<!(echo %CONDA_PREFIX%)"
+      "conda_prefix": "<!(echo %CONDA_PREFIX%)",
+      "enable_cpp_logs%": "0"
   },
   "targets": [
     {
@@ -10,16 +11,24 @@
       "sources": [ 
         "src/binding.cc",
         "src/helpers.cc",
-        "src/function_handlers.cc"
+        "src/function_handlers.cc",
+        "external/xxhash/xxhash.c",
+        "src/clingo_solver.cc",
+        "src/program_store.cc",
+        "src/solve_result_cache.cc"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
-        "<(conda_prefix)/Library/include"
+        "<(conda_prefix)/Library/include",
+        "external/xxhash"
       ],
       "dependencies": [
         "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except_all"
       ],
       "conditions": [
+        ['enable_cpp_logs==1', {
+          'defines': [ 'ENABLE_CPP_LOGS' ]
+        }],
         ["OS=='win'", {
           "libraries": [
             "<(conda_prefix)/Library/lib/import_clingo.lib"

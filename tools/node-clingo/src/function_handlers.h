@@ -13,10 +13,11 @@
 #ifndef NODE_CLINGO_FUNCTION_HANDLERS_H
 #define NODE_CLINGO_FUNCTION_HANDLERS_H
 
-#include <clingo.h>
 #include <functional>
 #include <string>
 #include <unordered_map>
+
+#include <clingo.h>
 
 namespace node_clingo
 {

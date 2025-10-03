@@ -3,7 +3,6 @@ import {
   solve,
   setProgram,
   removeAllPrograms,
-  removeProgramsByCategory,
   removeProgram,
   buildProgram,
 } from '../lib/index.js';
@@ -21,7 +20,26 @@ describe('Clingo solver', () => {
     expect(result).toBeDefined();
     expect(result.answers).toBeInstanceOf(Array);
     expect(result.answers.length).toBeGreaterThan(0);
-    expect(result.executionTime).toBeGreaterThan(0);
+    expect(result.stats).toBeDefined();
+  });
+  // TODO: could consider c++ tests so that we can test the cache directly
+  it('should return stats object', async () => {
+    const program = 'a. b. c(1). c(3).';
+    const result = await solve(program);
+    const result2 = await solve(program);
+
+    expect(result.stats).toBeDefined();
+    expect(result.stats.glue).toBeGreaterThan(0);
+    expect(result.stats.add).toBeGreaterThan(0);
+    expect(result.stats.ground).toBeGreaterThan(0);
+    expect(result.stats.solve).toBeGreaterThan(0);
+
+    // second solve uses cache
+    expect(result2.stats).toBeDefined();
+    expect(result2.stats.glue).toBeGreaterThan(0);
+    expect(result2.stats.add).toBe(0);
+    expect(result2.stats.ground).toBe(0);
+    expect(result2.stats.solve).toBe(0);
   });
 
   it('should reuse default base program across multiple solves', async () => {
@@ -284,132 +302,6 @@ describe('Clingo solver', () => {
     });
   });
 
-  describe('Program management by category', () => {
-    it('should remove programs by category and return count', () => {
-      // Set up programs with various categories
-      setProgram('program1', 'fact(a).', ['base', 'common']);
-      setProgram('program2', 'fact(b).', ['base', 'special']);
-      setProgram('program3', 'fact(c).', ['advanced']);
-      setProgram('program4', 'fact(d).', ['base']);
-
-      // Remove programs with 'base' category
-      const removedCount = removeProgramsByCategory('base');
-
-      // Should return 3 (program1, program2, program4)
-      expect(removedCount).toBe(3);
-    });
-
-    it('should not affect programs without the specified category', async () => {
-      // Set up programs
-      setProgram('keep1', 'fact(keep1).', ['advanced']);
-      setProgram('remove1', 'fact(remove1).', ['base']);
-      setProgram('keep2', 'fact(keep2).', ['special']);
-      setProgram('remove2', 'fact(remove2).', ['base', 'other']);
-
-      // Remove programs with 'base' category
-      const removedCount = removeProgramsByCategory('base');
-      expect(removedCount).toBe(2);
-
-      // Programs without 'base' category should still work
-      const result1 = await solve('test :- fact(keep1).', ['keep1']);
-      expect(result1.answers[0]).toContain('test');
-      expect(result1.answers[0]).toContain('fact(keep1)');
-
-      const result2 = await solve('test :- fact(keep2).', ['keep2']);
-      expect(result2.answers[0]).toContain('test');
-      expect(result2.answers[0]).toContain('fact(keep2)');
-
-      // Programs with 'base' category should be gone and not affect solving
-      const result3 = await solve('a.', ['remove1', 'remove2']);
-      expect(result3.answers[0]).toBe('a');
-    });
-
-    it('should return 0 when no programs have the specified category', () => {
-      // Set up programs without the target category
-      setProgram('program1', 'fact(a).', ['other']);
-      setProgram('program2', 'fact(b).', ['different']);
-
-      // Try to remove programs with non-existent category
-      const removedCount = removeProgramsByCategory('nonexistent');
-
-      expect(removedCount).toBe(0);
-    });
-
-    it('should return 0 when no programs are stored', () => {
-      // No programs set up
-      const removedCount = removeProgramsByCategory('any_category');
-      expect(removedCount).toBe(0);
-    });
-
-    it('should handle programs with multiple categories correctly', () => {
-      // Set up programs with overlapping categories
-      setProgram('multi1', 'fact(m1).', [
-        'category1',
-        'category2',
-        'category3',
-      ]);
-      setProgram('multi2', 'fact(m2).', ['category2', 'category4']);
-      setProgram('multi3', 'fact(m3).', ['category1', 'category4']);
-      setProgram('single', 'fact(s).', ['category5']);
-
-      // Remove by category2 - should remove multi1 and multi2
-      const removedCount1 = removeProgramsByCategory('category2');
-      expect(removedCount1).toBe(2);
-
-      // Remove by category1 - should remove multi3 (multi1 already removed)
-      const removedCount2 = removeProgramsByCategory('category1');
-      expect(removedCount2).toBe(1);
-
-      // Remove by category5 - should remove single
-      const removedCount3 = removeProgramsByCategory('category5');
-      expect(removedCount3).toBe(1);
-
-      // No programs should be left with category4
-      const removedCount4 = removeProgramsByCategory('category4');
-      expect(removedCount4).toBe(0);
-    });
-
-    it('should work correctly after removing programs by category', async () => {
-      // Set up test scenario
-      setProgram('base_common', 'common(value).', ['base']);
-      setProgram('special_logic', 'special(rule).', ['special']);
-      setProgram('keep_this', 'keep(this).', ['keep']);
-
-      // Verify initial state works
-      const initialResult = await solve('test :- common(value), keep(this).', [
-        'base',
-        'keep',
-      ]);
-      expect(initialResult.answers[0]).toContain('test');
-
-      // Remove base programs
-      const removedCount = removeProgramsByCategory('base');
-      expect(removedCount).toBe(1);
-
-      // Should still be able to use remaining programs
-      const afterRemoval = await solve('test :- special(rule), keep(this).', [
-        'special',
-        'keep',
-      ]);
-      expect(afterRemoval.answers[0]).toContain('test');
-      expect(afterRemoval.answers[0]).toContain('special(rule)');
-      expect(afterRemoval.answers[0]).toContain('keep(this)');
-
-      // Base program should no longer be available
-      const withoutBase = await solve('a.', ['base']);
-      expect(withoutBase.answers[0]).toBe('a'); // Only the main program result
-    });
-
-    it('should handle empty category string', () => {
-      setProgram('program1', 'fact(a).', ['', 'normal']);
-      setProgram('program2', 'fact(b).', ['normal']);
-
-      // Remove programs with empty category
-      const removedCount = removeProgramsByCategory('');
-      expect(removedCount).toBe(1);
-    });
-  });
-
   describe('Single program removal', () => {
     it('should remove a specific program by key', async () => {
       // Set up programs
@@ -543,30 +435,6 @@ describe('Clingo solver', () => {
       removeAllPrograms();
     });
 
-    it('should work after partial removals', async () => {
-      // Set up programs
-      setProgram('keep', 'fact(keep).', ['category']);
-      setProgram('remove1', 'fact(remove1).', ['category']);
-      setProgram('remove2', 'fact(remove2).', ['other']);
-
-      // Remove some programs individually
-      const removed1 = removeProgram('remove1');
-      expect(removed1).toBe(true);
-      const removed2 = removeProgramsByCategory('other');
-      expect(removed2).toBe(1);
-
-      // One program should still be available
-      const beforeClearAll = await solve('test :- fact(keep).', ['keep']);
-      expect(beforeClearAll.answers[0]).toContain('test');
-
-      // Remove all remaining programs
-      removeAllPrograms();
-
-      // Everything should be gone now
-      const afterClearAll = await solve('a.', ['keep']);
-      expect(afterClearAll.answers[0]).toBe('a');
-    });
-
     it('should return true indicating successful operation', () => {
       setProgram('test', 'fact(test).', []);
       removeAllPrograms();
@@ -635,9 +503,9 @@ describe('Clingo solver', () => {
       const mainProgram = 'valid :- type(X), base(Y).';
       const result = buildProgram(mainProgram, ['query']);
 
-      expect(result).toContain('% Program: query_rules (category: query)');
+      expect(result).toContain('% Program: query_rules');
       expect(result).toContain('type(query).');
-      expect(result).toContain('% Program: graph_rules (category: query)');
+      expect(result).toContain('% Program: graph_rules');
       expect(result).toContain('type(graph).');
       expect(result).toContain('% Main program');
       expect(result).toContain(mainProgram);
@@ -698,11 +566,11 @@ describe('Clingo solver', () => {
       const mainProgram = 'collect :- type(X).';
       const result = buildProgram(mainProgram, ['group']);
 
-      expect(result).toContain('% Program: rule1 (category: group)');
+      expect(result).toContain('% Program: rule1');
       expect(result).toContain('type(a).');
-      expect(result).toContain('% Program: rule2 (category: group)');
+      expect(result).toContain('% Program: rule2');
       expect(result).toContain('type(b).');
-      expect(result).toContain('% Program: rule3 (category: group)');
+      expect(result).toContain('% Program: rule3');
       expect(result).toContain('type(c).');
       expect(result).not.toContain('other(fact)');
     });

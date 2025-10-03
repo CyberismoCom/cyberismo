@@ -282,4 +282,23 @@ namespace node_clingo
         return return_string(result.c_str(), symbol_callback, symbol_callback_data);
     }
 
+    int64_t current_epoch_ms()
+    {
+        auto now = std::chrono::system_clock::now().time_since_epoch();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+    }
+
+    int64_t next_local_midnight_epoch_ms()
+    {
+        time_t now = time(nullptr);
+        std::tm local_tm = *std::localtime(&now);
+        local_tm.tm_isdst = -1; // let the system determine DST
+        local_tm.tm_hour = 0;
+        local_tm.tm_min = 0;
+        local_tm.tm_sec = 0;
+        local_tm.tm_mday += 1;
+        time_t next_midnight = mktime(&local_tm);
+        return static_cast<int64_t>(next_midnight) * 1000LL;
+    }
+
 } // namespace node_clingo

@@ -14,15 +14,29 @@
 #define NODE_CLINGO_HELPERS_H
 
 #include <chrono>
-#include <clingo.h>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include <clingo.h>
+
+#include "xxhash.h"
+
+#ifdef ENABLE_CPP_LOGS
+#include <iostream>
+#define LOG(msg) std::cout << "[C++] " << msg << std::endl
+#else
+#define LOG(msg)                                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+    } while (0)
+#endif
 namespace node_clingo
 {
+
+    using Hash = XXH64_hash_t;
 
     /**
      * Enum for resource name parts.
@@ -99,6 +113,16 @@ namespace node_clingo
         clingo_symbol_callback_t symbol_callback,
         void* symbol_callback_data,
         ResourcePart part);
+
+    /**
+     * Returns current epoch milliseconds.
+     */
+    int64_t current_epoch_ms();
+
+    /**
+     * Returns epoch milliseconds for the next local midnight.
+     */
+    int64_t next_local_midnight_epoch_ms();
 
 } // namespace node_clingo
 

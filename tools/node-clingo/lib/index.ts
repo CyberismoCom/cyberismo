@@ -17,7 +17,6 @@ import { resolve } from 'node:path';
 interface ClingoBinding {
   setProgram(key: string, program: string, categories?: string[]): void;
   removeProgram(key: string): boolean;
-  removeProgramsByCategory(category: string): number;
   removeAllPrograms(): void;
   solve(program: string, categories: string[]): ClingoResult;
   buildProgram(program: string, categories: string[]): string;
@@ -55,7 +54,12 @@ export class ClingoError extends Error {
  */
 interface ClingoResult {
   answers: string[];
-  executionTime: number;
+  stats: {
+    glue: number;
+    add: number;
+    ground: number;
+    solve: number;
+  };
 }
 
 /**
@@ -78,15 +82,6 @@ function removeProgram(key: string): boolean {
 }
 
 /**
- * Removes all stored programs that have the specified category
- * @param category The category to match
- * @returns The number of programs removed
- */
-function removeProgramsByCategory(category: string): number {
-  return binding.removeProgramsByCategory(category);
-}
-
-/**
  * Solves a logic program
  * @param program The logic program as a string
  * @param categories Optional array of program keys or categories to include
@@ -101,8 +96,7 @@ async function solve(
   }
 
   try {
-    const result = binding.solve(program, categories ?? []);
-    return result;
+    return binding.solve(program, categories ?? []);
   } catch (error) {
     if (
       error instanceof Error &&
@@ -148,7 +142,6 @@ export {
   solve,
   setProgram,
   removeProgram,
-  removeProgramsByCategory,
   removeAllPrograms,
   buildProgram,
   ClingoResult,
@@ -157,7 +150,6 @@ export default {
   solve,
   setProgram,
   removeProgram,
-  removeProgramsByCategory,
   removeAllPrograms,
   buildProgram,
 };

@@ -21,7 +21,6 @@ import {
   setProgram,
   removeProgram,
   removeAllPrograms,
-  removeProgramsByCategory,
 } from '@cyberismo/node-clingo';
 
 // Solve a simple logic program
@@ -57,7 +56,6 @@ const result5 = await solve('happy(X) :- friend(X,Y).', ['facts', 'rules']);
 
 // Remove programs
 removeProgram('query'); // removes specific program
-removeProgramsByCategory('facts'); // removes all programs with 'facts' category
 removeAllPrograms(); // clears all programs
 ```
 
@@ -72,9 +70,13 @@ Solves a logic program, optionally combining with one or more stored programs re
 **Returns:** `ClingoResult` object with:
 
 - `answers: string[]` - Array of answer sets (each answer set as a single string with atoms separated by newlines)
-- `executionTime: number` - Execution time in microseconds
 - `errors: string[]` - Any error messages from Clingo
 - `warnings: string[]` - Any warning messages from Clingo
+- `stats: { glue: number; add: number; ground: number; solve: number }` - Microsecond timings for each phase:
+  - `glue`: building/expanding referenced base programs
+  - `add`: adding parts (base and main) to Clingo
+  - `ground`: grounding all parts
+  - `solve`: solving and collecting models
 
 ### `setProgram(key: string, program: string, categories?: string[])`
 
@@ -91,12 +93,6 @@ Stores a program under a key. Optionally assign categories for easier program ma
 Removes a stored program by key.
 
 **Returns:** `true` if the program was found and removed, `false` if it didn't exist.
-
-### `removeProgramsByCategory(category: string): number`
-
-Removes all stored programs that have the specified category.
-
-**Returns:** Number of programs removed.
 
 ### `removeAllPrograms()`
 
