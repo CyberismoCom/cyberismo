@@ -466,9 +466,7 @@ export class CalculationEngine {
       case 'templates':
         return createTemplateFacts(resource as TemplateMetadata);
       default:
-        throw new Error(
-          `Resource ${resourceNameToString(resourceName)} does not have a logic program`,
-        );
+        return '';
     }
   }
 
