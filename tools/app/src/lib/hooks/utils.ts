@@ -15,7 +15,7 @@ import { findParentCard } from '../utils';
 import { useTree } from '../api';
 import { useLocation, useParams } from 'react-router';
 import { useResourceTree } from '../api/resources';
-import type { ResourceNode } from '../api/types';
+import type { AnyNode } from '../api/types';
 
 export function useRequiredKeyParam() {
   const key = useOptionalKeyParam();
@@ -337,13 +337,10 @@ export function useConfigTemplateCreationContext(): {
   };
 }
 
-function findTemplateForCard(
-  nodes: ResourceNode[],
-  cardKey: string,
-): string | null {
+function findTemplateForCard(nodes: AnyNode[], cardKey: string): string | null {
   function depthFirstSearch(
-    node: ResourceNode,
-    ancestors: ResourceNode[],
+    node: AnyNode,
+    ancestors: AnyNode[],
   ): string | null {
     const newAncestors = [...ancestors, node];
     if (node.type === 'card' && node.id === cardKey) {
@@ -357,7 +354,7 @@ function findTemplateForCard(
     }
     if (node.children) {
       for (const child of node.children) {
-        const result = depthFirstSearch(child as ResourceNode, newAncestors);
+        const result = depthFirstSearch(child as AnyNode, newAncestors);
         if (result) return result;
       }
     }
@@ -365,7 +362,7 @@ function findTemplateForCard(
   }
 
   for (const root of nodes) {
-    const result = depthFirstSearch(root as ResourceNode, []);
+    const result = depthFirstSearch(root as AnyNode, []);
     if (result) return result;
   }
   return null;

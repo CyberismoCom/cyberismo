@@ -123,6 +123,8 @@ export const apiPaths = {
   resource: (resourceName: string) => `/api/resources/${resourceName}`,
   resourceFileContent: (resourceName: string) =>
     `/api/resources/${resourceName}`,
+  resourceOperation: (resourceName: string) =>
+    `/api/resources/${resourceName}/operation`,
   tree: () => '/api/tree',
   validateResource: (resourceName: string) =>
     `/api/resources/${resourceName}/validate`,

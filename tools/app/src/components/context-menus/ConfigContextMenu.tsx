@@ -20,13 +20,13 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { ResourceNode } from '@/lib/api/types';
+import { AnyNode } from '@/lib/api/types';
 import { useModals } from '@/lib/utils';
 import { ResourceDeleteModal } from '../modals';
 import { LogicProgramModal } from '../modals/LogicProgramModal';
 
 export interface ConfigContextMenuProps {
-  node: ResourceNode;
+  node: AnyNode;
   enabled?: {
     delete?: boolean;
     logicProgram?: boolean;

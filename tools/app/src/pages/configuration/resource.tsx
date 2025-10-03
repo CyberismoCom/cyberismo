@@ -12,7 +12,7 @@
 */
 
 import { useResourceTree } from '@/lib/api';
-import { NodeType, ResourceNode, CalculationNode } from '@/lib/api/types';
+import { AnyNode, NodeKey, GenericNode } from '@/lib/api/types';
 import { useParams } from 'react-router';
 import {
   TextEditor,
@@ -23,31 +23,31 @@ import {
 import { useTranslation } from 'react-i18next';
 import { findResourceNodeByName } from '@/lib/utils';
 
-const resourceMap: Partial<
-  Record<NodeType, (node: ResourceNode, key: string) => React.ReactNode>
-> = {
+type ResourceRendererMap = {
+  [K in NodeKey]: (node: GenericNode<K>, key: string) => React.ReactNode;
+};
+
+const resourceMap: Partial<ResourceRendererMap> = {
+  calculations: (node, key) => <CalculationEditor node={node} key={key} />,
+  card: (node, key) => <ConfigCardEditor node={node} key={key} />,
+  cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
+  fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   file: (node, key) => <TextEditor node={node} key={key} />,
   graphModels: (node, key) => <ResourceEditor node={node} key={key} />,
-  graphViews: (node) => <ResourceEditor node={node} />,
+  graphViews: (node, key) => <ResourceEditor node={node} key={key} />,
+  linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   reports: (node, key) => <ResourceEditor node={node} key={key} />,
   templates: (node, key) => <ResourceEditor node={node} key={key} />,
   workflows: (node, key) => <ResourceEditor node={node} key={key} />,
-  calculations: (node, key) => (
-    <CalculationEditor node={node as CalculationNode} key={key} />
-  ),
-  cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  linkTypes: (node, key) => <ResourceEditor node={node} key={key} />,
-  card: (node, key) => <ConfigCardEditor node={node} key={key} />,
 };
 
 function findNode(
-  resourceTree: ResourceNode[],
+  resourceTree: AnyNode[],
   module: string,
   type: string,
   resource: string,
   file?: string,
-): ResourceNode | null {
+): AnyNode | null {
   const name = `${module}/${type}/${resource}${file ? `/${file}` : ''}`;
   return findResourceNodeByName(resourceTree, name);
 }
@@ -76,10 +76,17 @@ export default function Resource() {
     );
   }
 
-  const renderer = resourceMap[node.type];
-  if (!renderer) {
-    return <div>Type {node.type} not implemented</div>;
-  }
+  const renderNode = <T extends NodeKey>(
+    nodeType: T,
+    nodeInstance: GenericNode<T>,
+    key: string,
+  ): React.ReactNode => {
+    const renderer = resourceMap[nodeType];
+    if (!renderer) {
+      return <div>Type {nodeType} not implemented</div>;
+    }
+    return renderer(nodeInstance, key);
+  };
 
-  return renderer(node, node.name);
+  return renderNode(node.type, node, node.name);
 }

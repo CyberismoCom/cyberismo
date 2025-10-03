@@ -15,12 +15,13 @@ import { SWRConfiguration, mutate } from 'swr';
 import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
-import { ResourceFileContentResponse, ResourceNode } from './types';
+import { AnyNode, ResourceFileContentResponse } from './types';
+import type { OperationFor, UpdateOperations } from '@cyberismo/data-handler';
 
 // Helper to check if a node has data (is a resource, not a group)
 export const hasResourceData = (
-  node: ResourceNode,
-): node is Extract<ResourceNode, { data: ResourceBaseMetadata }> => {
+  node: AnyNode,
+): node is Extract<AnyNode, { data: ResourceBaseMetadata }> => {
   return 'data' in node;
 };
 
@@ -73,4 +74,23 @@ export const updateResourceFileContent = async (
   mutate(swrKey, result, false);
 
   return result;
+};
+
+// Operation-based update of resource value
+export type UpdateOperationBody<Type, T extends UpdateOperations> = {
+  key: string;
+  operation: OperationFor<Type, T>;
+};
+
+export const updateResourceWithOperation = async <
+  Type,
+  T extends UpdateOperations,
+>(
+  resourceName: string,
+  body: UpdateOperationBody<Type, T>,
+) => {
+  const swrKey = apiPaths.resource(resourceName);
+  await callApi(apiPaths.resourceOperation(resourceName), 'POST', body);
+  mutate(swrKey);
+  mutate(apiPaths.resourceTree());
 };
