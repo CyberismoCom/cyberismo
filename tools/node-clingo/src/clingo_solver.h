@@ -28,7 +28,7 @@
 namespace node_clingo
 {
 
-  const int MAX_CLINGO_LOG_MESSAGES = 50;
+    const int MAX_CLINGO_LOG_MESSAGES = 50;
 
     class ClingoSolver {
       private:

@@ -149,7 +149,7 @@ namespace node_clingo
         clingo_control_t* ctl = nullptr;
         if (!clingo_control_new(
                 nullptr, // command line args(as c-style array)
-                0, // length of args
+                0,       // length of args
                 [](clingo_warning_t code, char const* message, void* data) {
                     // Use data parameter to pass the instance
                     if (data)
