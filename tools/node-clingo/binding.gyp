@@ -1,7 +1,8 @@
 {
   "variables": {
       "openssl_fips": "",
-      "conda_prefix": "<!(echo %CONDA_PREFIX%)"
+      "conda_prefix": "<!(echo %CONDA_PREFIX%)",
+      "enable_cpp_logs%": "0"
   },
   "targets": [
     {
@@ -25,6 +26,9 @@
         "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except_all"
       ],
       "conditions": [
+        ['enable_cpp_logs==1', {
+          'defines': [ 'ENABLE_CPP_LOGS' ]
+        }],
         ["OS=='win'", {
           "libraries": [
             "<(conda_prefix)/Library/lib/import_clingo.lib"

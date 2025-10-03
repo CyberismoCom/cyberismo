@@ -24,6 +24,15 @@
 
 #include "xxhash.h"
 
+#ifdef ENABLE_CPP_LOGS
+#include <iostream>
+#define LOG(msg) std::cout << "[C++] " << msg << std::endl
+#else
+#define LOG(msg)                                                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+    } while (0)
+#endif
 namespace node_clingo
 {
 

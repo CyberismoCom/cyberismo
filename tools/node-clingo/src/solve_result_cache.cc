@@ -48,7 +48,7 @@ namespace node_clingo
 
         if (bytes > CACHE_CAPACITY_BYTES)
         {
-            // TODO: log that this happened
+            LOG("Result too large for cache, not caching: " << bytes << " bytes");
             return;
         }
         // make space for the new result
@@ -59,6 +59,7 @@ namespace node_clingo
             auto ev = entries.find(evictHash);
             if (ev != entries.end())
             {
+                LOG("Evicting cached result: " << evictHash << " of size " << ev->second.sizeBytes << " bytes");
                 currentBytes -= ev->second.sizeBytes;
                 entries.erase(ev);
             }
@@ -73,6 +74,8 @@ namespace node_clingo
         };
         currentBytes += bytes;
         entries.emplace(hash, std::move(entry));
+        LOG("Caching result: " << hash << " of size " << bytes << " bytes");
+        LOG("Current cache size: " << currentBytes << " bytes");
     }
 
     bool SolveResultCache::result(const Hash& hash, SolveResult& result)
@@ -80,9 +83,11 @@ namespace node_clingo
         auto it = entries.find(hash);
         if (it != entries.end())
         {
+            LOG("Cache hit for hash: " << hash);
             // Expire stale entries based on valid_until
             if (it->second.result.valid_until > 0 && current_epoch_ms() > it->second.result.valid_until)
             {
+                LOG("Removing expired cached result: " << hash);
                 // Remove expired entry
                 lru.erase(it->second.lruIt);
                 currentBytes -= it->second.sizeBytes;
