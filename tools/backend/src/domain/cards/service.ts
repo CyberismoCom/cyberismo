@@ -213,22 +213,12 @@ export async function removeLink(
   return { message: 'Link removed successfully' };
 }
 
-export async function getAttachment(
+export function getAttachment(
   commands: CommandManager,
   key: string,
   filename: string,
 ) {
-  const attachmentResponse = await commands.showCmd.showAttachment(
-    key,
-    filename,
-  );
-
-  if (!attachmentResponse) {
-    throw new Error(
-      `No attachment found from card ${key} and filename ${filename}`,
-    );
-  }
-
+  const attachmentResponse = commands.showCmd.showAttachment(key, filename);
   return attachmentResponse;
 }
 

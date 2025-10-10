@@ -13,8 +13,8 @@
 
 // node
 import { basename, join, resolve, sep } from 'node:path';
-import { copyFile, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { type Dirent, readdirSync } from 'node:fs';
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 
 // Base class
 import { CardContainer } from './card-container.js';
@@ -23,8 +23,6 @@ import {
   type Card,
   type CardAttachment,
   CardNameRegEx,
-  type FetchCardDetails,
-  type FileContentType,
   type Resource,
 } from '../interfaces/project-interfaces.js';
 import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
@@ -38,14 +36,18 @@ import {
   sortItems,
 } from '../utils/lexorank.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { readJsonFile } from '../utils/json.js';
+import { isModulePath } from '../utils/card-utils.js';
 import { Project } from './project.js';
 import { resourceName } from '../utils/resource-utils.js';
 
+import { ROOT } from '../utils/constants.js';
+
 // creates template instance based on a project path and name
 export class Template extends CardContainer {
+  private templateName: string;
   private templatePath: string;
   private templateCardsPath: string;
+  private fullTemplateName: string; // Full template name from resource (e.g., 'test/templates/page')
   private project: Project;
   private get logger() {
     return getChildLogger({
@@ -56,9 +58,10 @@ export class Template extends CardContainer {
   constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
     const templateName = stripExtension(basename(template.name));
-    super(template.path!, templateName);
+    super(template.path, project.projectPrefix, templateName);
+    this.templateName = templateName;
+    this.fullTemplateName = template.name;
 
-    // prevent constructing a new project object, if one is passed to this class.
     this.project = project;
     // optimization - if template.path is set - use it
     this.templatePath =
@@ -66,30 +69,6 @@ export class Template extends CardContainer {
         ? join(template.path, templateName)
         : this.setTemplatePath(template.name);
     this.templateCardsPath = join(this.templatePath, 'c');
-  }
-
-  // Fetches project top level cards only.
-  // Top level cards are those that have parent as 'root'.
-  // todo: This should be in 'project' or 'card-container'
-  private async rootLevelProjectCards(): Promise<Card[]> {
-    const entries = (
-      await readdir(this.project.paths.cardRootFolder, {
-        withFileTypes: true,
-      })
-    ).filter((entry) => entry.isDirectory() && CardNameRegEx.test(entry.name));
-    const cardPromises = entries.map(async (entry) => {
-      const currentPath = join(entry.parentPath, entry.name);
-      return {
-        key: entry.name,
-        path: currentPath,
-        metadata: await readJsonFile(
-          join(currentPath, CardContainer.cardMetadataFile),
-        ),
-        children: [],
-        attachments: [],
-      };
-    });
-    return Promise.all(cardPromises);
   }
 
   // Creates card(s) as project cards from template.
@@ -110,13 +89,13 @@ export class Template extends CardContainer {
 
       // Handle ranking for parent cards
       const parentCards = sortItems(
-        cards.filter((c) => c.parent === 'root'),
+        cards.filter((c) => c.parent === ROOT),
         (c) => c?.metadata?.rank || '',
       );
 
       const futureSiblings = parentCard
-        ? parentCard.children || []
-        : await this.rootLevelProjectCards();
+        ? this.project.childCards(parentCard.children) || []
+        : this.rootLevelProjectCards();
 
       let latestRank =
         sortItems(
@@ -165,6 +144,24 @@ export class Template extends CardContainer {
       }
 
       card.key = templateIDMap.get(card.key) || card.key;
+
+      // Set parent field based on template hierarchy and creation location
+      // Store the original template parent before key remapping
+      const originalParentKey = card.parent;
+
+      if (parentCard) {
+        if (!originalParentKey || originalParentKey === ROOT) {
+          card.parent = parentCard.key;
+        } else {
+          card.parent = templateIDMap.get(originalParentKey) || parentCard.key;
+        }
+      } else {
+        if (!originalParentKey || originalParentKey === ROOT) {
+          card.parent = ROOT;
+        } else {
+          card.parent = templateIDMap.get(originalParentKey) || ROOT;
+        }
+      }
     };
 
     // Process attachments
@@ -256,8 +253,20 @@ export class Template extends CardContainer {
       const templatesFolder = this.templateFolder();
 
       // Process all cards in parallel
+      // Create deep copies to avoid mutating the cached template cards
       const processedCards = await Promise.all(
-        cards.map(async (card) => {
+        cards.map(async (originalCard) => {
+          const card: Card = {
+            key: originalCard.key,
+            path: originalCard.path,
+            content: originalCard.content,
+            parent: originalCard.parent,
+            children: [...(originalCard.children || [])],
+            attachments: [...(originalCard.attachments || [])],
+            metadata: originalCard.metadata
+              ? { ...originalCard.metadata }
+              : undefined,
+          };
           // Update paths and keys
           updateCardPaths(card, templateIDMap, templatesFolder);
 
@@ -280,14 +289,19 @@ export class Template extends CardContainer {
           return processedCard;
         }),
       );
+      await this.project.handleNewCards(processedCards);
       return processedCards;
     } catch (error) {
       await this.removeCards(templateIDMap);
-      if (error instanceof Error) {
-        throw new Error(`Failed to create cards: ${error.message}`);
-      }
+      this.logger.error({ error }, 'Failed to create cards');
       throw error;
     }
+  }
+
+  // Helper method to find a card.
+  private findCardDirect(cardKey: string): Card | undefined {
+    const allCards = this.cards();
+    return allCards.find((card) => card.key === cardKey);
   }
 
   // fetches path to module.
@@ -321,21 +335,28 @@ export class Template extends CardContainer {
 
   // Removes cards
   private async removeCards(cardMap: Map<string, string>) {
-    const tasks: Promise<Card | undefined>[] = [];
+    const cards: Card[] = [];
     // Find all cards that need to be removed.
     cardMap.forEach((createdCard) => {
-      tasks.push(this.project.findSpecificCard(createdCard));
+      const card = this.project.findCard(createdCard);
+      if (card) {
+        cards.push(card);
+      }
     });
-    // Remove empty results.
-    const cards = (await Promise.all(tasks)).filter(
-      (item) => item !== undefined,
-    );
     // Delete card folders.
     const deleteAll: Promise<void>[] = [];
     cards.forEach((card) => {
       deleteAll.push(rm(card.path, { force: true, recursive: true }));
     });
     await Promise.all(deleteAll);
+  }
+
+  // Fetches project top level cards only.
+  private rootLevelProjectCards(): Card[] {
+    const allProjectCards = this.project.cards(
+      this.project.paths.cardRootFolder,
+    );
+    return allProjectCards.filter((card) => card.parent === ROOT);
   }
 
   // Set path to template location.
@@ -388,7 +409,7 @@ export class Template extends CardContainer {
       if (cardType === undefined) {
         throw new Error(`Card type '${cardTypeName}' does not exist`);
       }
-      if (parentCard && !this.hasCard(parentCard.key)) {
+      if (parentCard && !this.hasTemplateCard(parentCard.key)) {
         throw new Error(
           `Card '${parentCard.key}' does not exist in template '${this.containerName}'`,
         );
@@ -401,8 +422,8 @@ export class Template extends CardContainer {
         : join(this.templateCardsPath, newCardKey);
 
       const templateCards = parentCard
-        ? parentCard.children || []
-        : await this.cards();
+        ? this.project.childCards(parentCard.children)
+        : this.cards();
       const defaultContent = DefaultContent.card(cardType, templateCards);
 
       await mkdir(templateCardToCreate, { recursive: true });
@@ -413,12 +434,13 @@ export class Template extends CardContainer {
         children: [],
         attachments: [],
         content: '',
+        parent: parentCard ? parentCard.key : ROOT,
       };
       await this.saveCard(defaultCard);
+      await this.project.handleNewCards([defaultCard]);
     } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
+      this.logger.error({ error });
+      throw error;
     }
     return newCardKey;
   }
@@ -427,8 +449,8 @@ export class Template extends CardContainer {
    * Return all attachment in the template.
    * @returns all attachments in the template.
    */
-  public async attachments(): Promise<CardAttachment[]> {
-    return super.attachments(this.templateCardsPath);
+  public attachments(): CardAttachment[] {
+    return this.project.attachmentsByPath(this.templateCardsPath);
   }
 
   /**
@@ -436,8 +458,8 @@ export class Template extends CardContainer {
    * @param cardKey card key
    * @returns path to card's attachment folder.
    */
-  public async cardAttachmentFolder(cardKey: string): Promise<string> {
-    const pathToCard = await this.cardFolder(cardKey);
+  public cardAttachmentFolder(cardKey: string): string {
+    const pathToCard = this.project.findCard(cardKey)?.path;
     if (!pathToCard) {
       throw new Error(`Template card '${cardKey}' not found`);
     }
@@ -445,49 +467,32 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Returns details (as defined by cardDetails) of a card.
-   * @param cardKey card key (project prefix and a number, e.g. test_1)
-   * @param cardDetails which card details are returned.
-   * @returns Card details, or undefined if the card cannot be found.
-   */
-  public async cardDetailsById(
-    cardKey: string,
-    cardDetails: FetchCardDetails,
-  ): Promise<Card | undefined> {
-    return super.findCard(this.templateCardsPath, cardKey, cardDetails);
-  }
-
-  /**
    * returns path to card's folder.
    * @param cardKey card key
    * @returns path to card's folder.
    */
-  public async cardFolder(cardKey: string): Promise<string> {
-    const found = await super.findCard(this.templateCardsPath, cardKey);
+  public cardFolder(cardKey: string): string {
+    const found = this.findCardDirect(cardKey);
     return found ? found.path : '';
   }
 
   /**
-   * Returns all cards in the template. Cards have content and metadata.
+   * Returns all cards in the template.
    * @param placeHolderPath This is not used. Needed to be compatible with base class.
-   * @param details Optional. Which details are returned for each card. If missing, default value will be used.
    * @returns Template cards in the template.
    */
-  public async cards(
-    placeHolderPath?: string,
-    details?: FetchCardDetails,
-  ): Promise<Card[]> {
+  public cards(placeHolderPath?: string): Card[] {
     if (placeHolderPath) {
       this.logger.warn('A non-used variable was used in the cards method');
     }
-    const cardDetails = details
-      ? details
-      : {
-          content: true,
-          contentType: 'adoc' as FileContentType,
-          metadata: true,
-        };
-    return super.cards(this.templateCardsPath, cardDetails);
+
+    // Filter cards from the global cache that belong to this template
+    // Use the full template name from the resource to match cache entries
+    const allCards = [...this.project.cardsCache.getCards()];
+    return allCards.filter(
+      (card) =>
+        card.location !== 'project' && card.location === this.fullTemplateName,
+    );
   }
 
   /**
@@ -496,13 +501,7 @@ export class Template extends CardContainer {
    * @returns array of created card keys
    */
   public async createCards(parentCard?: Card): Promise<Card[]> {
-    const cards = await this.cards('', {
-      content: true,
-      contentType: 'adoc',
-      metadata: true,
-      attachments: true,
-      parent: true,
-    });
+    const cards = this.cards();
     if (cards.length === 0) {
       throw new Error(
         `No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`,
@@ -514,13 +513,9 @@ export class Template extends CardContainer {
   /**
    * Returns specific card.
    * @param cardKey Card key to find from template.
-   * @param details Card details to include in return value.
    * @returns specific card details
    */
-  public async findSpecificCard(
-    cardKey: string,
-    details: FetchCardDetails = {},
-  ): Promise<Card | undefined> {
+  public findCard(cardKey: string): Card | undefined {
     const cardPrefix = cardKey.split('_').at(0);
     const moduleCardFromProject =
       this.basePath.includes('local') &&
@@ -532,7 +527,8 @@ export class Template extends CardContainer {
     if (moduleCardFromProject || projectCardFromModule) {
       return undefined;
     }
-    return super.findCard(this.templateCardsPath, cardKey, details);
+
+    return this.findCardDirect(cardKey);
   }
 
   /**
@@ -540,8 +536,8 @@ export class Template extends CardContainer {
    * @param cardKey Card key to find from template.
    * @return true if card with a given card key exists in the template, false otherwise.
    */
-  public hasCard(cardKey: string): boolean {
-    return super.hasCard(cardKey, this.templateCardsPath);
+  public hasTemplateCard(cardKey: string): boolean {
+    return this.project.hasTemplateCard(cardKey);
   }
 
   /**
@@ -553,11 +549,25 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Returns an array of all the cards in the project. Cards don't have content nor metadata.
-   * @returns all cards in the project.
+   * Returns an array of all the cards in the template.
+   * @returns all cards in the template.
    */
-  public async listCards(): Promise<Card[]> {
-    return super.cards(this.templateCardsPath);
+  public listCards(): Card[] {
+    // Construct the full template name to match what's stored in cache
+    const fullTemplateName = isModulePath(this.basePath)
+      ? `${this.basePath.split(`${sep}modules${sep}`)[1].split(`${sep}templates`)[0]}/templates/${this.templateName}`
+      : `${this.project.projectPrefix}/templates/${this.templateName}`;
+
+    const templateCards = Array.from(this.project.cardsCache.getCards()).filter(
+      (cachedCard) => {
+        if (cachedCard.location === 'project') {
+          return false;
+        }
+        const storedTemplateName = cachedCard.location;
+        return storedTemplateName === fullTemplateName;
+      },
+    );
+    return templateCards;
   }
 
   /**
@@ -569,26 +579,10 @@ export class Template extends CardContainer {
   }
 
   /**
-   * Path to template configuration json file.
-   * @returns path to the template's configuration file.
-   */
-  public templateConfigurationFilePath(): string {
-    return join(this.templatePath, '..', this.containerName + '.json');
-  }
-
-  /**
    * Returns path to 'templates' folder.
    * @returns path to the project's folder that contains templates.
    */
   public templateFolder(): string {
     return this.templatePath;
-  }
-
-  /**
-   * Show cards of a template with hierarchy structure.
-   * @returns an array of all template cards with proper parent-child relationships.
-   */
-  public async showTemplateCards(): Promise<Card[]> {
-    return this.showCards(this.templateCardsPath);
   }
 }

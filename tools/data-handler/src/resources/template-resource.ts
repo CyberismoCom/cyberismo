@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
 import type {
@@ -52,7 +52,7 @@ export class TemplateResource extends FolderResource {
 
     // Each template resource contains a template card container (with template cards).
     this.cardContainer = new Template(this.project, {
-      name: basename(this.fileName),
+      name: resourceNameToString(this.resourceName),
       path: dirname(this.fileName),
     });
   }
@@ -124,7 +124,7 @@ export class TemplateResource extends FolderResource {
       displayName: templateMetadata.displayName,
       description: templateMetadata.description,
       path: this.fileName,
-      numberOfCards: (await container.listCards()).length,
+      numberOfCards: container.listCards().length,
     };
   }
 
@@ -181,7 +181,7 @@ export class TemplateResource extends FolderResource {
    * @returns array of card keys, and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? (await super.cards());
+    const allCards = cards ?? super.cards();
     const [relevantCards, calculations] = await Promise.all([
       super.usage(allCards),
       super.calculations(),

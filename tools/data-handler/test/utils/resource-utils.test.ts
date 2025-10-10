@@ -90,7 +90,7 @@ describe('resource utils', () => {
 
 describe('resource utils with Project instance', () => {
   let project: Project;
-  before(() => {
+  before(async () => {
     const baseDir = import.meta.dirname;
     const decisionRecordsPath = join(
       baseDir,
@@ -98,6 +98,7 @@ describe('resource utils with Project instance', () => {
     );
     // uses the actual test data (not a copy); do not change it in tests.
     project = new Project(decisionRecordsPath);
+    await project.populateCaches();
   });
   it('resourceNameToPath with valid values', () => {
     const validNames: Map<ResourceName, string> = new Map([

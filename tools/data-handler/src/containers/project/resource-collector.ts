@@ -341,7 +341,7 @@ export class ResourceCollector {
   /**
    * Re-collects imported module resources.
    */
-  public async moduleImported() {
+  public moduleImported() {
     this.modulesCollected = false;
   }
 

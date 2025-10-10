@@ -44,15 +44,10 @@ describe('import csv command', () => {
     const [key1, key2] = result.payload as string[];
 
     const project = new Project(decisionRecordsPath);
+    await project.populateCaches();
     const show = new Show(project);
-    const card1 = await show.showCardDetails(
-      { metadata: true, content: true },
-      key1,
-    );
-    const card2 = await show.showCardDetails(
-      { metadata: true, content: true },
-      key2,
-    );
+    const card1 = show.showCardDetails(key1);
+    const card2 = show.showCardDetails(key2);
     expect(card1.metadata?.title).to.equal('Title1');
     expect(card1.content).to.equal('content1');
     expect(card1.metadata?.labels).to.deep.equal([
@@ -81,17 +76,19 @@ describe('import csv command', () => {
     expect(result.statusCode).to.equal(200);
 
     const createdKeys = result.payload as string[];
-    const project = new Project(decisionRecordsPath);
-    const show = new Show(project);
-
-    const parentCard = await show.showCardDetails(
-      { metadata: true, content: true, children: true },
-      parent,
+    // Use command handler to get card details for consistent project instance
+    const parentCardResult = await commandHandler.command(
+      Cmd.show,
+      ['card', parent],
+      { ...options, details: true },
     );
+    expect(parentCardResult.statusCode).to.equal(200);
+    type ParentCard = { children?: string[] };
+    const parentCard = parentCardResult.payload as ParentCard;
 
     expect(createdKeys.length).to.equal(2);
-    expect(parentCard.children?.map((c) => c.key)).to.contain(createdKeys[0]);
-    expect(parentCard.children?.map((c) => c.key)).to.contain(createdKeys[1]);
+    expect(parentCard.children?.includes(createdKeys[0]));
+    expect(parentCard.children?.includes(createdKeys[1]));
   });
   it('try to import csv file without all required columns', async () => {
     const result = await commandHandler.command(

@@ -29,10 +29,7 @@ export class Transition {
    * @param transition which transition to do
    */
   public async cardTransition(cardKey: string, transition: WorkflowState) {
-    // Card details
-    const details = await this.project.cardDetailsById(cardKey, {
-      metadata: true,
-    });
+    const details = this.project.findCard(cardKey);
     if (!details || !details.metadata) {
       throw new Error(`Card ${cardKey} does not exist in the project`);
     }

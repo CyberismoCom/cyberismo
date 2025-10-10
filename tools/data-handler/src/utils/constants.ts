@@ -13,10 +13,16 @@
 
 import type { PredefinedCardMetadata } from '../interfaces/project-interfaces.js';
 
+// Card key separator between project prefix and card ID
+export const CARD_KEY_SEPARATOR = '_';
+
 export const INT32_MAX = 2147483647; // 2^31-1
 
 // Maximum level offset for includeMacro
 export const MAX_LEVEL_OFFSET = 5;
+
+// Root parent name
+export const ROOT = 'root';
 
 /**
  * These are file names that are valid for folder resources.

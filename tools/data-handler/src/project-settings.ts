@@ -61,7 +61,7 @@ export class ProjectConfiguration implements ProjectSettings {
 
   // Sets configuration values from file.
   private readSettings() {
-    const settings = readJsonFileSync(this.settingPath) as ProjectConfiguration;
+    const settings = readJsonFileSync(this.settingPath);
     if (!settings) {
       throw new Error(`File at '${this.settingPath}' is not a valid JSON file`);
     }

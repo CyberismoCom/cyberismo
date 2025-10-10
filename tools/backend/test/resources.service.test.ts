@@ -1,7 +1,10 @@
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 import { buildResourceTree } from '../src/domain/resources/service.js';
 import type { CommandManager } from '@cyberismo/data-handler';
-import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type {
+  Card,
+  CardWithChildrenCards,
+} from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 // Helper interface for tests.
 interface testDataNode {
@@ -59,7 +62,7 @@ const mockTemplateCard: Card = {
   children: [],
 };
 
-const mockTemplateCardWithChildren: Card = {
+const mockTemplateCardWithChildren: CardWithChildrenCards = {
   key: 'test_parent1',
   path: '',
   content: 'Parent content',
@@ -71,7 +74,8 @@ const mockTemplateCardWithChildren: Card = {
     workflowState: 'initial',
     rank: '0|a',
   },
-  children: [
+  children: ['test_child1'],
+  childrenCards: [
     {
       key: 'test_child1',
       path: '',
@@ -85,6 +89,7 @@ const mockTemplateCardWithChildren: Card = {
         rank: '0|b',
       },
       children: [],
+      childrenCards: [],
     },
   ],
 };

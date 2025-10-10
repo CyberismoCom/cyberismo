@@ -46,10 +46,7 @@ export default class IncludeMacro extends BaseMacro {
     if (!options.pageTitles) {
       options.pageTitles = 'normal';
     }
-    const card = await context.project.cardDetailsById(options.cardKey, {
-      content: true,
-      metadata: true,
-    });
+    const card = context.project.findCard(options.cardKey);
     if (!card) {
       throw new Error(`Card key ${options.cardKey} not found`);
     }
