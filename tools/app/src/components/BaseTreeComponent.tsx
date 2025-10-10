@@ -68,7 +68,14 @@ export function BaseTreeComponent<T>({
   };
 
   return (
-    <Stack paddingTop={2} paddingLeft={2} height="100%" width="100%" ref={ref}>
+    <Stack
+      paddingTop={2}
+      paddingLeft={2}
+      bgcolor="background.surface"
+      height="100%"
+      width="100%"
+      ref={ref}
+    >
       {title && (
         <Link
           to={linkTo || ''}

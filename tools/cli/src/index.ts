@@ -591,14 +591,16 @@ program
             await commandHandler.getProjectPath(options.projectPath),
             output,
             options.logLevel,
-            (current: number, total: number) => {
-              if (!progress.isActive) {
+            (current?: number, total?: number) => {
+              if (!progress.isActive && total !== undefined) {
                 progress.start(total, 0);
               }
-              if (progress.getTotal() !== total) {
+              if (total !== undefined && progress.getTotal() !== total) {
                 progress.setTotal(total);
               }
-              progress.update(current);
+              if (current !== undefined) {
+                progress.update(current);
+              }
             },
           );
           progress.stop();
