@@ -87,7 +87,7 @@ export const TreeMenu = ({
   };
 
   return (
-    <Stack height="100%" width="100%" bgcolor="#f0f0f0">
+    <Stack height="100%" width="100%" bgcolor="background.surface">
       {/* Search input */}
       <Stack px={2} pt={2} pb={1}>
         <Input

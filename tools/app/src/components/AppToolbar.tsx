@@ -31,6 +31,7 @@ import {
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
 import { ResourceName, RESOURCES } from '@/lib/constants';
+import { ThemeModeToggle } from './ThemeModeToggle';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
@@ -101,7 +102,16 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
     },
   );
   return (
-    <Stack bgcolor="black" height="44px" direction="row" alignItems="center">
+    <Stack
+      bgcolor="neutral.900"
+      height="44px"
+      direction="row"
+      alignItems="center"
+      sx={{
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
       <Box marginLeft={2} height="19px">
         <Link to="/cards">
           <img
@@ -113,6 +123,7 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
         </Link>
       </Box>
       <Box sx={{ flexGrow: 1 }} />
+      <ThemeModeToggle />
       {!config.staticMode && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
