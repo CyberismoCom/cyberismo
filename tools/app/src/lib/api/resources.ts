@@ -15,8 +15,9 @@ import { SWRConfiguration, mutate } from 'swr';
 import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
-import { AnyNode, ResourceFileContentResponse } from './types';
+import { AnyNode } from './types';
 import type { OperationFor, UpdateOperations } from '@cyberismo/data-handler';
+import { useUpdating } from '../hooks';
 
 // Helper to check if a node has data (is a resource, not a group)
 export const hasResourceData = (
@@ -29,9 +30,19 @@ export const useResourceTree = (options?: SWRConfiguration) =>
   useSWRHook(apiPaths.resourceTree(), 'resourceTree', [], options);
 
 export const useResource = (resourceName: string) => {
+  const { isUpdating, call } = useUpdating(resourceName);
   return {
+    isUpdating: (action?: string) => isUpdating(action),
     deleteResource: async () => {
       await deleteResource(resourceName);
+    },
+    update: async <Type, T extends UpdateOperations>(
+      body: UpdateOperationBody<Type, T>,
+    ) => {
+      await call(
+        () => updateResourceWithOperation<Type, T>(resourceName, body),
+        'update',
+      );
     },
   };
 };
@@ -43,42 +54,12 @@ export const deleteResource = async (resourceName: string) => {
   mutate(apiPaths.resourceTree());
 };
 
-export const useResourceFileContent = (
-  resourceName: string,
-  options?: SWRConfiguration,
-) => {
-  const swrKey = apiPaths.resourceFileContent(resourceName);
-  const { callUpdate, ...rest } = useSWRHook(
-    swrKey,
-    'resourceFileContent',
-    { content: '' },
-    options,
-  );
-  return {
-    ...rest,
-    updateFileContent: async (content: string) => {
-      await callUpdate(() => updateResourceFileContent(resourceName, content));
-    },
-  };
-};
-
-export const updateResourceFileContent = async (
-  resourceName: string,
-  content: string,
-) => {
-  const swrKey = apiPaths.resourceFileContent(resourceName);
-  const result = await callApi<ResourceFileContentResponse>(swrKey, 'PUT', {
-    content,
-  });
-
-  mutate(swrKey, result, false);
-
-  return result;
-};
-
 // Operation-based update of resource value
 export type UpdateOperationBody<Type, T extends UpdateOperations> = {
-  key: string;
+  updateKey: {
+    key: string;
+    subKey?: string;
+  };
   operation: OperationFor<Type, T>;
 };
 

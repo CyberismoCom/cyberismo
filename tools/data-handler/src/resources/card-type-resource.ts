@@ -16,6 +16,7 @@ import type {
   CardType,
   CustomField,
   LinkType,
+  UpdateKey,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './field-type-resource.js';
@@ -40,14 +41,13 @@ import { Validate } from '../commands/index.js';
 /**
  * Card type resource class.
  */
-export class CardTypeResource extends FileResource {
+export class CardTypeResource extends FileResource<CardType> {
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'cardTypes');
 
     this.contentSchemaId = 'cardTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
 
-    this.initialize();
     this.setContainerValues();
   }
 
@@ -113,7 +113,7 @@ export class CardTypeResource extends FileResource {
 
   // When resource name changes.
   private async handleNameChange(existingName: string) {
-    const current = this.content as CardType;
+    const current = this.content;
     const prefixes = await this.project.projectPrefixes();
     if (current.customFields) {
       current.customFields.map(
@@ -173,7 +173,7 @@ export class CardTypeResource extends FileResource {
     // Update each card's workflowState if it has a mapping
     const updatePromises = cards.map(async (card) => {
       if (card.metadata && card.metadata.workflowState) {
-        const currentState = card.metadata.workflowState as string;
+        const currentState = card.metadata.workflowState;
         const newState = stateMapping[currentState];
 
         if (newState && newState !== currentState) {
@@ -199,7 +199,9 @@ export class CardTypeResource extends FileResource {
 
   // Checks if field type exists in this card type.
   private async hasFieldType(field: Partial<CustomField>): Promise<boolean> {
-    return this.data.customFields.some((item) => item.name === field.name);
+    return (
+      this.data?.customFields.some((item) => item.name === field.name) || false
+    );
   }
 
   // Remove value from array.
@@ -251,7 +253,7 @@ export class CardTypeResource extends FileResource {
 
   // Sets content container values to be either '[]' or with proper values.
   private setContainerValues() {
-    const content = this.content as CardType;
+    const content = this.content;
     if (content.customFields) {
       for (const item of content.customFields) {
         // Set "isCalculated" if it is missing; default = false
@@ -311,7 +313,7 @@ export class CardTypeResource extends FileResource {
             target: oldName,
             to: this.content.name,
           } as ChangeOperation<string>;
-          updates.push(object.update(field, op));
+          updates.push(object.update({ key: field }, op));
         }
       }
 
@@ -442,20 +444,6 @@ export class CardTypeResource extends FileResource {
   }
 
   /**
-   * Returns content data.
-   */
-  public get data(): CardType {
-    return super.data as CardType;
-  }
-
-  /**
-   * Deletes file(s) from disk and clears out the memory resident object.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.
    */
@@ -466,25 +454,21 @@ export class CardTypeResource extends FileResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns card type metadata.
-   */
-  public async show(): Promise<CardType> {
-    return super.show() as Promise<CardType>;
-  }
-
-  /**
    * Updates card type resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
     const nameChange = key === 'name';
     const customFieldsChange = key === 'customFields';
     const existingName = this.content.name;
-    await super.update(key, op);
+    await super.update(updateKey, op);
 
-    const content = structuredClone(this.content) as CardType;
+    const content = structuredClone(this.content);
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'alwaysVisibleFields') {
@@ -525,7 +509,7 @@ export class CardTypeResource extends FileResource {
     } else {
       throw new Error(`Unknown property '${key}' for CardType`);
     }
-    await super.postUpdate(content, key, op);
+    await super.postUpdate(content, updateKey, op);
 
     // Renaming this card type causes that references to its name must be updated.
     if (nameChange) {
@@ -565,12 +549,5 @@ export class CardTypeResource extends FileResource {
     return [
       ...new Set([...cardReferences, ...relevantLinkTypes, ...calculations]),
     ];
-  }
-
-  /**
-   * Validates the resource. If object is invalid, throws.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
   }
 }

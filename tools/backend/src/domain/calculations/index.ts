@@ -13,11 +13,7 @@
 
 import { Hono } from 'hono';
 import * as calculationService from './service.js';
-import {
-  createCalculationSchema,
-  updateCalculationParamsSchema,
-  updateCalculationBodySchema,
-} from './schema.js';
+import { createCalculationSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
@@ -56,66 +52,3 @@ router.post('/', zValidator('json', createCalculationSchema), async (c) => {
 });
 
 export default router;
-/**
- * @swagger
- * /api/calculations/{prefix}/{identifier}:
- *   put:
- *     summary: Update a calculation content
- *     description: Updates the content of a calculation file
- *     parameters:
- *       - in: path
- *         name: prefix
- *         required: true
- *         schema:
- *           type: string
- *         description: Prefix of the calculation
- *       - in: path
- *         name: type
- *         required: true
- *         schema:
- *           type: string
- *         description: Resource type (must be 'calculations')
- *       - in: path
- *         name: identifier
- *         required: true
- *         schema:
- *           type: string
- *         description: Identifier of the calculation
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               content:
- *                 type: string
- *                 description: New content for the calculation
- *     responses:
- *       200:
- *         description: Calculation updated successfully
- *       400:
- *         description: Invalid request
- *       404:
- *         description: Calculation not found
- *       500:
- *         description: Server error
- */
-router.put(
-  '/:prefix/:type/:identifier',
-  zValidator('param', updateCalculationParamsSchema),
-  zValidator('json', updateCalculationBodySchema),
-  async (c) => {
-    const commands = c.get('commands');
-    const { prefix, identifier } = c.req.valid('param');
-    const { content } = c.req.valid('json');
-
-    await calculationService.updateCalculation(
-      commands,
-      prefix,
-      identifier,
-      content,
-    );
-    return c.json({ message: 'Calculation updated successfully' });
-  },
-);

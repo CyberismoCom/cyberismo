@@ -48,6 +48,11 @@ export interface ReportContent {
   schema?: Schema;
 }
 
+export type FolderResourceContent =
+  | GraphModelContent
+  | GraphViewContent
+  | ReportContent;
+
 /**
  * Get filename with property name
  * @param propertyName Property name.

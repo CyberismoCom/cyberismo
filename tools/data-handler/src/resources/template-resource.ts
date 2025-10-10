@@ -29,6 +29,7 @@ import {
 import type {
   TemplateConfiguration,
   TemplateMetadata,
+  UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import { Template } from '../containers/template.js';
 import { writeJsonFile } from '../utils/json.js';
@@ -36,7 +37,7 @@ import { writeJsonFile } from '../utils/json.js';
 /**
  * Template resource class.
  */
-export class TemplateResource extends FolderResource {
+export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   private cardContainer: Template;
   private cardsFolder = '';
   private cardsSchema = super.contentSchemaContent('cardBaseSchema');
@@ -47,7 +48,6 @@ export class TemplateResource extends FolderResource {
     this.contentSchemaId = 'templateSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
 
-    this.initialize();
     this.cardsFolder = join(this.internalFolder, 'c');
 
     // Each template resource contains a template card container (with template cards).
@@ -87,13 +87,6 @@ export class TemplateResource extends FolderResource {
   }
 
   /**
-   * Returns content data.
-   */
-  public get data(): TemplateMetadata {
-    return super.data as TemplateMetadata;
-  }
-
-  /**
    * Deletes file and folder that this resource is based on.
    */
   public async delete() {
@@ -115,7 +108,7 @@ export class TemplateResource extends FolderResource {
    * @returns template metadata.
    */
   public async show(): Promise<TemplateConfiguration> {
-    const templateMetadata = (await super.show()) as TemplateMetadata;
+    const templateMetadata = await super.show();
     const container = this.templateObject();
 
     return {
@@ -142,16 +135,20 @@ export class TemplateResource extends FolderResource {
    * @param op Operation to perform on 'key'
    * @throws if key is unknown.
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
     const nameChange = key === 'name';
     const existingName = this.content.name;
 
     // Only call super.update for keys that base class supports
     if (key === 'name' || key === 'displayName' || key === 'description') {
-      await super.update(key, op);
+      await super.update(updateKey, op);
     }
 
-    const content = structuredClone(this.content) as TemplateMetadata;
+    const content = structuredClone(this.content);
 
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
@@ -165,7 +162,7 @@ export class TemplateResource extends FolderResource {
       throw new Error(`Unknown property '${key}' for Template`);
     }
 
-    await super.postUpdate(content, key, op);
+    await super.postUpdate(content, updateKey, op);
 
     // Renaming this template causes that references to its name must be updated.
     if (nameChange) {
@@ -187,16 +184,6 @@ export class TemplateResource extends FolderResource {
       super.calculations(),
     ]);
     return [...relevantCards.sort(sortCards), ...calculations];
-  }
-
-  /**
-   * Validates template.
-   * @throws when there are validation errors.
-   * @param content Content to be validated.
-   * @note If content is not provided, base class validation will use resource's current content.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
   }
 
   /**

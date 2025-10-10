@@ -14,7 +14,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
-import { updateResourceWithOperation } from '@/lib/api/resources';
 import type { ResourceNode } from '@/lib/api/types';
 import type {
   AddOperation,
@@ -24,6 +23,7 @@ import type {
 import { useAppRouter } from '@/lib/hooks/redux';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
+import { useResource } from '@/lib/api';
 
 export function useResourceEditorHelpers(node: ResourceNode) {
   const originalData = ('data' in node ? node.data : {}) as Record<
@@ -31,6 +31,7 @@ export function useResourceEditorHelpers(node: ResourceNode) {
     unknown
   >;
   const { resourceTree } = useResourceTree();
+  const { update } = useResource(node.data.name);
   const { push } = useAppRouter();
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
@@ -70,7 +71,12 @@ export function useResourceEditorHelpers(node: ResourceNode) {
     const op = changeOp(originalData?.[key] as never, form[key] as never);
     if (op) {
       try {
-        await updateResourceWithOperation(node.name, { key, operation: op });
+        await update({
+          updateKey: {
+            key,
+          },
+          operation: op,
+        });
 
         // Success notification
         dispatch(
@@ -117,13 +123,13 @@ export function useResourceEditorHelpers(node: ResourceNode) {
 
     try {
       for (const v of toAdd)
-        await updateResourceWithOperation(node.name, {
-          key,
+        await update({
+          updateKey: { key },
           operation: addOp(v),
         });
       for (const v of toRemove)
-        await updateResourceWithOperation(node.name, {
-          key,
+        await update({
+          updateKey: { key },
           operation: removeOp(v),
         });
 

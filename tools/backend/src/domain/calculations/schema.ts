@@ -12,16 +12,7 @@
 */
 
 import { z } from 'zod';
-import { resourceParamsSchema } from '../../common/validationSchemas.js';
 
 export const createCalculationSchema = z.object({
   fileName: z.string().min(1),
-});
-
-export const updateCalculationBodySchema = z.object({
-  content: z.string(),
-});
-
-export const updateCalculationParamsSchema = resourceParamsSchema.extend({
-  type: z.literal('calculations'),
 });

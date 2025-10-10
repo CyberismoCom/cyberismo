@@ -79,7 +79,7 @@ test('/api/resources/decision/cardTypes/decision/operation performs change opera
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'displayName',
+        updateKey: { key: 'displayName' },
         operation: {
           name: 'change',
           target: originalDisplayName,
@@ -107,7 +107,9 @@ test('/api/resources/decision/cardTypes/decision/operation performs change opera
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'displayName',
+        updateKey: {
+          key: 'displayName',
+        },
         operation: {
           name: 'change',
           target: updatedDisplayName,
@@ -141,7 +143,9 @@ test('/api/resources/decision/cardTypes/decision/operation performs add operatio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'alwaysVisibleFields',
+        updateKey: {
+          key: 'alwaysVisibleFields',
+        },
         operation: {
           name: 'add',
           target: targetField,
@@ -179,7 +183,9 @@ test('/api/resources/decision/cardTypes/decision/operation performs rank operati
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'alwaysVisibleFields',
+        updateKey: {
+          key: 'alwaysVisibleFields',
+        },
         operation: {
           name: 'rank',
           target: targetField,
@@ -222,7 +228,9 @@ test('/api/resources/decision/cardTypes/decision/operation performs remove opera
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'alwaysVisibleFields',
+        updateKey: {
+          key: 'alwaysVisibleFields',
+        },
         operation: {
           name: 'remove',
           target: targetField,
@@ -257,7 +265,7 @@ test('/api/resources/decision/cardTypes/decision/operation returns 400 for inval
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'displayName',
+        updateKey: { key: 'displayName' },
         operation: {
           name: 'invalid_operation',
           target: 'some value',
@@ -279,7 +287,9 @@ test('/api/resources/decision/cardTypes/decision/operation returns 500 for inval
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: 'displayNameButNot',
+        updateKey: {
+          key: 'displayNameButNot',
+        },
         operation: {
           name: 'remove',
           target: '',

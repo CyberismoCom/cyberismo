@@ -28,9 +28,8 @@ import {
   sortCards,
 } from './folder-resource.js';
 import type {
-  GraphView,
   GraphViewMetadata,
-  GraphViewUpdateKey,
+  UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
 
@@ -40,14 +39,15 @@ import { copyDir } from '../utils/file-utils.js';
 /**
  * Graph view resource class.
  */
-export class GraphViewResource extends FolderResource {
+export class GraphViewResource extends FolderResource<
+  GraphViewMetadata,
+  GraphViewContent
+> {
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'graphViews');
 
     this.contentSchemaId = 'graphViewSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
   }
 
   /**
@@ -86,20 +86,6 @@ export class GraphViewResource extends FolderResource {
   }
 
   /**
-   * Returns resource content.
-   */
-  public get data(): GraphView {
-    return super.data as GraphView;
-  }
-
-  /**
-   * Deletes file and folder that this resource is based on.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
    * Returns handlebar filename that this graph view has.
    * @returns handlebar filename that this graph view has.
    */
@@ -126,32 +112,23 @@ export class GraphViewResource extends FolderResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns graph view metadata.
-   */
-  public async show(): Promise<GraphView> {
-    const baseData = (await super.show()) as GraphViewMetadata;
-    return {
-      ...baseData,
-      content: (await super.contentData()) as GraphViewContent,
-    };
-  }
-
-  /**
    * Updates graph view resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
    */
-  public async update<Type>(key: GraphViewUpdateKey, op: Operation<Type>) {
-    if (key === 'category') {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    if (updateKey.key === 'category') {
       const content = structuredClone(this.content) as GraphViewMetadata;
       content.category = super.handleScalar(op) as string;
 
-      await super.postUpdate(content, key, op);
+      await super.postUpdate(content, updateKey, op);
       return;
     }
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
   }
 
   /**
@@ -168,22 +145,5 @@ export class GraphViewResource extends FolderResource {
       super.calculations(),
     ]);
     return [...relevantCards.sort(sortCards), ...calculations];
-  }
-
-  /**
-   * Validates graph view.
-   * @throws when there are validation errors.
-   * @param content Content to be validated.
-   * @note If content is not provided, base class validation will use resource's current content.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
-  }
-
-  /**
-   *  Create the graph view's folder and handlebar file.
-   */
-  public async write() {
-    await super.write();
   }
 }
