@@ -10,7 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import { TreeMenu } from '../../components/TreeMenu';
+import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
 import { Outlet } from 'react-router';
 
@@ -76,7 +76,7 @@ export default function AppLayout() {
   return (
     <TwoColumnLayout
       leftPanel={
-        <TreeMenu
+        <SearchableTreeMenu
           title={project.name}
           tree={tree}
           selectedCardKey={key ?? null}

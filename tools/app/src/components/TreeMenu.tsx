@@ -22,6 +22,7 @@ type TreeMenuProps = {
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
   tree: QueryResult<'tree'>[];
+  openByDefault?: boolean;
 };
 
 export const TreeMenu = ({
@@ -30,6 +31,7 @@ export const TreeMenu = ({
   onMove,
   onCardSelect,
   tree,
+  openByDefault = false,
 }: TreeMenuProps) => {
   const handleMove = (
     dragIds: string[],
@@ -44,7 +46,7 @@ export const TreeMenu = ({
   return (
     <BaseTreeComponent
       title={title}
-      linkTo={(title && '/cards') || ''}
+      linkTo={title ? '/cards' : ''}
       data={tree}
       selectedId={selectedCardKey}
       nodeRenderer={CardTreeNode}
@@ -52,6 +54,7 @@ export const TreeMenu = ({
       childrenAccessor="children"
       onMove={handleMove}
       onNodeClick={onCardSelect}
+      openByDefault={openByDefault}
     />
   );
 };
