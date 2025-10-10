@@ -159,18 +159,21 @@ async function createResourceNode(
   };
 
   // Add file children for folder resources
-  if (isResourceFolderType(resourceType) && resourceType !== 'templates') {
+  if (
+    isResourceFolderType(resourceType) &&
+    resourceType !== 'templates' &&
+    'content' in resourceData!
+  ) {
     try {
-      const fileNames = await commands.showCmd.showFileNames(
-        resourceName(name),
+      const fileNodes = Object.entries(resourceData.content).map(
+        ([fileName]) => ({
+          id: `${resourceType}-${name}-${fileName}`,
+          type: 'file',
+          name: `${name}/${fileName}`,
+          displayName: fileName,
+          readOnly: resourceName(name).prefix !== projectPrefix,
+        }),
       );
-      const fileNodes = fileNames.map((fileName: string) => ({
-        id: `${resourceType}-${name}-${fileName}`,
-        type: 'file',
-        name: `${name}/${fileName}`,
-        displayName: fileName,
-        readOnly: resourceName(name).prefix !== projectPrefix,
-      }));
 
       node.children = children ? [...children, ...fileNodes] : fileNodes;
     } catch (error) {
@@ -370,54 +373,6 @@ export async function deleteResource(
 }
 
 /**
- * Get the content of a file in a resource.
- * @param commands Command manager.
- * @param module Name of the module.
- * @param type Name of the type.
- * @param resource Name of the resource.
- * @param fileName Name of the file.
- * @returns The content of the file.
- */
-export async function getFileContent(
-  commands: CommandManager,
-  module: string,
-  type: string,
-  resource: string,
-  fileName: string,
-) {
-  // TODO: Use resource APIs to fetch resource content; showFile will be removed
-  return commands.showCmd.showFile(
-    resourceName(`${module}/${type}/${resource}`),
-    fileName,
-  );
-}
-
-/**
- * Update a file of a folder resource. Cannot be used to create a new file.
- * @param commands Command manager.
- * @param module Name of the module.
- * @param type Name of the type.
- * @param resource Name of the resource.
- * @param fileName Name of the file.
- * @param changedContent The new content for the file.
- * @returns The updated file content.
- */
-export async function updateFile(
-  commands: CommandManager,
-  module: string,
-  type: string,
-  resource: string,
-  fileName: string,
-  changedContent: string,
-) {
-  return commands.editCmd.editResourceContent(
-    resourceName(`${module}/${type}/${resource}`),
-    fileName,
-    changedContent,
-  );
-}
-
-/**
  * Validate a single resource.
  * @param commands Command manager.
  * @param resource Resource to validate.
@@ -446,10 +401,10 @@ export async function updateResourceWithOperation(
   resource: ResourceParams,
   body: UpdateOperationBody,
 ) {
-  const { key, operation } = body;
+  const { updateKey, operation } = body;
   await commands.updateCmd.applyResourceOperation(
     resourceNameToString(resource),
-    key,
+    updateKey,
     operation,
   );
 }
