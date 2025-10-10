@@ -50,7 +50,7 @@ import type { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
 
 import { pathExists, resolveTilde } from './utils/file-utils.js';
-import { errorFunction } from './utils/log-utils.js';
+import { errorFunction } from './utils/error-utils.js';
 import { readJsonFile } from './utils/json.js';
 import { resourceName } from './utils/resource-utils.js';
 
@@ -736,6 +736,7 @@ export class Commands {
       case 'cards':
         promise = this.commands!.showCmd.showCards();
         break;
+      case 'calculation':
       case 'cardType':
       case 'fieldType':
       case 'graphView':
@@ -746,6 +747,7 @@ export class Commands {
       case 'workflow':
         promise = this.commands!.showCmd.showResource(detail, options.showUse);
         break;
+      case 'calculations':
       case 'cardTypes':
       case 'fieldTypes':
       case 'graphModels':

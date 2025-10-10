@@ -10,7 +10,7 @@ import { describe, it } from 'mocha';
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
-import { errorFunction } from '../src/utils/log-utils.js';
+import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 

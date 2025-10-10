@@ -62,7 +62,8 @@ test('PUT /api/calculations/:prefix/:type/:identifier updates calculation conten
     '.cards',
     'local',
     'calculations',
-    'test.lp',
+    'test',
+    'calculation.lp',
   );
   const updated = await readFile(filePath, { encoding: 'utf-8' });
   expect(updated).toBe(body.content);

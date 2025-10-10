@@ -122,21 +122,25 @@
     "calculationResourceSchema": {
       "type": "object",
       "properties": {
+        "additionalProperties": false,
         "directories": {
           "type": "object",
-          "additionalProperties": false
-        },
-        "files": {
-          "type": "object",
-          "$comment": "Each file must be a logic program file",
           "additionalProperties": false,
           "patternProperties": {
-            "^.+\\.lp$": {
-              "type": "object"
+            ".+": {
+              "type": "object",
+              "properties": {
+                "files": {
+                  "type": "object",
+                  "properties": {
+                    "calculation.lp": {
+                      "type": "object"
+                    }
+                  },
+                  "required": ["calculation.lp"]
+                }
+              }
             }
-          },
-          "properties": {
-            ".gitkeep": {}
           }
         }
       }
