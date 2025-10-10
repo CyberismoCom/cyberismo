@@ -16,62 +16,15 @@ import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type {
-  MetadataContent,
-  ResourceFolderType,
-} from '../interfaces/project-interfaces.js';
+import type { MetadataContent } from '../interfaces/project-interfaces.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
-import {
-  type ResourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
-import { FolderResource } from '../resources/folder-resource.js';
-import { writeFile } from 'node:fs/promises';
 
 export class Edit {
   private project: Project;
 
   constructor(project: Project) {
     this.project = project;
-  }
-
-  /**
-   * Updates a calculation file.
-   * @param resourceName The name of the resource to update.
-   * @param changedContent The new content for the calculation.
-   */
-  public async editCalculation(
-    resourceName: ResourceName,
-    changedContent: string,
-  ) {
-    if (resourceName.prefix !== this.project.projectPrefix) {
-      throw new Error(
-        `Resource '${resourceName.identifier}' is not a local resource`,
-      );
-    }
-    const resourceNameString = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameString,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameString}' does not exist in the project`,
-      );
-    }
-    await writeFile(
-      join(
-        this.project.paths.calculationProjectFolder,
-        resourceName.identifier + '.lp',
-      ),
-      changedContent,
-      {
-        encoding: 'utf-8',
-        flag: 'r+',
-      },
-    );
   }
 
   /**
@@ -171,36 +124,5 @@ export class Edit {
     const actionGuard = new ActionGuard(this.project.calculationEngine);
     await actionGuard.checkPermission('editField', cardKey, changedKey);
     await this.project.updateCardMetadataKey(cardKey, changedKey, newValue);
-  }
-
-  /**
-   * Update a file of a folder resource. Cannot be used to create a new file.
-   * @param resourceName The name of the resource to update.
-   * @param fileName The name of the file to update.
-   * @param changedContent The new content for the file.
-   */
-  public async editResourceContent(
-    resourceName: ResourceName,
-    fileName: string,
-    changedContent: string,
-  ) {
-    const resourceNameString = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameString,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameString}' does not exist in the project`,
-      );
-    }
-    const resource = Project.resourceObject(this.project, resourceName);
-    if (!(resource instanceof FolderResource)) {
-      throw new Error(
-        `Resource '${resourceNameString}' is not a folder resource`,
-      );
-    }
-    return resource.updateFile(fileName, changedContent);
   }
 }

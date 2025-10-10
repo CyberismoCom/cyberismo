@@ -14,6 +14,7 @@
 
 import type {
   CardType,
+  UpdateKey,
   Workflow,
   WorkflowState,
   WorkflowTransition,
@@ -39,14 +40,12 @@ import { resourceName } from './file-resource.js';
 /**
  * Workflow resource class.
  */
-export class WorkflowResource extends FileResource {
+export class WorkflowResource extends FileResource<Workflow> {
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'workflows');
 
     this.contentSchemaId = 'workflowSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
   }
 
   // Collect all cards that use this workflow.
@@ -60,8 +59,7 @@ export class WorkflowResource extends FileResource {
       );
       if (
         object.data &&
-        (object.data as CardType).workflow ===
-          resourceNameToString(this.resourceName)
+        object.data.workflow === resourceNameToString(this.resourceName)
       ) {
         // fetch all cards with card type
         promises.push(this.collectCards({ metadata: true }, cardType.name));
@@ -82,7 +80,7 @@ export class WorkflowResource extends FileResource {
 
   // Handle change of workflow state.
   private async handleStateChange(op: ChangeOperation<WorkflowState>) {
-    const content = structuredClone(this.content) as Workflow;
+    const content = structuredClone(this.content);
     const stateName = this.targetName(op) as string;
     // Check that state can be changed to
     content.transitions = content.transitions.filter(
@@ -107,7 +105,7 @@ export class WorkflowResource extends FileResource {
   // Handle removal of workflow state.
   // State can be removed with or without replacement.
   private async handleStateRemoval(op: RemoveOperation<WorkflowState>) {
-    const content = structuredClone(this.content) as Workflow;
+    const content = structuredClone(this.content);
     const stateName = this.targetName(op) as string;
 
     // If there is no replacement value, remove all transitions "to" and "from" this state.
@@ -154,7 +152,7 @@ export class WorkflowResource extends FileResource {
 
   // Potentially updates the changed transition with current properties.
   private async transitionObject(op: ChangeOperation<WorkflowTransition>) {
-    const content = structuredClone(this.content) as Workflow;
+    const content = structuredClone(this.content);
     const targetTransitionName = this.targetName(op);
     const currentTransition = content.transitions.filter(
       (item) => item.name === targetTransitionName,
@@ -212,8 +210,13 @@ export class WorkflowResource extends FileResource {
         this.project,
         resourceName(cardType.name),
       );
-      if (object.data && (object.data as CardType).workflow === oldName) {
-        await object.update('workflow', op);
+      if (object.data && object.data.workflow === oldName) {
+        await object.update(
+          {
+            key: 'workflow',
+          },
+          op,
+        );
       }
     }
   }
@@ -235,21 +238,6 @@ export class WorkflowResource extends FileResource {
   }
 
   /**
-   * Returns content data.
-   */
-  public get data(): Workflow {
-    return super.data as Workflow;
-  }
-
-  /**
-   * Deletes file that this object is based on.
-   * If there are card types that depended on this workflow, they are now invalid.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */
@@ -260,24 +248,20 @@ export class WorkflowResource extends FileResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns workflow metadata.
-   */
-  public async show(): Promise<Workflow> {
-    return super.show() as Promise<Workflow>;
-  }
-
-  /**
    * Updates workflow resource.
    * @param key Key to modify
    * @param op Operation to perform on 'key'
    * @throws if key is unknown.
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
     const nameChange = key === 'name';
     const existingName = this.content.name;
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
 
     const content = structuredClone(this.content) as Workflow;
 
@@ -334,7 +318,7 @@ export class WorkflowResource extends FileResource {
       // If workflow state is removed, remove all transitions "to" and "from" this state.
       let removeOp: RemoveOperation<WorkflowState>;
       if (this.isStringOperation(op)) {
-        const toBeRemovedState = (this.content as Workflow).states.find(
+        const toBeRemovedState = this.content.states.find(
           (state) => state.name === op.target,
         );
         removeOp = {
@@ -349,7 +333,7 @@ export class WorkflowResource extends FileResource {
       // If workflow state is renamed, replace all transitions "to" and "from" the old state with new state.
       let changeOp: ChangeOperation<WorkflowState>;
       if (this.isStringOperation(op)) {
-        const toBeChangedState = (this.content as Workflow).states.find(
+        const toBeChangedState = this.content.states.find(
           (state) => state.name === op.target,
         );
         changeOp = {
@@ -363,7 +347,7 @@ export class WorkflowResource extends FileResource {
       await this.handleStateChange(changeOp);
     }
 
-    await super.postUpdate(content, key, op);
+    await super.postUpdate(content, updateKey, op);
 
     // Renaming this workflow causes that references to its name must be updated.
     if (nameChange) {
@@ -400,13 +384,5 @@ export class WorkflowResource extends FileResource {
       ...cardTypeReferences.filter((name): name is string => name !== null),
       ...calculations,
     ];
-  }
-
-  /**
-   * Validates workflow.
-   * @throws when there are validation errors.
-   */
-  public validate(content?: object): Promise<void> {
-    return super.validate(content);
   }
 }
