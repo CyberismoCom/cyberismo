@@ -12,6 +12,40 @@
 
 import { extendTheme } from '@mui/joy/styles';
 
-const theme = extendTheme({});
+const theme = extendTheme({
+  colorSchemes: {
+    light: {
+      palette: {
+        background: {
+          body: '#ffffff',
+          surface: '#f0f0f0',
+          level1: '#fafafa',
+          level2: '#f0f0f0',
+        },
+        neutral: {
+          softBg: '#f0f0f0',
+        },
+      },
+    },
+    dark: {
+      palette: {
+        background: {
+          body: '#0d1117',
+          surface: '#161b22',
+          level1: '#1c2128',
+          level2: '#22272e',
+        },
+        neutral: {
+          softBg: '#22272e',
+        },
+        primary: {
+          500: '#58a6ff',
+          600: '#79c0ff',
+          700: '#a5d6ff',
+        },
+      },
+    },
+  },
+});
 
 export default theme;

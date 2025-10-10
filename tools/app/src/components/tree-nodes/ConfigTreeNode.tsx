@@ -68,7 +68,7 @@ export const ConfigTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={node.isSelected ? 'background.body' : 'transparent'}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"

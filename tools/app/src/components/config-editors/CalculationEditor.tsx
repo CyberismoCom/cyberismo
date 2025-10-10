@@ -17,16 +17,22 @@ import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
+import {
+  CODE_MIRROR_BASE_PROPS,
+  CODE_MIRROR_THEMES,
+  TITLE_FIELD_PROPS,
+} from '@/lib/constants';
 import { Textarea } from '@mui/joy';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect } from 'react';
 import { isEdited } from '@/lib/slices/pageState';
 import { useResource } from '@/lib/api';
+import { useColorScheme } from '@mui/joy/styles';
 
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const { mode } = useColorScheme();
   const { update, isUpdating } = useResource(node.name);
   const {
     control,
@@ -110,6 +116,11 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
         render={({ field }) => (
           <CodeMirror
             {...CODE_MIRROR_BASE_PROPS}
+            theme={
+              mode === 'dark'
+                ? CODE_MIRROR_THEMES.dark
+                : CODE_MIRROR_THEMES.light
+            }
             value={field.value}
             onChange={field.onChange}
           />
