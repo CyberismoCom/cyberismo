@@ -798,8 +798,15 @@ export class Commands {
     // since current working directory changes, we need to resolve the project path
     const projectPath = resolve(this.projectPath);
 
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
     if (!forceStart) {
-      const validationErrors = await this.validateCmd.validate(projectPath);
+      const validationErrors = await this.validateCmd.validate(
+        projectPath,
+        () => this.commands!.project,
+      );
       if (validationErrors) {
         return { statusCode: 400, message: validationErrors };
       }
@@ -821,7 +828,13 @@ export class Commands {
 
   // Validates that a given path conforms to schema. Validates both file/folder structure and file content.
   private async validate(): Promise<requestStatus> {
-    const result = await this.validateCmd.validate(this.projectPath);
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+    const result = await this.validateCmd.validate(
+      this.projectPath,
+      () => this.commands!.project,
+    );
     return {
       statusCode: 200,
       message: result.length ? result : 'Project structure validated',
