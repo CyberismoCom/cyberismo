@@ -521,9 +521,13 @@ export class Validate {
    * Validates that a given directory path (and its children) conform to a JSON schema.
    * @note Validates also content in the directory tree, if .schema file is found.
    * @param projectPath path to validate.
+   * @param projectFn function that returns a Project instance.
    * @returns string containing all validation errors
    */
-  public async validate(projectPath: string): Promise<string> {
+  public async validate(
+    projectPath: string,
+    projectFn: () => Project,
+  ): Promise<string> {
     let validationErrors = '';
     this.validatedFieldTypes.clear();
     this.validatedWorkflows.clear();
@@ -545,7 +549,7 @@ export class Validate {
         return validationErrors;
       } else {
         const errorMsg: string[] = [];
-        const project = new Project(projectPath);
+        const project = projectFn();
 
         // Then, validate that each 'contentSchema' children as well.
         const result = await this.readAndValidateContentFiles(

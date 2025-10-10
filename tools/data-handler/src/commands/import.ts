@@ -136,6 +136,7 @@ export class Import {
   ) {
     const beforeImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
+      () => this.project,
     );
     const gitModule = source.startsWith('https') || source.startsWith('git@');
     const modulePrefix = gitModule
@@ -164,6 +165,7 @@ export class Import {
     // Validate the project after module has been imported
     const afterImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
+      () => this.project,
     );
     if (afterImportValidateErrors.length > beforeImportValidateErrors.length) {
       console.error(

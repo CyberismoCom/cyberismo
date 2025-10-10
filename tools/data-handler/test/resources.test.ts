@@ -234,8 +234,7 @@ describe('resources', function () {
       const collector = new ResourceCollector(project);
       collector.collectLocalResources();
 
-      // Initially, there are no resources in the cache.
-      expect(project.resourceCache.size).to.equal(0);
+      const initialCacheSize = project.resourceCache.size;
 
       const workflowsCount = (await collector.resources('workflows')).length;
       const nameForWorkflow = `${project.projectPrefix}/workflows/newOne`;
@@ -253,7 +252,7 @@ describe('resources', function () {
       expect(workflowsCount + 1).to.equal(workflowsCountAgain);
 
       // Creating a resource puts it automatically to cache.
-      expect(project.resourceCache.size).to.equal(1);
+      expect(project.resourceCache.size).to.equal(initialCacheSize + 1);
 
       // Removing resources automatically updates collector arrays, but only for
       // instance that is owned by the Project (and it is not public).
