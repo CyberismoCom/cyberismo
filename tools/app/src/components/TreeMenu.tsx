@@ -104,19 +104,21 @@ export const TreeMenu = ({
         />
       </Stack>
 
-      {/* Tree component */}
-      <BaseTreeComponent
-        title={title}
-        linkTo={title ? '/cards' : ''}
-        data={filteredTree}
-        selectedId={selectedCardKey}
-        nodeRenderer={CardTreeNode}
-        idAccessor={(node) => node.key}
-        childrenAccessor="children"
-        onMove={handleMove}
-        onNodeClick={onCardSelect}
-        openByDefault={searchQuery.trim().length > 0}
-      />
+      {/* Tree component - flex grow to fill remaining space */}
+      <Stack flexGrow={1} minHeight={0}>
+        <BaseTreeComponent
+          title={title}
+          linkTo={title ? '/cards' : ''}
+          data={filteredTree}
+          selectedId={selectedCardKey}
+          nodeRenderer={CardTreeNode}
+          idAccessor={(node) => node.key}
+          childrenAccessor="children"
+          onMove={handleMove}
+          onNodeClick={onCardSelect}
+          openByDefault={searchQuery.trim().length > 0}
+        />
+      </Stack>
     </Stack>
   );
 };
