@@ -18,9 +18,21 @@ export type ValidateResourceParams = z.infer<
   typeof validateResourceParamsSchema
 >;
 
+const updateKey = z.union([
+  z.object({
+    key: z.literal('content'),
+    subKey: z.string(),
+  }),
+  z.object({
+    key: z.string().refine((k) => k !== 'content', {
+      message: 'key cannot be "content" here',
+    }),
+  }),
+]);
+
 // Body schema for update operation-based resource update
 export const updateOperationBodySchema = z.object({
-  key: z.string(),
+  updateKey,
   operation: z.discriminatedUnion('name', [
     z.object({
       name: z.literal('add'),

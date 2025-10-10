@@ -20,13 +20,3 @@ export async function createCalculation(
 ) {
   await commands.createCmd.createCalculation(fileName);
 }
-
-export async function updateCalculation(
-  commands: CommandManager,
-  prefix: string,
-  identifier: string,
-  content: string,
-) {
-  const name = resourceName(`${prefix}/calculations/${identifier}`, true);
-  await commands.editCmd.editCalculation(name, content);
-}
