@@ -27,7 +27,7 @@ abstract class BaseMacro {
   private localCounter: number = 0;
 
   // Macros share the same logger
-  protected get logger() {
+  protected get logger(): ReturnType<typeof getChildLogger> {
     return getChildLogger({
       module: 'macro',
       macro: this.macroMetadata.name,
