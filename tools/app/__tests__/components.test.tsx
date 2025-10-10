@@ -1,10 +1,12 @@
 import { TreeMenu } from '../src/components/TreeMenu';
+import LabelEditor from '@/components/LabelEditor';
 import { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
+import { LABEL_SPLITTER } from '@/lib/constants';
 import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-interfaces';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
 
@@ -36,7 +38,9 @@ vi.mock('@/lib/utils', async () => {
 });
 
 vi.mock('react-i18next', () => ({
-  useTranslation: vi.fn(),
+  useTranslation: vi.fn(() => ({
+    t: vi.fn((str, args) => (args ? `${str} ${JSON.stringify(args)}` : str)),
+  })),
 }));
 
 describe('TreeMenu', () => {
@@ -75,12 +79,6 @@ describe('TreeMenu', () => {
 
 describe('StateSelector', () => {
   it('renders with test data', () => {
-    vi.mock('react-i18next', () => ({
-      useTranslation: vi.fn(() => ({
-        t: vi.fn((str, { state }) => `${str} ${state}`),
-      })),
-    }));
-
     render(
       <StateSelector
         currentState={testProject.workflows[0].states[1]}
@@ -88,7 +86,7 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />,
     );
-    const node = screen.getByText('stateSelector.status Approved');
+    const node = screen.getByText('stateSelector.status {"state":"Approved"}');
     expect(node).toBeVisible();
 
     render(
@@ -98,7 +96,7 @@ describe('StateSelector', () => {
         onTransition={() => null}
       />,
     );
-    const node2 = screen.getByText('stateSelector.status Not OK');
+    const node2 = screen.getByText('stateSelector.status {"state":"Not OK"}');
     expect(node2).toBeVisible();
   });
 
@@ -111,6 +109,83 @@ describe('StateSelector', () => {
       />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('LabelEditor', () => {
+  it('adds trimmed labels separated by the configured splitter when pressing Enter', () => {
+    const handleChange = vi.fn();
+
+    render(<LabelEditor value={['existing']} onChange={handleChange} />);
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, {
+      target: { value: `alpha ${LABEL_SPLITTER} beta ` },
+    });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(handleChange).toHaveBeenCalledWith(['existing', 'alpha', 'beta']);
+  });
+  it('does not add duplicate labels', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <LabelEditor value={['existing', 'alpha']} onChange={handleChange} />,
+    );
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, {
+      target: { value: `alpha ${LABEL_SPLITTER} beta ` },
+    });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(handleChange).toHaveBeenCalledWith(['existing', 'alpha', 'beta']);
+  });
+  it('does not add empty labels', () => {
+    const handleChange = vi.fn();
+
+    render(<LabelEditor value={['existing']} onChange={handleChange} />);
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, {
+      target: { value: `   ${LABEL_SPLITTER} beta ${LABEL_SPLITTER}   ` },
+    });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(handleChange).toHaveBeenCalledWith(['existing', 'beta']);
+  });
+  it('does not clear input if no labels were added', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <LabelEditor value={['existing', 'alpha']} onChange={handleChange} />,
+    );
+
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, {
+      target: { value: `   ${LABEL_SPLITTER}   ` },
+    });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(handleChange).not.toHaveBeenCalled();
+    expect(input).toHaveValue(`   ${LABEL_SPLITTER}   `);
+  });
+  it('removes labels when the remove icon is clicked', () => {
+    const handleChange = vi.fn();
+
+    render(
+      <LabelEditor
+        value={['existing', 'alpha', 'beta']}
+        onChange={handleChange}
+      />,
+    );
+
+    const removeButtons = screen.getAllByLabelText('removeLabel');
+    expect(removeButtons).toHaveLength(3);
+
+    fireEvent.click(removeButtons[1]); // remove 'alpha'
+
+    expect(handleChange).toHaveBeenCalledWith(['existing', 'beta']);
   });
 });
 
