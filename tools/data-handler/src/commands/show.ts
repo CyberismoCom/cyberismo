@@ -37,7 +37,6 @@ import type {
   ModuleSettingFromHub,
   ProjectMetadata,
   Resource,
-  ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -46,18 +45,13 @@ import type {
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { Project, type ResourcesFrom } from '../containers/project.js';
-import {
-  type ResourceName,
-  resourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
+import { type ResourceName, resourceName } from '../utils/resource-utils.js';
 import { TemplateResource } from '../resources/template-resource.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
-import { FolderResource } from '../resources/folder-resource.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { buildCardHierarchy } from '../utils/card-utils.js';
@@ -328,62 +322,6 @@ export class Show {
     }
     const results = await Promise.all(promiseContainer);
     return results.filter((item) => item);
-  }
-
-  /**
-   * Shows the content of a file in a resource.
-   * TODO: To be removed
-   * @deprecated
-   * @param resourceName Name of the resource.
-   * @param fileName Name of the file to show.
-   * @returns the content of the file.
-   */
-  public async showFile(
-    resourceName: ResourceName,
-    fileName: string,
-  ): Promise<string> {
-    const resourceNameStr = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameStr,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
-      );
-    }
-    const resource = Project.resourceObject(this.project, resourceName);
-    if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
-    }
-    return resource.showFile(fileName);
-  }
-
-  /**
-   * Shows all file names in a folder resource.
-   * TODO: To be removed
-   * @deprecated
-   * @param resourceName Name of the resource.
-   * @returns all file names in the resource.
-   */
-  public async showFileNames(resourceName: ResourceName): Promise<string[]> {
-    const resourceNameStr = resourceNameToString(resourceName);
-    if (
-      !(await this.project.resourceExists(
-        resourceName.type as ResourceFolderType,
-        resourceNameStr,
-      ))
-    ) {
-      throw new Error(
-        `Resource '${resourceNameStr}' does not exist in the project`,
-      );
-    }
-    const resource = Project.resourceObject(this.project, resourceName);
-    if (!(resource instanceof FolderResource)) {
-      throw new Error(`Resource '${resourceNameStr}' is not a folder resource`);
-    }
-    return resource.showFileNames();
   }
 
   /**

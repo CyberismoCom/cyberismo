@@ -30,7 +30,6 @@ import type {
   CalculationMetadata,
   CardType,
   CustomField,
-  EnumDefinition,
   FieldType,
   GraphModel,
   GraphView,
@@ -1300,11 +1299,16 @@ describe('resources', function () {
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newnameWithNumber2'));
       expect(res.data.name).equals('decision/cardTypes/newnameWithNumber2');
-      await res.update('name', {
-        name: 'change',
-        to: 'decision/cardTypes/newnameWithNumber3',
-        target: 'name',
-      });
+      await res.update(
+        {
+          key: 'name',
+        },
+        {
+          name: 'change',
+          to: 'decision/cardTypes/newnameWithNumber3',
+          target: 'name',
+        },
+      );
       expect(res.data.name).equals('decision/cardTypes/newnameWithNumber3');
       await res.delete();
     });
@@ -1417,11 +1421,14 @@ describe('resources', function () {
         resourceName('decision/cardTypes/forRename'),
       );
       await res.createCardType('decision/workflows/decision');
-      await res.update('name', {
-        name: 'change',
-        target: '',
-        to: 'decision/cardTypes/afterUpdate',
-      });
+      await res.update(
+        { key: 'name' },
+        {
+          name: 'change',
+          target: '',
+          to: 'decision/cardTypes/afterUpdate',
+        },
+      );
       expect(res.data?.name).to.equal('decision/cardTypes/afterUpdate');
     });
     it('update card type - try to "rank" scalar "name"', async () => {
@@ -1431,11 +1438,14 @@ describe('resources', function () {
       );
       await res.createCardType('decision/workflows/decision');
       await expect(
-        res.update('name', {
-          name: 'rank',
-          target: '',
-          newIndex: 99,
-        }),
+        res.update(
+          { key: 'name' },
+          {
+            name: 'rank',
+            target: '',
+            newIndex: 99,
+          },
+        ),
       ).to.be.rejectedWith('Cannot do operation rank on scalar value');
     });
     it('update card type - try to "add" scalar "name"', async () => {
@@ -1444,10 +1454,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/tryForUpdate'),
       );
       await expect(
-        res.update('name', {
-          name: 'add',
-          target: '',
-        }),
+        res.update(
+          { key: 'name' },
+          {
+            name: 'add',
+            target: '',
+          },
+        ),
       ).to.be.rejectedWith('Cannot do operation add on scalar value');
     });
     it('update card type - try to "remove" scalar "name"', async () => {
@@ -1456,10 +1469,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/tryForUpdate'),
       );
       await expect(
-        res.update('name', {
-          name: 'remove',
-          target: '',
-        }),
+        res.update(
+          { key: 'name' },
+          {
+            name: 'remove',
+            target: '',
+          },
+        ),
       ).to.be.rejectedWith('Cannot do operation remove on scalar value');
     });
     it('update card type - add element to alwaysVisibleFields', async () => {
@@ -1478,15 +1494,21 @@ describe('resources', function () {
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
 
       // Add the field type to the custom fields
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/newOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        },
+      );
 
-      await res.update('alwaysVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(1);
     });
     it('update card type - remove element from alwaysVisibleFields', async () => {
@@ -1495,10 +1517,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/updateAlwaysVisible'),
       );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(1);
-      await res.update('alwaysVisibleFields', {
-        name: 'remove',
-        target: 'decision/fieldTypes/newOne',
-      });
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'remove',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
     });
     it('update card type - add two elements to alwaysVisibleFields and move the latter to first', async () => {
@@ -1517,25 +1542,37 @@ describe('resources', function () {
 
       // Add the field types to the card type
       // Add the field type to the custom fields
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/secondNewOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/secondNewOne' },
+        },
+      );
 
-      await res.update('alwaysVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
-      await res.update('alwaysVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/secondNewOne',
-      });
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/secondNewOne',
+        },
+      );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(2);
-      await res.update('alwaysVisibleFields', {
-        name: 'rank',
-        target: 'decision/fieldTypes/secondNewOne',
-        newIndex: 0,
-      });
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'rank',
+          target: 'decision/fieldTypes/secondNewOne',
+          newIndex: 0,
+        },
+      );
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(2);
       expect((res.data as CardType).alwaysVisibleFields.at(0)).to.equal(
         'decision/fieldTypes/secondNewOne',
@@ -1549,16 +1586,22 @@ describe('resources', function () {
       await res.createCardType('decision/workflows/decision');
 
       // Add custom field to the card type first
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/newOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        },
+      );
 
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
-      await res.update('optionallyVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(1);
     });
     it('update card type - remove element from optionallyVisibleFields', async () => {
@@ -1567,10 +1610,13 @@ describe('resources', function () {
         resourceName('decision/cardTypes/optionallyVisible'),
       );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(1);
-      await res.update('optionallyVisibleFields', {
-        name: 'remove',
-        target: 'decision/fieldTypes/newOne',
-      });
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'remove',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
     });
     it('update card type - add two elements to optionallyVisibleFields and move the latter to first', async () => {
@@ -1581,25 +1627,37 @@ describe('resources', function () {
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
 
       // Add second field type to the custom fields
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/secondNewOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/secondNewOne' },
+        },
+      );
 
-      await res.update('optionallyVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
-      await res.update('optionallyVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/secondNewOne',
-      });
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/secondNewOne',
+        },
+      );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(2);
-      await res.update('optionallyVisibleFields', {
-        name: 'rank',
-        target: 'decision/fieldTypes/secondNewOne',
-        newIndex: 0,
-      });
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'rank',
+          target: 'decision/fieldTypes/secondNewOne',
+          newIndex: 0,
+        },
+      );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(2);
       expect((res.data as CardType).optionallyVisibleFields.at(0)).to.equal(
         'decision/fieldTypes/secondNewOne',
@@ -1611,11 +1669,14 @@ describe('resources', function () {
         resourceName('decision/cardTypes/updateWorkflow'),
       );
       await res.createCardType('decision/workflows/decision');
-      await res.update('workflow', {
-        name: 'change',
-        target: '',
-        to: 'decision/cardTypes/afterUpdate',
-      });
+      await res.update(
+        { key: 'workflow' },
+        {
+          name: 'change',
+          target: '',
+          to: 'decision/cardTypes/afterUpdate',
+        },
+      );
       expect((res.data as CardType).workflow).to.equal(
         'decision/cardTypes/afterUpdate',
       );
@@ -1635,10 +1696,13 @@ describe('resources', function () {
       );
       await res.createCardType('decision/workflows/decision');
       expect((res.data as CardType).customFields.length).to.equal(0);
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/newOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        },
+      );
       expect((res.data as CardType).customFields.length).to.equal(1);
     });
     it('update card type - try to add non-existing element to customFields', async () => {
@@ -1650,10 +1714,13 @@ describe('resources', function () {
       expect((res.data as CardType).customFields.length).to.equal(0);
       // Adding a field type that does not exist should throw an error
       await expect(
-        res.update('customFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/doesNotExist' },
-        }),
+        res.update(
+          { key: 'customFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/doesNotExist' },
+          },
+        ),
       ).to.be.rejected;
     });
     it('update card type - try to add non-existing element to alwaysVisibleFields', async () => {
@@ -1664,17 +1731,23 @@ describe('resources', function () {
       expect((res.data as CardType).customFields.length).to.equal(0);
       // Adding a field type that does not exist should throw an error
       await expect(
-        res.update('alwaysVisibleFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/doesNotExist' },
-        }),
+        res.update(
+          { key: 'alwaysVisibleFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/doesNotExist' },
+          },
+        ),
       ).to.be.rejected;
       // Also adding a field type that exists, but is not part of custom fields should fail
       await expect(
-        res.update('alwaysVisibleFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/newOne' },
-        }),
+        res.update(
+          { key: 'alwaysVisibleFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/newOne' },
+          },
+        ),
       ).to.be.rejected;
     });
     it('update card type - try to add non-existing element to optionallyVisibleFields', async () => {
@@ -1685,17 +1758,23 @@ describe('resources', function () {
       expect((res.data as CardType).customFields.length).to.equal(0);
       // Adding a field type that does not exist should throw an error
       await expect(
-        res.update('optionallyVisibleFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/doesNotExist' },
-        }),
+        res.update(
+          { key: 'optionallyVisibleFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/doesNotExist' },
+          },
+        ),
       ).to.be.rejected;
       // Also adding a field type that exists, but is not part of custom fields should fail
       await expect(
-        res.update('optionallyVisibleFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/newOne' },
-        }),
+        res.update(
+          { key: 'optionallyVisibleFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/newOne' },
+          },
+        ),
       ).to.be.rejected;
     });
     it('update card type - remove element from customFields', async () => {
@@ -1720,28 +1799,40 @@ describe('resources', function () {
         (field) => field.name === 'decision/fieldTypes/newOne',
       );
       if (!hasField) {
-        await res.update('customFields', {
-          name: 'add',
-          target: { name: 'decision/fieldTypes/newOne' },
-        });
+        await res.update(
+          { key: 'customFields' },
+          {
+            name: 'add',
+            target: { name: 'decision/fieldTypes/newOne' },
+          },
+        );
       }
 
       // First add the to-be-removed field to optionally and always visible fields.
       // todo: probably couldn't really exist in both arrays?
-      await res.update('optionallyVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
-      await res.update('alwaysVisibleFields', {
-        name: 'add',
-        target: 'decision/fieldTypes/newOne',
-      });
+      await res.update(
+        { key: 'optionallyVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
+      await res.update(
+        { key: 'alwaysVisibleFields' },
+        {
+          name: 'add',
+          target: 'decision/fieldTypes/newOne',
+        },
+      );
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(1);
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(1);
-      await res.update('customFields', {
-        name: 'remove',
-        target: { name: 'decision/fieldTypes/newOne' },
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'remove',
+          target: { name: 'decision/fieldTypes/newOne' },
+        },
+      );
       expect((res.data as CardType).customFields.length).to.equal(0);
       expect((res.data as CardType).optionallyVisibleFields.length).to.equal(0);
       expect((res.data as CardType).alwaysVisibleFields.length).to.equal(0);
@@ -1772,26 +1863,38 @@ describe('resources', function () {
       }
       const currentFields = [...(res.data as CardType).customFields];
       for (const field of currentFields) {
-        await res.update('customFields', {
-          name: 'remove',
-          target: { name: field.name },
-        });
+        await res.update(
+          { key: 'customFields' },
+          {
+            name: 'remove',
+            target: { name: field.name },
+          },
+        );
       }
 
       expect((res.data as CardType).customFields.length).to.equal(0);
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/newOne' },
-      });
-      await res.update('customFields', {
-        name: 'add',
-        target: { name: 'decision/fieldTypes/secondNewOne' },
-      });
-      await res.update('customFields', {
-        name: 'rank',
-        target: { name: 'decision/fieldTypes/secondNewOne' },
-        newIndex: 0,
-      });
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/newOne' },
+        },
+      );
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'add',
+          target: { name: 'decision/fieldTypes/secondNewOne' },
+        },
+      );
+      await res.update(
+        { key: 'customFields' },
+        {
+          name: 'rank',
+          target: { name: 'decision/fieldTypes/secondNewOne' },
+          newIndex: 0,
+        },
+      );
       expect((res.data as CardType).customFields.length).to.equal(2);
       const first = (res.data as CardType).customFields.at(0);
       expect((first as CustomField)?.name).to.equal(
@@ -1804,11 +1907,14 @@ describe('resources', function () {
         resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.createFieldType('dateTime');
-      await res.update('name', {
-        name: 'change',
-        target: '',
-        to: 'decision/fieldTypes/afterUpdate',
-      });
+      await res.update(
+        { key: 'name' },
+        {
+          name: 'change',
+          target: '',
+          to: 'decision/fieldTypes/afterUpdate',
+        },
+      );
       expect(res.data?.name).to.equal('decision/fieldTypes/afterUpdate');
     });
     it('try to update field type with invalid name', async () => {
@@ -1818,11 +1924,14 @@ describe('resources', function () {
       );
       await res.createFieldType('dateTime');
       await expect(
-        res.update('name', {
-          name: 'change',
-          target: '',
-          to: 'decision/fieldTypes/afterUpdate-öööö',
-        }),
+        res.update(
+          { key: 'name' },
+          {
+            name: 'change',
+            target: '',
+            to: 'decision/fieldTypes/afterUpdate-öööö',
+          },
+        ),
       ).to.be.rejectedWith('Resource identifier must follow naming rules.');
       // todo: the resource is still renamed, even if validation does not succeed; it should not happen
       //       to avoid issues with other tests, delete the resource
@@ -1841,11 +1950,14 @@ describe('resources', function () {
         project,
         resourceName('decision/fieldTypes/numberOfCommits'),
       );
-      await res.update('dataType', {
-        name: 'change',
-        target: '',
-        to: 'integer',
-      });
+      await res.update(
+        { key: 'dataType' },
+        {
+          name: 'change',
+          target: '',
+          to: 'integer',
+        },
+      );
       expect((res.data as FieldType).dataType).to.equal('integer');
       card6 = project.findCard('decision_6');
       // Since data type was changed from number to integer, value has changed from 1.5 -> 1
@@ -1861,16 +1973,22 @@ describe('resources', function () {
         resourceName('decision/fieldTypes/dateFieldType'),
       );
       await res.createFieldType('shortText');
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'Field for dates',
-      });
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'Field description',
-      });
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Field for dates',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Field description',
+        },
+      );
       expect((res.data as FieldType).displayName).to.equal('Field for dates');
       expect((res.data as FieldType).description).to.equal('Field description');
     });
@@ -1880,28 +1998,38 @@ describe('resources', function () {
         resourceName('decision/fieldTypes/enumFieldType'),
       );
       await res.createFieldType('enum');
-      await res.update<EnumDefinition>('enumValues', {
-        name: 'change',
-        to: {
-          enumValue: 'yes',
-          enumDescription: 'Definitely a yes',
-          enumDisplayValue: 'YES',
+      await res.update(
+        {
+          key: 'enumValues',
         },
-        target: {
-          enumValue: 'value1',
+        {
+          name: 'change',
+          to: {
+            enumValue: 'yes',
+            enumDescription: 'Definitely a yes',
+            enumDisplayValue: 'YES',
+          },
+          target: {
+            enumValue: 'value1',
+          },
         },
-      });
-      await res.update<EnumDefinition>('enumValues', {
-        name: 'change',
-        to: {
-          enumValue: 'no',
-          enumDescription: 'Absolutely not',
-          enumDisplayValue: 'NO',
+      );
+      await res.update(
+        {
+          key: 'enumValues',
         },
-        target: {
-          enumValue: 'value2',
+        {
+          name: 'change',
+          to: {
+            enumValue: 'no',
+            enumDescription: 'Absolutely not',
+            enumDisplayValue: 'NO',
+          },
+          target: {
+            enumValue: 'value2',
+          },
         },
-      });
+      );
       const enums = (res.data as FieldType).enumValues;
       expect(enums?.length).to.equal(2);
       expect(enums?.at(0)?.enumValue).to.equal('yes');
@@ -1963,21 +2091,32 @@ describe('resources', function () {
         resourceName('decision/linkTypes/newLinkType'),
       );
       await res.create();
-      await res.update<boolean>('enableLinkDescription', {
-        name: 'change',
-        target: false,
-        to: true,
-      });
-      await res.update('inboundDisplayName', {
-        name: 'change',
-        target: '',
-        to: 'inbound',
-      });
-      await res.update('outboundDisplayName', {
-        name: 'change',
-        target: '',
-        to: 'outbound',
-      });
+      await res.update(
+        {
+          key: 'enableLinkDescription',
+        },
+        {
+          name: 'change',
+          target: false,
+          to: true,
+        },
+      );
+      await res.update(
+        { key: 'inboundDisplayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'inbound',
+        },
+      );
+      await res.update(
+        { key: 'outboundDisplayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'outbound',
+        },
+      );
       const data = res.data as LinkType;
       expect(data.inboundDisplayName).to.equal('inbound');
       expect(data.outboundDisplayName).to.equal('outbound');
@@ -1989,21 +2128,30 @@ describe('resources', function () {
         resourceName('decision/graphModels/newGraphModel'),
       );
       await res.create();
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
-      await res.update('category', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
       const data = res.data as GraphModel;
       expect(data.displayName).to.equal('updated');
       expect(data.description).to.equal('updated');
@@ -2015,21 +2163,30 @@ describe('resources', function () {
         resourceName('decision/graphViews/newGraphView'),
       );
       await res.create();
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
-      await res.update('category', {
-        name: 'change',
-        target: '',
-        to: 'updated',
-      });
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'updated',
+        },
+      );
       const data = res.data as GraphView;
       expect(data.displayName).to.equal('updated');
       expect(data.description).to.equal('updated');
@@ -2040,24 +2197,36 @@ describe('resources', function () {
         project,
         resourceName('decision/linkTypes/newLT'),
       );
-      await res.update('sourceCardTypes', {
-        name: 'add',
-        target: 'CT1',
-      });
-      await res.update('destinationCardTypes', {
-        name: 'add',
-        target: 'CT1',
-      });
-      await res.update('sourceCardTypes', {
-        name: 'change',
-        target: 'CT1',
-        to: 'CT1NEW',
-      });
-      await res.update('destinationCardTypes', {
-        name: 'change',
-        target: 'CT1',
-        to: 'CT1NEW',
-      });
+      await res.update(
+        { key: 'sourceCardTypes' },
+        {
+          name: 'add',
+          target: 'CT1',
+        },
+      );
+      await res.update(
+        { key: 'destinationCardTypes' },
+        {
+          name: 'add',
+          target: 'CT1',
+        },
+      );
+      await res.update(
+        { key: 'sourceCardTypes' },
+        {
+          name: 'change',
+          target: 'CT1',
+          to: 'CT1NEW',
+        },
+      );
+      await res.update(
+        { key: 'destinationCardTypes' },
+        {
+          name: 'change',
+          target: 'CT1',
+          to: 'CT1NEW',
+        },
+      );
       const data = res.data as LinkType;
       expect(data.sourceCardTypes).to.include('CT1NEW');
       expect(data.destinationCardTypes).to.include('CT1NEW');
@@ -2067,21 +2236,30 @@ describe('resources', function () {
         project,
         resourceName('decision/reports/newREP'),
       );
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'Updated description',
-      });
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'Updated display name',
-      });
-      await res.update('category', {
-        name: 'change',
-        target: '',
-        to: 'Updated category',
-      });
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated description',
+        },
+      );
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated display name',
+        },
+      );
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated category',
+        },
+      );
       const data = res.data as ReportMetadata;
       expect(data.description).to.include('Updated');
       expect(data.displayName).to.include('Updated');
@@ -2111,21 +2289,30 @@ describe('resources', function () {
         project,
         resourceName('decision/templates/newTEMP'),
       );
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'Updated description',
-      });
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'Updated display name',
-      });
-      await res.update('category', {
-        name: 'change',
-        target: '',
-        to: 'Updated category',
-      });
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated description',
+        },
+      );
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated display name',
+        },
+      );
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated category',
+        },
+      );
       const data = res.data as TemplateMetadata;
       expect(data.description).to.include('Updated');
       expect(data.displayName).to.include('Updated');
@@ -2147,7 +2334,7 @@ describe('resources', function () {
         target: expectedItem,
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
-      await res.update('states', op);
+      await res.update({ key: 'states' }, op);
       found = (res.data as Workflow).states.find(
         (item) => item.name === expectedItem.name,
       );
@@ -2180,7 +2367,7 @@ describe('resources', function () {
         target: expectedItem,
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
-      await res.update('states', op);
+      await res.update({ key: 'states' }, op);
 
       // Check that card metadata is updated.
       const updatedCard = project.findCard(
@@ -2193,7 +2380,7 @@ describe('resources', function () {
         target: updatedItem,
         to: expectedItem,
       } as ChangeOperation<WorkflowState>;
-      await res.update('states', opRevert);
+      await res.update({ key: 'states' }, opRevert);
     });
     it('try to update existing workflow - rename state with incomplete state', async () => {
       const res = new WorkflowResource(
@@ -2207,7 +2394,7 @@ describe('resources', function () {
         target: expectedItem,
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
-      await expect(res.update('states', op)).to.be.rejectedWith(
+      await expect(res.update({ key: 'states' }, op)).to.be.rejectedWith(
         "Cannot change state 'Approved' for workflow 'decision/workflows/decision'.",
       );
     });
@@ -2235,7 +2422,7 @@ describe('resources', function () {
         target: expectedItem,
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
-      await res.update('transitions', op);
+      await res.update({ key: 'transitions' }, op);
       found = res.data.transitions.find(
         (item) => item.name === expectedItem.name,
       );
@@ -2257,7 +2444,7 @@ describe('resources', function () {
         name: 'add',
         target: newState,
       } as AddOperation<WorkflowState>;
-      await res.update('states', op);
+      await res.update({ key: 'states' }, op);
       found = res.data.states.find((item) => item.name === newState.name);
       expect(found).to.not.equal(undefined);
     });
@@ -2279,7 +2466,7 @@ describe('resources', function () {
         name: 'add',
         target: newTransition,
       } as AddOperation<WorkflowState>;
-      await res.update('transitions', op);
+      await res.update({ key: 'transitions' }, op);
       found = res.data.transitions.find(
         (item) => item.name === newTransition.name,
       );
@@ -2299,7 +2486,7 @@ describe('resources', function () {
         name: 'remove',
         target: expectedItem,
       } as RemoveOperation<WorkflowState>;
-      await res.update('states', op);
+      await res.update({ key: 'states' }, op);
       found = res.data.states.find((item) => item.name === expectedItem.name);
       expect(found).to.equal(undefined);
     });
@@ -2321,7 +2508,7 @@ describe('resources', function () {
         name: 'remove',
         target: expectedItem,
       } as RemoveOperation<WorkflowTransition>;
-      await res.update('transitions', op);
+      await res.update({ key: 'transitions' }, op);
       found = res.data.transitions.find(
         (item) => item.name === expectedItem.name,
       );

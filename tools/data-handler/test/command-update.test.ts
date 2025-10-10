@@ -5,11 +5,15 @@ import { expect } from 'chai';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-import { type CardType } from '../src/interfaces/resource-interfaces.js';
+import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { Show, Update } from '../src/commands/index.js';
+import { resourceName } from '../src/utils/resource-utils.js';
+import type { ReportResource } from '../src/resources/report-resource.js';
+import type { GraphViewResource } from '../src/resources/graph-view-resource.js';
+import type { GraphModelResource } from '../src/resources/graph-model-resource.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
@@ -213,5 +217,94 @@ describe('update command', () => {
         invalidTargetMapping,
       ),
     ).to.be.rejectedWith('State mapping validation failed');
+  });
+  it('update content - graphview viewTemplate', async () => {
+    const name = `${project.projectPrefix}/graphViews/test`;
+    const exists = await collector.resourceExists('graphViews', name);
+    expect(exists).to.equal(true);
+
+    await update.updateValue(
+      name,
+      'change',
+      'content/viewTemplate',
+      'something here',
+    );
+
+    collector.changed();
+    const graphView = await (
+      Project.resourceObject(project, resourceName(name)) as GraphViewResource
+    ).show();
+    expect(graphView.content.viewTemplate).to.equal('something here');
+  });
+  it('update content - graphModel model', async () => {
+    const name = `${project.projectPrefix}/graphModels/test`;
+    const exists = await collector.resourceExists('graphModels', name);
+    expect(exists).to.equal(true);
+
+    await update.updateValue(name, 'change', 'content/model', 'something here');
+
+    collector.changed();
+    const graphModel = await (
+      Project.resourceObject(project, resourceName(name)) as GraphModelResource
+    ).show();
+    expect(graphModel.content.model).to.equal('something here');
+  });
+  it('update content - report contentTemplate', async () => {
+    const name = `${project.projectPrefix}/reports/testReport`;
+    const exists = await collector.resourceExists('reports', name);
+    expect(exists).to.equal(true);
+
+    await update.updateValue(
+      name,
+      'change',
+      'content/contentTemplate',
+      'new template content',
+    );
+
+    collector.changed();
+    const report = await (
+      Project.resourceObject(project, resourceName(name)) as ReportResource
+    ).show();
+    expect(report.content.contentTemplate).to.equal('new template content');
+  });
+  it('update content - report schema', async () => {
+    const name = `${project.projectPrefix}/reports/testReport`;
+    const exists = await collector.resourceExists('reports', name);
+    expect(exists).to.equal(true);
+
+    const newSchema = {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' },
+      },
+      required: ['name', 'age'],
+    };
+
+    await update.updateValue(name, 'change', 'content/schema', newSchema);
+
+    collector.changed();
+    const report = await (
+      Project.resourceObject(project, resourceName(name)) as ReportResource
+    ).show();
+    expect(report.content.schema).to.deep.equal(newSchema);
+  });
+  it('update content - report queryTemplate', async () => {
+    const name = `${project.projectPrefix}/reports/testReport`;
+    const exists = await collector.resourceExists('reports', name);
+    expect(exists).to.equal(true);
+
+    await update.updateValue(
+      name,
+      'change',
+      'content/queryTemplate',
+      'new query content',
+    );
+
+    collector.changed();
+    const report = await (
+      Project.resourceObject(project, resourceName(name)) as ReportResource
+    ).show();
+    expect(report.content.queryTemplate).to.equal('new query content');
   });
 });

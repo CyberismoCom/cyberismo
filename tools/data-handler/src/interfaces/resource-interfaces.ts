@@ -46,12 +46,6 @@ export interface CardType extends ResourceBaseMetadata {
   optionallyVisibleFields: string[];
 }
 
-// Base content update key interface
-export interface ContentUpdateKey {
-  key: 'content';
-  subKey: string; // Resource-specific types should narrow this
-}
-
 // Custom field
 // todo: merge with FieldType.
 export interface CustomField {
@@ -95,11 +89,6 @@ export interface GraphModel extends GraphModelMetadata {
   content: GraphModelContent;
 }
 export type GraphModelContentPropertyName = 'model';
-export interface GraphModelContentUpdateKey {
-  key: 'content';
-  subKey: GraphModelContentPropertyName;
-}
-export type GraphModelUpdateKey = string | GraphModelContentUpdateKey;
 
 // Graph view content.
 export interface GraphViewMetadata extends ResourceBaseMetadata {
@@ -109,11 +98,6 @@ export type GraphViewContentPropertyName = 'viewTemplate';
 export interface GraphView extends GraphViewMetadata {
   content: GraphViewContent;
 }
-export interface GraphViewContentUpdateKey {
-  key: 'content';
-  subKey: GraphViewContentPropertyName;
-}
-export type GraphViewUpdateKey = string | GraphViewContentUpdateKey;
 
 // Link content.
 export interface Link {
@@ -141,11 +125,6 @@ export type ReportContentPropertyName =
   | 'contentTemplate'
   | 'queryTemplate'
   | 'schema';
-export interface ReportContentUpdateKey {
-  key: 'content';
-  subKey: ReportContentPropertyName;
-}
-export type ReportUpdateKey = string | ReportContentUpdateKey;
 
 // Metadata for report
 export interface ReportMetadata extends ResourceBaseMetadata {
@@ -182,9 +161,16 @@ export interface TemplateConfiguration extends TemplateMetadata {
 export interface TemplateMetadata extends ResourceBaseMetadata {
   category?: string;
 }
+type ContentUpdateKey = { key: 'content'; subKey: string };
+type OtherUpdateKey<K extends string = string> = { key: Exclude<K, 'content'> };
 
-// Generic update key
-export type UpdateKey = string | ContentUpdateKey;
+export type UpdateKey<K extends string = string> =
+  | ContentUpdateKey
+  | OtherUpdateKey<K>;
+
+export function isContentKey(key: UpdateKey): key is ContentUpdateKey {
+  return key.key === 'content';
+}
 
 // Workflow's json file content.
 export interface Workflow extends ResourceBaseMetadata {
