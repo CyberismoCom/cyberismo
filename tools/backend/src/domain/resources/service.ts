@@ -165,11 +165,16 @@ async function createResourceNode(
   ) {
     try {
       const fileNodes = Object.entries(resourceData.content).map(
-        ([fileName]) => ({
+        ([fileName, content]) => ({
           id: `${resourceType}-${name}-${fileName}`,
           type: 'file',
           name: `${name}/${fileName}`,
+          resourceName: name,
+          fileName,
           displayName: fileName,
+          data: {
+            content,
+          },
           readOnly: resourceName(name).prefix !== projectPrefix,
         }),
       );

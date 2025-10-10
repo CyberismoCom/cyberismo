@@ -12,35 +12,38 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { AnyNode } from '@/lib/api/types';
-import { useResourceFileContent } from '@/lib/api';
+import { FileNode } from '@/lib/api/types';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
+import { useResource } from '@/lib/api';
 
-export function TextEditor({ node }: { node: AnyNode }) {
-  const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
-    useResourceFileContent(node.name);
+export function TextEditor({ node }: { node: FileNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const [content, setContent] = useState(resourceFileContent.content);
+  const [content, setContent] = useState(node.data.content);
+  const { update, isUpdating } = useResource(node.resourceName);
 
   useEffect(() => {
-    setContent(resourceFileContent.content);
-  }, [resourceFileContent]);
+    setContent(node.data.content);
+  }, [node]);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
   return (
     <BaseEditor
       node={node}
       onUpdate={async () => {
         try {
-          await updateFileContent(content);
+          await update({
+            updateKey: { key: 'content', subKey: node.fileName },
+            operation: {
+              name: 'change',
+              target: node.data.content,
+              to: content,
+            },
+          });
           dispatch(
             addNotification({
               message: t('saveFile.success'),
