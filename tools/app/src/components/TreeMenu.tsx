@@ -11,11 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState, useMemo } from 'react';
 import { NodeApi } from 'react-arborist';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { Input, Stack } from '@mui/joy';
-import SearchIcon from '@mui/icons-material/Search';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { CardTreeNode } from './tree-nodes';
 
@@ -25,6 +22,7 @@ type TreeMenuProps = {
   onCardSelect?: (node: NodeApi<QueryResult<'tree'>>) => void;
   onMove?: (card: string, newParent: string, index: number) => void;
   tree: QueryResult<'tree'>[];
+  openByDefault?: boolean;
 };
 
 export const TreeMenu = ({
@@ -33,49 +31,8 @@ export const TreeMenu = ({
   onMove,
   onCardSelect,
   tree,
+  openByDefault = false,
 }: TreeMenuProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Prevent global keyboard shortcuts from firing when typing in search
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Stop propagation AND prevent default to block global shortcuts
-    // This is critical for single-key shortcuts like 'c', 'e', 'home'
-    e.stopPropagation();
-  };
-
-  // Recursively filter tree nodes based on search query
-  const filterTree = (
-    nodes: QueryResult<'tree'>[],
-    query: string,
-  ): QueryResult<'tree'>[] => {
-    if (!query.trim()) return nodes;
-
-    const lowerQuery = query.toLowerCase();
-
-    return nodes.reduce<QueryResult<'tree'>[]>((acc, node) => {
-      const titleMatches = node.title?.toLowerCase().includes(lowerQuery);
-      const filteredChildren = node.children
-        ? filterTree(node.children, query)
-        : [];
-
-      // Include node if title matches or any descendant matches
-      if (titleMatches || filteredChildren.length > 0) {
-        acc.push({
-          ...node,
-          children:
-            filteredChildren.length > 0 ? filteredChildren : node.children,
-        });
-      }
-
-      return acc;
-    }, []);
-  };
-
-  const filteredTree = useMemo(
-    () => filterTree(tree, searchQuery),
-    [tree, searchQuery],
-  );
-
   const handleMove = (
     dragIds: string[],
     parentId: string | null,
@@ -87,38 +44,17 @@ export const TreeMenu = ({
   };
 
   return (
-    <Stack height="100%" width="100%" bgcolor="#f0f0f0">
-      {/* Search input */}
-      <Stack px={2} pt={2} pb={1}>
-        <Input
-          placeholder="Search cards..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          startDecorator={<SearchIcon />}
-          size="sm"
-          sx={{
-            bgcolor: 'transparent',
-            '--Input-focusedThickness': '2px',
-          }}
-        />
-      </Stack>
-
-      {/* Tree component - flex grow to fill remaining space */}
-      <Stack flexGrow={1} minHeight={0}>
-        <BaseTreeComponent
-          title={title}
-          linkTo={title ? '/cards' : ''}
-          data={filteredTree}
-          selectedId={selectedCardKey}
-          nodeRenderer={CardTreeNode}
-          idAccessor={(node) => node.key}
-          childrenAccessor="children"
-          onMove={handleMove}
-          onNodeClick={onCardSelect}
-          openByDefault={searchQuery.trim().length > 0}
-        />
-      </Stack>
-    </Stack>
+    <BaseTreeComponent
+      title={title}
+      linkTo={title ? '/cards' : ''}
+      data={tree}
+      selectedId={selectedCardKey}
+      nodeRenderer={CardTreeNode}
+      idAccessor={(node) => node.key}
+      childrenAccessor="children"
+      onMove={handleMove}
+      onNodeClick={onCardSelect}
+      openByDefault={openByDefault}
+    />
   );
 };
