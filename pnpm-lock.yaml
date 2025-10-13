@@ -11,10 +11,6 @@ overrides:
 importers:
 
   .:
-    dependencies:
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.1
     devDependencies:
       '@eslint/js':
         specifier: ^9.35.0
@@ -25,9 +21,6 @@ importers:
       '@types/chai-as-promised':
         specifier: ^8.0.2
         version: 8.0.2
-      '@types/mime-types':
-        specifier: ^3.0.1
-        version: 3.0.1
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10
@@ -241,12 +234,18 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.7.2
         version: 0.7.2(hono@4.9.7)(zod@4.1.8)
+      '@types/mime-types':
+        specifier: ^3.0.1
+        version: 3.0.1
       dotenv:
         specifier: ^17.2.2
         version: 17.2.2
       hono:
         specifier: ^4.9.7
         version: 4.9.7
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
       zod:
         specifier: ^4.1.8
         version: 4.1.8
@@ -294,6 +293,9 @@ importers:
       '@cyberismo/node-clingo':
         specifier: workspace:*
         version: link:../node-clingo
+      '@types/mime-types':
+        specifier: ^3.0.1
+        version: 3.0.1
       '@viz-js/viz':
         specifier: ^3.17.0
         version: 3.17.0
@@ -324,6 +326,9 @@ importers:
       jsonschema:
         specifier: ^1.5.0
         version: 1.5.0
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
       pino:
         specifier: ^9.9.5
         version: 9.9.5
