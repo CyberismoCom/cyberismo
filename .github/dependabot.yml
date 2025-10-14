@@ -37,4 +37,8 @@ updates:
           - "@types/mocha"
           - "mocha"
           - "mocha-suppress-logs"
+      mime-types-dependency:
+        patterns:
+          - "mime-types"
+          - "@types/mime-types"
 
