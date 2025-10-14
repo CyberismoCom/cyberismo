@@ -44,7 +44,7 @@
     "async-mutex": "^0.5.0",
     "csv-parse": "^6.1.0",
     "directory-schema-validator": "^1.0.17",
-    "dompurify": "^3.2.6",
+    "dompurify": "^3.3.0",
     "email-validator": "^2.0.4",
     "handlebars": "^4.7.8",
     "jsdom": "^27.0.0",
