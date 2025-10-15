@@ -216,7 +216,7 @@ export class FolderResource extends FileResource {
    * Updates content files from a content object.
    * @param contentFiles Object with file names as keys and file contents as values.
    */
-  public async updateContentFiles(contentFiles: Record<string, string>) {
+  protected async updateContentFiles(contentFiles: Record<string, string>) {
     for (const [fileName, fileContent] of Object.entries(contentFiles)) {
       await this.updateFile(fileName, fileContent);
     }
@@ -227,7 +227,7 @@ export class FolderResource extends FileResource {
    * @param fileName The name of the file to update.
    * @param changedContent The new content for the file.
    */
-  public async updateFile(fileName: string, changedContent: string) {
+  protected async updateFile(fileName: string, changedContent: string) {
     const filePath = join(this.internalFolder, fileName);
 
     // Do not allow updating file in other directories

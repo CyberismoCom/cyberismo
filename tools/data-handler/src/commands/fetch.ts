@@ -18,7 +18,8 @@ import type { Project } from '../containers/project.js';
 import { writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
 import { type ModuleSetting } from '../interfaces/project-interfaces.js';
-import { errorFunction, getChildLogger } from '../utils/log-utils.js';
+import { errorFunction } from '../utils/error-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 
 const FETCH_TIMEOUT = 30000; // 30s timeout for fetching a hub file.
 const MAX_RESPONSE_SIZE = 1024 * 1024; // 1MB limit for safety
