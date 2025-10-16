@@ -271,7 +271,8 @@ export abstract class FolderResource<
       }
     }
 
-    // could validate here
+    // TODO: Instead of casting, validate that content matches U
+    // This requires a runtime schema for U to be defined(via an abstract variable)
 
     return content as U;
   }
