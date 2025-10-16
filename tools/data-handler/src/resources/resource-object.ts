@@ -465,7 +465,6 @@ export abstract class ResourceObject<
 
   // Renames resource.
   protected async rename(newName: ResourceName) {
-    this.cache.delete(resourceNameToString(this.resourceName));
     if (this.moduleResource) {
       throw new Error(`Cannot rename module resources`);
     }
@@ -492,6 +491,7 @@ export abstract class ResourceObject<
     );
     await rename(this.fileName, newFilename);
 
+    this.cache.delete(resourceNameToString(this.resourceName));
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
     this.resourceName = newName;
