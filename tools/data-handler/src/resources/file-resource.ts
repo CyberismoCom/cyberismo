@@ -55,6 +55,10 @@ export {
 export abstract class FileResource<
   T extends ResourceBaseMetadata,
 > extends ResourceObject<T, never> {
+  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
+    super(project, name, type);
+    this.initialize();
+  }
   // Collects cards that are using the 'cardTypeName'.
   protected async collectCards(cardTypeName: string) {
     function filteredCards(cardSource: Card[], cardTypeName: string): Card[] {
@@ -91,13 +95,13 @@ export abstract class FileResource<
       : name;
   }
 
-  // Show resource data as JSON.
+  /**
+   * Returns the resource metadata content.
+   * @returns metadata content
+   * @throws if resource does not exist.
+   */
   public async show(): Promise<ShowReturnType<T>> {
     this.assertResourceExists();
     return this.content;
-  }
-  constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
-    super(project, name, type);
-    this.initialize();
   }
 }

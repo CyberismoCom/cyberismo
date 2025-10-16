@@ -278,7 +278,8 @@ export abstract class FolderResource<
   }
 
   /**
-   * Deletes file(s) from disk and clears out the memory resident object.
+   * Deletes file and content folder from disk and clears out the memory resident object.
+   * @throws if resource is a module resource or does not exist or is used by other resources.
    */
   public async delete() {
     await super.delete();
@@ -287,8 +288,9 @@ export abstract class FolderResource<
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns resource type's metadata.
+   * Shows metadata of the resource and content of the resource.
+   * @returns resource type's metadata and content.
+   * @throws if resource does not exist.
    */
   public async show(): Promise<ShowReturnType<T, U>> {
     this.assertResourceExists();

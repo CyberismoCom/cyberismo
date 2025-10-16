@@ -148,6 +148,9 @@ export abstract class ResourceObject<
   protected resourceFolder: string = '';
   protected logger: Logger;
 
+  /**
+   * Path to the resource metadata file (the .json file).
+   */
   public fileName: string = '';
 
   constructor(
@@ -641,12 +644,19 @@ export abstract class ResourceObject<
     this.toCache();
   }
 
-  // Returns memory resident data as JSON.
-  // This is basically same as 'show' but doesn't do any checks; just returns the current content.
+  /**
+   * Returns memory resident data as JSON.
+   * This is basically same as 'show' but doesn't do any checks; just returns the current content.
+   * @returns metadata content or undefined if resource does not exist.
+   */
   public get data() {
     return this.content.name !== '' ? this.content : undefined;
   }
 
+  /**
+   * Deletes the file and removes the resource from project.
+   * @throws if resource is a module resource or does not exist or is used by other resources.
+   */
   public async delete() {
     if (this.moduleResource) {
       throw new Error(`Cannot delete module resources`);
@@ -670,7 +680,10 @@ export abstract class ResourceObject<
     this.fileName = '';
   }
 
-  // Validate that current memory-based 'content' is valid.
+  /**
+   * Validates the content of the resource.
+   * @param content Content to be validated.
+   */
   public async validate(content?: object) {
     const validator = await ResourceObject.getValidate();
     const invalidJson = validator.validateJson(
