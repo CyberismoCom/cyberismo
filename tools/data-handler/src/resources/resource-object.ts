@@ -358,7 +358,7 @@ export abstract class ResourceObject<
     ) {
       throw new Error(`Cannot do operation ${operation.name} on scalar value`);
     }
-    return (operation as ChangeOperation<Type>).to;
+    return operation.to;
   }
 
   // Initialize the resource.

@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { basename, dirname, join, normalize } from 'node:path';
+import { basename, dirname, format, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
 import type { Card, Operation, ResourceName } from './file-resource.js';
@@ -36,7 +36,7 @@ import {
   filename,
   propertyName,
 } from '../interfaces/folder-content-interfaces.js';
-import { readJsonFile } from '../utils/json.js';
+import { formatJson, readJsonFile } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import type { ShowReturnType } from './resource-object.js';
@@ -134,7 +134,7 @@ export abstract class FolderResource<
 
     // Update cache
     const contentStr =
-      typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+      typeof content === 'string' ? content : formatJson(content);
     this.contentFilesCache.set(fileName, contentStr);
 
     return json ? content : contentStr;
@@ -181,7 +181,8 @@ export abstract class FolderResource<
       const fileContentString =
         typeof fileContent === 'string'
           ? fileContent
-          : JSON.stringify(fileContent, null, 2);
+          : formatJson(fileContent as object); // TODO: Fix operation types. In practice, content files are either strings or objects
+
       await this.updateFile(fileName, fileContentString);
       return;
     }
