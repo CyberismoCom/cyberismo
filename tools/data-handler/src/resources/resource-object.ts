@@ -616,7 +616,6 @@ export abstract class ResourceObject<
 
   // Write the content from memory to disk.
   protected async write() {
-    //stackoverflow.com/tags
     if (this.moduleResource) {
       throw new Error(`Cannot change module resources`);
     }
