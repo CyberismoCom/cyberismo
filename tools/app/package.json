@@ -58,7 +58,7 @@
     "swr": "^2.3.6",
     "vega": "^6.1.2",
     "vega-lite": "^6.3.1",
-    "vite": "^7.1.5",
+    "vite": "^7.1.9",
     "vite-plugin-top-level-await": "^1.6.0"
   }
 }
