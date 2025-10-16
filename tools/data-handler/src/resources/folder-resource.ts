@@ -230,7 +230,7 @@ export abstract class FolderResource<
     }
     // check if the file is allow-listed
     if (!VALID_FOLDER_RESOURCE_FILES.includes(fileName)) {
-      throw new Error(`File '${fileName}' is not allowed`);
+      throw new Error(`File '${fileName}' is not allowed to be updated`);
     }
 
     await writeFileSafe(filePath, changedContent, { flag: 'w' });
