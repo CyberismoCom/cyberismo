@@ -12,9 +12,9 @@
 
 import { Project, FieldTypes, MetadataValue } from '../definitions';
 import {
+  Calculation,
   CardType,
   LinkType,
-  CalculationMetadata,
   FieldType,
   GraphModel,
   GraphView,
@@ -158,7 +158,7 @@ interface GraphViewNode extends BaseResourceNode {
 
 export interface CalculationNode extends BaseResourceNode {
   type: 'calculations';
-  data: CalculationMetadata;
+  data: Calculation;
 }
 
 // File node for static sub-editors

@@ -22,12 +22,12 @@ import { Textarea } from '@mui/joy';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect } from 'react';
 import { isEdited } from '@/lib/slices/pageState';
-//import { useResource } from '@/lib/api';
-// TODO: Fix after calculationresource is merged
+import { useResource } from '@/lib/api';
+
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  //const { update, isUpdating } = useResource(node.name);
+  const { update, isUpdating } = useResource(node.name);
   const {
     control,
     handleSubmit,
@@ -35,7 +35,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
     formState: { isDirty },
   } = useForm({
     defaultValues: {
-      calculation: node.data.calculation,
+      calculation: node.data.content.calculation,
       displayName: node.data.displayName,
     },
   });
@@ -63,8 +63,6 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
       }
       onUpdate={handleSubmit(async (data) => {
         try {
-          /*
-          // TODO: also fix after calculationresource is merged
           await update({
             updateKey: { key: 'content', subKey: 'calculation' },
             operation: {
@@ -72,7 +70,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
               target: node.data.calculation,
               to: data.calculation,
             },
-          });*/
+          });
           dispatch(
             addNotification({
               message: t('saveFile.success'),
@@ -92,7 +90,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
           );
         }
       })}
-      //loading={isUpdating()}
+      loading={isUpdating()}
       isDirty={isDirty}
     >
       <Controller
