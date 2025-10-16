@@ -40,22 +40,21 @@ export default function LabelEditor({
       return;
     }
 
-    const existingLabels = Array.isArray(value) ? [...value] : [];
+    const labels = Array.isArray(value) ? [...value] : [];
     const segments = inputValue
       .split(LABEL_SPLITTER)
       .map((segment) => segment.trim())
       .filter((segment) => segment.length > 0);
 
     // combine labels without duplicates
-    const newLabels: string[] = [];
     for (const segment of segments) {
-      if (!existingLabels.includes(segment) && !newLabels.includes(segment)) {
-        newLabels.push(segment);
+      if (!labels.includes(segment)) {
+        labels.push(segment);
       }
     }
 
     if (segments.length > 0) {
-      onChange?.([...existingLabels, ...newLabels]);
+      onChange?.(labels);
       setInputValue(''); // only clear if something was added
     }
   };
