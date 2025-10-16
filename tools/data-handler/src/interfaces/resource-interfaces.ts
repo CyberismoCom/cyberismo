@@ -162,11 +162,13 @@ export interface TemplateMetadata extends ResourceBaseMetadata {
   category?: string;
 }
 type ContentUpdateKey = { key: 'content'; subKey: string };
-type OtherUpdateKey<K extends string = string> = { key: Exclude<K, 'content'> };
+type PropertyUpdateKey<K extends string = string> = {
+  key: Exclude<K, 'content'>;
+};
 
 export type UpdateKey<K extends string = string> =
   | ContentUpdateKey
-  | OtherUpdateKey<K>;
+  | PropertyUpdateKey<K>;
 
 export function isContentKey(key: UpdateKey): key is ContentUpdateKey {
   return key.key === 'content';
