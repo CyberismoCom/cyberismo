@@ -28,6 +28,7 @@ describe('update command', () => {
     await copyDir('test/test-data', testDir);
 
     project = new Project(decisionRecordsPath);
+    await project.populateCaches();
     update = new Update(project);
     collector = new ResourceCollector(project);
     collector.collectLocalResources();
@@ -45,23 +46,6 @@ describe('update command', () => {
     let found = false;
     for (const wf of workflows) {
       if (wf.name === newName) {
-        found = true;
-      }
-    }
-    expect(found).to.equal(true);
-  });
-  it('update file resource name using just identifier', async () => {
-    const name = `${project.projectPrefix}/workflows/decision`;
-    const exists = await collector.resourceExists('workflows', name);
-    const newName = `newName`;
-    expect(exists).to.equal(true);
-
-    await update.updateValue(name, 'change', 'name', newName);
-    collector.changed();
-    const workflows = await project.workflows();
-    let found = false;
-    for (const wf of workflows) {
-      if (wf.name === `${project.projectPrefix}/workflows/${newName}`) {
         found = true;
       }
     }

@@ -169,21 +169,16 @@ export class Validate {
 
   // Puts resource to a local cache if found and returns the resource.
   // If value is already cached, returns from cache.
-  private async getAndCacheResource<Type>(
+  private getAndCacheResource<Type>(
     project: Project,
     cachedValues: Map<string, Type>,
     valueName: string,
-  ): Promise<Type | undefined> {
-    return (
-      cachedValues.get(valueName) ||
-      project.resource<Type>(valueName).then((resource) => {
-        if (!resource) {
-          return undefined;
-        }
-        cachedValues.set(valueName, resource);
-        return resource;
-      })
-    );
+  ): Type | undefined {
+    const resource = project.resource<Type>(valueName);
+    if (resource) {
+      cachedValues.set(valueName, resource);
+    }
+    return resource;
   }
 
   private parseValidatorMessage(errorObject: object[]): string {
@@ -395,7 +390,7 @@ export class Validate {
     const errors: string[] = [];
     if (cardType && fieldArray) {
       const validationPromises = fieldArray.map(async (field) => {
-        const fieldType = await this.getAndCacheResource(
+        const fieldType = this.getAndCacheResource(
           project,
           this.validatedFieldTypes,
           field,
@@ -550,6 +545,7 @@ export class Validate {
       } else {
         const errorMsg: string[] = [];
         const project = projectFn();
+        await project.populateCaches();
 
         // Then, validate that each 'contentSchema' children as well.
         const result = await this.readAndValidateContentFiles(
@@ -561,8 +557,8 @@ export class Validate {
         }
 
         // Finally, validate that each card is correct
-        const cards = await project.cards();
-        cards.push(...(await project.allTemplateCards()));
+        const cards = project.cards();
+        cards.push(...project.allTemplateCards());
 
         const cardIds = new Map<string, number>();
 
@@ -574,12 +570,8 @@ export class Validate {
           }
 
           if (card.metadata) {
-            // validate card's workflow
             if (!isTemplateCard(card)) {
-              const validWorkflow = await this.validateWorkflowState(
-                project,
-                card,
-              );
+              const validWorkflow = this.validateWorkflowState(project, card);
               if (validWorkflow.length !== 0) {
                 errorMsg.push(validWorkflow);
               }
@@ -604,7 +596,7 @@ export class Validate {
             await evaluateMacros(card.content, {
               context: 'localApp',
               mode: 'validate',
-              project,
+              project: project,
               cardKey: card.key,
             });
           }
@@ -673,19 +665,15 @@ export class Validate {
    * @param prefixes currently used project prefixes
    * @returns resource name as valid resource name; throws in error cases.
    */
-  public async validResourceName(
+  public validResourceName(
     resourceType: ResourceTypes,
     name: string,
     prefixes: string[],
-  ): Promise<string> {
+  ): string {
     const resource = resourceName(name);
     resource.type = resource.type ? resource.type : resourceType;
-    // a bit shaky way to ensure that prefix is set; first of the project prefixes should be the actual project prefix.
     if (resource.prefix === '') {
-      resource.prefix = prefixes.length > 0 ? prefixes.at(0) || '' : '';
-      if (resource.prefix === '') {
-        throw new Error(`Project prefix cannot be empty string`);
-      }
+      throw new Error(`Project prefix cannot be empty string`);
     }
     if (!prefixes.includes(resource.prefix)) {
       throw new Error(
@@ -735,7 +723,7 @@ export class Validate {
       );
     }
 
-    const cardType = await this.getAndCacheResource(
+    const cardType = this.getAndCacheResource(
       project,
       this.validatedCardTypes,
       card.metadata?.cardType,
@@ -836,7 +824,7 @@ export class Validate {
    * Validates the labels of a card
    * @param card card to validate. Card must have metadata.
    */
-  public async validateCardLabels(card: Card): Promise<string> {
+  public validateCardLabels(card: Card): string {
     const validationErrors: string[] = [];
     if (!card.metadata) {
       validationErrors.push(
@@ -870,10 +858,7 @@ export class Validate {
    * @param card Card object to validate
    * @returns string containing all validation errors
    */
-  public async validateWorkflowState(
-    project: Project,
-    card: Card,
-  ): Promise<string> {
+  public validateWorkflowState(project: Project, card: Card): string {
     const validationErrors: string[] = [];
 
     if (!card.metadata) {
@@ -883,7 +868,7 @@ export class Validate {
     }
 
     // Use caches for cardTypes and workflows, to avoid re-reading the same JSON files multiple times.
-    const cardType = await this.getAndCacheResource(
+    const cardType = this.getAndCacheResource(
       project,
       this.validatedCardTypes,
       card.metadata?.cardType || '',
@@ -901,7 +886,7 @@ export class Validate {
       return validationErrors.join('\n');
     }
 
-    const workflow = await this.getAndCacheResource(
+    const workflow = this.getAndCacheResource(
       project,
       this.validatedWorkflows,
       cardType.workflow,

@@ -41,7 +41,7 @@ export async function previewSite(dir: string, findPort: boolean = true) {
   if (findPort) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  await startApp(app, port);
+  startApp(app, port);
 }
 
 /**
@@ -59,11 +59,10 @@ export async function startServer(
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
   const app = createApp(projectPath);
-  await startApp(app, port);
+  startApp(app, port);
 }
 
-async function startApp(app: Hono, port: number) {
-  // Start server
+function startApp(app: Hono, port: number) {
   serve(
     {
       fetch: app.fetch,

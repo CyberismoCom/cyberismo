@@ -52,7 +52,7 @@ export class CardTypeResource extends FileResource {
   }
 
   // Returns cards that have this card type.
-  private async cardsWithCardType(cards: Card[]): Promise<string[]> {
+  private cardsWithCardType(cards: Card[]): string[] {
     const resourceName = resourceNameToString(this.resourceName);
     return cards
       .filter((card) => card.metadata?.cardType === resourceName)
@@ -72,13 +72,7 @@ export class CardTypeResource extends FileResource {
     if (op && op.name === 'rank') return;
 
     // Collect both project cards and template cards.
-    const cards = await this.collectCards(
-      {
-        metadata: true,
-        content: true,
-      },
-      this.content.name,
-    );
+    const cards = await this.collectCards(this.content.name);
 
     if (op && op.name === 'change') {
       const from = (op as ChangeOperation<string>).target;
@@ -160,13 +154,7 @@ export class CardTypeResource extends FileResource {
     op: ChangeOperation<Type>,
   ) {
     await this.verifyStateMapping(stateMapping, op);
-    const cards = await this.collectCards(
-      {
-        metadata: true,
-        content: true,
-      },
-      this.content.name,
-    );
+    const cards = await this.collectCards(this.content.name);
 
     const unmappedStates: string[] = [];
 
@@ -198,7 +186,7 @@ export class CardTypeResource extends FileResource {
   }
 
   // Checks if field type exists in this card type.
-  private async hasFieldType(field: Partial<CustomField>): Promise<boolean> {
+  private hasFieldType(field: Partial<CustomField>): boolean {
     return this.data.customFields.some((item) => item.name === field.name);
   }
 
@@ -423,7 +411,7 @@ export class CardTypeResource extends FileResource {
         `Cannot create cardType without providing workflow for it`,
       );
     }
-    const validWorkflowName = await Validate.getInstance().validResourceName(
+    const validWorkflowName = Validate.getInstance().validResourceName(
       'workflows',
       resourceNameToString(resourceName(workflowName)),
       await this.project.projectPrefixes(),
@@ -544,7 +532,7 @@ export class CardTypeResource extends FileResource {
    * @returns array of card keys, resource names and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? (await super.cards());
+    const allCards = cards ?? super.cards();
     const [
       cardsWithCardType,
       cardContentReferences,

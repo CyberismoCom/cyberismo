@@ -55,6 +55,7 @@ class ResourceCollection {
   /**
    * Returns resource array of a give type.
    * @param type Resource array type to return.
+   * @param moduleName Name of a module. If given, returns just resources from that module.
    * @returns resource array of a give type.
    */
   public resourceArray(
@@ -341,8 +342,15 @@ export class ResourceCollector {
   /**
    * Re-collects imported module resources.
    */
-  public async moduleImported() {
+  public moduleImported() {
     this.modulesCollected = false;
+  }
+
+  /**
+   * Getter. Provide access for owner to browse module resources.
+   */
+  public get moduleResources() {
+    return this.modules;
   }
 
   /**

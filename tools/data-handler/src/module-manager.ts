@@ -309,10 +309,10 @@ export class ModuleManager {
 
   // Collect modules that could be removed from .cards/modules when
   // 'moduleName' is removed.
-  private async orphanedModules(
+  private orphanedModules(
     dependencies: DependencyGraph,
     moduleName: string,
-  ): Promise<string[]> {
+  ): string[] {
     const projectModules = this.project.configuration.modules;
     const removableTransientModules: string[] = [];
     if (dependencies.has(moduleName)) {
@@ -558,6 +558,7 @@ export class ModuleManager {
       );
     }
     const sourceProject = new Project(source);
+    await sourceProject.populateCaches();
     const modulePrefix = sourceProject.projectPrefix;
     const destinationPath = join(
       this.project.paths.modulesFolder,
@@ -625,7 +626,7 @@ export class ModuleManager {
     // but modules under .cards/modules must be checked not to be used by
     // other modules.
     if (this.canBeRemoved(dependencies, moduleName)) {
-      const orphans = await this.orphanedModules(dependencies, moduleName);
+      const orphans = this.orphanedModules(dependencies, moduleName);
       await deleteDir(module.path);
       for (const moduleToDelete of orphans) {
         const modulePath = join(
@@ -634,9 +635,8 @@ export class ModuleManager {
         );
         await deleteDir(modulePath);
       }
-      await this.project.collectModuleResources();
     }
-    await this.project.configuration.removeModule(moduleName);
+    await this.project.removeModule(moduleName);
   }
 
   /**

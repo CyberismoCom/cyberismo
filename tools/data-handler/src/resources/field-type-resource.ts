@@ -130,7 +130,7 @@ export class FieldTypeResource extends FileResource {
     function affectedCard(card: Card): boolean {
       if (!card.metadata) return false;
       return cardTypesThatUseThisFieldType.some(
-        (item) => item === card.metadata!.cardType,
+        (item) => item === card.metadata?.cardType,
       );
     }
 
@@ -139,12 +139,11 @@ export class FieldTypeResource extends FileResource {
     cardTypesThatUseThisFieldType.push(...cardTypes);
 
     // Then collect cards (both project and local template) that use those card types.
-    const projectCards = (
-      await this.project.cards(this.project.paths.cardRootFolder, {
-        metadata: true,
-      })
-    ).filter((card) => affectedCard(card));
-    const templateCards = (await this.project.allTemplateCards())
+    const projectCards = this.project
+      .cards(this.project.paths.cardRootFolder)
+      .filter((card) => affectedCard(card));
+    const templateCards = this.project
+      .allTemplateCards()
       .filter((card) => !card.path.includes('modules'))
       .filter((card) => affectedCard(card));
     const allCards = [...projectCards, ...templateCards];
@@ -213,9 +212,7 @@ export class FieldTypeResource extends FileResource {
     const removedValue = (op.target as EnumDefinition).enumValue;
     const cardTypes = await this.relevantCardTypes(ResourcesFrom.localOnly);
     const allCards = await Promise.all(
-      cardTypes.map((cardType) =>
-        this.collectCards({ metadata: true }, cardType),
-      ),
+      cardTypes.map((cardType) => this.collectCards(cardType)),
     );
     const cardsToUpdate = allCards
       .flat()
@@ -494,7 +491,7 @@ export class FieldTypeResource extends FileResource {
    * @returns array of card keys, resource names and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards ?? (await super.cards());
+    const allCards = cards ?? super.cards();
 
     const [cardContentReferences, relevantLinkTypes, calculations] =
       await Promise.all([

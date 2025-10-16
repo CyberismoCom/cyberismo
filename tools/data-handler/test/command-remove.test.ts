@@ -157,7 +157,7 @@ describe('remove command', () => {
     });
 
     it('remove linkType', async () => {
-      const name = 'test';
+      const name = 'testLinkTypeForRemoval';
       await createLinkType(commandHandler, name);
       const fullName = 'decision/linkTypes/' + name;
       const result = await commandHandler.command(
@@ -174,12 +174,13 @@ describe('remove command', () => {
 
       // To avoid logged errors from clingo queries during tests, generate calculations.
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       await project.calculationEngine.generate();
 
       const cardId = card.affectsCards![0];
       await commandHandler.command(
         Cmd.create,
-        ['attachment', attachmentPath],
+        ['attachment', cardId, attachmentPath],
         options,
       );
       const attachmentNameWithCardId = `${cardId}-${attachment}`;
@@ -440,6 +441,7 @@ describe('remove command', () => {
     it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
         .remove('attachment', cardId, '')
@@ -453,6 +455,7 @@ describe('remove command', () => {
     it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
         .remove('attachment', cardId, 'the-needle.heic')
@@ -465,6 +468,7 @@ describe('remove command', () => {
     });
     it('try to remove non-existing module', async () => {
       const project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
         .remove('module', 'i-dont-exist')
@@ -506,6 +510,7 @@ describe('remove card', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath);
+    await commands.initialize();
     await commands.project.calculationEngine.generate();
   });
 
@@ -518,10 +523,12 @@ describe('remove card', () => {
     const removeCmd = new Remove(commands.project);
     await removeCmd.remove('card', cardId);
 
-    const card = await commands.project.findSpecificCard(cardId);
-    expect(card).to.equal(undefined);
+    expect(() => commands.project.findCard(cardId)).to.throw(
+      `Card 'decision_5' does not exist in the project`,
+    );
     // Since decision_6 is decision_5's child, it should have been removed as well.
-    const card6 = await commands.project.findSpecificCard('decision_6');
-    expect(card6).to.equal(undefined);
+    expect(() => commands.project.findCard('decision_6')).to.throw(
+      `Card 'decision_6' does not exist in the project`,
+    );
   });
 });

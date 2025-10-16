@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile } from 'fs/promises';
+import { readFile } from 'node:fs/promises';
 import { parse } from 'csv-parse/sync';
 import type { CSVRowRaw } from '../interfaces/project-interfaces.js';
 

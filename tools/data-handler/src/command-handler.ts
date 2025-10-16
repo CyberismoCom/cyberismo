@@ -20,7 +20,6 @@ import type {
   CardAttachment,
   CardListContainer,
   Credentials,
-  FileContentType,
   ModuleContent,
   ModuleSettingFromHub,
   ProjectMetadata,
@@ -226,7 +225,7 @@ export class Commands {
         const target = this.commandType(type);
         // If 'type' was used to deduce 'target', put the parameter back into the args.
         if (target !== type) {
-          rest.unshift(type as string);
+          rest.unshift(type);
         }
         if (target === 'attachment') {
           const [cardKey, attachment] = rest;
@@ -720,19 +719,12 @@ export class Commands {
       case 'attachments':
         promise = this.commands!.showCmd.showAttachments();
         break;
-      case 'card':
-        {
-          const cardDetails = {
-            contentType: 'adoc' as FileContentType,
-            content: options?.details,
-            metadata: true,
-            children: options?.details,
-            parent: options?.details,
-            attachments: true,
-          };
-          promise = this.commands!.showCmd.showCardDetails(cardDetails, detail);
-        }
-        break;
+      case 'card': {
+        return {
+          statusCode: 200,
+          payload: this.commands!.showCmd.showCardDetails(detail),
+        };
+      }
       case 'cards':
         promise = this.commands!.showCmd.showCards();
         break;
@@ -765,8 +757,10 @@ export class Commands {
         );
         break;
       case 'labels':
-        promise = this.commands!.showCmd.showLabels();
-        break;
+        return {
+          statusCode: 200,
+          payload: this.commands!.showCmd.showLabels(),
+        };
       case 'module':
         promise = this.commands!.showCmd.showModule(detail);
         break;

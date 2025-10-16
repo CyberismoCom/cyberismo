@@ -14,6 +14,7 @@
 import type { ResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type {
   Card,
+  CardWithChildrenCards,
   ResourceFolderType,
   RemovableResourceTypes,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
@@ -184,12 +185,12 @@ async function createResourceNode(
 
 // Helper function to recursively create card nodes with children
 function createCardNode(
-  card: Card,
+  card: CardWithChildrenCards,
   module: string,
   projectPrefix: string,
 ): unknown {
   // Destructure to separate children from other card data
-  const { children, ...cardData } = card;
+  const { childrenCards, ...cardData } = card;
 
   const cardNode: {
     id: string;
@@ -208,8 +209,8 @@ function createCardNode(
   };
 
   // Recursively process children if they exist
-  if (children && children.length > 0) {
-    cardNode.children = children.map((child) =>
+  if (childrenCards && childrenCards.length > 0) {
+    cardNode.children = childrenCards.map((child) =>
       createCardNode(child, module, projectPrefix),
     );
   }

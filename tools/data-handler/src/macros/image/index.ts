@@ -56,8 +56,7 @@ export default class ImageMacro extends BaseMacro {
     const cardKey = options.cardKey || context.cardKey;
 
     // Get the attachment folder path
-    const attachmentFolder =
-      await context.project.cardAttachmentFolder(cardKey);
+    const attachmentFolder = context.project.cardAttachmentFolder(cardKey);
 
     // Read the file and convert to base64
     const attachmentPath = join(attachmentFolder, options.fileName);
@@ -85,8 +84,7 @@ export default class ImageMacro extends BaseMacro {
     const cardKey = options.cardKey || context.cardKey;
 
     // Verify that the card and attachment folder exist
-    const attachmentFolder =
-      await context.project.cardAttachmentFolder(cardKey);
+    const attachmentFolder = context.project.cardAttachmentFolder(cardKey);
 
     const attachmentPath = join(attachmentFolder, options.fileName);
     if (!existsSync(attachmentPath)) {

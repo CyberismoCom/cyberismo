@@ -37,6 +37,7 @@ describe('calculate', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     project = new Project(decisionRecordsPath);
+    await project.populateCaches();
     await project.calculationEngine.generate();
   });
 

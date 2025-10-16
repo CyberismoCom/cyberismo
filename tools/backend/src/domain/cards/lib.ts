@@ -12,11 +12,7 @@
 */
 
 import Processor from '@asciidoctor/core';
-import {
-  type Card,
-  CardLocation,
-  type ProjectFetchCardDetails,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardQueryResult } from '../../export.js';
 
@@ -31,22 +27,9 @@ export async function getCardDetails(
   key: string,
   staticMode?: boolean,
 ): Promise<result> {
-  const fetchCardDetails: ProjectFetchCardDetails = {
-    attachments: true,
-    children: false,
-    content: true,
-    contentType: 'adoc',
-    metadata: false,
-    parent: false,
-    location: CardLocation.all,
-  };
-
   let cardDetailsResponse: Card | undefined;
   try {
-    cardDetailsResponse = await commands.showCmd.showCardDetails(
-      fetchCardDetails,
-      key,
-    );
+    cardDetailsResponse = commands.showCmd.showCardDetails(key);
   } catch {
     return { status: 400, message: `Card ${key} not found from project` };
   }

@@ -130,6 +130,7 @@ describe('macros', () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       await project.calculationEngine.generate();
     });
 
@@ -388,8 +389,8 @@ Some content here`;
     });
     describe('includeMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
-      beforeEach(async () => {
-        cardDetailsByIdStub = stub(project, 'cardDetailsById');
+      beforeEach(() => {
+        cardDetailsByIdStub = stub(project, 'findCard');
 
         const baseCard: Card = {
           key: '',
@@ -412,14 +413,19 @@ Some content here`;
           'This is test content for the included card.\n\n== Test subtitle\n\nCard key: {{cardKey}}';
         testCard.metadata!.title = 'Test Card Title';
 
-        cardDetailsByIdStub.withArgs('test-card').resolves(testCard);
+        cardDetailsByIdStub
+          .withArgs('non-existent-card')
+          .throws(
+            new Error("Card 'non-existent-card' does not exist in the project"),
+          );
+        cardDetailsByIdStub.withArgs('test-card').returns(testCard);
 
         const testCardNested = structuredClone(baseCard);
         testCardNested.key = 'testCardNested';
         testCardNested.content =
           'This is the parent card.\n\n{{#include}}"cardKey": "test-card"{{/include}}\n\nEnd of parent card.';
         testCardNested.metadata!.title = 'Parent Card with Include';
-        cardDetailsByIdStub.withArgs('testCardNested').resolves(testCardNested);
+        cardDetailsByIdStub.withArgs('testCardNested').returns(testCardNested);
 
         const testCardNestedWithOffset = structuredClone(baseCard);
         testCardNestedWithOffset.key = 'testCardNestedWithOffset';
@@ -429,7 +435,7 @@ Some content here`;
 
         cardDetailsByIdStub
           .withArgs('testCardNestedWithOffset')
-          .resolves(testCardNestedWithOffset);
+          .returns(testCardNestedWithOffset);
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
@@ -488,9 +494,10 @@ Some content here`;
           cardKey: '',
           context: 'localApp',
         });
-
         expect(result).to.contain('.Macro Error');
-        expect(result).to.contain('Card key non-existent-card not found');
+        expect(result).to.contain(
+          "Card 'non-existent-card' does not exist in the project",
+        );
 
         // Should have attempted to fetch the non-existent card
         expect(cardDetailsByIdStub.calledWith('non-existent-card')).to.equal(
@@ -618,7 +625,7 @@ Some content here`;
         };
         cardDetailsByIdStub
           .withArgs('test-card-with-raw')
-          .resolves(testCardWithRaw);
+          .returns(testCardWithRaw);
 
         const macro = `{{#include}}"cardKey": "test-card-with-raw"{{/include}}`;
         const result = await evaluateMacros(macro, {
@@ -644,8 +651,8 @@ Some content here`;
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
-      beforeEach(async () => {
-        cardDetailsByIdStub = stub(project, 'cardDetailsById');
+      beforeEach(() => {
+        cardDetailsByIdStub = stub(project, 'findCard');
 
         const baseCard: Card = {
           key: '',
@@ -667,7 +674,7 @@ Some content here`;
         testCard.content = 'This is a test card for xref.';
         testCard.metadata!.title = 'Test Card for Cross Reference';
 
-        cardDetailsByIdStub.withArgs('xref-test-card').resolves(testCard);
+        cardDetailsByIdStub.withArgs('xref-test-card').returns(testCard);
       });
       afterEach(() => {
         cardDetailsByIdStub.restore();
@@ -829,7 +836,9 @@ Some content here`;
           context: 'localApp',
         });
         expect(result).to.contain('.Macro Error');
-        expect(result).to.contain("Card 'non-existent-card' not found");
+        expect(result).to.contain(
+          "Card 'non-existent-card' does not exist in the project",
+        );
       });
 
       it('imageMacro with non-existent card should return warning message', async () => {
@@ -842,7 +851,9 @@ Some content here`;
         });
 
         expect(result).to.contain('.Macro Error');
-        expect(result).to.contain("Card 'non-existent-card' not found");
+        expect(result).to.contain(
+          "Card 'non-existent-card' does not exist in the project",
+        );
       });
 
       it('imageMacro with non-existent file should return warning message', async () => {
@@ -890,6 +901,7 @@ Some content here`;
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
       project = new Project(decisionRecordsPath);
+      await project.populateCaches();
       await project.calculationEngine.generate();
     });
 

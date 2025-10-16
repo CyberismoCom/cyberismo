@@ -21,6 +21,7 @@ describe('module-manager', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
     commands = new CommandManager(decisionRecordsPath);
+    await commands.initialize();
   });
 
   afterEach(() => {

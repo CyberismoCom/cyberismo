@@ -23,10 +23,7 @@ import {
 import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
-import type {
-  Card,
-  FetchCardDetails,
-} from '../interfaces/project-interfaces.js';
+import type { Card } from '../interfaces/project-interfaces.js';
 import type { CardType } from '../interfaces/resource-interfaces.js';
 import { evaluateMacros } from '../macros/index.js';
 import type { ExportPdfOptions } from '../interfaces/project-interfaces.js';
@@ -144,7 +141,10 @@ export class Export {
       }
 
       if (card.children) {
-        await this.toAdocFileAsContent(path, card.children);
+        await this.toAdocFileAsContent(
+          path,
+          this.project.cardKeysToCards(card.children),
+        );
       }
     }
   }
@@ -187,22 +187,7 @@ export class Export {
       children: [],
       attachments: [],
     };
-
-    // Get content and attachments separately, not included in queries
-    const fetchCardDetails: FetchCardDetails = {
-      attachments: true,
-      children: false,
-      content: true,
-      contentType: 'adoc',
-      metadata: true,
-      parent: false,
-    };
-
-    const cardDetailsResponse = await this.showCmd.showCardDetails(
-      fetchCardDetails,
-      card.key,
-    );
-
+    const cardDetailsResponse = this.showCmd.showCardDetails(card.key, 'adoc');
     let asciiDocContent = '';
     const project = this.project;
     try {
@@ -227,7 +212,7 @@ export class Export {
     card.attachments = cardDetailsResponse.attachments;
 
     for (const result of treeQueryResult.children ?? []) {
-      card.children!.push(await this.treeQueryResultToCard(result));
+      card.children!.push((await this.treeQueryResultToCard(result)).key);
     }
 
     return card;
@@ -332,13 +317,7 @@ export class Export {
     let cards: Card[] = [];
 
     // If doing a partial tree export, put the parent information as it would have already been gathered.
-    if (cardKey) {
-      const card = await this.project.findSpecificCard(cardKey);
-      if (!card) {
-        throw new Error(
-          `Input validation error: cannot find card '${cardKey}'`,
-        );
-      }
+    if (cardKey && this.project.findCard(cardKey)) {
       cards.push({
         key: cardKey,
         path: sourcePath,
