@@ -659,7 +659,9 @@ export abstract class ResourceObject<
    */
   public async delete() {
     if (this.moduleResource) {
-      throw new Error(`Cannot delete module resources`);
+      throw new Error(
+        `Cannot delete resource ${resourceNameToString(this.resourceName)}: It is a module resource`,
+      );
     }
     if (!this.fileName.endsWith('.json')) {
       this.fileName += '.json';
