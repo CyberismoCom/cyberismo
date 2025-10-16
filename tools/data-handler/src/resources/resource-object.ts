@@ -194,7 +194,8 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Checks if resource exists. Throws if it does not.
+   * Checks if resource exists
+   * @throws if resource does not exist
    */
   protected assertResourceExists() {
     if (!pathExists(this.fileName)) {
