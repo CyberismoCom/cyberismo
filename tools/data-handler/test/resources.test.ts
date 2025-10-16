@@ -399,7 +399,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.createCardType('decision/workflows/decision');
       const after = await project.cardTypes();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create field type', async () => {
@@ -414,7 +414,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.createFieldType('shortText');
       const after = await project.fieldTypes();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create graph model', async () => {
@@ -429,7 +429,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.graphModels();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create graph view', async () => {
@@ -444,7 +444,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.graphViews();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create link type', async () => {
@@ -459,7 +459,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.linkTypes();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create link type with provided content', async () => {
@@ -514,7 +514,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.createReport();
       const after = await project.reports();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create template', async () => {
@@ -529,7 +529,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.templates();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create template with provided content', async () => {
@@ -577,7 +577,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.workflows();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create workflow with provided content', async () => {
@@ -609,7 +609,7 @@ describe('resources', function () {
       expect(found).to.equal(undefined);
       await res.create();
       const after = await project.calculations();
-      found = after.find((item) => item.name === res.data.name);
+      found = after.find((item) => item.name === res.data?.name);
       expect(found).to.not.equal(undefined);
     });
     it('create calculation with provided content', async () => {
@@ -1288,7 +1288,7 @@ describe('resources', function () {
       );
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newname'));
-      expect(res.data.name).equals('decision/cardTypes/newname');
+      expect(res.data?.name).equals('decision/cardTypes/newname');
       await res.delete();
     });
     it('rename card type to contain number', async () => {
@@ -1298,7 +1298,7 @@ describe('resources', function () {
       );
       await res.createCardType('decision/workflows/decision');
       await res.rename(resourceName('decision/cardTypes/newnameWithNumber2'));
-      expect(res.data.name).equals('decision/cardTypes/newnameWithNumber2');
+      expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber2');
       await res.update(
         {
           key: 'name',
@@ -1309,7 +1309,7 @@ describe('resources', function () {
           target: 'name',
         },
       );
-      expect(res.data.name).equals('decision/cardTypes/newnameWithNumber3');
+      expect(res.data?.name).equals('decision/cardTypes/newnameWithNumber3');
       await res.delete();
     });
     it('rename graph model', async () => {
@@ -1319,7 +1319,7 @@ describe('resources', function () {
       );
       await res.create();
       await res.rename(resourceName('decision/graphModels/newname'));
-      expect(res.data.name).equals('decision/graphModels/newname');
+      expect(res.data?.name).equals('decision/graphModels/newname');
       await res.delete();
     });
     it('rename graph view', async () => {
@@ -1329,7 +1329,7 @@ describe('resources', function () {
       );
       await res.create();
       await res.rename(resourceName('decision/graphViews/newname'));
-      expect(res.data.name).equals('decision/graphViews/newname');
+      expect(res.data?.name).equals('decision/graphViews/newname');
       await res.delete();
     });
     it('rename field type', async () => {
@@ -1339,7 +1339,7 @@ describe('resources', function () {
       );
       await res.createFieldType('shortText');
       await res.rename(resourceName('decision/fieldTypes/newname'));
-      expect(res.data.name).equals('decision/fieldTypes/newname');
+      expect(res.data?.name).equals('decision/fieldTypes/newname');
       await res.delete();
     });
     it('rename link type', async () => {
@@ -1349,7 +1349,7 @@ describe('resources', function () {
       );
       await res.create();
       await res.rename(resourceName('decision/linkTypes/newname'));
-      expect(res.data.name).equals('decision/linkTypes/newname');
+      expect(res.data?.name).equals('decision/linkTypes/newname');
       await res.delete();
     });
     it('rename report', async () => {
@@ -1359,7 +1359,7 @@ describe('resources', function () {
       );
       await res.createReport();
       await res.rename(resourceName('decision/reports/newname'));
-      expect(res.data.name).equals('decision/reports/newname');
+      expect(res.data?.name).equals('decision/reports/newname');
       await res.delete();
     });
     it('rename template', async () => {
@@ -1369,7 +1369,7 @@ describe('resources', function () {
       );
       await res.create();
       await res.rename(resourceName('decision/templates/newname'));
-      expect(res.data.name).equals('decision/templates/newname');
+      expect(res.data?.name).equals('decision/templates/newname');
       await res.delete();
     });
     it('rename workflow', async () => {
@@ -1379,7 +1379,7 @@ describe('resources', function () {
       );
       await res.create();
       await res.rename(resourceName('decision/workflows/newname'));
-      expect(res.data.name).equals('decision/workflows/newname');
+      expect(res.data?.name).equals('decision/workflows/newname');
       await res.delete();
     });
     it('try to rename workflow - attempt to change prefix', async () => {
@@ -2030,7 +2030,7 @@ describe('resources', function () {
           },
         },
       );
-      const enums = (res.data as FieldType).enumValues;
+      const enums = res.data?.enumValues;
       expect(enums?.length).to.equal(2);
       expect(enums?.at(0)?.enumValue).to.equal('yes');
       expect(enums?.at(1)?.enumValue).to.equal('no');
@@ -2040,19 +2040,26 @@ describe('resources', function () {
         project,
         resourceName('decision/calculations/newCALCWithContent'),
       );
-      await res.update('displayName', {
-        name: 'change',
-        target: '',
-        to: 'Updated Calculation Display Name',
-      });
-      await res.update('description', {
-        name: 'change',
-        target: '',
-        to: 'Updated calculation description',
-      });
-      const data = res.data as CalculationMetadata;
-      expect(data.displayName).to.equal('Updated Calculation Display Name');
-      expect(data.description).to.equal('Updated calculation description');
+      await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated Calculation Display Name',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated calculation description',
+        },
+      );
+      expect(res.data?.displayName).to.equal(
+        'Updated Calculation Display Name',
+      );
+      expect(res.data?.description).to.equal('Updated calculation description');
     });
     it('update calculation - change calculation content', async () => {
       const res = new CalculationResource(
@@ -2078,11 +2085,14 @@ describe('resources', function () {
         resourceName('decision/calculations/calcForRename'),
       );
       await res.create();
-      await res.update('name', {
-        name: 'change',
-        target: '',
-        to: 'decision/calculations/afterCalcUpdate',
-      });
+      await res.update(
+        { key: 'name' },
+        {
+          name: 'change',
+          target: '',
+          to: 'decision/calculations/afterCalcUpdate',
+        },
+      );
       expect(res.data?.name).to.equal('decision/calculations/afterCalcUpdate');
     });
     it('update link type scalar values', async () => {
@@ -2356,7 +2366,7 @@ describe('resources', function () {
           resourceName(card.metadata?.cardType as string),
         );
         if (ct) {
-          return ct.data.workflow === 'decision/workflows/decision';
+          return ct.data?.workflow === 'decision/workflows/decision';
         }
       });
       // Update the workflow state name and check that the cards are updated

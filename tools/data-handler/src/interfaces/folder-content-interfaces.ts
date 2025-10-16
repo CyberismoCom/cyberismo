@@ -59,6 +59,7 @@ export interface ReportContent {
 }
 
 export type FolderResourceContent =
+  | CalculationContent
   | GraphModelContent
   | GraphViewContent
   | ReportContent;

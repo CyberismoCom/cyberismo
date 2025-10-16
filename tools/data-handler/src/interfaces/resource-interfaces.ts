@@ -116,7 +116,7 @@ export interface LinkType extends ResourceBaseMetadata {
 }
 
 // Report resource.
-export interface Report extends ResourceBaseMetadata {
+export interface Report extends ReportMetadata {
   content: ReportContent;
 }
 

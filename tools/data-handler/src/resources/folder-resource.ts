@@ -12,7 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { basename, dirname, format, join, normalize } from 'node:path';
+import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 
 import type { Card, Operation, ResourceName } from './file-resource.js';
@@ -165,51 +165,6 @@ export abstract class FolderResource<
   }
 
   /**
-   * Updates resource.
-   * @param updateKey Key to modify
-   * @param op Operation to perform on 'key'
-   * @throws if key is unknown.
-   */
-  protected async update<Type, K extends string>(
-    updateKey: UpdateKey<K>,
-    op: Operation<Type>,
-  ) {
-    const { key } = updateKey;
-    if (isContentKey(updateKey)) {
-      const fileName = filename(updateKey.subKey)!;
-      const fileContent = super.handleScalar(op);
-      const fileContentString =
-        typeof fileContent === 'string'
-          ? fileContent
-          : formatJson(fileContent as object); // TODO: Fix operation types. In practice, content files are either strings or objects
-
-      await this.updateFile(fileName, fileContentString);
-      return;
-    }
-
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
-    await super.update(updateKey, op);
-    const content = structuredClone(this.content);
-
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else {
-      throw new Error(`Unknown property '${key}' for folder resource`);
-    }
-
-    await super.postUpdate(content, updateKey, op);
-
-    if (nameChange) {
-      await this.onNameChange?.(existingName);
-    }
-  }
-
-  /**
    * Updates a file in the resource.
    * @param fileName The name of the file to update.
    * @param changedContent The new content for the file.
@@ -285,6 +240,51 @@ export abstract class FolderResource<
     await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
     this.clearContentCache();
+  }
+
+  /**
+   * Updates resource.
+   * @param updateKey Key to modify
+   * @param op Operation to perform on 'key'
+   * @throws if key is unknown.
+   */
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
+    if (isContentKey(updateKey)) {
+      const fileName = filename(updateKey.subKey)!;
+      const fileContent = super.handleScalar(op);
+      const fileContentString =
+        typeof fileContent === 'string'
+          ? fileContent
+          : formatJson(fileContent as object); // TODO: Fix operation types. In practice, content files are either strings or objects
+
+      await this.updateFile(fileName, fileContentString);
+      return;
+    }
+
+    const nameChange = key === 'name';
+    const existingName = this.content.name;
+    await super.update(updateKey, op);
+    const content = structuredClone(this.content);
+
+    if (key === 'name') {
+      content.name = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for folder resource`);
+    }
+
+    await super.postUpdate(content, updateKey, op);
+
+    if (nameChange) {
+      await this.onNameChange?.(existingName);
+    }
   }
 
   /**
