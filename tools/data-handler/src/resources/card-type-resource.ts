@@ -443,7 +443,7 @@ export class CardTypeResource extends FileResource<CardType> {
 
   /**
    * Updates card type resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    */
   public async update<Type, K extends string>(

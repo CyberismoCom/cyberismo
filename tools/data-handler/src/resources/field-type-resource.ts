@@ -391,7 +391,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
 
   /**
    * Updates field type resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    * @throws
    *  - when called with unknown data type

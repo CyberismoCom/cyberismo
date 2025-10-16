@@ -118,7 +118,7 @@ export class GraphModelResource extends FolderResource<
 
   /**
    * Updates graph model resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    */
   public async update<Type, K extends string>(

@@ -100,10 +100,11 @@ export class Update {
    * Update single resource property
    * This is similar to updateValue, but allows the operation to be fully specified
    * @param name Name of the resource to operate on.
-   * @param key Property to change in resource JSON
+   * @param updateKey Property to change in resource or in resource content.
    * @param operation The full operation object
    * @template Type Type of the target of the operation
    * @template T Type of operation ('add', 'remove', 'change', 'rank')
+   * @template K Type of the key to change
    */
   public async applyResourceOperation<
     Type,

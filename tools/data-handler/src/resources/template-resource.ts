@@ -131,7 +131,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Updates template resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    * @throws if key is unknown.
    */
