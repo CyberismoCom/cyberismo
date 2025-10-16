@@ -44,6 +44,9 @@ export const DATA_TYPES = [
   'person',
 ] as const;
 
+// Used to split labels when adding multiple labels at once
+export const LABEL_SPLITTER = ';';
+
 export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
   basicSetup: {
     lineNumbers: false,

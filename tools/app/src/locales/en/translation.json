@@ -185,6 +185,8 @@
   "policyCheckPass": "PASS",
   "preview": "Preview",
   "recents": "Recents",
+  "removeLabel": "Remove label",
+
   "resourceFileContentUpdated": "Resource file content updated",
   "resources": {
     "calculations": "Calculations",
