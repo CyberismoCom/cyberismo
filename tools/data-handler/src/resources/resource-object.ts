@@ -243,16 +243,10 @@ export abstract class ResourceObject<
   }
 
   // Cards from project.
-  protected async cards(): Promise<Card[]> {
+  protected cards(): Card[] {
     return [
-      ...(await this.project.cards(undefined, {
-        content: true,
-        metadata: true,
-      })),
-      ...(await this.project.allTemplateCards({
-        content: true,
-        metadata: true,
-      })),
+      ...this.project.cards(undefined),
+      ...this.project.allTemplateCards(),
     ];
   }
 
@@ -288,7 +282,7 @@ export abstract class ResourceObject<
     }
 
     const validator = await ResourceObject.getValidate();
-    const validName = await validator.validResourceName(
+    const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(this.resourceName),
       await this.project.projectPrefixes(),
@@ -584,18 +578,14 @@ export abstract class ResourceObject<
   }
 
   // Check if there are references to the resource in the card content.
+  // @note that this needs to be async, since inherited classes need to async operations
   protected async usage(cards?: Card[]): Promise<string[]> {
     if (!pathExists(this.fileName)) {
       throw new Error(
         `Resource '${this.resourceName.identifier}' does not exist in the project`,
       );
     }
-    const cardArray = cards?.length
-      ? cards
-      : await this.project.cards(undefined, {
-          content: true,
-          metadata: true,
-        });
+    const cardArray = cards?.length ? cards : this.project.cards(undefined);
 
     return cardArray
       .filter((card) =>
@@ -606,7 +596,7 @@ export abstract class ResourceObject<
 
   protected async validName(newName: ResourceName) {
     const validator = await ResourceObject.getValidate();
-    const validName = await validator.validResourceName(
+    const validName = validator.validResourceName(
       this.resourceType(),
       resourceNameToString(newName),
       await this.project.projectPrefixes(),
