@@ -54,7 +54,7 @@ export class GraphModelResource extends FolderResource<
   protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name, [
-        (await this.contentData()).model,
+        join(this.internalFolder, 'model.lp'),
       ]),
       super.updateCalculations(existingName, this.content.name),
     ]);
