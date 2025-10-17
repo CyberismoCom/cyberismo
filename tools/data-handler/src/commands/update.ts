@@ -79,13 +79,13 @@ export class Update {
     const splitKey = key.split('/');
     if (splitKey.length !== 1 && splitKey.length !== 2) {
       throw new Error(
-        `Invalid key format: ${key}. Use 'property' or 'content/property'.`,
+        `Invalid key format: ${key}. Use 'property' or 'content/<property>'.`,
       );
     }
 
     if (splitKey.length === 2 && splitKey[0] !== 'content') {
       throw new Error(
-        `Invalid key format: ${key}. Use 'property' or 'content/property'.`,
+        `Invalid key format: ${key}. When using 'content', always use as 'content/<property>'.`,
       );
     }
     const [parsedKey, subKey] = splitKey;
