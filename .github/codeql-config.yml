@@ -2,4 +2,4 @@
 queries:
   - uses: security-and-quality
 paths-ignore:
-  - "tools/node-clingo/external"
+  - '**/external/**'
