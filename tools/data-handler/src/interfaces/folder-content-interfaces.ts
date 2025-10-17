@@ -43,7 +43,7 @@ export interface CalculationContent {
 
 // Content interface for Graph Model resources
 export interface GraphModelContent {
-  model?: string;
+  model: string;
 }
 
 // Content interface for Graph View resources
@@ -57,6 +57,12 @@ export interface ReportContent {
   queryTemplate: string;
   schema?: Schema;
 }
+
+export type FolderResourceContent =
+  | CalculationContent
+  | GraphModelContent
+  | GraphViewContent
+  | ReportContent;
 
 /**
  * Get filename with property name

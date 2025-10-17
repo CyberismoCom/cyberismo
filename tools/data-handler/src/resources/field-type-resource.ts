@@ -33,6 +33,7 @@ import type {
   DataType,
   EnumDefinition,
   FieldType,
+  UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import { CardTypeResource } from './card-type-resource.js';
 import {
@@ -48,7 +49,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 /**
  * Field type resource class.
  */
-export class FieldTypeResource extends FileResource {
+export class FieldTypeResource extends FileResource<FieldType> {
   // Initialize data type change helpers (fromType, toType) to some values.
   // The actual types are set, if this Field Type's dataType is changed.
   private fromType: DataType = 'integer';
@@ -59,8 +60,6 @@ export class FieldTypeResource extends FileResource {
 
     this.contentSchemaId = 'fieldTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
   }
 
   // Cards from given array that include this field type.
@@ -287,13 +286,13 @@ export class FieldTypeResource extends FileResource {
         this.project,
         resourceName(cardType.name),
       );
-      const data = object.data as CardType;
+      const data = object.data;
       if (data) {
         const found = data.customFields
           ? data.customFields.find((item) => item.name === oldName)
           : undefined;
         if (found) {
-          await object.update('customFields', op);
+          await object.update({ key: 'customFields' }, op);
         }
       }
     }
@@ -317,20 +316,6 @@ export class FieldTypeResource extends FileResource {
       useDataType,
     );
     return super.create(content);
-  }
-
-  /**
-   * Returns content data.
-   */
-  public get data(): FieldType {
-    return super.data as FieldType;
-  }
-
-  /**
-   * Deletes file(s) from disk and clears out the memory resident object.
-   */
-  public async delete() {
-    return super.delete();
   }
 
   /**
@@ -405,32 +390,28 @@ export class FieldTypeResource extends FileResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns field type metadata.
-   */
-  public async show(): Promise<FieldType> {
-    return super.show() as Promise<FieldType>;
-  }
-
-  /**
    * Updates field type resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    * @throws
    *  - when called with unknown data type
    *  - when called with data type conversion that cannot be done
    *  - when called with unknown property to update
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
     const nameChange = key === 'name';
     const typeChange = key === 'dataType';
     const enumChange = key === 'enumValues';
     const existingName = this.content.name;
-    const existingType = (this.content as FieldType).dataType;
+    const existingType = this.content.dataType;
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
 
-    const content = structuredClone(this.content) as FieldType;
+    const content = structuredClone(this.content);
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'dataType') {
@@ -470,7 +451,7 @@ export class FieldTypeResource extends FileResource {
       throw new Error(`Unknown property '${key}' for FieldType`);
     }
 
-    await super.postUpdate(content, key, op);
+    await super.postUpdate(content, updateKey, op);
 
     if (nameChange) {
       // Renaming this field type causes that references to its name must be updated.
@@ -509,12 +490,5 @@ export class FieldTypeResource extends FileResource {
     return [
       ...new Set([...cardReferences, ...relevantLinkTypes, ...calculations]),
     ];
-  }
-
-  /**
-   * Validates the resource. If object is invalid, throws.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
   }
 }

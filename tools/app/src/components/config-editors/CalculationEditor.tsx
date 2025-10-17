@@ -17,17 +17,17 @@ import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { useCalculations } from '@/lib/api/calculation';
 import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
 import { Textarea } from '@mui/joy';
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect } from 'react';
 import { isEdited } from '@/lib/slices/pageState';
+import { useResource } from '@/lib/api';
 
 export function CalculationEditor({ node }: { node: CalculationNode }) {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
-  const { updateCalculation, isUpdating } = useCalculations();
+  const { update, isUpdating } = useResource(node.name);
   const {
     control,
     handleSubmit,
@@ -35,7 +35,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
     formState: { isDirty },
   } = useForm({
     defaultValues: {
-      calculation: node.data.calculation,
+      calculation: node.data.content.calculation,
       displayName: node.data.displayName,
     },
   });
@@ -63,7 +63,14 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
       }
       onUpdate={handleSubmit(async (data) => {
         try {
-          await updateCalculation(node.name, data.calculation);
+          await update({
+            updateKey: { key: 'content', subKey: 'calculation' },
+            operation: {
+              name: 'change',
+              target: node.data.calculation,
+              to: data.calculation,
+            },
+          });
           dispatch(
             addNotification({
               message: t('saveFile.success'),

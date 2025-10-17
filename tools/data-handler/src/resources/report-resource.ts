@@ -24,7 +24,6 @@ import {
   sortCards,
 } from './folder-resource.js';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
-import { filename } from '../interfaces/folder-content-interfaces.js';
 import { Validate } from '../commands/validate.js';
 
 import type {
@@ -33,10 +32,9 @@ import type {
   Project,
   ResourceName,
 } from './folder-resource.js';
-import type {
-  Report,
-  ReportMetadata,
-  ReportUpdateKey,
+import {
+  type ReportMetadata,
+  type UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
@@ -49,15 +47,16 @@ const staticDirectoryPath = await getStaticDirectoryPath();
 /**
  * Report resource class.
  */
-export class ReportResource extends FolderResource {
+export class ReportResource extends FolderResource<
+  ReportMetadata,
+  ReportContent
+> {
   private reportSchema: Schema;
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'reports');
 
     this.contentSchemaId = 'reportSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
 
     const schemaPath = join(this.internalFolder, REPORT_SCHEMA_FILE);
     this.reportSchema = this.readSchemaFile(schemaPath);
@@ -114,20 +113,6 @@ export class ReportResource extends FolderResource {
   }
 
   /**
-   * Returns resource content.
-   */
-  public get data(): ReportMetadata {
-    return super.data as ReportMetadata;
-  }
-
-  /**
-   * Deletes file and folder that this resource is based on.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
    * Returns list of handlebar filenames that this report has.
    * @returns list of handlebar filenames that this report has.
    */
@@ -153,48 +138,23 @@ export class ReportResource extends FolderResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns report metadata.
-   */
-  public async show(): Promise<Report> {
-    const baseData = (await super.show()) as ReportMetadata;
-    const fileContents = await super.contentData();
-    const content: ReportContent = {
-      contentTemplate: fileContents.contentTemplate as string,
-      queryTemplate: fileContents.queryTemplate as string,
-      schema: fileContents.schema ? (fileContents.schema as Schema) : undefined,
-    };
-    return {
-      ...baseData,
-      content: content,
-    };
-  }
-
-  /**
    * Updates report resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    */
-  public async update<Type>(key: ReportUpdateKey, op: Operation<Type>) {
-    if (
-      typeof key === 'object' &&
-      key.key === 'content' &&
-      key.subKey === 'schema'
-    ) {
-      const fileContent = JSON.stringify(super.handleScalar(op), null, 2);
-      await this.updateFile(filename(key.subKey)!, fileContent);
-      return;
-    }
-
-    if (key === 'category') {
-      const content = structuredClone(this.content) as ReportMetadata;
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    if (updateKey.key === 'category') {
+      const content = structuredClone(this.content);
       content.category = super.handleScalar(op) as string;
 
-      await super.postUpdate(content, key, op);
+      await super.postUpdate(content, updateKey, op);
       return;
     }
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
   }
 
   /**

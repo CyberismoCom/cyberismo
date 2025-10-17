@@ -12,9 +12,9 @@
 
 import { Project, FieldTypes, MetadataValue } from '../definitions';
 import {
+  Calculation,
   CardType,
   LinkType,
-  CalculationMetadata,
   FieldType,
   GraphModel,
   GraphView,
@@ -37,10 +37,6 @@ export type CardResponse = {
   attachments: CardAttachment[];
 } & QueryResult<'card'>;
 
-export type ResourceFileContentResponse = {
-  content: string;
-};
-
 export type LogicProgramResponse = {
   logicProgram: string;
 };
@@ -58,7 +54,6 @@ export type Resources = {
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
   resourceTree: AnyNode[];
-  resourceFileContent: ResourceFileContentResponse;
   logicPrograms: LogicProgramResponse;
   validateResource: ValidateResourceResponse;
 };
@@ -163,14 +158,19 @@ interface GraphViewNode extends BaseResourceNode {
 
 export interface CalculationNode extends BaseResourceNode {
   type: 'calculations';
-  data: CalculationMetadata;
+  data: Calculation;
 }
 
 // File node for static sub-editors
-interface FileNode extends BaseResourceNode {
+export interface FileNode extends BaseResourceNode {
   type: 'file';
   name: string;
   displayName: string;
+  resourceName: string;
+  fileName: string;
+  data: {
+    content: string;
+  };
 }
 
 // Union type for all possible resource nodes

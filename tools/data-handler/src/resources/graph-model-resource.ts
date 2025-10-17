@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { join } from 'node:path';
 
 import type {
   Card,
@@ -28,9 +27,8 @@ import {
   sortCards,
 } from './folder-resource.js';
 import type {
-  GraphModel,
   GraphModelMetadata,
-  GraphModelUpdateKey,
+  UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
 import { writeFileSafe } from '../utils/file-utils.js';
@@ -38,14 +36,15 @@ import { writeFileSafe } from '../utils/file-utils.js';
 /**
  * Graph model resource class.
  */
-export class GraphModelResource extends FolderResource {
+export class GraphModelResource extends FolderResource<
+  GraphModelMetadata,
+  GraphModelContent
+> {
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'graphModels');
 
     this.contentSchemaId = 'graphModelSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
   }
 
   /**
@@ -55,7 +54,7 @@ export class GraphModelResource extends FolderResource {
   protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name, [
-        await this.calculationFile(),
+        join(this.internalFolder, 'model.lp'),
       ]),
       super.updateCalculations(existingName, this.content.name),
     ]);
@@ -91,36 +90,6 @@ export class GraphModelResource extends FolderResource {
   }
 
   /**
-   * Returns resource content.
-   */
-  public get data(): GraphModel {
-    return super.data as GraphModel;
-  }
-
-  /**
-   * Deletes file and folder that this resource is based on.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
-   * Returns calculation file that this graph model has.
-   * @returns calculation file name that this graph model has.
-   */
-  public async calculationFile(nameOnly: boolean = false): Promise<string> {
-    return (
-      await readdir(this.internalFolder, {
-        withFileTypes: true,
-        recursive: true,
-      })
-    )
-      .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.lp')
-      .map((item) => (nameOnly ? item.name : join(item.parentPath, item.name)))
-      .at(0)!;
-  }
-
-  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */
@@ -131,32 +100,23 @@ export class GraphModelResource extends FolderResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns graph model metadata.
-   */
-  public async show(): Promise<GraphModel> {
-    const baseData = (await super.show()) as GraphModelMetadata;
-    return {
-      ...baseData,
-      content: (await super.contentData()) as GraphModelContent,
-    };
-  }
-
-  /**
    * Updates graph model resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    */
-  public async update<Type>(key: GraphModelUpdateKey, op: Operation<Type>) {
-    if (key === 'category') {
-      const content = structuredClone(this.content) as GraphModelMetadata;
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    if (updateKey.key === 'category') {
+      const content = structuredClone(this.content);
       content.category = super.handleScalar(op) as string;
 
-      await super.postUpdate(content, key, op);
+      await super.postUpdate(content, updateKey, op);
       return;
     }
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
   }
 
   /**
@@ -173,22 +133,5 @@ export class GraphModelResource extends FolderResource {
       super.calculations(),
     ]);
     return [...relevantCards.sort(sortCards), ...calculations];
-  }
-
-  /**
-   * Validates graphModel.
-   * @throws when there are validation errors.
-   * @param content Content to be validated.
-   * @note If content is not provided, base class validation will use resource's current content.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
-  }
-
-  /**
-   *  Create the graph model's folder and calculation file.
-   */
-  public async write() {
-    await super.write();
   }
 }

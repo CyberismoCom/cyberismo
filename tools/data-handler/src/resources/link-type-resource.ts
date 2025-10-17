@@ -22,24 +22,22 @@ import {
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
-import type { LinkType } from '../interfaces/resource-interfaces.js';
+import type { LinkType, UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**
  * Link Type resource class.
  */
-export class LinkTypeResource extends FileResource {
+export class LinkTypeResource extends FileResource<LinkType> {
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'linkTypes');
 
     this.contentSchemaId = 'linkTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    this.initialize();
   }
 
   // When resource name changes.
   private async handleNameChange(existingName: string) {
-    const current = this.content as LinkType;
+    const current = this.content;
     const prefixes = await this.project.projectPrefixes();
     if (current.sourceCardTypes) {
       current.sourceCardTypes = current.sourceCardTypes.map((item) =>
@@ -75,20 +73,6 @@ export class LinkTypeResource extends FileResource {
   }
 
   /**
-   * Returns content data.
-   */
-  public get data() {
-    return super.data as LinkType;
-  }
-
-  /**
-   * Deletes file(s) from disk and clears out the memory resident object.
-   */
-  public async delete() {
-    return super.delete();
-  }
-
-  /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.
    */
@@ -99,25 +83,21 @@ export class LinkTypeResource extends FileResource {
   }
 
   /**
-   * Shows metadata of the resource.
-   * @returns link type metadata.
-   */
-  public async show(): Promise<LinkType> {
-    return super.show() as Promise<LinkType>;
-  }
-
-  /**
    * Updates link type resource.
-   * @param key Key to modify
+   * @param updateKey Key to modify
    * @param op Operation to perform on 'key'
    */
-  public async update<Type>(key: string, op: Operation<Type>) {
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
     const nameChange = key === 'name';
     const existingName = this.content.name;
 
-    await super.update(key, op);
+    await super.update(updateKey, op);
 
-    const content = structuredClone(this.content) as LinkType;
+    const content = structuredClone(this.content);
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
     } else if (key === 'destinationCardTypes') {
@@ -142,7 +122,7 @@ export class LinkTypeResource extends FileResource {
       throw new Error(`Unknown property '${key}' for FieldType`);
     }
 
-    await super.postUpdate(content, key, op);
+    await super.postUpdate(content, updateKey, op);
 
     // Renaming this card type causes that references to its name must be updated.
     if (nameChange) {
@@ -180,12 +160,5 @@ export class LinkTypeResource extends FileResource {
 
     // Using Set to avoid duplicate cards
     return [...new Set([...cardReferences, ...calculations])];
-  }
-
-  /**
-   * Validates the resource. If object is invalid, throws.
-   */
-  public async validate(content?: object) {
-    return super.validate(content);
   }
 }
