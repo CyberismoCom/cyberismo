@@ -438,7 +438,6 @@ export abstract class ResourceObject<
   // Update resource; the base class makes some checks only.
   protected async update<Type, K extends string>(
     key: UpdateKey<K>,
-
     _op: Operation<Type>,
   ): Promise<void> {
     const content = this.data;
