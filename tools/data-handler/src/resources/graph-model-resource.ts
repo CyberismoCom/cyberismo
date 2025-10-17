@@ -12,8 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { join } from 'node:path';
 
 import type {
   Card,
@@ -49,29 +48,13 @@ export class GraphModelResource extends FolderResource<
   }
 
   /**
-   * Returns calculation file that this graph model has.
-   * @returns calculation file name that this graph model has.
-   */
-  private async calculationFile(nameOnly: boolean = false): Promise<string> {
-    return (
-      await readdir(this.internalFolder, {
-        withFileTypes: true,
-        recursive: true,
-      })
-    )
-      .filter((dirent) => dirent.isFile() && extname(dirent.name) === '.lp')
-      .map((item) => (nameOnly ? item.name : join(item.parentPath, item.name)))
-      .at(0)!;
-  }
-
-  /**
    * Handle name changes for graph models
    * @param existingName The previous name before the change
    */
   protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name, [
-        await this.calculationFile(),
+        (await this.contentData()).model,
       ]),
       super.updateCalculations(existingName, this.content.name),
     ]);

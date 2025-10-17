@@ -43,7 +43,7 @@ export interface CalculationContent {
 
 // Content interface for Graph Model resources
 export interface GraphModelContent {
-  model?: string;
+  model: string;
 }
 
 // Content interface for Graph View resources
