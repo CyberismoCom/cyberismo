@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ReactCodeMirrorProps } from '@uiw/react-codemirror';
+import type { ReactCodeMirrorProps } from '@uiw/react-codemirror';
 import type { TextareaProps } from '@mui/joy';
 
 export const MAX_RECENTS_STORED = 20;

@@ -14,7 +14,7 @@
 import { useTranslation } from 'react-i18next';
 import { createFieldType, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
-import { CreateFieldTypeData } from '@/lib/definitions';
+import type { CreateFieldTypeData } from '@/lib/definitions';
 import { FieldTypeForm } from './FieldTypeForm';
 
 interface NewFieldTypeModalProps {

@@ -13,7 +13,7 @@
 import { callApi } from '../swr';
 import { apiPaths } from '../swr';
 import { mutate } from 'swr';
-import { CreateGraphModelData } from '@/lib/definitions';
+import type { CreateGraphModelData } from '@/lib/definitions';
 
 export const createGraphModel = async (data: CreateGraphModelData) => {
   await callApi(apiPaths.graphModels(), 'POST', data);

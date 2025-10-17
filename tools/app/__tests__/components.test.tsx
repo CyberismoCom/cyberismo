@@ -1,10 +1,10 @@
 import { TreeMenu } from '../src/components/TreeMenu';
 import LabelEditor from '@/components/LabelEditor';
-import { Project } from '@/lib/definitions';
+import type { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
 import { WorkflowCategory } from '../../data-handler/src/interfaces/resource-interfaces';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';

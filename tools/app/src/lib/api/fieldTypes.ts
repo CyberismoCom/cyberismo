@@ -13,8 +13,9 @@
 import { useSWRHook } from './common';
 import { apiPaths, callApi } from '../swr';
 
-import { mutate, SWRConfiguration } from 'swr';
-import { CreateFieldTypeData } from '@/lib/definitions';
+import type { SWRConfiguration } from 'swr';
+import { mutate } from 'swr';
+import type { CreateFieldTypeData } from '@/lib/definitions';
 
 export const useFieldTypes = (options?: SWRConfiguration) =>
   useSWRHook<'fieldTypes'>(apiPaths.fieldTypes(), 'fieldTypes', null, options);

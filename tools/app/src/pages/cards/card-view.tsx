@@ -11,7 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ContentArea, LinkFormState } from '@/components/ContentArea';
+import type { LinkFormState } from '@/components/ContentArea';
+import { ContentArea } from '@/components/ContentArea';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import LoadingGate from '@/components/LoadingGate';
 import { cardViewed } from '@/lib/actions';

@@ -13,7 +13,7 @@
 
 import { Button, Breadcrumbs, Link, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { AnyNode } from '../../lib/api/types';
+import type { AnyNode } from '../../lib/api/types';
 import BaseToolbar from './BaseToolbar';
 import { ConfigContextMenu } from '../context-menus';
 

@@ -11,7 +11,7 @@
 */
 
 import { createAction } from '@reduxjs/toolkit';
-import { CardView } from '../definitions';
+import type { CardView } from '../definitions';
 
 export const cardViewed = createAction<CardView>('event/cardViewed');
 

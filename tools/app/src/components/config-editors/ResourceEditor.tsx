@@ -11,7 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { isResourceNode, ResourceNode } from '@/lib/api/types';
+import type { ResourceNode } from '@/lib/api/types';
+import { isResourceNode } from '@/lib/api/types';
 import { Stack, Typography } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import BaseEditor from './BaseEditor';

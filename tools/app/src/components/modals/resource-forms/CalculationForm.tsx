@@ -14,8 +14,8 @@
 import { Controller } from 'react-hook-form';
 import { FormControl, FormLabel, Input, FormHelperText } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
-import { ResourceFormProps } from './BaseResourceModal';
-import { CreateCalculationData } from '@/lib/definitions';
+import type { ResourceFormProps } from './BaseResourceModal';
+import type { CreateCalculationData } from '@/lib/definitions';
 import BaseCreateForm from './BaseCreateForm';
 
 export function CalculationForm({
