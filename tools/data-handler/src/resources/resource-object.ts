@@ -392,6 +392,9 @@ export abstract class ResourceObject<
       this.toCache();
     } catch {
       // do nothing, it is possible that file has not been created yet.
+      this.logger.info(
+        `Initializing resource '${resourceNameToString(this.resourceName)}' failed: failed to read file '${this.fileName}'`,
+      );
     }
   }
 
