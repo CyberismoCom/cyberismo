@@ -80,7 +80,6 @@ export class CommandManager {
    * Add such calls here.
    */
   public async initialize() {
-    this.project.collectModuleResources();
     await this.project.populateCaches();
   }
 

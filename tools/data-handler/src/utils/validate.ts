@@ -18,8 +18,9 @@ let validator: Validator | null = null;
 /**
  * Validates a JSON object against a schema
  * @param object The object to validate
- * @param schemaId The id of the schema to validate against
- * @param schema The schema to validate against. If schema is not provided, the schema with the given id will be used
+ * @param options Options, in which:
+ * @param options.schemaId The id of the schema to validate against
+ * @param options.schema The schema to validate against. If schema is not provided, the schema with the given id will be used
  * @returns The object casted to the type T if it is valid
  * @throws DHValidationError if the object is not valid
  * @throws SchemaNotFound if the schema with the given id is not found

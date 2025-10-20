@@ -213,13 +213,12 @@ export class ModuleManager {
 
   // Fetches direct dependencies of a module.
   private async dependencies(moduleName: string): Promise<Set<string>> {
-    const allModules = await this.project.modules();
-    if (!allModules) return new Set();
-    const module = allModules.find((m) => m.name === moduleName);
+    const module = await this.project.module(moduleName);
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-    const modulePath = join(module.path, module.name, 'cardsConfig.json');
+
+    const modulePath = join(module.path, 'cardsConfig.json');
     const moduleConfiguration = (await readJsonFile(
       modulePath,
     )) as ProjectConfiguration;
@@ -361,6 +360,9 @@ export class ModuleManager {
     try {
       await this.removeModuleFiles(module.name);
       console.log(`... Removed imported module '${module.name}'`);
+
+      // Refresh module resources in cache after filesystem removal to avoid stale prefixes
+      await this.project.collectModuleResources();
     } catch (error) {
       if (error instanceof Error)
         console.error(
@@ -540,6 +542,7 @@ export class ModuleManager {
    * Imports module from local file path.
    * @param source Path to import from.
    * @param destination is this really needed???
+   * @returns Module prefix of the imported module.
    */
   public async importFileModule(source: string, destination?: string) {
     if (!Validate.validateFolder(source)) {
@@ -612,6 +615,7 @@ export class ModuleManager {
    * If module is not used by any other modules, then will remove the module from disk as well.
    * Otherwise, only updates project configuration.
    * @param moduleName Name of the module to remove
+   * @throws If module was not found.
    */
   public async removeModule(moduleName: string) {
     const projectModules = this.project.configuration.modules;

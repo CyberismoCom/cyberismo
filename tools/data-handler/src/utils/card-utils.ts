@@ -15,7 +15,7 @@ import { sep } from 'node:path';
 import { CARD_KEY_SEPARATOR, ROOT } from './constants.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
-import type { Project } from '../resources/folder-resource.js';
+import type { Project } from '../containers/project.js';
 
 /**
  * Builds card hierarchy from flat card list.
@@ -130,7 +130,7 @@ export const findParentPath = (cardPath: string): string | null => {
 /**
  * Flattens card tree so that children are shown on same level regardless of nesting level.
  * @param array Card tree to flatten
- * @parent project Project to use
+ * @param project Project to use
  * @returns Flattened card tree.
  */
 export const flattenCardArray = (array: Card[], project: Project) => {

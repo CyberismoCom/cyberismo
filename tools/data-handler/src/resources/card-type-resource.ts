@@ -17,9 +17,7 @@ import type {
   CustomField,
   LinkType,
   UpdateKey,
-  Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { FieldTypeResource } from './field-type-resource.js';
 import {
   type AddOperation,
   type Card,
@@ -35,7 +33,6 @@ import {
   resourceNameToString,
   sortCards,
 } from './file-resource.js';
-import { LinkTypeResource } from './link-type-resource.js';
 import { Validate } from '../commands/index.js';
 
 /**
@@ -62,7 +59,7 @@ export class CardTypeResource extends FileResource<CardType> {
   // Checks if field type exists in the project.
   private async fieldTypeExists(field: Partial<CustomField>) {
     return field && field.name
-      ? this.project.resourceExists('fieldTypes', field.name)
+      ? this.project.resourceExists(field.name)
       : false;
   }
 
@@ -202,24 +199,25 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   // Return link types that use this card type.
-  private async relevantLinkTypes(): Promise<string[]> {
+  private relevantLinkTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const allLinkTypes = await this.project.linkTypes(ResourcesFrom.all);
+    const allLinkTypes = this.project.linkTypes(ResourcesFrom.all);
+    const references: string[] = [];
 
-    const linkTypeNames = await Promise.all(
-      allLinkTypes.map(async (linkType) => {
-        const metadata = await this.project.resource<LinkType>(linkType.name);
-        if (!metadata) return null;
+    for (const linkType of allLinkTypes) {
+      const metadata = linkType.data;
+      if (!metadata) continue;
 
-        const isRelevant =
-          metadata.destinationCardTypes.includes(resourceName) ||
-          metadata.sourceCardTypes.includes(resourceName);
+      const isRelevant =
+        metadata.destinationCardTypes.includes(resourceName) ||
+        metadata.sourceCardTypes.includes(resourceName);
 
-        return isRelevant ? linkType.name : null;
-      }),
-    );
+      if (isRelevant) {
+        references.push(metadata.name);
+      }
+    }
 
-    return linkTypeNames.filter((name): name is string => name !== null);
+    return references;
   }
 
   // If value from 'customFields' is removed, remove it also from 'optionallyVisible' and 'alwaysVisible' arrays.
@@ -250,9 +248,9 @@ export class CardTypeResource extends FileResource<CardType> {
         }
         // Fetch "displayName" from field type if it is missing.
         if (item.name && item.displayName === undefined) {
-          const fieldType = new FieldTypeResource(
-            this.project,
-            resourceName(item.name),
+          const fieldType = this.project.resourceByType(
+            item.name,
+            'fieldTypes',
           );
           const fieldTypeContent = fieldType.data;
           if (fieldTypeContent) {
@@ -279,14 +277,9 @@ export class CardTypeResource extends FileResource<CardType> {
 
   // Updates dependent link types.
   private async updateLinkTypes(oldName: string): Promise<void> {
-    const linkTypes = await this.project.linkTypes(ResourcesFrom.localOnly);
+    const linkTypes = this.project.linkTypes(ResourcesFrom.localOnly);
 
-    const updatePromises = linkTypes.map(async (linkType) => {
-      const object = new LinkTypeResource(
-        this.project,
-        resourceName(linkType.name),
-      );
-
+    const updatePromises = linkTypes.map(async (object) => {
       const data = object.data;
       const updates: Promise<void>[] = [];
 
@@ -343,7 +336,7 @@ export class CardTypeResource extends FileResource<CardType> {
     }
     // Check that field type is defined in card type.
     if (key === 'alwaysVisibleFields' || key === 'optionallyVisibleFields') {
-      const hasField = await this.hasFieldType(field);
+      const hasField = this.hasFieldType(field);
       if (!hasField) {
         throw new Error(
           `Field type '${field.name}' is not defined in card type '${this.content.name}'`,
@@ -360,15 +353,21 @@ export class CardTypeResource extends FileResource<CardType> {
     op: ChangeOperation<Type>,
   ) {
     const currentWorkflowName = op.target as string;
-    const currentWorkflow =
-      await this.project.resource<Workflow>(currentWorkflowName);
+    const currentWorkflow = this.project.resourceByType(
+      currentWorkflowName,
+      'workflows',
+    ).data;
     if (!currentWorkflow) {
       throw new Error(
         `Workflow '${currentWorkflowName}' does not exist in the project`,
       );
     }
 
-    const newWorkflow = await this.project.resource<Workflow>(op.to as string);
+    const newWorkflow = this.project.resourceByType(
+      op.to as string,
+      'workflows',
+    ).data;
+
     if (!newWorkflow) {
       throw new Error(`Workflow '${op.to}' does not exist in the project`);
     }
@@ -406,6 +405,7 @@ export class CardTypeResource extends FileResource<CardType> {
   /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
+   * @throws when workflow is empty, or does not exist in the project.
    */
   public async createCardType(workflowName: string) {
     if (!workflowName) {
@@ -418,7 +418,10 @@ export class CardTypeResource extends FileResource<CardType> {
       resourceNameToString(resourceName(workflowName)),
       await this.project.projectPrefixes(),
     );
-    const workflow = await this.project.resource<Workflow>(workflowName);
+    const workflow = this.project.resourceByType(
+      workflowName,
+      'workflows',
+    ).data;
     if (!workflow) {
       throw new Error(
         `Workflow '${workflowName}' does not exist in the project`,
