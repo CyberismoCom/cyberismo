@@ -83,6 +83,7 @@ import {
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
 import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
+import AsciiDocToolbar from '@/components/AsciiDocToolbar';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -617,6 +618,7 @@ export default function CardEditor({
                         focusField={focusField}
                       />
                     </Box>
+                    <AsciiDocToolbar view={view} readOnly={readOnly} />
                     <CodeMirror
                       {...CODE_MIRROR_BASE_PROPS}
                       ref={setRef}
