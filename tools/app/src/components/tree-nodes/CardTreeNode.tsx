@@ -132,12 +132,15 @@ export const CardTreeNode = ({
           size="sm"
           sx={{
             backgroundColor: chipColor(progress),
+            color: 'common.black',
+            fontWeight: 600,
             fontSize: '0.8rem',
             padding: '0px 6px 0px 6px',
             height: '20px',
             marginLeft: '4px',
             textAlign: 'center',
             alignSelf: 'center',
+            '--Chip-decoratorChildHeight': '20px',
           }}
         >
           {progress + '%'}

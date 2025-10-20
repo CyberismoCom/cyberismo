@@ -60,5 +60,9 @@
     "vega-lite": "^6.3.1",
     "vite": "^7.1.5",
     "vite-plugin-top-level-await": "^1.6.0"
+  },
+  "dependencies": {
+    "@uiw/codemirror-theme-github": "^4.25.2",
+    "@uiw/codemirror-theme-vscode": "^4.25.2"
   }
 }

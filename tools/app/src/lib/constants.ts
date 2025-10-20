@@ -11,6 +11,8 @@
 */
 
 import { ReactCodeMirrorProps } from '@uiw/react-codemirror';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { githubLight } from '@uiw/codemirror-theme-github';
 import type { TextareaProps } from '@mui/joy';
 
 export const MAX_RECENTS_STORED = 20;
@@ -53,6 +55,11 @@ export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
     borderColor: 'rgba(0,0,0,0.23)',
     borderRadius: 4,
   },
+};
+
+export const CODE_MIRROR_THEMES = {
+  light: githubLight,
+  dark: vscodeDark,
 };
 
 // Default styling configuration for title input fields

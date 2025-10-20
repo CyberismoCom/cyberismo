@@ -40,6 +40,7 @@ import CodeMirror, {
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
+import { useColorScheme } from '@mui/joy/styles';
 
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { useSearchParams } from 'react-router';
@@ -83,7 +84,11 @@ import {
 } from '@/lib/utils';
 import { AddAttachmentModal } from '@/components/modals';
 import { parseContent } from '@/lib/api/actions/card';
-import { CODE_MIRROR_BASE_PROPS, TITLE_FIELD_PROPS } from '@/lib/constants';
+import {
+  CODE_MIRROR_BASE_PROPS,
+  CODE_MIRROR_THEMES,
+  TITLE_FIELD_PROPS,
+} from '@/lib/constants';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -231,6 +236,7 @@ export default function CardEditor({
   readOnly?: boolean;
 }) {
   const { t } = useTranslation();
+  const { mode } = useColorScheme();
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -621,6 +627,7 @@ export default function CardEditor({
                     <CodeMirror
                       {...CODE_MIRROR_BASE_PROPS}
                       ref={setRef}
+                      theme={mode === 'dark' ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
                       extensions={extensions}
                       value={contentRef.current}
                       onDrop={handleDragDrop}

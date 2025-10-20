@@ -19,13 +19,15 @@ import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { CODE_MIRROR_BASE_PROPS } from '@/lib/constants';
+import { CODE_MIRROR_BASE_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
+import { useColorScheme } from '@mui/joy/styles';
 
 export function TextEditor({ node }: { node: AnyNode }) {
   const { resourceFileContent, isLoading, updateFileContent, isUpdating } =
     useResourceFileContent(node.name);
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+  const { mode } = useColorScheme();
   const [content, setContent] = useState(resourceFileContent.content);
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function TextEditor({ node }: { node: AnyNode }) {
     >
       <CodeMirror
         {...CODE_MIRROR_BASE_PROPS}
+        theme={mode === 'dark' ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
         readOnly={node.readOnly}
         value={content}
         onChange={(value) => setContent(value)}
