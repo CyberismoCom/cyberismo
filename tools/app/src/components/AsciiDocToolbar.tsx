@@ -30,19 +30,29 @@ export interface AsciiDocToolbarProps {
 
 export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
   return (
-    <Stack direction="row">
+    <Stack
+      direction="row"
+      sx={{
+        justifyContent: 'flex-end',
+      }}
+    >
       <Tooltip title="Undo">
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
-          <UndoIcon />
+          <UndoIcon color="action" />
         </IconButton>
       </Tooltip>
       <Tooltip title="Redo">
         <IconButton onClick={() => asciiDocToolbarActions.redo(view, readOnly)}>
-          <RedoIcon />
+          <RedoIcon color="action" />
         </IconButton>
       </Tooltip>
 
-      <Divider orientation="vertical" />
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
 
       {[1, 2, 3].map((level) => (
         <Tooltip key={level} title={`Heading ${level}`}>
@@ -51,7 +61,9 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
               asciiDocToolbarActions.heading(view, level as 1 | 2 | 3, readOnly)
             }
           >
-            <Typography>H{level}</Typography>
+            <Typography color="neutral" fontWeight={800}>
+              H{level}
+            </Typography>
           </IconButton>
         </Tooltip>
       ))}
@@ -62,7 +74,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         <IconButton
           onClick={() => asciiDocToolbarActions.bulletedList(view, readOnly)}
         >
-          <FormatListBulletedIcon />
+          <FormatListBulletedIcon color="action" />
         </IconButton>
       </Tooltip>
 
@@ -70,7 +82,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         <IconButton
           onClick={() => asciiDocToolbarActions.numberedList(view, readOnly)}
         >
-          <FormatListNumberedIcon />
+          <FormatListNumberedIcon color="action" />
         </IconButton>
       </Tooltip>
 
@@ -78,7 +90,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
 
       <Tooltip title="Bold">
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
-          <FormatBoldIcon />
+          <FormatBoldIcon color="action" />
         </IconButton>
       </Tooltip>
 
@@ -86,7 +98,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         <IconButton
           onClick={() => asciiDocToolbarActions.italic(view, readOnly)}
         >
-          <FormatItalicIcon />
+          <FormatItalicIcon color="action" />
         </IconButton>
       </Tooltip>
 
@@ -94,7 +106,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         <IconButton
           onClick={() => asciiDocToolbarActions.highlight(view, readOnly)}
         >
-          <HighlightIcon />
+          <HighlightIcon color="action" />
         </IconButton>
       </Tooltip>
 
@@ -104,7 +116,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         <IconButton
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
         >
-          <ViewListIcon />
+          <ViewListIcon color="action" />
         </IconButton>
       </Tooltip>
     </Stack>
