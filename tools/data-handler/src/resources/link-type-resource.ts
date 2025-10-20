@@ -18,10 +18,10 @@ import type {
 } from './file-resource.js';
 import {
   DefaultContent,
-  FileResource,
   resourceNameToString,
   sortCards,
 } from './folder-resource.js';
+import { FileResource } from './file-resource.js';
 import type { LinkType, UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**

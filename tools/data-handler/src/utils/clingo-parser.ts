@@ -15,6 +15,8 @@ import type { BaseResult, ParseResult } from '../types/queries.js';
 
 /**
  * This function reverses the encoding made by the "encodeClingoValue" function
+ * @value Value to decode
+ * @returns Decoded value.
  */
 export function decodeClingoValue(value: string) {
   return value.replace(/\\([n\\"])/g, (_, char) => {
@@ -272,7 +274,7 @@ class ClingoParser {
   /**
    * This methods is responsible for converting clingo output to a parsed object
    * @param input clingo input to parse
-   * @returns
+   * @returns Parsed input
    */
   public async parseInput(input: string): Promise<ParseResult<BaseResult>> {
     let position = 0;

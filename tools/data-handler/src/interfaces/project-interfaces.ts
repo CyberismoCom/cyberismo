@@ -228,12 +228,6 @@ export type RemovableResourceTypes =
   | 'workflow'
   | 'label';
 
-// Project resource, such as workflow, template or card type as file system object.
-export interface Resource {
-  name: string;
-  path: string;
-}
-
 // Resources that have own folders.
 export type ResourceFolderType =
   | 'calculations'

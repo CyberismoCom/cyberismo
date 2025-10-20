@@ -98,8 +98,6 @@ export class ReportResource extends FolderResource<
 
   /**
    * Sets new metadata into the report object.
-   * @param newContent metadata content for the report.
-   * @throws if 'newContent' is not valid.
    */
   public async createReport() {
     const defaultContent = DefaultContent.report(

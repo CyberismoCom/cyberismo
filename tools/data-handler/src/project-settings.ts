@@ -169,6 +169,7 @@ export class ProjectConfiguration implements ProjectSettings {
   /**
    * Removes module from imported modules property.
    * @param moduleName Name of the module to remove.
+   * @throws If Module name is empty, or not imported to the project.
    */
   public async removeModule(moduleName: string) {
     if (!moduleName) {

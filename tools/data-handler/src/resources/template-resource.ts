@@ -51,6 +51,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     this.cardsFolder = join(this.internalFolder, 'c');
 
     // Each template resource contains a template card container (with template cards).
+    // todo: Fix Template constructor not to use Resource, but just this filename with path
     this.cardContainer = new Template(this.project, {
       name: resourceNameToString(this.resourceName),
       path: dirname(this.fileName),
@@ -88,8 +89,11 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Deletes file and folder that this resource is based on.
+   * Also removes template cards from the project's card cache.
    */
   public async delete() {
+    const templateName = resourceNameToString(this.resourceName);
+    this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
   }
 
