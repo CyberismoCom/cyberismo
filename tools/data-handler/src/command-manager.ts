@@ -10,21 +10,19 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {
-  Calculate,
-  Create,
-  Edit,
-  Export,
-  Fetch,
-  Import,
-  Move,
-  Remove,
-  Rename,
-  Show,
-  Transition,
-  Update,
-  Validate,
-} from './commands/index.js';
+import { Calculate } from './commands/calculate.js';
+import { Create } from './commands/create.js';
+import { Edit } from './commands/edit.js';
+import { Export } from './commands/export.js';
+import { Fetch } from './commands/fetch.js';
+import { Import } from './commands/import.js';
+import { Move } from './commands/move.js';
+import { Remove } from './commands/remove.js';
+import { Rename } from './commands/rename.js';
+import { Show } from './commands/show.js';
+import { Transition } from './commands/transition.js';
+import { Update } from './commands/update.js';
+import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import pino, { type Level, type TransportTargetOptions } from 'pino';
@@ -80,7 +78,7 @@ export class CommandManager {
    * Add such calls here.
    */
   public async initialize() {
-    this.project.collectModuleResources();
+    this.project.resources.changedModules();
     await this.project.populateCaches();
   }
 

@@ -10,19 +10,16 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './file-resource.js';
-import {
-  DefaultContent,
-  FileResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { DefaultContent } from './create-defaults.js';
+import { FileResource } from './file-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
 import type { LinkType, UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Link Type resource class.
@@ -38,7 +35,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
   // When resource name changes.
   private async handleNameChange(existingName: string) {
     const current = this.content;
-    const prefixes = await this.project.projectPrefixes();
+    const prefixes = this.project.projectPrefixes();
     if (current.sourceCardTypes) {
       current.sourceCardTypes = current.sourceCardTypes.map((item) =>
         this.updatePrefixInResourceName(item, prefixes),

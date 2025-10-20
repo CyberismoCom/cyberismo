@@ -1,18 +1,15 @@
-// testing
 import { expect } from 'chai';
 
-// node
 import { mkdirSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
-// cyberismo
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
+import { getTestBaseDir } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
-const baseDir = import.meta.dirname;
 const commandHandler: Commands = new Commands();
 let options: { projectPath: string };
 
@@ -48,6 +45,7 @@ describe('move command', () => {
   let createdCardKey: string;
 
   beforeEach(async () => {
+    const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
     testDir = join(baseDir, `tmp-command-handler-move-tests`);
     decisionRecordsPath = join(testDir, 'valid/decision-records');
     options = { projectPath: decisionRecordsPath };
@@ -226,7 +224,6 @@ describe('move command', () => {
     await commandHandler.command(Cmd.show, ['project'], options);
 
     // Get the CommandManager instance to access its project
-    const { CommandManager } = await import('../src/command-manager.js');
     const commandManager = await CommandManager.getInstance(
       options.projectPath!,
     );
@@ -313,6 +310,7 @@ describe('move command - similar key tests', () => {
 
   beforeEach(async () => {
     // Use unique directory name to avoid conflicts
+    const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
     testDir = join(baseDir, `tmp-move-similar-key-tests-${Date.now()}`);
     decisionRecordsPath = join(testDir, 'valid/decision-records');
     options = { projectPath: decisionRecordsPath };

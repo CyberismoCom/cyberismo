@@ -12,16 +12,28 @@
 */
 
 import { ActionGuard } from '../permissions/action-guard.js';
-import type {
-  CardType,
-  Workflow,
-  WorkflowState,
-} from '../interfaces/resource-interfaces.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import type { Project } from '../containers/project.js';
+import type { WorkflowState } from '../interfaces/resource-interfaces.js';
 
+/**
+ * Handles transitions.
+ */
 export class Transition {
+  /**
+   * Creates an instance of Transition command.
+   * @param project Project to use.
+   */
   constructor(private project: Project) {}
+
+  // Wrapper to run onTransition query.
+  private async transitionChangesQuery(cardKey: string, transition: string) {
+    if (!cardKey || !transition) return undefined;
+    return this.project.calculationEngine.runQuery('onTransition', 'localApp', {
+      cardKey,
+      transition,
+    });
+  }
 
   /**
    * Transitions a card from its current state to a new state.
@@ -31,10 +43,13 @@ export class Transition {
   public async cardTransition(cardKey: string, transition: WorkflowState) {
     const card = this.project.findCard(cardKey);
 
+    if (!card.metadata?.cardType) {
+      throw new Error(`Card does not have card type`);
+    }
     // Card type
-    const cardType = this.project.resource<CardType>(
-      card.metadata?.cardType || '',
-    );
+    const cardType = await this.project.resources
+      .byType(card.metadata?.cardType, 'cardTypes')
+      .show();
     if (cardType === undefined) {
       throw new Error(
         `Card's card type '${card.metadata?.cardType}' does not exist in the project`,
@@ -42,7 +57,9 @@ export class Transition {
     }
 
     // Workflow
-    const workflow = await this.project.resource<Workflow>(cardType.workflow);
+    const workflow = await this.project.resources
+      .byType(cardType.workflow, 'workflows')
+      .show();
     if (workflow === undefined) {
       throw new Error(
         `Card's workflow '${cardType.workflow}' does not exist in the project`,
@@ -107,14 +124,5 @@ export class Transition {
         })
         .catch((error) => console.error(error));
     }
-  }
-
-  // Wrapper to run onTransition query.
-  private async transitionChangesQuery(cardKey: string, transition: string) {
-    if (!cardKey || !transition) return undefined;
-    return this.project.calculationEngine.runQuery('onTransition', 'localApp', {
-      cardKey,
-      transition,
-    });
   }
 }

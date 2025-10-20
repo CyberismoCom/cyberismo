@@ -11,20 +11,28 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { CardType } from '../interfaces/resource-interfaces.js';
-import { type Create, Validate } from './index.js';
 import { ModuleManager } from '../module-manager.js';
+import { readCsvFile } from '../utils/csv.js';
+import { Validate } from './validate.js';
+
+import type { Create } from './create.js';
 import type {
   Credentials,
   ModuleSettingOptions,
 } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
-import { readCsvFile } from '../utils/csv.js';
-import { resourceName } from '../utils/resource-utils.js';
-import { TemplateResource } from '../resources/template-resource.js';
 
+/**
+ * Handles all import commands.
+ */
 export class Import {
   private moduleManager: ModuleManager;
+
+  /**
+   * Creates an instance of Import.
+   * @param project Project to use.
+   * @param createCmd Instance of Create to use.
+   */
   constructor(
     private project: Project,
     private createCmd: Create,
@@ -53,9 +61,9 @@ export class Import {
 
     for (const row of csv) {
       const { title, template, description, labels, ...customFields } = row;
-      const templateResource = new TemplateResource(
-        this.project,
-        resourceName(template),
+      const templateResource = this.project.resources.byType(
+        template,
+        'templates',
       );
       const templateObject = templateResource.templateObject();
       if (!templateObject) {
@@ -78,9 +86,12 @@ export class Import {
       }
       const cardKey = cards[0].key;
       const card = this.project.findCard(cardKey);
-      const cardType = this.project.resource<CardType>(
-        card.metadata?.cardType || '',
-      );
+      if (!card.metadata?.cardType) {
+        throw new Error(`Card type not found for card ${cardKey}`);
+      }
+      const cardType = await this.project.resources
+        .byType(card.metadata?.cardType, 'cardTypes')
+        .show();
 
       if (!cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);

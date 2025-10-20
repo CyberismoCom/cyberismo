@@ -43,7 +43,8 @@ import type {
 
 import type { requestStatus } from './interfaces/request-status-interfaces.js';
 
-import { Create, Validate } from './commands/index.js';
+import { Create } from './commands/create.js';
+import { Validate } from './commands/validate.js';
 import { CommandManager } from './command-manager.js';
 import type { UpdateOperations } from './resources/resource-object.js';
 import { Project } from './containers/project.js';
@@ -769,7 +770,10 @@ export class Commands {
           payload: this.commands!.showCmd.showHubs(),
         };
       case 'modules':
-        promise = this.commands!.showCmd.showModules();
+        return {
+          statusCode: 200,
+          payload: this.commands!.showCmd.showModules(),
+        };
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();
@@ -787,7 +791,8 @@ export class Commands {
   // Starts the Cyberismo app by running npm start in the app project folder
   private async startApp(forceStart: boolean = false): Promise<requestStatus> {
     // __dirname when running cards ends with /tools/data-handler/dist - use that to navigate to app path
-    const baseDir = import.meta.dirname;
+    const baseDir =
+      import.meta.dirname ?? new URL('.', import.meta.url).pathname;
     const appPath = resolve(baseDir, '../../app');
 
     // since current working directory changes, we need to resolve the project path

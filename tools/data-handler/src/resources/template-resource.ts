@@ -14,25 +14,22 @@
 import { dirname, join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
-import {
-  DefaultContent,
-  FolderResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { DefaultContent } from './create-defaults.js';
+import { FolderResource } from './folder-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+import { Template } from '../containers/template.js';
+import { writeJsonFile } from '../utils/json.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 import type {
   TemplateConfiguration,
   TemplateMetadata,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
-import { Template } from '../containers/template.js';
-import { writeJsonFile } from '../utils/json.js';
 
 /**
  * Template resource class.
@@ -51,6 +48,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     this.cardsFolder = join(this.internalFolder, 'c');
 
     // Each template resource contains a template card container (with template cards).
+    // todo: Fix Template constructor not to use Resource, but just this filename with path
     this.cardContainer = new Template(this.project, {
       name: resourceNameToString(this.resourceName),
       path: dirname(this.fileName),
@@ -88,8 +86,11 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
 
   /**
    * Deletes file and folder that this resource is based on.
+   * Also removes template cards from the project's card cache.
    */
   public async delete() {
+    const templateName = resourceNameToString(this.resourceName);
+    this.project.cardsCache.deleteCardsFromTemplate(templateName);
     return super.delete();
   }
 

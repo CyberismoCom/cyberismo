@@ -1,8 +1,5 @@
-// testing
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 
-// node
 import { join, sep } from 'node:path';
 
 import {
@@ -89,15 +86,13 @@ describe('resource utils', () => {
 });
 
 describe('resource utils with Project instance', () => {
-  let project: Project;
+  const baseDir = import.meta.dirname;
+  const decisionRecordsPath = join(
+    baseDir,
+    '../test-data/valid/decision-records',
+  );
+  const project = new Project(decisionRecordsPath);
   before(async () => {
-    const baseDir = import.meta.dirname;
-    const decisionRecordsPath = join(
-      baseDir,
-      '../test-data/valid/decision-records',
-    );
-    // uses the actual test data (not a copy); do not change it in tests.
-    project = new Project(decisionRecordsPath);
     await project.populateCaches();
   });
   it('resourceNameToPath with valid values', () => {

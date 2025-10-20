@@ -11,8 +11,6 @@ import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { Project } from '../src/containers/project.js';
-import { resourceName } from '../src/utils/resource-utils.js';
-import { TemplateResource } from '../src/resources/template-resource.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
 import type {
@@ -1000,10 +998,11 @@ describe('create command', () => {
   it('access default values for card using real card type and template cards (success)', async () => {
     const project = new Project(decisionRecordsPath);
     await project.populateCaches();
-    const template = new TemplateResource(
-      project,
-      resourceName('decision/templates/decision'),
-    ).templateObject();
+
+    const name = 'decision/templates/decision';
+    const template = project.resources
+      .byType(name, 'templates')
+      .templateObject();
     const templateCards = template?.cards('');
 
     const cardType = DefaultContent.cardType(

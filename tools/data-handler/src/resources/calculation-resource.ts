@@ -14,17 +14,17 @@
 
 import { join } from 'node:path';
 
-import {
-  DefaultContent,
-  FolderResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { DefaultContent } from '../resources/create-defaults.js';
+import { FolderResource } from './folder-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 
-import { type CalculationMetadata } from '../interfaces/resource-interfaces.js';
 import type { CalculationContent } from '../interfaces/folder-content-interfaces.js';
-import type { Card, Project, ResourceName } from './file-resource.js';
+import type { CalculationMetadata } from '../interfaces/resource-interfaces.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Calculation resource class.
@@ -88,7 +88,7 @@ export class CalculationResource extends FolderResource<
    * @returns array of card keys and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards || (await super.cards());
+    const allCards = cards || super.cards();
 
     const [cardContentReferences, calculations] = await Promise.all([
       super.usage(allCards),

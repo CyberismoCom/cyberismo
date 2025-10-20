@@ -10,12 +10,13 @@ import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { Remove } from '../src/commands/index.js';
+import { getTestBaseDir } from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
 
 // Create test artifacts in a temp folder.
-const baseDir = import.meta.dirname;
+const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
 const testDir = join(baseDir, 'tmp-command-handler-remove-tests');
 
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
@@ -501,7 +502,7 @@ describe('remove command', () => {
 });
 
 describe('remove card', () => {
-  const baseDir = import.meta.dirname;
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;

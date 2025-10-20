@@ -11,43 +11,18 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { resourceName } from '../utils/resource-utils.js';
+import { ResourceObject } from './resource-object.js';
+import { ResourcesFrom } from '../containers/project.js';
+
 import type {
   Card,
   ResourceFolderType,
 } from '../interfaces/project-interfaces.js';
-import type { ShowReturnType } from './resource-object.js';
-import {
-  type AddOperation,
-  type ChangeOperation,
-  type Operation,
-  type RemoveOperation,
-  ResourceObject,
-} from './resource-object.js';
-import { DefaultContent } from './create-defaults.js';
-import { Project, ResourcesFrom } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
-import {
-  type ResourceName,
-  resourceName,
-  resourceNameToString,
-} from '../utils/resource-utils.js';
-import { sortCards } from '../utils/card-utils.js';
-import { Template } from '../containers/template.js';
-
-export {
-  type AddOperation,
-  type Card,
-  type ChangeOperation,
-  DefaultContent,
-  type Operation,
-  Project,
-  RemoveOperation,
-  ResourcesFrom,
-  resourceName,
-  type ResourceName,
-  resourceNameToString,
-  sortCards,
-};
+import type { ResourceName } from '../utils/resource-utils.js';
+import type { ShowReturnType } from './resource-object.js';
 
 /**
  * Base class for file based resources (card types, field types, link types, workflows, ...)
@@ -72,9 +47,9 @@ export abstract class FileResource<
       cardTypeName,
     );
     // ... and cards from each template that would be affected.
-    const templates = await this.project.templates(ResourcesFrom.localOnly);
+    const templates = this.project.resources.templates(ResourcesFrom.localOnly);
     const templateCards = templates.map((template) => {
-      const templateObject = new Template(this.project, template);
+      const templateObject = template.templateObject();
       return filteredCards(templateObject.cards(), cardTypeName);
     });
     // Return all affected cards
@@ -98,7 +73,6 @@ export abstract class FileResource<
   /**
    * Returns the resource metadata content.
    * @returns metadata content
-   * @throws if resource does not exist.
    */
   public async show(): Promise<ShowReturnType<T>> {
     this.assertResourceExists();
