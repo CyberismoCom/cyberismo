@@ -30,7 +30,8 @@ import {
   useKeyboardShortcut,
   useConfigTemplateCreationContext,
 } from '@/lib/hooks';
-import { ResourceName, RESOURCES } from '@/lib/constants';
+import type { ResourceName } from '@/lib/constants';
+import { RESOURCES } from '@/lib/constants';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;

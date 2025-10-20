@@ -11,7 +11,7 @@
 */
 
 // These are used within this file for additional definitions.
-import {
+import type {
   CardType,
   DataType,
   FieldType,
@@ -19,8 +19,8 @@ import {
   LinkType,
   Workflow,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
-import { LinkDirection } from '@cyberismo/data-handler/types/queries';
+import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { LinkDirection } from '@cyberismo/data-handler/types/queries';
 
 // These are exported as-is.
 export {

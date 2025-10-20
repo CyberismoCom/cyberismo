@@ -12,7 +12,7 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { FileNode } from '@/lib/api/types';
+import type { FileNode } from '@/lib/api/types';
 import { useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';

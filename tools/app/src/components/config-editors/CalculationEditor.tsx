@@ -12,7 +12,7 @@
 */
 
 import CodeMirror from '@uiw/react-codemirror';
-import { CalculationNode } from '@/lib/api/types';
+import type { CalculationNode } from '@/lib/api/types';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
 import { useAppDispatch } from '@/lib/hooks';

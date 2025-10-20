@@ -11,7 +11,7 @@
 */
 
 import React, { useMemo } from 'react';
-import {
+import type {
   Workflow,
   WorkflowState,
   WorkflowTransition,

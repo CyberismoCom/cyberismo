@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createCalculation, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { CalculationForm } from './CalculationForm';
-import { CreateCalculationData } from '@/lib/definitions';
+import type { CreateCalculationData } from '@/lib/definitions';
 
 interface NewCalculationModalProps {
   open: boolean;

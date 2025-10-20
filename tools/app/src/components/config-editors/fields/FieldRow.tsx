@@ -12,7 +12,7 @@
 */
 
 import { Stack, IconButton } from '@mui/joy';
-import { cloneElement, ReactElement } from 'react';
+import { cloneElement, type ReactElement } from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import type { BaseInputProps } from './types';

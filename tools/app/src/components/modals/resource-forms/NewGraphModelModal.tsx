@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createGraphModel, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { GraphModelForm } from './GraphModelForm';
-import { CreateGraphModelData } from '@/lib/definitions';
+import type { CreateGraphModelData } from '@/lib/definitions';
 
 interface NewGraphModelModalProps {
   open: boolean;

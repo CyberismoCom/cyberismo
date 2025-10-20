@@ -12,14 +12,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, {
-  ReactElement,
-  useCallback,
-  useEffect,
-  useState,
-  useRef,
-} from 'react';
-import { ExpandedLinkType } from '../lib/definitions';
+import type { ReactElement } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import type { ExpandedLinkType } from '../lib/definitions';
 
 import { parse } from 'node-html-parser';
 import {
@@ -68,11 +63,12 @@ import EditLinkModal from './modals/EditLinkModal';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
 
-import { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
+import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
-import { UIMacroName, macros as UImacros } from './macros';
+import type { UIMacroName } from './macros';
+import { macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
-import {
+import type {
   PolicyCheckCollection,
   Notification,
   QueryResult,
@@ -80,7 +76,7 @@ import {
   LinkDirection,
 } from '@cyberismo/data-handler/types/queries';
 import { config } from '@/lib/utils';
-import { CardResponse } from '../lib/api/types';
+import type { CardResponse } from '../lib/api/types';
 import { GenericConfirmModal } from './modals';
 import { useCard } from '../lib/api';
 import SvgViewerModal from './modals/svgViewerModal';

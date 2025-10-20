@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { createGraphView, useProject } from '@/lib/api';
 import { BaseResourceModal } from './BaseResourceModal';
 import { GraphViewForm } from './GraphViewForm';
-import { CreateGraphViewData } from '@/lib/definitions';
+import type { CreateGraphViewData } from '@/lib/definitions';
 
 interface NewGraphViewModalProps {
   open: boolean;

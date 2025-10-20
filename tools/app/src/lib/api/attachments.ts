@@ -10,13 +10,13 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { useCard } from './card';
 import { useUpdating } from '../hooks';
 import { addAttachments, removeAttachment } from './actions';
 import { mutate } from 'swr';
 import { apiPaths } from '../swr';
-import { AttachmentAction } from './action-types';
+import type { AttachmentAction } from './action-types';
 
 export const useAttachments = (
   key: string | null,

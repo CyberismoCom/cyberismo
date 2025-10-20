@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SWRConfiguration } from 'swr';
+import type { SWRConfiguration } from 'swr';
 import { config } from './utils';
 
 export class ApiCallError extends Error {

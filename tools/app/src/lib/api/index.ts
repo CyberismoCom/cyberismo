@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { CardUpdate } from './types';
+import type { CardUpdate } from './types';
 
 export * from './fieldTypes';
 export * from './project';

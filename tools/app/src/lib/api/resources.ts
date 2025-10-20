@@ -11,11 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { SWRConfiguration, mutate } from 'swr';
+import type { SWRConfiguration } from 'swr';
+import { mutate } from 'swr';
 import { apiPaths, callApi } from '../swr';
 import type { ResourceBaseMetadata } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { useSWRHook } from './common';
-import { AnyNode } from './types';
+import type { AnyNode } from './types';
 import type { OperationFor, UpdateOperations } from '@cyberismo/data-handler';
 import { useUpdating } from '../hooks';
 

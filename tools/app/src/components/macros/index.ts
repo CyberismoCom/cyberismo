@@ -12,10 +12,10 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { MacroName } from '@cyberismo/data-handler/interfaces/macros';
+import type { MacroName } from '@cyberismo/data-handler/interfaces/macros';
 import CreateCards from './CreateCards';
 import ScoreCard from './ScoreCard';
-import { ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import Vega from './Vega';
 
 export interface MacroContext {

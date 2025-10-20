@@ -11,7 +11,7 @@
 */
 
 import { Box, Card, Typography } from '@mui/joy';
-import { MacroContext } from '.';
+import type { MacroContext } from '.';
 
 export type CreateCardsProps = {
   title?: string;

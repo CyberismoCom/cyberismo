@@ -13,8 +13,8 @@
 */
 
 import { VegaEmbed } from 'react-vega';
-import { MacroContext } from '.';
-import * as vega from 'vega';
+import type { MacroContext } from '.';
+import type * as vega from 'vega';
 
 export interface VegaProps extends MacroContext {
   spec: vega.Spec;

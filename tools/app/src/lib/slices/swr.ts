@@ -10,8 +10,9 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { AdditionalState } from '../api/types';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
+import type { AdditionalState } from '../api/types';
 
 export interface SwrState {
   additionalProps: Record<string, AdditionalState>; // stores additional state for swr hooks

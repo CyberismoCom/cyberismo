@@ -44,7 +44,7 @@ import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/lib/slices/notifications';
 import { useTree } from '@/lib/api/tree';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 export interface MoveCardModalProps {
   open: boolean;
