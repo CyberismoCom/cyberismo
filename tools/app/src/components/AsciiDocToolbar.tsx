@@ -68,7 +68,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         </Tooltip>
       ))}
 
-      <Divider orientation="vertical" />
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
 
       <Tooltip title="Bulleted list">
         <IconButton
@@ -86,7 +91,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         </IconButton>
       </Tooltip>
 
-      <Divider orientation="vertical" />
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
 
       <Tooltip title="Bold">
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
@@ -110,7 +120,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         </IconButton>
       </Tooltip>
 
-      <Divider orientation="vertical" />
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
 
       <Tooltip title="Insert table">
         <IconButton
