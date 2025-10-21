@@ -11,7 +11,17 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Divider, IconButton, Stack, Tooltip, Typography } from '@mui/joy';
+import {
+  Divider,
+  Dropdown,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/joy';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
@@ -23,14 +33,28 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import { asciiDocToolbarActions } from '@/lib/codemirror/actions';
 import { useTranslation } from 'react-i18next';
 import type { EditorView } from '@codemirror/view';
+import { AddBox } from '@mui/icons-material';
+import { useState } from 'react';
+import {
+  MacroHelperDialog,
+  MacroHelperName,
+} from './macro-editors/MacroHelperDialog';
 
 export interface AsciiDocToolbarProps {
   view: EditorView | null;
   readOnly?: boolean;
 }
 
-export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
+export function AsciiDocToolbar({
+  view,
+  readOnly = false,
+}: AsciiDocToolbarProps) {
   const { t } = useTranslation();
+  const [openMacro, setOpenMacro] = useState<MacroHelperName | null>(null);
+  const handleOpenMacro = (macro: MacroHelperName) => {
+    setOpenMacro(macro);
+  };
+  const handleCloseMacro = () => setOpenMacro(null);
 
   return (
     <Stack
@@ -52,14 +76,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           <RedoIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       {[1, 2, 3].map((level) => (
         <Tooltip
           key={level}
@@ -67,7 +89,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         >
           <IconButton
             onClick={() =>
-              asciiDocToolbarActions.heading(view, level as 1 | 2 | 3, readOnly)
+              asciiDocToolbarActions.heading(view, readOnly, level as 1 | 2 | 3)
             }
           >
             <Typography color="neutral" fontWeight={800}>
@@ -76,14 +98,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           </IconButton>
         </Tooltip>
       ))}
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.bulletedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.bulletedList(view, readOnly)}
@@ -91,7 +111,6 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           <FormatListBulletedIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.numberedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.numberedList(view, readOnly)}
@@ -99,20 +118,17 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           <FormatListNumberedIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.bold')}>
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
           <FormatBoldIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.italic')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.italic(view, readOnly)}
@@ -120,7 +136,6 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           <FormatItalicIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.highlight')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.highlight(view, readOnly)}
@@ -128,21 +143,59 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           <HighlightIcon color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.insertTable')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
         >
           <ViewListIcon color="action" />
         </IconButton>
-      </Tooltip>
+      </Tooltip>{' '}
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
+      <Dropdown>
+        <MenuButton
+          variant="soft"
+          color="primary"
+          size="sm"
+          disabled={readOnly}
+        >
+          <AddBox />
+        </MenuButton>
+        <Menu>
+          <MenuItem onClick={() => handleOpenMacro('include')}>
+            {t('asciiDocEditor.toolbar.macros.include')}
+          </MenuItem>
+          <MenuItem onClick={() => handleOpenMacro('xref')}>
+            {t('asciiDocEditor.toolbar.macros.xref')}
+          </MenuItem>
+          <MenuItem onClick={() => handleOpenMacro('createCards')}>
+            {t('asciiDocEditor.toolbar.macros.createCards')}
+          </MenuItem>
+          <MenuItem onClick={() => handleOpenMacro('report')}>
+            {t('asciiDocEditor.toolbar.macros.report')}
+          </MenuItem>
+          <MenuItem onClick={() => handleOpenMacro('graph')}>
+            {t('asciiDocEditor.toolbar.macros.graph')}
+          </MenuItem>
+        </Menu>
+      </Dropdown>
+      <MacroHelperDialog
+        macro={openMacro}
+        onClose={handleCloseMacro}
+        onInsert={(macro, options) =>
+          asciiDocToolbarActions.insertMacro(view, readOnly, macro, options)
+        }
+      />
     </Stack>
   );
 }

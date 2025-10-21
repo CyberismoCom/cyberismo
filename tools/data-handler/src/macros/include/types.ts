@@ -10,29 +10,10 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import type { MacroMetadata } from '../../interfaces/macros.js';
-import { VegaLiteMacroInput } from './types.js';
 
-const macroMetadata: MacroMetadata<VegaLiteMacroInput> = {
-  name: 'vegaLite',
-  tagName: 'vegaLite',
-  schema: 'vegaLiteMacroSchema',
-  default: {
-    spec: {
-      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-      data: {
-        values: [
-          { x: 1, y: 2 },
-          { x: 2, y: 3 },
-        ],
-      },
-      mark: 'point',
-      encoding: {
-        x: { field: 'x', type: 'quantitative' },
-        y: { field: 'y', type: 'quantitative' },
-      },
-    },
-  },
-};
-
-export default macroMetadata;
+export interface IncludeMacroOptions {
+  cardKey: string;
+  levelOffset?: string;
+  title?: 'include' | 'exclude' | 'only';
+  pageTitles?: 'normal' | 'discrete';
+}

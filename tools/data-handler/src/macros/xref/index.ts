@@ -17,10 +17,7 @@ import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-
-export interface XrefMacroOptions {
-  cardKey: string;
-}
+import type { XrefMacroOptions } from './types.js';
 
 export default class XrefMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
