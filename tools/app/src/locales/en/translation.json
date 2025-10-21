@@ -12,6 +12,30 @@
   "all": "All",
   "alwaysVisibleFields": "Always visible fields",
   "appName": "Cards",
+  "asciiDocEditor": {
+    "toolbar": {
+      "undo": "Undo",
+      "redo": "Redo",
+      "heading": "Heading {{level}}",
+      "bulletedList": "Bulleted list",
+      "numberedList": "Numbered list",
+      "bold": "Bold",
+      "italic": "Italic",
+      "highlight": "Highlight",
+      "insertTable": "Insert table"
+    },
+    "placeholder": {
+      "heading": "Heading",
+      "bold": "bold text",
+      "italic": "italic text",
+      "highlight": "highlighted text",
+      "listItem": "Item {{index}}",
+      "table": {
+        "header": "Column {{index}}",
+        "cell": "Cell in column {{column}}, row {{row}}"
+      }
+    }
+  },
   "attachment": "Attachment",
   "attachments": "Attachments",
   "cancel": "Cancel",
