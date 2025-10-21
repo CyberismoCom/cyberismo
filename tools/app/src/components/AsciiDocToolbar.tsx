@@ -36,6 +36,10 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
     <Stack
       direction="row"
       sx={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 5,
+        bgcolor: 'background.surface',
         justifyContent: 'flex-end',
       }}
     >
