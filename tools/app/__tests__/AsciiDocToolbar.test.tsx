@@ -3,6 +3,7 @@ import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { describe, expect, it } from 'vitest';
 import AsciiDocToolbar from '@/components/AsciiDocToolbar';
+import '@/lib/i18n';
 
 const createEditor = (doc = '') => {
   const parent = document.createElement('div');

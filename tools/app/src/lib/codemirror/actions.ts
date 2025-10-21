@@ -14,13 +14,23 @@
 import { EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { redo, undo } from '@codemirror/commands';
+import i18n from 'i18next';
 
-const BULLET_LIST_PLACEHOLDER = '* Item 1\n* Item 2\n';
-const NUMBERED_LIST_PLACEHOLDER = '. Item 1\n. Item 2\n';
-const HEADING_PLACEHOLDER = 'Heading';
-const BOLD_PLACEHOLDER = 'bold text';
-const ITALIC_PLACEHOLDER = 'italic text';
-const HIGHLIGHT_PLACEHOLDER = 'highlighted text';
+const listItemPlaceholder = (index: number) =>
+  i18n.t('asciiDocEditor.placeholder.listItem', { index });
+const boldPlaceholder = () => i18n.t('asciiDocEditor.placeholder.bold');
+const italicPlaceholder = () => i18n.t('asciiDocEditor.placeholder.italic');
+const highlightPlaceholder = () =>
+  i18n.t('asciiDocEditor.placeholder.highlight');
+const headingPlaceholder = () => i18n.t('asciiDocEditor.placeholder.heading');
+const bulletListPlaceholder = () =>
+  `* ${listItemPlaceholder(1)}\n* ${listItemPlaceholder(2)}\n`;
+const numberedListPlaceholder = () =>
+  `. ${listItemPlaceholder(1)}\n. ${listItemPlaceholder(2)}\n`;
+const tableHeaderPlaceholder = (index: number) =>
+  i18n.t('asciiDocEditor.placeholder.table.header', { index });
+const tableCellPlaceholder = (column: number, row: number) =>
+  i18n.t('asciiDocEditor.placeholder.table.cell', { column, row });
 
 type MaybeEditorView = EditorView | null | undefined;
 
@@ -71,7 +81,7 @@ const applyHeadingToSelection = (view: EditorView, level: 1 | 2 | 3) => {
   const { state } = view;
   const selection = state.selection.main;
   const headingMarker = '='.repeat(level + 1);
-  const headingText = HEADING_PLACEHOLDER;
+  const headingText = headingPlaceholder();
   const titleStartOffset = headingMarker.length + 1;
 
   const normalizeLine = (lineText: string) => {
@@ -174,15 +184,21 @@ const transformToList = (
 const insertTable = (view: EditorView) => {
   const { state } = view;
   const selection = state.selection.main;
+  const column1 = tableHeaderPlaceholder(1);
+  const column2 = tableHeaderPlaceholder(2);
+  const row1Column1 = tableCellPlaceholder(1, 1);
+  const row1Column2 = tableCellPlaceholder(2, 1);
+  const row2Column1 = tableCellPlaceholder(1, 2);
+  const row2Column2 = tableCellPlaceholder(2, 2);
   const tableSnippet = `[cols="1,1"]
 |===
-| Column 1 | Column 2
+| ${column1} | ${column2}
 
-| Cell in column 1, row 1
-| Cell in column 2, row 1
+| ${row1Column1}
+| ${row1Column2}
 
-| Cell in column 1, row 2
-| Cell in column 2, row 2
+| ${row2Column1}
+| ${row2Column2}
 |===
 `;
   const insertPosition = selection.to;
@@ -190,7 +206,7 @@ const insertTable = (view: EditorView) => {
     insertPosition > 0 &&
     state.doc.sliceString(insertPosition - 1, insertPosition) !== '\n';
   const insert = `${needsNewline ? '\n' : ''}${tableSnippet}`;
-  const focusTarget = 'Cell in column 1, row 1';
+  const focusTarget = row1Column1;
   const focusOffset =
     (needsNewline ? 1 : 0) + tableSnippet.indexOf(focusTarget);
   const cursorStart = insertPosition + focusOffset;
@@ -220,27 +236,27 @@ export const asciiDocToolbarActions = {
   },
   bold(view: MaybeEditorView, readOnly?: boolean) {
     withEditableView(view, readOnly, (cmView) => {
-      wrapSelection(cmView, '*', '*', BOLD_PLACEHOLDER);
+      wrapSelection(cmView, '*', '*', boldPlaceholder());
     });
   },
   italic(view: MaybeEditorView, readOnly?: boolean) {
     withEditableView(view, readOnly, (cmView) => {
-      wrapSelection(cmView, '_', '_', ITALIC_PLACEHOLDER);
+      wrapSelection(cmView, '_', '_', italicPlaceholder());
     });
   },
   highlight(view: MaybeEditorView, readOnly?: boolean) {
     withEditableView(view, readOnly, (cmView) => {
-      wrapSelection(cmView, '#', '#', HIGHLIGHT_PLACEHOLDER);
+      wrapSelection(cmView, '#', '#', highlightPlaceholder());
     });
   },
   bulletedList(view: MaybeEditorView, readOnly?: boolean) {
     withEditableView(view, readOnly, (cmView) => {
-      transformToList(cmView, '*', BULLET_LIST_PLACEHOLDER);
+      transformToList(cmView, '*', bulletListPlaceholder());
     });
   },
   numberedList(view: MaybeEditorView, readOnly?: boolean) {
     withEditableView(view, readOnly, (cmView) => {
-      transformToList(cmView, '.', NUMBERED_LIST_PLACEHOLDER);
+      transformToList(cmView, '.', numberedListPlaceholder());
     });
   },
   table(view: MaybeEditorView, readOnly?: boolean) {
