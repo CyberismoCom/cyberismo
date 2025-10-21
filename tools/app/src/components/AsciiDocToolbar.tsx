@@ -35,13 +35,12 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
   return (
     <Stack
       direction="row"
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 5,
-        bgcolor: 'background.surface',
-        justifyContent: 'flex-end',
-      }}
+      top={0}
+      zIndex={5}
+      bgcolor="background.surface"
+      position="sticky"
+      justifyContent="flex-end"
+      gap={1.5}
     >
       <Tooltip title={t('asciiDocEditor.toolbar.undo')}>
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
