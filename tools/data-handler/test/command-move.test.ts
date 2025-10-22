@@ -19,6 +19,7 @@ describe('move command', () => {
   let testDir: string;
   let decisionRecordsPath: string;
   let options: { projectPath: string };
+  let createdCardKey: string;
 
   beforeEach(async () => {
     testDir = join(baseDir, `tmp-command-handler-move-tests`);
@@ -39,6 +40,9 @@ describe('move command', () => {
     if (done.statusCode !== 200) {
       throw new Error(`Failed to create test card: ${done.message}`);
     }
+
+    // Store the created card key for use in tests
+    createdCardKey = done.affectsCards?.[0] || '';
   });
 
   afterEach(() => {
@@ -76,12 +80,9 @@ describe('move command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('move child card to another card (success)', async () => {
-    const project = new Project(options.projectPath!);
-    await project.populateCaches();
-    const cards = new Show(project).showProjectCards();
-
     const sourceId = 'decision_6';
-    const destination = cards[cards.length - 1].key;
+    const destination = createdCardKey;
+
     const result = await commandHandler.command(
       Cmd.move,
       [sourceId, destination],
