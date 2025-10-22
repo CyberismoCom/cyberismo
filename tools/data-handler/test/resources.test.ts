@@ -2433,11 +2433,11 @@ describe('resources', function () {
         to: updatedItem,
       } as ChangeOperation<WorkflowState>;
       await res.update({ key: 'transitions' }, op);
-      found = res.data.transitions.find(
+      found = res.data?.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).to.equal(undefined);
-      found = res.data.transitions.find(
+      found = res.data?.transitions.find(
         (item) => item.name === updatedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2448,14 +2448,14 @@ describe('resources', function () {
         resourceName('decision/workflows/newWF'),
       );
       const newState = { name: 'OrphanState', category: 'closed' };
-      let found = res.data.states.find((item) => item.name === newState.name);
+      let found = res.data?.states.find((item) => item.name === newState.name);
       expect(found).to.equal(undefined);
       const op = {
         name: 'add',
         target: newState,
       } as AddOperation<WorkflowState>;
       await res.update({ key: 'states' }, op);
-      found = res.data.states.find((item) => item.name === newState.name);
+      found = res.data?.states.find((item) => item.name === newState.name);
       expect(found).to.not.equal(undefined);
     });
     it('update workflow - add transition', async () => {
@@ -2468,7 +2468,7 @@ describe('resources', function () {
         fromState: ['*'],
         toState: 'OrphanState',
       };
-      let found = res.data.transitions.find(
+      let found = res.data?.transitions.find(
         (item) => item.name === newTransition.name,
       );
       expect(found).to.equal(undefined);
@@ -2477,7 +2477,7 @@ describe('resources', function () {
         target: newTransition,
       } as AddOperation<WorkflowState>;
       await res.update({ key: 'transitions' }, op);
-      found = res.data.transitions.find(
+      found = res.data?.transitions.find(
         (item) => item.name === newTransition.name,
       );
       expect(found).to.not.equal(undefined);
@@ -2488,7 +2488,7 @@ describe('resources', function () {
         resourceName('decision/workflows/newWF'),
       );
       const expectedItem = { name: 'ReallyDeprecated', category: 'closed' };
-      let found = res.data.states.find(
+      let found = res.data?.states.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2497,7 +2497,7 @@ describe('resources', function () {
         target: expectedItem,
       } as RemoveOperation<WorkflowState>;
       await res.update({ key: 'states' }, op);
-      found = res.data.states.find((item) => item.name === expectedItem.name);
+      found = res.data?.states.find((item) => item.name === expectedItem.name);
       expect(found).to.equal(undefined);
     });
     it('update workflow - remove transition', async () => {
@@ -2510,7 +2510,7 @@ describe('resources', function () {
         fromState: ['Draft'],
         toState: 'Approved',
       };
-      let found = res.data.transitions.find(
+      let found = res.data?.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).not.to.equal(undefined);
@@ -2519,7 +2519,7 @@ describe('resources', function () {
         target: expectedItem,
       } as RemoveOperation<WorkflowTransition>;
       await res.update({ key: 'transitions' }, op);
-      found = res.data.transitions.find(
+      found = res.data?.transitions.find(
         (item) => item.name === expectedItem.name,
       );
       expect(found).to.equal(undefined);
