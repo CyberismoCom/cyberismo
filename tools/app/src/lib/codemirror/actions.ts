@@ -12,7 +12,7 @@
 */
 
 import { EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import type { EditorView } from '@codemirror/view';
 import { redo, undo } from '@codemirror/commands';
 import i18n from 'i18next';
 
@@ -170,7 +170,7 @@ const transformToList = (
       if (trimmed.startsWith(markerWithSpace)) {
         return line;
       }
-      const withoutExistingMarker = trimmed.replace(/^([*\.]\s+)/, '');
+      const withoutExistingMarker = trimmed.replace(/^([*.]\s+)/, '');
       return `${leadingWhitespace}${markerWithSpace}${withoutExistingMarker}`;
     })
     .join('\n');

@@ -20,9 +20,9 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import HighlightIcon from '@mui/icons-material/Highlight';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import { EditorView } from '@codemirror/view';
 import { asciiDocToolbarActions } from '@/lib/codemirror/actions';
 import { useTranslation } from 'react-i18next';
+import type { EditorView } from '@codemirror/view';
 
 export interface AsciiDocToolbarProps {
   view: EditorView | null;
