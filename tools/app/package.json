@@ -19,7 +19,9 @@
   },
   "devDependencies": {
     "@asciidoctor/core": "^3.0.4",
+    "@codemirror/commands": "^6.9.0",
     "@codemirror/language": "^6.11.3",
+    "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.2",
     "@cyberismo/data-handler": "workspace:*",
     "@mui/icons-material": "^7.3.2",
