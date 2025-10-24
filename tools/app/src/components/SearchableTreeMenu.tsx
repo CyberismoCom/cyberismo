@@ -1,6 +1,6 @@
 /**
   Cyberismo
-  Copyright © Cyberismo Ltd and contributors 2024
+  Copyright © Cyberismo Ltd and contributors 2025
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation.
@@ -14,9 +14,11 @@
 import { useState, useMemo } from 'react';
 import { NodeApi } from 'react-arborist';
 import { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { Input, Stack } from '@mui/joy';
+import { Input, Stack, IconButton } from '@mui/joy';
 import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 import { TreeMenu } from './TreeMenu';
+import { useTranslation } from 'react-i18next';
 
 type SearchableTreeMenuProps = {
   title?: string;
@@ -33,12 +35,18 @@ export const SearchableTreeMenu = ({
   onCardSelect,
   tree,
 }: SearchableTreeMenuProps) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Prevent global keyboard shortcuts from firing when typing in search
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Stop propagation AND prevent default to block global shortcuts
-    // This is critical for single-key shortcuts like 'c', 'e', 'home'
+  const handleClearSearch = () => {
+    setSearchQuery('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      handleClearSearch();
+    }
+    // Stop propagation to prevent global keyboard shortcuts
     e.stopPropagation();
   };
 
@@ -80,15 +88,27 @@ export const SearchableTreeMenu = ({
       {/* Search input */}
       <Stack px={2} pt={2} pb={1}>
         <Input
-          placeholder="Search cards..."
+          placeholder={t('searchCards')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
+          onKeyDown={handleKeyDown}
           startDecorator={<SearchIcon />}
+          endDecorator={
+            searchQuery && (
+              <IconButton
+                size="sm"
+                variant="plain"
+                color="neutral"
+                onClick={handleClearSearch}
+                sx={{ minHeight: 0, minWidth: 0, padding: '2px' }}
+              >
+                <CloseIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+            )
+          }
           size="sm"
           sx={{
             bgcolor: 'transparent',
-            '--Input-focusedThickness': '2px',
           }}
         />
       </Stack>

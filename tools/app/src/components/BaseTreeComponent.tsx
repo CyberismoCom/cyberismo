@@ -50,11 +50,9 @@ export function BaseTreeComponent<T>({
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
 
   useEffect(() => {
-    if (selectedId) {
-      const tree = treeRef.current as unknown as TreeApi<T>;
-      if (tree) {
-        tree.select(selectedId);
-      }
+    const tree = treeRef.current as unknown as TreeApi<T> | null;
+    if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
+      tree.select(selectedId);
     }
   }, [selectedId, data]);
 
