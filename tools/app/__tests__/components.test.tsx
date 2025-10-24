@@ -40,7 +40,14 @@ vi.mock('@/lib/utils', async () => {
 
 vi.mock('react-i18next', () => ({
   useTranslation: vi.fn(() => ({
-    t: vi.fn((str, args) => (args ? `${str} ${JSON.stringify(args)}` : str)),
+    t: vi.fn((str, args) => {
+      // Map common translation keys to their English values
+      const translations: Record<string, string> = {
+        searchCards: 'Search cards',
+      };
+      const translated = translations[str] || str;
+      return args ? `${translated} ${JSON.stringify(args)}` : translated;
+    }),
   })),
 }));
 
@@ -447,7 +454,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
     expect(searchInput).toBeInTheDocument();
 
     const heading = screen.getByText('SDL Decision');
@@ -466,7 +473,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Search for "demand" (case-insensitive)
     fireEvent.change(searchInput, { target: { value: 'demand' } });
@@ -490,7 +497,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Search for "Threat model" (nested child)
     fireEvent.change(searchInput, { target: { value: 'threat' } });
@@ -536,7 +543,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Search for non-existent term
     fireEvent.change(searchInput, { target: { value: 'nonexistent123' } });
@@ -559,7 +566,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Create a spy for stopPropagation
     const keyDownEvent = new KeyboardEvent('keydown', {
@@ -642,7 +649,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Search with only whitespace
     fireEvent.change(searchInput, { target: { value: '   ' } });
@@ -663,7 +670,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // Search for "sdl project"
     fireEvent.change(searchInput, { target: { value: 'sdl project' } });
@@ -684,7 +691,7 @@ describe('SearchableTreeMenu', () => {
       </BrowserRouter>,
     );
 
-    const searchInput = screen.getByPlaceholderText('Search cards...');
+    const searchInput = screen.getByPlaceholderText('Search cards');
 
     // First search
     fireEvent.change(searchInput, { target: { value: 'demand' } });
