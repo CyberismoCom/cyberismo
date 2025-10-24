@@ -32,7 +32,6 @@ import {
   resourceNameToString,
 } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
-import { Template } from '../containers/template.js';
 
 export {
   type AddOperation,
@@ -72,9 +71,9 @@ export abstract class FileResource<
       cardTypeName,
     );
     // ... and cards from each template that would be affected.
-    const templates = await this.project.templates(ResourcesFrom.localOnly);
+    const templates = this.project.templates(ResourcesFrom.localOnly);
     const templateCards = templates.map((template) => {
-      const templateObject = new Template(this.project, template);
+      const templateObject = template.templateObject();
       return filteredCards(templateObject.cards(), cardTypeName);
     });
     // Return all affected cards
@@ -98,7 +97,6 @@ export abstract class FileResource<
   /**
    * Returns the resource metadata content.
    * @returns metadata content
-   * @throws if resource does not exist.
    */
   public async show(): Promise<ShowReturnType<T>> {
     this.assertResourceExists();

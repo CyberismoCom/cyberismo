@@ -246,8 +246,8 @@ describe('remove command', () => {
     it('remove report (success)', async () => {
       // First create a report, then remove it
       const name = 'testForCreation';
-      await commandHandler.command(Cmd.create, ['report', name], options);
       const report = `decision/reports/${name}`;
+      await commandHandler.command(Cmd.create, ['report', name], options);
       const result = await commandHandler.command(
         Cmd.remove,
         ['report', report],

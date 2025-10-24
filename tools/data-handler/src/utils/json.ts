@@ -85,10 +85,8 @@ export function trimReplacer(_: string, value: unknown) {
 
 /**
  * Format an object with JSON.stringify
- *
  * The purpose of this function is to format the JSON output in a centralised function
  * so that the format can be controlled in a single location.
- *
  * @param json JSON object to format.
  * @returns Formatted JSON string
  */
@@ -101,7 +99,7 @@ export function formatJson(json: object) {
  * @param filename file name (and path) to write.
  * @param json JSON object to format.
  * @param options Optional, write options
- * @return true if write succeeded, false otherwise.
+ * @returns true if write succeeded, false otherwise.
  */
 export async function writeJsonFile(
   filename: string | FileHandle,

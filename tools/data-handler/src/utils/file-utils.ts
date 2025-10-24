@@ -27,6 +27,9 @@ import { homedir } from 'node:os';
 /**
  * Works like the writeFile method, but ensures that the directory exists
  * There is only one difference: This method only supports a string as the filePath
+ * @param filePath Where to write.
+ * @param data Data to write into a file.
+ * @param options File write options.
  */
 export async function writeFileSafe(
   filePath: string,

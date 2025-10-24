@@ -18,8 +18,6 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import { validateJson } from '../../utils/validate.js';
 import type TaskQueue from '../task-queue.js';
-import { ReportResource } from '../../resources/report-resource.js';
-import { resourceName } from '../../utils/resource-utils.js';
 import { generateReportContent } from '../../utils/report.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 
@@ -37,10 +35,7 @@ class ReportMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const resource = new ReportResource(
-      context.project,
-      resourceName(options.name),
-    );
+    const resource = context.project.resourceByType(options.name, 'reports');
     const report = await resource.show();
 
     if (!report) throw new Error(`Report ${options.name} does not exist`);

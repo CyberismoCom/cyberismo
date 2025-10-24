@@ -770,7 +770,10 @@ export class Commands {
           payload: this.commands!.showCmd.showHubs(),
         };
       case 'modules':
-        promise = this.commands!.showCmd.showModules();
+        return {
+          statusCode: 200,
+          payload: this.commands!.showCmd.showModules(),
+        };
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();

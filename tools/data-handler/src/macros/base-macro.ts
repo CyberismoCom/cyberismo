@@ -117,6 +117,8 @@ abstract class BaseMacro {
 
   /**
    * Function responsible for starting the promise and storing it along with its localId.
+   * @param context Context in which this macro is run in
+   * @param options Options for handlebar
    */
   public invokeMacro = (
     context: MacroGenerationContext,
