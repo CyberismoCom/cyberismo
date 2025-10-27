@@ -21,7 +21,7 @@
   "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
   "type": "module",
   "devDependencies": {
-    "esbuild": "^0.25.9",
+    "esbuild": "^0.25.11",
     "esbuild-plugin-import-glob": "^0.1.1"
   },
   "files": [
