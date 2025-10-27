@@ -15,7 +15,7 @@
     "chai": "^6.2.0",
     "chai-as-promised": "^8.0.2",
     "chokidar-cli": "^3.0.0",
-    "cross-env": "^10.0.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.38.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-promise": "^7.2.1",
