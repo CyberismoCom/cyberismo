@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState, useMemo } from 'react';
-import { NodeApi } from 'react-arborist';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { useState, useMemo, useCallback } from 'react';
+import type { NodeApi } from 'react-arborist';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { Input, Stack, IconButton } from '@mui/joy';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
@@ -51,36 +51,36 @@ export const SearchableTreeMenu = ({
   };
 
   // Recursively filter tree nodes based on search query
-  const filterTree = (
-    nodes: QueryResult<'tree'>[],
-    query: string,
-  ): QueryResult<'tree'>[] => {
-    if (!query.trim()) return nodes;
+  const filterTree = useCallback(
+    (nodes: QueryResult<'tree'>[], query: string): QueryResult<'tree'>[] => {
+      if (!query.trim()) return nodes;
 
-    const lowerQuery = query.toLowerCase();
+      const lowerQuery = query.toLowerCase();
 
-    return nodes.reduce<QueryResult<'tree'>[]>((acc, node) => {
-      const titleMatches = node.title?.toLowerCase().includes(lowerQuery);
-      const filteredChildren = node.children
-        ? filterTree(node.children, query)
-        : [];
+      return nodes.reduce<QueryResult<'tree'>[]>((acc, node) => {
+        const titleMatches = node.title?.toLowerCase().includes(lowerQuery);
+        const filteredChildren = node.children
+          ? filterTree(node.children, query)
+          : [];
 
-      // Include node if title matches or any descendant matches
-      if (titleMatches || filteredChildren.length > 0) {
-        acc.push({
-          ...node,
-          children:
-            filteredChildren.length > 0 ? filteredChildren : node.children,
-        });
-      }
+        // Include node if title matches or any descendant matches
+        if (titleMatches || filteredChildren.length > 0) {
+          acc.push({
+            ...node,
+            children:
+              filteredChildren.length > 0 ? filteredChildren : node.children,
+          });
+        }
 
-      return acc;
-    }, []);
-  };
+        return acc;
+      }, []);
+    },
+    [],
+  );
 
   const filteredTree = useMemo(
     () => filterTree(tree, searchQuery),
-    [tree, searchQuery],
+    [tree, searchQuery, filterTree],
   );
 
   return (
