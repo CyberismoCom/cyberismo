@@ -180,7 +180,7 @@ export class CardCache {
   }
 
   // Populates the cache from the given array of cards
-  private populateFromCards(cards: CachedCard[]) {
+  private populateFromCards(cards: CachedCard[], buildRelationships = true) {
     const newMap = new Map(
       cards?.map((card): [string, CachedCard] => {
         return [card.key, card];
@@ -199,7 +199,9 @@ export class CardCache {
       throw new Error(`Duplicate card keys found: ${duplicates}`);
     }
 
-    this.populateChildrenRelationships();
+    if (buildRelationships) {
+      this.populateChildrenRelationships();
+    }
     this.cachePopulated = true;
     CardCache.logger.info(`Card cache populated`);
   }
@@ -397,10 +399,11 @@ export class CardCache {
   /**
    * Populates the cache from a given path
    * @param path File system path where the cache should be built from.
+   * @param buildRelationships Whether to build parent-child relationships immediately
    */
-  public async populateFromPath(path: string) {
+  public async populateFromPath(path: string, buildRelationships = true) {
     const cards = await this.fetchFileEntries(path);
-    this.populateFromCards(cards);
+    this.populateFromCards(cards, buildRelationships);
   }
 
   /**
