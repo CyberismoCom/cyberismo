@@ -26,8 +26,8 @@ import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api/resources';
 import { MacroModal } from '../shared/MacroModal';
 import { collectResourceNodes } from '../shared/hooks';
-import { DEFAULT_GRAPH_FORM_VALUES, OnInsert } from '../shared/types';
-import { GraphOptions } from '@cyberismo/data-handler';
+import { DEFAULT_GRAPH_FORM_VALUES, type OnInsert } from '../shared/types';
+import type { GraphOptions } from '@cyberismo/data-handler';
 
 export interface GraphMacroModalProps {
   open: boolean;
