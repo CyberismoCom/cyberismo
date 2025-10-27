@@ -31,7 +31,8 @@ import { useTranslation } from 'react-i18next';
 import type { IncludeMacroOptions } from '@cyberismo/data-handler';
 import { MacroModal } from '../shared/MacroModal';
 import { useCardOptions } from '../shared/hooks';
-import { DEFAULT_INCLUDE_FORM_VALUES, OnInsert } from '../shared/types';
+import type { OnInsert } from '../shared/types';
+import { DEFAULT_INCLUDE_FORM_VALUES } from '../shared/types';
 
 export interface IncludeMacroModalProps {
   open: boolean;
