@@ -1,8 +1,6 @@
 import { expect, test, beforeEach, afterEach } from 'vitest';
 import { createApp } from '../src/app.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 
 let app: ReturnType<typeof createApp>;
 let tempTestDataPath: string;
