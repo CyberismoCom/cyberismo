@@ -178,7 +178,6 @@ export class Commands {
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
     }
-    await this.commands.initialize();
   }
 
   // Handles actual command. Sets returns values correctly.
