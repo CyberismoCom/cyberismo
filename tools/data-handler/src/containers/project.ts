@@ -256,7 +256,7 @@ export class Project extends CardContainer {
       // Gets local & module templates
       const templateResources = await this.templates();
       const prefixes = await this.projectPrefixes();
-      for (const template of templateResources) {
+      const loadPromises = templateResources.map(async (template) => {
         try {
           this.validator.validResourceName(
             'templates',
@@ -268,7 +268,7 @@ export class Project extends CardContainer {
             { templateName: template.name, error },
             `Template name '${template.name}' does not follow required format, skipping`,
           );
-          continue;
+          return;
         }
 
         const templateResource = new TemplateResource(
@@ -279,13 +279,19 @@ export class Project extends CardContainer {
         const templateObject = templateResource.templateObject();
         const isCreated = templateObject && templateObject.isCreated();
         if (!templateObject || !isCreated) {
-          continue;
+          return;
         }
 
         await this.cardCache.populateFromPath(
           templateObject.templateCardsFolder(),
+          false,
         );
-      }
+      });
+
+      await Promise.all(loadPromises);
+
+      // Once all templates have been fetched, build child-parent relationships.
+      this.cardCache.populateChildrenRelationships();
     } catch (error) {
       this.logger.error(
         { error },
