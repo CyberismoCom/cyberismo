@@ -12,22 +12,11 @@
 
 import { createHtmlPlaceholder, validateMacroContent } from '../index.js';
 
+import type { CreateCardsOptions } from './types.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
-
-export interface CreateCardsOptions {
-  buttonLabel: string;
-  template: string;
-  cardKey?: string;
-  link?: {
-    linkType: string;
-    direction: string;
-    cardKey: string;
-  };
-  [key: string]: string | undefined | { [key: string]: string | undefined };
-}
 
 class CreateCardsMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

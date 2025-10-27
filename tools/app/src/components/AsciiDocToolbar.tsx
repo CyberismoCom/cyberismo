@@ -1,36 +1,71 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2025
+
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
-  the Free Software Foundation.
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
-  details. You should have received a copy of the GNU Affero General Public
+  the Free Software Foundation. This program is distributed in the hope that it
+  will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+  of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+  You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Divider, IconButton, Stack, Tooltip, Typography } from '@mui/joy';
-import UndoIcon from '@mui/icons-material/Undo';
-import RedoIcon from '@mui/icons-material/Redo';
-import FormatBoldIcon from '@mui/icons-material/FormatBold';
-import FormatItalicIcon from '@mui/icons-material/FormatItalic';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
-import HighlightIcon from '@mui/icons-material/Highlight';
-import ViewListIcon from '@mui/icons-material/ViewList';
+import {
+  Divider,
+  Dropdown,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/joy';
 import { asciiDocToolbarActions } from '@/lib/codemirror/actions';
 import { useTranslation } from 'react-i18next';
 import type { EditorView } from '@codemirror/view';
+import {
+  Add,
+  FormatBold,
+  FormatItalic,
+  FormatListBulleted,
+  FormatListNumbered,
+  Highlight,
+  Redo,
+  Undo,
+  ViewList,
+} from '@mui/icons-material';
+import {
+  IncludeMacroModal,
+  XrefMacroModal,
+  ReportMacroModal,
+  GraphMacroModal,
+  CreateCardsMacroModal,
+} from './macro-editors';
+import { useModals } from '@/lib/utils';
 
 export interface AsciiDocToolbarProps {
   view: EditorView | null;
   readOnly?: boolean;
+  showMacroHelpers?: boolean;
 }
 
-export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
+export function AsciiDocToolbar({
+  view,
+  readOnly = false,
+  showMacroHelpers = true,
+}: AsciiDocToolbarProps) {
   const { t } = useTranslation();
+
+  const { modalOpen, openModal, closeModal } = useModals({
+    include: false,
+    xref: false,
+    createCards: false,
+    report: false,
+    graph: false,
+  });
 
   return (
     <Stack
@@ -44,22 +79,20 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
     >
       <Tooltip title={t('asciiDocEditor.toolbar.undo')}>
         <IconButton onClick={() => asciiDocToolbarActions.undo(view, readOnly)}>
-          <UndoIcon color="action" />
+          <Undo color="action" />
         </IconButton>
       </Tooltip>
       <Tooltip title={t('asciiDocEditor.toolbar.redo')}>
         <IconButton onClick={() => asciiDocToolbarActions.redo(view, readOnly)}>
-          <RedoIcon color="action" />
+          <Redo color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       {[1, 2, 3].map((level) => (
         <Tooltip
           key={level}
@@ -67,7 +100,7 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
         >
           <IconButton
             onClick={() =>
-              asciiDocToolbarActions.heading(view, level as 1 | 2 | 3, readOnly)
+              asciiDocToolbarActions.heading(view, readOnly, level as 1 | 2 | 3)
             }
           >
             <Typography color="neutral" fontWeight={800}>
@@ -76,73 +109,165 @@ export function AsciiDocToolbar({ view, readOnly }: AsciiDocToolbarProps) {
           </IconButton>
         </Tooltip>
       ))}
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.bulletedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.bulletedList(view, readOnly)}
         >
-          <FormatListBulletedIcon color="action" />
+          <FormatListBulleted color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.numberedList')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.numberedList(view, readOnly)}
         >
-          <FormatListNumberedIcon color="action" />
+          <FormatListNumbered color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.bold')}>
         <IconButton onClick={() => asciiDocToolbarActions.bold(view, readOnly)}>
-          <FormatBoldIcon color="action" />
+          <FormatBold color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.italic')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.italic(view, readOnly)}
         >
-          <FormatItalicIcon color="action" />
+          <FormatItalic color="action" />
         </IconButton>
       </Tooltip>
-
       <Tooltip title={t('asciiDocEditor.toolbar.highlight')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.highlight(view, readOnly)}
         >
-          <HighlightIcon color="action" />
+          <Highlight color="action" />
         </IconButton>
       </Tooltip>
-
       <Divider
         orientation="vertical"
         sx={{
           my: 1,
         }}
       />
-
       <Tooltip title={t('asciiDocEditor.toolbar.insertTable')}>
         <IconButton
           onClick={() => asciiDocToolbarActions.table(view, readOnly)}
         >
-          <ViewListIcon color="action" />
+          <ViewList color="action" />
         </IconButton>
       </Tooltip>
+      <Divider
+        orientation="vertical"
+        sx={{
+          my: 1,
+        }}
+      />
+      {showMacroHelpers && (
+        <>
+          <Dropdown>
+            <MenuButton
+              variant="soft"
+              color="primary"
+              size="sm"
+              disabled={readOnly}
+              sx={{
+                py: 0,
+                px: 0.75,
+              }}
+            >
+              <Add fontSize="medium" />
+            </MenuButton>
+            <Menu>
+              <MenuItem onClick={openModal('include')}>
+                {t('asciiDocEditor.toolbar.macros.include')}
+              </MenuItem>
+              <MenuItem onClick={openModal('xref')}>
+                {t('asciiDocEditor.toolbar.macros.xref')}
+              </MenuItem>
+              <MenuItem onClick={openModal('createCards')}>
+                {t('asciiDocEditor.toolbar.macros.createCards')}
+              </MenuItem>
+              <MenuItem onClick={openModal('report')}>
+                {t('asciiDocEditor.toolbar.macros.report')}
+              </MenuItem>
+              <MenuItem onClick={openModal('graph')}>
+                {t('asciiDocEditor.toolbar.macros.graph')}
+              </MenuItem>
+            </Menu>
+          </Dropdown>
+          <IncludeMacroModal
+            open={modalOpen.include}
+            onClose={closeModal('include')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'include',
+                options,
+              )
+            }
+          />
+          <XrefMacroModal
+            open={modalOpen.xref}
+            onClose={closeModal('xref')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'xref',
+                options,
+              )
+            }
+          />
+          <CreateCardsMacroModal
+            open={modalOpen.createCards}
+            onClose={closeModal('createCards')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'createCards',
+                options,
+              )
+            }
+          />
+          <ReportMacroModal
+            open={modalOpen.report}
+            onClose={closeModal('report')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'report',
+                options,
+              )
+            }
+          />
+          <GraphMacroModal
+            open={modalOpen.graph}
+            onClose={closeModal('graph')}
+            onInsert={(options) =>
+              asciiDocToolbarActions.insertMacro(
+                view,
+                readOnly,
+                'graph',
+                options,
+              )
+            }
+          />
+        </>
+      )}
     </Stack>
   );
 }

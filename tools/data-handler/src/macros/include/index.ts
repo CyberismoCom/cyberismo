@@ -13,18 +13,12 @@
 
 import { evaluateMacros, validateMacroContent } from '../index.js';
 
+import type { IncludeMacroOptions } from './types.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
-
-export interface IncludeMacroOptions {
-  cardKey: string;
-  levelOffset?: string;
-  title?: 'include' | 'exclude' | 'only';
-  pageTitles?: 'normal' | 'discrete';
-}
 
 export default class IncludeMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
