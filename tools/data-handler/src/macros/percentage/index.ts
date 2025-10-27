@@ -15,16 +15,10 @@ import { createImage, validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
+import type { PercentageOptions } from './types.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { percentage } from '../../svg/index.js';
-
-export interface PercentageOptions {
-  title: string;
-  value: number;
-  legend: string;
-  colour?: 'blue' | 'green' | 'yellow' | 'red' | 'orange' | 'purple';
-}
 
 class PercentageMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

@@ -25,7 +25,7 @@ export interface MacroGenerationContext {
   maxTries?: number;
 }
 
-export interface MacroMetadata {
+type MacroMetadataInternal = {
   /**
    * The name of the macro. This is the name that will be used in the content
    */
@@ -39,7 +39,13 @@ export interface MacroMetadata {
    * The schema of the macro. This is used to validate the data passed to the macro
    */
   schema?: string;
-}
+};
+
+export type MacroMetadata<T = undefined> = T extends undefined
+  ? MacroMetadataInternal
+  : MacroMetadataInternal & {
+      default: T;
+    };
 
 export interface MacroTaskState {
   globalId: string;
@@ -59,3 +65,5 @@ export interface HandlebarsOptions {
 }
 
 export type MacroName = keyof typeof macroMetadata;
+
+export * from '../macros/types.js';
