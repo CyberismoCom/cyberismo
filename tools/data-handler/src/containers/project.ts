@@ -412,10 +412,15 @@ export class Project extends CardContainer {
     if (Buffer.isBuffer(attachmentData)) {
       await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
     } else {
-      if (!pathExists(attachmentData)) {
+      try {
+        await copyFile(
+          attachmentData,
+          attachmentPath,
+          fsConstants.COPYFILE_EXCL,
+        );
+      } catch {
         throw new Error(`Attachment file not found: ${attachmentData}`);
       }
-      await copyFile(attachmentData, attachmentPath, fsConstants.COPYFILE_EXCL);
     }
 
     // Update cache
@@ -445,12 +450,12 @@ export class Project extends CardContainer {
 
     const attachmentPath = join(attachmentFolder, fileName);
 
-    if (!pathExists(attachmentPath)) {
+    try {
+      await unlink(attachmentPath);
+      await this.handleAttachmentChange(cardKey, 'removed', fileName);
+    } catch {
       throw new Error(`Attachment not found: ${fileName}`);
     }
-
-    await unlink(attachmentPath);
-    await this.handleAttachmentChange(cardKey, 'removed', fileName);
   }
 
   /**

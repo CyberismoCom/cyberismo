@@ -12,15 +12,13 @@
 */
 
 // node
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
 import { MODULE_LIST_FULL_PATH } from './fetch.js';
-
-import mime from 'mime-types';
 
 import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type {
@@ -166,22 +164,15 @@ export class Show {
 
     const attachment = this.getAttachment(cardKey, filename);
 
-    let attachmentPath: string = '';
-    if (attachment) {
-      attachmentPath = `${attachment.path}/${attachment.fileName}`;
+    if (!attachment) {
+      throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
     }
 
-    if (!attachment || !existsSync(attachmentPath)) {
-      throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
-    } else {
-      const fileBuffer = readFileSync(attachmentPath);
-      let mimeType = mime.lookup(attachmentPath);
-      if (mimeType === false) {
-        mimeType = 'application/octet-stream';
-      }
-      const payload: attachmentPayload = { fileBuffer, mimeType };
-      return payload;
-    }
+    const attachmentPath = `${attachment.path}/${attachment.fileName}`;
+    const fileBuffer = readFileSync(attachmentPath);
+    const mimeType = attachment.mimeType || 'application/octet-stream';
+    const payload: attachmentPayload = { fileBuffer, mimeType };
+    return payload;
   }
 
   /**
