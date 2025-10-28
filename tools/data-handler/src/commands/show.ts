@@ -125,24 +125,6 @@ export class Show {
   public async showAllTemplateCards(): Promise<
     { name: string; cards: CardWithChildrenCards[] }[]
   > {
-    function cardWithChildrenCards(cards: Card[]): CardWithChildrenCards[] {
-      const cardMap = new Map(cards.map((card) => [card.key, card]));
-
-      function convert(card: Card): CardWithChildrenCards {
-        const childrenCards = card.children.map((childKey) => {
-          const childCard = cardMap.get(childKey)!;
-          return convert(childCard);
-        });
-
-        return {
-          ...card,
-          childrenCards,
-        };
-      }
-
-      return cards.map(convert);
-    }
-
     return Promise.all(
       (await this.project.templates()).map((template) => {
         const templateResource = new TemplateResource(
@@ -150,7 +132,7 @@ export class Show {
           resourceName(template.name),
         );
         const cards = templateResource.templateObject().listCards();
-        const buildCards = cardWithChildrenCards(buildCardHierarchy(cards));
+        const buildCards = buildCardHierarchy(cards);
 
         return {
           name: template.name,

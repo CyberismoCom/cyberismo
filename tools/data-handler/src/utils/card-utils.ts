@@ -14,28 +14,60 @@
 import { sep } from 'node:path';
 import { CARD_KEY_SEPARATOR, ROOT } from './constants.js';
 
-import type { Card } from '../interfaces/project-interfaces.js';
+import type {
+  Card,
+  CardWithChildrenCards,
+} from '../interfaces/project-interfaces.js';
 import type { Project } from '../resources/folder-resource.js';
 
 /**
- * Builds card hierarchy from flat card list.
+ * Builds card hierarchy from flat card list with nested card objects.
+ * This converts the cards hierarchy (where children are string[]) to
+ * CardWithChildrenCards[] (where children are Card[]).
  * @param flatCards Cards in a flat array.
- * @returns Cards in hierarchical array
+ * @returns Cards in hierarchical array with nested card objects
  */
-export const buildCardHierarchy = (flatCards: Card[]): Card[] => {
-  const cardMap = new Map(
-    flatCards.map((card) => [card.key, { ...card, children: [] as string[] }]),
-  );
-  const rootCards: Card[] = [];
-  cardMap.forEach((card) => {
-    if (card.parent && cardMap.has(card.parent)) {
-      cardMap.get(card.parent)!.children.push(card.key);
-    } else {
-      rootCards.push(card);
-    }
-  });
+export const buildCardHierarchy = (
+  flatCards: Card[],
+): CardWithChildrenCards[] => {
+  const cardMap = new Map(flatCards.map((card) => [card.key, card]));
 
-  return rootCards;
+  // Helper to get cards as a map
+  function cards(flatCards: Card[]) {
+    const cardMap = new Map(
+      flatCards.map((card) => [
+        card.key,
+        { ...card, children: [] as string[] },
+      ]),
+    );
+
+    const rootCards: Card[] = [];
+    cardMap.forEach((card) => {
+      if (card.parent && cardMap.has(card.parent)) {
+        cardMap.get(card.parent)!.children.push(card.key);
+      } else {
+        rootCards.push(card);
+      }
+    });
+
+    return rootCards;
+  }
+
+  // Helper to convert from string[] => Card[] children
+  function convert(card: Card): CardWithChildrenCards {
+    const childrenCards = card.children.map((childKey) => {
+      const childCard = cardMap.get(childKey)!;
+      return convert(childCard);
+    });
+
+    return {
+      ...card,
+      childrenCards,
+    };
+  }
+
+  const rootCards = cards(flatCards);
+  return rootCards.map(convert);
 };
 
 /**

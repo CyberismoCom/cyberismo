@@ -995,4 +995,35 @@ describe('show', () => {
         ),
       );
   });
+
+  it('showAllTemplateCards shall provide a hierarchical array', async () => {
+    const results = await showCmd.showAllTemplateCards();
+    expect(results).to.not.equal(undefined);
+    expect(results.length).to.be.greaterThan(0);
+
+    const templateWithCards = results.find((t) => t.cards.length > 0);
+    if (templateWithCards && templateWithCards.cards.length > 0) {
+      const verifyCardStructure = (
+        card: { key: string; childrenCards?: unknown[] },
+        depth: number = 0,
+      ) => {
+        expect(card).to.have.property('key');
+        expect(card).to.have.property('childrenCards');
+        expect(Array.isArray(card.childrenCards)).to.equal(true);
+
+        if (card.childrenCards && card.childrenCards.length > 0) {
+          card.childrenCards.forEach((child) => {
+            verifyCardStructure(
+              child as { key: string; childrenCards?: unknown[] },
+              depth + 1,
+            );
+          });
+        }
+      };
+
+      templateWithCards.cards.forEach((card) => {
+        verifyCardStructure(card);
+      });
+    }
+  });
 });

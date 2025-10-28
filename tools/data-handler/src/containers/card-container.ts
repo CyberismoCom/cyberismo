@@ -233,9 +233,9 @@ export class CardContainer {
   }
 
   /**
-   * Show cards with hierarchy structure from a given path.
+   * Show root cards from a given path.
    * @param path The path to get cards from
-   * @returns an array of cards with proper parent-child relationships.
+   * @returns an array of root-level cards (each with their children populated).
    */
   protected showCards(path: string): Card[] {
     const container = this.determineContainer(path);
