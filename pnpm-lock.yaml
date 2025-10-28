@@ -238,8 +238,8 @@ importers:
         specifier: ^1.19.2
         version: 1.19.2(hono@4.10.3)
       '@hono/zod-validator':
-        specifier: ^0.7.2
-        version: 0.7.2(hono@4.10.3)(zod@4.1.8)
+        specifier: ^0.7.4
+        version: 0.7.4(hono@4.10.3)(zod@4.1.8)
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -1045,8 +1045,8 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/zod-validator@0.7.2':
-    resolution: {integrity: sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==}
+  '@hono/zod-validator@0.7.4':
+    resolution: {integrity: sha512-biKGn3BRJVaftZlIPMyK+HCe/UHAjJ6sH0UyXe3+v0OcgVr9xfImDROTJFLtn9e3XEEAHGZIM9U6evu85abm8Q==}
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.25.0 || ^4.0.0
@@ -5759,7 +5759,7 @@ snapshots:
     dependencies:
       hono: 4.10.3
 
-  '@hono/zod-validator@0.7.2(hono@4.10.3)(zod@4.1.8)':
+  '@hono/zod-validator@0.7.4(hono@4.10.3)(zod@4.1.8)':
     dependencies:
       hono: 4.10.3
       zod: 4.1.8
