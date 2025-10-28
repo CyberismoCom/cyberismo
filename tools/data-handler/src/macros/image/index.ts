@@ -11,15 +11,14 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import mime from 'mime-types';
 
+import BaseMacro from '../base-macro.js';
+import macroMetadata from './metadata.js';
 import { validateMacroContent } from '../index.js';
 
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
-import macroMetadata from './metadata.js';
-import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 
 /**
@@ -40,65 +39,30 @@ export interface ImageMacroOptions {
  * Macro for including images in the content
  */
 export default class ImageMacro extends BaseMacro {
+  /**
+   * Constructs ImageMacro instance.
+   * @param tasksQueue Tasks queue
+   */
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
 
-  handleValidate = (_: MacroGenerationContext, input: unknown) => {
-    this.validate(input);
-  };
-
-  handleStatic = async (
+  // Gets card attachment.
+  private attachment(
     context: MacroGenerationContext,
-    input: unknown,
-  ): Promise<string> => {
-    const options = this.validate(input);
-    const cardKey = options.cardKey || context.cardKey;
-
-    // Get the attachment folder path
-    const attachmentFolder = context.project.cardAttachmentFolder(cardKey);
-
-    // Read the file and convert to base64
-    const attachmentPath = join(attachmentFolder, options.fileName);
-    if (!existsSync(attachmentPath)) {
+    cardKey: string,
+    filename: string,
+  ) {
+    const card = context.project.findCard(cardKey);
+    const attachment =
+      card.attachments?.find((a) => a.fileName === filename) ?? undefined;
+    if (!attachment) {
       throw new Error(
-        `Attachment file '${options.fileName}' not found in card '${cardKey}'`,
+        `Attachment file '${filename}' not found in card '${cardKey}'`,
       );
     }
-
-    const fileBuffer = readFileSync(attachmentPath);
-    const base64Data = fileBuffer.toString('base64');
-
-    // Get mime type
-    const mimeType = mime.lookup(attachmentPath) || 'application/octet-stream';
-
-    // Build image attributes
-    const attributes = this.buildImageAttributes(options);
-
-    // Return as data URI for static mode (for export/PDF generation)
-    return `image::data:${mimeType};base64,${base64Data}[${attributes}]`;
-  };
-
-  handleInject = async (context: MacroGenerationContext, input: unknown) => {
-    const options = this.validate(input);
-    const cardKey = options.cardKey || context.cardKey;
-
-    // Verify that the card and attachment folder exist
-    const attachmentFolder = context.project.cardAttachmentFolder(cardKey);
-
-    const attachmentPath = join(attachmentFolder, options.fileName);
-    if (!existsSync(attachmentPath)) {
-      throw new Error(
-        `Attachment file '${options.fileName}' not found in card '${cardKey}'`,
-      );
-    }
-
-    // Build image attributes
-    const attributes = this.buildImageAttributes(options);
-
-    // In inject mode, always use the API path for consistency
-    return `image::/api/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
-  };
+    return attachment;
+  }
 
   private buildImageAttributes(options: ImageMacroOptions): string {
     const attributes: string[] = [];
@@ -117,4 +81,44 @@ export default class ImageMacro extends BaseMacro {
   private validate(input: unknown): ImageMacroOptions {
     return validateMacroContent<ImageMacroOptions>(this.metadata, input);
   }
+
+  handleValidate = (_: MacroGenerationContext, input: unknown) => {
+    this.validate(input);
+  };
+
+  handleStatic = async (
+    context: MacroGenerationContext,
+    input: unknown,
+  ): Promise<string> => {
+    const options = this.validate(input);
+    const cardKey = options.cardKey || context.cardKey;
+
+    // Get the attachment
+    const cardAttachment = this.attachment(context, cardKey, options.fileName);
+
+    // Convert to base64
+    const attachmentPath = join(cardAttachment?.path, cardAttachment?.fileName);
+    const fileBuffer = readFileSync(attachmentPath);
+    const base64Data = fileBuffer.toString('base64');
+
+    // Build image attributes
+    const attributes = this.buildImageAttributes(options);
+
+    // Return as data URI for static mode (for export/PDF generation)
+    return `image::data:${cardAttachment.mimeType};base64,${base64Data}[${attributes}]`;
+  };
+
+  handleInject = async (context: MacroGenerationContext, input: unknown) => {
+    const options = this.validate(input);
+    const cardKey = options.cardKey || context.cardKey;
+
+    // Just verify that the attachment exists.
+    this.attachment(context, cardKey, options.fileName);
+
+    // Build image attributes
+    const attributes = this.buildImageAttributes(options);
+
+    // In inject mode, always use the API path for consistency
+    return `image::/api/cards/${cardKey}/a/${options.fileName}[${attributes}]`;
+  };
 }
