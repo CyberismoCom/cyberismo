@@ -13,7 +13,6 @@
 */
 
 import type { CardMetadata } from './interfaces/project-interfaces.js';
-import type { FieldType } from './interfaces/resource-interfaces.js';
 import { FieldTypeResource } from './resources/field-type-resource.js';
 import { getChildLogger } from './utils/log-utils.js';
 import type { Project } from './containers/project.js';
@@ -91,7 +90,7 @@ export class CardMetadataUpdater {
       return result;
     }
 
-    const fieldType = await project.resource<FieldType>(change.field);
+    const fieldType = project.resourceByType(change.field, 'fieldTypes').data;
     if (!fieldType) {
       result.success = false;
       result.errors.push(

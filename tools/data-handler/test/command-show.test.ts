@@ -11,7 +11,7 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/resources/file-resource.js';
-import { ReportResource } from '../src/resources/report-resource.js';
+import type { ReportResource } from '../src/resources/report-resource.js';
 import { Show } from '../src/commands/index.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
@@ -781,8 +781,8 @@ describe('show', () => {
         ),
       );
   });
-  it('showModules (success)', async () => {
-    const results = await showCmd.showModules();
+  it('showModules (success)', () => {
+    const results = showCmd.showModules();
     expect(results).to.not.equal(undefined);
   });
   it('showProject (success)', async () => {
@@ -805,12 +805,12 @@ describe('show', () => {
       );
   });
   it('showResource - template does not exist in project', async () => {
-    const templateName = 'i-do-not-exist';
+    const templateName = 'decision/templates/i-do-not-exist';
     await showCmd
       .showResource(templateName)
       .catch((error) =>
         expect(errorFunction(error)).to.equal(
-          `Name '${templateName}' is not valid resource name`,
+          `Template '${templateName}' does not exist in the project`,
         ),
       );
   });
@@ -945,13 +945,13 @@ describe('show', () => {
     );
   });
 
-  it('showFile (success)', async () => {
-    // TODO: Test to be renamed and moved to resource tests once showFile has been removed
-    const resourceNameStr = 'decision/reports/anotherReport';
-    const res = new ReportResource(
-      commands.project,
-      resourceName(resourceNameStr),
-    );
+  it('show content template (success)', async () => {
+    // TODO: should be moved to resource tests
+    const name = 'decision/reports/anotherReport';
+    const res = commands.project.resourceByType(
+      name,
+      'reports',
+    ) as ReportResource;
     const result = (await res.show()).content.contentTemplate;
     expect(result).to.not.equal(undefined);
     expect(result).to.be.a('string');

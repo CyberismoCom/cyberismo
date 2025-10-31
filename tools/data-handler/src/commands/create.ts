@@ -21,24 +21,10 @@ import { Validate } from './index.js';
 
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
 import { isModulePath } from '../utils/card-utils.js';
-import type {
-  DataType,
-  Link,
-  LinkType,
-} from '../interfaces/resource-interfaces.js';
+import type { DataType } from '../interfaces/resource-interfaces.js';
 import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { writeJsonFile } from '../utils/json.js';
-
-import { CalculationResource } from '../resources/calculation-resource.js';
-import { CardTypeResource } from '../resources/card-type-resource.js';
-import { FieldTypeResource } from '../resources/field-type-resource.js';
-import { GraphModelResource } from '../resources/graph-model-resource.js';
-import { GraphViewResource } from '../resources/graph-view-resource.js';
-import { LinkTypeResource } from '../resources/link-type-resource.js';
-import { ReportResource } from '../resources/report-resource.js';
-import { TemplateResource } from '../resources/template-resource.js';
-import { WorkflowResource } from '../resources/workflow-resource.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -107,9 +93,9 @@ export class Create {
     if (cardTypeName === undefined) {
       throw new Error(`Input validation error: card type cannot be empty`);
     }
-    const templateResource = new TemplateResource(
-      this.project,
-      resourceName(templateName),
+    const templateResource = this.project.resourceByType(
+      templateName,
+      'templates',
     );
     const templateObject = templateResource.templateObject();
     const specificCard = card ? templateObject.findCard(card) : undefined;
@@ -181,9 +167,9 @@ export class Create {
    * @param calculationName name for the calculation resource
    */
   public async createCalculation(calculationName: string) {
-    const calculation = new CalculationResource(
-      this.project,
-      resourceName(calculationName),
+    const calculation = this.project.resourceByType(
+      calculationName,
+      'calculations',
     );
     await calculation.create();
   }
@@ -198,9 +184,9 @@ export class Create {
     templateName: string,
     parentCardKey?: string,
   ): Promise<Card[]> {
-    const templateResource = new TemplateResource(
-      this.project,
-      resourceName(templateName),
+    const templateResource = this.project.resourceByType(
+      templateName,
+      'templates',
     );
 
     Validate.getInstance().validResourceName(
@@ -236,11 +222,7 @@ export class Create {
    * @param workflowName workflow name to use in the card type.
    */
   public async createCardType(cardTypeName: string, workflowName: string) {
-    const cardType = new CardTypeResource(
-      this.project,
-      resourceName(cardTypeName),
-    );
-
+    const cardType = this.project.resourceByType(cardTypeName, 'cardTypes');
     await cardType.createCardType(workflowName);
   }
 
@@ -250,10 +232,7 @@ export class Create {
    * @param dataType data type for the field type
    */
   public async createFieldType(fieldTypeName: string, dataType: DataType) {
-    const fieldType = new FieldTypeResource(
-      this.project,
-      resourceName(fieldTypeName),
-    );
+    const fieldType = this.project.resourceByType(fieldTypeName, 'fieldTypes');
     await fieldType.createFieldType(dataType);
   }
 
@@ -262,22 +241,19 @@ export class Create {
    * @param graphModelName name for the graph model.
    */
   public async createGraphModel(graphModelName: string) {
-    const graphModel = new GraphModelResource(
-      this.project,
-      resourceName(graphModelName),
+    const graphModel = this.project.resourceByType(
+      graphModelName,
+      'graphModels',
     );
     await graphModel.create();
   }
 
   /**
    * Creates a new graph view.
-   * @param graphModelName name for the graph view.
+   * @param graphViewName name for the graph view.
    */
   public async createGraphView(graphViewName: string) {
-    const graphView = new GraphViewResource(
-      this.project,
-      resourceName(graphViewName),
-    );
+    const graphView = this.project.resourceByType(graphViewName, 'graphViews');
     await graphView.create();
   }
 
@@ -307,10 +283,7 @@ export class Create {
    * @param linkTypeName name for the link type.
    */
   public async createLinkType(linkTypeName: string) {
-    const linkType = new LinkTypeResource(
-      this.project,
-      resourceName(linkTypeName),
-    );
+    const linkType = this.project.resourceByType(linkTypeName, 'linkTypes');
     await linkType.create();
   }
 
@@ -335,14 +308,14 @@ export class Create {
     const card = this.project.findCard(cardKey);
     const destinationCard = this.project.findCard(destinationCardKey);
     // make sure the link type exists
-    const linkTypeObject = this.project.resource<LinkType>(linkType);
-    if (!linkTypeObject) {
-      throw new Error(`Link type '${linkType}' does not exist in the project`);
-    }
+    const linkTypeObject = this.project.resourceByType(
+      linkType,
+      'linkTypes',
+    ).data;
 
     // make sure that if linkDescription is not enabled, linkDescription is not provided
     if (
-      !linkTypeObject.enableLinkDescription &&
+      !linkTypeObject?.enableLinkDescription &&
       linkDescription !== undefined
     ) {
       throw new Error(
@@ -353,8 +326,9 @@ export class Create {
     // make sure source card key exists in the link type sourceCardTypes
     // if sourceCardTypes is empty, any card can be linked
     if (
+      linkTypeObject &&
       linkTypeObject.sourceCardTypes.length > 0 &&
-      !linkTypeObject.sourceCardTypes.includes(card.metadata!.cardType)
+      !linkTypeObject?.sourceCardTypes.includes(card.metadata!.cardType)
     ) {
       throw new Error(
         `Card type '${card.metadata?.cardType}' cannot be linked with link type '${linkType}'`,
@@ -364,6 +338,7 @@ export class Create {
     // make sure destination card key exists in the link type destinationCardTypes
     // if destinationCardTypes is empty, any card can be linked
     if (
+      linkTypeObject &&
       linkTypeObject.destinationCardTypes.length > 0 &&
       !linkTypeObject.destinationCardTypes.includes(
         destinationCard.metadata!.cardType,
@@ -387,7 +362,7 @@ export class Create {
       );
     }
 
-    const links: Link[] = card.metadata?.links || [];
+    const links = card.metadata?.links || [];
     links.push({
       linkType,
       cardKey: destinationCardKey,
@@ -486,7 +461,7 @@ export class Create {
    * @param name name of the report
    */
   public async createReport(name: string) {
-    const report = new ReportResource(this.project, resourceName(name));
+    const report = this.project.resourceByType(name, 'reports');
     await report.createReport();
   }
 
@@ -496,11 +471,7 @@ export class Create {
    * @param templateContent JSON content for the template file.
    */
   public async createTemplate(templateName: string, templateContent: string) {
-    const template = new TemplateResource(
-      this.project,
-      resourceName(templateName),
-    );
-
+    const template = this.project.resourceByType(templateName, 'templates');
     await template.create(
       templateContent ? JSON.parse(templateContent) : undefined,
     );
@@ -512,11 +483,7 @@ export class Create {
    * @param workflowContent workflow content JSON
    */
   public async createWorkflow(workflowName: string, workflowContent: string) {
-    const workflow = new WorkflowResource(
-      this.project,
-      resourceName(workflowName),
-    );
-
+    const workflow = this.project.resourceByType(workflowName, 'workflows');
     await workflow.create(
       workflowContent ? JSON.parse(workflowContent) : undefined,
     );

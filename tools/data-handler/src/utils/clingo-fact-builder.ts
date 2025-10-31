@@ -1,17 +1,19 @@
+/**
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
+  This program is free software: you can redistribute it and/or modify it under
+  the terms of the GNU Affero General Public License version 3 as published by
+  the Free Software Foundation.
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+  FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+  details. You should have received a copy of the GNU Affero General Public
+  License along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
 import { INT32_MAX } from './constants.js';
 import { getChildLogger } from './log-utils.js';
 
-/**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
-
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
-
-    You should have received a copy of the GNU Affero General Public
-    License along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
 export type AllowedClingoType = string | number | boolean;
 
 export type NestedBuilder = (builder: ClingoFactBuilder) => ClingoFactBuilder;
@@ -26,6 +28,8 @@ export type ClingoArgument = ClingoArgumentInternal | NestedBuilder;
 /**
  * This function takes care of encoding chars, which might produce issues in clingo
  * This should be done for user provided values
+ * @param value Clingo value to encode.
+ * @returns Encoded clingo value.
  */
 export function encodeClingoValue(value: string) {
   return value.replace(/[\n\\"]/g, (char) => {
@@ -36,6 +40,9 @@ export function encodeClingoValue(value: string) {
   });
 }
 
+/**
+ * Clingo fact builder.
+ */
 export class ClingoFactBuilder {
   protected predicate: string;
   private end: string;
@@ -46,6 +53,11 @@ export class ClingoFactBuilder {
     });
   }
 
+  /**
+   * Constructs an instance of ClingoFactBuilder.
+   * @param predicate Predicate
+   * @param end End character; by default a dot ('.')
+   */
   constructor(predicate: string, end: string = '.') {
     this.predicate = predicate;
     this.end = end;
@@ -71,8 +83,8 @@ export class ClingoFactBuilder {
 
   /**
    * Helper for adding multiple arguments, because it's common
-   * @param args
-   * @returns this for chaining
+   * @param args Arguments array
+   * @returns 'this' for chaining
    */
   addArguments(...args: (ClingoArgument | null)[]): ClingoFactBuilder {
     args.forEach((arg) => this.addArgument(arg));
@@ -82,7 +94,7 @@ export class ClingoFactBuilder {
   /**
    * Adds a literal argument, which means that it will not have quotes
    * @param literal The literal argument to add
-   * @returns this for chaining
+   * @returns 'this' for chaining
    */
   addLiteralArgument(literal: string): ClingoFactBuilder {
     this.arguments.push(new LiteralBuilder(literal));
@@ -91,8 +103,8 @@ export class ClingoFactBuilder {
 
   /**
    * Helper for adding multiple literal arguments, because it's common
-   * @param literal
-   * @returns this for chaining
+   * @param literals Array of literals
+   * @returns 'this' for chaining
    */
   addLiteralArguments(...literals: string[]): ClingoFactBuilder {
     literals.forEach((literal) => this.addLiteralArgument(literal));

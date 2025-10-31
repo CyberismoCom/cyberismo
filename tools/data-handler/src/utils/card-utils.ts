@@ -165,7 +165,7 @@ export const findParentPath = (cardPath: string): string | null => {
 /**
  * Flattens card tree so that children are shown on same level regardless of nesting level.
  * @param array Card tree to flatten
- * @parent project Project to use
+ * @param project Project to use
  * @returns Flattened card tree.
  */
 export const flattenCardArray = (array: Card[], project: Project) => {

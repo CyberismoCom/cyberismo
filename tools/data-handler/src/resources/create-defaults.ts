@@ -189,7 +189,8 @@ export abstract class DefaultContent {
   }
 
   /**
-   * Default template content
+   * Default template content.
+   * @param templateName Template name
    * @returns Default template content
    */
   public static template(templateName: string): TemplateMetadata {
@@ -201,7 +202,7 @@ export abstract class DefaultContent {
 
   /**
    * Default content for workflow JSON values.
-   * @param {string} workflowName workflow name
+   * @param workflowName workflow name
    * @returns Default content for workflow JSON values.
    */
   public static workflow(workflowName: string): Workflow {

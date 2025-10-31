@@ -88,7 +88,7 @@ export class CalculationResource extends FolderResource<
    * @returns array of card keys and calculation filenames that refer this resource.
    */
   public async usage(cards?: Card[]): Promise<string[]> {
-    const allCards = cards || (await super.cards());
+    const allCards = cards || super.cards();
 
     const [cardContentReferences, calculations] = await Promise.all([
       super.usage(allCards),

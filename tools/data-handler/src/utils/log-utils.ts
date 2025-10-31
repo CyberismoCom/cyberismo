@@ -20,6 +20,7 @@ export function setLogger(logger: Logger) {
 }
 /**
  * Returns the logger instance.
+ * @returns the logger instance.
  */
 export function getLogger(): Logger {
   return _logger;

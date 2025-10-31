@@ -24,6 +24,12 @@ export class ContentWatcher {
   private watcher;
   private abortController = new AbortController();
 
+  /**
+   * Creates an instance of ContentWatcher.
+   * @param ignoreRenames True, if renaming notifications should be ignored
+   * @param watchPath Path where to watch file changes.
+   * @param callback Callback function where to notify the changes.
+   */
   constructor(
     ignoreRenames: boolean,
     private watchPath: string,

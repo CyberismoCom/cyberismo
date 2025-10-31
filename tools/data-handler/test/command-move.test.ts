@@ -126,6 +126,7 @@ describe('move command', () => {
         [rootCard, anotherRootCard],
         options,
       );
+      console.error(result);
       expect(result.statusCode).to.equal(200);
     } else {
       expect(false, `Failed to create a card starting with decision_5`);

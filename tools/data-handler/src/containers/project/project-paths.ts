@@ -88,6 +88,14 @@ export class ProjectPaths {
     return join(this.path, '.cards', 'modules');
   }
 
+  public moduleResourcePath(
+    modulePrefix: string,
+    resourceType: ResourceFolderType,
+  ) {
+    const moduleRoot = join(this.modulesFolder, modulePrefix);
+    return join(moduleRoot, resourceType);
+  }
+
   public get resourcesFolder(): string {
     return join(this.path, '.cards', 'local');
   }

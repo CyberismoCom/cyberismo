@@ -48,6 +48,7 @@ export class ClingoProgramBuilder {
   }
   /**
    * Adds an import to the clingo program
+   * @param path Import path to add
    */
   addImport(path: string): ClingoProgramBuilder {
     this.rows.push({ build: () => `#include "${path}".` });
@@ -56,6 +57,7 @@ export class ClingoProgramBuilder {
 
   /**
    * Adds a comment
+   * @param comment Comment to add
    */
   addComment(comment: string): ClingoProgramBuilder {
     this.rows.push({ build: () => `% ${comment}` });

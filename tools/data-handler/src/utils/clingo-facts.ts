@@ -243,7 +243,7 @@ export const createCardFacts = async (card: Card, project: Project) => {
 
         if (!isPredefinedField(field)) {
           // field is a custom field, find it
-          const fieldType = await project.resource<FieldType>(field);
+          const fieldType = project.resourceByType(field, 'fieldTypes').data;
           if (!fieldType) {
             continue;
           }

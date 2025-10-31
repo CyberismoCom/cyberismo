@@ -34,7 +34,6 @@ import type {
   ModuleContent,
   ModuleSettingFromHub,
   ProjectMetadata,
-  Resource,
 } from '../interfaces/project-interfaces.js';
 import type {
   CardType,
@@ -42,9 +41,8 @@ import type {
   TemplateConfiguration,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
-import { Project, type ResourcesFrom } from '../containers/project.js';
-import { type ResourceName, resourceName } from '../utils/resource-utils.js';
-import { TemplateResource } from '../resources/template-resource.js';
+import type { Project, ResourcesFrom } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 import { UserPreferences } from '../utils/user-preferences.js';
 
 import ReportMacro from '../macros/report/index.js';
@@ -58,23 +56,22 @@ import { buildCardHierarchy } from '../utils/card-utils.js';
  * Show command.
  */
 export class Show {
-  private resourceFunction: Map<
+  private readonly resourceFunctions: Record<
     string,
-    (from?: ResourcesFrom) => Promise<Resource[]>
-  >;
-  constructor(private project: Project) {
-    this.resourceFunction = new Map([
-      ['calculations', this.project.calculations.bind(this.project)],
-      ['cardTypes', this.project.cardTypes.bind(this.project)],
-      ['fieldTypes', this.project.fieldTypes.bind(this.project)],
-      ['graphModels', this.project.graphModels.bind(this.project)],
-      ['graphViews', this.project.graphViews.bind(this.project)],
-      ['linkTypes', this.project.linkTypes.bind(this.project)],
-      ['reports', this.project.reports.bind(this.project)],
-      ['templates', this.project.templates.bind(this.project)],
-      ['workflows', this.project.workflows.bind(this.project)],
-    ]);
-  }
+    (from?: ResourcesFrom) => string[]
+  > = {
+    calculations: (from) => this.project.calculationNames(from),
+    cardTypes: (from) => this.project.cardTypeNames(from),
+    fieldTypes: (from) => this.project.fieldTypeNames(from),
+    graphModels: (from) => this.project.graphModelNames(from),
+    graphViews: (from) => this.project.graphViewNames(from),
+    linkTypes: (from) => this.project.linkTypeNames(from),
+    reports: (from) => this.project.reportNames(from),
+    templates: (from) => this.project.templateNames(from),
+    workflows: (from) => this.project.workflowNames(from),
+  };
+
+  constructor(private project: Project) {}
 
   private get logger() {
     return getChildLogger({
@@ -120,24 +117,19 @@ export class Show {
    * Shows all template cards in a project.
    * @returns all template cards in a project.
    */
-  public async showAllTemplateCards(): Promise<
-    { name: string; cards: CardWithChildrenCards[] }[]
-  > {
-    return Promise.all(
-      (await this.project.templates()).map((template) => {
-        const templateResource = new TemplateResource(
-          this.project,
-          resourceName(template.name),
-        );
-        const cards = templateResource.templateObject().listCards();
-        const buildCards = buildCardHierarchy(cards);
+  public showAllTemplateCards(): {
+    name: string;
+    cards: CardWithChildrenCards[];
+  }[] {
+    return this.project.templates().map((template) => {
+      const cards = template.templateObject().listCards();
+      const buildCards = buildCardHierarchy(cards);
 
-        return {
-          name: template.name,
-          cards: buildCards,
-        };
-      }),
-    );
+      return {
+        name: template.data?.name || '',
+        cards: buildCards,
+      };
+    });
   }
 
   /**
@@ -284,17 +276,13 @@ export class Show {
    * @returns array of card type details
    */
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
-    const promiseContainer = [];
-    for (const cardType of await this.project.cardTypes()) {
-      const cardTypeDetails = await this.project.resource<CardType>(
-        cardType.name,
-      );
-      if (cardTypeDetails) {
-        promiseContainer.push(cardTypeDetails);
+    const container = [];
+    for (const cardType of this.project.cardTypes()) {
+      if (cardType.data) {
+        container.push(cardType.data);
       }
     }
-    const results = await Promise.all(promiseContainer);
-    return results.filter((item) => item);
+    return container;
   }
 
   /**
@@ -317,10 +305,10 @@ export class Show {
           resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
         )
       ).modules;
-      const currentModules = await this.project.modules();
+      const currentModules = this.project.modules();
       const nonImportedModules = moduleList.filter(
         (item: ModuleSettingFromHub) => {
-          return !currentModules.some((module) => item.name === module.name);
+          return !currentModules.some((module) => item.name === module);
         },
       );
 
@@ -398,8 +386,8 @@ export class Show {
    * Shows all modules (if any) in a project.
    * @returns all modules in a project.
    */
-  public async showModules(): Promise<string[]> {
-    return (await this.project.modules()).map((item) => item.name).sort();
+  public showModules(): string[] {
+    return this.project.modules().sort();
   }
 
   /**
@@ -415,6 +403,7 @@ export class Show {
    * @param reportName Name of the report to show
    * @param cardKey Card key to use for the report
    * @param parameters Additional parameters for the report
+   * @param context Context for resource (includes a project instance)
    * @param outputPath Optional output path for the report
    * @returns Report results as a string
    * @throws Error if the report does not exist
@@ -427,9 +416,7 @@ export class Show {
     outputPath?: string,
   ): Promise<string> {
     if (
-      !(await this.project.reports()).some(
-        (report) => report.name === reportName,
-      )
+      !this.project.reports().some((report) => report.data?.name === reportName)
     ) {
       throw new Error(`Report '${reportName}' does not exist`);
     }
@@ -471,17 +458,15 @@ export class Show {
   /**
    * Shows details of certain resource.
    * @param name Name of resource.
+   * @param showUse If true, shows also where resource is used.
    * @returns resource metadata as JSON.
    */
   public async showResource(
     name: string,
     showUse: boolean = false,
   ): Promise<ResourceContent | undefined> {
-    const strictNameCheck = true;
-    const resource = Project.resourceObject(
-      this.project,
-      resourceName(name, strictNameCheck),
-    );
+    const type = this.project.resourceType(name);
+    const resource = this.project.resourceByType(name, type);
     const [details, usage] = await Promise.all([
       resource?.show(),
       showUse ? resource?.usage() : [],
@@ -502,33 +487,34 @@ export class Show {
    * @returns sorted array of resources
    */
   public async showResources(type: string): Promise<string[]> {
-    const func = this.resourceFunction.get(type);
+    const func = this.resourceFunctions[type];
     if (!func) return [];
-    return (await func()).map((item) => item.name).sort();
+    return func().sort();
   }
 
   /**
    * Shows all templates with full details in a project.
    * @returns all templates in a project.
    */
-  public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
-    const promiseContainer = (await this.project.templates()).map((template) =>
-      new TemplateResource(this.project, resourceName(template.name)).show(),
-    );
-    const result = await Promise.all(promiseContainer);
-    return result.filter(Boolean) as TemplateConfiguration[];
+  public async showTemplatesWithDetails(): Promise<
+    (TemplateConfiguration | undefined)[]
+  > {
+    const templates = [];
+    for (const template of this.project.templates()) {
+      templates.push(await template.show());
+    }
+    return templates;
   }
 
   /**
    * Shows all workflows with full details in a project.
    * @returns workflows with full details
    */
-  public async showWorkflowsWithDetails(): Promise<(Workflow | undefined)[]> {
-    const promiseContainer = [];
-    for (const workflow of await this.project.workflows()) {
-      promiseContainer.push(this.project.resource<Workflow>(workflow.name));
+  public showWorkflowsWithDetails(): (Workflow | undefined)[] {
+    const workflows = [];
+    for (const workflow of this.project.workflows()) {
+      workflows.push(workflow.data);
     }
-    const results = await Promise.all(promiseContainer);
-    return results.filter((item) => item);
+    return workflows;
   }
 }
