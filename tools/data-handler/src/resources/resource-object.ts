@@ -309,6 +309,9 @@ export abstract class ResourceObject<
 
     this.content = validContent;
     await this.write();
+
+    const resourceString = resourceNameToString(this.resourceName);
+    this.project.addResource(resourceString, this);
   }
 
   /**
@@ -684,13 +687,9 @@ export abstract class ResourceObject<
       await rename(this.fileName, newFileName);
       this.fileName = newFileName;
       this.resourceName = resourceName(this.content.name);
-
-      await writeJsonFile(this.fileName, this.content);
       this.project.changeResourceName(resourceString, this.content.name);
-    } else {
-      await writeJsonFile(this.fileName, this.content);
-      this.project.updateResource(resourceString, this);
     }
+    await writeJsonFile(this.fileName, this.content);
   }
 
   /**

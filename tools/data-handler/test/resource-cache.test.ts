@@ -341,14 +341,20 @@ describe('Resource cache', () => {
       ).to.not.throw();
     });
 
-    it('should update resource in cache', () => {
+    it('should update resource in cache', async () => {
       const resourceName = 'decision/workflows/decision';
       const workflow = project.resourceByType(resourceName, 'workflows');
-
-      project.updateResource(resourceName, workflow);
-
-      const workflowLater = project.resourceByType(resourceName, 'workflows');
-      expect(workflowLater).to.not.equal(undefined);
+      await workflow.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Updated display name',
+        },
+      );
+      // Fetch the resource from cache again. Check that value is changes (same instance).
+      const workflowAfter = project.resourceByType(resourceName, 'workflows');
+      expect(workflowAfter.data?.displayName).equals('Updated display name');
     });
   });
 

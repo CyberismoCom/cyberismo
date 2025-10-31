@@ -1078,6 +1078,7 @@ export class Project extends CardContainer {
       await unlink(attachmentPath);
     } catch (error) {
       this.logger.error({ error }, 'Removing card attachment');
+      throw new Error(`Attachment not found: ${fileName}`);
     }
     await this.handleAttachmentChange(cardKey, 'removed', fileName);
   }
@@ -1384,12 +1385,12 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Updates a resource in cache with new data.
+   * Adds a new resource to the cache.
    * @param name Name of the resource.
-   * @param instance New data. If omitted, will remove current instance data.
+   * @param instance New resource instance.
    */
-  public updateResource(name: string, instance: unknown) {
-    this.resources.updateResource(name, instance);
+  public addResource(name: string, instance: unknown) {
+    this.resources.addResource(name, instance);
   }
 
   /**

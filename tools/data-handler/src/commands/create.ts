@@ -126,7 +126,6 @@ export class Create {
     }
 
     if (promisesResult === undefined) {
-      this.project.updateResource(templateName, templateResource);
       return cardsContainer;
     } else {
       throw new Error('Unknown error');

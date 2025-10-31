@@ -200,23 +200,36 @@ export class ResourceCache {
   }
 
   /**
-   * Add a resource to the registry.
-   * @param resource New resource to add to the cache.
+   * Adds a resource instance to the cache.
+   * @param name Name of the resource.
+   * @param instance Data for the resource.
+   * @throws if resource exists already in the cache
    */
-  public addResource(resource: Resource) {
-    const resName = resourceName(resource.name);
-    const key = resourceNameToString(resName);
+  public addResource(name: string | ResourceName, instance: unknown) {
+    const key = this.normalizeResourceName(name);
+    if (!this.resourceRegistry.has(key)) {
+      const resName = typeof name === 'string' ? resourceName(name) : name;
+      const isModule = resName.prefix !== this.project.projectPrefix;
+      const resourcePath = isModule
+        ? this.project.paths.moduleResourcePath(
+            resName.prefix,
+            resName.type as ResourceFolderType,
+          )
+        : this.project.paths.resourcePath(resName.type as ResourceFolderType);
 
-    // Determine if it's local or module resource
-    const isModule = resName.prefix !== this.project.projectPrefix;
+      this.resourceRegistry.set(key, {
+        name: key,
+        type: resName.type as ResourceFolderType,
+        path: resourcePath,
+        source: isModule ? 'module' : 'local',
+        moduleName: isModule ? resName.prefix : undefined,
+      });
+    } else {
+      throw new Error(`Resource '${name}' already exists in the cache`);
+    }
 
-    this.resourceRegistry.set(key, {
-      name: key,
-      type: resName.type as ResourceFolderType, // todo: is there a way to this without cast?
-      path: resource.path,
-      source: isModule ? 'module' : 'local',
-      moduleName: isModule ? resName.prefix : undefined,
-    });
+    // Add instance
+    this.instanceCache.set(key, instance);
   }
 
   /**
@@ -286,20 +299,6 @@ export class ResourceCache {
   }
 
   /**
-   * Extract resource type from a resource name string
-   * @param name Resource name
-   * @throws If resource type is invalid.
-   * @returns Resource type
-   */
-  public extractResourceType(name: string): keyof ResourceMap {
-    const type = resourceName(name).type;
-    if (!type) {
-      throw new Error(`Invalid resource type: ${type}`);
-    }
-    return type as keyof ResourceMap;
-  }
-
-  /**
    * Refresh local resources in the cache.
    */
   public changed() {
@@ -353,6 +352,20 @@ export class ResourceCache {
         name: newKey,
       });
     }
+  }
+
+  /**
+   * Extract resource type from a resource name string
+   * @param name Resource name
+   * @throws If resource type is invalid.
+   * @returns Resource type
+   */
+  public extractResourceType(name: string): keyof ResourceMap {
+    const type = resourceName(name).type;
+    if (!type) {
+      throw new Error(`Invalid resource type: ${type}`);
+    }
+    return type as keyof ResourceMap;
   }
 
   /**
@@ -578,37 +591,5 @@ export class ResourceCache {
     }
 
     return resources;
-  }
-
-  /**
-   * Updates a resource instance with new data.
-   * @param name Name of the resource to update
-   * @param instance New data for the resource.
-   */
-  public updateResource(name: string | ResourceName, instance: unknown) {
-    const key = this.normalizeResourceName(name);
-
-    // If resource doesn't exist in registry, add it
-    if (!this.resourceRegistry.has(key)) {
-      const resName = typeof name === 'string' ? resourceName(name) : name;
-      const isModule = resName.prefix !== this.project.projectPrefix;
-      const resourcePath = isModule
-        ? this.project.paths.moduleResourcePath(
-            resName.prefix,
-            resName.type as ResourceFolderType,
-          )
-        : this.project.paths.resourcePath(resName.type as ResourceFolderType);
-
-      this.resourceRegistry.set(key, {
-        name: key,
-        type: resName.type as ResourceFolderType,
-        path: resourcePath,
-        source: isModule ? 'module' : 'local',
-        moduleName: isModule ? resName.prefix : undefined,
-      });
-    }
-
-    // Update with provided instance
-    this.instanceCache.set(key, instance);
   }
 }
