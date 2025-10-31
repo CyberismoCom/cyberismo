@@ -14,11 +14,37 @@ import { Show } from '../src/commands/index.js';
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
 const commandHandler: Commands = new Commands();
+let options: { projectPath: string };
+
+// Creates similarly named card. For example if the tested card has key 'decision_5,
+// this will create a card whose key starts with 'decision_5', but the rest of the card
+// key will be randomized. For example, 'decision_5skjdh3d'.
+async function createSimilarCard(
+  template: string,
+  parent?: string,
+): Promise<string | undefined> {
+  let descendant: string | undefined;
+  let attempts = 0;
+  const maxAttempts = 100;
+
+  while (!descendant && attempts < maxAttempts) {
+    const done = await commandHandler.command(
+      Cmd.create,
+      ['card', template, parent || ''],
+      options,
+    );
+    const createdKey = done.affectsCards?.at(0);
+    if (createdKey && createdKey.startsWith('decision_5')) {
+      descendant = createdKey;
+      return descendant;
+    }
+    attempts++;
+  }
+}
 
 describe('move command', () => {
   let testDir: string;
   let decisionRecordsPath: string;
-  let options: { projectPath: string };
   let createdCardKey: string;
 
   beforeEach(async () => {
@@ -90,6 +116,21 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
+  it('move card to under similar key (success)', async () => {
+    const template = 'decision/templates/decision';
+    const rootCard = 'decision_5';
+    const anotherRootCard = await createSimilarCard(template);
+    if (anotherRootCard) {
+      const result = await commandHandler.command(
+        Cmd.move,
+        [rootCard, anotherRootCard],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    } else {
+      expect(false, `Failed to create a card starting with decision_5`);
+    }
+  });
   it('try to move card to itself', async () => {
     const sourceId = 'decision_6';
     const destination = 'decision_6';
@@ -131,6 +172,25 @@ describe('move command', () => {
       expect(result.statusCode).to.equal(400);
     } else {
       expect(false);
+    }
+  });
+  it('try to move card to its own similarly named descendant', async () => {
+    const template = 'decision/templates/decision';
+    const parent = 'decision_5';
+    const descendant = await createSimilarCard(template, parent);
+    if (descendant) {
+      // Try to move decision_5 under its own descendant - this should fail
+      const result = await commandHandler.command(
+        Cmd.move,
+        [parent, descendant],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    } else {
+      expect(
+        false,
+        `Failed to create a descendant card starting with decision_5`,
+      );
     }
   });
   it('try to move card - project missing', async () => {
