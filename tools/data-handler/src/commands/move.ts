@@ -113,8 +113,15 @@ export class Move {
       ? this.project.findCard(destination)
       : undefined;
 
-    if (destinationCard && destinationCard.path.includes(source)) {
-      throw new Error(`Card cannot be moved to inside itself`);
+    // Prevent moving card to inside its descendants
+    if (destinationCard) {
+      const { parents } = cardPathParts(
+        this.project.projectPrefix,
+        destinationCard.path,
+      );
+      if (parents.includes(source)) {
+        throw new Error(`Card cannot be moved to inside itself`);
+      }
     }
 
     // Imported templates cannot be modified.
