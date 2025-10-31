@@ -56,8 +56,20 @@ describe('card utils', () => {
   it('buildCardHierarchy', () => {
     const hierarchical = buildCardHierarchy(testCards);
     expect(hierarchical.length).to.equal(1);
-    expect(hierarchical.at(0)!.key).to.equal('test_1');
-    expect(hierarchical.at(0)!.children).to.include('test_2');
+    const root = hierarchical.at(0)!;
+    expect(root.key).to.equal('test_1');
+    expect(root.children).to.include('test_2');
+    expect(root.childrenCards.length).to.equal(1);
+
+    const child = root.childrenCards.at(0)!;
+    expect(child.key).to.equal('test_2');
+    expect(child.children).to.include('test_3');
+    expect(child.childrenCards.length).to.equal(1);
+
+    const grandchild = child.childrenCards.at(0)!;
+    expect(grandchild.key).to.equal('test_3');
+    expect(grandchild.children.length).to.equal(0);
+    expect(grandchild.childrenCards.length).to.equal(0);
   });
 
   it('cardPathParts', () => {

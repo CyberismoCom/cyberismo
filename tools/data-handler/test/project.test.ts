@@ -17,14 +17,15 @@ import type {
   Workflow,
 } from '../src/interfaces/resource-interfaces.js';
 
-import { cardPathParts, isTemplateCard } from '../src/utils/card-utils.js';
-import { Project } from '../src/containers/project.js';
-import { ProjectConfiguration } from '../src/project-settings.js';
-import { resourceName } from '../src/utils/resource-utils.js';
 import {
   buildCardHierarchy,
   flattenCardArray,
+  cardPathParts,
+  isTemplateCard,
 } from '../src/utils/card-utils.js';
+import { Project } from '../src/containers/project.js';
+import { ProjectConfiguration } from '../src/project-settings.js';
+import { resourceName } from '../src/utils/resource-utils.js';
 
 import type { CardTypeResource } from '../src/resources/card-type-resource.js';
 import type { FieldTypeResource } from '../src/resources/field-type-resource.js';

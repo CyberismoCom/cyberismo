@@ -26,6 +26,7 @@ export interface Card {
   calculations?: unknown[];
 }
 
+// Single card, but childrenCards as Card array
 export interface CardWithChildrenCards extends Card {
   childrenCards: CardWithChildrenCards[];
 }
