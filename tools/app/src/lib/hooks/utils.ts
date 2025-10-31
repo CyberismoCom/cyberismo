@@ -130,13 +130,18 @@ export function matchesCombo(event: KeyboardEvent, combo: KeyCombo): boolean {
  */
 export function handleKeyDown(event: KeyboardEvent): void {
   // Skip if the event occurred in an input, textarea, or contentEditable element
-  if (
-    event.target instanceof HTMLElement &&
-    (event.target.tagName === 'INPUT' ||
-      event.target.tagName === 'TEXTAREA' ||
-      event.target.isContentEditable)
-  ) {
-    return;
+  // Check both the target and any ancestor elements up the tree
+  let element = event.target as HTMLElement | null;
+  while (element) {
+    if (
+      element.tagName === 'INPUT' ||
+      element.tagName === 'TEXTAREA' ||
+      element.isContentEditable ||
+      element.getAttribute('contenteditable') === 'true'
+    ) {
+      return;
+    }
+    element = element.parentElement;
   }
 
   shortcutRegistry.forEach((handlers, comboKey) => {

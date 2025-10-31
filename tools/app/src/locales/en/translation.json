@@ -231,6 +231,7 @@
   "saveFile": {
     "success": "File saved successfully"
   },
+  "searchCards": "Search cards",
   "selectCard": "Please select a card",
   "selectResource": "Select resource",
   "showLess": "Show less",

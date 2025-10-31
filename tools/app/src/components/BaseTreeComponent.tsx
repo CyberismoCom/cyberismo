@@ -51,11 +51,9 @@ export function BaseTreeComponent<T>({
   const { height: titleHeight, ref: titleRef } = useResizeObserver();
 
   useEffect(() => {
-    if (selectedId) {
-      const tree = treeRef.current as unknown as TreeApi<T>;
-      if (tree) {
-        tree.select(selectedId);
-      }
+    const tree = treeRef.current as unknown as TreeApi<T> | null;
+    if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
+      tree.select(selectedId);
     }
   }, [selectedId, data]);
 
@@ -70,14 +68,7 @@ export function BaseTreeComponent<T>({
   };
 
   return (
-    <Stack
-      paddingTop={2}
-      paddingLeft={2}
-      bgcolor="#f0f0f0"
-      height="100%"
-      width="100%"
-      ref={ref}
-    >
+    <Stack paddingTop={2} paddingLeft={2} height="100%" width="100%" ref={ref}>
       {title && (
         <Link
           to={linkTo || ''}
