@@ -44,7 +44,10 @@ export const buildCardHierarchy = (
     const rootCards: Card[] = [];
     cardMap.forEach((card) => {
       if (card.parent && cardMap.has(card.parent)) {
-        cardMap.get(card.parent)!.children.push(card.key);
+        const parentCard = cardMap.get(card.parent);
+        if (parentCard) {
+          parentCard.children.push(card.key);
+        }
       } else {
         rootCards.push(card);
       }
