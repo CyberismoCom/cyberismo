@@ -452,10 +452,11 @@ export class Project extends CardContainer {
 
     try {
       await unlink(attachmentPath);
-      await this.handleAttachmentChange(cardKey, 'removed', fileName);
-    } catch {
+    } catch (error) {
+      this.logger.error({ error }, 'Removing card attachment');
       throw new Error(`Attachment not found: ${fileName}`);
     }
+    await this.handleAttachmentChange(cardKey, 'removed', fileName);
   }
 
   /**
