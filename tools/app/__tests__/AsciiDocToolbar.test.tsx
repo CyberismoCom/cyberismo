@@ -30,7 +30,11 @@ const renderToolbar = ({
 } = {}) => {
   const { view, parent } = createEditor(doc);
   const renderResult = render(
-    <AsciiDocToolbar view={view} readOnly={readOnly} />,
+    <AsciiDocToolbar
+      view={view}
+      readOnly={readOnly}
+      showMacroHelpers={false}
+    />,
   );
 
   const buttons = renderResult.getAllByRole('button');

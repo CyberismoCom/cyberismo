@@ -18,22 +18,9 @@ import BaseMacro from '../base-macro.js';
 import macroMetadata from './metadata.js';
 import { validateMacroContent } from '../index.js';
 
+import type { ImageMacroOptions } from './types.js';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import type TaskQueue from '../task-queue.js';
-
-/**
- * Options for the image macro.
- * @param fileName - Name of the file to include.
- * @param cardKey - Key of the card to include the file from.
- * @param alt - Alternative text for the image.
- * @param title - Title of the image.
- */
-export interface ImageMacroOptions {
-  fileName: string;
-  cardKey?: string;
-  alt?: string;
-  title?: string;
-}
 
 /**
  * Macro for including images in the content
