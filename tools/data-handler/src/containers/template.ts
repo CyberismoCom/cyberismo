@@ -319,6 +319,7 @@ export class Template extends CardContainer {
       );
       const exists = pathExists(templateFolderInModule);
       if (exists) {
+        this.templatePath = templateFolderInModule;
         return templateFolderInModule;
       }
     }

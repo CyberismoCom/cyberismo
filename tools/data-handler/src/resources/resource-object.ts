@@ -476,7 +476,7 @@ export abstract class ResourceObject<
       throw new Error('Cannot change resource type');
     }
     const validator = await ResourceObject.getValidate();
-    await validator.validResourceName(
+    validator.validResourceName(
       this.resourceType(),
       resourceNameToString(newName),
       await this.project.projectPrefixes(),

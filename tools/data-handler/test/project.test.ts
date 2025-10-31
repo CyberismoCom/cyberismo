@@ -865,6 +865,11 @@ describe('project', () => {
       .attachmentsByPath(project.paths.cardRootFolder)
       .map((item) => item.fileName);
     expect(projectAttachments).to.not.include('newAttachment.heic');
+
+    // try to remove the same attachment again; should throw
+    await expect(
+      project.removeCardAttachment('decision_5', 'newAttachment.heic'),
+    ).to.be.rejectedWith('Attachment not found: newAttachment.heic');
   });
 
   it('should card cache populated', async () => {
