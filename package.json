@@ -6,7 +6,7 @@
     "cyberismo": "tools/cli/bin/run"
   },
   "devDependencies": {
-    "@eslint/js": "^9.38.0",
+    "@eslint/js": "^9.39.0",
     "@types/chai": "^5.2.2",
     "@types/chai-as-promised": "^8.0.2",
     "@types/mocha": "^10.0.10",
@@ -16,7 +16,7 @@
     "chai-as-promised": "^8.0.2",
     "chokidar-cli": "^3.0.0",
     "cross-env": "^10.1.0",
-    "eslint": "^9.38.0",
+    "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-promise": "^7.2.1",
     "mocha": "^11.7.4",
