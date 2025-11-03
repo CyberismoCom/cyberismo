@@ -27,9 +27,21 @@ import type { ReactNode } from 'react';
 
 export interface BaseMacroModalProps {
   /**
+   * The actual macro form implement as children component
+   */
+  children: ReactNode;
+  /**
    * Whether the modal is open or not
    */
   open: boolean;
+  /**
+   * Allows overriding spacing between macros
+   */
+  rowSpacing?: number;
+  /**
+   * Disables submit button
+   */
+  submitDisabled?: boolean;
   /**
    * Title of the modal
    */
@@ -43,28 +55,16 @@ export interface BaseMacroModalProps {
    * Called when modal is submitted
    */
   onSubmit: () => void;
-  /**
-   * Disables submit button
-   */
-  submitDisabled?: boolean;
-  /**
-   * The actual macro form implement as children component
-   */
-  children: ReactNode;
-  /**
-   * Allows overriding spacing between macros
-   */
-  rowSpacing?: number;
 }
 
 export function BaseMacroModal({
+  children,
   open,
+  rowSpacing = 2,
+  submitDisabled = false,
   title,
   onClose,
   onSubmit,
-  submitDisabled = false,
-  rowSpacing = 2,
-  children,
 }: BaseMacroModalProps) {
   const { t } = useTranslation();
 
