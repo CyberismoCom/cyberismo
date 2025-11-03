@@ -12,8 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './include';
-export * from './xref';
 export * from './create-cards';
-export * from './report';
+export * from './include';
 export * from './graph';
+export * from './report';
+export * from './xref';
