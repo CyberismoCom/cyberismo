@@ -219,11 +219,19 @@ const insertTable = (view: EditorView) => {
   });
 };
 
+/**
+ * Inserts a macro to codemirror
+ * @param view The codemirror view that the macro will be inserted to
+ * @param macroName Name of the macro
+ * @param options Options of the macro
+ */
 const insertMacro = (
   view: EditorView,
   macroName: string,
   options: AnyMacroOption,
 ) => {
+  // Convert to macro syntax
+  // Note that the options are inserted as json without the leading and trailing curly braces
   const macro = `{{#${macroName}}}${JSON.stringify(options, null, 2).slice(1, -1)}{{/${macroName}}}`;
 
   view.dispatch({

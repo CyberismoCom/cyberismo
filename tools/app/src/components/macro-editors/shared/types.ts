@@ -45,6 +45,22 @@ export const DEFAULT_GRAPH_FORM_VALUES = {
   model: '',
 };
 
+export interface MacroModalProps<T> {
+  /**
+   * Whether the modal is open or not
+   */
+  open: boolean;
+  /**
+   * Called when modal wants to close itself
+   */
+  onClose: () => void;
+  /**
+   * Called when form is submitted
+   * @param options Options for the macro. Exact type depends on the macro
+   */
+  onInsert: OnInsert<T>;
+}
+
 export type OnInsert<T> = (options: T) => void;
 
 export type AnyOnInsert =

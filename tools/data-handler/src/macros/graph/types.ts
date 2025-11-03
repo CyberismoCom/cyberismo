@@ -13,6 +13,12 @@
 */
 
 export interface GraphOptions {
+  /**
+   * Reference to the model that defines graph
+   */
   model: string;
+  /**
+   * Reference to the view that defines the graph
+   */
   view: string;
 }

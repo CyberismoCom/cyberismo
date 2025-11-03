@@ -25,7 +25,7 @@ import {
 } from '@mui/joy';
 import type { ReactNode } from 'react';
 
-export interface MacroModalProps {
+export interface BaseMacroModalProps {
   open: boolean;
   title: string;
   onClose: () => void;
@@ -35,7 +35,7 @@ export interface MacroModalProps {
   rowSpacing?: number;
 }
 
-export function MacroModal({
+export function BaseMacroModal({
   open,
   title,
   onClose,
@@ -43,7 +43,7 @@ export function MacroModal({
   submitDisabled = false,
   rowSpacing = 2,
   children,
-}: MacroModalProps) {
+}: BaseMacroModalProps) {
   const { t } = useTranslation();
 
   return (
@@ -71,4 +71,4 @@ export function MacroModal({
   );
 }
 
-export default MacroModal;
+export default BaseMacroModal;

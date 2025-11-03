@@ -13,5 +13,8 @@
 */
 
 export interface ReportOptions {
+  /**
+   * Name of the report
+   */
   name: string;
 }

@@ -14,30 +14,18 @@
 
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import {
-  Autocomplete,
-  FormControl,
-  FormHelperText,
-  FormLabel,
-  Stack,
-} from '@mui/joy';
+import { Autocomplete, FormControl, FormHelperText, FormLabel } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { XrefMacroOptions } from '@cyberismo/data-handler';
-import { DEFAULT_XREF_FORM_VALUES } from '../shared/types';
-import { MacroModal } from '../shared/MacroModal';
+import { DEFAULT_XREF_FORM_VALUES, MacroModalProps } from '../shared/types';
+import { BaseMacroModal } from '../shared/MacroModal';
 import { useCardOptions } from '../shared/hooks';
-
-export interface XrefMacroDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onInsert: (options: XrefMacroOptions) => void;
-}
 
 export function XrefMacroModal({
   open,
   onClose,
   onInsert,
-}: XrefMacroDialogProps) {
+}: MacroModalProps<XrefMacroOptions>) {
   const { t } = useTranslation();
   const { options: cardOptions, isLoading } = useCardOptions();
   const { control, handleSubmit, reset, watch } = useForm({
@@ -59,7 +47,7 @@ export function XrefMacroModal({
   });
 
   return (
-    <MacroModal
+    <BaseMacroModal
       open={open}
       onClose={onClose}
       onSubmit={handleModalSubmit}
@@ -95,7 +83,7 @@ export function XrefMacroModal({
           </FormHelperText>
         )}
       </FormControl>
-    </MacroModal>
+    </BaseMacroModal>
   );
 }
 

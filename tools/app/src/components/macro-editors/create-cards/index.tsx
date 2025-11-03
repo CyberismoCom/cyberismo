@@ -26,20 +26,17 @@ import { useTranslation } from 'react-i18next';
 import { useTemplates } from '@/lib/api/templates';
 import type { TemplateConfiguration } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type { CreateCardsOptions } from '@cyberismo/data-handler';
-import { MacroModal } from '../shared/MacroModal';
-import { DEFAULT_CREATE_CARDS_FORM_VALUES } from '../shared/types';
-
-export interface CreateCardsMacroModalProps {
-  open: boolean;
-  onClose: () => void;
-  onInsert: (options: CreateCardsOptions) => void;
-}
+import { BaseMacroModal } from '../shared/MacroModal';
+import {
+  DEFAULT_CREATE_CARDS_FORM_VALUES,
+  MacroModalProps,
+} from '../shared/types';
 
 export function CreateCardsMacroModal({
   open,
   onClose,
   onInsert,
-}: CreateCardsMacroModalProps) {
+}: MacroModalProps<CreateCardsOptions>) {
   const { t } = useTranslation();
   const { templates, isLoading } = useTemplates();
 
@@ -92,7 +89,7 @@ export function CreateCardsMacroModal({
   });
 
   return (
-    <MacroModal
+    <BaseMacroModal
       open={open}
       onClose={onClose}
       onSubmit={handleModalSubmit}
@@ -146,7 +143,7 @@ export function CreateCardsMacroModal({
           )}
         />
       </FormControl>
-    </MacroModal>
+    </BaseMacroModal>
   );
 }
 

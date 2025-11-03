@@ -13,8 +13,20 @@
 */
 
 export interface PercentageOptions {
+  /**
+   * Title of percentage macro
+   */
   title: string;
+  /**
+   * Percentage value
+   */
   value: number;
+  /**
+   * Legend text below the macro
+   */
   legend: string;
+  /**
+   * Color of the bar the represents the percentage
+   */
   colour?: 'blue' | 'green' | 'yellow' | 'red' | 'orange' | 'purple';
 }

@@ -13,13 +13,10 @@
 import type { MacroMetadata } from '../../interfaces/macros.js';
 import type { VegaMacroInput } from './types.js';
 
-const macroMetadata: MacroMetadata<VegaMacroInput> = {
+const macroMetadata: MacroMetadata = {
   name: 'vega',
   tagName: 'vega',
   schema: 'vegaMacroSchema',
-  default: {
-    spec: {},
-  },
 };
 
 export default macroMetadata;

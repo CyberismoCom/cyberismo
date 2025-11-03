@@ -13,8 +13,20 @@
 */
 
 export interface ScoreCardOptions {
+  /**
+   * Value shown in score card
+   */
   value: number;
+  /**
+   * Optional legend text
+   */
   legend?: string;
+  /**
+   * Option title text
+   */
   title?: string;
+  /**
+   * Option unit that is next to the value
+   */
   unit?: string;
 }

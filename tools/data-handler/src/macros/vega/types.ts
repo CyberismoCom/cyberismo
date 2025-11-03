@@ -14,5 +14,8 @@
 import type { Spec } from 'vega';
 
 export interface VegaMacroInput {
+  /**
+   * Defines spec for vega
+   */
   spec: Spec;
 }

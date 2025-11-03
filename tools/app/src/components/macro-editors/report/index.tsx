@@ -20,26 +20,19 @@ import {
   FormLabel,
   Option,
   Select,
-  Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api/resources';
-import { MacroModal } from '../shared/MacroModal';
+import { BaseMacroModal } from '../shared/MacroModal';
 import { collectResourceNodes } from '../shared/hooks';
-import { DEFAULT_REPORT_FORM_VALUES } from '../shared/types';
+import { DEFAULT_REPORT_FORM_VALUES, MacroModalProps } from '../shared/types';
 import type { ReportOptions } from '@cyberismo/data-handler';
-
-export interface ReportMacroDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onInsert: (options: ReportOptions) => void;
-}
 
 export function ReportMacroModal({
   open,
   onClose,
   onInsert,
-}: ReportMacroDialogProps) {
+}: MacroModalProps<ReportOptions>) {
   const { t } = useTranslation();
   const { resourceTree, isLoading } = useResourceTree();
 
@@ -67,7 +60,7 @@ export function ReportMacroModal({
   });
 
   return (
-    <MacroModal
+    <BaseMacroModal
       open={open}
       onClose={onClose}
       onSubmit={handleModalSubmit}
@@ -99,7 +92,7 @@ export function ReportMacroModal({
           </FormHelperText>
         )}
       </FormControl>
-    </MacroModal>
+    </BaseMacroModal>
   );
 }
 

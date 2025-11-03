@@ -25,7 +25,7 @@ export interface MacroGenerationContext {
   maxTries?: number;
 }
 
-type MacroMetadataInternal = {
+export interface MacroMetadata {
   /**
    * The name of the macro. This is the name that will be used in the content
    */
@@ -39,13 +39,7 @@ type MacroMetadataInternal = {
    * The schema of the macro. This is used to validate the data passed to the macro
    */
   schema?: string;
-};
-
-export type MacroMetadata<T = undefined> = T extends undefined
-  ? MacroMetadataInternal
-  : MacroMetadataInternal & {
-      default: T;
-    };
+}
 
 export interface MacroTaskState {
   globalId: string;

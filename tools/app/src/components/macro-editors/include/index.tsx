@@ -29,22 +29,16 @@ import {
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import { useTranslation } from 'react-i18next';
 import type { IncludeMacroOptions } from '@cyberismo/data-handler';
-import { MacroModal } from '../shared/MacroModal';
+import { BaseMacroModal } from '../shared/MacroModal';
 import { useCardOptions } from '../shared/hooks';
-import type { OnInsert } from '../shared/types';
+import type { MacroModalProps } from '../shared/types';
 import { DEFAULT_INCLUDE_FORM_VALUES } from '../shared/types';
-
-export interface IncludeMacroModalProps {
-  open: boolean;
-  onClose: () => void;
-  onInsert: OnInsert<IncludeMacroOptions>;
-}
 
 export function IncludeMacroModal({
   open,
   onClose,
   onInsert,
-}: IncludeMacroModalProps) {
+}: MacroModalProps<IncludeMacroOptions>) {
   const { t } = useTranslation();
   const { options: cardOptions, isLoading } = useCardOptions();
 
@@ -85,7 +79,7 @@ export function IncludeMacroModal({
   });
 
   return (
-    <MacroModal
+    <BaseMacroModal
       open={open}
       onClose={onClose}
       onSubmit={handleModalSubmit}
@@ -207,7 +201,7 @@ export function IncludeMacroModal({
           )}
         />
       </FormControl>
-    </MacroModal>
+    </BaseMacroModal>
   );
 }
 

@@ -13,5 +13,8 @@
 */
 
 export interface XrefMacroOptions {
+  /**
+   * Card of the card being referenced
+   */
   cardKey: string;
 }

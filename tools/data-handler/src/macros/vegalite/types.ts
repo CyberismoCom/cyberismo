@@ -15,5 +15,8 @@
 import type { TopLevelSpec } from 'vega-lite';
 
 export interface VegaLiteMacroInput {
+  /**
+   * Defines spec for vega-lite
+   */
   spec: TopLevelSpec;
 }

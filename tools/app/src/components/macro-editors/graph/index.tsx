@@ -23,22 +23,16 @@ import {
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api/resources';
-import { MacroModal } from '../shared/MacroModal';
+import { BaseMacroModal } from '../shared/MacroModal';
 import { collectResourceNodes } from '../shared/hooks';
-import { DEFAULT_GRAPH_FORM_VALUES, type OnInsert } from '../shared/types';
+import { DEFAULT_GRAPH_FORM_VALUES, MacroModalProps } from '../shared/types';
 import type { GraphOptions } from '@cyberismo/data-handler';
-
-export interface GraphMacroModalProps {
-  open: boolean;
-  onClose: () => void;
-  onInsert: OnInsert<GraphOptions>;
-}
 
 export function GraphMacroModal({
   open,
   onClose,
   onInsert,
-}: GraphMacroModalProps) {
+}: MacroModalProps<GraphOptions>) {
   const { t } = useTranslation();
   const { resourceTree, isLoading } = useResourceTree();
 
@@ -80,7 +74,7 @@ export function GraphMacroModal({
   });
 
   return (
-    <MacroModal
+    <BaseMacroModal
       open={open}
       onClose={onClose}
       onSubmit={handleModalSubmit}
@@ -138,7 +132,7 @@ export function GraphMacroModal({
           </FormHelperText>
         )}
       </FormControl>
-    </MacroModal>
+    </BaseMacroModal>
   );
 }
 

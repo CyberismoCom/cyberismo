@@ -20,8 +20,20 @@
  * @param title - Title of the image.
  */
 export interface ImageMacroOptions {
+  /**
+   * Filename of the image
+   */
   fileName: string;
+  /**
+   * By default, image is assumed to be under the current card. You can override this behaviour
+   */
   cardKey?: string;
+  /**
+   * Alt text
+   */
   alt?: string;
+  /**
+   * Title for the image
+   */
   title?: string;
 }
