@@ -29,7 +29,13 @@ function isValidNode<T extends NodeKey>(
 ): node is GenericNode<T> {
   return node.type === type;
 }
-
+/**
+ * Returns resource nodes of certain type from the resource tree
+ * Note: Could be replaced with a backend request
+ * @param nodes All resource nodes
+ * @param type Type of the resource
+ * @returns
+ */
 export function collectResourceNodes<T extends NodeKey>(
   nodes: AnyNode[] | undefined,
   type: T,
@@ -52,6 +58,10 @@ export function collectResourceNodes<T extends NodeKey>(
   return result;
 }
 
+/**
+ * Finds all cards for select components
+ * @returns cards with a label and the key
+ */
 export function useCardOptions() {
   const { tree, isLoading } = useTree();
 
