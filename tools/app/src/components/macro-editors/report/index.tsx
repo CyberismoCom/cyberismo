@@ -74,35 +74,31 @@ export function ReportMacroModal({
       submitDisabled={!selectedReport}
       title={t('asciiDocEditor.macros.report.title')}
     >
-      <Stack spacing={2}>
-        <FormControl required>
-          <FormLabel>{t('asciiDocEditor.macros.report.reportLabel')}</FormLabel>
-          <Controller
-            name="name"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t(
-                  'asciiDocEditor.macros.report.reportPlaceholder',
-                )}
-                value={field.value || null}
-                onChange={(_, value) => field.onChange((value as string) || '')}
-              >
-                {reportNodes.map((node) => (
-                  <Option key={node.name} value={node.data.name}>
-                    {node.data.displayName || node.data.name}
-                  </Option>
-                ))}
-              </Select>
-            )}
-          />
-          {reportNodes.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noReports')}
-            </FormHelperText>
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.report.reportLabel')}</FormLabel>
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t('asciiDocEditor.macros.report.reportPlaceholder')}
+              value={field.value || null}
+              onChange={(_, value) => field.onChange((value as string) || '')}
+            >
+              {reportNodes.map((node) => (
+                <Option key={node.name} value={node.data.name}>
+                  {node.data.displayName || node.data.name}
+                </Option>
+              ))}
+            </Select>
           )}
-        </FormControl>
-      </Stack>
+        />
+        {reportNodes.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noReports')}
+          </FormHelperText>
+        )}
+      </FormControl>
     </MacroModal>
   );
 }

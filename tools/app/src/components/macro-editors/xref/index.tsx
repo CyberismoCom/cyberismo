@@ -66,37 +66,35 @@ export function XrefMacroModal({
       submitDisabled={!cardKeyValue}
       title={t('asciiDocEditor.macros.xref.title')}
     >
-      <Stack spacing={2}>
-        <FormControl required>
-          <FormLabel>{t('asciiDocEditor.macros.xref.cardLabel')}</FormLabel>
-          <Controller
-            name="cardKey"
-            control={control}
-            render={({ field }) => {
-              const selectedOption =
-                cardOptions.find((option) => option.value === field.value) ??
-                null;
-              return (
-                <Autocomplete
-                  placeholder={t('asciiDocEditor.macros.xref.cardPlaceholder')}
-                  options={cardOptions}
-                  value={selectedOption}
-                  onChange={(_, value) => field.onChange(value?.value || '')}
-                  getOptionLabel={(option) => option.label}
-                  isOptionEqualToValue={(option, value) =>
-                    option.value === value.value
-                  }
-                />
-              );
-            }}
-          />
-          {cardOptions.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noCards')}
-            </FormHelperText>
-          )}
-        </FormControl>
-      </Stack>
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.xref.cardLabel')}</FormLabel>
+        <Controller
+          name="cardKey"
+          control={control}
+          render={({ field }) => {
+            const selectedOption =
+              cardOptions.find((option) => option.value === field.value) ??
+              null;
+            return (
+              <Autocomplete
+                placeholder={t('asciiDocEditor.macros.xref.cardPlaceholder')}
+                options={cardOptions}
+                value={selectedOption}
+                onChange={(_, value) => field.onChange(value?.value || '')}
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
+              />
+            );
+          }}
+        />
+        {cardOptions.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noCards')}
+          </FormHelperText>
+        )}
+      </FormControl>
     </MacroModal>
   );
 }

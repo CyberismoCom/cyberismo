@@ -21,7 +21,6 @@ import {
   Input,
   Option,
   Select,
-  Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useTemplates } from '@/lib/api/templates';
@@ -100,55 +99,53 @@ export function CreateCardsMacroModal({
       submitDisabled={!selectedTemplate || !buttonLabelValue.trim()}
       title={t('asciiDocEditor.macros.createCards.title')}
     >
-      <Stack spacing={2}>
-        <FormControl required>
-          <FormLabel>
-            {t('asciiDocEditor.macros.createCards.templateLabel')}
-          </FormLabel>
-          <Controller
-            name="template"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t(
-                  'asciiDocEditor.macros.createCards.templatePlaceholder',
-                )}
-                value={field.value || null}
-                onChange={(_, value) => field.onChange((value as string) || '')}
-              >
-                {templateOptions.map((template) => (
-                  <Option key={template.id} value={template.id}>
-                    {template.displayName}
-                  </Option>
-                ))}
-              </Select>
-            )}
-          />
-          {templateOptions.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noTemplates')}
-            </FormHelperText>
+      <FormControl required>
+        <FormLabel>
+          {t('asciiDocEditor.macros.createCards.templateLabel')}
+        </FormLabel>
+        <Controller
+          name="template"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t(
+                'asciiDocEditor.macros.createCards.templatePlaceholder',
+              )}
+              value={field.value || null}
+              onChange={(_, value) => field.onChange((value as string) || '')}
+            >
+              {templateOptions.map((template) => (
+                <Option key={template.id} value={template.id}>
+                  {template.displayName}
+                </Option>
+              ))}
+            </Select>
           )}
-        </FormControl>
+        />
+        {templateOptions.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noTemplates')}
+          </FormHelperText>
+        )}
+      </FormControl>
 
-        <FormControl required>
-          <FormLabel>
-            {t('asciiDocEditor.macros.createCards.buttonLabel')}
-          </FormLabel>
-          <Controller
-            name="buttonLabel"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder={t(
-                  'asciiDocEditor.macros.createCards.buttonPlaceholder',
-                )}
-              />
-            )}
-          />
-        </FormControl>
-      </Stack>
+      <FormControl required>
+        <FormLabel>
+          {t('asciiDocEditor.macros.createCards.buttonLabel')}
+        </FormLabel>
+        <Controller
+          name="buttonLabel"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              placeholder={t(
+                'asciiDocEditor.macros.createCards.buttonPlaceholder',
+              )}
+            />
+          )}
+        />
+      </FormControl>
     </MacroModal>
   );
 }

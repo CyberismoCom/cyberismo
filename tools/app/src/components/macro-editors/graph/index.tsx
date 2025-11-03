@@ -20,7 +20,6 @@ import {
   FormLabel,
   Option,
   Select,
-  Stack,
 } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api/resources';
@@ -88,59 +87,57 @@ export function GraphMacroModal({
       submitDisabled={!selectedGraphView || !selectedGraphModel}
       title={t('asciiDocEditor.macros.graph.title')}
     >
-      <Stack spacing={2}>
-        <FormControl required>
-          <FormLabel>{t('asciiDocEditor.macros.graph.viewLabel')}</FormLabel>
-          <Controller
-            name="view"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t('asciiDocEditor.macros.graph.viewPlaceholder')}
-                onChange={(_, value) => field.onChange(value)}
-                value={field.value}
-              >
-                {graphViewNodes.map((node) => (
-                  <Option key={node.name} value={node.data.name}>
-                    {node.data.displayName || node.data.name}
-                  </Option>
-                ))}
-              </Select>
-            )}
-          />
-          {graphViewNodes.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noGraphViews')}
-            </FormHelperText>
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.graph.viewLabel')}</FormLabel>
+        <Controller
+          name="view"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t('asciiDocEditor.macros.graph.viewPlaceholder')}
+              onChange={(_, value) => field.onChange(value)}
+              value={field.value}
+            >
+              {graphViewNodes.map((node) => (
+                <Option key={node.name} value={node.data.name}>
+                  {node.data.displayName || node.data.name}
+                </Option>
+              ))}
+            </Select>
           )}
-        </FormControl>
+        />
+        {graphViewNodes.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noGraphViews')}
+          </FormHelperText>
+        )}
+      </FormControl>
 
-        <FormControl required>
-          <FormLabel>{t('asciiDocEditor.macros.graph.modelLabel')}</FormLabel>
-          <Controller
-            name="model"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t('asciiDocEditor.macros.graph.modelPlaceholder')}
-                onChange={(_, value) => field.onChange(value)}
-                value={field.value}
-              >
-                {graphModelNodes.map((node) => (
-                  <Option key={node.name} value={node.data.name}>
-                    {node.data.displayName || node.data.name}
-                  </Option>
-                ))}
-              </Select>
-            )}
-          />
-          {graphModelNodes.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noGraphModels')}
-            </FormHelperText>
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.graph.modelLabel')}</FormLabel>
+        <Controller
+          name="model"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t('asciiDocEditor.macros.graph.modelPlaceholder')}
+              onChange={(_, value) => field.onChange(value)}
+              value={field.value}
+            >
+              {graphModelNodes.map((node) => (
+                <Option key={node.name} value={node.data.name}>
+                  {node.data.displayName || node.data.name}
+                </Option>
+              ))}
+            </Select>
           )}
-        </FormControl>
-      </Stack>
+        />
+        {graphModelNodes.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noGraphModels')}
+          </FormHelperText>
+        )}
+      </FormControl>
     </MacroModal>
   );
 }

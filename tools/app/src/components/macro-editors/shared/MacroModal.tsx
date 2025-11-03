@@ -21,6 +21,7 @@ import {
   Divider,
   Modal,
   ModalDialog,
+  Stack,
 } from '@mui/joy';
 import type { ReactNode } from 'react';
 
@@ -31,6 +32,7 @@ export interface MacroModalProps {
   onSubmit: () => void;
   submitDisabled?: boolean;
   children: ReactNode;
+  rowSpacing?: number;
 }
 
 export function MacroModal({
@@ -39,6 +41,7 @@ export function MacroModal({
   onClose,
   onSubmit,
   submitDisabled = false,
+  rowSpacing = 2,
   children,
 }: MacroModalProps) {
   const { t } = useTranslation();
@@ -53,7 +56,7 @@ export function MacroModal({
             p: 1,
           }}
         >
-          {children}
+          <Stack spacing={rowSpacing}>{children}</Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={onSubmit} disabled={submitDisabled}>

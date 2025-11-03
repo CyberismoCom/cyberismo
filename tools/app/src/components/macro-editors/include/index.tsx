@@ -92,135 +92,121 @@ export function IncludeMacroModal({
       submitDisabled={!cardKeyValue}
       title={t('asciiDocEditor.macros.include.title')}
     >
-      <Stack spacing={2}>
-        <FormControl required>
-          <FormLabel>{t('asciiDocEditor.macros.include.cardLabel')}</FormLabel>
-          <Controller
-            name="cardKey"
-            control={control}
-            render={({ field }) => {
-              const selectedCardOption =
-                cardOptions.find((option) => option.value === field.value) ??
-                null;
-              return (
-                <Autocomplete
-                  placeholder={t(
-                    'asciiDocEditor.macros.include.cardPlaceholder',
-                  )}
-                  options={cardOptions}
-                  value={selectedCardOption}
-                  onChange={(_, value) => field.onChange(value?.value || '')}
-                  getOptionLabel={(option) => option.label}
-                  isOptionEqualToValue={(option, value) =>
-                    option.value === value.value
-                  }
-                />
-              );
-            }}
-          />
-          {cardOptions.length === 0 && !isLoading && (
-            <FormHelperText>
-              {t('asciiDocEditor.macros.common.noCards')}
-            </FormHelperText>
-          )}
-        </FormControl>
-
-        <FormControl>
-          <FormLabel>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Typography level="body-sm">
-                {t('asciiDocEditor.macros.include.levelOffset')}
-              </Typography>
-              <Tooltip
-                placement="top"
-                title={t('asciiDocEditor.macros.include.levelOffsetTooltip')}
-              >
-                <InfoOutlined fontSize="small" />
-              </Tooltip>
-            </Stack>
-          </FormLabel>
-          <Controller
-            name="levelOffset"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                onChange={(event) => field.onChange(event.target.value)}
-                placeholder={t(
-                  'asciiDocEditor.macros.include.levelOffsetPlaceholder',
-                )}
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.include.cardLabel')}</FormLabel>
+        <Controller
+          name="cardKey"
+          control={control}
+          render={({ field }) => {
+            const selectedCardOption =
+              cardOptions.find((option) => option.value === field.value) ??
+              null;
+            return (
+              <Autocomplete
+                placeholder={t('asciiDocEditor.macros.include.cardPlaceholder')}
+                options={cardOptions}
+                value={selectedCardOption}
+                onChange={(_, value) => field.onChange(value?.value || '')}
+                getOptionLabel={(option) => option.label}
+                isOptionEqualToValue={(option, value) =>
+                  option.value === value.value
+                }
               />
-            )}
-          />
-        </FormControl>
+            );
+          }}
+        />
+        {cardOptions.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noCards')}
+          </FormHelperText>
+        )}
+      </FormControl>
 
-        <FormControl>
-          <FormLabel>
-            {t('asciiDocEditor.macros.include.includeTitle')}
-          </FormLabel>
-          <Controller
-            name="title"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t(
-                  'asciiDocEditor.macros.include.includeTitlePlaceholder',
-                )}
-                value={field.value ?? null}
-                onChange={(_, value) =>
-                  field.onChange(
-                    (value as IncludeMacroOptions['title']) ?? null,
-                  )
-                }
-              >
-                <Option value="include">
-                  {t(
-                    'asciiDocEditor.macros.include.includeTitleOptions.include',
-                  )}
-                </Option>
-                <Option value="exclude">
-                  {t(
-                    'asciiDocEditor.macros.include.includeTitleOptions.exclude',
-                  )}
-                </Option>
-                <Option value="only">
-                  {t('asciiDocEditor.macros.include.includeTitleOptions.only')}
-                </Option>
-              </Select>
-            )}
-          />
-        </FormControl>
+      <FormControl>
+        <FormLabel>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography level="body-sm">
+              {t('asciiDocEditor.macros.include.levelOffset')}
+            </Typography>
+            <Tooltip
+              placement="top"
+              title={t('asciiDocEditor.macros.include.levelOffsetTooltip')}
+            >
+              <InfoOutlined fontSize="small" />
+            </Tooltip>
+          </Stack>
+        </FormLabel>
+        <Controller
+          name="levelOffset"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field}
+              onChange={(event) => field.onChange(event.target.value)}
+              placeholder={t(
+                'asciiDocEditor.macros.include.levelOffsetPlaceholder',
+              )}
+            />
+          )}
+        />
+      </FormControl>
 
-        <FormControl>
-          <FormLabel>{t('asciiDocEditor.macros.include.pageTitles')}</FormLabel>
-          <Controller
-            name="pageTitles"
-            control={control}
-            render={({ field }) => (
-              <Select
-                placeholder={t(
-                  'asciiDocEditor.macros.include.pageTitlesPlaceholder',
-                )}
-                value={field.value ?? null}
-                onChange={(_, value) =>
-                  field.onChange(
-                    (value as IncludeMacroOptions['pageTitles']) ?? null,
-                  )
-                }
-              >
-                <Option value="normal">
-                  {t('asciiDocEditor.macros.include.pageTitlesOptions.normal')}
-                </Option>
-                <Option value="discrete">
-                  {t(
-                    'asciiDocEditor.macros.include.pageTitlesOptions.discrete',
-                  )}
-                </Option>
-              </Select>
-            )}
-          />
-        </FormControl>
-      </Stack>
+      <FormControl>
+        <FormLabel>{t('asciiDocEditor.macros.include.includeTitle')}</FormLabel>
+        <Controller
+          name="title"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t(
+                'asciiDocEditor.macros.include.includeTitlePlaceholder',
+              )}
+              value={field.value ?? null}
+              onChange={(_, value) =>
+                field.onChange((value as IncludeMacroOptions['title']) ?? null)
+              }
+            >
+              <Option value="include">
+                {t('asciiDocEditor.macros.include.includeTitleOptions.include')}
+              </Option>
+              <Option value="exclude">
+                {t('asciiDocEditor.macros.include.includeTitleOptions.exclude')}
+              </Option>
+              <Option value="only">
+                {t('asciiDocEditor.macros.include.includeTitleOptions.only')}
+              </Option>
+            </Select>
+          )}
+        />
+      </FormControl>
+
+      <FormControl>
+        <FormLabel>{t('asciiDocEditor.macros.include.pageTitles')}</FormLabel>
+        <Controller
+          name="pageTitles"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t(
+                'asciiDocEditor.macros.include.pageTitlesPlaceholder',
+              )}
+              value={field.value ?? null}
+              onChange={(_, value) =>
+                field.onChange(
+                  (value as IncludeMacroOptions['pageTitles']) ?? null,
+                )
+              }
+            >
+              <Option value="normal">
+                {t('asciiDocEditor.macros.include.pageTitlesOptions.normal')}
+              </Option>
+              <Option value="discrete">
+                {t('asciiDocEditor.macros.include.pageTitlesOptions.discrete')}
+              </Option>
+            </Select>
+          )}
+        />
+      </FormControl>
     </MacroModal>
   );
 }
