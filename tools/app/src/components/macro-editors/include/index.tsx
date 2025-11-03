@@ -40,7 +40,7 @@ export function IncludeMacroModal({
   onInsert,
 }: MacroModalProps<IncludeMacroOptions>) {
   const { t } = useTranslation();
-  const { options: cardOptions, isLoading } = useCardOptions();
+  const { options, isLoading } = useCardOptions();
 
   const { control, handleSubmit, reset, watch } = useForm({
     defaultValues: DEFAULT_INCLUDE_FORM_VALUES,
@@ -93,12 +93,11 @@ export function IncludeMacroModal({
           control={control}
           render={({ field }) => {
             const selectedCardOption =
-              cardOptions.find((option) => option.value === field.value) ??
-              null;
+              options.find((option) => option.value === field.value) ?? null;
             return (
               <Autocomplete
                 placeholder={t('asciiDocEditor.macros.include.cardPlaceholder')}
-                options={cardOptions}
+                options={options}
                 value={selectedCardOption}
                 onChange={(_, value) => field.onChange(value?.value || '')}
                 getOptionLabel={(option) => option.label}
@@ -109,7 +108,7 @@ export function IncludeMacroModal({
             );
           }}
         />
-        {cardOptions.length === 0 && !isLoading && (
+        {options.length === 0 && !isLoading && (
           <FormHelperText>
             {t('asciiDocEditor.macros.common.noCards')}
           </FormHelperText>

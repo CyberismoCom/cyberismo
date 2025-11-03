@@ -23,8 +23,8 @@ import type {
 export const DEFAULT_INCLUDE_FORM_VALUES = {
   cardKey: '',
   levelOffset: '',
-  title: null,
   pageTitles: null,
+  title: null,
 };
 
 export const DEFAULT_XREF_FORM_VALUES = {
@@ -32,8 +32,8 @@ export const DEFAULT_XREF_FORM_VALUES = {
 };
 
 export const DEFAULT_CREATE_CARDS_FORM_VALUES = {
-  template: '',
   buttonLabel: '',
+  template: '',
 };
 
 export const DEFAULT_REPORT_FORM_VALUES = {
@@ -41,8 +41,8 @@ export const DEFAULT_REPORT_FORM_VALUES = {
 };
 
 export const DEFAULT_GRAPH_FORM_VALUES = {
-  view: '',
   model: '',
+  view: '',
 };
 
 export interface MacroModalProps<T> {
@@ -64,8 +64,8 @@ export interface MacroModalProps<T> {
 export type OnInsert<T> = (options: T) => void;
 
 export type AnyOnInsert =
-  | OnInsert<IncludeMacroOptions>
-  | OnInsert<XrefMacroOptions>
   | OnInsert<CreateCardsOptions>
+  | OnInsert<GraphOptions>
+  | OnInsert<IncludeMacroOptions>
   | OnInsert<ReportOptions>
-  | OnInsert<GraphOptions>;
+  | OnInsert<XrefMacroOptions>;

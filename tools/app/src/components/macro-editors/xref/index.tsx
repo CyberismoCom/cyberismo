@@ -27,7 +27,7 @@ export function XrefMacroModal({
   onInsert,
 }: MacroModalProps<XrefMacroOptions>) {
   const { t } = useTranslation();
-  const { options: cardOptions, isLoading } = useCardOptions();
+  const { options, isLoading } = useCardOptions();
   const { control, handleSubmit, reset, watch } = useForm({
     defaultValues: DEFAULT_XREF_FORM_VALUES,
   });
@@ -61,12 +61,11 @@ export function XrefMacroModal({
           control={control}
           render={({ field }) => {
             const selectedOption =
-              cardOptions.find((option) => option.value === field.value) ??
-              null;
+              options.find((option) => option.value === field.value) ?? null;
             return (
               <Autocomplete
                 placeholder={t('asciiDocEditor.macros.xref.cardPlaceholder')}
-                options={cardOptions}
+                options={options}
                 value={selectedOption}
                 onChange={(_, value) => field.onChange(value?.value || '')}
                 getOptionLabel={(option) => option.label}
@@ -77,7 +76,7 @@ export function XrefMacroModal({
             );
           }}
         />
-        {cardOptions.length === 0 && !isLoading && (
+        {options.length === 0 && !isLoading && (
           <FormHelperText>
             {t('asciiDocEditor.macros.common.noCards')}
           </FormHelperText>
