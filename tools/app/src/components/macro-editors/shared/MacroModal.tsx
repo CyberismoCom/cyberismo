@@ -26,12 +26,34 @@ import {
 import type { ReactNode } from 'react';
 
 export interface BaseMacroModalProps {
+  /**
+   * Whether the modal is open or not
+   */
   open: boolean;
+  /**
+   * Title of the modal
+   */
   title: string;
+  /**
+   * Called my modal if to request closing the modal
+   * @returns
+   */
   onClose: () => void;
+  /**
+   * Called when modal is submitted
+   */
   onSubmit: () => void;
+  /**
+   * Disables submit button
+   */
   submitDisabled?: boolean;
+  /**
+   * The actual macro form implement as children component
+   */
   children: ReactNode;
+  /**
+   * Allows overriding spacing between macros
+   */
   rowSpacing?: number;
 }
 
