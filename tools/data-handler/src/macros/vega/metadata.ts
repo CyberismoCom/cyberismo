@@ -11,7 +11,6 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import type { MacroMetadata } from '../../interfaces/macros.js';
-import type { VegaMacroInput } from './types.js';
 
 const macroMetadata: MacroMetadata = {
   name: 'vega',
