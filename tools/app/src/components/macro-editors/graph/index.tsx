@@ -82,32 +82,6 @@ export function GraphMacroModal({
       title={t('asciiDocEditor.macros.graph.title')}
     >
       <FormControl required>
-        <FormLabel>{t('asciiDocEditor.macros.graph.viewLabel')}</FormLabel>
-        <Controller
-          name="view"
-          control={control}
-          render={({ field }) => (
-            <Select
-              placeholder={t('asciiDocEditor.macros.graph.viewPlaceholder')}
-              onChange={(_, value) => field.onChange(value)}
-              value={field.value}
-            >
-              {graphViewNodes.map((node) => (
-                <Option key={node.name} value={node.data.name}>
-                  {node.data.displayName || node.data.name}
-                </Option>
-              ))}
-            </Select>
-          )}
-        />
-        {graphViewNodes.length === 0 && !isLoading && (
-          <FormHelperText>
-            {t('asciiDocEditor.macros.common.noGraphViews')}
-          </FormHelperText>
-        )}
-      </FormControl>
-
-      <FormControl required>
         <FormLabel>{t('asciiDocEditor.macros.graph.modelLabel')}</FormLabel>
         <Controller
           name="model"
@@ -129,6 +103,31 @@ export function GraphMacroModal({
         {graphModelNodes.length === 0 && !isLoading && (
           <FormHelperText>
             {t('asciiDocEditor.macros.common.noGraphModels')}
+          </FormHelperText>
+        )}
+      </FormControl>
+      <FormControl required>
+        <FormLabel>{t('asciiDocEditor.macros.graph.viewLabel')}</FormLabel>
+        <Controller
+          name="view"
+          control={control}
+          render={({ field }) => (
+            <Select
+              placeholder={t('asciiDocEditor.macros.graph.viewPlaceholder')}
+              onChange={(_, value) => field.onChange(value)}
+              value={field.value}
+            >
+              {graphViewNodes.map((node) => (
+                <Option key={node.name} value={node.data.name}>
+                  {node.data.displayName || node.data.name}
+                </Option>
+              ))}
+            </Select>
+          )}
+        />
+        {graphViewNodes.length === 0 && !isLoading && (
+          <FormHelperText>
+            {t('asciiDocEditor.macros.common.noGraphViews')}
           </FormHelperText>
         )}
       </FormControl>
