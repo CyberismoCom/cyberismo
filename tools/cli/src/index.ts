@@ -225,7 +225,7 @@ const additionalHelpForRemove = `Sub-command help:
       <name> Name of the module to remove
 
   remove hub <location>, where
-      <location> URL of hub to remove
+      <location> URL of hub to remove. Use 'default' if removing default hub.
 
   remove <resourceName>, where
     <resourceName> is <project prefix>/<type>/<identifier>, where
@@ -313,9 +313,15 @@ addCmd
 addCmd
   .command('hub')
   .description('Add a hub to the project')
-  .argument('<location>', 'Hub URL')
+  .argument(
+    '<location>',
+    'Hub URL. Default hub can be added by using "default"',
+  )
   .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (location: string, options: CommandOptions<'add'>) => {
+    if (location === 'default') {
+      location = DEFAULT_HUB;
+    }
     const result = await commandHandler.command(
       Cmd.add,
       ['hub', location],
@@ -898,6 +904,9 @@ program
 
         if (!parameter1 && type === 'hub') {
           program.error('error: missing argument <location>');
+        }
+        if (type === 'hub' && parameter1 === 'default') {
+          parameter1 = DEFAULT_HUB;
         }
 
         const result = await commandHandler.command(
