@@ -416,6 +416,12 @@ export class Create {
 
     const projectFolders: string[] = ['.cards/local', 'cardRoot'];
 
+    if (!Validate.validateFolder(projectPath)) {
+      throw new Error(
+        `Input validation error: folder name '${projectPath}' is invalid`,
+      );
+    }
+
     if (
       projectPrefix === undefined ||
       projectPrefix.length < 3 ||

@@ -673,6 +673,32 @@ describe('create command', () => {
     );
     expect(result.statusCode).to.equal(400);
   });
+  it('project with uppercase prefix', async () => {
+    const prefix = 'Test';
+    const name = 'Test Project';
+    const projectDir = join(testDir, 'test-uppercase-prefix');
+    const testOptions: CreateCommandOptions = { projectPath: projectDir };
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['project', name, prefix],
+      testOptions,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.include('invalid prefix');
+  });
+  it('project with forbidden folder name', async () => {
+    const prefix = 'test';
+    const name = 'Test Project';
+    const projectDir = join(testDir, 'lpt1'); // Windows cannot handle certain filenames
+    const testOptions: CreateCommandOptions = { projectPath: projectDir };
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['project', name, prefix],
+      testOptions,
+    );
+    expect(result.statusCode).to.equal(400);
+    expect(result.message).to.include('invalid');
+  });
   it('project path already exists', async () => {
     const testOptions = { projectPath: '.' };
     const result = await commandHandler.command(
