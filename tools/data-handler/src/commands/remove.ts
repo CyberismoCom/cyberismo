@@ -14,6 +14,7 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard } from '../utils/card-utils.js';
 import { ModuleManager } from '../module-manager.js';
+import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
 
@@ -26,7 +27,10 @@ export class Remove {
    * Creates a new instance of Remove command.
    * @param project Project instance to use
    */
-  constructor(private project: Project) {
+  constructor(
+    private project: Project,
+    private fetchCmd: Fetch,
+  ) {
     this.moduleManager = new ModuleManager(this.project);
   }
 
@@ -164,6 +168,11 @@ export class Remove {
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
+    // Ensure module list is up to date when removing modules
+    if (type === 'module') {
+      await this.fetchCmd.ensureModuleListUpToDate();
+    }
+
     if (type === 'attachment' && rest.length !== 1 && !rest[0]) {
       throw new Error(
         `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
