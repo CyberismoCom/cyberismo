@@ -59,3 +59,5 @@ export interface HandlebarsOptions {
 }
 
 export type MacroName = keyof typeof macroMetadata;
+
+export * from '../macros/types.js';

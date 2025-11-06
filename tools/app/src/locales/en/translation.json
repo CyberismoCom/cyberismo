@@ -22,7 +22,14 @@
       "bold": "Bold",
       "italic": "Italic",
       "highlight": "Highlight",
-      "insertTable": "Insert table"
+      "insertTable": "Insert table",
+      "macros": {
+        "include": "Include a card",
+        "xref": "Cross reference",
+        "createCards": "Create cards",
+        "report": "Report",
+        "graph": "Graph"
+      }
     },
     "placeholder": {
       "heading": "Heading",
@@ -33,6 +40,62 @@
       "table": {
         "header": "Column {{index}}",
         "cell": "Cell in column {{column}}, row {{row}}"
+      }
+    },
+    "macros": {
+      "insert": "Insert macro",
+      "common": {
+        "noCards": "No cards available",
+        "noTemplates": "No templates available",
+        "noReports": "No reports available",
+        "noGraphViews": "No graph views available",
+        "noGraphModels": "No graph models available",
+        "additionalParameters": "Additional parameters"
+      },
+      "include": {
+        "title": "Include a card",
+        "cardLabel": "Card",
+        "cardPlaceholder": "Select a card",
+        "levelOffset": "Level offset",
+        "levelOffsetTooltip": "An optional offset to adjust the heading levels of the included content. For example \"+1\", \"+2\" or \"-1\".",
+        "levelOffsetPlaceholder": "+1",
+        "includeTitle": "Include title",
+        "includeTitlePlaceholder": "Select an option",
+        "includeTitleOptions": {
+          "include": "Include",
+          "exclude": "Exclude",
+          "only": "Only"
+        },
+        "pageTitles": "Page titles",
+        "pageTitlesPlaceholder": "Select an option",
+        "pageTitlesOptions": {
+          "normal": "Normal",
+          "discrete": "Discrete"
+        }
+      },
+      "xref": {
+        "title": "Cross reference",
+        "cardLabel": "Card",
+        "cardPlaceholder": "Select a card"
+      },
+      "createCards": {
+        "title": "Create cards",
+        "templateLabel": "Template",
+        "templatePlaceholder": "Select a template",
+        "buttonLabel": "Button text",
+        "buttonPlaceholder": "Enter button text"
+      },
+      "report": {
+        "title": "Report",
+        "reportLabel": "Report",
+        "reportPlaceholder": "Select a report"
+      },
+      "graph": {
+        "title": "Graph",
+        "viewLabel": "Graph view",
+        "viewPlaceholder": "Select a graph view",
+        "modelLabel": "Graph model",
+        "modelPlaceholder": "Select a graph model"
       }
     }
   },

@@ -12,6 +12,7 @@
 */
 
 import BaseMacro from '../base-macro.js';
+import type { GraphOptions } from './types.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
 import type { MacroGenerationContext } from '../../interfaces/macros.js';
@@ -25,12 +26,7 @@ import { ClingoError } from '@cyberismo/node-clingo';
 import { resourceFilePath } from '../../utils/resource-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
 
-export interface GraphOptions {
-  model: string;
-  view: string;
-}
-
-class ReportMacro extends BaseMacro {
+class GraphMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
     super(macroMetadata, tasksQueue);
   }
@@ -129,4 +125,4 @@ class ReportMacro extends BaseMacro {
   }
 }
 
-export default ReportMacro;
+export default GraphMacro;

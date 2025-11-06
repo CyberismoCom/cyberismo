@@ -22,10 +22,7 @@ import { ReportResource } from '../../resources/report-resource.js';
 import { resourceName } from '../../utils/resource-utils.js';
 import { generateReportContent } from '../../utils/report.js';
 import { ClingoError } from '@cyberismo/node-clingo';
-
-export interface ReportOptions {
-  name: string;
-}
+import type { ReportOptions } from './types.js';
 
 class ReportMacro extends BaseMacro {
   constructor(tasks: TaskQueue) {

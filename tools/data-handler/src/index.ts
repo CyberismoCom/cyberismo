@@ -20,6 +20,7 @@ import {
 } from './command-handler.js';
 import { Validate } from './commands/validate.js';
 export * from './interfaces/project-interfaces.js';
+export * from './interfaces/macros.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
 import { UpdateOperations } from './resources/resource-object.js';
 export type {

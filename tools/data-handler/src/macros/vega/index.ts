@@ -21,10 +21,7 @@ import {
   validateMacroContent,
 } from '../index.js';
 import * as vega from 'vega';
-
-export interface VegaMacroInput {
-  spec: vega.Spec;
-}
+import type { VegaMacroInput } from './types.js';
 
 class VegaMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

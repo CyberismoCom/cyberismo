@@ -14,6 +14,7 @@
 import { EditorSelection } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { redo, undo } from '@codemirror/commands';
+import type { AnyMacroOption, MacroName } from '@cyberismo/data-handler';
 import i18n from 'i18next';
 
 const listItemPlaceholder = (index: number) =>
@@ -33,6 +34,14 @@ const tableCellPlaceholder = (column: number, row: number) =>
   i18n.t('asciiDocEditor.placeholder.table.cell', { column, row });
 
 type MaybeEditorView = EditorView | null | undefined;
+
+export interface MacroInsertOptions {
+  newLine?: boolean;
+}
+
+const DEFAULT_MACRO_INSERT_OPTIONS: MacroInsertOptions = {
+  newLine: true,
+};
 
 const withEditableView = (
   view: MaybeEditorView,
@@ -218,50 +227,89 @@ const insertTable = (view: EditorView) => {
   });
 };
 
+/**
+ * Inserts a macro to codemirror
+ * @param view The codemirror view that the macro will be inserted to
+ * @param macroName Name of the macro
+ * @param options Options of the macro
+ */
+const insertMacro = (
+  view: EditorView,
+  macroName: string,
+  options: AnyMacroOption,
+  opts?: MacroInsertOptions,
+) => {
+  const { newLine } = {
+    ...DEFAULT_MACRO_INSERT_OPTIONS,
+    ...opts,
+  };
+  const macroInternalString = newLine
+    ? JSON.stringify(options, null, 2)
+    : JSON.stringify(options);
+  // Convert to macro syntax
+  // Note that the options are inserted as json without the leading and trailing curly braces
+  const macro = `{{#${macroName}}}${macroInternalString.slice(1, -1)}{{/${macroName}}}`;
+
+  view.dispatch({
+    changes: { from: view.state.selection.main.from, insert: macro },
+  });
+};
+
 export const asciiDocToolbarActions = {
-  undo(view: MaybeEditorView, readOnly?: boolean) {
+  undo(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       undo(cmView);
     });
   },
-  redo(view: MaybeEditorView, readOnly?: boolean) {
+  redo(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       redo(cmView);
     });
   },
-  heading(view: MaybeEditorView, level: 1 | 2 | 3, readOnly?: boolean) {
+  heading(view: MaybeEditorView, readOnly: boolean, level: 1 | 2 | 3) {
     withEditableView(view, readOnly, (cmView) => {
       applyHeadingToSelection(cmView, level);
     });
   },
-  bold(view: MaybeEditorView, readOnly?: boolean) {
+  bold(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       wrapSelection(cmView, '*', '*', boldPlaceholder());
     });
   },
-  italic(view: MaybeEditorView, readOnly?: boolean) {
+  italic(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       wrapSelection(cmView, '_', '_', italicPlaceholder());
     });
   },
-  highlight(view: MaybeEditorView, readOnly?: boolean) {
+  highlight(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       wrapSelection(cmView, '#', '#', highlightPlaceholder());
     });
   },
-  bulletedList(view: MaybeEditorView, readOnly?: boolean) {
+  bulletedList(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       transformToList(cmView, '*', bulletListPlaceholder());
     });
   },
-  numberedList(view: MaybeEditorView, readOnly?: boolean) {
+  numberedList(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       transformToList(cmView, '.', numberedListPlaceholder());
     });
   },
-  table(view: MaybeEditorView, readOnly?: boolean) {
+  table(view: MaybeEditorView, readOnly: boolean) {
     withEditableView(view, readOnly, (cmView) => {
       insertTable(cmView);
+    });
+  },
+  insertMacro(
+    view: MaybeEditorView,
+    readOnly: boolean,
+    macro: MacroName,
+    options: AnyMacroOption,
+    opts?: MacroInsertOptions,
+  ) {
+    withEditableView(view, readOnly, (cmView) => {
+      insertMacro(cmView, macro, options, opts);
     });
   },
 };

@@ -19,13 +19,7 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { scoreCard } from '../../svg/index.js';
-
-export interface ScoreCardOptions {
-  value: number;
-  legend?: string;
-  title?: string;
-  unit?: string;
-}
+import type { ScoreCardOptions } from './types.js';
 
 class ScoreCardMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {

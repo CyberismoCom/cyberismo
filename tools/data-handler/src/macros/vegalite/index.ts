@@ -16,10 +16,7 @@ import macroMetadata from './metadata.js';
 import type TaskQueue from '../task-queue.js';
 import * as vegaLite from 'vega-lite';
 import { createMacro, validateMacroContent } from '../index.js';
-
-export interface VegaLiteMacroInput {
-  spec: vegaLite.TopLevelSpec;
-}
+import type { VegaLiteMacroInput } from './types.js';
 
 class VegaLiteMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
