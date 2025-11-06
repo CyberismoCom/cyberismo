@@ -35,6 +35,14 @@ const tableCellPlaceholder = (column: number, row: number) =>
 
 type MaybeEditorView = EditorView | null | undefined;
 
+export interface MacroInsertOptions {
+  newLine?: boolean;
+}
+
+const DEFAULT_MACRO_INSERT_OPTIONS: MacroInsertOptions = {
+  newLine: true,
+};
+
 const withEditableView = (
   view: MaybeEditorView,
   readOnly: boolean | undefined,
@@ -229,10 +237,18 @@ const insertMacro = (
   view: EditorView,
   macroName: string,
   options: AnyMacroOption,
+  opts?: MacroInsertOptions,
 ) => {
+  const { newLine } = {
+    ...DEFAULT_MACRO_INSERT_OPTIONS,
+    ...opts,
+  };
+  const macroInternalString = newLine
+    ? JSON.stringify(options, null, 2)
+    : JSON.stringify(options);
   // Convert to macro syntax
   // Note that the options are inserted as json without the leading and trailing curly braces
-  const macro = `{{#${macroName}}}${JSON.stringify(options, null, 2).slice(1, -1)}{{/${macroName}}}`;
+  const macro = `{{#${macroName}}}${macroInternalString.slice(1, -1)}{{/${macroName}}}`;
 
   view.dispatch({
     changes: { from: view.state.selection.main.from, insert: macro },
@@ -290,9 +306,10 @@ export const asciiDocToolbarActions = {
     readOnly: boolean,
     macro: MacroName,
     options: AnyMacroOption,
+    opts?: MacroInsertOptions,
   ) {
     withEditableView(view, readOnly, (cmView) => {
-      insertMacro(cmView, macro, options);
+      insertMacro(cmView, macro, options, opts);
     });
   },
 };

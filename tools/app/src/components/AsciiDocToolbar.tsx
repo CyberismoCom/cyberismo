@@ -227,6 +227,9 @@ export function AsciiDocToolbar({
                 readOnly,
                 'xref',
                 options,
+                {
+                  newLine: false,
+                },
               )
             }
           />
