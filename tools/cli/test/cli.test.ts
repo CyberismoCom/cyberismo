@@ -19,7 +19,7 @@ describe('Cli BAT test', function () {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
   });
-  it('check version', function (done) {
+  it('Check version', function (done) {
     exec('cyberismo --version', (error, stdout, _stderr) => {
       if (error != null) {
         console.log(error);
@@ -33,7 +33,7 @@ describe('Cli BAT test', function () {
       done();
     });
   });
-  it('validate test-module', function (done) {
+  it('Validate test-module', function (done) {
     exec(
       `cd ../../module-test&&cyberismo validate`,
       (error, stdout, _stderr) => {
@@ -81,7 +81,7 @@ describe('Cli BAT test', function () {
       'cd ../../.tmp/cyberismo-cli&&cyberismo create card test/templates/page&&cyberismo validate',
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Created cards');
@@ -111,7 +111,7 @@ describe('Cli BAT test', function () {
       `cd ../../.tmp/cyberismo-cli&&cyberismo transition ${pageCardKey} Approve&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
-          log(error);
+          console.log(error);
         }
         expect(error).to.be.null;
         expect(stdout).to.include('Done');
@@ -308,7 +308,7 @@ describe('Cli BAT test', function () {
       },
     );
   });
-  it('export static site and preview it', function (done) {
+  it('Export static site and preview it', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo export site ./out&&cyberismo validate`,
       (error, stdout, _stderr) => {
@@ -448,6 +448,20 @@ describe('Cli BAT test', function () {
   it('Remove the linktype', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo remove linkType cli/linkTypes/linkTypeTest&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          console.log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
+  it('Add default hub and remove it', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo add hub default &&cyberismo remove hub default&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);
