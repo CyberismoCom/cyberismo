@@ -55,6 +55,7 @@ export function CreateCardsMacroModal({
     reset,
     setValue,
     watch,
+    formState: { dirtyFields },
   } = useForm({
     defaultValues: DEFAULT_CREATE_CARDS_FORM_VALUES,
   });
@@ -69,15 +70,17 @@ export function CreateCardsMacroModal({
   const buttonLabelValue = watch('buttonLabel');
 
   useEffect(() => {
-    if (selectedTemplate && !buttonLabelValue) {
+    if (selectedTemplate && !dirtyFields.buttonLabel) {
       const template = templateOptions.find(
         (option) => option.id === selectedTemplate,
       );
       if (template) {
-        setValue('buttonLabel', `${t('create')} ${template.displayName}`);
+        setValue('buttonLabel', `${t('create')} ${template.displayName}`, {
+          shouldDirty: false,
+        });
       }
     }
-  }, [selectedTemplate, templateOptions, t, buttonLabelValue, setValue]);
+  }, [selectedTemplate]);
 
   const handleModalSubmit = handleFormSubmit((data) => {
     if (!data.template || !data.buttonLabel.trim()) return;
