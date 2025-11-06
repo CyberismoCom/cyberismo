@@ -116,21 +116,6 @@ describe('move command', () => {
     );
     expect(result.statusCode).to.equal(200);
   });
-  it('move card to under similar key (success)', async () => {
-    const template = 'decision/templates/decision';
-    const rootCard = 'decision_5';
-    const anotherRootCard = await createSimilarCard(template);
-    if (anotherRootCard) {
-      const result = await commandHandler.command(
-        Cmd.move,
-        [rootCard, anotherRootCard],
-        options,
-      );
-      expect(result.statusCode).to.equal(200);
-    } else {
-      expect(false, `Failed to create a card starting with decision_5`);
-    }
-  });
   it('try to move card to itself', async () => {
     const sourceId = 'decision_6';
     const destination = 'decision_6';
@@ -172,25 +157,6 @@ describe('move command', () => {
       expect(result.statusCode).to.equal(400);
     } else {
       expect(false);
-    }
-  });
-  it('try to move card to its own similarly named descendant', async () => {
-    const template = 'decision/templates/decision';
-    const parent = 'decision_5';
-    const descendant = await createSimilarCard(template, parent);
-    if (descendant) {
-      // Try to move decision_5 under its own descendant - this should fail
-      const result = await commandHandler.command(
-        Cmd.move,
-        [parent, descendant],
-        options,
-      );
-      expect(result.statusCode).to.equal(400);
-    } else {
-      expect(
-        false,
-        `Failed to create a descendant card starting with decision_5`,
-      );
     }
   });
   it('try to move card - project missing', async () => {
@@ -335,5 +301,63 @@ describe('move command', () => {
       allCardsAfter.some((c) => c.key === childCardKey),
       'Child should be found in project.cards() result after move',
     ).to.be.true;
+  });
+});
+
+// Separate test group for similar key tests to avoid interference
+describe('move command - similar key tests', () => {
+  let testDir: string;
+  let decisionRecordsPath: string;
+  const commandHandler: Commands = new Commands();
+  let options: { projectPath: string };
+
+  beforeEach(async () => {
+    // Use unique directory name to avoid conflicts
+    testDir = join(baseDir, `tmp-move-similar-key-tests-${Date.now()}`);
+    decisionRecordsPath = join(testDir, 'valid/decision-records');
+    options = { projectPath: decisionRecordsPath };
+
+    mkdirSync(testDir, { recursive: true });
+    await copyDir('test/test-data', testDir);
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it('move card to under similar key (success)', async () => {
+    const template = 'decision/templates/decision';
+    const rootCard = 'decision_5';
+    const anotherRootCard = await createSimilarCard(template);
+    if (anotherRootCard) {
+      const result = await commandHandler.command(
+        Cmd.move,
+        [rootCard, anotherRootCard],
+        options,
+      );
+      expect(result.statusCode).to.equal(200);
+    } else {
+      expect(false, `Failed to create a card starting with decision_5`);
+    }
+  });
+
+  it('try to move card to its own similarly named descendant', async () => {
+    const template = 'decision/templates/decision';
+    const parent = 'decision_5';
+    const descendant = await createSimilarCard(template, parent);
+    if (descendant) {
+      // Try to move decision_5 under its own descendant - this should fail
+      const result = await commandHandler.command(
+        Cmd.move,
+        [parent, descendant],
+        options,
+      );
+      expect(result.statusCode).to.equal(400);
+    } else {
+      expect(
+        false,
+        `Failed to create a descendant card starting with decision_5`,
+      );
+    }
   });
 });

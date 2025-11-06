@@ -189,7 +189,7 @@ export class Move {
         : FIRST_RANK;
 
     // First do the file operations, then update metadata
-    await copyDir(sourceCard.path, destinationPath!);
+    await copyDir(sourceCard.path, destinationPath);
     await deleteDir(sourceCard.path);
 
     // Update card with new path, parent, and rank
