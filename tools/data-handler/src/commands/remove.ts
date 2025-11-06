@@ -13,6 +13,7 @@
 
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard } from '../utils/card-utils.js';
+import { Fetch } from './fetch.js';
 import { ModuleManager } from '../module-manager.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
@@ -164,6 +165,12 @@ export class Remove {
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
+    // Ensure module list is up to date when removing modules
+    if (type === 'module') {
+      const fetchCmd = new Fetch(this.project);
+      await fetchCmd.ensureModuleListUpToDate();
+    }
+
     if (type === 'attachment' && rest.length !== 1 && !rest[0]) {
       throw new Error(
         `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
