@@ -13,10 +13,7 @@
 
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
-import type {
-  ResourceFileContentResponse,
-  ResourceValidationResponse,
-} from '../../types.js';
+import type { ResourceValidationResponse } from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {

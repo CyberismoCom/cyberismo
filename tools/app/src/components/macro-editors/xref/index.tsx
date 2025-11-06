@@ -17,7 +17,10 @@ import { Controller, useForm } from 'react-hook-form';
 import { Autocomplete, FormControl, FormHelperText, FormLabel } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { XrefMacroOptions } from '@cyberismo/data-handler';
-import { DEFAULT_XREF_FORM_VALUES, MacroModalProps } from '../shared/types';
+import {
+  DEFAULT_XREF_FORM_VALUES,
+  type MacroModalProps,
+} from '../shared/types';
 import { BaseMacroModal } from '../shared/MacroModal';
 import { useCardOptions } from '../shared/hooks';
 

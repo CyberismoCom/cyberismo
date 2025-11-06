@@ -29,7 +29,7 @@ import type { CreateCardsOptions } from '@cyberismo/data-handler';
 import { BaseMacroModal } from '../shared/MacroModal';
 import {
   DEFAULT_CREATE_CARDS_FORM_VALUES,
-  MacroModalProps,
+  type MacroModalProps,
 } from '../shared/types';
 
 export function CreateCardsMacroModal({
@@ -80,7 +80,7 @@ export function CreateCardsMacroModal({
         });
       }
     }
-  }, [selectedTemplate]);
+  }, [dirtyFields.buttonLabel, selectedTemplate, setValue, t, templateOptions]);
 
   const handleModalSubmit = handleFormSubmit((data) => {
     if (!data.template || !data.buttonLabel.trim()) return;

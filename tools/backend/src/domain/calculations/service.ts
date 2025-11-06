@@ -12,7 +12,6 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
-import { resourceName } from '@cyberismo/data-handler';
 
 export async function createCalculation(
   commands: CommandManager,
