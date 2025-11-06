@@ -30,5 +30,6 @@
       "location": "https://github.com/CyberismoCom/module-secure-development-essentials.git",
       "documentationLocation": "https://github.com/CyberismoCom/module-secure-development-essentials/blob/main/README.adoc"
     }
-  ]
+  ],
+  "version": 1
 }

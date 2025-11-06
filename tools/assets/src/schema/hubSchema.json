@@ -13,6 +13,11 @@
       "type": "string",
       "minLength": 1
     },
+    "version": {
+      "description": "Version of the hub data",
+      "minimum": 1,
+      "type": "number"
+    },
     "modules": {
       "description": "List of modules that are available in the hub",
       "type": "array",
@@ -52,7 +57,7 @@
       }
     }
   },
-  "required": ["displayName", "description"],
+  "required": ["description", "displayName"],
   "title": "Hub",
   "type": "object"
 }
