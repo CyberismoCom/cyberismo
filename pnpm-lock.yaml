@@ -236,10 +236,10 @@ importers:
         version: link:../data-handler
       '@hono/node-server':
         specifier: ^1.19.2
-        version: 1.19.2(hono@4.10.3)
+        version: 1.19.2(hono@4.10.4)
       '@hono/zod-validator':
         specifier: ^0.7.4
-        version: 0.7.4(hono@4.10.3)(zod@4.1.12)
+        version: 0.7.4(hono@4.10.4)(zod@4.1.12)
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -247,8 +247,8 @@ importers:
         specifier: ^17.2.3
         version: 17.2.3
       hono:
-        specifier: ^4.10.3
-        version: 4.10.3
+        specifier: ^4.10.4
+        version: 4.10.4
       mime-types:
         specifier: ^3.0.1
         version: 3.0.1
@@ -3061,8 +3061,8 @@ packages:
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
 
-  hono@4.10.3:
-    resolution: {integrity: sha512-2LOYWUbnhdxdL8MNbNg9XZig6k+cZXm5IjHn2Aviv7honhBMOHb+jxrKIeJRZJRmn+htUCKhaicxwXuUDlchRA==}
+  hono@4.10.4:
+    resolution: {integrity: sha512-YG/fo7zlU3KwrBL5vDpWKisLYiM+nVstBQqfr7gCPbSYURnNEP9BDxEMz8KfsDR9JX0lJWDRNc6nXX31v7ZEyg==}
     engines: {node: '>=16.9.0'}
 
   html-dom-parser@5.1.1:
@@ -5613,13 +5613,13 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/node-server@1.19.2(hono@4.10.3)':
+  '@hono/node-server@1.19.2(hono@4.10.4)':
     dependencies:
-      hono: 4.10.3
+      hono: 4.10.4
 
-  '@hono/zod-validator@0.7.4(hono@4.10.3)(zod@4.1.12)':
+  '@hono/zod-validator@0.7.4(hono@4.10.4)(zod@4.1.12)':
     dependencies:
-      hono: 4.10.3
+      hono: 4.10.4
       zod: 4.1.12
 
   '@humanfs/core@0.19.1': {}
@@ -7845,7 +7845,7 @@ snapshots:
     dependencies:
       react-is: 16.13.1
 
-  hono@4.10.3: {}
+  hono@4.10.4: {}
 
   html-dom-parser@5.1.1:
     dependencies:
