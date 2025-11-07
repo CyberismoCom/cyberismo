@@ -38,6 +38,7 @@ import {
 } from '../interfaces/resource-interfaces.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
+import { hasCode } from '../utils/error-utils.js';
 
 const REPORT_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
@@ -74,8 +75,14 @@ export class ReportResource extends FolderResource<
     try {
       const schema = readFileSync(path);
       return JSON.parse(schema.toString());
-    } catch {
-      return undefined;
+    } catch (error) {
+      // parameterSchema.json is optional; so we can ignore if it is missing; log other errors
+      if (hasCode(error) && error.code !== 'ENOENT') {
+        this.logger.warn(
+          error,
+          `Unknown error when trying to resource '${this.data?.name}''s file '${REPORT_SCHEMA_FILE}'`,
+        );
+      }
     }
   }
 
