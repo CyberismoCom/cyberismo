@@ -58,7 +58,7 @@
     "rollup-plugin-license": "^3.6.0",
     "start-server-and-test": "^2.1.2",
     "swr": "^2.3.6",
-    "vega": "^6.1.2",
+    "vega": "^6.2.0",
     "vega-lite": "^6.4.1",
     "vite": "^7.1.12",
     "vite-plugin-top-level-await": "^1.6.0"
