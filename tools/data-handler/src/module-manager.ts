@@ -360,12 +360,12 @@ export class ModuleManager {
   private async remove(module: ModuleSetting) {
     try {
       await this.removeModuleFiles(module.name);
-      console.log(`... Removed imported module '${module.name}'`);
     } catch (error) {
-      if (error instanceof Error)
-        console.error(
-          `... New imported module '${module.name}', skipping remove`,
-        );
+      if (error instanceof Error) {
+        // todo: once there is a logger instance in this class, log that the
+        // remove for module was skipped; most likely it is since the module
+        // was new and there was nothing to remove at this stage.
+      }
     }
   }
 
