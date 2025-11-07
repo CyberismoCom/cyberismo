@@ -26,7 +26,7 @@
     "@inquirer/confirm": "^5.1.18",
     "@inquirer/prompts": "^7.8.6",
     "cli-progress": "^3.12.0",
-    "commander": "^14.0.1",
+    "commander": "^14.0.2",
     "dotenv": "^17.2.3"
   },
   "types": "dist/index.d.ts",
