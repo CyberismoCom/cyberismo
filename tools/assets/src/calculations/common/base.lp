@@ -19,8 +19,8 @@ templateCard(C) :- card(C), field(C, "container", "template").
 dataType(Card, "lastUpdated", "dateTime") :-
     field(Card, "lastUpdated", _).
 
-dataType(Card, "lastSynchronised", "dateTime") :-
-    field(Card, "lastSynchronised", _).
+dataType(Connector, "lastSynchronised", "dateTime") :-
+    field(Connector, "lastSynchronised", _).
 
 % add workflow state category as a calculated field for Cards
 field(Card, "workflowStateCategory", Category) :-
