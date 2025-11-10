@@ -115,6 +115,7 @@ export async function exportSite(
     dir: exportDir,
     concurrency: 5,
     plugins: [
+      defaultPlugin,
       {
         afterResponseHook: () => {
           total++;
