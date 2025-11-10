@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Context } from 'hono';
+import type { Context } from 'hono';
 
 export interface ResourceFileContentResponse {
   content: string;

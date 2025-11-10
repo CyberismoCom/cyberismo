@@ -12,13 +12,10 @@
 */
 
 import Processor from '@asciidoctor/core';
-import {
-  CardLocation,
-  type MetadataContent,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { type MetadataContent } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { allCards, getCardDetails } from './lib.js';
-import { TreeOptions } from '../../types.js';
+import type { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(commands: CommandManager) {
   const projectResponse = await commands.showCmd.showProject();

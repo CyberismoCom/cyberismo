@@ -1,4 +1,5 @@
-import { AppContext, TreeOptions } from '../types.js';
+import type { Next } from 'hono';
+import type { AppContext, TreeOptions } from '../types.js';
 
 /**
  * Injects tree options into the context for each request
@@ -6,7 +7,7 @@ import { AppContext, TreeOptions } from '../types.js';
  * @returns Middleware function
  */
 const treeMiddleware =
-  (opts?: TreeOptions) => async (c: AppContext, next: any) => {
+  (opts?: TreeOptions) => async (c: AppContext, next: Next) => {
     if (opts) {
       c.set('tree', { recursive: opts.recursive, cardKey: opts.cardKey });
     }

@@ -21,7 +21,7 @@ import { cp, writeFile } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { defaultPlugin, toSSG } from 'hono/ssg';
-import { TreeOptions } from './types.js';
+import type { TreeOptions } from './types.js';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 

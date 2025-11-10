@@ -31,7 +31,7 @@ import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
-import { AppVars, TreeOptions } from './types.js';
+import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 
 /**

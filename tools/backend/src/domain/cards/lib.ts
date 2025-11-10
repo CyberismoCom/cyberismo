@@ -15,8 +15,8 @@ import Processor from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardQueryResult } from '../../export.js';
-import { TreeOptions } from '../../types.js';
-import { QueryResult } from '@cyberismo/data-handler/types/queries';
+import type { TreeOptions } from '../../types.js';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface result {
   status: number;

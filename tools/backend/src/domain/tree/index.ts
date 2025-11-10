@@ -14,7 +14,7 @@
 import { Hono } from 'hono';
 import * as treeService from './service.js';
 import { isSSGContext } from 'hono/ssg';
-import { AppContext } from '../../types.js';
+import type { AppContext } from '../../types.js';
 
 const router = new Hono();
 

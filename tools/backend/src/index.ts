@@ -11,7 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { serve } from '@hono/node-server';
-import { Env, Hono, Schema } from 'hono';
+import type { Env, Schema } from 'hono';
+import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
