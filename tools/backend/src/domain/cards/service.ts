@@ -17,7 +17,8 @@ import {
   type MetadataContent,
 } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { getCardDetails } from './lib.js';
+import { allCards, getCardDetails } from './lib.js';
+import { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(commands: CommandManager) {
   const projectResponse = await commands.showCmd.showProject();
@@ -221,23 +222,34 @@ export function getAttachment(
   return commands.showCmd.showAttachment(key, filename);
 }
 
-export async function getAllCards(commands: CommandManager) {
-  const fetchedCards = await commands.showCmd.showCards(
-    CardLocation.projectOnly,
-  );
-  const projectCards = fetchedCards.find(
-    (cardContainer) => cardContainer.type === 'project',
-  );
-  if (!projectCards) {
-    throw new Error('Data handler did not return project cards');
-  }
-  return projectCards.cards;
+/**
+ * Used for exporting cards, thus static mode is assumed
+ * @param commands
+ * @param options options that
+ * @returns
+ */
+export async function getAllCards(
+  commands: CommandManager,
+  options?: TreeOptions,
+) {
+  return allCards(commands, options);
 }
 
-export async function getAllAttachments(commands: CommandManager) {
+export async function getAllAttachments(
+  commands: CommandManager,
+  options?: TreeOptions,
+) {
+  const cards = new Set<string>(
+    (await getAllCards(commands, options)).map((c) => c.key),
+  );
   const attachments = await commands.showCmd.showAttachments();
-  return attachments.map((attachment) => ({
-    key: attachment.card,
-    attachment: attachment.fileName,
-  }));
+  return attachments
+    .filter(
+      (attachment) =>
+        cards.has(attachment.card) && attachment.mimeType?.startsWith('image/'),
+    )
+    .map((attachment) => ({
+      key: attachment.card,
+      attachment: attachment.fileName,
+    }));
 }

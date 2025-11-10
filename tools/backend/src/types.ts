@@ -11,6 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Context } from 'hono';
+
 export interface ResourceFileContentResponse {
   content: string;
 }
@@ -18,3 +20,14 @@ export interface ResourceFileContentResponse {
 export interface ResourceValidationResponse {
   errors: string[];
 }
+
+export interface TreeOptions {
+  recursive?: boolean;
+  cardKey?: string;
+}
+
+export interface AppVars {
+  tree?: TreeOptions;
+}
+
+export type AppContext = Context<{ Variables: AppVars }>;

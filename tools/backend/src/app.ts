@@ -31,13 +31,15 @@ import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
+import { AppVars, TreeOptions } from './types.js';
+import treeMiddleware from './middleware/tree.js';
 
 /**
  * Create the Hono app for the backend
  * @param projectPath - Path to the project
  */
-export function createApp(projectPath?: string) {
-  const app = new Hono();
+export function createApp(projectPath?: string, opts?: TreeOptions) {
+  const app = new Hono<{ Variables: AppVars }>();
 
   app.use('/api', cors());
 
@@ -48,6 +50,7 @@ export function createApp(projectPath?: string) {
     }),
   );
 
+  app.use(treeMiddleware(opts));
   // Attach CommandManager to all requests
   app.use(attachCommandManager(projectPath));
 

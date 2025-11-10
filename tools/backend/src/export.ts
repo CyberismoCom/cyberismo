@@ -21,6 +21,7 @@ import { cp, writeFile } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { defaultPlugin, toSSG } from 'hono/ssg';
+import { TreeOptions } from './types.js';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 
@@ -68,6 +69,9 @@ export async function getCardQueryResult(
  * Export the site to a given directory.
  * Note: Do not call this function in parallel.
  * @param projectPath - Path to the project.
+ * @param options - Export options.
+ * @param options.recursive - Whether to export cards recursively.
+ * @param options.cardKey - Key of the card to export. If not provided, all cards will be exported.
  * @param exportDir - Directory to export to.
  * @param level - Log level for the operation.
  * @param onProgress - Optional progress callback function.
@@ -75,12 +79,18 @@ export async function getCardQueryResult(
 export async function exportSite(
   projectPath: string,
   exportDir?: string,
+  options?: TreeOptions,
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
   onProgress?: (current?: number, total?: number) => void,
 ) {
   exportDir = exportDir || 'static';
+  const opts = {
+    recursive: false,
+    cardKey: undefined,
+    ...options,
+  };
 
-  const app = createApp(projectPath);
+  const app = createApp(projectPath, opts);
 
   // copy whole frontend to the same directory
   await cp(staticFrontendDirRelative, exportDir, { recursive: true });

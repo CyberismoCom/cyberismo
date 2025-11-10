@@ -15,6 +15,8 @@ import Processor from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardQueryResult } from '../../export.js';
+import { TreeOptions } from '../../types.js';
+import { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface result {
   status: number;
@@ -83,4 +85,26 @@ export async function getCardDetails(
       attachments: cardDetailsResponse.attachments,
     },
   };
+}
+
+export async function allCards(
+  commands: CommandManager,
+  options?: TreeOptions,
+) {
+  const fetchedCards = await commands.calculateCmd.runQuery(
+    'tree',
+    'exportedSite',
+    options || {},
+  );
+
+  function flattenCards(cards: QueryResult<'tree'>[]): QueryResult<'tree'>[] {
+    return cards.reduce<QueryResult<'tree'>[]>((acc, curr) => {
+      acc.push(curr);
+      if (curr.children && curr.children.length > 0) {
+        acc.push(...flattenCards(curr.children));
+      }
+      return acc;
+    }, []);
+  }
+  return flattenCards(fetchedCards);
 }

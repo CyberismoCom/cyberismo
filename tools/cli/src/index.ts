@@ -555,10 +555,13 @@ program
   .argument('<output>', 'Output path')
   .argument(
     '[cardKey]',
-    'Path to a card. If defined will export only that card and its children instead of whole project.',
+    'Export a specific card by card key. If omitted, exports the whole site.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option('-r, --recursive', 'Export recursively(pdf export only)')
+  .option(
+    '-r, --recursive',
+    'Export cards under the specified card recursively',
+  )
   .option(
     '-t, --title [title]',
     'Title of the exported document(pdf export only)',
@@ -590,6 +593,10 @@ program
           await exportSite(
             await commandHandler.getProjectPath(options.projectPath),
             output,
+            {
+              recursive: options.recursive,
+              cardKey: cardKey,
+            },
             options.logLevel,
             (current: number, total: number) => {
               if (!progress.isActive) {
