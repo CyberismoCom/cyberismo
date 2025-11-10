@@ -20,7 +20,7 @@ import { createApp } from './app.js';
 import { cp, writeFile } from 'node:fs/promises';
 import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
-import { defaultPlugin, toSSG } from 'hono/ssg';
+import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
 import { getAllCards, getAllAttachments } from './domain/cards/service.js';
 
