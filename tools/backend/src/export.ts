@@ -22,8 +22,10 @@ import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { defaultPlugin, toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
+import { getAllCards, getAllAttachments } from './domain/cards/service.js';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
+const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in addition to card exports
 
 /**
  *  DO NO USE DIRECTLY. This resets the callOnce map, allowing you to redo the export.
@@ -109,21 +111,12 @@ export async function exportSite(
 
   reset();
   await commands.project.calculationEngine.generate();
-  // Discovery pass to count total requests
-  let total = 0;
-  await toSSG(app, fs, {
-    dir: exportDir,
-    concurrency: 5,
-    plugins: [
-      defaultPlugin,
-      {
-        afterResponseHook: () => {
-          total++;
-          return false;
-        },
-      },
-    ],
-  });
+
+  // estimate total based on the number of cards to export
+  const cards = await getAllCards(commands, opts);
+  const attachments = await getAllAttachments(commands, opts);
+  let total = cards.length + attachments.length;
+  total += OVERHEAD_CALLS;
 
   // Actual export with progress reporting
   let done = 0;
