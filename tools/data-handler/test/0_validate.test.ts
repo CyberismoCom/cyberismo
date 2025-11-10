@@ -12,8 +12,11 @@ import { Validate } from '../src/commands/index.js';
 import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
 import { getTestBaseDir } from './helpers/test-utils.js';
+import type {
+  Card,
+  ResourceTypes,
+} from '../src/interfaces/project-interfaces.js';
 
 describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -209,7 +212,12 @@ describe('validate cmd tests', () => {
     // card _6 has all of the types as custom fields (with null values)
     const card = validProject.findCard('decision_6');
     if (card) {
-      const valid = await validateCmd.validateCustomFields(validProject, card);
+      const allPrefixes = await validProject.projectPrefixes();
+      const valid = await validateCmd.validateCustomFields(
+        validProject,
+        card,
+        allPrefixes,
+      );
       expect(valid.length).to.equal(0);
     }
   });
@@ -220,21 +228,59 @@ describe('validate cmd tests', () => {
     await project.populateCaches();
     const card = project.findCard('decision_5');
     if (card) {
-      const valid = await validateCmd.validateCustomFields(project, card);
+      const allPrefixes = await project.projectPrefixes();
+      const valid = await validateCmd.validateCustomFields(
+        project,
+        card,
+        allPrefixes,
+      );
       expect(valid.length).to.be.greaterThan(0);
     }
   });
   it('try to validate card custom fields - no metadata for the card', async () => {
     const card = validProject.findCard('decision_5');
     if (card) {
+      const allPrefixes = await validProject.projectPrefixes();
       await validateCmd
-        .validateCustomFields(validProject, card)
+        .validateCustomFields(validProject, card, allPrefixes)
         .catch((error) =>
           expect(errorFunction(error)).to.equal(
             "Card 'decision_5' has no metadata. Card object needs to be instantiated with '{metadata: true}'",
           ),
         );
     }
+  });
+  it('try to validate card custom fields - invalid metadata key with parentheses', async () => {
+    // Create a fake card with invalid metadata key format
+    const fakeCard = {
+      key: 'test_fake_card',
+      path: '/fake/path',
+      children: [],
+      attachments: [],
+      metadata: {
+        title: 'Test Card',
+        cardType: 'decision/cardTypes/decision',
+        workflowState: 'Ready',
+        rank: '0|ct',
+        lastUpdated: '2025-08-27T10:17:48.711Z',
+        links: [],
+        lastTransitioned: '2025-07-07T13:58:13.619Z',
+        '(docs_r0brt7n1,base/fieldTypes/informationClassification)': 'Internal',
+      },
+    } as unknown as Card;
+
+    const allPrefixes = await validProject.projectPrefixes();
+    const valid = await validateCmd.validateCustomFields(
+      validProject,
+      fakeCard,
+      allPrefixes,
+    );
+
+    expect(valid.length).to.be.greaterThan(0);
+    expect(valid).to.include('invalid metadata key');
+    expect(valid).to.include(
+      '(docs_r0brt7n1,base/fieldTypes/informationClassification)',
+    );
   });
   it('try to validate invalid projects', async () => {
     const pathToInvalidProject = resolve('test/test-data/invalid');
