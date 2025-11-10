@@ -13,9 +13,9 @@
 
 import { type Context, Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { ssgParams, isSSGContext } from '../../export.js';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
+import { isSSGContext, ssgParams } from 'hono/ssg';
 
 const router = new Hono();
 

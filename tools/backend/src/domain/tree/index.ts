@@ -13,7 +13,7 @@
 
 import { Hono } from 'hono';
 import * as treeService from './service.js';
-import { isSSGContext } from '../../export.js';
+import { isSSGContext } from 'hono/ssg';
 
 const router = new Hono();
 

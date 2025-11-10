@@ -13,19 +13,14 @@
 
 import path from 'node:path';
 
-import { mkdir, readFile } from 'node:fs/promises';
+import fs, { readFile } from 'node:fs/promises';
 
 import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from './app.js';
 import { cp, writeFile } from 'node:fs/promises';
-import {
-  runCbSafely,
-  runInParallel,
-  staticFrontendDirRelative,
-} from './utils.js';
+import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
-import type { Context, Hono, MiddlewareHandler } from 'hono';
-import mime from 'mime-types';
+import { defaultPlugin, toSSG } from 'hono/ssg';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 
@@ -101,192 +96,37 @@ export async function exportSite(
   const commands = await CommandManager.getInstance(projectPath, {
     logLevel: level,
   });
-  await toSsg(app, commands, exportDir, onProgress);
-}
 
-async function getRoutes(app: Hono) {
-  const routes = new Set<string>();
-  for (const route of app.routes) {
-    if (route.method === 'GET') routes.add(route.path);
-  }
-
-  // handles both routes with and without dynamic parameters
-  const filteredRoutes = [];
-  for (const route of routes) {
-    if (!route.includes(':')) {
-      filteredRoutes.push(route);
-      continue;
-    }
-    const response = await createSsgRequest(app, route, true);
-    if (response.ok) {
-      const params = await response.json();
-      if (Array.isArray(params) && params.length > 0) {
-        for (const param of params) {
-          let newRoute = route;
-          for (const [key, value] of Object.entries(param)) {
-            newRoute = newRoute.replace(`:${key}`, `${value}`);
-          }
-          filteredRoutes.push(newRoute);
-        }
-      }
-    }
-  }
-
-  return filteredRoutes;
-}
-
-/**
- * This is similar to hono's ssg function, but it only calls middlewares once
- * @param app
- * @param onProgress
- */
-async function toSsg(
-  app: Hono,
-  commands: CommandManager,
-  dir: string,
-  onProgress?: (current?: number, total?: number) => void,
-) {
   reset();
   await commands.project.calculationEngine.generate();
-
-  const promises = [];
-
-  const routes = await getRoutes(app);
-  await runCbSafely(() => onProgress?.(0, routes.length));
-
-  let processedFiles = 0;
-  let failed = false;
-  const errors: Error[] = [];
-  const done = async (error?: Error) => {
-    if (error) {
-      failed = true;
-      errors.push(error);
-    }
-    processedFiles++;
-    await runCbSafely(() => onProgress?.(processedFiles, routes.length));
-  };
-  for (const route of routes) {
-    promises.push(async () => {
-      try {
-        const response = await createSsgRequest(app, route, false);
-        if (!response.ok) {
-          const error = await response.json();
-          if (typeof error === 'object' && error !== null && 'error' in error) {
-            await done(
-              new Error(`Failed to export route ${route}: ${error.error}`),
-            );
-          } else {
-            await done(new Error(`Failed to export route ${route}`));
-          }
-          return;
-        }
-        await writeFileToDir(dir, response, route);
-        await done();
-      } catch (error) {
-        await done(error instanceof Error ? error : new Error(String(error)));
-      }
-    });
-  }
-
-  await runInParallel(promises, 5);
-  if (failed) {
-    const message = `Errors:\n${errors.map((e) => e.message).join('\n')}`;
-    throw new Error(message);
-  }
-}
-
-/**
- * Get the file content and file ending for a given response and route.
- * @param response - The response to get the file content and file ending for.
- * @param route - The route to get the file content and file ending for.
- * @returns The file content and file ending for the given response and route.
- * If the route already has a file ending, it will be returned as an empty string.
- */
-async function getFileContent(
-  response: Response,
-  route: string,
-): Promise<{
-  content: ArrayBuffer;
-  fileEnding: string;
-}> {
-  // Check if route already has an extension
-  const routeExtension = path.extname(route);
-  if (routeExtension) {
-    // Trust the existing extension in the route
-    const content = await response.arrayBuffer();
-    return {
-      content,
-      fileEnding: '',
-    };
-  }
-
-  // No extension in route, fall back to content type detection
-  const contentType = response.headers.get('content-type');
-  if (!contentType) {
-    throw new Error('No content type');
-  }
-  const extension = mime.extension(contentType);
-  if (!extension) {
-    throw new Error('Unsupported content type');
-  }
-
-  // Use ArrayBuffer for all content types
-  const content = await response.arrayBuffer();
-  return {
-    content,
-    fileEnding: `.${extension}`,
-  };
-}
-
-async function writeFileToDir(dir: string, response: Response, route: string) {
-  const { content, fileEnding } = await getFileContent(response, route);
-
-  let filePath = path.join(dir, route);
-
-  // if route does not have a file ending, add it based on the content type
-  if (!route.endsWith(fileEnding)) {
-    filePath += fileEnding;
-  }
-
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, Buffer.from(content));
-}
-
-// findroutes = if this request is used to find the routes in the app
-function createSsgRequest(
-  app: Hono,
-  route: string,
-  findRoutes: boolean = true,
-) {
-  return app.request(route, {
-    headers: new Headers({
-      'x-ssg': 'true',
-      'x-ssg-find': findRoutes ? 'true' : 'false',
-    }),
+  // Discovery pass to count total requests
+  let total = 0;
+  await toSSG(app, fs, {
+    dir: exportDir,
+    concurrency: 5,
+    plugins: [
+      {
+        afterResponseHook: () => {
+          total++;
+          return false;
+        },
+      },
+    ],
   });
-}
 
-/**
- * Check if the request is a static site generation request.
- * @param c - The context of the request.
- * @returns True if the request is a static site generation request.
- */
-export function isSSGContext(c: Context) {
-  return c.req.header('x-ssg') === 'true';
-}
-
-/**
- * This middleware is used to find the routes in the app.
- * @param fn - The function to call to get the parameters for the route.
- * @returns The middleware handler.
- */
-export function ssgParams(
-  fn?: (c: Context) => Promise<unknown[]>,
-): MiddlewareHandler {
-  return async (c, next) => {
-    if (c.req.header('x-ssg-find') === 'true') {
-      return fn ? c.json(await fn(c)) : c.json([]);
-    }
-    return next();
-  };
+  // Actual export with progress reporting
+  let done = 0;
+  await toSSG(app, fs, {
+    dir: exportDir,
+    concurrency: 5,
+    plugins: [
+      {
+        afterResponseHook: (response) => {
+          done++;
+          onProgress?.(done, total);
+          return response;
+        },
+      },
+    ],
+  });
 }

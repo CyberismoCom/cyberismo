@@ -28,9 +28,9 @@ import treeRouter from './domain/tree/index.js';
 import workflowsRouter from './domain/workflows/index.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { isSSGContext } from './export.js';
 import resourcesRouter from './domain/resources/index.js';
 import logicProgramsRouter from './domain/logicPrograms/index.js';
+import { isSSGContext } from 'hono/ssg';
 
 /**
  * Create the Hono app for the backend
