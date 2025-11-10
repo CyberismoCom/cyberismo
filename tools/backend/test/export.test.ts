@@ -1,11 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Hono } from 'hono';
-import { getCardQueryResult, exportSite, reset } from '../src/export.js';
+import { getCardQueryResult, reset } from '../src/export.js';
 import { CommandManager } from '@cyberismo/data-handler';
-import { createApp } from '../src/app.js';
-import { mkdir, readFile, writeFile, cp } from 'node:fs/promises';
-import path from 'node:path';
-import { AppVars } from '../src/types.js';
 
 // Mock external dependencies
 vi.mock('@cyberismo/data-handler');
