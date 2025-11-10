@@ -43,7 +43,7 @@ export async function updateCard(
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-) {
+): Promise<ReturnType<typeof getCardDetails>> {
   const errors = [];
 
   if (body.state) {
@@ -228,7 +228,7 @@ export function getAttachment(
 export async function getAllCards(
   commands: CommandManager,
   options?: TreeOptions,
-) {
+): ReturnType<typeof allCards> {
   return allCards(commands, options);
 }
 

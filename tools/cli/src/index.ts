@@ -590,7 +590,7 @@ program
         );
         // Should be in commandHandler, once it is moved under the CLI package
         try {
-          await exportSite(
+          const { errors } = await exportSite(
             await commandHandler.getProjectPath(options.projectPath),
             output,
             {
@@ -609,6 +609,13 @@ program
             },
           );
           progress.stop();
+          if (errors.length > 0) {
+            console.log(
+              'Export completed with errors:\n' +
+                truncateMessage(errors.join('\n')).join('\n'),
+            );
+            return;
+          }
           console.log('Exported site to', output);
           console.log('Run `cyberismo preview out` to view the site');
           return;

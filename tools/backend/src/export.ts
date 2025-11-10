@@ -83,8 +83,8 @@ export async function exportSite(
   exportDir?: string,
   options?: TreeOptions,
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal',
-  onProgress?: (current?: number, total?: number) => void,
-) {
+  onProgress?: (current: number, total: number) => void,
+): Promise<{ errors: string[] }> {
   exportDir = exportDir || 'static';
   const opts = {
     recursive: false,
@@ -121,18 +121,36 @@ export async function exportSite(
   // Actual export with progress reporting
   let done = 0;
   onProgress?.(done, total);
+  const errors: string[] = [];
   await toSSG(app, fs, {
     dir: exportDir,
     concurrency: 5,
     plugins: [
-      defaultPlugin,
       {
-        afterResponseHook: (response) => {
+        afterResponseHook: async (response) => {
+          if (![200, 201, 204].includes(response.status)) {
+            const error = await response.json();
+            if (
+              typeof error === 'object' &&
+              error != null &&
+              'error' in error &&
+              typeof error.error === 'string'
+            ) {
+              errors.push(error.error);
+            }
+            return false; // ignore route
+          }
           done++;
+          if (done > total) {
+            total = done; // adjust total if underestimated
+          }
           onProgress?.(done, total);
           return response;
         },
       },
     ],
   });
+  return {
+    errors,
+  };
 }

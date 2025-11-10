@@ -18,7 +18,7 @@ export async function getCardTree(
   isSsg: boolean,
   cardKey?: string,
   recursive?: boolean,
-) {
+): ReturnType<typeof commands.calculateCmd.runQuery> {
   await commands.calculateCmd.generate();
   return commands.calculateCmd.runQuery(
     'tree',

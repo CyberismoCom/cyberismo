@@ -90,7 +90,7 @@ export async function getCardDetails(
 export async function allCards(
   commands: CommandManager,
   options?: TreeOptions,
-) {
+): Promise<QueryResult<'tree'>[]> {
   const fetchedCards = await commands.calculateCmd.runQuery(
     'tree',
     'exportedSite',
