@@ -126,6 +126,7 @@ export async function exportSite(
 
   // Actual export with progress reporting
   let done = 0;
+  onProgress?.(done, total);
   await toSSG(app, fs, {
     dir: exportDir,
     concurrency: 5,
