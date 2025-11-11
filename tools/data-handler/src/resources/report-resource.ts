@@ -40,7 +40,7 @@ import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { Schema } from 'jsonschema';
 import { hasCode } from '../utils/error-utils.js';
 
-const REPORT_SCHEMA_FILE = 'parameterSchema.json';
+const PARAMETER_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
 const staticDirectoryPath = await getStaticDirectoryPath();
@@ -52,15 +52,15 @@ export class ReportResource extends FolderResource<
   ReportMetadata,
   ReportContent
 > {
-  private reportSchema: Schema;
+  private reportParameterSchema: Schema;
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'reports');
 
     this.contentSchemaId = 'reportSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
 
-    const schemaPath = join(this.internalFolder, REPORT_SCHEMA_FILE);
-    this.reportSchema = this.readSchemaFile(schemaPath);
+    const schemaPath = join(this.internalFolder, PARAMETER_SCHEMA_FILE);
+    this.reportParameterSchema = this.readSchemaFile(schemaPath);
   }
 
   // Path to content folder.
@@ -80,7 +80,7 @@ export class ReportResource extends FolderResource<
       if (hasCode(error) && error.code !== 'ENOENT') {
         this.logger.warn(
           error,
-          `Unknown error when trying to resource '${this.data?.name}''s file '${REPORT_SCHEMA_FILE}'`,
+          `Unknown error when trying to resource '${this.data?.name}''s file '${PARAMETER_SCHEMA_FILE}'`,
         );
       }
     }
@@ -187,9 +187,9 @@ export class ReportResource extends FolderResource<
    * @note If content is not provided, base class validation will use resource's current content.
    */
   public async validate(content?: object) {
-    if (this.reportSchema) {
+    if (this.reportParameterSchema) {
       const errors = Validate.getInstance().validateJson(
-        this.reportSchema,
+        this.reportParameterSchema,
         PARAMETER_SCHEMA_ID,
       );
       if (errors.length > 0) {
