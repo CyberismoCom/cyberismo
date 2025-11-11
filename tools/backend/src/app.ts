@@ -79,7 +79,9 @@ export function createApp(projectPath?: string) {
   // Error handling
   app.onError((err, c) => {
     if (!isSSGContext(c)) {
-      console.error(err.stack);
+      if (process.env.NODE_ENV !== 'test') {
+        console.error(err.stack);
+      }
     }
     return c.json(
       {
