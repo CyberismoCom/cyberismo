@@ -25,6 +25,7 @@ import type TaskQueue from '../task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
 import { resourceFilePath } from '../../utils/resource-utils.js';
 import { resourceName } from '../../utils/resource-utils.js';
+import { hasCode } from '../../utils/error-utils.js';
 
 class GraphMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -110,11 +111,14 @@ class GraphMacro extends BaseMacro {
           { encoding: 'utf-8' },
         ),
       );
-    } catch (err) {
-      this.logger.trace(
-        err,
-        'Graph schema not found or failed to read, skipping validation',
-      );
+    } catch (error) {
+      // parameterSchema.json is optional; so we can ignore if it is missing; log other errors
+      if (hasCode(error) && error.code !== 'ENOENT') {
+        this.logger.warn(
+          error,
+          "Unknown error when trying to open graphView's 'parameterSchema.json' file",
+        );
+      }
     }
 
     if (schema) {
