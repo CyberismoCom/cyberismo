@@ -223,7 +223,7 @@ export function getAttachment(
  * Used for exporting cards, thus static mode is assumed
  * @param commands
  * @param options options that
- * @returns
+ * @returns all cards in a flattened array
  */
 export async function getAllCards(
   commands: CommandManager,
@@ -231,7 +231,12 @@ export async function getAllCards(
 ): ReturnType<typeof allCards> {
   return allCards(commands, options);
 }
-
+/**
+ * Gets all image attachments for cards returned by the tree query
+ * @param commands the command manager used for the query
+ * @param options optional tree query options
+ * @returns all attachments for cards returned by the tree query
+ */
 export async function getAllAttachments(
   commands: CommandManager,
   options?: TreeOptions,

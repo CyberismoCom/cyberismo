@@ -77,6 +77,7 @@ export async function getCardQueryResult(
  * @param exportDir - Directory to export to.
  * @param level - Log level for the operation.
  * @param onProgress - Optional progress callback function.
+ * @returns An object containing any errors that occurred during export.
  */
 export async function exportSite(
   projectPath: string,
@@ -115,8 +116,7 @@ export async function exportSite(
   // estimate total based on the number of cards to export
   const cards = await getAllCards(commands, opts);
   const attachments = await getAllAttachments(commands, opts);
-  let total = cards.length + attachments.length;
-  total += OVERHEAD_CALLS;
+  let total = cards.length + attachments.length + OVERHEAD_CALLS;
 
   // Actual export with progress reporting
   let done = 0;

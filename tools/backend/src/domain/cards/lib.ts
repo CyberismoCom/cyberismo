@@ -86,7 +86,12 @@ export async function getCardDetails(
     },
   };
 }
-
+/**
+ * Returns all cards from a tree query, flattened.
+ * @param commands the command manager used for the query
+ * @param options optional tree query options
+ * @returns a promise that resolves to an array of all cards
+ */
 export async function allCards(
   commands: CommandManager,
   options?: TreeOptions,
