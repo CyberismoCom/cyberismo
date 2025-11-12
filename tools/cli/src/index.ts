@@ -481,7 +481,11 @@ program
       );
 
       // Post-handling after creating a new project.
-      if (type === 'project' && !commandOptions.skipModuleImport) {
+      if (
+        type === 'project' &&
+        !commandOptions.skipModuleImport &&
+        result.statusCode === 200
+      ) {
         try {
           // add default hub
           await commandHandler.command(
