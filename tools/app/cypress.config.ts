@@ -8,40 +8,25 @@ const batPath = '../../.tmp/cyberismo-bat';
 export default defineConfig({
   e2e: {
     baseUrl: 'http://localhost:3000',
-    numTestsKeptInMemory: 0,
     experimentalMemoryManagement: true,
     setupNodeEvents(on) {
       on('task', {
         deleteTestProject() {
-          try {
-            rmSync(batPath, {
-              recursive: true,
-              force: true,
-              maxRetries: 3,
-              retryDelay: 100,
-            });
-          } catch (error) {
-            console.error(
-              'Warning: When deleting test project - Failed to delete test project:',
-              error,
-            );
-          }
+          rmSync(batPath, {
+            recursive: true,
+            force: true,
+            maxRetries: 3,
+            retryDelay: 100,
+          });
           return null; // Return null instead of true to prevent EPIPE errors
         },
         createTestProject() {
-          try {
-            rmSync(batPath, {
-              recursive: true,
-              force: true,
-              maxRetries: 3,
-              retryDelay: 100,
-            });
-          } catch (error) {
-            console.error(
-              'Warning: When creating test project - Failed to delete test project:',
-              error,
-            );
-          }
+          rmSync(batPath, {
+            recursive: true,
+            force: true,
+            maxRetries: 3,
+            retryDelay: 100,
+          });
           // Create test project from test-module
           execSync(
             'cd ../../.tmp&&cyberismo create project "Basic Acceptance Test" bat cyberismo-bat --skipModuleImport&&cd cyberismo-bat&&cyberismo import module ../../module-test&&cyberismo create card test/templates/pageContent',
