@@ -60,7 +60,8 @@
   "pnpm": {
     "overrides": {
       "@types/node": "^22.18.1",
-      "rollup": "^4.45.1"
+      "rollup": "^4.45.1",
+      "tar-fs": "^2.1.4"
     }
   }
 }
