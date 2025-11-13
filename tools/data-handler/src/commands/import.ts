@@ -93,10 +93,6 @@ export class Import {
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
 
-      if (!cardType) {
-        throw new Error(`Card type not found for card ${cardKey}`);
-      }
-
       if (description) {
         await this.project.updateCardContent(cardKey, description);
       }

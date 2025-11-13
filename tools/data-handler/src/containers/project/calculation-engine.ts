@@ -442,7 +442,12 @@ export class CalculationEngine {
   public async resourceLogicProgram(
     resourceName: ResourceName,
   ): Promise<string> {
-    const resource = this.project.resources.byType(resourceName).data;
+    let resource;
+    try {
+      resource = this.project.resources.byType(resourceName).data;
+    } catch {
+      resource = undefined;
+    }
     if (!resource) {
       throw new Error(
         `Resource '${resourceNameToString(resourceName)}' does not exist in the project`,

@@ -246,9 +246,6 @@ export const createCardFacts = async (card: Card, project: Project) => {
           const fieldType = await project.resources
             .byType(field, 'fieldTypes')
             .show();
-          if (!fieldType) {
-            continue;
-          }
 
           // if it's a list, let's generate multiple values
           if (fieldType.dataType === 'list') {

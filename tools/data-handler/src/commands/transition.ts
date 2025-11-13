@@ -50,21 +50,11 @@ export class Transition {
     const cardType = await this.project.resources
       .byType(card.metadata?.cardType, 'cardTypes')
       .show();
-    if (cardType === undefined) {
-      throw new Error(
-        `Card's card type '${card.metadata?.cardType}' does not exist in the project`,
-      );
-    }
 
     // Workflow
     const workflow = await this.project.resources
       .byType(cardType.workflow, 'workflows')
       .show();
-    if (workflow === undefined) {
-      throw new Error(
-        `Card's workflow '${cardType.workflow}' does not exist in the project`,
-      );
-    }
 
     // Check that the state transition can be made "from".
     const foundFrom = workflow.transitions.find(

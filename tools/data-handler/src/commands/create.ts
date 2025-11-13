@@ -321,7 +321,6 @@ export class Create {
     // make sure source card key exists in the link type sourceCardTypes
     // if sourceCardTypes is empty, any card can be linked
     if (
-      linkTypeObject &&
       linkTypeObject.sourceCardTypes.length > 0 &&
       !linkTypeObject.sourceCardTypes.includes(card.metadata!.cardType)
     ) {
@@ -333,7 +332,6 @@ export class Create {
     // make sure destination card key exists in the link type destinationCardTypes
     // if destinationCardTypes is empty, any card can be linked
     if (
-      linkTypeObject &&
       linkTypeObject.destinationCardTypes.length > 0 &&
       !linkTypeObject.destinationCardTypes.includes(
         destinationCard.metadata!.cardType,

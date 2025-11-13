@@ -11,7 +11,6 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import type { ReportResource } from '../src/resources/report-resource.js';
 import { Show } from '../src/commands/index.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
@@ -949,14 +948,14 @@ describe('show', () => {
   it('show content template (success)', async () => {
     // TODO: should be moved to resource tests
     const name = 'decision/reports/anotherReport';
-    const res = commands.project.resources.byType(
-      name,
-      'reports',
-    ) as ReportResource;
-    const result = (await res.show()).content.contentTemplate;
+    const result = await commands.project.resources
+      .byType(name, 'reports')
+      .show();
     expect(result).to.not.equal(undefined);
-    expect(result).to.be.a('string');
-    expect(result.length).to.be.greaterThan(0);
+    const content = result.content.contentTemplate;
+    expect(content).to.not.equal(undefined);
+    expect(content).to.be.a('string');
+    expect(content.length).to.be.greaterThan(0);
   });
 
   it('showCardLogicProgram (success)', async () => {

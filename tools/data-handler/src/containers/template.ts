@@ -209,18 +209,11 @@ export class Template extends CardContainer {
       const cardType = await this.project.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
-      if (!cardType) {
-        throw new Error(
-          `Card type '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
-        );
-      }
 
       const workflow = await this.project.resources
         .byType(cardType.workflow, 'workflows')
         .show();
-      if (!workflow) {
-        throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
-      }
+
       const initialWorkflowState = workflow.transitions.find(
         (item) => item.fromState.includes('') || item.fromState.length === 0,
       );
@@ -411,9 +404,7 @@ export class Template extends CardContainer {
       const cardType = await this.project.resources
         .byType(cardTypeName, 'cardTypes')
         .show();
-      if (cardType === undefined) {
-        throw new Error(`Card type '${cardTypeName}' does not exist`);
-      }
+
       if (parentCard && !this.hasTemplateCard(parentCard.key)) {
         throw new Error(
           `Card '${parentCard.key}' does not exist in template '${this.containerName}'`,

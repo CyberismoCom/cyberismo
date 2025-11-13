@@ -32,10 +32,9 @@ class ReportMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const resource = context.project.resources.byType(options.name, 'reports');
-    const report = await resource.show();
-
-    if (!report) throw new Error(`Report ${options.name} does not exist`);
+    const report = await context.project.resources
+      .byType(options.name, 'reports')
+      .show();
 
     if (report.content.schema) {
       validateJson(options, {

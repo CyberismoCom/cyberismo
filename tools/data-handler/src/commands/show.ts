@@ -522,9 +522,7 @@ export class Show {
    * Shows all templates with full details in a project.
    * @returns all templates in a project.
    */
-  public async showTemplatesWithDetails(): Promise<
-    (TemplateConfiguration | undefined)[]
-  > {
+  public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const templates = [];
     for (const template of this.project.resources.templates()) {
       templates.push(await template.show());
