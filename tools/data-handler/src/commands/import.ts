@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { Fetch } from './fetch.js';
 import { ModuleManager } from '../module-manager.js';
 import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
@@ -33,11 +34,13 @@ export class Import {
    * @param project Project to use.
    * @param createCmd Instance of Create to use.
    */
+  private fetchCmd: Fetch;
   constructor(
     private project: Project,
     private createCmd: Create,
   ) {
     this.moduleManager = new ModuleManager(this.project);
+    this.fetchCmd = new Fetch(this.project);
   }
 
   /**
@@ -139,6 +142,9 @@ export class Import {
     destination?: string,
     options?: ModuleSettingOptions,
   ) {
+    // Ensure module list is up to date before importing
+    await this.fetchCmd.ensureModuleListUpToDate();
+
     const beforeImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
@@ -186,6 +192,9 @@ export class Import {
    * @throws if module is not part of the project
    */
   public async updateModule(moduleName: string, credentials?: Credentials) {
+    // Ensure module list is up to date before updating
+    await this.fetchCmd.ensureModuleListUpToDate();
+
     const module = this.project.configuration.modules.find(
       (item) => item.name === moduleName,
     );
@@ -200,6 +209,8 @@ export class Import {
    * @param credentials Optional credentials for private modules.
    */
   public async updateAllModules(credentials?: Credentials) {
+    // Ensure module list is up to date before updating all modules
+    await this.fetchCmd.ensureModuleListUpToDate();
     return this.moduleManager.updateModules(credentials);
   }
 }

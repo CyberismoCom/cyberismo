@@ -13,13 +13,25 @@
 
 import { mkdir } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
+
+import { getChildLogger } from '../utils/log-utils.js';
+import { readJsonFile, writeJsonFile } from '../utils/json.js';
+import { validateJson } from '../utils/validate.js';
+
+import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 
-import { writeJsonFile } from '../utils/json.js';
-import { validateJson } from '../utils/validate.js';
-import { type ModuleSetting } from '../interfaces/project-interfaces.js';
-import { errorFunction } from '../utils/error-utils.js';
-import { getChildLogger } from '../utils/log-utils.js';
+// Hub structure
+interface HubVersionInfo {
+  location: string;
+  version: number;
+}
+
+// Structure of .temp/moduleList.json file.
+interface ModuleListFile {
+  modules: ModuleSetting[];
+  hubs: HubVersionInfo[];
+}
 
 const FETCH_TIMEOUT = 30000; // 30s timeout for fetching a hub file.
 const MAX_RESPONSE_SIZE = 1024 * 1024; // 1MB limit for safety
@@ -38,6 +50,41 @@ export class Fetch {
     });
   }
 
+  // Checks the version of the remote moduleList.json.
+  private async checkRemoteVersion(
+    location: string,
+  ): Promise<number | undefined> {
+    try {
+      const url = new URL(`${location}/${MODULE_LIST_FILE}`);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return undefined;
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Cyberismo/1.0',
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
+      });
+
+      if (!response.ok) {
+        return undefined;
+      }
+
+      const json = await response.json();
+      return json.version;
+    } catch (error) {
+      this.logger.info(
+        error,
+        `Could not check remote version for ${location} }`,
+      );
+      return undefined;
+    }
+  }
+
+  // Fetches one hub's data as JSON.
   private async fetchJSON(location: string, schemaId: string) {
     try {
       const url = new URL(`${location}/${MODULE_LIST_FILE}`);
@@ -94,19 +141,93 @@ export class Fetch {
     } catch (error) {
       this.logger.error(
         error,
-        `Failed to fetch module list from ${location}: ${errorFunction(error)}`,
+        `Failed to fetch module list from ${location} }`,
       );
       throw error;
     }
   }
 
+  // Checks if the local moduleList.json needs to be updated by comparing
+  // each hub's version with the stored version.
+  private async shouldFetchModuleList(): Promise<boolean> {
+    const fullPath = resolve(this.project.basePath, MODULE_LIST_FULL_PATH);
+
+    try {
+      // Get configured hubs
+      const configuredHubs = this.project.configuration.hubs;
+      if (configuredHubs.length === 0) {
+        return false;
+      }
+
+      const localData = (await readJsonFile(fullPath)) as ModuleListFile;
+      const localHubs = localData.hubs || [];
+      if (localHubs.length !== configuredHubs.length) {
+        this.logger.info('Hub configuration changed, fetching module list');
+        return true;
+      }
+
+      // Check each hub's version
+      for (const configHub of configuredHubs) {
+        const localHub = localHubs.find(
+          (hub) => hub.location === configHub.location,
+        );
+
+        if (!localHub) {
+          this.logger.info(
+            `New hub detected: ${configHub.location}, fetching module list`,
+          );
+          return true;
+        }
+
+        const remoteVersion = await this.checkRemoteVersion(configHub.location);
+        if (remoteVersion === undefined) {
+          const hubName = configHub.displayName || configHub.location;
+          this.logger.info(`Hub ${hubName} has no version data, skipped.`);
+          continue;
+        }
+
+        if (remoteVersion > localHub.version) {
+          this.logger.info(
+            `Hub ${configHub.location} has newer version (remote: ${remoteVersion}, local: ${localHub.version}), fetching module list`,
+          );
+          return true;
+        }
+      }
+
+      this.logger.info('Module list is up to date');
+      return false;
+    } catch (error) {
+      this.logger.warn(error, `Error when checking versions for module list`);
+      return true;
+    }
+  }
+
+  /**
+   * Ensures the module list is up to date by fetching if needed.
+   */
+  public async ensureModuleListUpToDate() {
+    const needsFetch = await this.shouldFetchModuleList();
+    if (needsFetch) {
+      await this.fetchHubs(true);
+    }
+  }
+
   /**
    * Fetches modules from modules hub(s) and writes them to a file.
+   * @param skipVersionCheck - If true, skips the version check and forces fetch
    */
-  public async fetchHubs() {
-    const hubs = this.project.configuration.hubs;
+  public async fetchHubs(skipVersionCheck: boolean = false) {
+    // Check if we need to fetch or not
+    if (!skipVersionCheck) {
+      const needsFetch = await this.shouldFetchModuleList();
+      if (!needsFetch) {
+        return;
+      }
+    }
 
+    const hubs = this.project.configuration.hubs;
     const moduleMap: Map<string, ModuleSetting> = new Map([]);
+    const hubVersions: HubVersionInfo[] = [];
 
     for (const hub of hubs) {
       const json = await this.fetchJSON(hub.location, HUB_SCHEMA);
@@ -118,6 +239,12 @@ export class Fetch {
             `Skipping module '${module.name}' since it was already listed.`,
           );
         }
+      });
+
+      // Store hub version info
+      hubVersions.push({
+        location: hub.location,
+        version: json.version || 1,
       });
     }
 
@@ -140,13 +267,11 @@ export class Fetch {
       });
       await writeJsonFile(fullPath, {
         modules: Array.from(moduleMap.values()),
+        hubs: hubVersions,
       });
       this.logger.info(`Module list written to: ${fullPath}`);
     } catch (error) {
-      this.logger.error(
-        error,
-        `Failed to write module list to local file: ${errorFunction(error)}`,
-      );
+      this.logger.error(error, `Failed to write module list to local file`);
       throw error;
     }
   }
