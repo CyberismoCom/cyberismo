@@ -14,24 +14,9 @@
 
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
+import { readdirSync, readFileSync } from 'node:fs';
 
-import type { Card, Operation, ResourceName } from './file-resource.js';
-import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
-import {
-  isContentKey,
-  type UpdateKey,
-} from '../interfaces/resource-interfaces.js';
-import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
-
-import {
-  DefaultContent,
-  FileResource,
-  Project,
-  resourceName,
-  resourceNameToString,
-  sortCards,
-} from './file-resource.js';
-import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
+import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
   filename,
   propertyName,
@@ -39,22 +24,21 @@ import {
 import { formatJson, readJsonFile } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
-import type { ShowReturnType } from './resource-object.js';
 import { ResourceObject } from './resource-object.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 
-export {
-  type Card,
-  DefaultContent,
-  FileResource,
-  type Operation,
-  Project,
-  ResourceName,
-  resourceNameToString,
-  sortCards,
-};
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceFolderType } from '../interfaces/project-interfaces.js';
+import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
+import type { ResourceName } from '../utils/resource-utils.js';
+import type { ShowReturnType } from './resource-object.js';
 
 /**
- * Folder type resource class. These are resources that have their own folders for content.
+ * Folder type resource class.
+ * These are resources that have their own folders for content.
  */
 export abstract class FolderResource<
   T extends ResourceBaseMetadata,
@@ -65,6 +49,12 @@ export abstract class FolderResource<
   // Cache for content files to avoid repeated filesystem operations. Content is stored as string.
   private contentFilesCache = new Map<string, string>();
 
+  /**
+   * Constructs a FolderResource object.
+   * @param project Project in which this resource exists.
+   * @param name Name for the resource.
+   * @param type Type for this resource.
+   */
   constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
     super(project, name, type);
     this.initialize();
@@ -75,11 +65,33 @@ export abstract class FolderResource<
     this.contentFilesCache.clear();
   }
 
+  // Preloads content files into cache.
+  private preloadContentCache() {
+    try {
+      const files = readdirSync(this.internalFolder, { withFileTypes: true });
+      for (const file of files) {
+        if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
+          const filePath = join(this.internalFolder, file.name);
+          try {
+            const content = readFileSync(filePath, 'utf8');
+            this.contentFilesCache.set(file.name, content);
+          } catch {
+            this.logger.warn({ file }, `Couldn't read a file`);
+          }
+        }
+      }
+    } catch {
+      this.logger.warn(`Preloading cache failed from ${this.internalFolder}`);
+    }
+  }
+
   /**
    * Creates a new folder type object. Base class writes the object to disk automatically.
    * @param newContent Content for the type.
    */
   protected async create(newContent?: T) {
+    // Validate resource identifier before creating on disk
+    this.validateResourceIdentifier();
     await super.create(newContent);
     await mkdir(this.internalFolder, { recursive: true });
   }
@@ -94,6 +106,13 @@ export abstract class FolderResource<
       this.resourceFolder,
       this.resourceName.identifier,
     );
+
+    // Populate content files to cache if resource exists in registry
+    if (
+      this.project.resources.exists(resourceNameToString(this.resourceName))
+    ) {
+      this.preloadContentCache();
+    }
   }
 
   /**
@@ -234,12 +253,25 @@ export abstract class FolderResource<
 
   /**
    * Deletes file and content folder from disk and clears out the memory resident object.
-   * @throws if resource is a module resource or does not exist or is used by other resources.
    */
   public async delete() {
     await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
     this.clearContentCache();
+  }
+
+  /**
+   * Shows metadata of the resource and content of the resource.
+   * @template T Resource type
+   * @template U Resource content
+   * @returns resource type's metadata and content.
+   */
+  public async show(): Promise<ShowReturnType<T, U>> {
+    this.assertResourceExists();
+    return {
+      ...this.content,
+      content: await this.contentData(),
+    };
   }
 
   /**
@@ -285,18 +317,5 @@ export abstract class FolderResource<
     if (nameChange) {
       await this.onNameChange?.(existingName);
     }
-  }
-
-  /**
-   * Shows metadata of the resource and content of the resource.
-   * @returns resource type's metadata and content.
-   * @throws if resource does not exist.
-   */
-  public async show(): Promise<ShowReturnType<T, U>> {
-    this.assertResourceExists();
-    return {
-      ...this.content,
-      content: await this.contentData(),
-    };
   }
 }

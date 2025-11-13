@@ -13,9 +13,10 @@ import { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import type { ResourceTypes } from '../src/interfaces/project-interfaces.js';
+import { getTestBaseDir } from './helpers/test-utils.js';
 
 describe('validate cmd tests', () => {
-  const baseDir = import.meta.dirname;
+  const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
   const validProject = new Project('test/test-data/valid/decision-records');
@@ -161,9 +162,9 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.be.greaterThan(0);
   });
 
-  it('validateWorkflowState (success)', () => {
+  it('validateWorkflowState (success)', async () => {
     const card = validProject.findCard('decision_5');
-    const valid = validateCmd.validateWorkflowState(validProject, card);
+    const valid = await validateCmd.validateWorkflowState(validProject, card);
     expect(valid.length).to.equal(0);
   });
   it('try to validateWorkflowState - invalid state', async () => {
@@ -172,7 +173,7 @@ describe('validate cmd tests', () => {
     );
     await project.populateCaches();
     const card = project.findCard('decision_6');
-    const valid = validateCmd.validateWorkflowState(project, card);
+    const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - card type not found', async () => {
@@ -181,7 +182,7 @@ describe('validate cmd tests', () => {
     );
     await project.populateCaches();
     const card = project.findCard('decision_5');
-    const valid = validateCmd.validateWorkflowState(project, card);
+    const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from project', async () => {
@@ -190,7 +191,7 @@ describe('validate cmd tests', () => {
     );
     await project.populateCaches();
     const card = project.findCard('decision_7');
-    const valid = validateCmd.validateWorkflowState(project, card);
+    const valid = await validateCmd.validateWorkflowState(project, card);
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from card', async () => {
@@ -200,7 +201,7 @@ describe('validate cmd tests', () => {
     await project.populateCaches();
     const card = project.findCard('decision_8');
     if (card) {
-      const valid = validateCmd.validateWorkflowState(project, card);
+      const valid = await validateCmd.validateWorkflowState(project, card);
       expect(valid.length).to.be.greaterThan(0);
     }
   });
@@ -385,8 +386,8 @@ describe('validate cmd tests', () => {
       expect(invalid).to.equal(false);
     }
   });
-  it('validate resource names', async () => {
-    const prefixes = await validProject.projectPrefixes();
+  it('validate resource names', () => {
+    const prefixes = validProject.projectPrefixes();
     const projectPrefix = validProject.projectPrefix;
     const validResources: Map<ResourceTypes, string> = new Map([
       ['cardTypes', `${projectPrefix}/cardTypes/test`],

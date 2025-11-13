@@ -186,7 +186,7 @@ export function validateMacroContent<T>(
  * @param tasks - Tasks to register
  * @returns macro instances
  */
-export function registerMacros(
+export async function registerMacros(
   instance: typeof Handlebars,
   context: MacroGenerationContext,
   tasks: TaskQueue,
@@ -242,7 +242,7 @@ export async function evaluateMacros(
 ) {
   const handlebars = Handlebars.create();
   const tasks = new TaskQueue();
-  registerMacros(handlebars, context, tasks);
+  await registerMacros(handlebars, context, tasks);
   let result = content;
   while ((context.maxTries ?? 10) > 0) {
     await tasks.reset();

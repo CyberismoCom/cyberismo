@@ -19,15 +19,38 @@ import type {
   RemoveOperation,
   UpdateOperations,
 } from '../resources/resource-object.js';
-import { Project } from '../containers/project.js';
-import { resourceName } from '../utils/resource-utils.js';
+import type { Project } from '../containers/project.js';
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**
  * Class that handles 'update' commands.
  */
 export class Update {
+  /**
+   * Creates an instance of Update command.
+   * @param project Project to use.
+   */
   constructor(private project: Project) {}
+
+  /**
+   * Update single resource property
+   * This is similar to updateValue, but allows the operation to be fully specified
+   * @param name Name of the resource to operate on.
+   * @param updateKey Property to change in resource or in resource content.
+   * @param operation The full operation object
+   * @template Type Type of the target of the operation
+   * @template T Type of operation ('add', 'remove', 'change', 'rank')
+   * @template K Type of the key to change
+   */
+  public async applyResourceOperation<
+    Type,
+    T extends UpdateOperations,
+    K extends string,
+  >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
+    const type = this.project.resources.extractType(name);
+    const resource = this.project.resources.byType(name, type);
+    await resource?.update(updateKey, operation);
+  }
 
   /**
    * Updates single resource property.
@@ -94,25 +117,5 @@ export class Update {
     } else {
       await this.applyResourceOperation(name, { key: parsedKey }, op);
     }
-  }
-
-  /**
-   * Update single resource property
-   * This is similar to updateValue, but allows the operation to be fully specified
-   * @param name Name of the resource to operate on.
-   * @param updateKey Property to change in resource or in resource content.
-   * @param operation The full operation object
-   * @template Type Type of the target of the operation
-   * @template T Type of operation ('add', 'remove', 'change', 'rank')
-   * @template K Type of the key to change
-   */
-  public async applyResourceOperation<
-    Type,
-    T extends UpdateOperations,
-    K extends string,
-  >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
-    const resource = Project.resourceObject(this.project, resourceName(name));
-    await resource?.update(updateKey, operation);
-    this.project.collectLocalResources();
   }
 }

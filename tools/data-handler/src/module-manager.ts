@@ -26,7 +26,7 @@ import { Project } from './containers/project.js';
 import type { ProjectConfiguration } from './project-settings.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import { readJsonFile } from './utils/json.js';
-import { Validate } from './commands/index.js';
+import { Validate } from './commands/validate.js';
 
 const FILE_PROTOCOL = 'file:';
 const HTTPS_PROTOCOL = 'https:';
@@ -54,7 +54,7 @@ export class ModuleManager {
     await copyDir(sourcePath, destinationPath);
 
     // Update the resources.
-    await this.project.collectModuleResources();
+    this.project.resources.changedModules();
   }
 
   // Creates a map of what dependencies each module depend from.
@@ -213,13 +213,11 @@ export class ModuleManager {
 
   // Fetches direct dependencies of a module.
   private async dependencies(moduleName: string): Promise<Set<string>> {
-    const allModules = await this.project.modules();
-    if (!allModules) return new Set();
-    const module = allModules.find((m) => m.name === moduleName);
+    const module = await this.project.module(moduleName);
     if (!module) {
       throw new Error(`Module '${moduleName}' not found`);
     }
-    const modulePath = join(module.path, module.name, 'cardsConfig.json');
+    const modulePath = join(module.path, 'cardsConfig.json');
     const moduleConfiguration = (await readJsonFile(
       modulePath,
     )) as ProjectConfiguration;
@@ -287,7 +285,7 @@ export class ModuleManager {
 
   // Imports from a given folder. Is used both for .temp/<module name> and file locations.
   private async importFromFolder(path: string, name: string) {
-    await this.importFileModule(path);
+    await this.importFileModule(path, undefined, true); // Skip validation during updates
     console.log(
       `... Imported module '${name}' to '${this.project.configuration.name}'`,
     );
@@ -361,6 +359,9 @@ export class ModuleManager {
     try {
       await this.removeModuleFiles(module.name);
       console.log(`... Removed imported module '${module.name}'`);
+
+      // Refresh module resources in cache after filesystem removal to avoid stale prefixes
+      this.project.resources.changedModules();
     } catch (error) {
       if (error instanceof Error)
         console.error(
@@ -521,15 +522,20 @@ export class ModuleManager {
       );
       await Promise.all(promises);
       await deleteDir(this.tempModulesDir);
-      await this.project.collectModuleResources();
+      this.project.resources.changedModules();
     }
   }
 
   // Checks that module prefix is not in use in the project
-  private async validatePrefix(modulePrefix: string) {
+  // Optionally skip check for modules that are already imported (during updates)
+  private validatePrefix(modulePrefix: string, skipIfExists = false) {
     // Do not allow modules with same prefixes.
-    const currentlyUsedPrefixes = await this.project.projectPrefixes();
+    const currentlyUsedPrefixes = this.project.projectPrefixes();
     if (currentlyUsedPrefixes.includes(modulePrefix)) {
+      // If skipIfExists is true, allow re-importing modules that are already present
+      if (skipIfExists) {
+        return;
+      }
       throw new Error(
         `Imported project has a prefix '${modulePrefix}' that is already used in the project. Cannot import from module.`,
       );
@@ -540,8 +546,14 @@ export class ModuleManager {
    * Imports module from local file path.
    * @param source Path to import from.
    * @param destination is this really needed???
+   * @param skipValidation Skip prefix validation (used during updates)
+   * @returns Module prefix of the imported module.
    */
-  public async importFileModule(source: string, destination?: string) {
+  public async importFileModule(
+    source: string,
+    destination?: string,
+    skipValidation = false,
+  ) {
     if (!Validate.validateFolder(source)) {
       throw new Error(
         `Input validation error: folder name is invalid '${source}'`,
@@ -566,7 +578,7 @@ export class ModuleManager {
     );
     const sourcePath = sourceProject.paths.resourcesFolder;
 
-    await this.validatePrefix(modulePrefix);
+    this.validatePrefix(modulePrefix, skipValidation);
 
     // Copy files.
     await this.addFileContents(sourcePath, destinationPath);
@@ -578,12 +590,14 @@ export class ModuleManager {
    * @param source Git URL to import from.
    * @param options Modules setting options.
    * @param credentials Credentials for private repositories.
+   * @param skipValidation Skip prefix validation (used during updates)
    * @returns module prefix as defined in its CardsConfig.json
    */
   public async importGitModule(
     source: string,
     options?: ModuleSettingOptions,
     credentials?: Credentials,
+    skipValidation = false,
   ) {
     const clonedName = await this.clone(
       {
@@ -596,7 +610,7 @@ export class ModuleManager {
     );
     const clonePath = join(this.tempModulesDir, clonedName);
     const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
-    await this.validatePrefix(modulePrefix);
+    this.validatePrefix(modulePrefix, skipValidation);
 
     const sourcePath = new ProjectPaths(clonePath).resourcesFolder;
     const destinationPath = join(
@@ -612,6 +626,7 @@ export class ModuleManager {
    * If module is not used by any other modules, then will remove the module from disk as well.
    * Otherwise, only updates project configuration.
    * @param moduleName Name of the module to remove
+   * @throws If module was not found.
    */
   public async removeModule(moduleName: string) {
     const projectModules = this.project.configuration.modules;

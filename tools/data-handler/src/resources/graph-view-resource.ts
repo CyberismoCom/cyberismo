@@ -15,26 +15,22 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
-import {
-  DefaultContent,
-  FolderResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { copyDir } from '../utils/file-utils.js';
+import { DefaultContent } from './create-defaults.js';
+import { FolderResource } from './folder-resource.js';
+import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
 import type {
   GraphViewMetadata,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
-import type { GraphViewContent } from '../interfaces/folder-content-interfaces.js';
-
-import { getStaticDirectoryPath } from '@cyberismo/assets';
-import { copyDir } from '../utils/file-utils.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Graph view resource class.

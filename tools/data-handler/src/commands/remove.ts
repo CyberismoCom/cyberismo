@@ -14,15 +14,18 @@
 import { ActionGuard } from '../permissions/action-guard.js';
 import { isModuleCard } from '../utils/card-utils.js';
 import { ModuleManager } from '../module-manager.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
-import { resourceName } from '../utils/resource-utils.js';
 
 /**
  * Remove command.
  */
 export class Remove {
   private moduleManager: ModuleManager;
+  /**
+   * Creates a new instance of Remove command.
+   * @param project Project instance to use
+   */
   constructor(private project: Project) {
     this.moduleManager = new ModuleManager(this.project);
   }
@@ -152,14 +155,15 @@ export class Remove {
    * @param rest Additional arguments
    * @note removing attachment requires card id and attachment filename
    * @note removing link requires card ids of source card, and optionally link type and link description
+   * @throws when removing an attachment, but attachment parameter is missing, or
+   *         when removing link, some of the mandatory parameters are missing, or
+   *         when trying to remove unknown type
    */
   public async remove(
     type: RemovableResourceTypes,
     targetName: string,
     ...rest: any[] // eslint-disable-line @typescript-eslint/no-explicit-any
   ) {
-    const strictNameCheck = true;
-
     if (type === 'attachment' && rest.length !== 1 && !rest[0]) {
       throw new Error(
         `Input validation error: must pass argument 'detail' if requesting to remove attachment`,
@@ -177,9 +181,9 @@ export class Remove {
       );
     }
     if (this.projectResource(type)) {
-      const resource = Project.resourceObject(
-        this.project,
-        resourceName(targetName, strictNameCheck),
+      const resource = this.project.resources.byType(
+        targetName,
+        this.project.resources.resourceTypeFromSingularType(type),
       );
       return resource?.delete();
     } else {

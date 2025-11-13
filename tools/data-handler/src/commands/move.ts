@@ -197,7 +197,6 @@ export class Move {
     sourceCard.parent = movingToRoot ? ROOT : destination;
     if (sourceCard.metadata) {
       sourceCard.metadata.rank = rank;
-      sourceCard.metadata.parent = movingToRoot ? ROOT : destination;
     }
 
     // Handle cache update and persistence

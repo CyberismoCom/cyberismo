@@ -1,17 +1,12 @@
-// testing
 import { expect } from 'chai';
-import { describe, it } from 'mocha';
 import { stub } from 'sinon';
 
-// node
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
-// dependencies
 import { Validator } from 'jsonschema';
 import Handlebars from 'handlebars';
 
-// cyberismo
 import BaseMacro from '../../src/macros/base-macro.js';
 import { copyDir } from '../../src/utils/file-utils.js';
 import {
@@ -932,9 +927,9 @@ Some content here`;
     });
   });
   describe('registerMacros', () => {
-    it('registerMacros (success)', () => {
+    it('registerMacros (success)', async () => {
       const handlebars = Handlebars.create();
-      registerMacros(
+      await registerMacros(
         handlebars,
         {
           mode: 'inject',

@@ -88,6 +88,7 @@ export function resourceName(
  * Converts resource name to path.
  * @param project Project
  * @param resourceName Name of the resource (e.g. <prefix>/<type>/<name>)
+ * @param extension Extension of resource. By default '.json'.
  * @returns path to resource metadata file
  */
 export function resourceNameToPath(
@@ -204,7 +205,7 @@ export function resourceNameToString(resourceName: ResourceName): string {
   ) {
     throw new Error(`Not a valid resource name. Prefix is missing.`);
   }
-  return resourceName.prefix && resourceName.type && resourceName.prefix
+  return resourceName.prefix && resourceName.type && resourceName.identifier
     ? `${resourceName.prefix}/${resourceName.type}/${resourceName.identifier}`
     : `${resourceName.identifier}`;
 }

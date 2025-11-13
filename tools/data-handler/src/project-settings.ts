@@ -22,7 +22,7 @@ import type {
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
 import { readJsonFileSync } from './utils/json.js';
-import { Validate } from './commands/index.js';
+import { Validate } from './commands/validate.js';
 
 /**
  * Represents Project's cardsConfig.json file.
@@ -169,6 +169,7 @@ export class ProjectConfiguration implements ProjectSettings {
   /**
    * Removes module from imported modules property.
    * @param moduleName Name of the module to remove.
+   * @throws If Module name is empty, or not imported to the project.
    */
   public async removeModule(moduleName: string) {
     if (!moduleName) {

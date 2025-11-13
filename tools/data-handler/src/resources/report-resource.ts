@@ -12,38 +12,32 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { extname, join } from 'node:path';
 import { readdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { extname, join } from 'node:path';
 
 import { copyDir } from '../utils/file-utils.js';
-import {
-  DefaultContent,
-  FolderResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { DefaultContent } from './create-defaults.js';
+import { FolderResource } from './folder-resource.js';
 import { getStaticDirectoryPath } from '@cyberismo/assets';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/validate.js';
 
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
-import {
-  type ReportMetadata,
-  type UpdateKey,
-} from '../interfaces/resource-interfaces.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
+import type {
+  ReportMetadata,
+  UpdateKey,
+} from '../interfaces/resource-interfaces.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 import type { Schema } from 'jsonschema';
 import { hasCode } from '../utils/error-utils.js';
 
 const PARAMETER_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
-
-const staticDirectoryPath = await getStaticDirectoryPath();
 
 /**
  * Report resource class.
@@ -65,10 +59,10 @@ export class ReportResource extends FolderResource<
 
   // Path to content folder.
   // @todo: create the files' content dynamically.
-  private defaultReportLocation: string = join(
-    staticDirectoryPath,
-    'defaultReport',
-  );
+  private async getDefaultReportLocation(): Promise<string> {
+    const staticDirectoryPath = await getStaticDirectoryPath();
+    return join(staticDirectoryPath, 'defaultReport');
+  }
 
   // Try to read schema file content
   private readSchemaFile(path: string) {
@@ -105,8 +99,6 @@ export class ReportResource extends FolderResource<
 
   /**
    * Sets new metadata into the report object.
-   * @param newContent metadata content for the report.
-   * @throws if 'newContent' is not valid.
    */
   public async createReport() {
     const defaultContent = DefaultContent.report(
@@ -116,7 +108,8 @@ export class ReportResource extends FolderResource<
     await super.create(defaultContent);
 
     // Copy report default structure to destination.
-    await copyDir(this.defaultReportLocation, this.internalFolder);
+    const defaultReportLocation = await this.getDefaultReportLocation();
+    await copyDir(defaultReportLocation, this.internalFolder);
   }
 
   /**

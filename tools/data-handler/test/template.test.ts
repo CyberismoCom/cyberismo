@@ -165,9 +165,9 @@ describe('template', () => {
 
     expect(template.isCreated()).to.equal(false);
 
-    const templateResource = new TemplateResource(
-      project,
-      resourceName('decision/templates/idontexistyet'),
+    const templateResource = project.resources.byType(
+      'decision/templates/idontexistyet',
+      'templates',
     );
     await templateResource
       .create()
@@ -186,7 +186,7 @@ describe('template', () => {
     });
     const templateMain = template.templateFolder();
     const templateCards = template.templateCardsFolder();
-    const specificCardPath = await template.cardFolder('decision_1');
+    const specificCardPath = template.cardFolder('decision_1');
     expect(templateMain).to.contain('.cards');
     expect(join(templateMain, 'c')).to.equal(templateCards);
     expect(templateCards).to.contain(`decision${sep}c`);

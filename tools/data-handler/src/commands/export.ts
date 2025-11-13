@@ -31,12 +31,20 @@ import { generateReportContent } from '../utils/report.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
-import type { Show } from './index.js';
+import type { Show } from './show.js';
 import { sortItems } from '../utils/lexorank.js';
 
 const attachmentFolder: string = 'a';
 
+/**
+ * Handles all export commands.
+ */
 export class Export {
+  /**
+   * Creates an instance of export.
+   * @param project Project to use
+   * @param showCmd Instance of Export command to use.
+   */
   constructor(
     protected project: Project,
     protected showCmd: Show,
@@ -97,6 +105,56 @@ export class Export {
     return content;
   }
 
+  // Runs Ascii Doctor converter --> to PDF
+  private async runAsciidoctorPdf(content: string): Promise<Buffer> {
+    const staticRootDir = await getStaticDirectoryPath();
+    const proc = spawn(
+      'asciidoctor-pdf',
+      [
+        '-a',
+        'pdf-theme=cyberismo',
+        '-a',
+        `pdf-themesdir=${join(staticRootDir, 'pdf-themes')}`,
+        '-a',
+        `pdf-fontsdir=${join(staticRootDir, 'pdf-themes', 'fonts')};GEM_FONTS_DIR`,
+        '-',
+      ],
+      {
+        timeout: 100000,
+        shell: process.platform === 'win32',
+      },
+    );
+    proc.stdin.end(content);
+    const result = await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      proc.stdout.on('data', (chunk) => {
+        chunks.push(chunk);
+      });
+      proc.stderr.on('data', (chunk) => {
+        process.stderr.write(chunk);
+      });
+      proc.on('error', (error) => {
+        if ('code' in error && error.code === 'ENOENT') {
+          reject(
+            new Error(
+              'Asciidoctor-pdf not found. Please install asciidoctor-pdf to use this feature.',
+            ),
+          );
+        }
+        reject(error);
+      });
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve(Buffer.concat(chunks));
+        } else {
+          reject(new Error(`Asciidoctor-pdf failed with code ${code}`));
+        }
+      });
+    });
+    return result;
+  }
+
+  // Adds cards to an ADOC file as additional content.
   private async toAdocFileAsContent(path: string, cards: Card[]) {
     for (const card of cards) {
       let fileContent = '';
@@ -108,9 +166,9 @@ export class Export {
       }
 
       if (card.metadata) {
-        const cardTypeForCard = await this.project.resource<CardType>(
-          card.metadata?.cardType,
-        );
+        const cardTypeForCard = await this.project.resources
+          .byType(card.metadata?.cardType, 'cardTypes')
+          .show();
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);
         fileContent += metaDataContent;
       }
@@ -177,6 +235,7 @@ export class Export {
    * Convert treeQueryResult object into a Card object and add content, metadata & attachments
    * Handles card children recursively
    * @param treeQueryResult tree query result object
+   * @returns Tree query result as a Card.
    */
   protected async treeQueryResultToCard(
     treeQueryResult: QueryResult<'tree'>,
@@ -216,54 +275,6 @@ export class Export {
     }
 
     return card;
-  }
-
-  private async runAsciidoctorPdf(content: string): Promise<Buffer> {
-    const staticRootDir = await getStaticDirectoryPath();
-    const proc = spawn(
-      'asciidoctor-pdf',
-      [
-        '-a',
-        'pdf-theme=cyberismo',
-        '-a',
-        `pdf-themesdir=${join(staticRootDir, 'pdf-themes')}`,
-        '-a',
-        `pdf-fontsdir=${join(staticRootDir, 'pdf-themes', 'fonts')};GEM_FONTS_DIR`,
-        '-',
-      ],
-      {
-        timeout: 100000,
-        shell: process.platform === 'win32',
-      },
-    );
-    proc.stdin.end(content);
-    const result = await new Promise<Buffer>((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      proc.stdout.on('data', (chunk) => {
-        chunks.push(chunk);
-      });
-      proc.stderr.on('data', (chunk) => {
-        process.stderr.write(chunk);
-      });
-      proc.on('error', (error) => {
-        if ('code' in error && error.code === 'ENOENT') {
-          reject(
-            new Error(
-              'Asciidoctor-pdf not found. Please install asciidoctor-pdf to use this feature.',
-            ),
-          );
-        }
-        reject(error);
-      });
-      proc.on('close', (code) => {
-        if (code === 0) {
-          resolve(Buffer.concat(chunks));
-        } else {
-          reject(new Error(`Asciidoctor-pdf failed with code ${code}`));
-        }
-      });
-    });
-    return result;
   }
 
   /**

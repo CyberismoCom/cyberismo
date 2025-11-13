@@ -11,38 +11,33 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type {
-  Card,
-  ChangeOperation,
-  Operation,
-  Project,
-  RemoveOperation,
-  ResourceName,
-} from './file-resource.js';
-import {
-  DefaultContent,
-  FileResource,
-  ResourcesFrom,
-  resourceName,
-  resourceNameToString,
-  sortCards,
-} from './file-resource.js';
-
-import type {
-  CardType,
-  DataType,
-  EnumDefinition,
-  FieldType,
-  UpdateKey,
-} from '../interfaces/resource-interfaces.js';
-import { CardTypeResource } from './card-type-resource.js';
 import {
   allowed,
   fromDate,
   fromNumber,
   fromString,
 } from '../utils/value-utils.js';
+import { DefaultContent } from './create-defaults.js';
+import { FileResource } from './file-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+
 import * as EmailValidator from 'email-validator';
+
+import type {
+  ChangeOperation,
+  Operation,
+  RemoveOperation,
+} from './resource-object.js';
+import type { Card } from '../interfaces/project-interfaces.js';
+import type {
+  DataType,
+  EnumDefinition,
+  FieldType,
+  UpdateKey,
+} from '../interfaces/resource-interfaces.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 const SHORT_TEXT_MAX_LENGTH = 80;
 
@@ -134,7 +129,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
     }
 
     // First collect the cardTypes that need to be updated.
-    const cardTypes = await this.relevantCardTypes(ResourcesFrom.localOnly);
+    const cardTypes = this.relevantCardTypes();
     cardTypesThatUseThisFieldType.push(...cardTypes);
 
     // Then collect cards (both project and local template) that use those card types.
@@ -209,7 +204,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
     if (!newValue) return;
 
     const removedValue = (op.target as EnumDefinition).enumValue;
-    const cardTypes = await this.relevantCardTypes(ResourcesFrom.localOnly);
+    const cardTypes = this.relevantCardTypes();
     const allCards = await Promise.all(
       cardTypes.map((cardType) => this.collectCards(cardType)),
     );
@@ -255,44 +250,35 @@ export class FieldTypeResource extends FileResource<FieldType> {
   }
 
   // Card types that use field type.
-  private async relevantCardTypes(from: ResourcesFrom): Promise<string[]> {
+  private relevantCardTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
-    const cardTypes = await this.project.cardTypes(from);
-
-    const references = await Promise.all(
-      cardTypes.map(async (cardType) => {
-        const metadata = await this.project.resource<CardType>(cardType.name);
-        return metadata?.customFields.some(
-          (field) => field.name === resourceName,
-        )
-          ? cardType.name
-          : '';
-      }),
-    );
-    // Remove empty values.
-    return references.filter(Boolean);
+    const cardTypes = this.project.resources.cardTypes();
+    const references = [];
+    for (const cardType of cardTypes) {
+      const found = cardType.data?.customFields.filter(
+        (field) => field.name === resourceName,
+      );
+      if (found && found.length > 0 && cardType.data)
+        references.push(cardType.data?.name);
+    }
+    return references;
   }
 
   // Update dependant card types
   private async updateCardTypes(oldName: string) {
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = this.project.resources.cardTypes();
     const op = {
       name: 'change',
       target: oldName,
       to: this.content.name,
     } as ChangeOperation<string>;
     for (const cardType of cardTypes) {
-      const object = new CardTypeResource(
-        this.project,
-        resourceName(cardType.name),
-      );
-      const data = object.data;
-      if (data) {
-        const found = data.customFields
-          ? data.customFields.find((item) => item.name === oldName)
+      if (cardType.data?.customFields) {
+        const found = cardType.data.customFields
+          ? cardType.data.customFields.find((item) => item.name === oldName)
           : undefined;
         if (found) {
-          await object.update({ key: 'customFields' }, op);
+          await cardType.update({ key: 'customFields' }, op);
         }
       }
     }
@@ -474,12 +460,12 @@ export class FieldTypeResource extends FileResource<FieldType> {
   public async usage(cards?: Card[]): Promise<string[]> {
     const allCards = cards ?? super.cards();
 
-    const [cardContentReferences, relevantLinkTypes, calculations] =
-      await Promise.all([
-        super.usage(allCards),
-        this.relevantCardTypes(ResourcesFrom.all),
-        super.calculations(),
-      ]);
+    const relevantLinkTypes = this.relevantCardTypes();
+
+    const [cardContentReferences, calculations] = await Promise.all([
+      super.usage(allCards),
+      super.calculations(),
+    ]);
 
     const cardReferences = [
       ...this.cardsWithFieldType(allCards),

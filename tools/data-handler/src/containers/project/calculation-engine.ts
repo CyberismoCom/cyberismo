@@ -27,7 +27,7 @@ import type { Card, Context } from '../../interfaces/project-interfaces.js';
 import ClingoParser from '../../utils/clingo-parser.js';
 import { Mutex } from 'async-mutex';
 import Handlebars from 'handlebars';
-import { type Project, ResourcesFrom } from '../../containers/project.js';
+import type { Project } from '../../containers/project.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
   createCardFacts,
@@ -50,7 +50,6 @@ import type {
   TemplateMetadata,
   Workflow,
 } from '../../interfaces/resource-interfaces.js';
-import { CalculationResource } from '../../resources/calculation-resource.js';
 import {
   removeAllPrograms,
   solve,
@@ -61,7 +60,6 @@ import {
 import { generateReportContent } from '../../utils/report.js';
 import { lpFiles, graphvizReport } from '@cyberismo/assets';
 import {
-  resourceName,
   type ResourceName,
   resourceNameToString,
 } from '../../utils/resource-utils.js';
@@ -122,7 +120,7 @@ export class CalculationEngine {
     await writeFile(destination, logicProgram);
   }
 
-  // // Wrapper to run onCreation query.
+  // Wrapper to run onCreation query.
   private async creationQuery(cardKeys: string[], context: Context) {
     if (!cardKeys) return undefined;
     return this.runQuery('onCreation', context, {
@@ -145,10 +143,10 @@ export class CalculationEngine {
 
   // Generates logic programs related to modules (and project itself).
   private async generateModules() {
-    const modules = await this.project.modules();
+    const modules = this.project.resources.moduleNames();
     let content = '';
     for (const module of await Promise.all(
-      modules.map((mod) => this.project.module(mod.name)),
+      modules.map((mod) => this.project.module(mod)),
     )) {
       if (!module) continue;
       const moduleContent = createModuleFacts(module);
@@ -161,119 +159,101 @@ export class CalculationEngine {
 
   // Sets individual CardType programs
   private async setCardTypesPrograms() {
-    const cardTypes = await this.project.cardTypes();
-
-    for (const cardType of await Promise.all(
-      cardTypes.map((c) => this.project.resource<CardType>(c.name)),
-    )) {
-      if (!cardType) continue;
-
-      const cardTypeContent = createCardTypeFacts(cardType);
-      setProgram(cardType.name, cardTypeContent, [ALL_CATEGORY]);
+    const cardTypes = this.project.resources.cardTypes();
+    for (const cardType of cardTypes) {
+      const ct = await cardType.show();
+      if (ct) {
+        const cardTypeContent = createCardTypeFacts(ct);
+        setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
+      }
     }
   }
 
   // Sets individual FieldType programs
   private async setFieldTypesPrograms() {
-    const fieldTypes = await this.project.fieldTypes();
-
-    for (const fieldType of await Promise.all(
-      fieldTypes.map((m) => this.project.resource<FieldType>(m.name)),
-    )) {
-      if (!fieldType) continue;
-
-      const fieldTypeContent = createFieldTypeFacts(fieldType);
-      setProgram(fieldType.name, fieldTypeContent, [ALL_CATEGORY]);
+    const fieldTypes = this.project.resources.fieldTypes();
+    for (const fieldType of fieldTypes) {
+      const ft = await fieldType.show();
+      if (ft) {
+        const fieldTypeContent = createFieldTypeFacts(ft);
+        setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
+      }
     }
   }
 
   // Sets individual LinkType programs
   private async setLinkTypesPrograms() {
-    const linkTypes = await this.project.linkTypes();
-
-    for (const linkType of await Promise.all(
-      linkTypes.map((c) => this.project.resource<LinkType>(c.name)),
-    )) {
-      if (!linkType) continue;
-
-      const linkTypeContent = createLinkTypeFacts(linkType);
-      setProgram(linkType.name, linkTypeContent, [ALL_CATEGORY]);
+    const linkTypes = this.project.resources.linkTypes();
+    for (const linkType of linkTypes) {
+      const lt = await linkType.show();
+      if (lt) {
+        const linkTypeContent = createLinkTypeFacts(lt);
+        setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
+      }
     }
   }
 
   // Sets individual Workflow programs
   private async setWorkflowsPrograms() {
-    const workflows = await this.project.workflows();
-
-    for (const workflow of await Promise.all(
-      workflows.map((m) => this.project.resource<Workflow>(m.name)),
-    )) {
-      if (!workflow) continue;
-
-      const workflowContent = createWorkflowFacts(workflow);
-      setProgram(workflow.name, workflowContent, [ALL_CATEGORY]);
+    const workflows = this.project.resources.workflows();
+    for (const workflow of workflows) {
+      const wf = await workflow.show();
+      if (wf) {
+        const workflowContent = createWorkflowFacts(wf);
+        setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
+      }
     }
   }
 
   // Sets individual Report programs
   private async setReportsPrograms() {
-    const reports = await this.project.reports();
-
-    for (const report of await Promise.all(
-      reports.map((r) => this.project.resource<ReportMetadata>(r.name)),
-    )) {
-      if (!report) continue;
-
-      const reportContent = createReportFacts(report);
-      setProgram(report.name, reportContent, [ALL_CATEGORY]);
+    const reports = this.project.resources.reports();
+    for (const report of reports) {
+      const rep = await report.show();
+      if (rep) {
+        const reportContent = createReportFacts(rep);
+        setProgram(rep.name, reportContent, [ALL_CATEGORY]);
+      }
     }
   }
 
   // Sets individual Template programs
   private async setTemplatesPrograms() {
-    const templates = await this.project.templates();
-
-    for (const template of await Promise.all(
-      templates.map((r) => this.project.resource<TemplateMetadata>(r.name)),
-    )) {
-      if (!template) continue;
-
-      const templateContent = createTemplateFacts(template);
-      const cards = this.getCards(template.name);
-      for (const card of cards) {
-        const cardContent = await createCardFacts(card, this.project);
-        setProgram(card.key, cardContent, [ALL_CATEGORY]);
+    const templates = this.project.resources.templates();
+    for (const template of templates) {
+      const tem = await template.show();
+      if (tem) {
+        const templateContent = createTemplateFacts(tem);
+        const cards = this.getCards(tem.name);
+        for (const card of cards) {
+          const cardContent = await createCardFacts(card, this.project);
+          setProgram(card.key, cardContent, [ALL_CATEGORY]);
+        }
+        setProgram(tem.name, templateContent, [ALL_CATEGORY]);
       }
-      setProgram(template.name, templateContent, [ALL_CATEGORY]);
     }
   }
 
   // Sets individual Calculation programs
   private async setCalculationsPrograms() {
-    const calculations = await this.project.calculations(ResourcesFrom.all);
-
-    for (const calculationFile of calculations) {
+    const calculations = this.project.resources.calculations();
+    for (const calculation of calculations) {
       try {
-        const calculationResource = new CalculationResource(
-          this.project,
-          resourceName(calculationFile.name),
-        );
-        if (calculationResource) {
-          const resource = await calculationResource.show();
-          if (!resource?.content.calculation) {
+        if (calculation) {
+          const resource = await calculation.contentData();
+          const calc = await calculation.show();
+          if (!resource.calculation) {
             this.logger.info(
-              `Calculation resource '${resource.name}' does not have calculation file`,
+              `Calculation resource '${calc.name}' does not have calculation file`,
             );
             continue;
           }
-          setProgram(calculationFile.name, resource.content.calculation, [
-            ALL_CATEGORY,
-          ]);
+          setProgram(calc.name, resource.calculation, [ALL_CATEGORY]);
         }
       } catch (error) {
         this.logger.warn(
           error,
-          `Failed to read calculation ${calculationFile.name}`,
+          `Failed to read calculation ${calculation.data!.name}`,
         );
       }
     }
@@ -296,6 +276,15 @@ export class CalculationEngine {
     return parser.parseInput(data.join('\n'));
   }
 
+  //
+  private queryContent(queryName: QueryName, options?: unknown) {
+    const content = lpFiles.queries[queryName];
+    const handlebars = Handlebars.create();
+    const compiled = handlebars.compile(content);
+    return compiled(options || {});
+  }
+
+  //
   private async run(query: string, context: Context): Promise<string[]> {
     try {
       const res = await CalculationEngine.mutex.runExclusive(async () => {
@@ -453,9 +442,12 @@ export class CalculationEngine {
   public async resourceLogicProgram(
     resourceName: ResourceName,
   ): Promise<string> {
-    const resource = await this.project.resource(
-      resourceNameToString(resourceName),
-    );
+    let resource;
+    try {
+      resource = this.project.resources.byType(resourceName).data;
+    } catch {
+      resource = undefined;
+    }
     if (!resource) {
       throw new Error(
         `Resource '${resourceNameToString(resourceName)}' does not exist in the project`,
@@ -482,8 +474,9 @@ export class CalculationEngine {
 
   /**
    * Runs given logic program and creates a graph using clingraph
-   * @param data Provide a query or/and a file which can be given to clingraph
-   * @param timeout Maximum amount of milliseconds clingraph is allowed to run
+   * @param model Graph model to use.
+   * @param view Graph view to use.
+   * @param context In which type of context the query is run.
    * @returns a base64 encoded image as a string
    */
   public async runGraph(model: string, view: string, context: Context) {
@@ -521,6 +514,7 @@ export class CalculationEngine {
   /**
    * Runs a logic program using clingo.
    * @param query Logic program to be run
+   * @param context In which type of context the query is run.
    * @returns parsed program output
    */
   public async runLogicProgram(query: string, context: Context = 'localApp') {
@@ -528,16 +522,10 @@ export class CalculationEngine {
     return this.parseClingoResult(clingoOutput);
   }
 
-  private queryContent(queryName: QueryName, options?: unknown) {
-    const content = lpFiles.queries[queryName];
-    const handlebars = Handlebars.create();
-    const compiled = handlebars.compile(content);
-    return compiled(options || {});
-  }
-
   /**
    * Runs a pre-defined query.
    * @param queryName Name of the query file without extension
+   * @param context In which type of context the query is run.
    * @param options Any object that contains state for handlebars
    * @returns parsed program output
    */

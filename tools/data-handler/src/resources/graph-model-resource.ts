@@ -14,24 +14,21 @@
 
 import { join } from 'node:path';
 
-import type {
-  Card,
-  Operation,
-  Project,
-  ResourceName,
-} from './folder-resource.js';
-import {
-  DefaultContent,
-  FolderResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
+import { DefaultContent } from './create-defaults.js';
+import { FolderResource } from './folder-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+import { writeFileSafe } from '../utils/file-utils.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
 import type {
   GraphModelMetadata,
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
-import { writeFileSafe } from '../utils/file-utils.js';
+import type { Operation } from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Graph model resource class.

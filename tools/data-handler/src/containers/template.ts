@@ -23,9 +23,7 @@ import {
   type Card,
   type CardAttachment,
   CardNameRegEx,
-  type Resource,
 } from '../interfaces/project-interfaces.js';
-import type { CardType, Workflow } from '../interfaces/resource-interfaces.js';
 import { pathExists, stripExtension } from '../utils/file-utils.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 
@@ -42,6 +40,9 @@ import { resourceName } from '../utils/resource-utils.js';
 
 import { ROOT } from '../utils/constants.js';
 
+// @todo: Fix the constructor to not use Resource.
+import type { Resource } from './project/resource-cache.js';
+
 // creates template instance based on a project path and name
 export class Template extends CardContainer {
   private templateName: string;
@@ -55,6 +56,12 @@ export class Template extends CardContainer {
     });
   }
 
+  /**
+   * Creates an instance of Template container that holds template related cards.
+   * @param project Project in which template is.
+   * @param template Template resource that this container is connected to.
+   */
+  // @todo: Fix the constructor to not use Resource, but resource full path
   constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
     const templateName = stripExtension(basename(template.name));
@@ -199,18 +206,14 @@ export class Template extends CardContainer {
     // Process metadata
     const processMetadata = async (card: Card, parentCards: Card[]) => {
       if (!card.metadata) return card;
+      const cardType = await this.project.resources
+        .byType(card.metadata?.cardType, 'cardTypes')
+        .show();
 
-      const cardType = this.project.resource<CardType>(card.metadata?.cardType);
-      if (!cardType) {
-        throw new Error(
-          `Card type '${card.metadata?.cardType}' of card ${card.key} cannot be found`,
-        );
-      }
+      const workflow = await this.project.resources
+        .byType(cardType.workflow, 'workflows')
+        .show();
 
-      const workflow = this.project.resource<Workflow>(cardType.workflow);
-      if (!workflow) {
-        throw new Error(`Workflow '${cardType.workflow}' cannot be found`);
-      }
       const initialWorkflowState = workflow.transitions.find(
         (item) => item.fromState.includes('') || item.fromState.length === 0,
       );
@@ -268,7 +271,7 @@ export class Template extends CardContainer {
           await mkdir(processedCard.path, { recursive: true });
 
           await Promise.all([
-            processedCard.metadata && this.saveCardMetadata(processedCard),
+            this.saveCardMetadata(processedCard),
             writeFile(
               join(processedCard.path, Project.cardContentFile),
               processedAttachments.content || '',
@@ -389,18 +392,19 @@ export class Template extends CardContainer {
     parentCard?: Card,
   ): Promise<string> {
     const destinationCardPath = parentCard
-      ? join(await this.cardFolder(parentCard.key), 'c')
+      ? join(this.cardFolder(parentCard.key), 'c')
       : this.templateCardsPath;
     let newCardKey = '';
 
     try {
+      // todo: to use cache instead of file access
       if (!pathExists(this.templateFolder())) {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
-      const cardType = this.project.resource<CardType>(cardTypeName);
-      if (cardType === undefined) {
-        throw new Error(`Card type '${cardTypeName}' does not exist`);
-      }
+      const cardType = await this.project.resources
+        .byType(cardTypeName, 'cardTypes')
+        .show();
+
       if (parentCard && !this.hasTemplateCard(parentCard.key)) {
         throw new Error(
           `Card '${parentCard.key}' does not exist in template '${this.containerName}'`,
@@ -522,7 +526,7 @@ export class Template extends CardContainer {
   /**
    * Checks if a specific card key exists in a template.
    * @param cardKey Card key to find from template.
-   * @return true if card with a given card key exists in the template, false otherwise.
+   * @returns true if card with a given card key exists in the template, false otherwise.
    */
   public hasTemplateCard(cardKey: string): boolean {
     return this.project.hasTemplateCard(cardKey);
@@ -533,6 +537,7 @@ export class Template extends CardContainer {
    * @returns true, if template is exists in project; false otherwise
    */
   public isCreated(): boolean {
+    // todo: to use cache instead of file access
     return pathExists(this.templateCardsPath);
   }
 

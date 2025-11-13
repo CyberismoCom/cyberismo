@@ -1,26 +1,18 @@
-// testing
 import { expect } from 'chai';
 
-// node
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
-import { ResourceCollector } from '../src/containers/project/resource-collector.js';
 import { Show, Update } from '../src/commands/index.js';
-import { resourceName } from '../src/utils/resource-utils.js';
-import type { ReportResource } from '../src/resources/report-resource.js';
-import type { GraphViewResource } from '../src/resources/graph-view-resource.js';
-import type { GraphModelResource } from '../src/resources/graph-model-resource.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;
 let update: Update;
-let collector: ResourceCollector;
 
 describe('update command', () => {
   afterEach(() => {
@@ -34,22 +26,19 @@ describe('update command', () => {
     project = new Project(decisionRecordsPath);
     await project.populateCaches();
     update = new Update(project);
-    collector = new ResourceCollector(project);
-    collector.collectLocalResources();
   });
 
   it('update file resource', async () => {
     const name = `${project.projectPrefix}/workflows/decision`;
-    const exists = await collector.resourceExists('workflows', name);
+    const exists = project.resources.exists(name);
     const newName = `${project.projectPrefix}/workflows/newName`;
     expect(exists).to.equal(true);
 
     await update.updateValue(name, 'change', 'name', newName);
-    collector.changed();
-    const workflows = await project.workflows();
+    const workflows = project.resources.workflows();
     let found = false;
     for (const wf of workflows) {
-      if (wf.name === newName) {
+      if (wf.data?.name === newName) {
         found = true;
       }
     }
@@ -127,7 +116,7 @@ describe('update command', () => {
 
   it('try to update file resource with invalid data', async () => {
     const name = `${project.projectPrefix}/workflows/simple`;
-    const exists = await collector.resourceExists('workflows', name);
+    const exists = project.resources.exists(name);
     const invalidName = `${project.projectPrefix}/workflows/newName-ÄÄÄ`;
     expect(exists).to.equal(true);
 
@@ -164,8 +153,7 @@ describe('update command', () => {
       stateMap,
     );
 
-    collector.changed();
-    const cardType = await project.resource<CardType>(name);
+    const cardType = await project.resources.byType(name, 'cardTypes').show();
     expect(cardType?.workflow).to.equal(newWorkflow);
   });
 
@@ -220,7 +208,7 @@ describe('update command', () => {
   });
   it('update content - graphview viewTemplate', async () => {
     const name = `${project.projectPrefix}/graphViews/test`;
-    const exists = await collector.resourceExists('graphViews', name);
+    const exists = project.resources.exists(name);
     expect(exists).to.equal(true);
 
     await update.updateValue(
@@ -230,28 +218,24 @@ describe('update command', () => {
       'something here',
     );
 
-    collector.changed();
-    const graphView = await (
-      Project.resourceObject(project, resourceName(name)) as GraphViewResource
-    ).show();
+    const graphView = await project.resources.byType(name, 'graphViews').show();
     expect(graphView.content.viewTemplate).to.equal('something here');
   });
   it('update content - graphModel model', async () => {
     const name = `${project.projectPrefix}/graphModels/test`;
-    const exists = await collector.resourceExists('graphModels', name);
+    const exists = project.resources.exists(name);
     expect(exists).to.equal(true);
 
     await update.updateValue(name, 'change', 'content/model', 'something here');
 
-    collector.changed();
-    const graphModel = await (
-      Project.resourceObject(project, resourceName(name)) as GraphModelResource
-    ).show();
+    const graphModel = await project.resources
+      .byType(name, 'graphModels')
+      .show();
     expect(graphModel.content.model).to.equal('something here');
   });
   it('update content - report contentTemplate', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
-    const exists = await collector.resourceExists('reports', name);
+    const exists = project.resources.exists(name);
     expect(exists).to.equal(true);
 
     await update.updateValue(
@@ -261,15 +245,12 @@ describe('update command', () => {
       'new template content',
     );
 
-    collector.changed();
-    const report = await (
-      Project.resourceObject(project, resourceName(name)) as ReportResource
-    ).show();
+    const report = await project.resources.byType(name, 'reports').show();
     expect(report.content.contentTemplate).to.equal('new template content');
   });
   it('update content - report schema', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
-    const exists = await collector.resourceExists('reports', name);
+    const exists = project.resources.exists(name);
     expect(exists).to.equal(true);
 
     const newSchema = {
@@ -283,15 +264,12 @@ describe('update command', () => {
 
     await update.updateValue(name, 'change', 'content/schema', newSchema);
 
-    collector.changed();
-    const report = await (
-      Project.resourceObject(project, resourceName(name)) as ReportResource
-    ).show();
+    const report = await project.resources.byType(name, 'reports').show();
     expect(report.content.schema).to.deep.equal(newSchema);
   });
   it('update content - report queryTemplate', async () => {
     const name = `${project.projectPrefix}/reports/testReport`;
-    const exists = await collector.resourceExists('reports', name);
+    const exists = project.resources.exists(name);
     expect(exists).to.equal(true);
 
     await update.updateValue(
@@ -301,10 +279,7 @@ describe('update command', () => {
       'new query content',
     );
 
-    collector.changed();
-    const report = await (
-      Project.resourceObject(project, resourceName(name)) as ReportResource
-    ).show();
+    const report = await project.resources.byType(name, 'reports').show();
     expect(report.content.queryTemplate).to.equal('new query content');
   });
 });

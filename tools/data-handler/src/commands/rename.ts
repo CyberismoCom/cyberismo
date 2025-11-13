@@ -20,17 +20,6 @@ import type { Card } from '../interfaces/project-interfaces.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
-import { Template } from '../containers/template.js';
-
-import { CalculationResource } from '../resources/calculation-resource.js';
-import { CardTypeResource } from '../resources/card-type-resource.js';
-import { FieldTypeResource } from '../resources/field-type-resource.js';
-import { GraphModelResource } from '../resources/graph-model-resource.js';
-import { GraphViewResource } from '../resources/graph-view-resource.js';
-import { LinkTypeResource } from '../resources/link-type-resource.js';
-import { ReportResource } from '../resources/report-resource.js';
-import { TemplateResource } from '../resources/template-resource.js';
-import { WorkflowResource } from '../resources/workflow-resource.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
@@ -41,6 +30,10 @@ export class Rename {
   private from: string = '';
   private to: string = '';
 
+  /**
+   * Creates an instance of Rename command.
+   * @param project Project instance to use.
+   */
   constructor(private project: Project) {}
 
   // Renames a card and all of its attachments (if it is a project card).
@@ -183,93 +176,6 @@ export class Rename {
       : name;
   }
 
-  // @todo: merge all update-functions
-  // Updates card type's metadata.
-  private async updateCardTypeMetadata(cardTypeName: string) {
-    const cardType = new CardTypeResource(
-      this.project,
-      resourceName(cardTypeName),
-    );
-    return cardType.rename(resourceName(this.updateResourceName(cardTypeName)));
-  }
-
-  // Rename calculations.
-  private async updateCalculation(calculationName: string) {
-    const calculation = new CalculationResource(
-      this.project,
-      resourceName(calculationName),
-    );
-    return calculation.rename(
-      resourceName(this.updateResourceName(calculationName)),
-    );
-  }
-
-  // Updates field type's metadata.
-  private async updateFieldTypeMetadata(fieldTypeName: string) {
-    const fieldType = new FieldTypeResource(
-      this.project,
-      resourceName(fieldTypeName),
-    );
-    return fieldType.rename(
-      resourceName(this.updateResourceName(fieldTypeName)),
-    );
-  }
-
-  // Updates graph model's metadata.
-  private async updateGraphModelMetadata(graphModelName: string) {
-    const graphModel = new GraphModelResource(
-      this.project,
-      resourceName(graphModelName),
-    );
-    return graphModel.rename(
-      resourceName(this.updateResourceName(graphModelName)),
-    );
-  }
-
-  // Updates graph view's metadata.
-  private async updateGraphViewMetadata(graphViewName: string) {
-    const graphView = new GraphViewResource(
-      this.project,
-      resourceName(graphViewName),
-    );
-    return graphView.rename(
-      resourceName(this.updateResourceName(graphViewName)),
-    );
-  }
-
-  // Updates link type's metadata.
-  private async updateLinkTypeMetadata(linkTypeName: string) {
-    const linkType = new LinkTypeResource(
-      this.project,
-      resourceName(linkTypeName),
-    );
-    return linkType.rename(resourceName(this.updateResourceName(linkTypeName)));
-  }
-
-  // Updates reports' metadata.
-  private async updateReport(reportName: string) {
-    const report = new ReportResource(this.project, resourceName(reportName));
-    return report.rename(resourceName(this.updateResourceName(reportName)));
-  }
-
-  // Rename templates.
-  private async updateTemplate(templateName: string) {
-    const template = new TemplateResource(
-      this.project,
-      resourceName(templateName),
-    );
-    return template.rename(resourceName(this.updateResourceName(templateName)));
-  }
-
-  // Rename workflows.
-  private async updateWorkflowMetadata(workflowName: string) {
-    const workflow = new WorkflowResource(
-      this.project,
-      resourceName(workflowName),
-    );
-    return workflow.rename(resourceName(this.updateResourceName(workflowName)));
-  }
-
   /**
    * Renames project prefix.
    * @throws if trying to use empty 'to'
@@ -294,72 +200,60 @@ export class Rename {
     await this.project.configuration.setCardPrefix(to);
     console.info(`Rename: New prefix: '${this.project.projectPrefix}'`);
     // Update the resources collection, since project prefix has changed.
-    this.project.collectLocalResources();
+    this.project.resources.changed();
 
     // Rename local resources.
-    // It is better to rename the resources in this order: card types, field types, then others
+    // It is better to rename the resources in this order: card types, workflows, field types, then the rest
 
     // Rename all card types and custom fields in them.
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
-    for (const cardType of cardTypes) {
-      await this.updateCardTypeMetadata(cardType.name);
+    for (const cardType of this.project.resources.cardTypes(
+      ResourcesFrom.localOnly,
+    )) {
+      const name = this.updateResourceName(cardType.data?.name || '');
+      await cardType.rename(resourceName(name));
     }
     console.info('Updated card types');
 
-    const workflows = await this.project.workflows(ResourcesFrom.localOnly);
-    for (const workflow of workflows) {
-      await this.updateWorkflowMetadata(workflow.name);
+    for (const workflow of this.project.resources.workflows(
+      ResourcesFrom.localOnly,
+    )) {
+      const name = this.updateResourceName(workflow.data?.name || '');
+      await workflow.rename(resourceName(name));
     }
     console.info('Updated workflows');
 
-    const fieldTypes = await this.project.fieldTypes(ResourcesFrom.localOnly);
-    for (const fieldType of fieldTypes) {
-      await this.updateFieldTypeMetadata(fieldType.name);
+    for (const fieldType of this.project.resources.fieldTypes(
+      ResourcesFrom.localOnly,
+    )) {
+      const name = this.updateResourceName(fieldType.data?.name || '');
+      await fieldType.rename(resourceName(name));
     }
     console.info('Updated field types');
 
-    const graphModels = await this.project.graphModels(ResourcesFrom.localOnly);
-    for (const graphModel of graphModels) {
-      await this.updateGraphModelMetadata(graphModel.name);
-    }
-    console.info('Updated graph models');
+    const restOfResourceTypes = [
+      'graphModels',
+      'graphViews',
+      'linkTypes',
+      'reports',
+      'templates',
+      'calculations',
+    ] as const;
 
-    const graphViews = await this.project.graphViews(ResourcesFrom.localOnly);
-    for (const graphView of graphViews) {
-      await this.updateGraphViewMetadata(graphView.name);
+    for (const resourceType of restOfResourceTypes) {
+      for (const resource of this.project.resources.resourceTypes(
+        resourceType,
+        ResourcesFrom.localOnly,
+      )) {
+        const name = this.updateResourceName(resource.data?.name || '');
+        await resource.rename(resourceName(name));
+      }
     }
-    console.info('Updated graph views');
 
-    const linkTypes = await this.project.linkTypes(ResourcesFrom.localOnly);
-    for (const linkType of linkTypes) {
-      await this.updateLinkTypeMetadata(linkType.name);
-    }
-    console.info('Updated link types');
-
-    const reports = await this.project.reports(ResourcesFrom.localOnly);
-    for (const report of reports) {
-      await this.updateReport(report.name);
-    }
-    console.info('Updated reports');
-
-    let templates = await this.project.templates(ResourcesFrom.localOnly);
-    for (const template of templates) {
-      await this.updateTemplate(template.name);
-    }
-    console.info('Updated templates');
-
-    const calculations = await this.project.calculations(
+    // Rename all local template cards. This must be done after calculations have been renamed.
+    for (const template of this.project.resources.templates(
       ResourcesFrom.localOnly,
-    );
-    for (const calculation of calculations) {
-      await this.updateCalculation(calculation.name);
-    }
-    console.info('Updated calculations');
-
-    // Rename all local template cards.
-    templates = await this.project.templates(ResourcesFrom.localOnly);
-    for (const template of templates) {
-      const templateObject = new Template(this.project, template);
+    )) {
+      const templateObject = template.templateObject();
       await this.renameCards(templateObject.cards());
     }
     console.info('Renamed template cards and updated the content');
@@ -376,7 +270,7 @@ export class Rename {
     console.info('Renamed all remaining references in .cards folder');
 
     // It is best that the resources are re-collected after all the renaming has occurred.
-    this.project.collectLocalResources();
+    this.project.resources.changed();
     console.info('Collected renamed resources');
 
     return this.project.calculationEngine.generate();

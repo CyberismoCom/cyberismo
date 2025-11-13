@@ -35,13 +35,13 @@ describe('module-manager', () => {
       localModule,
       commands.project.basePath,
     );
-    const modules = await commands.showCmd.showModules();
+    const modules = commands.showCmd.showModules();
     expect(modules.length).equals(1);
   });
   it('import git module', async () => {
     const gitModule = 'https://github.com/CyberismoCom/module-base.git';
     await commands.importCmd.importModule(gitModule, commands.project.basePath);
-    const modules = await commands.showCmd.showModules();
+    const modules = commands.showCmd.showModules();
     expect(modules.length).equals(1);
   }).timeout(60000);
   it('import git module using credentials', async function () {
@@ -60,7 +60,7 @@ describe('module-manager', () => {
           },
         },
       );
-      const modules = await commands.showCmd.showModules();
+      const modules = commands.showCmd.showModules();
       expect(modules.length).equals(1);
     }
   }).timeout(60000);
@@ -122,7 +122,7 @@ describe('module-manager', () => {
     expect(result.message).to.include('Failed to clone module');
   }).timeout(60000);
   it('update all modules', async () => {
-    let modules = await commands.showCmd.showModules();
+    let modules = commands.showCmd.showModules();
     expect(modules.length).equals(0);
     const localModule = join(testDir, 'valid/minimal');
     await commands.importCmd.importModule(
@@ -142,11 +142,11 @@ describe('module-manager', () => {
       },
     );
 
-    modules = await commands.showCmd.showModules();
+    modules = commands.showCmd.showModules();
     expect(modules.length).equals(2);
 
     await commands.importCmd.updateAllModules();
-    modules = await commands.showCmd.showModules();
+    modules = commands.showCmd.showModules();
     expect(modules.length).equals(2);
   }).timeout(60000);
 });

@@ -12,7 +12,7 @@
 */
 
 // node
-import { type Dirent } from 'node:fs';
+import type { Dirent } from 'node:fs';
 import { basename, dirname, extname, join, parse, resolve } from 'node:path';
 import { readdir } from 'node:fs/promises';
 
@@ -39,7 +39,7 @@ import type {
 import { errorFunction } from '../utils/error-utils.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { pathExists } from '../utils/file-utils.js';
-import { Project } from '../containers/project.js';
+import type { Project } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
 import { type ResourceName, resourceName } from '../utils/resource-utils.js';
 
@@ -51,7 +51,7 @@ const SHORT_TEXT_MAX_LENGTH = 80;
 
 import * as EmailValidator from 'email-validator';
 import { evaluateMacros } from '../macros/index.js';
-const baseDir = import.meta.dirname;
+const baseDir = import.meta.dirname ?? new URL('.', import.meta.url).pathname;
 const subFoldersToValidate = ['.cards', 'cardRoot'];
 
 export interface LengthProvider {
@@ -82,6 +82,9 @@ export class Validate {
   static dotSchemaSchemaId = '/dotSchema';
   static parameterSchemaFile = 'parameterSchema.json';
 
+  /**
+   * Creates an instance of Validate command.
+   */
   constructor() {
     Validate.baseFolder = pathExists(
       join(process.cwd(), '../../schema', 'cardTreeDirectorySchema.json'),
@@ -167,20 +170,7 @@ export class Validate {
     return join(file.parentPath, file.name);
   }
 
-  // Puts resource to a local cache if found and returns the resource.
-  // If value is already cached, returns from cache.
-  private getAndCacheResource<Type>(
-    project: Project,
-    cachedValues: Map<string, Type>,
-    valueName: string,
-  ): Type | undefined {
-    const resource = project.resource<Type>(valueName);
-    if (resource) {
-      cachedValues.set(valueName, resource);
-    }
-    return resource;
-  }
-
+  // Parses validator messages
   private parseValidatorMessage(errorObject: object[]): string {
     let parsedErrorMessage = '';
     // todo: get schema name here?
@@ -231,7 +221,7 @@ export class Validate {
   ): Promise<string[]> {
     const message: string[] = [];
     try {
-      const prefixes = await project.projectPrefixes();
+      const prefixes = project.projectPrefixes();
       const files = await readdir(path, {
         withFileTypes: true,
       });
@@ -390,11 +380,15 @@ export class Validate {
     const errors: string[] = [];
     if (cardType && fieldArray) {
       const validationPromises = fieldArray.map(async (field) => {
-        const fieldType = this.getAndCacheResource(
-          project,
-          this.validatedFieldTypes,
-          field,
-        );
+        let fieldType;
+        try {
+          fieldType = await project.resources
+            .byType(field, 'fieldTypes')
+            .show();
+        } catch {
+          fieldType = undefined;
+        }
+
         if (!fieldType) {
           return `Card type '${cardType.name}' has invalid reference to unknown ${nameOfArray} '${field}'`;
         }
@@ -471,7 +465,7 @@ export class Validate {
 
   /**
    * Validates that new identifier of a resource is according to naming convention.
-   * @param identifier: resource identifier
+   * @param identifier Resource identifier
    * returns true if identifier is valid, and false otherwise.
    */
   public static isValidIdentifierName(identifier: string): boolean {
@@ -571,7 +565,10 @@ export class Validate {
 
           if (card.metadata) {
             if (!isTemplateCard(card)) {
-              const validWorkflow = this.validateWorkflowState(project, card);
+              const validWorkflow = await this.validateWorkflowState(
+                project,
+                card,
+              );
               if (validWorkflow.length !== 0) {
                 errorMsg.push(validWorkflow);
               }
@@ -663,6 +660,9 @@ export class Validate {
    * @param resourceType Type of resource
    * @param name Name of resource
    * @param prefixes currently used project prefixes
+   * @throws when resource is not from given prefixes,
+   *         or when actual resource does not match the type,
+   *         or when identifier name is not valid
    * @returns resource name as valid resource name; throws in error cases.
    */
   public validResourceName(
@@ -709,7 +709,8 @@ export class Validate {
    * Validates that card's custom fields are according to schema and have correct data in them.
    * @param project currently used Project
    * @param card specific card
-   * @returns string containing all validation errors
+   * @throws when card does not have metadata
+   * @returns validation errors, if any.
    */
   public async validateCustomFields(
     project: Project,
@@ -723,11 +724,14 @@ export class Validate {
       );
     }
 
-    const cardType = this.getAndCacheResource(
-      project,
-      this.validatedCardTypes,
-      card.metadata?.cardType,
-    );
+    let cardType;
+    try {
+      cardType = await project.resources
+        .byType(card.metadata?.cardType, 'cardTypes')
+        .show();
+    } catch {
+      cardType = undefined;
+    }
 
     if (!cardType) {
       validationErrors.push(
@@ -753,7 +757,7 @@ export class Validate {
     validationErrors.push(...fieldErrors);
 
     for (const field of cardType.customFields) {
-      const found = await project.resourceExists('fieldTypes', field.name);
+      const found = project.resources.exists(field.name);
       if (!found) {
         validationErrors.push(
           `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,
@@ -775,11 +779,14 @@ export class Validate {
         }
       }
 
-      const fieldType = await this.getAndCacheResource(
-        project,
-        this.validatedFieldTypes,
-        field.name,
-      );
+      let fieldType;
+      try {
+        fieldType = await project.resources
+          .byType(field.name, 'fieldTypes')
+          .show();
+      } catch {
+        fieldType = undefined;
+      }
 
       if (!fieldType) {
         validationErrors.push(
@@ -823,6 +830,7 @@ export class Validate {
   /**
    * Validates the labels of a card
    * @param card card to validate. Card must have metadata.
+   * @returns validation errors, if any.
    */
   public validateCardLabels(card: Card): string {
     const validationErrors: string[] = [];
@@ -856,9 +864,12 @@ export class Validate {
    * Template cards are expected to have empty workflow state.
    * @param project Project object.
    * @param card Card object to validate
-   * @returns string containing all validation errors
+   * @returns validation errors, if any.
    */
-  public validateWorkflowState(project: Project, card: Card): string {
+  public async validateWorkflowState(
+    project: Project,
+    card: Card,
+  ): Promise<string> {
     const validationErrors: string[] = [];
 
     if (!card.metadata) {
@@ -867,12 +878,16 @@ export class Validate {
       );
     }
 
-    // Use caches for cardTypes and workflows, to avoid re-reading the same JSON files multiple times.
-    const cardType = this.getAndCacheResource(
-      project,
-      this.validatedCardTypes,
-      card.metadata?.cardType || '',
-    );
+    let cardType;
+    try {
+      cardType = card.metadata?.cardType
+        ? await project.resources
+            .byType(card.metadata?.cardType, 'cardTypes')
+            .show()
+        : undefined;
+    } catch {
+      cardType = undefined;
+    }
     if (!cardType) {
       validationErrors.push(
         `Card '${card.key}' has invalid card type '${card.metadata?.cardType}'`,
@@ -886,11 +901,14 @@ export class Validate {
       return validationErrors.join('\n');
     }
 
-    const workflow = this.getAndCacheResource(
-      project,
-      this.validatedWorkflows,
-      cardType.workflow,
-    );
+    let workflow;
+    try {
+      workflow = await project.resources
+        .byType(cardType.workflow, 'workflows')
+        .show();
+    } catch {
+      workflow = undefined;
+    }
 
     if (!workflow) {
       validationErrors.push(
@@ -919,15 +937,16 @@ export class Validate {
 
   /**
    * Validates a single resource.
-   * @param resource Resource to validate
-   * @returns string containing all validation errors
+   * @param resourceName Resource to validate
+   * @param project Project instance to use.
+   * @returns validation errors, if any.
    */
   public async validateResource(
     resourceName: ResourceName,
     project: Project,
   ): Promise<string> {
     try {
-      const resource = Project.resourceObject(project, resourceName);
+      const resource = project.resources.byType(resourceName);
       await resource.validate();
       return '';
     } catch (error) {

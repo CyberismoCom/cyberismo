@@ -88,12 +88,33 @@ export class ProjectPaths {
     return join(this.path, '.cards', 'modules');
   }
 
+  public moduleResourcePath(
+    modulePrefix: string,
+    resourceType: ResourceFolderType,
+  ) {
+    const moduleRoot = join(this.modulesFolder, modulePrefix);
+    return join(moduleRoot, resourceType);
+  }
+
   public get resourcesFolder(): string {
     return join(this.path, '.cards', 'local');
   }
 
   public get reportsFolder(): string {
     return join(this.resourcesFolder, 'reports');
+  }
+
+  /**
+   * Return path to a resource type folder.
+   * @param resourceType Type of resource
+   * @returns path to a resources folder (e.g. '.cards/local/cardTypes')
+   */
+  public resourcePath(resourceType: ResourceFolderType): string {
+    const resourcePath = this.pathMap.get(resourceType);
+    if (!resourcePath) {
+      throw new Error(`unknown resourceType: ${resourceType}`);
+    }
+    return resourcePath;
   }
 
   public get tempCardFolder(): string {
@@ -110,18 +131,5 @@ export class ProjectPaths {
 
   public get workflowsFolder(): string {
     return join(this.resourcesFolder, 'workflows');
-  }
-
-  /**
-   * Return path to a resource type folder.
-   * @param resourceType Type of resource
-   * @returns path to a resources folder (e.g. '.cards/local/cardTypes')
-   */
-  public resourcePath(resourceType: ResourceFolderType): string {
-    const resourcePath = this.pathMap.get(resourceType);
-    if (!resourcePath) {
-      throw new Error(`unknown resourceType: ${resourceType}`);
-    }
-    return resourcePath;
   }
 }

@@ -1,8 +1,5 @@
-// testing
 import { expect } from 'chai';
-import { after, before, describe, it } from 'mocha';
 
-// node
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
@@ -14,9 +11,6 @@ import type {
   CardMetadata,
 } from '../src/interfaces/project-interfaces.js';
 import { CommandManager } from '../src/command-manager.js';
-import { Template } from '../src/containers/template.js';
-import { TemplateResource } from '../src/resources/template-resource.js';
-import { resourceName } from '../src/utils/resource-utils.js';
 
 // Helper function to create test cards
 function createTestCard(
@@ -607,17 +601,14 @@ describe('Card cache', () => {
     });
 
     it('should create new template, add cards, and verify cards in cache', async () => {
-      const templateName = 'decision/templates/testTemplate';
-      const templateResource = new TemplateResource(
-        commands.project,
-        resourceName(templateName),
+      const name = 'decision/templates/testTemplate';
+      const templateResource = commands.project.resources.byType(
+        name,
+        'templates',
       );
       await templateResource.create();
-      commands.project.collectLocalResources();
-      const template = new Template(commands.project, {
-        name: templateName,
-        path: '',
-      });
+      commands.project.resources.changed();
+      const template = templateResource.templateObject();
       await template.addCard('decision/cardTypes/decision');
       await template.addCard('decision/cardTypes/simplepage');
 
@@ -635,17 +626,17 @@ describe('Card cache', () => {
     });
 
     it('should remove template and verify cards are gone from the cache', async () => {
-      const templateName = 'decision/templates/testTemplate';
-      const templateResource = new TemplateResource(
-        commands.project,
-        resourceName(templateName),
+      const name = 'decision/templates/testTemplate';
+      const templateResource = commands.project.resources.byType(
+        name,
+        'templates',
       );
       await templateResource.create();
-      commands.project.collectLocalResources();
-      const template = new Template(commands.project, {
-        name: templateName,
-        path: '',
-      });
+      commands.project.resources.changed();
+
+      const template = commands.project.resources
+        .byType(name, 'templates')
+        .templateObject();
       await template.addCard('decision/cardTypes/decision');
 
       const templateCards = template.cards();
@@ -656,7 +647,7 @@ describe('Card cache', () => {
 
       // Remove template
       const removeCmd = commands.removeCmd;
-      await removeCmd.remove('template', templateName);
+      await removeCmd.remove('template', name);
       for (const cardKey of templateCardKeys) {
         expect(commands.project.hasCard(cardKey)).to.equal(false);
       }

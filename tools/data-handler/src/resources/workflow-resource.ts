@@ -13,29 +13,24 @@
 */
 
 import type {
-  CardType,
   UpdateKey,
   Workflow,
   WorkflowState,
   WorkflowTransition,
 } from '../interfaces/resource-interfaces.js';
-import { CardTypeResource } from './card-type-resource.js';
+import { DefaultContent } from './create-defaults.js';
+import { FileResource } from './file-resource.js';
+import { resourceNameToString } from '../utils/resource-utils.js';
+import { sortCards } from '../utils/card-utils.js';
+
+import type { Card } from '../interfaces/project-interfaces.js';
 import type {
-  Card,
   ChangeOperation,
   Operation,
-  Project,
   RemoveOperation,
-  ResourceName,
-} from './file-resource.js';
-import {
-  DefaultContent,
-  FileResource,
-  resourceNameToString,
-  sortCards,
-} from './folder-resource.js';
-import { ResourcesFrom } from '../containers/project.js';
-import { resourceName } from './file-resource.js';
+} from './resource-object.js';
+import type { Project } from '../containers/project.js';
+import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
  * Workflow resource class.
@@ -50,19 +45,11 @@ export class WorkflowResource extends FileResource<Workflow> {
 
   // Collect all cards that use this workflow.
   private async collectCardsUsingWorkflow(): Promise<Card[]> {
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = this.project.resources.cardTypes();
     const promises: Promise<Card[]>[] = [];
     for (const cardType of cardTypes) {
-      const object = new CardTypeResource(
-        this.project,
-        resourceName(cardType.name),
-      );
-      if (
-        object.data &&
-        object.data.workflow === resourceNameToString(this.resourceName)
-      ) {
-        // fetch all cards with card type
-        promises.push(this.collectCards(cardType.name));
+      if (cardType.data?.workflow === resourceNameToString(this.resourceName)) {
+        promises.push(this.collectCards(cardType.data.name));
       }
     }
     return (await Promise.all(promises)).flat();
@@ -199,25 +186,19 @@ export class WorkflowResource extends FileResource<Workflow> {
 
   // Update dependant card types.
   private async updateCardTypes(oldName: string) {
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.localOnly);
+    const cardTypes = this.project.resources.cardTypes();
     const op = {
       name: 'change',
       target: oldName,
       to: this.content.name,
     } as ChangeOperation<string>;
     for (const cardType of cardTypes) {
-      const object = new CardTypeResource(
-        this.project,
-        resourceName(cardType.name),
+      await cardType.update(
+        {
+          key: 'workflow',
+        },
+        op,
       );
-      if (object.data && object.data.workflow === oldName) {
-        await object.update(
-          {
-            key: 'workflow',
-          },
-          op,
-        );
-      }
     }
   }
 
@@ -366,13 +347,13 @@ export class WorkflowResource extends FileResource<Workflow> {
   public async usage(cards?: Card[]): Promise<string[]> {
     const resourceName = resourceNameToString(this.resourceName);
     const allCards = cards ?? super.cards();
-    const cardTypes = await this.project.cardTypes(ResourcesFrom.all);
-    const cardTypeReferences = await Promise.all(
-      cardTypes.map(async (cardType) => {
-        const metadata = await this.project.resource<CardType>(cardType.name);
-        return metadata?.workflow === resourceName ? cardType.name : null;
-      }),
-    );
+    const cardTypes = this.project.resources.cardTypes();
+    const cardTypeReferences = [];
+    for (const cardType of cardTypes) {
+      if (cardType.data?.workflow === resourceName) {
+        cardTypeReferences.push(cardType.data.name);
+      }
+    }
 
     const [relevantCards, calculations] = await Promise.all([
       super.usage(allCards),
