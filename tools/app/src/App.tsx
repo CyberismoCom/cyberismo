@@ -30,7 +30,11 @@ const materialTheme = createTheme();
 function App() {
   return (
     <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
-      <JoyCssVarsProvider theme={theme}>
+      <JoyCssVarsProvider
+        theme={theme}
+        defaultMode="system"
+        modeStorageKey="cyberismo-color-scheme"
+      >
         <CssBaseline />
         <StoreProvider>
           <SWRConfig value={getSwrConfig()}>
