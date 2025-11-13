@@ -57,7 +57,7 @@
       }
     }
   },
-  "required": ["description", "displayName"],
+  "required": ["description", "displayName", "version"],
   "title": "Hub",
   "type": "object"
 }
