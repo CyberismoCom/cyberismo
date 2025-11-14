@@ -59,6 +59,7 @@ interface ClingoResult {
     add: number;
     ground: number;
     solve: number;
+    cacheHit: boolean;
   };
 }
 
