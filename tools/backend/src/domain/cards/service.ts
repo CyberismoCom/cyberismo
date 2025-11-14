@@ -12,12 +12,10 @@
 */
 
 import Processor from '@asciidoctor/core';
-import {
-  CardLocation,
-  type MetadataContent,
-} from '@cyberismo/data-handler/interfaces/project-interfaces';
+import { type MetadataContent } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { getCardDetails } from './lib.js';
+import { allCards, getCardDetails } from './lib.js';
+import type { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(commands: CommandManager) {
   const projectResponse = await commands.showCmd.showProject();
@@ -45,7 +43,7 @@ export async function updateCard(
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-) {
+): Promise<ReturnType<typeof getCardDetails>> {
   const errors = [];
 
   if (body.state) {
@@ -221,23 +219,39 @@ export function getAttachment(
   return commands.showCmd.showAttachment(key, filename);
 }
 
-export async function getAllCards(commands: CommandManager) {
-  const fetchedCards = await commands.showCmd.showCards(
-    CardLocation.projectOnly,
-  );
-  const projectCards = fetchedCards.find(
-    (cardContainer) => cardContainer.type === 'project',
-  );
-  if (!projectCards) {
-    throw new Error('Data handler did not return project cards');
-  }
-  return projectCards.cards;
+/**
+ * Used for exporting cards, thus static mode is assumed
+ * @param commandsthe command manager used for the query
+ * @param options optional tree query options
+ * @returns all cards in a flattened array
+ */
+export async function findAllCards(
+  commands: CommandManager,
+  options?: TreeOptions,
+): ReturnType<typeof allCards> {
+  return allCards(commands, options);
 }
-
-export async function getAllAttachments(commands: CommandManager) {
+/**
+ * Gets all attachments that are required for rendering the wanted cards
+ * @param commands the command manager used for the query
+ * @param options optional tree query options
+ * @returns all attachments for cards returned by the tree query
+ */
+export async function findRelevantAttachments(
+  commands: CommandManager,
+  options?: TreeOptions,
+) {
+  const cards = new Set<string>(
+    (await allCards(commands, options)).map((c) => c.key),
+  );
   const attachments = await commands.showCmd.showAttachments();
-  return attachments.map((attachment) => ({
-    key: attachment.card,
-    attachment: attachment.fileName,
-  }));
+  return attachments
+    .filter(
+      (attachment) =>
+        cards.has(attachment.card) && attachment.mimeType?.startsWith('image/'),
+    )
+    .map((attachment) => ({
+      key: attachment.card,
+      attachment: attachment.fileName,
+    }));
 }

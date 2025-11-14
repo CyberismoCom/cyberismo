@@ -15,6 +15,8 @@ import Processor from '@asciidoctor/core';
 import type { Card } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { getCardQueryResult } from '../../export.js';
+import type { TreeOptions } from '../../types.js';
+import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 
 interface result {
   status: number;
@@ -83,4 +85,31 @@ export async function getCardDetails(
       attachments: cardDetailsResponse.attachments,
     },
   };
+}
+/**
+ * Returns all cards from a tree query, flattened.
+ * @param commands the command manager used for the query
+ * @param options optional tree query options
+ * @returns a promise that resolves to an array of all cards
+ */
+export async function allCards(
+  commands: CommandManager,
+  options?: TreeOptions,
+): Promise<QueryResult<'tree'>[]> {
+  const fetchedCards = await commands.calculateCmd.runQuery(
+    'tree',
+    'exportedSite',
+    options || {},
+  );
+
+  function flattenCards(cards: QueryResult<'tree'>[]): QueryResult<'tree'>[] {
+    return cards.reduce<QueryResult<'tree'>[]>((acc, curr) => {
+      acc.push(curr);
+      if (curr.children && curr.children.length > 0) {
+        acc.push(...flattenCards(curr.children));
+      }
+      return acc;
+    }, []);
+  }
+  return flattenCards(fetchedCards);
 }

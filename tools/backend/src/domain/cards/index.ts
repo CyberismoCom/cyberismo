@@ -13,9 +13,10 @@
 
 import { type Context, Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { ssgParams, isSSGContext } from '../../export.js';
 import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
+import { isSSGContext, ssgParams } from 'hono/ssg';
+import type { AppContext } from '../../types.js';
 
 const router = new Hono();
 
@@ -68,10 +69,11 @@ router.get('/', async (c) => {
  */
 router.get(
   '/:key',
-  ssgParams(async (c: Context) => {
+  ssgParams(async (c: AppContext) => {
     const commands = c.get('commands');
-    const cards = await cardService.getAllCards(commands);
-    return cards.map((key) => ({ key }));
+    const opts = c.get('tree');
+    const cards = await cardService.findAllCards(commands, opts);
+    return cards.map((card) => ({ key: card.key }));
   }),
   async (c) => {
     const key = c.req.param('key');
@@ -587,7 +589,7 @@ router.get(
   '/:key/a/:attachment',
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
-    return await cardService.getAllAttachments(commands);
+    return await cardService.findRelevantAttachments(commands, c.get('tree'));
   }),
   (c) => {
     const commands = c.get('commands');

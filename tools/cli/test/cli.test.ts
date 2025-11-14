@@ -328,7 +328,7 @@ describe('Cli BAT test', function () {
   });
   it('Test calc run with tree query', function (done) {
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cp ../../tools/assets/src/calculations/queries/tree.lp ./tree.lp&&cyberismo calc run ./tree.lp &&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cp ../../tools/cli/test/tree.lp ./tree.lp&&cyberismo calc run ./tree.lp  &&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);

@@ -559,10 +559,13 @@ program
   .argument('<output>', 'Output path')
   .argument(
     '[cardKey]',
-    'Path to a card. If defined will export only that card and its children instead of whole project.',
+    'Export a specific card by card key. If omitted, exports the whole site.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option('-r, --recursive', 'Export recursively(pdf export only)')
+  .option(
+    '-r, --recursive',
+    'Export cards under the specified card recursively',
+  )
   .option(
     '-t, --title [title]',
     'Title of the exported document(pdf export only)',
@@ -591,9 +594,13 @@ program
         );
         // Should be in commandHandler, once it is moved under the CLI package
         try {
-          await exportSite(
+          const { errors } = await exportSite(
             await commandHandler.getProjectPath(options.projectPath),
             output,
+            {
+              recursive: options.recursive,
+              cardKey: cardKey,
+            },
             options.logLevel,
             (current: number, total: number) => {
               if (!progress.isActive) {
@@ -606,6 +613,13 @@ program
             },
           );
           progress.stop();
+          if (errors.length > 0) {
+            console.log(
+              'Export completed with errors:\n' +
+                truncateMessage(errors.join('\n')).join('\n'),
+            );
+            return;
+          }
           console.log('Exported site to', output);
           console.log('Run `cyberismo preview out` to view the site');
           return;

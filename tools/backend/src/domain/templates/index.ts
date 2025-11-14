@@ -12,10 +12,10 @@
 */
 
 import { Hono } from 'hono';
-import { isSSGContext } from '../../export.js';
 import * as templateService from './service.js';
 import { createTemplateSchema, addTemplateCardSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { isSSGContext } from 'hono/ssg';
 
 const router = new Hono();
 

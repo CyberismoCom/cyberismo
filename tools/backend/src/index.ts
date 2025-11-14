@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 import { serve } from '@hono/node-server';
+import type { Env, Schema } from 'hono';
 import { Hono } from 'hono';
 import { serveStatic } from '@hono/node-server/serve-static';
 import path from 'node:path';
@@ -62,7 +63,10 @@ export async function startServer(
   startApp(app, port);
 }
 
-function startApp(app: Hono, port: number) {
+function startApp<E extends Env, S extends Schema, P extends string>(
+  app: Hono<E, S, P>,
+  port: number,
+) {
   serve(
     {
       fetch: app.fetch,

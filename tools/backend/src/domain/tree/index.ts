@@ -13,7 +13,8 @@
 
 import { Hono } from 'hono';
 import * as treeService from './service.js';
-import { isSSGContext } from '../../export.js';
+import { isSSGContext } from 'hono/ssg';
+import type { AppContext } from '../../types.js';
 
 const router = new Hono();
 
@@ -31,11 +32,17 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c) => {
+router.get('/', async (c: AppContext) => {
   const commands = c.get('commands');
+  const tree = c.get('tree');
 
   try {
-    const response = await treeService.getCardTree(commands, isSSGContext(c));
+    const response = await treeService.getCardTree(
+      commands,
+      isSSGContext(c),
+      tree?.cardKey,
+      tree?.recursive,
+    );
     return c.json(response);
   } catch (error) {
     return c.json(
