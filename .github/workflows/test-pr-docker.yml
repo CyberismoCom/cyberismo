@@ -69,7 +69,7 @@ jobs:
           chmod +x scripts/cyberismo
           echo "$(pwd)/scripts" >> $GITHUB_PATH
 
-      - name: Debug: what is using port 3000?
+      - name: "Debug: what is using port 3000?"
         run: |
           echo "==== ss -ltnp on :3000 ===="
           sudo ss -ltnp 'sport = :3000' || true
