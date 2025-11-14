@@ -208,6 +208,7 @@ export class Project extends CardContainer {
     const invalidCustomData = await this.validator.validateCustomFields(
       this,
       card,
+      this.projectPrefixes(),
     );
     const invalidWorkFlow = await this.validator.validateWorkflowState(
       this,

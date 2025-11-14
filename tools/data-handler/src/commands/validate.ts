@@ -38,6 +38,7 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/error-utils.js';
 import { isTemplateCard } from '../utils/card-utils.js';
+import { isPredefinedField } from '../utils/constants.js';
 import { pathExists } from '../utils/file-utils.js';
 import type { Project } from '../containers/project.js';
 import { readJsonFile } from '../utils/json.js';
@@ -555,6 +556,7 @@ export class Validate {
         cards.push(...project.allTemplateCards());
 
         const cardIds = new Map<string, number>();
+        const allPrefixes = await project.projectPrefixes();
 
         for (const card of cards) {
           if (cardIds.has(card.key)) {
@@ -574,10 +576,10 @@ export class Validate {
               }
             }
           }
-
           const validCustomFields = await this.validateCustomFields(
             project,
             card,
+            allPrefixes,
           );
           if (validCustomFields.length !== 0) {
             errorMsg.push(validCustomFields);
@@ -715,6 +717,7 @@ export class Validate {
   public async validateCustomFields(
     project: Project,
     card: Card,
+    prefixes: string[],
   ): Promise<string> {
     const validationErrors: string[] = [];
 
@@ -820,6 +823,24 @@ export class Validate {
         }
         validationErrors.push(
           `In card '${card.key}' field '${field.name}' is defined as '${fieldType.dataType}', but it is '${typeOfValue}' with value of ${fieldValue}\n`,
+        );
+      }
+    }
+
+    // Validate that all metadata keys are either predefined fields or valid field type names
+    for (const key of Object.keys(card.metadata)) {
+      if (
+        (isPredefinedField(key) as boolean) ||
+        key === 'labels' ||
+        key === 'links'
+      ) {
+        continue;
+      }
+      try {
+        this.validResourceName('fieldTypes', key, prefixes);
+      } catch {
+        validationErrors.push(
+          `Card '${card.key}' has invalid metadata key '${key}'`,
         );
       }
     }
