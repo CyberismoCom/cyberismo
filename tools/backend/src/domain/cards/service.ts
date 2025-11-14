@@ -225,24 +225,24 @@ export function getAttachment(
  * @param options optional tree query options
  * @returns all cards in a flattened array
  */
-export async function getAllCards(
+export async function findAllCards(
   commands: CommandManager,
   options?: TreeOptions,
 ): ReturnType<typeof allCards> {
   return allCards(commands, options);
 }
 /**
- * Gets all image attachments for cards returned by the tree query
+ * Gets all attachments that are required for rendering the wanted cards
  * @param commands the command manager used for the query
  * @param options optional tree query options
  * @returns all attachments for cards returned by the tree query
  */
-export async function getAllAttachments(
+export async function findRelevantAttachments(
   commands: CommandManager,
   options?: TreeOptions,
 ) {
   const cards = new Set<string>(
-    (await getAllCards(commands, options)).map((c) => c.key),
+    (await allCards(commands, options)).map((c) => c.key),
   );
   const attachments = await commands.showCmd.showAttachments();
   return attachments

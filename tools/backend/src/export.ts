@@ -22,7 +22,10 @@ import { staticFrontendDirRelative } from './utils.js';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { toSSG } from 'hono/ssg';
 import type { TreeOptions } from './types.js';
-import { getAllCards, getAllAttachments } from './domain/cards/service.js';
+import {
+  findAllCards,
+  findRelevantAttachments,
+} from './domain/cards/service.js';
 
 let _cardQueryPromise: Promise<QueryResult<'card'>[]> | null = null;
 const OVERHEAD_CALLS = 6; // estimated number of overhead calls during export in addition to card exports
@@ -114,8 +117,8 @@ export async function exportSite(
   await commands.project.calculationEngine.generate();
 
   // estimate total based on the number of cards to export
-  const cards = await getAllCards(commands, opts);
-  const attachments = await getAllAttachments(commands, opts);
+  const cards = await findAllCards(commands, opts);
+  const attachments = await findRelevantAttachments(commands, opts);
   let total = cards.length + attachments.length + OVERHEAD_CALLS;
 
   // Actual export with progress reporting

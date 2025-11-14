@@ -72,7 +72,7 @@ router.get(
   ssgParams(async (c: AppContext) => {
     const commands = c.get('commands');
     const opts = c.get('tree');
-    const cards = await cardService.getAllCards(commands, opts);
+    const cards = await cardService.findAllCards(commands, opts);
     return cards.map((card) => ({ key: card.key }));
   }),
   async (c) => {
@@ -589,7 +589,7 @@ router.get(
   '/:key/a/:attachment',
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
-    return await cardService.getAllAttachments(commands, c.get('tree'));
+    return await cardService.findRelevantAttachments(commands, c.get('tree'));
   }),
   (c) => {
     const commands = c.get('commands');
