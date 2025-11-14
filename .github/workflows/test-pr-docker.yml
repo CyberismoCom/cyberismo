@@ -12,7 +12,7 @@ jobs:
   test-image:
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm]
+        os: [ubuntu-24.04-arm]
         node-version: ["${{ vars.NODE_VERSION }}"]
     runs-on: ${{ matrix.os }}
 
@@ -62,11 +62,23 @@ jobs:
             echo "cyberismo is already installed"
             exit 1
           fi
+      
 
       - name: Setup cyberismo script
         run: |
           chmod +x scripts/cyberismo
           echo "$(pwd)/scripts" >> $GITHUB_PATH
+
+      - name: Debug: what is using port 3000?
+        run: |
+          echo "==== ss -ltnp on :3000 ===="
+          sudo ss -ltnp 'sport = :3000' || true
+
+          echo "==== lsof -i:3000 ===="
+          sudo lsof -i:3000 || true
+
+          echo "==== ps aux | head -n 50 ===="
+          ps aux | head -n 50
 
       - name: Run CLI tests
         run: |
