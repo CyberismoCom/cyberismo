@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Chip, ChipDelete, IconButton, Input, Stack } from '@mui/joy';
 import Add from '@mui/icons-material/Add';
@@ -33,6 +33,7 @@ export default function LabelEditor({
 }: LabelEditorProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddLabel = () => {
     if (!inputValue.trim()) {
@@ -56,6 +57,7 @@ export default function LabelEditor({
     if (segments.length > 0) {
       onChange?.(labels);
       setInputValue(''); // only clear if something was added
+      inputRef.current?.focus();
     }
   };
 
@@ -72,6 +74,11 @@ export default function LabelEditor({
           placeholder={t('placeholder.label')}
           data-cy="labelInput"
           autoFocus={focus}
+          slotProps={{
+            input: {
+              ref: inputRef,
+            },
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               handleAddLabel();
