@@ -206,11 +206,11 @@ export class Template extends CardContainer {
     // Process metadata
     const processMetadata = async (card: Card, parentCards: Card[]) => {
       if (!card.metadata) return card;
-      const cardType = await this.project.resources
+      const cardType = this.project.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
 
-      const workflow = await this.project.resources
+      const workflow = this.project.resources
         .byType(cardType.workflow, 'workflows')
         .show();
 
@@ -401,7 +401,7 @@ export class Template extends CardContainer {
       if (!pathExists(this.templateFolder())) {
         throw new Error(`Template '${this.containerName}' does not exist`);
       }
-      const cardType = await this.project.resources
+      const cardType = this.project.resources
         .byType(cardTypeName, 'cardTypes')
         .show();
 

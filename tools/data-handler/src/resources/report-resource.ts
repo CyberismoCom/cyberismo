@@ -14,7 +14,6 @@
 
 import { extname, join } from 'node:path';
 import { readdir } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 
 import { copyDir } from '../utils/file-utils.js';
 import { DefaultContent } from './create-defaults.js';
@@ -33,10 +32,7 @@ import type {
   UpdateKey,
 } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
-import type { Schema } from 'jsonschema';
-import { hasCode } from '../utils/error-utils.js';
 
-const PARAMETER_SCHEMA_FILE = 'parameterSchema.json';
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 
 /**
@@ -46,15 +42,11 @@ export class ReportResource extends FolderResource<
   ReportMetadata,
   ReportContent
 > {
-  private reportParameterSchema: Schema;
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'reports');
 
     this.contentSchemaId = 'reportSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
-
-    const schemaPath = join(this.internalFolder, PARAMETER_SCHEMA_FILE);
-    this.reportParameterSchema = this.readSchemaFile(schemaPath);
   }
 
   // Path to content folder.
@@ -62,22 +54,6 @@ export class ReportResource extends FolderResource<
   private async getDefaultReportLocation(): Promise<string> {
     const staticDirectoryPath = await getStaticDirectoryPath();
     return join(staticDirectoryPath, 'defaultReport');
-  }
-
-  // Try to read schema file content
-  private readSchemaFile(path: string) {
-    try {
-      const schema = readFileSync(path);
-      return JSON.parse(schema.toString());
-    } catch (error) {
-      // parameterSchema.json is optional; so we can ignore if it is missing; log other errors
-      if (hasCode(error) && error.code !== 'ENOENT') {
-        this.logger.warn(
-          error,
-          `Unknown error when trying to resource '${this.data?.name}''s file '${PARAMETER_SCHEMA_FILE}'`,
-        );
-      }
-    }
   }
 
   /**
@@ -110,6 +86,7 @@ export class ReportResource extends FolderResource<
     // Copy report default structure to destination.
     const defaultReportLocation = await this.getDefaultReportLocation();
     await copyDir(defaultReportLocation, this.internalFolder);
+    await this.loadContentFiles();
   }
 
   /**
@@ -180,9 +157,10 @@ export class ReportResource extends FolderResource<
    * @note If content is not provided, base class validation will use resource's current content.
    */
   public async validate(content?: object) {
-    if (this.reportParameterSchema) {
+    const resourceContent = this.contentData();
+    if (resourceContent.schema) {
       const errors = Validate.getInstance().validateJson(
-        this.reportParameterSchema,
+        resourceContent.schema,
         PARAMETER_SCHEMA_ID,
       );
       if (errors.length > 0) {

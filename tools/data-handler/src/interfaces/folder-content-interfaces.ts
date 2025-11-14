@@ -13,6 +13,8 @@
 
 import type { Schema } from 'jsonschema';
 
+export type { Schema };
+
 // All file mappings for lookup (filename -> property name)
 export const ALL_FILE_MAPPINGS = {
   'calculation.lp': 'calculation',
@@ -24,7 +26,7 @@ export const ALL_FILE_MAPPINGS = {
 } as const;
 
 // Reverse mappings from property names to filenames
-export const REVERSE_FILE_MAPPINGS = {
+export const CONTENT_FILES = {
   calculation: 'calculation.lp',
   contentTemplate: 'index.adoc.hbs',
   model: 'model.lp',
@@ -34,7 +36,7 @@ export const REVERSE_FILE_MAPPINGS = {
 } as const;
 
 // Union type of all valid content property names
-export type ContentPropertyName = keyof typeof REVERSE_FILE_MAPPINGS;
+export type ContentPropertyName = keyof typeof CONTENT_FILES;
 
 // Content interface for Calculation resources
 export interface CalculationContent {
@@ -49,6 +51,7 @@ export interface GraphModelContent {
 // Content interface for Graph View resources
 export interface GraphViewContent {
   viewTemplate?: string;
+  schema?: Schema;
 }
 
 // Content interface for Report resources
@@ -70,9 +73,7 @@ export type FolderResourceContent =
  * @returns filename that matches property name
  */
 export function filename(propertyName: string): string | undefined {
-  return REVERSE_FILE_MAPPINGS[
-    propertyName as keyof typeof REVERSE_FILE_MAPPINGS
-  ];
+  return CONTENT_FILES[propertyName as keyof typeof CONTENT_FILES];
 }
 
 /**
@@ -80,7 +81,7 @@ export function filename(propertyName: string): string | undefined {
  * @param filename Filename.
  * @returns property name that matches filename
  */
-export function propertyName(
+export function contentPropertyName(
   filename: string,
 ): ContentPropertyName | undefined {
   return ALL_FILE_MAPPINGS[filename as keyof typeof ALL_FILE_MAPPINGS];
