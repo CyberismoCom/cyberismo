@@ -33,16 +33,13 @@ describe('Clingo solver', () => {
     expect(result.stats.add).toBeGreaterThanOrEqual(0);
     expect(result.stats.ground).toBeGreaterThanOrEqual(0);
     expect(result.stats.solve).toBeGreaterThanOrEqual(0);
-    // At least one timing should be measured
-    expect(
-      result.stats.glue +
-        result.stats.add +
-        result.stats.ground +
-        result.stats.solve,
-    ).toBeGreaterThan(0);
+    // First solve does not hit cache
+    expect(result.stats.cacheHit).toBe(false);
 
     // second solve uses cache
     expect(result2.stats).toBeDefined();
+    expect(result2.stats.cacheHit).toBe(true);
+
     expect(result2.stats.glue).toBeGreaterThanOrEqual(0);
     expect(result2.stats.add).toBe(0);
     expect(result2.stats.ground).toBe(0);

@@ -116,6 +116,7 @@ namespace
         statsObj.Set("add", result.stats.add.count());
         statsObj.Set("ground", result.stats.ground.count());
         statsObj.Set("solve", result.stats.solve.count());
+        statsObj.Set("cacheHit", result.stats.cacheHit);
         resultObj.Set("stats", statsObj);
 
         NodeClingoLogs logs = parse_clingo_logs(env, result.logs);
@@ -324,6 +325,7 @@ Napi::Value Solve(const Napi::CallbackInfo& info)
         result.stats.add = std::chrono::microseconds::zero();
         result.stats.ground = std::chrono::microseconds::zero();
         result.stats.solve = std::chrono::microseconds::zero();
+        result.stats.cacheHit = true;
         return create_napi_object_from_solve_result(env, result);
     }
 
