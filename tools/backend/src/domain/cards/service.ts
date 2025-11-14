@@ -221,8 +221,8 @@ export function getAttachment(
 
 /**
  * Used for exporting cards, thus static mode is assumed
- * @param commands
- * @param options options that
+ * @param commandsthe command manager used for the query
+ * @param options optional tree query options
  * @returns all cards in a flattened array
  */
 export async function getAllCards(
