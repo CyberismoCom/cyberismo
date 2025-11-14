@@ -108,8 +108,8 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
    * Shows metadata of the resource.
    * @returns template metadata.
    */
-  public async show(): Promise<TemplateConfiguration> {
-    const templateMetadata = await super.show();
+  public show(): TemplateConfiguration {
+    const templateMetadata = super.show();
     const container = this.templateObject();
 
     return {

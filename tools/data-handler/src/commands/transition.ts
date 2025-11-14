@@ -47,12 +47,12 @@ export class Transition {
       throw new Error(`Card does not have card type`);
     }
     // Card type
-    const cardType = await this.project.resources
+    const cardType = this.project.resources
       .byType(card.metadata?.cardType, 'cardTypes')
       .show();
 
     // Workflow
-    const workflow = await this.project.resources
+    const workflow = this.project.resources
       .byType(cardType.workflow, 'workflows')
       .show();
 

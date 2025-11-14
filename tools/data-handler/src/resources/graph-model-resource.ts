@@ -19,6 +19,7 @@ import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
 import { sortCards } from '../utils/card-utils.js';
 import { writeFileSafe } from '../utils/file-utils.js';
+import { CONTENT_FILES } from '../interfaces/folder-content-interfaces.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
 import type {
@@ -51,7 +52,7 @@ export class GraphModelResource extends FolderResource<
   protected async onNameChange(existingName: string): Promise<void> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name, [
-        join(this.internalFolder, 'model.lp'),
+        join(this.internalFolder, CONTENT_FILES.model),
       ]),
       super.updateCalculations(existingName, this.content.name),
     ]);
@@ -76,14 +77,14 @@ export class GraphModelResource extends FolderResource<
     await super.create(newContent);
 
     // Create the internal folder in 'create', instead of 'write'.
-    const calculationsFile = join(this.internalFolder, 'model.lp');
-    await writeFileSafe(
-      calculationsFile,
-      `% add your calculations here for '${this.resourceName.identifier}'`,
-      {
-        flag: 'wx',
-      },
-    );
+    const modelContent = `% add your calculations here for '${this.resourceName.identifier}'`;
+    const modelFile = CONTENT_FILES.model;
+    const calculationsFile = join(this.internalFolder, modelFile);
+    await writeFileSafe(calculationsFile, modelContent, {
+      flag: 'wx',
+    });
+
+    await this.loadContentFiles();
   }
 
   /**

@@ -161,11 +161,9 @@ export class CalculationEngine {
   private async setCardTypesPrograms() {
     const cardTypes = this.project.resources.cardTypes();
     for (const cardType of cardTypes) {
-      const ct = await cardType.show();
-      if (ct) {
-        const cardTypeContent = createCardTypeFacts(ct);
-        setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
-      }
+      const ct = cardType.show();
+      const cardTypeContent = createCardTypeFacts(ct);
+      setProgram(ct.name, cardTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -173,11 +171,9 @@ export class CalculationEngine {
   private async setFieldTypesPrograms() {
     const fieldTypes = this.project.resources.fieldTypes();
     for (const fieldType of fieldTypes) {
-      const ft = await fieldType.show();
-      if (ft) {
-        const fieldTypeContent = createFieldTypeFacts(ft);
-        setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
-      }
+      const ft = fieldType.show();
+      const fieldTypeContent = createFieldTypeFacts(ft);
+      setProgram(ft.name, fieldTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -185,11 +181,9 @@ export class CalculationEngine {
   private async setLinkTypesPrograms() {
     const linkTypes = this.project.resources.linkTypes();
     for (const linkType of linkTypes) {
-      const lt = await linkType.show();
-      if (lt) {
-        const linkTypeContent = createLinkTypeFacts(lt);
-        setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
-      }
+      const lt = linkType.show();
+      const linkTypeContent = createLinkTypeFacts(lt);
+      setProgram(lt.name, linkTypeContent, [ALL_CATEGORY]);
     }
   }
 
@@ -197,11 +191,9 @@ export class CalculationEngine {
   private async setWorkflowsPrograms() {
     const workflows = this.project.resources.workflows();
     for (const workflow of workflows) {
-      const wf = await workflow.show();
-      if (wf) {
-        const workflowContent = createWorkflowFacts(wf);
-        setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
-      }
+      const wf = workflow.show();
+      const workflowContent = createWorkflowFacts(wf);
+      setProgram(wf.name, workflowContent, [ALL_CATEGORY]);
     }
   }
 
@@ -209,11 +201,9 @@ export class CalculationEngine {
   private async setReportsPrograms() {
     const reports = this.project.resources.reports();
     for (const report of reports) {
-      const rep = await report.show();
-      if (rep) {
-        const reportContent = createReportFacts(rep);
-        setProgram(rep.name, reportContent, [ALL_CATEGORY]);
-      }
+      const rep = report.show();
+      const reportContent = createReportFacts(rep);
+      setProgram(rep.name, reportContent, [ALL_CATEGORY]);
     }
   }
 
@@ -221,16 +211,14 @@ export class CalculationEngine {
   private async setTemplatesPrograms() {
     const templates = this.project.resources.templates();
     for (const template of templates) {
-      const tem = await template.show();
-      if (tem) {
-        const templateContent = createTemplateFacts(tem);
-        const cards = this.getCards(tem.name);
-        for (const card of cards) {
-          const cardContent = await createCardFacts(card, this.project);
-          setProgram(card.key, cardContent, [ALL_CATEGORY]);
-        }
-        setProgram(tem.name, templateContent, [ALL_CATEGORY]);
+      const tem = template.show();
+      const templateContent = createTemplateFacts(tem);
+      const cards = this.getCards(tem.name);
+      for (const card of cards) {
+        const cardContent = await createCardFacts(card, this.project);
+        setProgram(card.key, cardContent, [ALL_CATEGORY]);
       }
+      setProgram(tem.name, templateContent, [ALL_CATEGORY]);
     }
   }
 
@@ -239,17 +227,9 @@ export class CalculationEngine {
     const calculations = this.project.resources.calculations();
     for (const calculation of calculations) {
       try {
-        if (calculation) {
-          const resource = await calculation.contentData();
-          const calc = await calculation.show();
-          if (!resource.calculation) {
-            this.logger.info(
-              `Calculation resource '${calc.name}' does not have calculation file`,
-            );
-            continue;
-          }
-          setProgram(calc.name, resource.calculation, [ALL_CATEGORY]);
-        }
+        const content = calculation.contentData();
+        const calc = calculation.show();
+        setProgram(calc.name, content.calculation, [ALL_CATEGORY]);
       } catch (error) {
         this.logger.warn(
           error,

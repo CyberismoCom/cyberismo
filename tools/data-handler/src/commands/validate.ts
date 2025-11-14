@@ -383,9 +383,7 @@ export class Validate {
       const validationPromises = fieldArray.map(async (field) => {
         let fieldType;
         try {
-          fieldType = await project.resources
-            .byType(field, 'fieldTypes')
-            .show();
+          fieldType = project.resources.byType(field, 'fieldTypes').show();
         } catch {
           fieldType = undefined;
         }
@@ -729,7 +727,7 @@ export class Validate {
 
     let cardType;
     try {
-      cardType = await project.resources
+      cardType = project.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
     } catch {
@@ -907,9 +905,7 @@ export class Validate {
     let cardType;
     try {
       cardType = card.metadata?.cardType
-        ? await project.resources
-            .byType(card.metadata?.cardType, 'cardTypes')
-            .show()
+        ? project.resources.byType(card.metadata?.cardType, 'cardTypes').show()
         : undefined;
     } catch {
       cardType = undefined;
@@ -929,7 +925,7 @@ export class Validate {
 
     let workflow;
     try {
-      workflow = await project.resources
+      workflow = project.resources
         .byType(cardType.workflow, 'workflows')
         .show();
     } catch {

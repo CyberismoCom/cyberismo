@@ -12,8 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+import { readdir } from 'node:fs/promises';
 
 import { copyDir } from '../utils/file-utils.js';
 import { DefaultContent } from './create-defaults.js';
@@ -79,6 +79,8 @@ export class GraphViewResource extends FolderResource<
       join(await getStaticDirectoryPath(), 'defaultGraphView'),
       this.internalFolder,
     );
+
+    await this.loadContentFiles();
   }
 
   /**
