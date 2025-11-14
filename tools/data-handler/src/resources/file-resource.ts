@@ -74,7 +74,7 @@ export abstract class FileResource<
    * Returns the resource metadata content.
    * @returns metadata content
    */
-  public async show(): Promise<ShowReturnType<T>> {
+  public show(): ShowReturnType<T> {
     this.assertResourceExists();
     return this.content;
   }

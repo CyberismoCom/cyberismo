@@ -13,7 +13,7 @@
 */
 
 import { dirname, extname, join } from 'node:path';
-import { readdirSync } from 'node:fs';
+import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 
 import { getChildLogger } from '../../utils/log-utils.js';
 import {
@@ -22,6 +22,7 @@ import {
   resourceNameToString,
 } from '../../utils/resource-utils.js';
 import { stripExtension } from '../../utils/file-utils.js';
+import { VALID_FOLDER_RESOURCE_FILES } from '../../utils/constants.js';
 
 import { CalculationResource } from '../../resources/calculation-resource.js';
 import { CardTypeResource } from '../../resources/card-type-resource.js';
@@ -81,10 +82,20 @@ interface ResourceMetadata {
   path: string;
   source: 'local' | 'module';
   moduleName?: string;
+  contentFiles?: Map<string, string>;
 }
 
 // Allowed files in resource instance data.
 const allowedExtensions = ['.lp', '.json'];
+
+// Resource types that have internal folders with content files
+const FOLDER_RESOURCE_TYPES: ResourceFolderType[] = [
+  'calculations',
+  'graphModels',
+  'graphViews',
+  'reports',
+  'templates',
+];
 
 /**
  * ResourceCache handles all resource collecting, caching, and management.
@@ -123,26 +134,38 @@ export class ResourceCache {
 
   // Create a resource object instance
   private createResourceObject(resourceName: ResourceName): unknown {
+    const key = resourceNameToString(resourceName);
+    const metadata = this.resourceRegistry.get(key);
+    let resource: unknown;
+
     if (resourceName.type === 'calculations') {
-      return new CalculationResource(this.project, resourceName);
+      resource = new CalculationResource(this.project, resourceName);
     } else if (resourceName.type === 'cardTypes') {
-      return new CardTypeResource(this.project, resourceName);
+      resource = new CardTypeResource(this.project, resourceName);
     } else if (resourceName.type === 'fieldTypes') {
-      return new FieldTypeResource(this.project, resourceName);
+      resource = new FieldTypeResource(this.project, resourceName);
     } else if (resourceName.type === 'graphModels') {
-      return new GraphModelResource(this.project, resourceName);
+      resource = new GraphModelResource(this.project, resourceName);
     } else if (resourceName.type === 'graphViews') {
-      return new GraphViewResource(this.project, resourceName);
+      resource = new GraphViewResource(this.project, resourceName);
     } else if (resourceName.type === 'linkTypes') {
-      return new LinkTypeResource(this.project, resourceName);
+      resource = new LinkTypeResource(this.project, resourceName);
     } else if (resourceName.type === 'reports') {
-      return new ReportResource(this.project, resourceName);
+      resource = new ReportResource(this.project, resourceName);
     } else if (resourceName.type === 'templates') {
-      return new TemplateResource(this.project, resourceName);
+      resource = new TemplateResource(this.project, resourceName);
     } else if (resourceName.type === 'workflows') {
-      return new WorkflowResource(this.project, resourceName);
+      resource = new WorkflowResource(this.project, resourceName);
+    } else {
+      throw new Error(`Unsupported resource type '${resourceName.type}'`);
     }
-    throw new Error(`Unsupported resource type '${resourceName.type}'`);
+
+    // Populate content files into folder resources
+    if (metadata?.contentFiles && this.hasSetContentFiles(resource)) {
+      resource.setContentFiles(metadata.contentFiles);
+    }
+
+    return resource;
   }
 
   // Collects all resources; both local and modules.
@@ -205,6 +228,45 @@ export class ResourceCache {
     }
   }
 
+  // Collects one folder resource's internal folder content.
+  private collectResourceContentFiles(type: ResourceFolderType, entry: Dirent) {
+    const identifier = stripExtension(entry.name);
+    let contentFiles: Map<string, string> | undefined = undefined;
+
+    // Set content files for folder resources
+    if (FOLDER_RESOURCE_TYPES.includes(type)) {
+      const internalFolder = join(entry.parentPath, identifier);
+      try {
+        const contentEntries = readdirSync(internalFolder, {
+          withFileTypes: true,
+        });
+        const files = new Map<string, string>();
+
+        for (const contentEntry of contentEntries) {
+          if (
+            contentEntry.isFile() &&
+            VALID_FOLDER_RESOURCE_FILES.includes(contentEntry.name)
+          ) {
+            try {
+              const filePath = join(internalFolder, contentEntry.name);
+              const content = readFileSync(filePath, 'utf8');
+              files.set(contentEntry.name, content);
+            } catch {
+              ResourceCache.logger.warn(
+                `Failed to read content file '${contentEntry.name}' for resource '${name}'`,
+              );
+            }
+          }
+        }
+
+        contentFiles = files.size > 0 ? files : undefined;
+      } catch {
+        // Internal folder doesn't exist - this is okay
+      }
+    }
+    return contentFiles;
+  }
+
   // Collect resources of a specific type
   private collectResourcesOfType(
     type: ResourceFolderType,
@@ -232,6 +294,7 @@ export class ResourceCache {
             path: entry.parentPath,
             source: source,
             moduleName: source === 'module' ? moduleName : undefined,
+            contentFiles: this.collectResourceContentFiles(type, entry),
           });
         }
       }
@@ -246,6 +309,16 @@ export class ResourceCache {
   private deleteKey(key: string) {
     this.resourceRegistry.delete(key);
     this.instanceCache.delete(key);
+  }
+
+  // Type guard to check if resource has setContentFiles method
+  private hasSetContentFiles(
+    resource: unknown,
+  ): resource is { setContentFiles: (files: Map<string, string>) => void } {
+    return (
+      typeof (resource as { setContentFiles?: unknown }).setContentFiles ===
+      'function'
+    );
   }
 
   // Returns instance of logger.
@@ -287,6 +360,7 @@ export class ResourceCache {
         path: resourcePath,
         source: isModule ? 'module' : 'local',
         moduleName: isModule ? resName.prefix : undefined,
+        contentFiles: undefined, // resources will set this as-needed
       });
 
       this.instanceCache.set(key, instance);
@@ -383,6 +457,7 @@ export class ResourceCache {
         path: dirname(fileName),
         source: isModule ? 'module' : 'local',
         moduleName: isModule ? resource.prefix : undefined,
+        contentFiles: undefined,
       });
 
       // Invalidate cached instance

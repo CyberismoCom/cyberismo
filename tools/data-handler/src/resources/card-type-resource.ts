@@ -353,7 +353,7 @@ export class CardTypeResource extends FileResource<CardType> {
     op: ChangeOperation<Type>,
   ) {
     const currentWorkflowName = op.target as string;
-    const currentWorkflow = await this.project.resources
+    const currentWorkflow = this.project.resources
       .byType(currentWorkflowName, 'workflows')
       .show();
     if (!currentWorkflow) {
@@ -362,7 +362,7 @@ export class CardTypeResource extends FileResource<CardType> {
       );
     }
 
-    const newWorkflow = await this.project.resources
+    const newWorkflow = this.project.resources
       .byType(op.to as string, 'workflows')
       .show();
 
@@ -416,7 +416,7 @@ export class CardTypeResource extends FileResource<CardType> {
       resourceNameToString(resourceName(workflowName)),
       this.project.projectPrefixes(),
     );
-    const workflow = await this.project.resources
+    const workflow = this.project.resources
       .byType(workflowName, 'workflows')
       .show();
     if (!workflow) {

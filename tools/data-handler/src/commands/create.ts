@@ -304,7 +304,7 @@ export class Create {
     const card = this.project.findCard(cardKey);
     const destinationCard = this.project.findCard(destinationCardKey);
     // make sure the link type exists
-    const linkTypeObject = await this.project.resources
+    const linkTypeObject = this.project.resources
       .byType(linkType, 'linkTypes')
       .show();
 

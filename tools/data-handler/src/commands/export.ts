@@ -166,7 +166,7 @@ export class Export {
       }
 
       if (card.metadata) {
-        const cardTypeForCard = await this.project.resources
+        const cardTypeForCard = this.project.resources
           .byType(card.metadata?.cardType, 'cardTypes')
           .show();
         const metaDataContent = this.metaToAdoc(card, cardTypeForCard);

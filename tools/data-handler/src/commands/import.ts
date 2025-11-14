@@ -89,7 +89,7 @@ export class Import {
       if (!card.metadata?.cardType) {
         throw new Error(`Card type not found for card ${cardKey}`);
       }
-      const cardType = await this.project.resources
+      const cardType = this.project.resources
         .byType(card.metadata?.cardType, 'cardTypes')
         .show();
 
