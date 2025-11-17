@@ -26,4 +26,5 @@ export * from './graphView';
 export * from './templates';
 export * from './report';
 export * from './workflow';
+export * from './labels';
 export type { CardUpdate };

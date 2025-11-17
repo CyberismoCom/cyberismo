@@ -13,10 +13,18 @@
 
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Chip, ChipDelete, IconButton, Input, Stack } from '@mui/joy';
+import {
+  Autocomplete,
+  Box,
+  Chip,
+  ChipDelete,
+  IconButton,
+  Stack,
+} from '@mui/joy';
 import Add from '@mui/icons-material/Add';
 
 import { LABEL_SPLITTER } from '../lib/constants';
+import { useLabels } from '@/lib/api';
 
 export interface LabelEditorProps {
   value: string[] | null;
@@ -34,15 +42,17 @@ export default function LabelEditor({
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { labels: projectLabels } = useLabels();
 
-  const handleAddLabel = () => {
-    if (!inputValue.trim()) {
+  const handleAddLabel = (rawValue?: string) => {
+    const nextValue = typeof rawValue === 'string' ? rawValue : inputValue;
+    if (!nextValue.trim()) {
       setInputValue('');
       return;
     }
 
     const labels = Array.isArray(value) ? [...value] : [];
-    const segments = inputValue
+    const segments = nextValue
       .split(LABEL_SPLITTER)
       .map((segment) => segment.trim())
       .filter((segment) => segment.length > 0);
@@ -64,13 +74,16 @@ export default function LabelEditor({
   return (
     <Stack spacing={1} width="100%">
       <Stack direction="row" spacing={1}>
-        <Input
-          onChange={(e) => setInputValue(e.target.value)}
+        <Autocomplete
+          autoComplete
+          freeSolo
           disabled={disabled}
-          value={inputValue}
+          inputValue={inputValue}
           color="primary"
           size="sm"
-          fullWidth
+          options={
+            projectLabels?.filter((label) => !value?.includes(label)) || []
+          }
           placeholder={t('placeholder.label')}
           data-cy="labelInput"
           autoFocus={focus}
@@ -79,10 +92,24 @@ export default function LabelEditor({
               ref: inputRef,
             },
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleAddLabel();
+          onInputChange={(_, newValue, reason) => {
+            if (reason === 'reset') {
+              return;
             }
+            setInputValue(newValue);
+          }}
+          onChange={(_, newValue, reason) => {
+            if (
+              typeof newValue === 'string' &&
+              (reason === 'selectOption' || reason === 'createOption')
+            ) {
+              handleAddLabel(newValue);
+              return;
+            }
+            setInputValue(newValue ?? '');
+          }}
+          sx={{
+            flexGrow: 1,
           }}
         />
         <IconButton
@@ -90,7 +117,7 @@ export default function LabelEditor({
           color="primary"
           variant="soft"
           data-cy="labelAddButton"
-          onClick={handleAddLabel}
+          onClick={() => handleAddLabel()}
         >
           <Add />
         </IconButton>
