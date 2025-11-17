@@ -31,18 +31,21 @@ export interface LabelEditorProps {
   onChange?: (value: string[] | null) => void;
   disabled?: boolean;
   focus?: boolean;
+  options?: string[] | null;
 }
 
-export default function LabelEditor({
+export function LabelEditorField({
   value,
   onChange,
   disabled,
   focus,
+  options,
 }: LabelEditorProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { labels: projectLabels } = useLabels();
+  const availableOptions =
+    options?.filter((label) => !value?.includes(label)) || [];
 
   const handleAddLabel = (rawValue?: string) => {
     const nextValue = typeof rawValue === 'string' ? rawValue : inputValue;
@@ -81,9 +84,7 @@ export default function LabelEditor({
           inputValue={inputValue}
           color="primary"
           size="sm"
-          options={
-            projectLabels?.filter((label) => !value?.includes(label)) || []
-          }
+          options={availableOptions}
           placeholder={t('placeholder.label')}
           data-cy="labelInput"
           autoFocus={focus}
@@ -148,4 +149,10 @@ export default function LabelEditor({
       </Box>
     </Stack>
   );
+}
+
+export default function LabelEditor(props: LabelEditorProps) {
+  const { labels: projectLabels } = useLabels();
+
+  return <LabelEditorField {...props} options={projectLabels} />;
 }
