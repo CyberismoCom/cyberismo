@@ -41,6 +41,7 @@ namespace node_clingo
         std::chrono::microseconds add;
         std::chrono::microseconds ground;
         std::chrono::microseconds solve;
+        bool cacheHit = false; // Indicates if the result was retrieved from cache
     };
 
     struct SolveResult
