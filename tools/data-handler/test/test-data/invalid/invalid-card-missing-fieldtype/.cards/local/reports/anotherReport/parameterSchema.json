@@ -1,0 +1,13 @@
+{
+    "title": "Report",
+    "$id": "reportMacroDefaultSchema",
+    "description": "A report object provides supplemental information about a report",
+    "type": "object",
+    "properties": {
+      "name": {
+        "description": "The name of the report",
+        "type": "string"
+      }
+    },
+    "required": ["name"]
+  }
