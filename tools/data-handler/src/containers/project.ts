@@ -63,6 +63,16 @@ import { ROOT } from '../utils/constants.js';
 export { ResourcesFrom };
 
 /**
+ * Options for Project initialization.
+ * autoSave - If project configuration changes are saved automatically. Default true.
+ * watchResourceChanges - If project refresh automatically to filesystem changes. Default false.
+ */
+export interface ProjectOptions {
+  autoSave?: boolean;
+  watchResourceChanges?: boolean;
+}
+
+/**
  * Represents project folder.
  */
 export class Project extends CardContainer {
@@ -76,10 +86,14 @@ export class Project extends CardContainer {
 
   constructor(
     path: string,
-    private watchResourceChanges?: boolean,
+    private options: ProjectOptions = {
+      autoSave: true,
+      watchResourceChanges: false,
+    },
   ) {
     const settings = new ProjectConfiguration(
       join(path, '.cards', 'local', Project.projectConfigFileName),
+      options.autoSave ?? true,
     );
     super(path, settings.cardKeyPrefix, '');
     this.settings = settings;
@@ -103,7 +117,7 @@ export class Project extends CardContainer {
 
     // Watch changes in .cards if there are multiple instances of Project being
     // run concurrently.
-    if (this.watchResourceChanges) {
+    if (this.options.watchResourceChanges) {
       this.resourceWatcher = new ContentWatcher(
         ignoreRenameFileChanges,
         this.paths.resourcesFolder,

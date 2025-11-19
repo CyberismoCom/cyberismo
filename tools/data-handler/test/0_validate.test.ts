@@ -9,10 +9,10 @@ import { describe, it } from 'mocha';
 // data-handler
 import { readJsonFile } from '../src/utils/json.js';
 import { Validate } from '../src/commands/index.js';
-import { Project } from '../src/containers/project.js';
+import type { Project } from '../src/containers/project.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { getTestBaseDir } from './helpers/test-utils.js';
+import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 import type {
   Card,
   ResourceTypes,
@@ -22,101 +22,102 @@ describe('validate cmd tests', () => {
   const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
   const testDir = join(baseDir, 'test-data');
   const validateCmd = Validate.getInstance();
-  const validProject = new Project('test/test-data/valid/decision-records');
+  let validProject: Project;
 
   before(async () => {
+    validProject = getTestProject('test/test-data/valid/decision-records');
     await validProject.populateCaches();
   });
 
   it('validate() - decision-records (success)', async () => {
     const path = join(testDir, 'valid/decision-records');
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid).to.equal('');
     expect(valid.length).to.equal(0);
   });
   it('validate() - minimal (success)', async () => {
     const path = join(testDir, 'valid/minimal');
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.equal(0);
   });
   it('try to validate() - invalid-cardsConfig.json', async () => {
     const path = join(testDir, 'invalid/invalid-cardsConfig.json');
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-.cards-subfolders', async () => {
     const path = join(testDir, 'invalid/missing-.cards-subfolders');
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-cardsConfig.json', async () => {
     const path = 'test/test-data/invalid/missing-cardsConfig.json';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-cardTypes-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-cardTypes-subfolder';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - invalid-duplicate-card-key', async () => {
     const path = 'test/test-data/invalid/invalid-duplicate-card-key';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-templates-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-templates-subfolder';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-workflows-subfolder', async () => {
     const path = 'test/test-data/invalid/missing-workflows-subfolder';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-cardTypes', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-cardTypes';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-templates', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-templates';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - no-.schema-in.cards-workflows', async () => {
     const path = 'test/test-data/invalid/no-.schema-in.cards-workflows';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - no-.schema-in-cardRoot', async () => {
     const path = 'test/test-data/invalid/o-.schema-in-cardRoot';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - invalid-empty', async () => {
     const path = 'test/test-data/invalid/invalid-empty';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-cardRoot', async () => {
     const path = 'test/test-data/invalid/missing-cardRoot';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - missing-.cards', async () => {
     const path = 'test/test-data/invalid/missing-.cards';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validate() - path does not exist', async () => {
     const path = 'i-do-not-exist';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
   });
   it('validateJson() - cardsConfig', async () => {
@@ -171,7 +172,7 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.equal(0);
   });
   it('try to validateWorkflowState - invalid state', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
@@ -180,7 +181,7 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - card type not found', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
@@ -189,7 +190,7 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from project', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
@@ -198,7 +199,7 @@ describe('validate cmd tests', () => {
     expect(valid.length).to.be.greaterThan(0);
   });
   it('try to validateWorkflowState - workflow not found from card', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
@@ -222,7 +223,7 @@ describe('validate cmd tests', () => {
     }
   });
   it('try to validate card custom fields - card type not found', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-card-has-wrong-state/',
     );
     await project.populateCaches();
@@ -284,7 +285,7 @@ describe('validate cmd tests', () => {
   });
   it('try to validate card custom fields - fieldType not defined in the project', async () => {
     const path = 'test/test-data/invalid/invalid-card-missing-fieldtype';
-    const valid = await validateCmd.validate(path, () => new Project(path));
+    const valid = await validateCmd.validate(path, () => getTestProject(path));
     expect(valid.length).to.be.greaterThan(0);
     expect(valid).to.include(
       "Card 'decision_5' has field 'decision/fieldTypes/nonExistentField' that does not exist in the project",
@@ -298,15 +299,14 @@ describe('validate cmd tests', () => {
       .filter((dirent) => dirent.isDirectory())
       .map((dirent) => join(dirent.parentPath, dirent.name));
     for (const projectPath of invalidProjects) {
-      const result = await validateCmd.validate(
-        projectPath,
-        () => new Project(projectPath),
+      const result = await validateCmd.validate(projectPath, () =>
+        getTestProject(projectPath),
       );
       expect(result).to.not.equal(undefined); // all of the invalid projects have validation errors
     }
   });
   it('try to validate resource that has name conflicts with filename', async () => {
-    const project = new Project(
+    const project = getTestProject(
       'test/test-data/invalid/invalid-wrong-resource-names/',
     );
     await project.populateCaches();

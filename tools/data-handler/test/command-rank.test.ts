@@ -8,8 +8,8 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -44,7 +44,7 @@ describe('rank command', () => {
     );
 
     // To avoid logged errors from clingo queries during tests, generate calculations.
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     await project.calculationEngine.generate();
 
@@ -75,7 +75,7 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const project = new Project(options.projectPath!);
+      const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const details = new Show(project).showCardDetails(rankBefore);
       expect(details.metadata?.rank).to.equal('0|c');
@@ -92,7 +92,7 @@ describe('rank command', () => {
 
       expect(result.statusCode).to.equal(200);
 
-      const project = new Project(options.projectPath!);
+      const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const details = new Show(project).showCardDetails(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
@@ -107,7 +107,7 @@ describe('rank command', () => {
       );
       expect(result.statusCode).to.equal(200);
 
-      const project = new Project(options.projectPath!);
+      const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const details = new Show(project).showCardDetails(key);
 
@@ -145,7 +145,7 @@ describe('rank command', () => {
         options,
       );
       expect(result.statusCode).to.equal(200);
-      const project = new Project(options.projectPath!);
+      const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const details = new Show(project).showCardDetails(key);
       expect(details.metadata?.rank).to.equal('0|a');

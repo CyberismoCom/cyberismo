@@ -1,4 +1,6 @@
 {
     "cardKeyPrefix": "decision",
-    "name": "decision"
+    "name": "decision",
+    "modules": [],
+    "hubs": []
 }

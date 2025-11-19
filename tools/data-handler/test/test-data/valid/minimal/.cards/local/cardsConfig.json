@@ -1,4 +1,6 @@
 {
-    "cardKeyPrefix":"mini",
-    "name":"minimal"
+    "cardKeyPrefix": "mini",
+    "name": "minimal",
+    "modules": [],
+    "hubs": []
 }

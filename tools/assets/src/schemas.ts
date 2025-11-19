@@ -38,6 +38,9 @@ import vegaMacroSchema from './schema/macros/vegaMacroSchema.json' with { type: 
 import workflowSchema from './schema/resources/workflowSchema.json' with { type: 'json' };
 import xrefMacroSchema from './schema/macros/xrefMacroSchema.json' with { type: 'json' };
 import cardTreeDirectorySchema from './schema/cardTreeDirectorySchema.json' with { type: 'json' };
+import version from './schema/version.json' with { type: 'json' };
+
+export const SCHEMA_VERSION = version.schemaVersion;
 
 export const schemas = [
   calculationSchema,

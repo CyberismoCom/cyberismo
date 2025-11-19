@@ -592,7 +592,9 @@ describe('Card cache', () => {
       // Set path and create CommandManager after directory exists
       decisionProjectPath = join(tempDir, 'valid', 'decision-records');
 
-      commands = new CommandManager(decisionProjectPath);
+      commands = new CommandManager(decisionProjectPath, {
+        autoSaveConfiguration: false,
+      });
       await commands.initialize();
     });
 

@@ -178,6 +178,7 @@ export interface ProjectMetadata {
 
 // Project's settings (=cardsConfig.json).
 export interface ProjectSettings {
+  schemaVersion?: number;
   cardKeyPrefix: string;
   name: string;
   modules: ModuleSetting[];

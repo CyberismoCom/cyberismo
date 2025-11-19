@@ -10,7 +10,7 @@ import { Cmd, Commands } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
-import { Project } from '../src/containers/project.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
 import type {
@@ -996,7 +996,7 @@ describe('create command', () => {
     expect(defaultCard.workflowState).to.equal('');
   });
   it('access default values for card using real card type and template cards (success)', async () => {
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
 
     const name = 'decision/templates/decision';

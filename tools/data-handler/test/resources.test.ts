@@ -4,8 +4,9 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
+import { getTestProject } from './helpers/test-utils.js';
 import { Create, Import } from '../src/commands/index.js';
-import { Project } from '../src/containers/project.js';
+import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
 import type {
@@ -179,7 +180,7 @@ describe('resources', function () {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = new Project(decisionRecordsPath);
+    project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
   });
 
@@ -246,7 +247,7 @@ describe('resources', function () {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(decisionRecordsPath);
+      project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
     });
 
@@ -615,7 +616,7 @@ describe('resources', function () {
       expect(data.content).to.have.property('calculation');
     });
     it('show imported report', async () => {
-      const projectMini = new Project(minimalPath);
+      const projectMini = getTestProject(minimalPath);
       await projectMini.populateCaches();
       const createCmdMini = new Create(projectMini);
       const importCmdMini = new Import(projectMini, createCmdMini);

@@ -5,8 +5,9 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import type { Project } from '../src/containers/project.js';
 import { Show, Update } from '../src/commands/index.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
@@ -23,7 +24,7 @@ describe('update command', () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
 
-    project = new Project(decisionRecordsPath);
+    project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     update = new Update(project);
   });

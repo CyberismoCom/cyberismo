@@ -8,9 +8,8 @@ import { join, sep } from 'node:path';
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
 import { Remove } from '../src/commands/index.js';
-import { getTestBaseDir } from './helpers/test-utils.js';
+import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -174,7 +173,7 @@ describe('remove command', () => {
       const card = await createCard(commandHandler);
 
       // To avoid logged errors from clingo queries during tests, generate calculations.
-      const project = new Project(decisionRecordsPath);
+      const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       await project.calculationEngine.generate();
 
@@ -441,7 +440,7 @@ describe('remove command', () => {
     });
     it('try to remove non-existing attachment', async () => {
       const cardId = 'decision_5';
-      const project = new Project(decisionRecordsPath);
+      const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
@@ -455,7 +454,7 @@ describe('remove command', () => {
     });
     it('try to remove attachment from non-existing card', async () => {
       const cardId = 'decision_999';
-      const project = new Project(decisionRecordsPath);
+      const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
@@ -468,7 +467,7 @@ describe('remove command', () => {
         });
     });
     it('try to remove non-existing module', async () => {
-      const project = new Project(decisionRecordsPath);
+      const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       const removeCmd = new Remove(project);
       await removeCmd
@@ -510,7 +509,9 @@ describe('remove card', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
+    commands = new CommandManager(decisionRecordsPath, {
+      autoSaveConfiguration: false,
+    });
     await commands.initialize();
     await commands.project.calculationEngine.generate();
   });
