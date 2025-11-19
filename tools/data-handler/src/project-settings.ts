@@ -12,6 +12,7 @@
 */
 
 import { writeJsonFile as atomicWrite } from 'write-json-file';
+import { writeFileSync } from 'node:fs';
 
 import { resolve } from 'node:path';
 import { URL } from 'node:url';
@@ -21,8 +22,10 @@ import type {
   ModuleSetting,
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
+import { formatJson } from './utils/json.js';
 import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './commands/validate.js';
+import { SCHEMA_VERSION } from '@cyberismo/assets';
 
 /**
  * Represents Project's cardsConfig.json file.
@@ -30,11 +33,13 @@ import { Validate } from './commands/validate.js';
 export class ProjectConfiguration implements ProjectSettings {
   private static instance: ProjectConfiguration;
 
+  schemaVersion?: number;
   name: string;
   cardKeyPrefix: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
   private settingPath: string;
+  private schemaVersionUpdated: boolean = false;
 
   constructor(path: string) {
     this.name = '';
@@ -43,19 +48,23 @@ export class ProjectConfiguration implements ProjectSettings {
     this.modules = [];
     this.hubs = [];
     this.readSettings();
+    this.ensureSchemaVersion();
+    this.autoSaveIfNeeded();
   }
 
-  // Persists configuration file to disk.
-  public async save() {
-    if (this.cardKeyPrefix === '') {
-      throw new Error('wrong configuration');
+  // Auto-saves the configuration synchronously if schema version was updated.
+  private autoSaveIfNeeded() {
+    if (this.schemaVersionUpdated) {
+      this.saveSync();
     }
-    try {
-      await atomicWrite(this.settingPath, this.toJSON(), { indent: 4 });
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error.message);
-      }
+  }
+
+  // Ensures that schemaVersion is set in the project configuration.
+  // If missing, sets it to the current SCHEMA_VERSION and marks for auto-save.
+  private ensureSchemaVersion() {
+    if (this.schemaVersion === undefined) {
+      this.schemaVersion = SCHEMA_VERSION;
+      this.schemaVersionUpdated = true;
     }
   }
 
@@ -71,6 +80,7 @@ export class ProjectConfiguration implements ProjectSettings {
       Object.prototype.hasOwnProperty.call(settings, 'name');
 
     if (valid) {
+      this.schemaVersion = settings.schemaVersion;
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.modules = settings.modules || [];
@@ -80,9 +90,25 @@ export class ProjectConfiguration implements ProjectSettings {
     }
   }
 
+  // Synchronously persists configuration file to disk.
+  private saveSync() {
+    if (this.cardKeyPrefix === '') {
+      throw new Error('wrong configuration');
+    }
+    try {
+      writeFileSync(this.settingPath, formatJson(this.toJSON()), 'utf-8');
+      this.schemaVersionUpdated = false;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      }
+    }
+  }
+
   // Return the configuration as object
   private toJSON(): ProjectSettings {
     return {
+      schemaVersion: this.schemaVersion,
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
       modules: this.modules,
@@ -153,6 +179,39 @@ export class ProjectConfiguration implements ProjectSettings {
   }
 
   /**
+   * Checks schema version compatibility.
+   * @returns Compatibility state (true - compatible; false - not) and optional message related to it.
+   */
+  public checkSchemaVersion(): { isCompatible: boolean; message: string } {
+    if (this.schemaVersion === undefined) {
+      return {
+        isCompatible: true,
+        message: '',
+      };
+    }
+
+    if (this.schemaVersion < SCHEMA_VERSION) {
+      return {
+        isCompatible: false,
+        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is older than the application schema version (${SCHEMA_VERSION}). A migration is needed.`,
+      };
+    }
+
+    if (this.schemaVersion > SCHEMA_VERSION) {
+      return {
+        isCompatible: false,
+        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is newer than the application schema version (${SCHEMA_VERSION}). Please update the application.`,
+      };
+    }
+
+    // Schema versions are equal
+    return {
+      isCompatible: true,
+      message: '',
+    };
+  }
+
+  /**
    * Removes a hub.
    * @param hubName Name of the hub to remove.
    * @throws if hub is not part of the project
@@ -181,6 +240,21 @@ export class ProjectConfiguration implements ProjectSettings {
     }
     this.modules = this.modules.filter((item) => item.name !== moduleName);
     return this.save();
+  }
+
+  // Persists configuration file to disk.
+  public async save() {
+    if (this.cardKeyPrefix === '') {
+      throw new Error('wrong configuration');
+    }
+    try {
+      await atomicWrite(this.settingPath, this.toJSON(), { indent: 4 });
+      this.schemaVersionUpdated = false;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error(error.message);
+      }
+    }
   }
 
   /**

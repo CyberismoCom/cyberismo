@@ -1,4 +1,7 @@
 {
+    "schemaVersion": 1,
     "cardKeyPrefix": "decision",
-    "name": "decision"
+    "name": "decision",
+    "modules": [],
+    "hubs": []
 }

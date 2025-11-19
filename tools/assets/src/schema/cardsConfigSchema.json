@@ -3,6 +3,10 @@
   "additionalProperties": false,
   "description": "General configuration settings for the card tree.",
   "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "description": "Version of the schema used by this project"
+    },
     "cardKeyPrefix": {
       "type": "string",
       "description": "The prefix or the fist component of the card key. For example, ABC",

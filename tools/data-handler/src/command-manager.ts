@@ -74,6 +74,16 @@ export class CommandManager {
   }
 
   /**
+   * Checks the schema version compatibility.
+   * @returns
+   *    isCompatible - true if compatible; false otherwise
+   *    message - optional message related to compatibility.
+   */
+  public checkSchemaVersion(): { isCompatible: boolean; message?: string } {
+    return this.project.configuration.checkSchemaVersion();
+  }
+
+  /**
    * Some commands needs initialization that cannot be performed inside constructor.
    * Add such calls here.
    */
