@@ -36,7 +36,7 @@ function getResourceName(node: NodeApi<AnyNode>, t: (key: string) => string) {
     return node.data.data.metadata?.title || node.data.data.key;
   }
   if (node.data.type === 'file') {
-    return node.data.displayName;
+    return t(`configTree.files.${node.data.displayName}`);
   }
   if (node.data.type === 'resourceGroup' || node.data.type === 'modulesGroup') {
     return t(`resources.${node.data.name}`);
