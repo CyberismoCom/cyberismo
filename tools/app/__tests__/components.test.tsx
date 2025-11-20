@@ -1,6 +1,6 @@
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
-import {LabelEditorField} from '@/components/LabelEditor';
+import { LabelEditorField } from '@/components/LabelEditor';
 import type { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -138,7 +138,10 @@ describe('LabelEditor', () => {
     const handleChange = vi.fn();
 
     render(
-      <LabelEditorField value={['existing', 'alpha']} onChange={handleChange} />,
+      <LabelEditorField
+        value={['existing', 'alpha']}
+        onChange={handleChange}
+      />,
     );
 
     const input = screen.getByRole('combobox');
@@ -166,7 +169,10 @@ describe('LabelEditor', () => {
     const handleChange = vi.fn();
 
     render(
-      <LabelEditorField value={['existing', 'alpha']} onChange={handleChange} />,
+      <LabelEditorField
+        value={['existing', 'alpha']}
+        onChange={handleChange}
+      />,
     );
 
     const input = screen.getByRole('combobox');
