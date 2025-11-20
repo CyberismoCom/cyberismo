@@ -11,37 +11,51 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Chip, ChipDelete, IconButton, Input, Stack } from '@mui/joy';
+import {
+  Autocomplete,
+  Box,
+  Chip,
+  ChipDelete,
+  IconButton,
+  Stack,
+} from '@mui/joy';
 import Add from '@mui/icons-material/Add';
 
 import { LABEL_SPLITTER } from '../lib/constants';
+import { useLabels } from '@/lib/api';
 
 export interface LabelEditorProps {
   value: string[] | null;
   onChange?: (value: string[] | null) => void;
   disabled?: boolean;
   focus?: boolean;
+  options?: string[] | null;
 }
 
-export default function LabelEditor({
+export function LabelEditorField({
   value,
   onChange,
   disabled,
   focus,
+  options,
 }: LabelEditorProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const availableOptions =
+    options?.filter((label) => !value?.includes(label)) || [];
 
-  const handleAddLabel = () => {
-    if (!inputValue.trim()) {
+  const handleAddLabel = (rawValue?: string) => {
+    const nextValue = typeof rawValue === 'string' ? rawValue : inputValue;
+    if (!nextValue.trim()) {
       setInputValue('');
       return;
     }
 
     const labels = Array.isArray(value) ? [...value] : [];
-    const segments = inputValue
+    const segments = nextValue
       .split(LABEL_SPLITTER)
       .map((segment) => segment.trim())
       .filter((segment) => segment.length > 0);
@@ -56,26 +70,47 @@ export default function LabelEditor({
     if (segments.length > 0) {
       onChange?.(labels);
       setInputValue(''); // only clear if something was added
+      inputRef.current?.focus();
     }
   };
 
   return (
     <Stack spacing={1} width="100%">
       <Stack direction="row" spacing={1}>
-        <Input
-          onChange={(e) => setInputValue(e.target.value)}
+        <Autocomplete
+          autoComplete
+          freeSolo
           disabled={disabled}
-          value={inputValue}
+          inputValue={inputValue}
           color="primary"
           size="sm"
-          fullWidth
+          options={availableOptions}
           placeholder={t('placeholder.label')}
           data-cy="labelInput"
           autoFocus={focus}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              handleAddLabel();
+          slotProps={{
+            input: {
+              ref: inputRef,
+            },
+          }}
+          onInputChange={(_, newValue, reason) => {
+            if (reason === 'reset') {
+              return;
             }
+            setInputValue(newValue);
+          }}
+          onChange={(_, newValue, reason) => {
+            if (
+              typeof newValue === 'string' &&
+              (reason === 'selectOption' || reason === 'createOption')
+            ) {
+              handleAddLabel(newValue);
+              return;
+            }
+            setInputValue(newValue ?? '');
+          }}
+          sx={{
+            flexGrow: 1,
           }}
         />
         <IconButton
@@ -83,7 +118,7 @@ export default function LabelEditor({
           color="primary"
           variant="soft"
           data-cy="labelAddButton"
-          onClick={handleAddLabel}
+          onClick={() => handleAddLabel()}
         >
           <Add />
         </IconButton>
@@ -114,4 +149,10 @@ export default function LabelEditor({
       </Box>
     </Stack>
   );
+}
+
+export default function LabelEditor(props: LabelEditorProps) {
+  const { labels: projectLabels } = useLabels();
+
+  return <LabelEditorField {...props} options={projectLabels} />;
 }

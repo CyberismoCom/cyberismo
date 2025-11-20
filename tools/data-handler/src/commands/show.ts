@@ -51,7 +51,7 @@ import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
 import { readJsonFile } from '../utils/json.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { buildCardHierarchy } from '../utils/card-utils.js';
+import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
 
 /**
  * Show command.
@@ -361,7 +361,10 @@ export class Show {
    * @returns labels in a list
    */
   public showLabels(): string[] {
-    const cards = this.project.showProjectCards();
+    const cards = flattenCardArray(
+      this.project.showProjectCards(),
+      this.project,
+    );
     const templateCards = this.project.allTemplateCards();
 
     const labels = this.collectLabels([...cards, ...templateCards]);

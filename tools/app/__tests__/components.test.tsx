@@ -1,6 +1,6 @@
 import { TreeMenu } from '../src/components/TreeMenu';
 import { SearchableTreeMenu } from '../src/components/SearchableTreeMenu';
-import LabelEditor from '@/components/LabelEditor';
+import { LabelEditorField } from '@/components/LabelEditor';
 import type { Project } from '@/lib/definitions';
 import StateSelector from '@/components/StateSelector';
 import { LABEL_SPLITTER } from '@/lib/constants';
@@ -12,7 +12,7 @@ import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router';
 
 // mock useAppRouter and useResizeObserver
-vi.mock('../src/lib/hooks', () => {
+vi.mock('../src/lib/hooks', async () => {
   let callCount = 0;
   return {
     useAppRouter: vi.fn(() => ({
@@ -124,9 +124,9 @@ describe('LabelEditor', () => {
   it('adds trimmed labels separated by the configured splitter when pressing Enter', () => {
     const handleChange = vi.fn();
 
-    render(<LabelEditor value={['existing']} onChange={handleChange} />);
+    render(<LabelEditorField value={['existing']} onChange={handleChange} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, {
       target: { value: `alpha ${LABEL_SPLITTER} beta ` },
     });
@@ -138,10 +138,13 @@ describe('LabelEditor', () => {
     const handleChange = vi.fn();
 
     render(
-      <LabelEditor value={['existing', 'alpha']} onChange={handleChange} />,
+      <LabelEditorField
+        value={['existing', 'alpha']}
+        onChange={handleChange}
+      />,
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, {
       target: { value: `alpha ${LABEL_SPLITTER} beta ` },
     });
@@ -152,9 +155,9 @@ describe('LabelEditor', () => {
   it('does not add empty labels', () => {
     const handleChange = vi.fn();
 
-    render(<LabelEditor value={['existing']} onChange={handleChange} />);
+    render(<LabelEditorField value={['existing']} onChange={handleChange} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, {
       target: { value: `   ${LABEL_SPLITTER} beta ${LABEL_SPLITTER}   ` },
     });
@@ -166,10 +169,13 @@ describe('LabelEditor', () => {
     const handleChange = vi.fn();
 
     render(
-      <LabelEditor value={['existing', 'alpha']} onChange={handleChange} />,
+      <LabelEditorField
+        value={['existing', 'alpha']}
+        onChange={handleChange}
+      />,
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, {
       target: { value: `   ${LABEL_SPLITTER}   ` },
     });
@@ -182,7 +188,7 @@ describe('LabelEditor', () => {
     const handleChange = vi.fn();
 
     render(
-      <LabelEditor
+      <LabelEditorField
         value={['existing', 'alpha', 'beta']}
         onChange={handleChange}
       />,

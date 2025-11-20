@@ -53,6 +53,7 @@ export type Resources = {
   templates: TemplateConfiguration[];
   linkTypes: LinkType[];
   tree: QueryResult<'tree'>[];
+  labels: string[];
   resourceTree: AnyNode[];
   logicPrograms: LogicProgramResponse;
   validateResource: ValidateResourceResponse;
