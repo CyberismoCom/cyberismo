@@ -25,11 +25,18 @@ describe('Cli BAT test', function () {
         console.log(error);
       }
       expect(error).to.be.null;
-      // Expect version information to be <int>.<int>.<int>,
-      // where each can be single or multiple digits (0-9)
-      const re = /^(\d+\.)?(\d+\.)?(\d+)$/gm;
-      const valid = re.test(stdout.trim());
-      expect(valid).to.equal(true);
+      console.log(stdout);
+      // Expect two lines: binary version and schema version
+      const lines = stdout.trim().split('\n');
+      expect(lines.length).to.equal(2);
+      // First line: cyberismo version: <int>.<int>.<int>
+      const binaryVersionMatch = lines[0].match(
+        /cyberismo version: (\d+\.\d+\.\d+)/,
+      );
+      expect(binaryVersionMatch).to.not.be.null;
+      // Second line: Schema version: <int>
+      const schemaVersionMatch = lines[1].match(/Schema version: (\d+)/);
+      expect(schemaVersionMatch).to.not.be.null;
       done();
     });
   });
@@ -292,7 +299,7 @@ describe('Cli BAT test', function () {
   it('Export a PDF document', function (done) {
     this.timeout(60000);
     exec(
-      `cd ../../.tmp/cyberismo-cli&&cyberismo export pdf ./test.pdf ${newPageCardKey} -r -t "Test Doc" -n "BAT" -d 2024-01-01 -v 1.0.0 -m "Initial version"&&cyberismo validate`,
+      `cd ../../.tmp/cyberismo-cli&&cyberismo export pdf ./test.pdf ${newPageCardKey} -r -t "Test Doc" -n "BAT" -d 2024-01-01 --doc-version 1.0.0 -m "Initial version"&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);

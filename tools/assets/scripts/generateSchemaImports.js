@@ -48,8 +48,8 @@ function readSchemas(dir) {
     if (stat.isDirectory()) {
       readSchemas(filePath);
     } else if (path.extname(file) === '.json') {
-      // do not include parent schema file
-      if (name === parentSchemaFile) {
+      // do not include parent schema file or version.json
+      if (name === parentSchemaFile || name === 'version') {
         return;
       }
       // convert file path to relative path from output file
@@ -78,6 +78,12 @@ let outputContent =
 
 // also import parent schema file
 outputContent += `\nimport ${parentSchemaTs} from '${getImportPath(path.join(schemaDir, parentSchemaFile + `.json' with {type: 'json'};`))}\n`;
+
+// import version.json separately
+outputContent += `import version from '${getImportPath(path.join(schemaDir, 'version.json'))}' with {type: 'json'};\n`;
+
+// export schema version constant
+outputContent += '\n\nexport const SCHEMA_VERSION = version.schemaVersion;\n';
 
 // create schemas array
 outputContent += '\n\nexport const schemas = [\n';

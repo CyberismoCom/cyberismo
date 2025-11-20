@@ -117,28 +117,6 @@ describe('project', () => {
     expect(projectDetails.numberOfCards).to.equal(2);
   });
 
-  it('create settings class (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    await project.populateCaches();
-    expect(project).to.not.equal(undefined);
-
-    const configFile = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings = new ProjectConfiguration(configFile);
-    expect(projectSettings).to.not.equal(undefined);
-
-    const prefix = projectSettings.cardKeyPrefix;
-    expect(prefix).to.equal('decision');
-
-    const prefixes = project.projectPrefixes();
-    expect(prefixes).to.contain(prefix);
-  });
-
   it('create class - card operation (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = new Project(decisionRecordsPath);

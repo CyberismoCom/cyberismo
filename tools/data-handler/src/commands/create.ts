@@ -15,6 +15,7 @@
 import { join, resolve } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 
+import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
@@ -44,6 +45,7 @@ export class Create {
     {
       path: '.cards/local',
       content: {
+        schemaVersion: SCHEMA_VERSION,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         modules: [],

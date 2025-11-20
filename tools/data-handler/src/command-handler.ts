@@ -15,6 +15,7 @@ import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
+import { SCHEMA_VERSION } from '@cyberismo/assets';
 import type {
   Card,
   CardAttachment,
@@ -178,6 +179,12 @@ export class Commands {
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
+    }
+
+    // Check schema version and log warning if there's a mismatch
+    const versionCheck = this.commands.checkSchemaVersion();
+    if (!versionCheck.isCompatible) {
+      console.error(versionCheck.message);
     }
   }
 
@@ -438,6 +445,13 @@ export class Commands {
       return { statusCode: 400, message: errorFunction(e) };
     }
     return { statusCode: 200 };
+  }
+
+  /**
+   * Returns the current schema version.
+   */
+  public getSchemaVersion(): number {
+    return SCHEMA_VERSION;
   }
 
   /**
