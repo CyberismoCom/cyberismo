@@ -109,7 +109,10 @@ export function ConfigToolbar({
   return (
     <BaseToolbar
       breadcrumbs={breadcrumbs}
-      contextMenu={<ConfigContextMenu node={node} enabled={enabled} />}
+      contextMenu={<ConfigContextMenu node={node} enabled={{
+        ...enabled,
+        delete: enabled?.delete && !node.readOnly
+      }} />}
       actions={actions}
     />
   );
