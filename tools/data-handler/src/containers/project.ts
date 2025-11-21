@@ -55,7 +55,9 @@ import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { MigrationExecutor } from '../migrations/migration-executor.js';
 
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
@@ -984,6 +986,47 @@ export class Project extends CardContainer {
    */
   public get resources(): ResourceHandler {
     return this.resourceHandler;
+  }
+
+  /**
+   * Run migrations to bring project schema to target version.
+   * @param fromVersion Current schema version
+   * @param toVersion Target schema version
+   * @param backupDir Optional directory for backups. If undefined, no backup is created.
+   * @param timeoutMS Optional timeout in milliseconds. If undefined, uses default (2 minutes).
+   * @returns Migration result
+   */
+  public async runMigrations(
+    fromVersion: number,
+    toVersion: number,
+    backupDir?: string,
+    timeoutMS?: number,
+  ): Promise<MigrationResult> {
+    this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
+
+    const executor = new MigrationExecutor(this, backupDir, timeoutMS);
+    const result = await executor.migrate(
+      fromVersion,
+      toVersion,
+      async (version: number) => {
+        this.settings.schemaVersion = version;
+        await this.settings.save();
+      },
+    );
+
+    if (result.success) {
+      this.logger.info(
+        { fromVersion, toVersion },
+        'Migration completed successfully',
+      );
+    } else {
+      this.logger.error(
+        { error: result.error, message: result.message },
+        'Migration failed',
+      );
+    }
+
+    return result;
   }
 
   /**

@@ -12,7 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { readFile } from 'node:fs/promises';
+import { constants, existsSync } from 'node:fs';
+import { access, lstat, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { Argument, Command, Option } from 'commander';
@@ -935,6 +936,78 @@ importCmd
       handleResponse(result);
     },
   );
+
+// Migrate command
+program
+  .command('migrate')
+  .description('Migrate project schema to a newer version.')
+  .argument(
+    '[version]',
+    'Target schema version. If not provided, migrates to the latest version. Can only migrate one version at a time when specified.',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option(
+    '-b, --backup <directory>',
+    'Create a backup before migration in the specified directory. Directory must exist.',
+  )
+  .option(
+    '-t, --timeout <minutes>',
+    'Timeout for migration in minutes (default: 2 minutes)',
+    '2',
+  )
+  .action(async (version: string, options: CommandOptions<'migrate'>) => {
+    if (version) {
+      const versionNumber = parseInt(version);
+      if (isNaN(versionNumber)) {
+        console.error(`Error: migration version is not a number: '${version}'`);
+        process.exit(1);
+      }
+      if (versionNumber <= 0) {
+        console.error(
+          `Error: migration version must be above zero: '${version}'`,
+        );
+        process.exit(1);
+      }
+      if (options.backup) {
+        options.backup = resolve(options.backup.toString().trim());
+        if (!existsSync(options.backup)) {
+          console.error(
+            `Error: Backup directory does not exist: ${options.backup}`,
+          );
+          process.exit(1);
+        }
+        try {
+          await access(options.backup, constants.W_OK);
+        } catch {
+          console.error(
+            `Error: Cannot write to backup directory: ${options.backup}`,
+          );
+          process.exit(1);
+        }
+        if (!(await lstat(options.backup)).isDirectory()) {
+          console.error(`Error: Backup directory is a file: ${options.backup}`);
+          process.exit(1);
+        }
+      }
+    }
+
+    if (options.timeout !== undefined) {
+      const timeoutMinutes = Number(options.timeout);
+      if (isNaN(timeoutMinutes) || timeoutMinutes <= 0) {
+        console.error(`Error: Timeout must be a positive number`);
+        process.exit(1);
+      }
+      // Convert minutes to milliseconds
+      options.timeout = timeoutMinutes * 60 * 1000;
+    }
+
+    const result = await commandHandler.command(
+      Cmd.migrate,
+      [version],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
 
 // Move command
 const moveCmd = new CommandWithPath('move')
