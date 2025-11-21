@@ -1,0 +1,12 @@
+{
+    "cardType": "decision/cardTypes/simplepage",
+    "title": "Decision Records",
+    "workflowState": "Created",
+    "rank": "0|a",
+    "lastUpdated": "2024-07-12T11:07:35.247Z",
+    "labels": [
+        "test",
+        "test-two"
+    ],
+    "decision/fieldTypes/nonExistentField": "some value"
+}

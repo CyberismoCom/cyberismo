@@ -1,0 +1,6 @@
+{
+    "name": "decision/fieldTypes/lastChangedDate",
+    "displayName": "Last changed date",
+    "description": "Date when the task was last updated",
+    "dataType": "date"
+}

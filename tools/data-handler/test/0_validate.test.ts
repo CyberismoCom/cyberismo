@@ -282,6 +282,14 @@ describe('validate cmd tests', () => {
       '(docs_r0brt7n1,base/fieldTypes/informationClassification)',
     );
   });
+  it('try to validate card custom fields - fieldType not defined in the project', async () => {
+    const path = 'test/test-data/invalid/invalid-card-missing-fieldtype';
+    const valid = await validateCmd.validate(path, () => new Project(path));
+    expect(valid.length).to.be.greaterThan(0);
+    expect(valid).to.include(
+      "Card 'decision_5' has field 'decision/fieldTypes/nonExistentField' that does not exist in the project",
+    );
+  });
   it('try to validate invalid projects', async () => {
     const pathToInvalidProject = resolve('test/test-data/invalid');
     const invalidProjects = (

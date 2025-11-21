@@ -760,11 +760,19 @@ export class Validate {
     validationErrors.push(...fieldErrors);
 
     for (const field of cardType.customFields) {
-      const found = project.resources.exists(field.name);
-      if (!found) {
+      let fieldType;
+      try {
+        fieldType = await project.resources
+          .byType(field.name, 'fieldTypes')
+          .show();
+      } catch {
+        fieldType = undefined;
+      }
+      if (!fieldType) {
         validationErrors.push(
-          `Custom field '${field.name}' from card type '${cardType.name}' not found from project`,
+          `In card '${card.key}' field '${field.name}' is missing from project\n`,
         );
+        continue;
       }
       if (field.isCalculated) {
         if (card.metadata[field.name] !== undefined) {
@@ -780,22 +788,6 @@ export class Validate {
           );
           continue;
         }
-      }
-
-      let fieldType;
-      try {
-        fieldType = await project.resources
-          .byType(field.name, 'fieldTypes')
-          .show();
-      } catch {
-        fieldType = undefined;
-      }
-
-      if (!fieldType) {
-        validationErrors.push(
-          `In card '${card.key}' field '${field.name}' is missing from project\n`,
-        );
-        continue;
       }
 
       if (!this.validType(card.metadata[field.name], fieldType)) {
@@ -841,6 +833,19 @@ export class Validate {
       } catch {
         validationErrors.push(
           `Card '${card.key}' has invalid metadata key '${key}'`,
+        );
+        continue;
+      }
+      // Check that the card's fieldType exists in the project
+      let fieldType;
+      try {
+        fieldType = await project.resources.byType(key, 'fieldTypes').show();
+      } catch {
+        fieldType = undefined;
+      }
+      if (!fieldType) {
+        validationErrors.push(
+          `Card '${card.key}' has field '${key}' that does not exist in the project`,
         );
       }
     }
