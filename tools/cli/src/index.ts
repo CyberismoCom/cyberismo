@@ -12,6 +12,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -780,6 +781,53 @@ importCmd
       handleResponse(result);
     },
   );
+
+// Migrate command
+program
+  .command('migrate')
+  .description('Migrate project schema to a newer version.')
+  .argument(
+    '[version]',
+    'Target schema version. If not provided, migrates to the latest version. Can only migrate one version at a time when specified.',
+  )
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option(
+    '-b, --backup <directory>',
+    'Create a backup before migration in the specified directory. Directory must exist.',
+  )
+  .option(
+    '-t, --timeout <minutes>',
+    'Timeout for migration in minutes (default: 2 minutes)',
+    '2',
+  )
+  .action(async (version: string, options: CommandOptions<'migrate'>) => {
+    if (options.backup) {
+      const backupPath = resolve(options.backup.toString().trim());
+      if (!existsSync(backupPath)) {
+        console.error(`Error: Backup directory does not exist: ${backupPath}`);
+        process.exit(1);
+      }
+
+      options.backup = backupPath;
+    }
+
+    if (options.timeout !== undefined) {
+      const timeoutMinutes = Number(options.timeout);
+      if (isNaN(timeoutMinutes) || timeoutMinutes <= 0) {
+        console.error(`Error: Timeout must be a positive number`);
+        process.exit(1);
+      }
+      // Convert minutes to milliseconds
+      options.timeout = timeoutMinutes * 60 * 1000;
+    }
+
+    const result = await commandHandler.command(
+      Cmd.migrate,
+      [version],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
 
 // Move command
 program
