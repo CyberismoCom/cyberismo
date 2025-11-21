@@ -18,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 
-import { MODULE_LIST_FULL_PATH } from './fetch.js';
+import { Fetch, MODULE_LIST_FULL_PATH } from './fetch.js';
 
 import type { attachmentPayload } from '../interfaces/request-status-interfaces.js';
 import type {
@@ -57,6 +57,7 @@ import { buildCardHierarchy, flattenCardArray } from '../utils/card-utils.js';
  * Show command.
  */
 export class Show {
+  private fetchCmd: Fetch;
   private readonly resourceFunctions: Record<
     string,
     (from?: ResourcesFrom) => string[]
@@ -72,7 +73,9 @@ export class Show {
     workflows: (from) => this.resourceNames('workflows', from),
   };
 
-  constructor(private project: Project) {}
+  constructor(private project: Project) {
+    this.fetchCmd = new Fetch(this.project);
+  }
 
   private get logger() {
     return getChildLogger({
@@ -324,6 +327,9 @@ export class Show {
     showDetails?: boolean,
   ): Promise<ModuleSettingFromHub[]> {
     try {
+      // Ensure module list is up to date before showing
+      await this.fetchCmd.ensureModuleListUpToDate();
+
       const moduleList = (
         await readJsonFile(
           resolve(this.project.basePath, MODULE_LIST_FULL_PATH),
@@ -397,7 +403,9 @@ export class Show {
    * Shows hubs of the project.
    * @returns list of hubs.
    */
-  public showHubs(): HubSetting[] {
+  public async showHubs(): Promise<HubSetting[]> {
+    // Ensure module list is up to date before showing
+    await this.fetchCmd.ensureModuleListUpToDate();
     return this.project.configuration.hubs;
   }
 

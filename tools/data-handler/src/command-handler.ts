@@ -20,6 +20,7 @@ import type {
   CardAttachment,
   CardListContainer,
   Credentials,
+  HubSetting,
   ModuleContent,
   ModuleSettingFromHub,
   ProjectMetadata,
@@ -707,6 +708,7 @@ export class Commands {
       | Card
       | CardAttachment[]
       | CardListContainer[]
+      | HubSetting[]
       | ModuleContent
       | ModuleSettingFromHub[]
       | ProjectMetadata
@@ -765,10 +767,8 @@ export class Commands {
         promise = this.commands!.showCmd.showModule(detail);
         break;
       case 'hubs':
-        return {
-          statusCode: 200,
-          payload: this.commands!.showCmd.showHubs(),
-        };
+        promise = this.commands!.showCmd.showHubs();
+        break;
       case 'modules':
         return {
           statusCode: 200,
