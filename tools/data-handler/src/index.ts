@@ -38,6 +38,7 @@ import {
   resourceNameToString,
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
+import { Project, ResourcesFrom } from './containers/project.js';
 
 export {
   Cmd,
@@ -48,7 +49,9 @@ export {
   ExportFormats,
   isResourceFolderType,
   moduleNameFromCardKey,
+  Project,
   requestStatus,
+  ResourcesFrom,
   resourceName,
   resourceNameToString,
   UpdateOperations,

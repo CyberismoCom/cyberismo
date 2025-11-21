@@ -1,4 +1,14 @@
 export * from './schemas.js';
+export type {
+  Migration,
+  MigrationContext,
+  MigrationResult,
+  MigrationStepResult,
+} from './migration-interfaces.js';
+export {
+  validateProjectStructure,
+  createBackup,
+} from './migration-interfaces.js';
 
 // Manually import each resource
 // They rarely change and we get 100% type safety this way
