@@ -106,6 +106,15 @@
   "cardNotFound": "Could not find card",
   "cardType": "Card type",
   "close": "Close",
+  "configTree": {
+    "files": {
+      "model": "Model",
+      "contentTemplate": "Content template",
+      "queryTemplate": "Query template",
+      "schema": "Schema",
+      "viewTemplate": "View template"
+    }
+  },
   "configuration": "Configuration",
   "confirmDeleteAttachment": "Are you sure you want to delete this attachment?",
   "create": "Create",
