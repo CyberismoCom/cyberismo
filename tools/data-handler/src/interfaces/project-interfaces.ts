@@ -228,6 +228,9 @@ export type RemovableResourceTypes =
   | 'workflow'
   | 'label';
 
+// TODO: fix terminology. In DH, modules are not resources.
+// Also, this contains non-folder resources
+// This was done likely like this, because on the CLI, they act similarly to resources
 // Resources that have own folders.
 export type ResourceFolderType =
   | 'calculations'
@@ -240,6 +243,9 @@ export type ResourceFolderType =
   | 'reports'
   | 'templates'
   | 'workflows';
+
+// This covers all 'true' resources
+export type ResourceType = Exclude<ResourceFolderType, 'modules'>;
 
 // All resource types; both singular and plural.
 export type ResourceTypes =

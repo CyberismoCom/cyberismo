@@ -34,8 +34,10 @@ import type {
   ModuleContent,
   ModuleSettingFromHub,
   ProjectMetadata,
+  ResourceType,
 } from '../interfaces/project-interfaces.js';
 import type {
+  AnyResourceContent,
   CardType,
   ResourceContent,
   TemplateConfiguration,
@@ -488,13 +490,33 @@ export class Show {
    * Shows details of certain resource.
    * @param name Name of resource.
    * @param showUse If true, shows also where resource is used.
+   * @param resourceType If specified, checks that the resource is given type.
    * @returns resource metadata as JSON.
    */
   public async showResource(
     name: string,
-    showUse: boolean = false,
-  ): Promise<ResourceContent | undefined> {
+    showUse?: boolean,
+  ): Promise<AnyResourceContent>;
+  public async showResource<T extends ResourceType>(
+    name: string,
+    resourceType: T,
+    showUse?: boolean,
+  ): Promise<ResourceContent<T>>;
+  public async showResource(
+    name: string,
+    arg2?: boolean | ResourceType,
+    arg3?: boolean,
+  ): Promise<AnyResourceContent> {
+    const hasResourceType = typeof arg2 === 'string';
+    const resourceType = hasResourceType ? arg2 : null;
+    const showUse = hasResourceType ? arg3 : arg2;
+
     const type = this.project.resources.extractType(name);
+    if (resourceType !== null && resourceType !== type) {
+      throw new Error(
+        `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
+      );
+    }
     const resource = this.project.resources.byType(name, type);
     const [details, usage] = await Promise.all([
       resource?.show(),
