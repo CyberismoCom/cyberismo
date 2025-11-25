@@ -50,7 +50,7 @@
     "jsdom": "^27.0.0",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
-    "mime-types": "^3.0.1",
+    "mime-types": "^3.0.2",
     "pino": "^9.9.5",
     "simple-git": "^3.29.0",
     "string-pixel-width": "^1.11.0",
