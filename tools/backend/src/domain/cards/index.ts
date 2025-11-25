@@ -59,6 +59,12 @@ router.get('/', async (c) => {
  *         in: path
  *         required: true
  *         description: Card key (string)
+ *       - name: raw
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: When true, returns the raw card data without triggering calculations
  *     responses:
  *       200:
  *         description: Object containing card details. See lib/api/types.ts/CardResponse for the structure.
@@ -81,10 +87,13 @@ router.get(
       return c.text('No search key', 400);
     }
 
+    const raw = c.req.query('raw');
+
     const result = await getCardDetails(
       c.get('commands'),
       key,
       isSSGContext(c),
+      raw?.toLowerCase() === 'true' ? true : false,
     );
     if (result.status === 200) {
       return c.json(result.data);
@@ -119,6 +128,12 @@ router.get(
  *         type: object
  *         required: false
  *         description: New metadata for the card. Must be an object with key-value pairs.
+ *       - name: raw
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: boolean
+ *         description: When true, returns the raw card data without triggering calculations
  *     responses:
  *       200:
  *         description: Object containing card details, same as GET. See definitions.ts/CardDetails for the structure.
@@ -136,10 +151,18 @@ router.patch('/:key', async (c) => {
     return c.text('No search key', 400);
   }
 
+  const raw = c.req.query('raw');
+
   const body = await c.req.json();
 
   try {
-    const result = await cardService.updateCard(commands, key, body);
+    await cardService.updateCard(commands, key, body);
+    const result = await getCardDetails(
+      c.get('commands'),
+      key,
+      isSSGContext(c),
+      raw?.toLowerCase() === 'true' ? true : false,
+    );
     if (result.status === 200) {
       return c.json(result.data);
     } else {

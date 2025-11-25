@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { ResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type { AnyResourceContent } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import type {
   Card,
   CardWithChildrenCards,
@@ -138,7 +138,7 @@ async function createResourceNode(
   id: string;
   type: ResourceFolderType;
   name: string;
-  data: ResourceContent | undefined;
+  data: AnyResourceContent | undefined;
   children?: unknown[];
   readOnly?: boolean;
 }> {
@@ -147,7 +147,7 @@ async function createResourceNode(
     id: string;
     type: ResourceFolderType;
     name: string;
-    data: ResourceContent | undefined;
+    data: AnyResourceContent | undefined;
     children?: unknown[];
     readOnly?: boolean;
   } = {

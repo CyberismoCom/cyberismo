@@ -27,9 +27,10 @@ interface result {
 export async function getCardDetails(
   commands: CommandManager,
   key: string,
-  staticMode?: boolean,
+  staticMode: boolean,
+  raw: boolean,
 ): Promise<result> {
-  let cardDetailsResponse: Card | undefined;
+  let cardDetailsResponse: Card;
   try {
     cardDetailsResponse = commands.showCmd.showCardDetails(key);
   } catch {
@@ -41,7 +42,7 @@ export async function getCardDetails(
   }
 
   // always parse for now if not in export mode
-  if (!staticMode) {
+  if (!staticMode && !raw) {
     await commands.calculateCmd.generate();
   }
 
@@ -66,6 +67,66 @@ export async function getCardDetails(
       },
     })
     .toString();
+
+  if (raw) {
+    if (!cardDetailsResponse.metadata) {
+      throw new Error('Card has no metadata');
+    }
+    const cardType = await commands.showCmd.showResource(
+      cardDetailsResponse.metadata.cardType,
+      'cardTypes',
+    );
+
+    const fields = [];
+    let i = 0;
+    for (const customField of cardType.customFields) {
+      const fieldType = await commands.showCmd.showResource(
+        customField.name,
+        'fieldTypes',
+      );
+      fields.push({
+        key: customField.name,
+        visibility: 'always',
+        index: i++,
+        fieldDisplayName: fieldType.displayName,
+        fieldDescription: fieldType.description,
+        dataType: fieldType.dataType,
+        isCalculated: customField.isCalculated,
+        value: cardDetailsResponse.metadata[customField.name],
+        enumValues: fieldType.enumValues ?? [],
+      });
+    }
+    return {
+      status: 200,
+      data: {
+        key: cardDetailsResponse.key,
+        rank: cardDetailsResponse.metadata?.rank,
+        title: cardDetailsResponse.metadata?.title || '',
+        cardType: cardDetailsResponse.metadata?.cardType || '',
+        cardTypeDisplayName: cardDetailsResponse.metadata.cardType,
+        workflowState: '',
+        lastUpdated: cardDetailsResponse.metadata.lastUpdated,
+        fields,
+        labels: cardDetailsResponse.metadata?.labels || [],
+        links: [],
+        notifications: [],
+        policyChecks: {
+          successes: [],
+          failures: [],
+        },
+        deniedOperations: {
+          transition: [],
+          move: [],
+          delete: [],
+          editField: [],
+          editContent: [],
+        },
+        rawContent: cardDetailsResponse.content || '',
+        parsedContent: htmlContent,
+        attachments: cardDetailsResponse.attachments,
+      },
+    };
+  }
 
   const card = staticMode
     ? await getCardQueryResult(commands.project.basePath, key)
