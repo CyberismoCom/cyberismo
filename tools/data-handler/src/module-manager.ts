@@ -678,6 +678,20 @@ export class ModuleManager {
   }
 
   /**
+   * Updates dependencies for a module without re-importing the module itself.
+   * Used during module import to fetch dependencies after the main module is already imported.
+   * @param module Module whose dependencies should be updated.
+   * @param credentials Optional credentials for private repositories.
+   * @returns Module prefix as defined in its CardsConfig.json
+   */
+  public async updateDependencies(
+    module: ModuleSetting,
+    credentials?: Credentials,
+  ) {
+    return this.update(module, credentials, new Set([module.name]));
+  }
+
+  /**
    * Imports module from a local file path or a git URL.
    * @param module Module to update. If not provided, updates all modules.
    * @param credentials Optional credentials for private repositories.
