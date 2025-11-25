@@ -265,6 +265,7 @@ program
     '-v, --version',
     'Output the version information',
   )
+  .helpOption('-h, --help', 'Display help for command')
   .addOption(
     new Option('-L, --log-level <level>', 'Set the log level')
       .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
@@ -369,6 +370,7 @@ calculate
 
 program
   .command('create')
+  .description('Create cards, resources and other project items')
   .argument(
     '<type>',
     `types to create: '${Parser.listTargets('create').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
@@ -637,7 +639,8 @@ program
 
 const fetchCmd = program
   .command('fetch')
-  .description('Retrieve external data to local file system.');
+  .description('Retrieve external data to local file system.')
+  .option('-p, --project-path [path]', `${pathGuideline}`);
 
 fetchCmd
   .command('hubs')
@@ -652,7 +655,10 @@ fetchCmd
     handleResponse(result);
   });
 
-const importCmd = program.command('import');
+const importCmd = program
+  .command('import')
+  .description('Import modules and data into the project')
+  .option('-p, --project-path [path]', `${pathGuideline}`);
 
 // Import module
 importCmd
@@ -813,7 +819,10 @@ program
     await previewSite(dir || '.', true);
   });
 
-const rank = program.command('rank');
+const rank = program
+  .command('rank')
+  .description('Manage card ranking and ordering')
+  .option('-p, --project-path [path]', `${pathGuideline}`);
 
 rank
   .command('card')
@@ -863,6 +872,7 @@ rank
 // Remove command
 program
   .command('remove')
+  .description('Remove cards, resources and other project items')
   .argument(
     '<type>',
     `removable types: '${Parser.listTargets('remove').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
