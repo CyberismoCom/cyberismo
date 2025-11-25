@@ -32,17 +32,19 @@ export const useAttachments = (
       call(() => {
         const formData = new FormData();
         files.forEach((file) => formData.append('files', file));
-        return addAttachments(key, formData).then(() =>
-          mutate(apiPaths.card(key)),
-        );
+        return addAttachments(key, formData).then(() => {
+          mutate(apiPaths.card(key));
+          mutate(apiPaths.rawCard(key));
+        });
       }, 'add'),
     removeAttachment: (fileName: string) =>
       key &&
       call(
         () =>
-          removeAttachment(key, fileName).then(() =>
-            mutate(apiPaths.card(key)),
-          ),
+          removeAttachment(key, fileName).then(() => {
+            mutate(apiPaths.card(key));
+            mutate(apiPaths.rawCard(key));
+          }),
         'remove',
       ),
     isUpdating: (action?: AttachmentAction) => isUpdating(action),

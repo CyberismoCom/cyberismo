@@ -39,7 +39,12 @@ const useCardData = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isUpdating: _isUpdating,
     ...rest
-  } = useSWRHook(key ? apiPaths.card(key, raw) : null, 'card', null, options);
+  } = useSWRHook(
+    key ? (raw ? apiPaths.rawCard(key) : apiPaths.card(key)) : null,
+    'card',
+    null,
+    options,
+  );
 
   return rest;
 };
@@ -52,6 +57,8 @@ export const useRawCard = (key: string | null, options?: SWRConfiguration) =>
 export const useCardMutations = (key: string | null) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation();
+
+  // since writes and reads are separate, we can use apiPath.card here
   const swrKey = key ? apiPaths.card(key) : null;
   const { isUpdating, call } = useUpdating(swrKey);
 
@@ -122,7 +129,7 @@ export const useCardMutations = (key: string | null) => {
               type,
               linkDescription,
             ).then(() => {
-              mutate(apiPaths.card(key));
+              mutate(apiPaths.card(key)); // raw cards do not have links, no need to mutate them
             }),
           'createLink',
         ))) ||
@@ -204,6 +211,7 @@ export async function updateCard(key: string, cardUpdate: CardUpdate) {
   // update swr cache for the card and project
   // revalidation not needed since api returns the updated card
   mutate(swrKey, result, false);
+  mutate(apiPaths.rawCard(key));
 
   mutate(apiPaths.tree());
 }
@@ -213,6 +221,7 @@ export async function deleteCard(key: string) {
   await callApi(swrKey, 'DELETE');
 
   mutate(swrKey, undefined, false);
+  mutate(apiPaths.rawCard(key), undefined, false);
 
   mutate(apiPaths.tree());
 }
