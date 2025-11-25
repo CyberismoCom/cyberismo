@@ -846,6 +846,21 @@ describe('show', () => {
     const results = await showCmd.showResource(workflowName);
     expect(results).to.not.equal(undefined);
   });
+  it('showResource - workflow expect type(success)', async () => {
+    const workflowName = 'decision/workflows/decision';
+    const results = await showCmd.showResource(workflowName, 'workflows');
+    expect(results).to.not.equal(undefined);
+  });
+  it('showResource - reject non-expected resource types', async () => {
+    const workflowName = 'decision/workflows/decision';
+    await showCmd
+      .showResource(workflowName, 'cardTypes')
+      .catch((error) =>
+        expect(errorFunction(error)).to.equal(
+          `While fetching 'decision/workflows/decision': Expected type 'cardTypes', but got 'workflows' instead`,
+        ),
+      );
+  });
   it('showResource - empty workflow name', async () => {
     const workflowName = '';
     await showCmd
