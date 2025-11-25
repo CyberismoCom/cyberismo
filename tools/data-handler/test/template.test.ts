@@ -8,7 +8,8 @@ import { join, sep } from 'node:path';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import { getTestProject } from './helpers/test-utils.js';
+import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Template } from '../src/containers/template.js';
 import { TemplateResource } from '../src/resources/template-resource.js';
@@ -23,7 +24,7 @@ before(async () => {
   mkdirSync(testDir);
   await copyDir('test/test-data/', testDir);
   decisionRecordsPath = join(testDir, 'valid/decision-records');
-  project = new Project(decisionRecordsPath);
+  project = getTestProject(decisionRecordsPath);
   await project.populateCaches();
 });
 

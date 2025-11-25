@@ -9,6 +9,7 @@ import Handlebars from 'handlebars';
 
 import BaseMacro from '../../src/macros/base-macro.js';
 import { copyDir } from '../../src/utils/file-utils.js';
+import { getTestProject } from '../helpers/test-utils.js';
 import {
   createAdmonition,
   createHtmlPlaceholder,
@@ -17,7 +18,7 @@ import {
   registerMacros,
   validateMacroContent,
 } from '../../src/macros/index.js';
-import { Project } from '../../src/containers/project.js';
+import type { Project } from '../../src/containers/project.js';
 import TaskQueue from '../../src/macros/task-queue.js';
 
 import { MAX_LEVEL_OFFSET } from '../../src/utils/constants.js';
@@ -124,7 +125,7 @@ describe('macros', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(decisionRecordsPath);
+      project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       await project.calculationEngine.generate();
     });
@@ -895,7 +896,7 @@ Some content here`;
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(decisionRecordsPath);
+      project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
       await project.calculationEngine.generate();
     });

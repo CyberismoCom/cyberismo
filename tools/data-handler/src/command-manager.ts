@@ -30,6 +30,7 @@ import { setLogger } from './utils/log-utils.js';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
+  autoSaveConfiguration?: boolean;
   logLevel?: Level;
 }
 
@@ -55,7 +56,10 @@ export class CommandManager {
   private pathHandler: ProjectPaths;
 
   constructor(path: string, options?: CommandManagerOptions) {
-    this.project = new Project(path, options?.watchResourceChanges);
+    this.project = new Project(path, {
+      autoSave: options?.autoSaveConfiguration,
+      watchResourceChanges: options?.watchResourceChanges,
+    });
     this.validateCmd = Validate.getInstance();
 
     this.calculateCmd = new Calculate(this.project);
@@ -71,6 +75,16 @@ export class CommandManager {
     this.transitionCmd = new Transition(this.project);
     this.updateCmd = new Update(this.project);
     this.pathHandler = new ProjectPaths(path);
+  }
+
+  /**
+   * Checks the schema version compatibility.
+   * @returns
+   *    isCompatible - true if compatible; false otherwise
+   *    message - optional message related to compatibility.
+   */
+  public checkSchemaVersion(): { isCompatible: boolean; message?: string } {
+    return this.project.configuration.checkSchemaVersion();
   }
 
   /**

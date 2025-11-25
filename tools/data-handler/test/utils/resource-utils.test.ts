@@ -10,7 +10,8 @@ import {
   resourceNameToString,
   resourceFilePath,
 } from '../../src/utils/resource-utils.js';
-import { Project } from '../../src/containers/project.js';
+import type { Project } from '../../src/containers/project.js';
+import { getTestProject } from '../helpers/test-utils.js';
 
 describe('resource utils', () => {
   it('resourceName with valid resource name (success)', () => {
@@ -91,8 +92,9 @@ describe('resource utils with Project instance', () => {
     baseDir,
     '../test-data/valid/decision-records',
   );
-  const project = new Project(decisionRecordsPath);
+  let project: Project;
   before(async () => {
+    project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
   });
   it('resourceNameToPath with valid values', () => {

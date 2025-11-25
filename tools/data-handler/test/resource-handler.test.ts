@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import { getTestProject } from './helpers/test-utils.js';
+import type { Project } from '../src/containers/project.js';
 import { ResourceHandler } from '../src/containers/project/resource-handler.js';
 import { ResourcesFrom } from '../src/containers/project/resource-cache.js';
 
@@ -20,7 +21,7 @@ describe('ResourceHandler', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(testProjectPath);
+      project = getTestProject(testProjectPath);
       await project.populateCaches();
       resourceHandler = project.resources;
     });

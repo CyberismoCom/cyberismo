@@ -126,21 +126,11 @@ async function importableModules(options: CommandOptions<'show'>) {
 // Load environment variables from .env file
 dotenv.config({ quiet: true });
 
-// Commander
-const program = new Command();
-
-// Version information
-program.command('--version', 'show binary version').action(async () => {
-  const pack = (
-    await import('../package.json', {
-      with: { type: 'json' },
-    })
-  ).default;
-  console.log(pack.version);
-});
-
 // CLI command handler
 const commandHandler = new Commands();
+
+// Commander
+const program = new Command();
 
 // Ensure that all names have the same guideline.
 const nameGuideline =
@@ -270,7 +260,11 @@ const contextOption = new Option(
 program
   .name('cyberismo')
   .description(packageDef.description)
-  .version(packageDef.version)
+  .version(
+    `cyberismo version: ${packageDef.version}\nSchema version: ${commandHandler.getSchemaVersion()}`,
+    '-v, --version',
+    'Output the version information',
+  )
   .addOption(
     new Option('-L, --log-level <level>', 'Set the log level')
       .choices(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
@@ -573,7 +567,7 @@ program
   .option('-n, --name [name]', 'Name of the exported document(pdf export only)')
   .option('-d, --date [date]', 'Date of the exported document(pdf export only)')
   .option(
-    '-v, --version [version]',
+    '--doc-version [version]',
     'Version of the exported document(pdf export only)',
   )
   .option(

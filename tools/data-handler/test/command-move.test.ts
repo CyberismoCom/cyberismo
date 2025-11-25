@@ -5,9 +5,8 @@ import { join, sep } from 'node:path';
 
 import { Cmd, CommandManager, Commands } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
-import { getTestBaseDir } from './helpers/test-utils.js';
+import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const commandHandler: Commands = new Commands();
@@ -74,7 +73,7 @@ describe('move command', () => {
   });
 
   it('move card to root (success)', async () => {
-    const project = new Project(options.projectPath!);
+    const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const cards = new Show(project).showProjectCards();
 
@@ -89,7 +88,7 @@ describe('move command', () => {
     expect(result.statusCode).to.equal(200);
   });
   it('move card to another card (success)', async () => {
-    const project = new Project(options.projectPath!);
+    const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const cards = new Show(project).showProjectCards();
     expect(cards.length).to.be.greaterThanOrEqual(2);

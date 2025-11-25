@@ -16,7 +16,9 @@ describe('edit card', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    commands = new CommandManager(decisionRecordsPath);
+    commands = new CommandManager(decisionRecordsPath, {
+      autoSaveConfiguration: false,
+    });
     await commands.initialize();
     editCmd = commands.editCmd;
   });
@@ -144,7 +146,9 @@ describe('edit card', () => {
         freshTestDir,
         'valid/decision-records',
       );
-      const freshCommands = new CommandManager(freshDecisionRecordsPath);
+      const freshCommands = new CommandManager(freshDecisionRecordsPath, {
+        autoSaveConfiguration: false,
+      });
       await freshCommands.initialize();
       const freshEditCmd = freshCommands.editCmd;
 

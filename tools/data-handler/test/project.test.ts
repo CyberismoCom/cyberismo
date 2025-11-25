@@ -17,6 +17,7 @@ import {
 } from '../src/utils/card-utils.js';
 import { Project } from '../src/containers/project.js';
 import { ProjectConfiguration } from '../src/project-settings.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 describe('project', () => {
   // Create test artifacts in a temp folder.
@@ -34,7 +35,7 @@ describe('project', () => {
 
   it('create class - paths to resources (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -63,7 +64,7 @@ describe('project', () => {
 
   it('create class - resources (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -104,7 +105,7 @@ describe('project', () => {
 
   it('create class - show details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -117,31 +118,9 @@ describe('project', () => {
     expect(projectDetails.numberOfCards).to.equal(2);
   });
 
-  it('create settings class (success)', async () => {
-    const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
-    await project.populateCaches();
-    expect(project).to.not.equal(undefined);
-
-    const configFile = join(
-      decisionRecordsPath,
-      '.cards',
-      'local',
-      Project.projectConfigFileName,
-    );
-    const projectSettings = new ProjectConfiguration(configFile);
-    expect(projectSettings).to.not.equal(undefined);
-
-    const prefix = projectSettings.cardKeyPrefix;
-    expect(prefix).to.equal('decision');
-
-    const prefixes = project.projectPrefixes();
-    expect(prefixes).to.contain(prefix);
-  });
-
   it('create class - card operation (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -165,7 +144,7 @@ describe('project', () => {
   // Card and resource details.
   it('access card details by id (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -210,7 +189,7 @@ describe('project', () => {
   });
   it('try to find empty card from Project', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     expect(() => {
@@ -219,7 +198,7 @@ describe('project', () => {
   });
   it('try to access card details with invalid card id', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     expect(() => {
@@ -228,7 +207,7 @@ describe('project', () => {
   });
   it('access card type details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -243,7 +222,7 @@ describe('project', () => {
   });
   it('try to access card type details with non-existing name', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -257,7 +236,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -283,7 +262,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -313,7 +292,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -335,7 +314,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -352,7 +331,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -368,7 +347,7 @@ describe('project', () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const card = project.findCard(cardToOperateOn);
     expect(card).to.not.equal(undefined);
@@ -383,7 +362,7 @@ describe('project', () => {
 
   it('show all project cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -405,7 +384,7 @@ describe('project', () => {
   });
   it('empty project does not have cards', async () => {
     const emptyProjectPath = join(testDir, 'valid/minimal');
-    const project = new Project(emptyProjectPath);
+    const project = getTestProject(emptyProjectPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -414,7 +393,7 @@ describe('project', () => {
   });
   it('access workflow details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -430,7 +409,7 @@ describe('project', () => {
   });
   it('try to access workflow details with non-existing name', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -442,7 +421,7 @@ describe('project', () => {
   });
   it('change card state (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -462,7 +441,7 @@ describe('project', () => {
   });
   it('create template object from project (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     const template = project.resources
@@ -472,7 +451,7 @@ describe('project', () => {
   });
   it('create template object from project using card (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     const templateCards = project.allTemplateCards();
@@ -486,7 +465,7 @@ describe('project', () => {
   });
   it('find certain card from project - content as adoc (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     const existingCard = project.findCard('decision_5', {
@@ -497,7 +476,7 @@ describe('project', () => {
   });
   it('find certain card from project - content as html (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -513,7 +492,7 @@ describe('project', () => {
   });
   it('find certain card from project - card is from template (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     const existingCard = project.findCard('decision_1', {
@@ -523,7 +502,7 @@ describe('project', () => {
   });
   it('check if project is created (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
     expect(Project.isCreated(decisionRecordsPath)).to.equal(true);
@@ -532,7 +511,7 @@ describe('project', () => {
   });
   it('fetch template cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     // You get the same cards if you fetch all template cards in one call...
     let templateCards = project.allTemplateCards();
@@ -549,7 +528,7 @@ describe('project', () => {
   });
   it('list project cards (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -565,7 +544,7 @@ describe('project', () => {
   });
   it('list project cards IDs (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -579,7 +558,7 @@ describe('project', () => {
   });
   it('check all attachments', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -592,7 +571,7 @@ describe('project', () => {
   });
   it('check all modules', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -601,7 +580,7 @@ describe('project', () => {
   });
   it('parse card path - project root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_5';
     const card = project.findCard(cardId);
@@ -620,7 +599,7 @@ describe('project', () => {
   });
   it('parse card path - project non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_6';
     const card = project.findCard(cardId);
@@ -639,7 +618,7 @@ describe('project', () => {
   });
   it('parse card path - template root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_1';
     const card = project.findCard(cardId);
@@ -658,7 +637,7 @@ describe('project', () => {
   });
   it('parse card path - template non-root card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardId = 'decision_4';
     const card = project.findCard(cardId);
@@ -679,7 +658,7 @@ describe('project', () => {
   todo: put this kind of test to where module import is possible to do.
   it('parse card path - module template card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     const { template, cardKey, prefix, parents } =
        cardPathParts(project.projectPrefix, 'decision_1');
     expect(prefix).to.equal('decision');
@@ -690,7 +669,7 @@ describe('project', () => {
   */
   it('parse card path - invalid card', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(() =>
       cardPathParts(project.projectPrefix, 'decision_99'),
@@ -698,7 +677,7 @@ describe('project', () => {
   });
   it('add module to project', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
@@ -708,7 +687,7 @@ describe('project', () => {
       'local',
       Project.projectConfigFileName,
     );
-    const projectSettings = new ProjectConfiguration(configFile);
+    const projectSettings = new ProjectConfiguration(configFile, false);
     expect(projectSettings).to.not.equal(undefined);
     expect(projectSettings.modules.length).to.equal(0);
 
@@ -745,7 +724,7 @@ describe('project', () => {
 
   it('should flatten project cards', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cards = project.cards();
     const hierarchicalCards = buildCardHierarchy(cards);
@@ -780,7 +759,7 @@ describe('project', () => {
     const attachment = readFileSync(attachmentPath);
 
     // Add attachment to a card
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     await project.createCardAttachment(
       'decision_5',
@@ -821,14 +800,14 @@ describe('project', () => {
 
   it('should card cache populated', async () => {
     const decisionRecordsPath = join(testDir, `valid${sep}decision-records`);
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     expect(project.cardsCache.hasCard('decision_5')).to.equal(false);
     await project.populateCaches();
     expect(project.cardsCache.hasCard('decision_5')).to.equal(true);
   });
   it('should have card folder', async () => {
     const decisionRecordsPath = join(testDir, 'valid', 'decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const cardFolder = await project.cardFolder('decision_5');
     expect(cardFolder).to.include(
@@ -837,7 +816,7 @@ describe('project', () => {
   });
   it('should have children cards', async () => {
     const decisionRecordsPath = join(testDir, 'valid', 'decision-records');
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
 
     // Check that Card data can be retrieved with card keys

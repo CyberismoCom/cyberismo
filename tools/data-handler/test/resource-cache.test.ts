@@ -5,11 +5,12 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { CommandManager } from '../src/command-manager.js';
 import { copyDir, pathExists } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import type { Project } from '../src/containers/project.js';
 import {
   ResourceCache,
   ResourcesFrom,
 } from '../src/containers/project/resource-cache.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;
@@ -22,7 +23,7 @@ describe('Resource cache', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(testProjectPath);
+      project = getTestProject(testProjectPath);
       await project.populateCaches();
     });
 
@@ -93,7 +94,7 @@ describe('Resource cache', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(testProjectPath);
+      project = getTestProject(testProjectPath);
       await project.populateCaches();
     });
 
@@ -279,7 +280,7 @@ describe('Resource cache', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(testProjectPath);
+      project = getTestProject(testProjectPath);
       await project.populateCaches();
     });
 
@@ -347,7 +348,9 @@ describe('Resource cache', () => {
     beforeEach(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      commands = new CommandManager(testProjectPath);
+      commands = new CommandManager(testProjectPath, {
+        autoSaveConfiguration: false,
+      });
       await commands.initialize();
     });
 
@@ -509,7 +512,7 @@ describe('Resource cache', () => {
     before(async () => {
       mkdirSync(testDir, { recursive: true });
       await copyDir('test/test-data/', testDir);
-      project = new Project(testProjectPath);
+      project = getTestProject(testProjectPath);
       await project.populateCaches();
     });
 

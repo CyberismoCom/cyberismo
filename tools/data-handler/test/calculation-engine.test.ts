@@ -4,9 +4,10 @@ import chaiAsPromised from 'chai-as-promised';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Project } from '../src/containers/project.js';
+import type { Project } from '../src/containers/project.js';
 import type { QueryResult } from '../src/types/queries.js';
 import { lpFiles } from '@cyberismo/assets';
+import { getTestProject } from './helpers/test-utils.js';
 
 use(chaiAsPromised);
 
@@ -36,7 +37,7 @@ describe('calculate', () => {
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
-    project = new Project(decisionRecordsPath);
+    project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     await project.calculationEngine.generate();
   });

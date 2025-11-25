@@ -9,8 +9,8 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Project } from '../src/containers/project.js';
 import { Show } from '../src/commands/index.js';
+import { getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -43,7 +43,7 @@ describe('import csv command', () => {
 
     const [key1, key2] = result.payload as string[];
 
-    const project = new Project(decisionRecordsPath);
+    const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
     const show = new Show(project);
     const card1 = show.showCardDetails(key1);
