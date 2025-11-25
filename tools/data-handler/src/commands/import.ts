@@ -162,7 +162,10 @@ export class Import {
     };
 
     // Fetch module dependencies.
-    await this.moduleManager.updateModule(moduleSettings, options?.credentials);
+    await this.moduleManager.updateDependencies(
+      moduleSettings,
+      options?.credentials,
+    );
 
     // Add module as a dependency.
     await this.project.importModule(moduleSettings);

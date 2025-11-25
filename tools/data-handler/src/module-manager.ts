@@ -480,7 +480,11 @@ export class ModuleManager {
   }
 
   // Updates modules in the project.
-  private async update(module?: ModuleSetting, credentials?: Credentials) {
+  private async update(
+    module?: ModuleSetting,
+    credentials?: Credentials,
+    skipModules?: Set<string>,
+  ) {
     // Prints dots every half second so that user knows that something is ongoing
     function start() {
       console.log('... Collecting unique modules. This takes a moment.');
@@ -515,9 +519,28 @@ export class ModuleManager {
         uniqueModules.map((item) => item.name),
       );
 
+      // Filter out modules that are already imported
+      const modulesToImport = skipModules
+        ? uniqueModules.filter((module) => !skipModules.has(module.name))
+        : uniqueModules;
+
+      if (
+        skipModules &&
+        skipModules.size > 0 &&
+        modulesToImport.length < uniqueModules.length
+      ) {
+        const skippedModules = uniqueModules
+          .filter((module) => skipModules.has(module.name))
+          .map((m) => m.name)
+          .join(', ');
+        console.log(
+          `... Skipping already imported module(s): ${skippedModules}`,
+        );
+      }
+
       // Update modules parallel.
       const promises: Promise<void>[] = [];
-      uniqueModules.forEach((module) =>
+      modulesToImport.forEach((module) =>
         promises.push(this.handleModule(module)),
       );
       await Promise.all(promises);
@@ -655,13 +678,32 @@ export class ModuleManager {
   }
 
   /**
-   * Imports module from a local file path or a git URL.
-   * @param module Module to update. If not provided, updates all modules.
+   * Updates dependencies for a module without re-importing the module itself.
+   * Used during module import to fetch dependencies after the main module is already imported.
+   * @param module Module whose dependencies should be updated.
    * @param credentials Optional credentials for private repositories.
    * @returns Module prefix as defined in its CardsConfig.json
    */
-  public async updateModule(module: ModuleSetting, credentials?: Credentials) {
-    return this.update(module, credentials);
+  public async updateDependencies(
+    module: ModuleSetting,
+    credentials?: Credentials,
+  ) {
+    return this.update(module, credentials, new Set([module.name]));
+  }
+
+  /**
+   * Imports module from a local file path or a git URL.
+   * @param module Module to update. If not provided, updates all modules.
+   * @param credentials Optional credentials for private repositories.
+   * @param skipModules Optional set of module names to skip during import.
+   * @returns Module prefix as defined in its CardsConfig.json
+   */
+  public async updateModule(
+    module: ModuleSetting,
+    credentials?: Credentials,
+    skipModules?: Set<string>,
+  ) {
+    return this.update(module, credentials, skipModules);
   }
 
   /**
