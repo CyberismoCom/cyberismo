@@ -32,11 +32,11 @@ importers:
         specifier: ^8.46.2
         version: 8.46.2(eslint@9.38.0)(typescript@5.9.3)
       chai:
-        specifier: ^6.2.0
-        version: 6.2.0
+        specifier: ^6.2.1
+        version: 6.2.1
       chai-as-promised:
         specifier: ^8.0.2
-        version: 8.0.2(chai@6.2.0)
+        version: 8.0.2(chai@6.2.1)
       chokidar-cli:
         specifier: ^3.0.0
         version: 3.0.0
@@ -2299,8 +2299,8 @@ packages:
     peerDependencies:
       chai: '>= 2.1.2 < 7'
 
-  chai@6.2.0:
-    resolution: {integrity: sha512-aUTnJc/JipRzJrNADXVvpVqi6CO0dn3nx4EVPxijri+fj3LUUDyZQOgVeW54Ob3Y1Xh9Iz8f+CgaCl8v0mn9bA==}
+  chai@6.2.1:
+    resolution: {integrity: sha512-p4Z49OGG5W/WBCPSS/dH3jQ73kD6tiMmUM+bckNK6Jr5JHMG3k9bg/BvKR8lKmtVBKmOiuVaV2ws8s9oSbwysg==}
     engines: {node: '>=18'}
 
   chalk@2.4.2:
@@ -6737,7 +6737,7 @@ snapshots:
       '@types/chai': 5.2.3
       '@vitest/spy': 4.0.7
       '@vitest/utils': 4.0.7
-      chai: 6.2.0
+      chai: 6.2.1
       tinyrainbow: 3.0.3
 
   '@vitest/mocker@3.1.1(vite@7.2.2(@types/node@22.19.0)(terser@5.40.0)(tsx@4.20.6))':
@@ -7023,12 +7023,12 @@ snapshots:
 
   caseless@0.12.0: {}
 
-  chai-as-promised@8.0.2(chai@6.2.0):
+  chai-as-promised@8.0.2(chai@6.2.1):
     dependencies:
-      chai: 6.2.0
+      chai: 6.2.1
       check-error: 2.1.1
 
-  chai@6.2.0: {}
+  chai@6.2.1: {}
 
   chalk@2.4.2:
     dependencies:
