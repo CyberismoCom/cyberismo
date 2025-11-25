@@ -32,7 +32,7 @@ class ReportMacro extends BaseMacro {
 
   handleStatic = async (context: MacroGenerationContext, data: unknown) => {
     const options = this.validate(data);
-    const report = await context.project.resources
+    const report = context.project.resources
       .byType(options.name, 'reports')
       .show();
 

@@ -12,20 +12,14 @@
 */
 
 import BaseMacro from '../base-macro.js';
-import type { GraphOptions } from './types.js';
 import { createImage, validateMacroContent } from '../index.js';
 import Handlebars from 'handlebars';
-import type { MacroGenerationContext } from '../../interfaces/macros.js';
 import macroMetadata from './metadata.js';
-import { pathExists } from '../../utils/file-utils.js';
-import { readFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
-import type { Schema } from 'jsonschema';
-import type TaskQueue from '../task-queue.js';
 import { ClingoError } from '@cyberismo/node-clingo';
-import { resourceFilePath } from '../../utils/resource-utils.js';
-import { resourceName } from '../../utils/resource-utils.js';
-import { hasCode } from '../../utils/error-utils.js';
+
+import type { GraphOptions } from './types.js';
+import type { MacroGenerationContext } from '../../interfaces/macros.js';
+import type TaskQueue from '../task-queue.js';
 
 class GraphMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -39,40 +33,35 @@ class GraphMacro extends BaseMacro {
   handleStatic = async (context: MacroGenerationContext, input: unknown) => {
     const options = this.parseOptions(input, context);
 
-    const modelLocation = resourceFilePath(
-      context.project,
-      resourceName(options.model),
-      'model.lp',
+    const modelResource = context.project.resources.byType(
+      options.model,
+      'graphModels',
     );
-    const viewLocation = resourceFilePath(
-      context.project,
-      resourceName(options.view),
-      'view.lp.hbs',
-    );
+    const modelContent = modelResource.contentData();
 
-    if (!pathExists(modelLocation)) {
-      throw new Error(`Graph: Model ${options.model} does not exist`);
+    const viewResource = context.project.resources.byType(
+      options.view,
+      'graphViews',
+    );
+    const viewContent = viewResource.contentData();
+    if (!viewContent.viewTemplate) {
+      throw new Error(`Graph: View ${options.view} has no view template`);
     }
 
-    let viewContent = '';
-    try {
-      viewContent = await readFile(viewLocation, { encoding: 'utf-8' });
-    } catch {
-      throw new Error(`Graph: View ${options.view} does not exist`);
-    }
     const handlebarsContext = {
       cardKey: context.cardKey,
       ...options,
     };
 
     const handlebars = Handlebars.create();
-    const view = handlebars.compile(viewContent)(handlebarsContext);
+    const view = handlebars.compile(viewContent.viewTemplate)(
+      handlebarsContext,
+    );
 
-    const modelContent = await readFile(modelLocation, { encoding: 'utf-8' });
     let result: string;
     try {
       result = await context.project.calculationEngine.runGraph(
-        modelContent,
+        modelContent.model,
         view,
         context.context,
       );
@@ -99,27 +88,13 @@ class GraphMacro extends BaseMacro {
   ): GraphOptions {
     const options = validateMacroContent<GraphOptions>(this.metadata, input);
 
-    let schema: Schema | null = null;
-    try {
-      schema = JSON.parse(
-        readFileSync(
-          resourceFilePath(
-            context.project,
-            resourceName(options.view),
-            'parameterSchema.json',
-          ),
-          { encoding: 'utf-8' },
-        ),
-      );
-    } catch (error) {
-      // parameterSchema.json is optional; so we can ignore if it is missing; log other errors
-      if (hasCode(error) && error.code !== 'ENOENT') {
-        this.logger.warn(
-          error,
-          "Unknown error when trying to open graphView's 'parameterSchema.json' file",
-        );
-      }
-    }
+    // Get schema from view resource content if available
+    const resource = context.project.resources.byType(
+      options.view,
+      'graphViews',
+    );
+    const content = resource.contentData();
+    const schema = content.schema;
 
     if (schema) {
       validateMacroContent(this.metadata, input, schema);

@@ -92,9 +92,7 @@ export class CardMetadataUpdater {
 
     let fieldType;
     try {
-      fieldType = await project.resources
-        .byType(change.field, 'fieldTypes')
-        .show();
+      fieldType = project.resources.byType(change.field, 'fieldTypes').show();
     } catch {
       fieldType = undefined;
     }

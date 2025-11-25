@@ -14,18 +14,17 @@
 
 import { basename, dirname, join, normalize } from 'node:path';
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
-import { readdirSync, readFileSync } from 'node:fs';
 
 import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
   filename,
-  propertyName,
+  contentPropertyName,
 } from '../interfaces/folder-content-interfaces.js';
-import { formatJson, readJsonFile } from '../utils/json.js';
+import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
-import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
+import { resourceName } from '../utils/resource-utils.js';
 
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
@@ -45,9 +44,7 @@ export abstract class FolderResource<
   U extends FolderResourceContent,
 > extends ResourceObject<T, U> {
   protected internalFolder: string = '';
-
-  // Cache for content files to avoid repeated filesystem operations. Content is stored as string.
-  private contentFilesCache = new Map<string, string>();
+  private resourceContent: U = {} as U;
 
   /**
    * Constructs a FolderResource object.
@@ -58,31 +55,6 @@ export abstract class FolderResource<
   constructor(project: Project, name: ResourceName, type: ResourceFolderType) {
     super(project, name, type);
     this.initialize();
-  }
-
-  // Clears the content files cache.
-  private clearContentCache() {
-    this.contentFilesCache.clear();
-  }
-
-  // Preloads content files into cache.
-  private preloadContentCache() {
-    try {
-      const files = readdirSync(this.internalFolder, { withFileTypes: true });
-      for (const file of files) {
-        if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
-          const filePath = join(this.internalFolder, file.name);
-          try {
-            const content = readFileSync(filePath, 'utf8');
-            this.contentFilesCache.set(file.name, content);
-          } catch {
-            this.logger.warn({ file }, `Couldn't read a file`);
-          }
-        }
-      }
-    } catch {
-      this.logger.warn(`Preloading cache failed from ${this.internalFolder}`);
-    }
   }
 
   /**
@@ -106,13 +78,6 @@ export abstract class FolderResource<
       this.resourceFolder,
       this.resourceName.identifier,
     );
-
-    // Populate content files to cache if resource exists in registry
-    if (
-      this.project.resources.exists(resourceNameToString(this.resourceName))
-    ) {
-      this.preloadContentCache();
-    }
   }
 
   /**
@@ -122,65 +87,36 @@ export abstract class FolderResource<
   protected abstract onNameChange?(previousName: string): Promise<void>;
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
+   * Set content files. Should not be called by others than resource cache.
    */
-  protected async rename(newName: ResourceName) {
-    return super.rename(newName);
+  public setContentFiles(contentFiles: Map<string, string>) {
+    const content = {} as Record<string, unknown>;
+
+    for (const [fileName, fileContent] of contentFiles.entries()) {
+      const key = contentPropertyName(fileName);
+      if (key) {
+        const isJson = key === 'schema';
+        content[key] = isJson ? JSON.parse(fileContent) : fileContent;
+      }
+    }
+
+    this.resourceContent = content as U;
   }
 
   /**
-   * Shows the content of a file in the resource.
-   * @param fileName Name of the file to show.
-   * @param json Content is JSON file.
-   * @returns the content of the file.
+   * Load all content files from the internal folder and set them.
    */
-  protected async showFile(
-    fileName: string,
-    json: boolean = false,
-  ): Promise<string> {
-    // Always first check cache...
-    if (this.contentFilesCache.has(fileName)) {
-      const cached = this.contentFilesCache.get(fileName)!;
-      return json ? JSON.parse(cached) : cached;
+  protected async loadContentFiles() {
+    const contentFiles = new Map<string, string>();
+    const files = await readdir(this.internalFolder, { withFileTypes: true });
+    for (const file of files) {
+      if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
+        const filePath = join(this.internalFolder, file.name);
+        const content = await readFile(filePath, 'utf-8');
+        contentFiles.set(file.name, content);
+      }
     }
-
-    // ...cache miss, read from filesystem
-    const filePath = join(this.internalFolder, fileName);
-    const content = json
-      ? await readJsonFile(filePath)
-      : await readFile(filePath, 'utf8');
-
-    // Update cache
-    const contentStr =
-      typeof content === 'string' ? content : formatJson(content);
-    this.contentFilesCache.set(fileName, contentStr);
-
-    return json ? content : contentStr;
-  }
-
-  /**
-   * Shows all file names in the resource.
-   * @returns all file names in the resource.
-   */
-  protected async showFileNames(): Promise<string[]> {
-    // Always first check cache...
-    if (this.contentFilesCache.size > 0) {
-      return Array.from(this.contentFilesCache.keys());
-    }
-
-    // ...cache miss, read from filesystem and populate cache
-    const files = await readdir(this.internalFolder);
-    const validFiles = files.filter((file) =>
-      VALID_FOLDER_RESOURCE_FILES.includes(file),
-    );
-
-    // Update cache by reading all files. Each method call updates specific cache item.
-    for (const fileName of validFiles) {
-      await this.showFile(fileName);
-    }
-
-    return validFiles;
+    this.setContentFiles(contentFiles);
   }
 
   /**
@@ -188,7 +124,7 @@ export abstract class FolderResource<
    * @param fileName The name of the file to update.
    * @param changedContent The new content for the file.
    */
-  protected async updateFile(fileName: string, changedContent: string) {
+  public async updateFile(fileName: string, changedContent: string) {
     const filePath = join(this.internalFolder, fileName);
 
     // Do not allow updating file in other directories
@@ -209,8 +145,14 @@ export abstract class FolderResource<
 
     await writeFileSafe(filePath, changedContent, { flag: 'w' });
 
-    // Update cache with new content
-    this.contentFilesCache.set(fileName, changedContent);
+    // Update this resource's content
+    const key = contentPropertyName(fileName);
+    if (key) {
+      const isJson = key === 'schema';
+      (this.resourceContent as Record<string, unknown>)[key] = isJson
+        ? JSON.parse(changedContent)
+        : changedContent;
+    }
   }
 
   /**
@@ -233,22 +175,11 @@ export abstract class FolderResource<
    * Gets content of all files to properties.
    * @returns object with property names as keys and file contents as values.
    */
-  public async contentData(): Promise<U> {
-    const fileNames = await this.showFileNames();
-    const content = {} as Record<string, unknown>;
-
-    for (const fileName of fileNames) {
-      const name = propertyName(fileName);
-      if (name) {
-        const JSONFile = name === 'schema';
-        content[name] = await this.showFile(fileName, JSONFile);
-      }
-    }
-
+  public contentData(): U {
     // TODO: Instead of casting, validate that content matches U
     // This requires a runtime schema for U to be defined(via an abstract variable)
 
-    return content as U;
+    return this.resourceContent;
   }
 
   /**
@@ -257,7 +188,6 @@ export abstract class FolderResource<
   public async delete() {
     await super.delete();
     await rm(this.internalFolder, { recursive: true, force: true });
-    this.clearContentCache();
   }
 
   /**
@@ -266,11 +196,11 @@ export abstract class FolderResource<
    * @template U Resource content
    * @returns resource type's metadata and content.
    */
-  public async show(): Promise<ShowReturnType<T, U>> {
+  public show(): ShowReturnType<T, U> {
     this.assertResourceExists();
     return {
       ...this.content,
-      content: await this.contentData(),
+      content: this.contentData(),
     };
   }
 

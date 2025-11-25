@@ -19,7 +19,6 @@ import { basename, join } from 'node:path';
 import { ArrayHandler } from './array-handler.js';
 import { deleteFile, pathExists } from '../utils/file-utils.js';
 import { getChildLogger } from '../utils/log-utils.js';
-import { hasCode } from '../utils/error-utils.js';
 import {
   readJsonFile,
   readJsonFileSync,
@@ -115,7 +114,7 @@ export abstract class AbstractResource<
   protected abstract delete(): Promise<void>; // delete from disk
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
   protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
-  protected abstract show(): Promise<ShowReturnType<T, U>>; // return the content as JSON
+  protected abstract show(): ShowReturnType<T, U>; // return the content as JSON
   protected abstract update<Type, K extends string>(
     updateKey: UpdateKey<K>,
     operation: Operation<Type>,
@@ -202,7 +201,8 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Checks if resource exists
+   * Checks if resource exists.
+   * This should only throw, if someone creates resources directly; ie. not through the cache
    * @throws if resource does not exist
    */
   protected assertResourceExists() {
@@ -228,23 +228,9 @@ export abstract class ResourceObject<
     const references: string[] = [];
     const resourceName = resourceNameToString(this.resourceName);
     for (const calculation of this.project.resources.calculations()) {
-      // calculation.fileName points to the .json file, but we need the .lp file
-      const calculationFolder = calculation.fileName.replace(/\.json$/, '');
-      const filename = join(calculationFolder, 'calculation.lp');
-      try {
-        const content = await readFile(filename, 'utf-8');
-        if (content.includes(resourceName)) {
-          references.push(calculation.data!.name);
-        }
-      } catch (error) {
-        // Skip files that don't exist (they may have been renamed or deleted)
-        if (hasCode(error) && error.code === 'ENOENT') {
-          this.logger.warn(`Skipping non-existent file: ${filename}`);
-          continue;
-        }
-        throw new Error(
-          `Failed to process file ${filename}: ${(error as Error).message}`,
-        );
+      const content = calculation.contentData();
+      if (content.calculation && content.calculation.includes(resourceName)) {
+        references.push(calculation.data!.name);
       }
     }
     return references;
@@ -576,28 +562,10 @@ export abstract class ResourceObject<
 
     await Promise.all(
       calculations.map(async (calculation) => {
-        // todo: think better way to do this
-        // calculation.fileName points to the .json file, but we need the .lp file
-        const calculationFolder = calculation.fileName.replace(/\.json$/, '');
-        const filename = join(calculationFolder, 'calculation.lp');
-
-        try {
-          const content = await readFile(filename, 'utf-8');
-          const updatedContent = content.replaceAll(from, to);
-          await writeFile(filename, updatedContent);
-        } catch (error) {
-          if (hasCode(error) && error.code === 'ENOENT') {
-            // Skip files that don't exist (they may have been renamed or deleted)
-            this.getLogger(this.getType).warn(
-              `Skipping non-existent file: ${filename}`,
-            );
-            return;
-          }
-          if (error instanceof Error) {
-            throw new Error(
-              `Failed to process file while updating calculation ${filename}: ${error.message}`,
-            );
-          }
+        const content = calculation.contentData();
+        if (content.calculation) {
+          const updatedContent = content.calculation.replaceAll(from, to);
+          await calculation.updateFile('calculation.lp', updatedContent);
         }
       }),
     );

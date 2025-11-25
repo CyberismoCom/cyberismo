@@ -528,7 +528,7 @@ export class Show {
   public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const templates = [];
     for (const template of this.project.resources.templates()) {
-      templates.push(await template.show());
+      templates.push(template.show());
     }
     return templates;
   }

@@ -14,6 +14,7 @@
 
 import { join } from 'node:path';
 
+import { CONTENT_FILES } from '../interfaces/folder-content-interfaces.js';
 import { DefaultContent } from '../resources/create-defaults.js';
 import { FolderResource } from './folder-resource.js';
 import { resourceNameToString } from '../utils/resource-utils.js';
@@ -33,7 +34,6 @@ export class CalculationResource extends FolderResource<
   CalculationMetadata,
   CalculationContent
 > {
-  private calculationsFile = 'calculation.lp';
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'calculations');
 
@@ -61,14 +61,14 @@ export class CalculationResource extends FolderResource<
     }
     await super.create(newContent);
 
-    const calculationsFile = join(this.internalFolder, this.calculationsFile);
-    await writeFileSafe(
-      calculationsFile,
-      `% add your calculations here for '${this.resourceName.identifier}'`,
-      {
-        flag: 'wx',
-      },
-    );
+    const calculationContent = `% add your calculations here for '${this.resourceName.identifier}'`;
+    const calculationFile = CONTENT_FILES.calculation;
+    const calculationsFile = join(this.internalFolder, calculationFile);
+    await writeFileSafe(calculationsFile, calculationContent, {
+      flag: 'wx',
+    });
+
+    await this.loadContentFiles();
   }
   /**
    * Renames resource metadata file and renames memory resident object 'name'.
