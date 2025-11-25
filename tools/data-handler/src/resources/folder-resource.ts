@@ -120,14 +120,6 @@ export abstract class FolderResource<
   }
 
   /**
-   * Renames resource metadata file and renames memory resident object 'name'.
-   * @param newName New name for the resource.
-   */
-  protected async rename(newName: ResourceName) {
-    return super.rename(newName);
-  }
-
-  /**
    * Updates a file in the resource.
    * @param fileName The name of the file to update.
    * @param changedContent The new content for the file.
