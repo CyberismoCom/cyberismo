@@ -101,7 +101,7 @@ export function getSwrConfig(): SWRConfiguration {
 
 export const apiPaths = {
   project: () => '/api/cards',
-  card: (key: string) => `/api/cards/${key}`,
+  card: (key: string, raw: boolean = false) => `/api/cards/${key}?raw=${raw}`,
   calculations: () => '/api/calculations',
   calculation: (name: string) => `/api/calculations/${name}`,
   cardTypes: () => '/api/cardTypes',

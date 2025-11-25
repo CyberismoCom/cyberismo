@@ -11,23 +11,24 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCard } from '@/lib/api';
+import { useRawCard } from '@/lib/api';
 import CardEditor from '../CardEditor';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
 
 export function ConfigCardEditor({ node }: { node: AnyNode }) {
-  const { isLoading, error } = useCard(node.id);
+  const card = useRawCard(node.id);
   const { t } = useTranslation();
-  if (isLoading) {
+  if (card.isLoading) {
     return <div>{t('loading')}</div>;
   }
-  if (error) {
-    return <div>{error.message}</div>;
+  if (card.error) {
+    return <div>{card.error.message}</div>;
   }
   return (
     <CardEditor
       cardKey={node.id}
+      cardData={card}
       afterSave={() => {}}
       readOnly={node?.readOnly}
     />
