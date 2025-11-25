@@ -23,6 +23,7 @@ import type {
   ProjectSettings,
 } from './interfaces/project-interfaces.js';
 import { formatJson } from './utils/json.js';
+import { getChildLogger } from './utils/log-utils.js';
 import { readJsonFileSync } from './utils/json.js';
 import { Validate } from './commands/validate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
@@ -36,6 +37,7 @@ export class ProjectConfiguration implements ProjectSettings {
   cardKeyPrefix: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
+  private logger = getChildLogger({ module: 'Project' });
   private settingPath: string;
   private autoSave: boolean = false;
 
@@ -93,7 +95,7 @@ export class ProjectConfiguration implements ProjectSettings {
       writeFileSync(this.settingPath, formatJson(this.toJSON()), 'utf-8');
     } catch (error) {
       if (error instanceof Error) {
-        console.error(error.message);
+        this.logger.error({ error }, 'Cannot write project configuration');
       }
     }
   }
@@ -244,7 +246,7 @@ export class ProjectConfiguration implements ProjectSettings {
       await atomicWrite(this.settingPath, this.toJSON(), { indent: 4 });
     } catch (error) {
       if (error instanceof Error) {
-        console.error(error.message);
+        this.logger.error({ error }, 'Could not write project configuration');
       }
     }
   }
