@@ -32,6 +32,8 @@ updates:
           - "typescript-eslint"
           - "@eslint/js"
           - "@typescript-eslint/parser"
+          - "eslint-plugin-react-hooks"
+          - "eslint-plugin-react-refresh"
       mocha-dependencies: # Update all Mocha dependencies in one PR
         patterns:
           - "@types/mocha"
