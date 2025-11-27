@@ -146,6 +146,7 @@ export default function Layout() {
           autoHideDuration={notification.type === 'error' ? 10000 : 4000}
           color={notification.type === 'error' ? 'danger' : 'success'}
           variant="solid"
+          data-cy="notification"
           onClose={(_, reason) => {
             // If the notification has been closed by clicking away, and it has been less than 2 seconds, don't close it
             if (
@@ -165,6 +166,7 @@ export default function Layout() {
               variant="plain"
               size="sm"
               color="neutral"
+              data-cy="notificationClose"
               onClick={() => {
                 dispatch(closeNotification(notification.id));
               }}
