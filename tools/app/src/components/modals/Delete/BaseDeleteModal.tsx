@@ -10,7 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Checkbox,
   Modal,
@@ -52,14 +52,16 @@ export function BaseDeleteModal({
   const { t } = useTranslation();
   const [checked, setChecked] = React.useState(false);
 
-  useEffect(() => {
-    setChecked(false);
-  }, [open]);
-
   const isButtonDisabled = Boolean(disabled || (warning && !checked));
 
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal
+      open={open}
+      onClose={() => {
+        setChecked(false);
+        onClose();
+      }}
+    >
       <ModalDialog>
         <DialogTitle>{title}</DialogTitle>
         <Divider />

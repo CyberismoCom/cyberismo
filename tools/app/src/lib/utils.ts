@@ -545,6 +545,7 @@ export function useModals<T extends Record<string, boolean>>(modals: T) {
 
     // Update the modalsRef
     modalsRef.current = modals;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenModals(modals);
   }, [modals, setOpenModals]);
 
@@ -574,6 +575,7 @@ export function useDynamicForm(values: Record<string, unknown>) {
   useEffect(() => {
     if (Object.keys(values).length > 0) {
       reset(values);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsReady(true);
     }
   }, [reset, values]);

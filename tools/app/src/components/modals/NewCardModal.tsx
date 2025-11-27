@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Modal,
@@ -128,10 +128,6 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
 
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    setChosenTemplate(null);
-  }, [open]);
-
   // divide templates into categories
   const categories = (templates || []).reduce<
     Record<string, TemplateConfiguration[]>
@@ -165,6 +161,7 @@ export function NewCardModal({ open, onClose, cardKey }: NewCardModalProps) {
 
   const handleClose = () => {
     setFilter('');
+    setChosenTemplate(null);
     onClose();
   };
 
