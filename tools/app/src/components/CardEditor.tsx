@@ -45,7 +45,7 @@ import { useSearchParams } from 'react-router';
 import { ContentArea } from '@/components/ContentArea';
 import { useCard, useLinkTypes, useTree } from '@/lib/api';
 import { useTranslation } from 'react-i18next';
-import { Controller, FormProvider, useForm } from 'react-hook-form';
+import { Controller, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import {
   useAppDispatch,
@@ -295,10 +295,9 @@ export default function CardEditor({
   const {
     handleSubmit,
     control,
-    watch,
     formState: { isDirty },
   } = formMethods;
-  const preview = watch();
+  const preview = useWatch({ control });
 
   const { __title__, __labels__, ...metadata } = preview;
 
@@ -358,7 +357,7 @@ export default function CardEditor({
     for (const [key, value] of Object.entries(metadata)) {
       const field = previewCard.fields.find((card) => card.key === key);
       // These types shouldn't exist
-      if (field && !Array.isArray(value) && !(value instanceof Date)) {
+      if (field && !Array.isArray(value) && !(value instanceof Date) && value) {
         field.value = value;
       }
     }
