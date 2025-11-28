@@ -4,12 +4,23 @@
  */
 import React from 'react';
 import { parse } from 'node-html-parser';
-import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, Alert, Stack } from '@mui/joy';
+import {
+  Box,
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Alert,
+  Stack,
+} from '@mui/joy';
 import { ChecksAccordion } from './ChecksAccordion';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { useTranslation } from 'react-i18next';
 import { CardResponse } from '@/lib/api/types';
-import { PolicyCheckCollection, Notification } from '@cyberismo/data-handler/types/queries';
+import {
+  PolicyCheckCollection,
+  Notification,
+} from '@cyberismo/data-handler/types/queries';
 
 interface ContentSidebarProps {
   card: CardResponse;
@@ -19,7 +30,11 @@ interface ContentSidebarProps {
 }
 
 // Local copies of small presentational components (mirroring original file)
-const NotificationsList = ({ notifications }: { notifications: Notification[] }) => {
+const NotificationsList = ({
+  notifications,
+}: {
+  notifications: Notification[];
+}) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = React.useState(true);
   if (notifications.length === 0) return null;
@@ -31,7 +46,17 @@ const NotificationsList = ({ notifications }: { notifications: Notification[] })
           onClick={() => setExpanded(!expanded)}
           sx={{ borderRadius: '4px', mt: 1, mb: 1 }}
         >
-          <Typography level="body-xs" color="primary" variant="soft" width={24} height={24} alignContent="center" borderRadius={40} ml={0} px={1.1}>
+          <Typography
+            level="body-xs"
+            color="primary"
+            variant="soft"
+            width={24}
+            height={24}
+            alignContent="center"
+            borderRadius={40}
+            ml={0}
+            px={1.1}
+          >
             {notifications.length}
           </Typography>
           <Typography level="title-sm" fontWeight="bold" sx={{ width: '100%' }}>
@@ -41,7 +66,16 @@ const NotificationsList = ({ notifications }: { notifications: Notification[] })
         <AccordionDetails>
           <Stack spacing={1}>
             {notifications.map((n, i) => (
-              <Alert key={i} color="primary" variant="soft" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Alert
+                key={i}
+                color="primary"
+                variant="soft"
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
                 <Box>
                   <Typography level="title-sm" fontWeight="bold">
                     {n.category} - {n.title}
@@ -57,9 +91,18 @@ const NotificationsList = ({ notifications }: { notifications: Notification[] })
   );
 };
 
-const PolicyChecks = ({ policyChecks, cardKey }: { policyChecks: PolicyCheckCollection; cardKey: string }) => {
+const PolicyChecks = ({
+  policyChecks,
+  cardKey,
+}: {
+  policyChecks: PolicyCheckCollection;
+  cardKey: string;
+}) => {
   const { t } = useTranslation();
-  const checksData = { successes: policyChecks.successes, failures: policyChecks.failures };
+  const checksData = {
+    successes: policyChecks.successes,
+    failures: policyChecks.failures,
+  };
   return (
     <ChecksAccordion
       checks={checksData}
@@ -75,10 +118,17 @@ const PolicyChecks = ({ policyChecks, cardKey }: { policyChecks: PolicyCheckColl
   );
 };
 
-function renderTableOfContents(title: string, htmlContent: string, visibleHeaderIds: string[] | null = null, onNavigate?: () => void) {
+function renderTableOfContents(
+  title: string,
+  htmlContent: string,
+  visibleHeaderIds: string[] | null = null,
+  onNavigate?: () => void,
+) {
   const root = parse(htmlContent);
   const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
-    id: header.getAttribute('id') || header.text.trim().replace(/\s+/g, '-').toLowerCase(),
+    id:
+      header.getAttribute('id') ||
+      header.text.trim().replace(/\s+/g, '-').toLowerCase(),
     text: header.text,
     level: parseInt(header.tagName[1]),
   }));
@@ -96,7 +146,9 @@ function renderTableOfContents(title: string, htmlContent: string, visibleHeader
             <li key={i} data-level={h.level - 1}>
               <a
                 id={`toc_${h.id}`}
-                className={highlightedHeaders.includes(h.id) ? 'is-active' : undefined}
+                className={
+                  highlightedHeaders.includes(h.id) ? 'is-active' : undefined
+                }
                 href={`#${h.id}`}
                 onClick={() => {
                   // allow default anchor behavior (hash navigation), then signal
@@ -113,7 +165,12 @@ function renderTableOfContents(title: string, htmlContent: string, visibleHeader
   );
 }
 
-export const ContentSidebar: React.FC<ContentSidebarProps> = ({ card, htmlContent, visibleHeaderIds, onNavigate }) => {
+export const ContentSidebar: React.FC<ContentSidebarProps> = ({
+  card,
+  htmlContent,
+  visibleHeaderIds,
+  onNavigate,
+}) => {
   const { t } = useTranslation();
   return (
     <Stack
@@ -123,7 +180,12 @@ export const ContentSidebar: React.FC<ContentSidebarProps> = ({ card, htmlConten
       data-cy="cardSidebar"
     >
       <Box sx={{ mb: 1 }}>
-        {renderTableOfContents(t('tableOfContents'), htmlContent, visibleHeaderIds, onNavigate)}
+        {renderTableOfContents(
+          t('tableOfContents'),
+          htmlContent,
+          visibleHeaderIds,
+          onNavigate,
+        )}
       </Box>
       <NotificationsList notifications={card.notifications} />
       <PolicyChecks policyChecks={card.policyChecks} cardKey={card.key} />

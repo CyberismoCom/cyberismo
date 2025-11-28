@@ -17,7 +17,23 @@ import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
 // Removed sidebar-specific imports after extraction
-import { Accordion, AccordionDetails, AccordionSummary, Autocomplete, Box, Button, Divider, IconButton, Input, Link, Option, Select, Stack, Typography, Tooltip } from '@mui/joy';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Autocomplete,
+  Box,
+  Button,
+  Divider,
+  IconButton,
+  Input,
+  Link,
+  Option,
+  Select,
+  Stack,
+  Typography,
+  Tooltip,
+} from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MetadataView from './MetadataView';
@@ -590,7 +606,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         const event = new CustomEvent('cyberismo:visibleHeaders', {
           detail: {
             cardKey: card.key,
-            headers: lastHeaderVisible ? onScreenHeaderIds : [firstVisibleHeaderId],
+            headers: lastHeaderVisible
+              ? onScreenHeaderIds
+              : [firstVisibleHeaderId],
           },
         });
         window.dispatchEvent(event);
@@ -615,7 +633,9 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   }, [linkFormState]);
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(`(max-width:${theme.breakpoints.values.md - 0.05}px)`);
+  const isMobile = useMediaQuery(
+    `(max-width:${theme.breakpoints.values.md - 0.05}px)`,
+  );
 
   return (
     <Stack direction="row" height="100%" width="100%">

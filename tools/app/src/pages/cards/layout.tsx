@@ -28,7 +28,12 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import TocIcon from '@mui/icons-material/Toc';
 import { useProject } from '../../lib/api';
-import { useAppRouter, useKeyboardShortcut, useOptionalKeyParam, useDocumentTitle } from '../../lib/hooks';
+import {
+  useAppRouter,
+  useKeyboardShortcut,
+  useOptionalKeyParam,
+  useDocumentTitle,
+} from '../../lib/hooks';
 import { findParentCard } from '../../lib/utils';
 import { useTree } from '../../lib/api/tree';
 import { useCard } from '../../lib/api/card';
@@ -52,12 +57,16 @@ export default function AppLayout() {
 
   // Theme + media
   const theme = useTheme();
-  const isMobile = useMediaQuery(`(max-width:${theme.breakpoints.values.md - 0.05}px)`);
+  const isMobile = useMediaQuery(
+    `(max-width:${theme.breakpoints.values.md - 0.05}px)`,
+  );
 
   // Drawer state & refs
   const [navOpen, setNavOpen] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
-  const [mobileVisibleHeaders, setMobileVisibleHeaders] = useState<string[] | null>(null);
+  const [mobileVisibleHeaders, setMobileVisibleHeaders] = useState<
+    string[] | null
+  >(null);
   const navButtonRef = useRef<HTMLButtonElement | null>(null);
   const tocButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -75,8 +84,15 @@ export default function AppLayout() {
       if (key && custom.detail.cardKey !== key) return; // ensure event corresponds to current card
       setMobileVisibleHeaders(custom.detail.headers || null);
     };
-    window.addEventListener('cyberismo:visibleHeaders', listener as EventListener);
-    return () => window.removeEventListener('cyberismo:visibleHeaders', listener as EventListener);
+    window.addEventListener(
+      'cyberismo:visibleHeaders',
+      listener as EventListener,
+    );
+    return () =>
+      window.removeEventListener(
+        'cyberismo:visibleHeaders',
+        listener as EventListener,
+      );
   }, [key]);
 
   // Card selection handler reused across desktop/mobile
@@ -98,13 +114,10 @@ export default function AppLayout() {
   useDocumentTitle(title);
 
   // Keyboard shortcut: go to first card
-  useKeyboardShortcut(
-    { key: 'home' },
-    () => {
-      const firstKey = tree?.[0]?.key;
-      if (firstKey) router.safePush(`/cards/${firstKey}`);
-    },
-  );
+  useKeyboardShortcut({ key: 'home' }, () => {
+    const firstKey = tree?.[0]?.key;
+    if (firstKey) router.safePush(`/cards/${firstKey}`);
+  });
 
   // Loading / error guards
   if (isLoading || isLoadingTree)
@@ -158,17 +171,17 @@ export default function AppLayout() {
           <Typography level="title-sm" flexGrow={1} noWrap>
             {project.name}
           </Typography>
-            <IconButton
-              aria-label="Open table of contents"
-              ref={tocButtonRef}
-              onClick={() => setTocOpen(true)}
-              size="sm"
-              variant="outlined"
-              color="neutral"
-              disabled={!card}
-            >
-              <TocIcon />
-            </IconButton>
+          <IconButton
+            aria-label="Open table of contents"
+            ref={tocButtonRef}
+            onClick={() => setTocOpen(true)}
+            size="sm"
+            variant="outlined"
+            color="neutral"
+            disabled={!card}
+          >
+            <TocIcon />
+          </IconButton>
         </Sheet>
         <Box flexGrow={1} minHeight={0} display="flex">
           <Box flexGrow={1} minWidth={0} position="relative" overflow="hidden">
@@ -192,7 +205,11 @@ export default function AppLayout() {
               title={project.name}
               tree={tree}
               selectedCardKey={key ?? null}
-              onMove={async (cardKey: string, newParent: string, index: number) => {
+              onMove={async (
+                cardKey: string,
+                newParent: string,
+                index: number,
+              ) => {
                 const parent = findParentCard(tree, cardKey);
                 await updateCard(cardKey, {
                   parent: newParent === parent?.key ? undefined : newParent,
@@ -207,13 +224,22 @@ export default function AppLayout() {
         {/* TOC Drawer for mobile */}
         <Drawer
           open={tocOpen}
-            onClose={() => {
-              setTocOpen(false);
-              tocButtonRef.current?.focus();
-            }}
+          onClose={() => {
+            setTocOpen(false);
+            tocButtonRef.current?.focus();
+          }}
           anchor="right"
           size="md"
-          slotProps={{ content: { sx: { p: 0, width: 340, display: 'flex', flexDirection: 'column' } } }}
+          slotProps={{
+            content: {
+              sx: {
+                p: 0,
+                width: 340,
+                display: 'flex',
+                flexDirection: 'column',
+              },
+            },
+          }}
         >
           <LoadingGate values={[card]}>
             {card && (
