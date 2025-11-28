@@ -29,6 +29,12 @@ import { useCard } from '../../lib/api/card';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import type { NodeApi } from 'react-arborist';
 
+/**
+ * Delay in milliseconds before hiding the loading overlay after a move operation.
+ * This prevents UI flickering when the move completes quickly and SWR revalidates.
+ */
+const MOVE_LOADING_DISMISS_DELAY_MS = 150;
+
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
@@ -78,8 +84,8 @@ export default function AppLayout() {
         console.error('Failed to move card:', error);
         // SWR will revalidate and restore the correct state
       } finally {
-        // Small delay to prevent flickering
-        setTimeout(() => setIsMoving(false), 150);
+        // Delay hiding the overlay to prevent flickering during SWR revalidation
+        setTimeout(() => setIsMoving(false), MOVE_LOADING_DISMISS_DELAY_MS);
       }
     },
     [tree, updateCard],

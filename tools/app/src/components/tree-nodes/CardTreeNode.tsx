@@ -13,12 +13,12 @@
 
 import { Box, Chip, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
-import { useMemo } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { useTreeNodeVisualState } from '../../lib/hooks';
 
 interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;
@@ -39,27 +39,7 @@ export const CardTreeNode = ({
   onNodeClick,
 }: CardTreeNodeProps) => {
   const progress = node.data.progress;
-
-  // Safely check for drag states with useMemo to prevent hook ordering issues
-  const visualState = useMemo(() => {
-    const isDropTarget = node.state?.willReceiveDrop || false;
-    const isDragging = node.state?.isDragging || false;
-
-    return {
-      backgroundColor: isDropTarget
-        ? 'primary.softBg'
-        : isDragging
-        ? 'neutral.softBg'
-        : node.isSelected
-        ? 'background.body'
-        : 'transparent',
-      borderStyle: isDropTarget
-        ? { border: '2px solid', borderColor: 'primary.500' }
-        : {},
-      opacity: isDragging ? 0.5 : 1,
-      cursor: isDragging ? 'grabbing' : 'grab',
-    };
-  }, [node.state, node.isSelected]);
+  const visualState = useTreeNodeVisualState(node);
 
   const renderStatusIndicator = () => {
     const statusIndicator = node.data.statusIndicator;
