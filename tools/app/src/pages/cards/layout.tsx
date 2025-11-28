@@ -146,7 +146,18 @@ export default function AppLayout() {
   // Mobile layout: top bar + drawers
   if (isMobile) {
     return (
-      <Box height="100%" display="flex" flexDirection="column">
+      <Box
+        sx={{
+          height: '100%',
+          // Support iOS safe areas
+          '@supports (padding-top: env(safe-area-inset-top))': {
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          },
+        }}
+        display="flex"
+        flexDirection="column"
+      >
         <Sheet
           variant="soft"
           sx={{

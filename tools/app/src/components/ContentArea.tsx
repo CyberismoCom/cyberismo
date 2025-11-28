@@ -651,11 +651,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         sx={{
           overflowY: 'scroll',
           scrollbarWidth: 'thin',
+          // Extra bottom padding to ensure content isn't cut off by mobile browser chrome
+          paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
         }}
         onScroll={handleScroll}
         ref={boxRef}
       >
-        <Stack spacing={3} height="100%">
+        <Stack spacing={3}>
           <Typography level="h1">{card.title}</Typography>
           <MetadataView
             editMode={false}

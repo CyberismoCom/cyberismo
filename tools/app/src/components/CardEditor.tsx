@@ -598,7 +598,18 @@ export default function CardEditor({
             linkButtonDisabled={true}
             readOnly={readOnly}
           />
-          <Stack flexGrow={1} minHeight={0} padding={isMobile ? 2 : 3} paddingRight={isMobile ? 2 : 0}>
+          <Stack
+            flexGrow={1}
+            minHeight={0}
+            padding={isMobile ? 2 : 3}
+            paddingRight={isMobile ? 2 : 0}
+            sx={{
+              // Extra bottom padding for mobile browser chrome
+              paddingBottom: isMobile
+                ? 'calc(64px + env(safe-area-inset-bottom, 0px))'
+                : 3,
+            }}
+          >
             <Tabs
               value={tab}
               onChange={(_, newValue) =>

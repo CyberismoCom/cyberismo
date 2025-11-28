@@ -1,3 +1,20 @@
+/* Mobile Safari viewport fix - use dvh for dynamic viewport height */
+html, body, #root {
+  height: 100%;
+  /* Use dvh (dynamic viewport height) for mobile Safari */
+  @supports (height: 100dvh) {
+    min-height: 100dvh;
+  }
+}
+
+/* iOS safe area support - only apply to top and sides, bottom handled by scrollable content */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  /* Bottom padding handled in scrollable content areas to allow proper scrolling */
+}
+
 @media (max-width: 800px) {
   .breadcrumbs {
     display: none;
