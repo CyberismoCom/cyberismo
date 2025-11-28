@@ -17,6 +17,7 @@ import type {
   GraphViewContent,
   ReportContent,
 } from './folder-content-interfaces.js';
+import type { ResourceType } from './project-interfaces.js';
 
 /**
  * Each resource represents a file (or a folder in some cases) with metadata stored
@@ -140,16 +141,30 @@ export interface ResourceBaseMetadata {
 }
 
 // All resources metadata content.
-export type ResourceContent =
-  | CalculationMetadata
+export type AnyResourceContent =
+  | Calculation
   | CardType
   | FieldType
   | GraphModel
   | GraphView
   | LinkType
-  | ReportMetadata
+  | Report
   | TemplateMetadata
   | Workflow;
+
+export type ResourceContent<T extends ResourceType> = ResourceContentMap[T];
+
+export type ResourceContentMap = {
+  calculations: Calculation;
+  cardTypes: CardType;
+  fieldTypes: FieldType;
+  graphModels: GraphModel;
+  graphViews: GraphView;
+  linkTypes: LinkType;
+  reports: Report;
+  templates: TemplateMetadata;
+  workflows: Workflow;
+};
 
 // Template configuration details.
 export interface TemplateConfiguration extends TemplateMetadata {

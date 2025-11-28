@@ -33,7 +33,7 @@ import type {
   CustomField,
   FieldType,
   ReportMetadata,
-  ResourceContent,
+  AnyResourceContent,
   Workflow,
 } from '../interfaces/resource-interfaces.js';
 import { errorFunction } from '../utils/error-utils.js';
@@ -121,7 +121,7 @@ export class Validate {
   private checkResourceName(
     file: Dirent,
     content:
-      | ResourceContent
+      | AnyResourceContent
       | CustomField
       | DotSchemaContent
       | ProjectSettings
@@ -137,7 +137,7 @@ export class Validate {
       file.name !== Validate.dotSchemaSchemaId &&
       file.name !== Validate.parameterSchemaFile
     ) {
-      const namedContent = content as ResourceContent | ReportMetadata;
+      const namedContent = content as AnyResourceContent | ReportMetadata;
       if (!namedContent.name) {
         errors.push(
           `File '${file.name}' does not contain 'name' property. Cannot validate resource's 'name'.`,

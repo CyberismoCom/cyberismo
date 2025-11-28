@@ -14,7 +14,7 @@
 import Processor from '@asciidoctor/core';
 import { type MetadataContent } from '@cyberismo/data-handler/interfaces/project-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
-import { allCards, getCardDetails } from './lib.js';
+import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(commands: CommandManager) {
@@ -43,7 +43,7 @@ export async function updateCard(
   key: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
-): Promise<ReturnType<typeof getCardDetails>> {
+) {
   const errors = [];
 
   if (body.state) {
@@ -92,8 +92,6 @@ export async function updateCard(
   if (errors.length > 0) {
     throw new Error(errors.join('\n'));
   }
-
-  return await getCardDetails(commands, key);
 }
 
 export async function deleteCard(commands: CommandManager, key: string) {

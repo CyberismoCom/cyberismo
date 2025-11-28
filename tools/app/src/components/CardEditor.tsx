@@ -43,7 +43,12 @@ import { asciidoc } from 'codemirror-asciidoc';
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { useSearchParams } from 'react-router';
 import { ContentArea } from '@/components/ContentArea';
-import { useCard, useLinkTypes, useTree } from '@/lib/api';
+import {
+  type CardData,
+  useCardMutations,
+  useLinkTypes,
+  useTree,
+} from '@/lib/api';
 import { useTranslation } from 'react-i18next';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 
@@ -224,10 +229,12 @@ function AttachmentPreviewCard({
 export default function CardEditor({
   cardKey,
   afterSave,
+  cardData,
   readOnly = false,
 }: {
   cardKey: string;
   afterSave?: () => void;
+  cardData: CardData;
   readOnly?: boolean;
 }) {
   const { t } = useTranslation();
@@ -241,12 +248,8 @@ export default function CardEditor({
 
   const { tree, isLoading: isLoadingTree, error: errorTree } = useTree();
 
-  const {
-    card,
-    updateCard,
-    isLoading: isLoadingCard,
-    error: errorCard,
-  } = useCard(cardKey);
+  const { card, error: errorCard, isLoading: isLoadingCard } = cardData;
+  const { updateCard } = useCardMutations(cardKey);
 
   const {
     linkTypes,

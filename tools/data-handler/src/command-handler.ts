@@ -29,7 +29,7 @@ import type {
 } from './interfaces/project-interfaces.js';
 import type {
   DataType,
-  ResourceContent,
+  AnyResourceContent,
 } from './interfaces/resource-interfaces.js';
 import type {
   AddCommandOptions,
@@ -724,7 +724,7 @@ export class Commands {
       | ModuleContent
       | ModuleSettingFromHub[]
       | ProjectMetadata
-      | ResourceContent
+      | AnyResourceContent
       | string[]
       | undefined
     >;

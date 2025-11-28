@@ -8,13 +8,13 @@ import { useAppRouter } from '@/lib/hooks';
 export default function CardEdit() {
   const key = useRequiredKeyParam();
   const { t } = useTranslation();
-  const { isLoading, error } = useCard(key);
+  const cardData = useCard(key);
   const router = useAppRouter();
 
-  if (isLoading) {
+  if (cardData.isLoading) {
     return <Box>{t('loading')}</Box>;
   }
-  if (error) {
+  if (cardData.error) {
     return <Box>{t('failedToLoad')}</Box>;
   }
   return (
@@ -23,6 +23,7 @@ export default function CardEdit() {
       afterSave={() => {
         router.push(`/cards/${key}`);
       }}
+      cardData={cardData}
     />
   );
 }
