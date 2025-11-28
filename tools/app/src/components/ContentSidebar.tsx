@@ -43,6 +43,35 @@ interface ContentSidebarProps {
   onAddAttachment?: () => void; // Callback to open add attachment modal
 }
 
+/**
+ * Check if there's any content to show in the sidebar.
+ * Used to conditionally render the TOC button on mobile.
+ */
+export function hasSidebarContent(
+  card: CardResponse,
+  htmlContent: string,
+  showAttachments?: boolean,
+): boolean {
+  // Check for TOC headers
+  const root = parse(htmlContent);
+  const hasHeaders = root.querySelectorAll('h1, h2, h3').length > 0;
+
+  // Check for notifications
+  const hasNotifications = card.notifications && card.notifications.length > 0;
+
+  // Check for policy checks
+  const hasPolicyChecks =
+    card.policyChecks &&
+    (card.policyChecks.successes.length > 0 ||
+      card.policyChecks.failures.length > 0);
+
+  // Check for attachments (only when showAttachments is true, i.e., edit mode)
+  const hasAttachments =
+    showAttachments && card.attachments && card.attachments.length > 0;
+
+  return hasHeaders || hasNotifications || hasPolicyChecks || hasAttachments;
+}
+
 // Local copies of small presentational components (mirroring original file)
 const NotificationsList = ({
   notifications,
@@ -252,15 +281,19 @@ function renderTableOfContents(
     text: header.text,
     level: parseInt(header.tagName[1]),
   }));
+
+  // Don't render anything if no headers
+  if (headers.length === 0) {
+    return null;
+  }
+
   const highlightedHeaders = visibleHeaderIds ?? [headers[0]?.id ?? ''];
   return (
     <aside className="contentSidebar toc sidebar">
       <div className="toc-menu" style={{ marginLeft: 2 }}>
-        {headers.length > 0 && (
-          <Typography level="title-sm" fontWeight="bold">
-            {title}
-          </Typography>
-        )}
+        <Typography level="title-sm" fontWeight="bold">
+          {title}
+        </Typography>
         <ul>
           {headers.map((h, i) => (
             <li key={i} data-level={h.level - 1}>
@@ -301,7 +334,7 @@ export const ContentSidebar: React.FC<ContentSidebarProps> = ({
       sx={{ overflowY: 'auto', scrollbarWidth: 'thin' }}
       data-cy="cardSidebar"
     >
-      {showAttachments && card.attachments && (
+      {showAttachments && card.attachments && card.attachments.length > 0 && (
         <AttachmentsPanel
           attachments={card.attachments}
           cardKey={card.key}

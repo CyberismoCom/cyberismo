@@ -41,7 +41,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useLinkTypes } from '@/lib/api';
 import LoadingGate from '@/components/LoadingGate';
 import { useMediaQuery } from '@mui/material';
-import { ContentSidebar } from '@/components/ContentSidebar';
+import { ContentSidebar, hasSidebarContent } from '@/components/ContentSidebar';
 
 // A lightweight wrapper that will host the card view inside the layout so we can reuse TOC drawer
 // without changing the existing routing structure too much.
@@ -186,17 +186,23 @@ export default function AppLayout() {
           <Typography level="title-sm" flexGrow={1} noWrap>
             {project.name}
           </Typography>
-          <IconButton
-            aria-label="Open table of contents"
-            ref={tocButtonRef}
-            onClick={() => setTocOpen(true)}
-            size="sm"
-            variant="outlined"
-            color="neutral"
-            disabled={!card}
-          >
-            <TocIcon />
-          </IconButton>
+{card &&
+            hasSidebarContent(
+              card,
+              card.parsedContent || '',
+              isEditMode,
+            ) && (
+              <IconButton
+                aria-label="Open table of contents"
+                ref={tocButtonRef}
+                onClick={() => setTocOpen(true)}
+                size="sm"
+                variant="outlined"
+                color="neutral"
+              >
+                <TocIcon />
+              </IconButton>
+            )}
         </Sheet>
         <Box flexGrow={1} minHeight={0} display="flex">
           <Box flexGrow={1} minWidth={0} position="relative" overflow="hidden">
