@@ -10,7 +10,7 @@
     License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Modal,
   ModalDialog,
@@ -60,12 +60,14 @@ export function AddAttachmentModal({
     setFiles([...files, ...filteredFiles]);
   };
 
-  useEffect(() => {
-    setFiles([]);
-  }, [open]);
-
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal
+      open={open}
+      onClose={() => {
+        setFiles([]);
+        onClose();
+      }}
+    >
       <ModalDialog>
         <ModalClose />
         <DialogTitle>{t('addAttachmentModal.title')}</DialogTitle>

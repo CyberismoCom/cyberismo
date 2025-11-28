@@ -13,7 +13,7 @@
 */
 
 import { useEffect, useMemo } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   FormControl,
   FormHelperText,
@@ -54,7 +54,6 @@ export function CreateCardsMacroModal({
     handleSubmit: handleFormSubmit,
     reset,
     setValue,
-    watch,
     formState: { dirtyFields },
   } = useForm({
     defaultValues: DEFAULT_CREATE_CARDS_FORM_VALUES,
@@ -66,8 +65,14 @@ export function CreateCardsMacroModal({
     }
   }, [open, reset]);
 
-  const selectedTemplate = watch('template');
-  const buttonLabelValue = watch('buttonLabel');
+  const selectedTemplate = useWatch({
+    name: 'template',
+    control,
+  });
+  const buttonLabelValue = useWatch({
+    name: 'buttonLabel',
+    control,
+  });
 
   useEffect(() => {
     if (selectedTemplate && !dirtyFields.buttonLabel) {

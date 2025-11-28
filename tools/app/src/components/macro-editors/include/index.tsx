@@ -13,7 +13,7 @@
 */
 
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   Autocomplete,
   FormControl,
@@ -42,7 +42,7 @@ export function IncludeMacroModal({
   const { t } = useTranslation();
   const { options, isLoading } = useCardOptions();
 
-  const { control, handleSubmit, reset, watch } = useForm({
+  const { control, handleSubmit, reset } = useForm({
     defaultValues: DEFAULT_INCLUDE_FORM_VALUES,
   });
 
@@ -52,7 +52,10 @@ export function IncludeMacroModal({
     }
   }, [open, reset]);
 
-  const cardKeyValue = watch('cardKey');
+  const cardKeyValue = useWatch({
+    name: 'cardKey',
+    control,
+  });
 
   const handleModalSubmit = handleSubmit((data) => {
     if (!data.cardKey) return;

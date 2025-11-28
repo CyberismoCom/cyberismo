@@ -13,7 +13,7 @@
 */
 
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Autocomplete, FormControl, FormHelperText, FormLabel } from '@mui/joy';
 import { useTranslation } from 'react-i18next';
 import type { XrefMacroOptions } from '@cyberismo/data-handler';
@@ -31,7 +31,7 @@ export function XrefMacroModal({
 }: MacroModalProps<XrefMacroOptions>) {
   const { t } = useTranslation();
   const { options, isLoading } = useCardOptions();
-  const { control, handleSubmit, reset, watch } = useForm({
+  const { control, handleSubmit, reset } = useForm({
     defaultValues: DEFAULT_XREF_FORM_VALUES,
   });
 
@@ -41,7 +41,10 @@ export function XrefMacroModal({
     }
   }, [open, reset]);
 
-  const cardKeyValue = watch('cardKey');
+  const cardKeyValue = useWatch({
+    name: 'cardKey',
+    control,
+  });
 
   const handleModalSubmit = handleSubmit((data) => {
     if (!data.cardKey) return;

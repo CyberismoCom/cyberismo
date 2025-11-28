@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Modal,
   ModalDialog,
@@ -93,10 +93,6 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     }
   }, [selected, moveCard, t, onClose, dispatch]);
 
-  useEffect(() => {
-    setSelected(null);
-  }, [open, currentTab]);
-
   if (isLoading || !tree) {
     return (
       <Box padding={2}>
@@ -129,7 +125,13 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
     currentTab === TabEnum.RECENTS ? recentCards : moveableCards;
 
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal
+      open={open}
+      onClose={() => {
+        setSelected(null);
+        onClose();
+      }}
+    >
       <ModalDialog
         minWidth={620}
         sx={{

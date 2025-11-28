@@ -57,7 +57,7 @@ import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import Search from '@mui/icons-material/Search';
 import Info from '@mui/icons-material/Info';
 
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import EditLinkModal from './modals/EditLinkModal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
@@ -153,7 +153,7 @@ export function LinkForm({
   isLoading,
   isUpdating,
 }: LinkFormProps) {
-  const { control, handleSubmit, reset, watch } = useForm<LinkFormData>({
+  const { control, handleSubmit, reset } = useForm<LinkFormData>({
     defaultValues: {
       ...DEFAULT_LINK_FORM_DATA,
       ...(data || {}),
@@ -169,7 +169,10 @@ export function LinkForm({
   }, [data, reset]);
 
   // find chosen link type
-  const linkType = watch('linkType');
+  const linkType = useWatch({
+    name: 'linkType',
+    control,
+  });
 
   const selectedLinkType = linkTypes.find((t) => t.id === linkType);
 
@@ -183,7 +186,10 @@ export function LinkForm({
   );
 
   // If card is not in usable cards, reset the form
-  const formCardKey = watch('cardKey');
+  const formCardKey = useWatch({
+    name: 'cardKey',
+    control,
+  });
   useEffect(() => {
     if (formCardKey && !usableCards.find((c) => c.key === formCardKey)) {
       reset({

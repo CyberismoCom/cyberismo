@@ -13,7 +13,7 @@
 */
 
 import { useEffect, useMemo } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   FormControl,
   FormHelperText,
@@ -44,7 +44,7 @@ export function ReportMacroModal({
     [resourceTree],
   );
 
-  const { control, handleSubmit, reset, watch } = useForm({
+  const { control, handleSubmit, reset } = useForm({
     defaultValues: DEFAULT_REPORT_FORM_VALUES,
   });
 
@@ -54,7 +54,10 @@ export function ReportMacroModal({
     }
   }, [open, reset]);
 
-  const selectedReport = watch('name');
+  const selectedReport = useWatch({
+    name: 'name',
+    control,
+  });
 
   const handleModalSubmit = handleSubmit((data) => {
     if (!data.name) return;

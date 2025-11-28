@@ -13,7 +13,7 @@
 */
 
 import { useEffect, useMemo } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   FormControl,
   FormHelperText,
@@ -53,7 +53,6 @@ export function GraphMacroModal({
     control,
     handleSubmit: handleFormSubmit,
     reset,
-    watch,
   } = useForm({
     defaultValues: DEFAULT_GRAPH_FORM_VALUES,
   });
@@ -64,8 +63,14 @@ export function GraphMacroModal({
     }
   }, [open, reset]);
 
-  const selectedGraphView = watch('view');
-  const selectedGraphModel = watch('model');
+  const selectedGraphView = useWatch({
+    name: 'view',
+    control,
+  });
+  const selectedGraphModel = useWatch({
+    name: 'model',
+    control,
+  });
 
   const handleModalSubmit = handleFormSubmit((data) => {
     if (!data.view || !data.model) return;
