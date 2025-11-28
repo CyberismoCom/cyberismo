@@ -13,7 +13,7 @@
 import { SearchableTreeMenu } from '../../components/SearchableTreeMenu';
 import { TreeMenu } from '../../components/TreeMenu';
 import TwoColumnLayout from '../../components/TwoColumnLayout';
-import { Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 
 import {
   Box,
@@ -49,11 +49,15 @@ import { ContentSidebar } from '@/components/ContentSidebar';
 export default function AppLayout() {
   // Last URL parameter after /cards base is the card key
   const key = useOptionalKeyParam();
+  const location = useLocation();
   const { project, error, isLoading, updateCard } = useProject();
   const { tree, isLoading: isLoadingTree, error: treeError } = useTree();
   const { card } = useCard(key);
   const router = useAppRouter();
   useLinkTypes(); // ensure link types cached if needed for future expansion
+
+  // Detect edit mode from URL
+  const isEditMode = location.pathname.endsWith('/edit');
 
   // Theme + media
   const theme = useTheme();
@@ -247,6 +251,7 @@ export default function AppLayout() {
                 card={card}
                 htmlContent={card.parsedContent || ''}
                 visibleHeaderIds={mobileVisibleHeaders}
+                showAttachments={isEditMode}
                 onNavigate={() => {
                   setTocOpen(false);
                   // delay to allow hash scroll then restore focus

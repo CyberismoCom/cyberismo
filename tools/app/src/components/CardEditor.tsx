@@ -32,7 +32,9 @@ import {
   IconButton,
   Link,
   Tooltip,
+  useTheme,
 } from '@mui/joy';
+import { useMediaQuery } from '@mui/material';
 
 import type { EditorState, ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import CodeMirror from '@uiw/react-codemirror';
@@ -240,6 +242,12 @@ export default function CardEditor({
   onCancel?: () => void;
 }) {
   const { t } = useTranslation();
+
+  // Responsive breakpoint detection
+  const theme = useTheme();
+  const isMobile = useMediaQuery(
+    `(max-width:${theme.breakpoints.values.md - 0.05}px)`,
+  );
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -590,7 +598,7 @@ export default function CardEditor({
             linkButtonDisabled={true}
             readOnly={readOnly}
           />
-          <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
+          <Stack flexGrow={1} minHeight={0} padding={isMobile ? 2 : 3} paddingRight={isMobile ? 2 : 0}>
             <Tabs
               value={tab}
               onChange={(_, newValue) =>
@@ -603,7 +611,7 @@ export default function CardEditor({
               <TabList
                 sx={{
                   justifyContent: 'right',
-                  width: '70%',
+                  width: isMobile ? '100%' : '70%',
                 }}
               >
                 <Tab data-cy="editTab">{t('edit')}</Tab>
@@ -622,8 +630,8 @@ export default function CardEditor({
                       overflowY: 'scroll',
                       scrollbarWidth: 'thin',
                     }}
-                    width="70%"
-                    paddingRight={3}
+                    width={isMobile ? '100%' : '70%'}
+                    paddingRight={isMobile ? 0 : 3}
                     onScroll={handleScroll}
                   >
                     <Controller
@@ -661,6 +669,8 @@ export default function CardEditor({
                       readOnly={readOnly}
                     />
                   </Box>
+                  {/* Attachments panel - hidden on mobile (available via TOC drawer) */}
+                  {!isMobile && (
                   <Box
                     flexGrow={1}
                     display="flex"
@@ -740,6 +750,7 @@ export default function CardEditor({
                       ))}
                     </Grid>
                   </Box>
+                  )}
                 </Stack>
               </TabPanel>
               <TabPanel

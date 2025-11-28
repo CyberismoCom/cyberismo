@@ -12,21 +12,35 @@ import {
   AccordionDetails,
   Alert,
   Stack,
+  Card,
+  CardContent,
+  CardOverflow,
+  AspectRatio,
+  Grid,
+  IconButton,
+  Tooltip,
+  Link,
 } from '@mui/joy';
 import { ChecksAccordion } from './ChecksAccordion';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
+import Download from '@mui/icons-material/Download';
 import { useTranslation } from 'react-i18next';
 import { CardResponse } from '@/lib/api/types';
 import {
   PolicyCheckCollection,
   Notification,
 } from '@cyberismo/data-handler/types/queries';
+import { apiPaths } from '@/lib/swr';
+import type { CardAttachment } from '@cyberismo/data-handler/interfaces/project-interfaces';
 
 interface ContentSidebarProps {
   card: CardResponse;
   htmlContent: string;
   visibleHeaderIds?: string[] | null;
   onNavigate?: () => void; // called when a TOC link is clicked (mobile drawer close)
+  showAttachments?: boolean; // Show attachments section (for edit mode on mobile)
+  onAddAttachment?: () => void; // Callback to open add attachment modal
 }
 
 // Local copies of small presentational components (mirroring original file)
@@ -118,6 +132,112 @@ const PolicyChecks = ({
   );
 };
 
+// Attachments panel for mobile edit mode
+const AttachmentsPanel = ({
+  attachments,
+  cardKey,
+  onAddAttachment,
+}: {
+  attachments: CardAttachment[];
+  cardKey: string;
+  onAddAttachment?: () => void;
+}) => {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = React.useState(true);
+
+  return (
+    <Box sx={{ marginTop: 2 }}>
+      <Accordion expanded={expanded}>
+        <AccordionSummary
+          indicator={<ExpandMore />}
+          onClick={() => setExpanded(!expanded)}
+          sx={{ borderRadius: '4px', mt: 1, mb: 1 }}
+        >
+          <Typography
+            level="body-xs"
+            color="warning"
+            variant="soft"
+            width={24}
+            height={24}
+            alignContent="center"
+            borderRadius={40}
+            ml={0}
+            px={1.1}
+          >
+            {attachments.length}
+          </Typography>
+          <Typography level="title-sm" fontWeight="bold" sx={{ width: '100%' }}>
+            {attachments.length === 1 ? t('attachment') : t('attachments')}
+          </Typography>
+          {onAddAttachment && (
+            <Tooltip title={t('addAttachment')}>
+              <IconButton
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddAttachment();
+                }}
+              >
+                <img
+                  alt="Add attachment"
+                  width={20}
+                  height={20}
+                  src="/images/attach_file_add.svg"
+                />
+              </IconButton>
+            </Tooltip>
+          )}
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={1}>
+            {attachments.map((attachment) => (
+              <Grid key={attachment.fileName} xs={6}>
+                <Card size="sm" sx={{ height: '100%' }}>
+                  <CardOverflow>
+                    <AspectRatio ratio="4/3" objectFit="contain">
+                      {attachment.mimeType?.startsWith('image') ? (
+                        <img
+                          src={apiPaths.attachment(cardKey, attachment.fileName)}
+                          alt={attachment.fileName}
+                        />
+                      ) : (
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                        >
+                          <InsertDriveFile sx={{ fontSize: 40, opacity: 0.5 }} />
+                        </Box>
+                      )}
+                    </AspectRatio>
+                  </CardOverflow>
+                  <CardContent>
+                    <Typography
+                      level="body-xs"
+                      noWrap
+                      title={attachment.fileName}
+                    >
+                      {attachment.fileName}
+                    </Typography>
+                    <Link
+                      level="body-xs"
+                      href={apiPaths.attachment(cardKey, attachment.fileName)}
+                      download
+                      startDecorator={<Download sx={{ fontSize: 14 }} />}
+                    >
+                      {t('saveCopy')}
+                    </Link>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+    </Box>
+  );
+};
+
 function renderTableOfContents(
   title: string,
   htmlContent: string,
@@ -170,6 +290,8 @@ export const ContentSidebar: React.FC<ContentSidebarProps> = ({
   htmlContent,
   visibleHeaderIds,
   onNavigate,
+  showAttachments,
+  onAddAttachment,
 }) => {
   const { t } = useTranslation();
   return (
@@ -179,6 +301,13 @@ export const ContentSidebar: React.FC<ContentSidebarProps> = ({
       sx={{ overflowY: 'auto', scrollbarWidth: 'thin' }}
       data-cy="cardSidebar"
     >
+      {showAttachments && card.attachments && (
+        <AttachmentsPanel
+          attachments={card.attachments}
+          cardKey={card.key}
+          onAddAttachment={onAddAttachment}
+        />
+      )}
       <Box sx={{ mb: 1 }}>
         {renderTableOfContents(
           t('tableOfContents'),
