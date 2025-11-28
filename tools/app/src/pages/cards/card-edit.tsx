@@ -23,6 +23,7 @@ export default function CardEdit() {
       afterSave={() => {
         router.push(`/cards/${key}`);
       }}
+      onCancel={() => router.safePush(`/cards/${key}`)}
       cardData={cardData}
     />
   );

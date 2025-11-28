@@ -20,7 +20,7 @@ import type { WorkflowTransition } from '../../lib/definitions';
 import { CardMode } from '../../lib/definitions';
 import StatusSelector from '../StateSelector';
 import { findWorkflowForCardType } from '../../lib/utils';
-import { useAppRouter } from '../../lib/hooks';
+import { useAppRouter, useAppSelector } from '../../lib/hooks';
 import { useTranslation } from 'react-i18next';
 import { useCard, useProject, useTree } from '../../lib/api';
 import { useAppDispatch } from '../../lib/hooks';
@@ -35,6 +35,7 @@ interface CardToolbarProps {
   linkButtonDisabled?: boolean;
   onUpdate?: () => void;
   onInsertLink?: () => void;
+  onCancel?: () => void;
   readOnly?: boolean;
 }
 
@@ -43,6 +44,7 @@ export function CardToolbar({
   mode,
   onUpdate,
   onInsertLink,
+  onCancel,
   linkButtonDisabled,
   readOnly,
 }: CardToolbarProps) {
@@ -51,6 +53,7 @@ export function CardToolbar({
 
   const { project } = useProject();
   const { tree } = useTree();
+  const isEdited = useAppSelector((state) => state.page.isEdited);
   const { card, updateWorkFlowState, isUpdating } = useCard(cardKey);
 
   const dispatch = useAppDispatch();
@@ -134,7 +137,7 @@ export function CardToolbar({
             size="sm"
             color="neutral"
             style={{ marginLeft: 8, minWidth: 80 }}
-            onClick={() => router.safePush(`/cards/${cardKey}`)}
+            onClick={onCancel}
             disabled={isUpdating() || readOnly}
           >
             {t('cancel')}
@@ -148,7 +151,9 @@ export function CardToolbar({
             style={{ marginLeft: 8, minWidth: 80 }}
             onClick={onUpdate}
             loading={isUpdating('update')}
-            disabled={(isUpdating() && !isUpdating('update')) || readOnly}
+            disabled={
+              (isUpdating() && !isUpdating('update')) || readOnly || !isEdited
+            }
           >
             {t('update')}
           </Button>

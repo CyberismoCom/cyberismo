@@ -254,9 +254,6 @@ describe('Navigation', () => {
     cy.get('[aria-label="Delete"]').click(); // Delete attachment in side panel
 
     cy.get('.MuiTypography-colorWarning').contains('0'); //verifies there are 0 attachments
-
-    cy.get('[data-cy="updateButton"]').click();
-    cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
   });
 
   it('delete page content', () => {

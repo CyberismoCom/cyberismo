@@ -231,11 +231,13 @@ export default function CardEditor({
   afterSave,
   cardData,
   readOnly = false,
+  onCancel,
 }: {
   cardKey: string;
   afterSave?: () => void;
   cardData: CardData;
   readOnly?: boolean;
+  onCancel?: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -281,8 +283,8 @@ export default function CardEditor({
   const [state, setState] = useState<EditorState | null>(null);
   const [view, setView] = useState<EditorView | null>(null);
 
-  const formMethods = useForm<Record<string, MetadataValue>>({
-    defaultValues: {
+  const buildDefaultFormValues = useCallback(() => {
+    return {
       __title__: card?.title,
       __labels__: card?.labels,
       ...card?.fields?.reduce(
@@ -292,15 +294,33 @@ export default function CardEditor({
         },
         {} as Record<string, MetadataValue>,
       ),
-    },
+    };
+  }, [card]);
+
+  const formMethods = useForm<Record<string, MetadataValue>>({
+    defaultValues: buildDefaultFormValues(),
   });
 
   const {
     handleSubmit,
     control,
     formState: { isDirty },
+    getValues,
+    reset,
   } = formMethods;
   const preview = useWatch({ control });
+
+  const resetFormToCard = useCallback(() => {
+    console.log(card);
+    reset(buildDefaultFormValues());
+    contentRef.current = card?.rawContent || '';
+    dispatch(isEdited(false));
+  }, [buildDefaultFormValues, card, dispatch, reset]);
+
+  const handleCancel = () => {
+    resetFormToCard();
+    onCancel?.();
+  };
 
   const { __title__, __labels__, ...metadata } = preview;
 
@@ -497,6 +517,10 @@ export default function CardEditor({
       }
 
       await updateCard(update);
+      const currentValues = getValues();
+      reset(currentValues);
+      contentRef.current = update.content ?? card.rawContent ?? '';
+      dispatch(isEdited(false));
       dispatch(
         addNotification({
           message: t('saveCard.success'),
@@ -562,6 +586,7 @@ export default function CardEditor({
             cardKey={cardKey}
             mode={CardMode.EDIT}
             onUpdate={() => handleSubmit(handleSave)()}
+            onCancel={handleCancel}
             linkButtonDisabled={true}
             readOnly={readOnly}
           />
