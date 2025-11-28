@@ -70,7 +70,7 @@ export function TextEditor({ node }: { node: FileNode }) {
         }
         readOnly={node.readOnly}
         value={content}
-        onChange={(value) => setContent(value)}
+        onChange={(value: string) => setContent(value)}
       />
     </BaseEditor>
   );
