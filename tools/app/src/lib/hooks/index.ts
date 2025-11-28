@@ -16,3 +16,4 @@ export * from './utils';
 export * from './configurationEditor';
 export * from './theme';
 export * from './useListItemEditing';
+export * from './useTreeNodeVisualState';
