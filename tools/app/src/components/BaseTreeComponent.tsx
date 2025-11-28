@@ -57,15 +57,18 @@ export function BaseTreeComponent<T>({
     }
   }, [selectedId]);
 
-  const handleMove = useCallback((moveData: {
-    dragIds: string[];
-    parentId: string | null;
-    index: number;
-  }) => {
-    if (onMove && moveData.dragIds.length === 1) {
-      onMove(moveData.dragIds, moveData.parentId, moveData.index);
-    }
-  }, [onMove]);
+  const handleMove = useCallback(
+    (moveData: {
+      dragIds: string[];
+      parentId: string | null;
+      index: number;
+    }) => {
+      if (onMove && moveData.dragIds.length === 1) {
+        onMove(moveData.dragIds, moveData.parentId, moveData.index);
+      }
+    },
+    [onMove],
+  );
 
   // Create stable node renderer wrapper to prevent component remounting
   const renderNode = useCallback(
