@@ -1,5 +1,7 @@
 /* Mobile Safari viewport fix - use dvh for dynamic viewport height */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   /* Use dvh (dynamic viewport height) for mobile Safari */
   @supports (height: 100dvh) {

@@ -226,7 +226,10 @@ const AttachmentsPanel = ({
                     <AspectRatio ratio="4/3" objectFit="contain">
                       {attachment.mimeType?.startsWith('image') ? (
                         <img
-                          src={apiPaths.attachment(cardKey, attachment.fileName)}
+                          src={apiPaths.attachment(
+                            cardKey,
+                            attachment.fileName,
+                          )}
                           alt={attachment.fileName}
                         />
                       ) : (
@@ -235,7 +238,9 @@ const AttachmentsPanel = ({
                           alignItems="center"
                           justifyContent="center"
                         >
-                          <InsertDriveFile sx={{ fontSize: 40, opacity: 0.5 }} />
+                          <InsertDriveFile
+                            sx={{ fontSize: 40, opacity: 0.5 }}
+                          />
                         </Box>
                       )}
                     </AspectRatio>

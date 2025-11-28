@@ -682,85 +682,85 @@ export default function CardEditor({
                   </Box>
                   {/* Attachments panel - hidden on mobile (available via TOC drawer) */}
                   {!isMobile && (
-                  <Box
-                    flexGrow={1}
-                    display="flex"
-                    flexDirection="column"
-                    padding={2}
-                    sx={{
-                      scrollbarWidth: 'thin',
-                      overflowY: 'scroll',
-                    }}
-                    alignItems="flex-start"
-                    width="30%"
-                  >
-                    <Stack
-                      direction="row"
-                      padding={4}
-                      paddingTop={0}
-                      alignItems="center"
+                    <Box
+                      flexGrow={1}
+                      display="flex"
+                      flexDirection="column"
+                      padding={2}
+                      sx={{
+                        scrollbarWidth: 'thin',
+                        overflowY: 'scroll',
+                      }}
+                      alignItems="flex-start"
+                      width="30%"
                     >
-                      <Typography
-                        level="body-xs"
-                        color="warning"
-                        variant="soft"
-                        width={24}
-                        height={24}
-                        alignContent="center"
-                        borderRadius={40}
-                        paddingX={1.1}
+                      <Stack
+                        direction="row"
+                        padding={4}
+                        paddingTop={0}
+                        alignItems="center"
                       >
-                        {card?.attachments?.length || 0}
-                      </Typography>
-                      <Typography level="body-xs" marginLeft={1.5}>
-                        {(card?.attachments?.length || 0) === 1
-                          ? t('attachment')
-                          : t('attachments')}
-                      </Typography>
-                      <Tooltip title={t('addAttachment')}>
-                        <IconButton onClick={openModal('addAttachment')}>
-                          <img
-                            alt="Add attachment"
-                            width={24}
-                            height={24}
-                            src="/images/attach_file_add.svg"
-                          />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                    <Grid container gap={2} paddingLeft={3}>
-                      {card?.attachments?.map((attachment) => (
-                        <Grid
-                          key={attachment.fileName}
-                          display="flex"
-                          justifyContent="center"
-                          width={160}
+                        <Typography
+                          level="body-xs"
+                          color="warning"
+                          variant="soft"
+                          width={24}
+                          height={24}
+                          alignContent="center"
+                          borderRadius={40}
+                          paddingX={1.1}
                         >
-                          <AttachmentPreviewCard
-                            name={attachment.fileName}
-                            cardKey={cardKey}
-                            onInsert={() => {
-                              if (view && card) {
-                                addAttachment(view, attachment, card.key);
-                              }
-                            }}
+                          {card?.attachments?.length || 0}
+                        </Typography>
+                        <Typography level="body-xs" marginLeft={1.5}>
+                          {(card?.attachments?.length || 0) === 1
+                            ? t('attachment')
+                            : t('attachments')}
+                        </Typography>
+                        <Tooltip title={t('addAttachment')}>
+                          <IconButton onClick={openModal('addAttachment')}>
+                            <img
+                              alt="Add attachment"
+                              width={24}
+                              height={24}
+                              src="/images/attach_file_add.svg"
+                            />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                      <Grid container gap={2} paddingLeft={3}>
+                        {card?.attachments?.map((attachment) => (
+                          <Grid
+                            key={attachment.fileName}
+                            display="flex"
+                            justifyContent="center"
+                            width={160}
                           >
-                            {attachment.mimeType?.startsWith('image') ? (
-                              <img
-                                src={apiPaths.attachment(
-                                  card.key,
-                                  attachment.fileName,
-                                )}
-                                alt=""
-                              />
-                            ) : (
-                              <InsertDriveFile />
-                            )}
-                          </AttachmentPreviewCard>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
+                            <AttachmentPreviewCard
+                              name={attachment.fileName}
+                              cardKey={cardKey}
+                              onInsert={() => {
+                                if (view && card) {
+                                  addAttachment(view, attachment, card.key);
+                                }
+                              }}
+                            >
+                              {attachment.mimeType?.startsWith('image') ? (
+                                <img
+                                  src={apiPaths.attachment(
+                                    card.key,
+                                    attachment.fileName,
+                                  )}
+                                  alt=""
+                                />
+                              ) : (
+                                <InsertDriveFile />
+                              )}
+                            </AttachmentPreviewCard>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
                   )}
                 </Stack>
               </TabPanel>

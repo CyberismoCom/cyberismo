@@ -186,12 +186,8 @@ export default function AppLayout() {
           <Typography level="title-sm" flexGrow={1} noWrap>
             {project.name}
           </Typography>
-{card &&
-            hasSidebarContent(
-              card,
-              card.parsedContent || '',
-              isEditMode,
-            ) && (
+          {card &&
+            hasSidebarContent(card, card.parsedContent || '', isEditMode) && (
               <IconButton
                 aria-label="Open table of contents"
                 ref={tocButtonRef}
