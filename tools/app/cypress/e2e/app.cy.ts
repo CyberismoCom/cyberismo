@@ -89,7 +89,7 @@ describe('Navigation', () => {
     cy.get('[id="moveCardButton"]').click(); // Select Move option
 
     cy.get('button').contains(t['all']).click(); // Select All in Move dialog
-    cy.get('[role="dialog"] >>>>>>>> [role="treeitem"]')
+    cy.get('[role="dialog"] >>>>>>>>> [role="treeitem"]')
       .contains('Untitled page')
       .click(); // Select Untitled page
     cy.get('[role="dialog"] >>> button').contains(t['cancel']);
@@ -200,7 +200,7 @@ describe('Navigation', () => {
     cy.get('p').contains('Updated title').click(); // Navigate to Updated title in tree menu
     cy.get('h1').contains('Updated title');
 
-    cy.get('.MuiIconButton-root').click(); // Click link button
+    cy.get('[data-cy="linkIconButton"]').click(); // Click link button
     cy.get('p').contains(t['linkedCards']); // Verifies Linked cards text in page
     cy.get('.MuiSelect-button').contains(t.linkForm['selectLinkType']).click(); // Click select link type button
     cy.get('.Mui-expanded').contains('Outbound').click(); // Select outbound
