@@ -13,6 +13,7 @@
 
 import { Box, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
+import { useMemo } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { hasResourceData } from '@/lib/api/resources';
 import type { AnyNode } from '@/lib/api/types';
@@ -52,12 +53,33 @@ export const ConfigTreeNode = ({
 }: ConfigTreeNodeProps) => {
   const { t } = useTranslation();
 
+  // Safely check for drag states with useMemo to prevent hook ordering issues
+  const visualState = useMemo(() => {
+    const isDropTarget = node.state?.willReceiveDrop || false;
+    const isDragging = node.state?.isDragging || false;
+
+    return {
+      backgroundColor: isDropTarget
+        ? 'primary.softBg'
+        : isDragging
+        ? 'neutral.softBg'
+        : node.isSelected
+        ? 'background.body'
+        : 'transparent',
+      borderStyle: isDropTarget
+        ? { border: '2px solid', borderColor: 'primary.500' }
+        : {},
+      opacity: isDragging ? 0.5 : 1,
+      cursor: isDragging ? 'grabbing' : 'grab',
+    };
+  }, [node.state, node.isSelected]);
+
   return (
     <Box
       className="treenode"
       style={style}
       ref={dragHandle}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         if (node.isClosed) node.toggle();
         onNodeClick?.(node);
@@ -68,7 +90,13 @@ export const ConfigTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={visualState.backgroundColor}
+      sx={{
+        opacity: visualState.opacity,
+        transition: 'all 0.15s ease-in-out',
+        ...visualState.borderStyle,
+        cursor: visualState.cursor,
+      }}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"

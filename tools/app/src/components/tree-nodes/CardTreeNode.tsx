@@ -13,6 +13,7 @@
 
 import { Box, Chip, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi } from 'react-arborist';
+import { useMemo } from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -38,6 +39,27 @@ export const CardTreeNode = ({
   onNodeClick,
 }: CardTreeNodeProps) => {
   const progress = node.data.progress;
+
+  // Safely check for drag states with useMemo to prevent hook ordering issues
+  const visualState = useMemo(() => {
+    const isDropTarget = node.state?.willReceiveDrop || false;
+    const isDragging = node.state?.isDragging || false;
+
+    return {
+      backgroundColor: isDropTarget
+        ? 'primary.softBg'
+        : isDragging
+        ? 'neutral.softBg'
+        : node.isSelected
+        ? 'background.body'
+        : 'transparent',
+      borderStyle: isDropTarget
+        ? { border: '2px solid', borderColor: 'primary.500' }
+        : {},
+      opacity: isDragging ? 0.5 : 1,
+      cursor: isDragging ? 'grabbing' : 'grab',
+    };
+  }, [node.state, node.isSelected]);
 
   const renderStatusIndicator = () => {
     const statusIndicator = node.data.statusIndicator;
@@ -86,7 +108,7 @@ export const CardTreeNode = ({
       className="treenode"
       style={style}
       ref={dragHandle}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         if (node.isClosed) node.toggle();
         onNodeClick?.(node);
@@ -97,7 +119,13 @@ export const CardTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={visualState.backgroundColor}
+      sx={{
+        opacity: visualState.opacity,
+        transition: 'all 0.15s ease-in-out',
+        ...visualState.borderStyle,
+        cursor: visualState.cursor,
+      }}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"
