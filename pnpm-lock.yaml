@@ -240,7 +240,7 @@ importers:
         version: 1.19.2(hono@4.10.7)
       '@hono/zod-validator':
         specifier: ^0.7.5
-        version: 0.7.5(hono@4.10.7)(zod@4.1.12)
+        version: 0.7.5(hono@4.10.7)(zod@4.1.13)
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -254,8 +254,8 @@ importers:
         specifier: ^3.0.2
         version: 3.0.2
       zod:
-        specifier: ^4.1.12
-        version: 4.1.12
+        specifier: ^4.1.13
+        version: 4.1.13
     devDependencies:
       '@cyberismo/app':
         specifier: workspace:*
@@ -5165,9 +5165,6 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.1.12:
-    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
-
   zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
 
@@ -5836,10 +5833,10 @@ snapshots:
     dependencies:
       hono: 4.10.7
 
-  '@hono/zod-validator@0.7.5(hono@4.10.7)(zod@4.1.12)':
+  '@hono/zod-validator@0.7.5(hono@4.10.7)(zod@4.1.13)':
     dependencies:
       hono: 4.10.7
-      zod: 4.1.12
+      zod: 4.1.13
 
   '@humanfs/core@0.19.1': {}
 
@@ -10141,7 +10138,5 @@ snapshots:
   zod-validation-error@4.0.2(zod@4.1.13):
     dependencies:
       zod: 4.1.13
-
-  zod@4.1.12: {}
 
   zod@4.1.13: {}
