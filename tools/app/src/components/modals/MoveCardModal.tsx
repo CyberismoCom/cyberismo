@@ -39,7 +39,7 @@ import {
   findParentCard,
   getMoveableCards,
 } from '../../lib/utils';
-import moment from 'moment';
+import { formatDistanceToNow } from 'date-fns';
 import { TreeMenu } from '../TreeMenu';
 import { useDispatch } from 'react-redux';
 import { addNotification } from '@/lib/slices/notifications';
@@ -275,11 +275,9 @@ export function MoveCardModal({ open, onClose, cardKey }: MoveCardModalProps) {
                                 '-'}
                               {' • '}
                               {t('viewedAgo', {
-                                time: moment
-                                  .duration(
-                                    moment().diff(moment(page.timestamp)),
-                                  )
-                                  .humanize(),
+                                time: formatDistanceToNow(
+                                  new Date(page.timestamp),
+                                ),
                               })}
                             </Typography>
                           </Stack>
