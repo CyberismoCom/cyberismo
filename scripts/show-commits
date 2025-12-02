@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Usage: show-commits <version>
+# Shows commits between the previous version bump and the specified version bump
+# Example: show-commits 0.0.16
+
+if [ -z "$1" ]; then
+    echo "Usage: show-commits <version>"
+    echo "Example: show-commits 0.0.16"
+    exit 1
+fi
+
+VERSION="$1"
+
+# Find the commit hash for the target version
+TARGET_COMMIT=$(git log --oneline --grep="Bump version to $VERSION" --format="%H" | head -1)
+
+if [ -z "$TARGET_COMMIT" ]; then
+    echo "Error: Version $VERSION not found in commit history"
+    exit 1
+fi
+
+# Find the commit hash for the previous version bump
+PREV_COMMIT=$(git log --oneline --grep="Bump version to" --format="%H" | grep -A1 "$TARGET_COMMIT" | tail -1)
+
+if [ -z "$PREV_COMMIT" ] || [ "$PREV_COMMIT" = "$TARGET_COMMIT" ]; then
+    echo "Error: Could not find previous version before $VERSION"
+    exit 1
+fi
+
+echo "Commits in version $VERSION:"
+echo "=========================="
+echo
+
+# Get all commits and sort them into three categories
+ALL_COMMITS=$(git log --oneline "$PREV_COMMIT".."$TARGET_COMMIT")
+
+# 1) INTDEV commits, sort by issue number descending
+INTDEV_COMMITS=$(echo "$ALL_COMMITS" | grep -E '^[a-f0-9]+ INTDEV-[0-9]+' |
+    sed -E 's/^([a-f0-9]+) INTDEV-([0-9]+)/\2 \1 INTDEV-\2/' |
+    sort -rn |
+    sed 's/^[0-9]* //')
+
+# 2) non-INTDEV, non-Bump commits
+OTHER_COMMITS=$(echo "$ALL_COMMITS" | grep -vE '^[a-f0-9]+ (INTDEV-|Bump)' | sort)
+
+# 3) Bump commits, sort alphabetically
+BUMP_COMMITS=$(echo "$ALL_COMMITS" | grep -E '^[a-f0-9]+ Bump' | sort -k2)
+
+# Print in order
+if [ -n "$INTDEV_COMMITS" ]; then
+    echo "$INTDEV_COMMITS"
+fi
+if [ -n "$OTHER_COMMITS" ]; then
+    echo "$OTHER_COMMITS"
+fi
+if [ -n "$BUMP_COMMITS" ]; then
+    echo "$BUMP_COMMITS"
+fi
