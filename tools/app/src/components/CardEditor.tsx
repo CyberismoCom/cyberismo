@@ -652,7 +652,7 @@ export default function CardEditor({
                       extensions={extensions}
                       value={contentRef.current}
                       onDrop={handleDragDrop}
-                      onChange={(value) => {
+                      onChange={(value: string) => {
                         if (!isEditedValue) {
                           dispatch(isEdited(true));
                         }

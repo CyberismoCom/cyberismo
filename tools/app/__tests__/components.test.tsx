@@ -24,6 +24,12 @@ vi.mock('../src/lib/hooks', async () => {
       }
       return { width: 800, height: 50, ref: vi.fn() }; // Title bar height
     }),
+    useTreeNodeVisualState: vi.fn(() => ({
+      backgroundColor: 'transparent',
+      borderStyle: {},
+      opacity: 1,
+      cursor: 'grab',
+    })),
   };
 });
 
