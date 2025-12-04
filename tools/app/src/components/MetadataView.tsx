@@ -26,6 +26,7 @@ import EditableField from './EditableField';
 import type { CardResponse } from '../lib/api/types';
 import { getDefaultValue } from '@/lib/utils';
 import { format } from 'date-fns';
+import { LABEL_SPLITTER } from '@/lib/constants';
 
 interface FieldItemProps {
   expanded?: boolean;
@@ -189,6 +190,9 @@ function MetadataView({
         />
         <FieldItem
           name="__labels__"
+          description={t('labelEditor.splitterHint', {
+            splitter: LABEL_SPLITTER,
+          })}
           context={context}
           handleChange={handleChange}
           forceValue={!editMode ? card.labels : undefined}

@@ -272,6 +272,9 @@
     "list": "Select",
     "label": "Add label"
   },
+  "labelEditor": {
+    "splitterHint": "Use the splitter ({{splitter}}) to add multiple labels at once"
+  },
   "policyCheck": {
     "successes": "Successes",
     "failures": "Failures",
