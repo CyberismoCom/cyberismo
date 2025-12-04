@@ -184,6 +184,9 @@
   "insertToContent": "Insert to content",
   "invalid": "Invalid",
   "invalidResource": "Invalid resource",
+  "labelEditor": {
+    "splitterHint": "Use the splitter ({{splitter}}) to add multiple labels at once"
+  },
   "labels": "Labels",
   "lastTransitioned": "Last transitioned",
   "lastUpdated": "Last updated",
@@ -271,9 +274,6 @@
     "person": "firstname.lastname@example.com",
     "list": "Select",
     "label": "Add label"
-  },
-  "labelEditor": {
-    "splitterHint": "Use the splitter ({{splitter}}) to add multiple labels at once"
   },
   "policyCheck": {
     "successes": "Successes",
