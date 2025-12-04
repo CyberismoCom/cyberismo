@@ -74,6 +74,11 @@ RUN mkdir -p ./tools/assets
 COPY --from=builder /app/tools/assets/package.json ./tools/assets/package.json
 COPY --from=builder /app/tools/assets/dist ./tools/assets/dist
 
+# migrations
+RUN mkdir -p ./tools/migrations
+COPY --from=builder /app/tools/migrations/package.json ./tools/migrations/package.json
+COPY --from=builder /app/tools/migrations/dist ./tools/migrations/dist
+
 # install deps without dev dependencies
 RUN pnpm install --prod --ignore-scripts
 

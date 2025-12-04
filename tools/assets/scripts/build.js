@@ -29,5 +29,5 @@ await esbuild.build({
       },
     },
   ],
-  external: ['node:path', 'node:url', 'node:fs', 'node:fs/promises'],
+  external: ['node:path', 'node:url'],
 });

@@ -56,7 +56,7 @@ import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
 
-import type { MigrationResult } from '@cyberismo/assets';
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
@@ -921,8 +921,6 @@ export class Project extends CardContainer {
     if (schemaVersion === undefined || schemaVersion >= SCHEMA_VERSION) {
       return {
         success: false,
-        fromVersion: schemaVersion ?? SCHEMA_VERSION,
-        toVersion: SCHEMA_VERSION,
         message: 'No migration needed',
         stepsExecuted: [],
       };
@@ -945,7 +943,7 @@ export class Project extends CardContainer {
 
     if (result.success) {
       this.logger.info(
-        { fromVersion: result.fromVersion, toVersion: result.toVersion },
+        { fromVersion: schemaVersion, toVersion: SCHEMA_VERSION },
         'Migration completed successfully',
       );
     } else {
