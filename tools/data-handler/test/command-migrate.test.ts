@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Migrate } from '../src/commands/migrate.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 
-import type { MigrationResult } from '@cyberismo/assets';
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Project } from '../src/containers/project.js';
 
 // Mock Project for testing
@@ -18,8 +18,6 @@ class MockProject {
     this.configuration.schemaVersion = toVersion;
     return {
       success: true,
-      fromVersion,
-      toVersion,
       stepsExecuted: ['migrate'],
     };
   }
@@ -40,8 +38,7 @@ describe('Migrate command', () => {
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(version);
     expect(result.success).to.equal(true);
-    expect(result.toVersion).to.equal(version);
-    expect(result.fromVersion).to.equal(version);
+    expect(result.message).to.include('already at version');
     expect(mockProject.configuration.schemaVersion).to.equal(version);
   });
 
@@ -74,7 +71,6 @@ describe('Migrate command', () => {
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(targetVersion);
     expect(result.success).to.equal(true);
-    expect(result.toVersion).to.equal(targetVersion);
     expect(mockProject.configuration.schemaVersion).to.equal(targetVersion);
   });
 
@@ -83,13 +79,9 @@ describe('Migrate command', () => {
     mockProject.configuration.schemaVersion = currentVersion;
     // Override to simulate migrating multiple versions at once
     mockProject.runMigrations = async () => {
-      const fromVersion = mockProject.configuration.schemaVersion!;
-      const toVersion = SCHEMA_VERSION;
-      mockProject.configuration.schemaVersion = toVersion;
+      mockProject.configuration.schemaVersion = SCHEMA_VERSION;
       return {
         success: true,
-        fromVersion,
-        toVersion,
         stepsExecuted: ['migrate'],
       };
     };
@@ -98,7 +90,6 @@ describe('Migrate command', () => {
     // No target version specified - should migrate to latest without skip check
     const result = await migrateCmd.migrate();
     expect(result.success).to.equal(true);
-    expect(result.toVersion).to.be.greaterThan(currentVersion);
     expect(mockProject.configuration.schemaVersion).to.equal(SCHEMA_VERSION);
   });
 
@@ -109,13 +100,10 @@ describe('Migrate command', () => {
     let capturedBackupDir: string | undefined;
     mockProject.runMigrations = async (backupDir?: string) => {
       capturedBackupDir = backupDir;
-      const fromVersion = mockProject.configuration.schemaVersion!;
-      const toVersion = fromVersion + 1;
+      const toVersion = mockProject.configuration.schemaVersion! + 1;
       mockProject.configuration.schemaVersion = toVersion;
       return {
         success: true,
-        fromVersion,
-        toVersion,
         stepsExecuted: ['migrate'],
       };
     };
@@ -130,12 +118,9 @@ describe('Migrate command', () => {
     const targetVersion = currentVersion + 1;
     mockProject.configuration.schemaVersion = currentVersion;
     mockProject.runMigrations = async () => {
-      const fromVersion = mockProject.configuration.schemaVersion!;
       // Don't update version on failure
       return {
         success: false,
-        fromVersion,
-        toVersion: targetVersion,
         message: 'Migration validation failed',
         stepsExecuted: ['pre-validation'],
       };
@@ -157,13 +142,10 @@ describe('Migrate command', () => {
       timeoutMs?: number,
     ) => {
       capturedTimeout = timeoutMs;
-      const fromVersion = mockProject.configuration.schemaVersion!;
-      const toVersion = fromVersion + 1;
+      const toVersion = mockProject.configuration.schemaVersion! + 1;
       mockProject.configuration.schemaVersion = toVersion;
       return {
         success: true,
-        fromVersion,
-        toVersion,
         stepsExecuted: ['migrate'],
       };
     };

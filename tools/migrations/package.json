@@ -5,13 +5,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist"
+    "build": "tsc && node scripts/generate-version.mjs",
+    "clean": "rm -rf dist",
+    "create-migration": "node scripts/create-migration.mjs"
   },
   "type": "module",
   "dependencies": {
-    "@cyberismo/assets": "workspace:*",
-    "@cyberismo/data-handler": "workspace:*"
+    "@cyberismo/assets": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5"

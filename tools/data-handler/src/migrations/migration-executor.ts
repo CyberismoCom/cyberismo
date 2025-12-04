@@ -11,12 +11,12 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { existsSync } from 'node:fs';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { join, dirname } from 'node:path';
-import { readdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { availableMigrations, migration } from '@cyberismo/migrations';
 import { availableSpace, folderSize } from '../utils/file-utils.js';
+import { executeStep } from './worker-executor.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { Validate } from '../commands/validate.js';
 
@@ -25,11 +25,30 @@ import type {
   MigrationContext,
   MigrationResult,
   MigrationStepResult,
-} from '@cyberismo/assets';
+} from '@cyberismo/migrations';
 import type { Project } from '../containers/project.js';
 
 const DEFAULT_MIGRATION_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 const MEGABYTES = 1024 * 1024; // 1 MB
+
+/**
+ * Messages sent from the main thread to worker threads.
+ */
+export interface WorkerMessage {
+  type: 'execute' | 'cancel';
+  migrationPath?: string;
+  stepName?: string;
+  context?: MigrationContext;
+}
+
+/**
+ * Response messages sent from worker threads back to the main thread.
+ */
+export interface WorkerResponse {
+  type: 'result' | 'error';
+  result?: MigrationStepResult;
+  error?: string;
+}
 
 /**
  * Internal state for tracking migrations.
@@ -60,13 +79,6 @@ export class MigrationExecutor {
     this.timeoutMs = timeoutMS ?? DEFAULT_MIGRATION_TIMEOUT_MS;
   }
 
-  // Type guard to check if result is a MigrationResult (failure)
-  private isMigrationResult(
-    result: MigrationStepResult | MigrationResult,
-  ): result is MigrationResult {
-    return 'fromVersion' in result;
-  }
-
   // Helper to create failure result from ExecutionState
   private createFailureResult(
     state: ExecutionState,
@@ -75,8 +87,6 @@ export class MigrationExecutor {
   ): MigrationResult {
     return {
       success: false,
-      fromVersion: state.context.fromVersion,
-      toVersion: state.context.toVersion,
       message,
       error,
       stepsExecuted: state.stepsExecuted,
@@ -86,10 +96,15 @@ export class MigrationExecutor {
   // Execute a single migration step and handle failure
   private async executeStep(
     stepName: string,
-    stepFn: () => Promise<MigrationStepResult>,
+    migrationPath: string,
     state: ExecutionState,
-  ): Promise<MigrationStepResult | MigrationResult> {
-    const result = await stepFn();
+  ): Promise<{ success: true } | MigrationResult> {
+    const result = await executeStep(
+      migrationPath,
+      stepName,
+      state.context,
+      this.timeoutMs,
+    );
     state.stepsExecuted.push(stepName);
     if (!result.success) {
       const messagePrefix =
@@ -106,12 +121,12 @@ export class MigrationExecutor {
         result.error,
       );
     }
-    return result;
+    return { success: true };
   }
 
   // Execute a single migration.
   private async executeMigration(
-    migration: Migration,
+    migrationPath: string,
     fromVersion: number,
     toVersion: number,
     updateVersionCallback: (version: number) => Promise<void>,
@@ -127,49 +142,45 @@ export class MigrationExecutor {
         cardsConfigPath: this.project.paths.internalRootFolder,
         fromVersion,
         toVersion,
-        project: this.project,
       },
       stepsExecuted: [],
     };
 
     try {
-      if (migration.before) {
-        const result = await this.executeStep(
-          'before',
-          () => migration.before!(state.context),
+      // Load migration to check which steps exist
+      const migration = this.loadMigration(toVersion);
+      if (!migration) {
+        return this.createFailureResult(
           state,
+          `Failed to load migration for version ${toVersion}`,
         );
-        if (this.isMigrationResult(result)) return result;
+      }
+
+      if (migration.before) {
+        const result = await this.executeStep('before', migrationPath, state);
+        if (!result.success) return result;
       }
 
       if (migration.backup && this.backupDir !== undefined) {
         state.context.backupDir = this.backupDir;
-        const result = await this.executeStep(
-          'backup',
-          () => migration.backup!(state.context),
-          state,
-        );
-        if (this.isMigrationResult(result)) return result;
+        const result = await this.executeStep('backup', migrationPath, state);
+        if (!result.success) return result;
       }
 
       const migrateResult = await this.executeStep(
         'migrate',
-        () => migration.migrate(state.context),
+        migrationPath,
         state,
       );
-      if (this.isMigrationResult(migrateResult)) return migrateResult;
+      if (!migrateResult.success) return migrateResult;
 
       // Update schema version in project after successful migration
       await updateVersionCallback(toVersion);
       state.stepsExecuted.push('update-version');
 
       if (migration.after) {
-        const result = await this.executeStep(
-          'after',
-          () => migration.after!(state.context),
-          state,
-        );
-        if (this.isMigrationResult(result)) return result;
+        const result = await this.executeStep('after', migrationPath, state);
+        if (!result.success) return result;
       }
 
       // Run validation after migration
@@ -185,8 +196,6 @@ export class MigrationExecutor {
 
       return {
         success: true,
-        fromVersion,
-        toVersion,
         message: `Successfully migrated from version ${fromVersion} to ${toVersion}`,
         stepsExecuted: state.stepsExecuted,
       };
@@ -196,38 +205,6 @@ export class MigrationExecutor {
         `Migration threw an exception: ${error}`,
         error instanceof Error ? error : new Error(String(error)),
       );
-    }
-  }
-
-  // Execute a function with a timeout.
-  private async executeWithTimeout<T>(
-    fn: () => Promise<T>,
-    timeoutMs: number,
-    operation: string,
-  ): Promise<T> {
-    let timeoutId: NodeJS.Timeout | undefined;
-
-    const timeoutPromise = new Promise<T>((_resolve, reject) => {
-      timeoutId = setTimeout(
-        () =>
-          reject(
-            new Error(`${operation} timed out after ${timeoutMs} milliseconds`),
-          ),
-        timeoutMs,
-      );
-    });
-
-    try {
-      const result = await Promise.race([fn(), timeoutPromise]);
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      return result;
-    } catch (error) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      throw error;
     }
   }
 
@@ -245,8 +222,6 @@ export class MigrationExecutor {
       );
       return {
         success: false,
-        fromVersion,
-        toVersion,
         message: `Pre-migration validation failed. Please fix the following errors before migrating:\n${validationErrors}`,
         stepsExecuted,
       };
@@ -254,8 +229,6 @@ export class MigrationExecutor {
     this.logger.info('Pre-migration validation passed');
     return {
       success: true,
-      fromVersion,
-      toVersion,
       stepsExecuted,
     };
   }
@@ -275,8 +248,6 @@ export class MigrationExecutor {
     const valid = fromVersion < toVersion;
     return {
       success: valid,
-      fromVersion,
-      toVersion,
       message: valid
         ? undefined
         : `Current version (${fromVersion}) is not lower than target version (${toVersion})`,
@@ -305,8 +276,6 @@ export class MigrationExecutor {
       if (spaceAvailable < requiredSpace) {
         return {
           success: false,
-          fromVersion,
-          toVersion,
           message: `Insufficient disk space. Required: ${requiredSpaceMB} MB, Available: ${availableSpaceMB} MB. Migration needs at least 2x the project size (${projectSizeMB} MB).`,
           stepsExecuted,
         };
@@ -315,16 +284,12 @@ export class MigrationExecutor {
       this.logger.info('Disk space check passed');
       return {
         success: true,
-        fromVersion,
-        toVersion,
         stepsExecuted,
       };
     } catch (error) {
       this.logger.error({ error }, 'Failed to check disk space');
       return {
         success: false,
-        fromVersion,
-        toVersion,
         message: `Failed to check disk space: ${error instanceof Error ? error.message : String(error)}`,
         error: error instanceof Error ? error : new Error(String(error)),
         stepsExecuted,
@@ -338,44 +303,23 @@ export class MigrationExecutor {
    * @param toVersion Target version (inclusive)
    * @returns Sorted list of migration version numbers
    */
-  protected async discoverMigrations(
+  protected migrationsAvailable(
     fromVersion: number,
     toVersion: number,
-  ): Promise<number[]> {
-    const migrationsPath = this.migrationsBasePath();
-
-    if (!existsSync(migrationsPath)) {
-      return [];
-    }
-
-    try {
-      const entries = await readdir(migrationsPath, { withFileTypes: true });
-      const versions = entries
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => parseInt(entry.name, 10))
-        .filter(
-          (version) =>
-            !isNaN(version) && version > fromVersion && version <= toVersion,
-        )
-        .sort((a, b) => a - b);
-
-      return versions;
-    } catch (error) {
-      this.logger.error({ error }, `Failed to discover migrations`);
-      return [];
-    }
+  ): number[] {
+    const allVersions = availableMigrations();
+    return allVersions.filter(
+      (version) => version > fromVersion && version <= toVersion,
+    );
   }
 
   // Validates and discovers available migrations
-  protected async validateAndDiscoverMigrations(
+  protected availableMigrations(
     fromVersion: number,
     toVersion: number,
     stepsExecuted: string[],
-  ): Promise<MigrationResult & { migrationVersions: number[] }> {
-    const migrationVersions = await this.discoverMigrations(
-      fromVersion,
-      toVersion,
-    );
+  ): MigrationResult & { migrationVersions: number[] } {
+    const migrationVersions = this.migrationsAvailable(fromVersion, toVersion);
     const found = migrationVersions.length > 0;
     if (found) {
       this.logger.info(
@@ -385,8 +329,6 @@ export class MigrationExecutor {
     }
     return {
       success: found,
-      fromVersion,
-      toVersion,
       message: found
         ? undefined
         : `No migrations found between version ${fromVersion} and ${toVersion}`,
@@ -396,45 +338,40 @@ export class MigrationExecutor {
   }
 
   // Load a migration module for a specific version.
-  protected async loadMigration(
-    version: number,
-  ): Promise<Migration | undefined> {
-    const migrationsPath = this.migrationsBasePath();
-    const migrationPath = join(migrationsPath, version.toString(), 'index.js');
-    this.logger.debug({ migrationPath, version }, 'Loading migration');
-
-    if (!existsSync(migrationPath)) {
-      this.logger.error({ migrationPath, version }, `Migration file not found`);
-      return undefined;
-    }
+  protected loadMigration(version: number): Migration | undefined {
+    this.logger.debug({ version }, 'Loading migration');
 
     try {
-      const migrationUrl = pathToFileURL(migrationPath).href;
-      const migrationModule = await import(migrationUrl);
-      const migration: Migration = migrationModule.default || migrationModule;
+      const migrationObject = migration(version);
 
-      if (typeof migration.migrate !== 'function') {
+      if (!migrationObject) {
+        this.logger.error({ version }, `Migration not found`);
+        return undefined;
+      }
+
+      if (typeof migrationObject.migrate !== 'function') {
         throw new Error(
           `Migration ${version} does not implement migrate() function`,
         );
       }
 
-      return migration;
+      return migrationObject;
     } catch (error) {
-      this.logger.error(
-        { error, version, migrationPath },
-        `Failed to load migration`,
-      );
+      this.logger.error({ error, version }, `Failed to load migration`);
       return undefined;
     }
   }
 
-  // Get the path to the migrations directory in the migrations package.
-  protected migrationsBasePath(): string {
-    const currentFilePath = fileURLToPath(import.meta.url);
-    const dataHandlerDist = join(dirname(currentFilePath), '..', '..');
-    const toolsDir = dirname(dataHandlerDist);
-    return join(toolsDir, 'migrations', 'dist');
+  /**
+   * Get the file path for a migration worker.
+   * @param version Migration version number
+   * @returns Path to migration file
+   */
+  protected migrationWorkerPath(version: number): string {
+    const migrationsPackageUrl = import.meta.resolve('@cyberismo/migrations');
+    const migrationsIndexPath = fileURLToPath(migrationsPackageUrl);
+    const migrationsDistDir = dirname(migrationsIndexPath);
+    return join(migrationsDistDir, version.toString(), 'index.js');
   }
 
   /**
@@ -479,7 +416,7 @@ export class MigrationExecutor {
     stepsDone.push('disk-space-check');
 
     // Step: Discover available migrations
-    const discoveryResult = await this.validateAndDiscoverMigrations(
+    const discoveryResult = this.availableMigrations(
       fromVersion,
       toVersion,
       stepsDone,
@@ -493,34 +430,18 @@ export class MigrationExecutor {
     let currentVersion = fromVersion;
     try {
       for (const targetVersion of migrationVersions) {
-        const migration = await this.loadMigration(targetVersion);
-        if (!migration) {
-          return {
-            success: false,
-            fromVersion,
-            toVersion: currentVersion,
-            message: `Failed to load migration for version ${targetVersion}`,
-            stepsExecuted: stepsDone,
-          };
-        }
+        const migrationPath = this.migrationWorkerPath(targetVersion);
 
-        const result = await this.executeWithTimeout(
-          () =>
-            this.executeMigration(
-              migration,
-              currentVersion,
-              targetVersion,
-              updateVersionCallback,
-            ),
-          this.timeoutMs,
-          `Migration to version ${targetVersion}`,
+        const result = await this.executeMigration(
+          migrationPath,
+          currentVersion,
+          targetVersion,
+          updateVersionCallback,
         );
 
         if (!result.success) {
           return {
             success: false,
-            fromVersion,
-            toVersion: currentVersion,
             message: result.message || 'Migration failed',
             error: result.error,
             stepsExecuted: stepsDone,
@@ -539,8 +460,6 @@ export class MigrationExecutor {
     } catch (error) {
       return {
         success: false,
-        fromVersion,
-        toVersion: currentVersion,
         message:
           error instanceof Error
             ? error.message
@@ -551,8 +470,6 @@ export class MigrationExecutor {
     }
     return {
       success: true,
-      fromVersion,
-      toVersion: currentVersion,
       message: `Successfully migrated from version ${fromVersion} to ${currentVersion}`,
       stepsExecuted: stepsDone,
     };

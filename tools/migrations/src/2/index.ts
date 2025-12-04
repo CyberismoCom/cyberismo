@@ -2,24 +2,23 @@
  * Example migration from schema version 1 to version 2.
  *
  * This migration demonstrates:
- * - Fetching local cardTypes (not from modules)
- * - Updating resource properties using the .update() method
+ * - Accessing local cardTypes via filesystem
+ * - Reading and writing JSON files directly
  * - Using the Migration interface with before(), backup(), migrate(), and after() functions
  */
 
 import { join } from 'node:path';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import type {
   Migration,
   MigrationContext,
   MigrationStepResult,
-} from '@cyberismo/assets';
-import { createBackup, validateProjectStructure } from '@cyberismo/assets';
-
-// Dynamic import to avoid circular dependencies
-async function getProject(projectPath: string) {
-  const { Project } = await import('@cyberismo/data-handler');
-  return new Project(projectPath);
-}
+} from '../migration-interfaces.js';
+import {
+  createBackup,
+  validateProjectStructure,
+} from '../migration-interfaces.js';
+import { existsSync } from 'node:fs';
 
 // Actual example migration implementation.
 // Note that this is very verbose; actual migrations will ne a lot smaller.
@@ -39,26 +38,20 @@ const migration: Migration = {
       return structureCheck;
     }
 
-    // Check that we can access the project
+    // Check that we can access the cardTypes directory
     try {
-      // Extract project root from cardsConfigPath
-      // cardsConfigPath format: /path/to/project/.cards
-      const projectPath = join(context.cardsConfigPath, '..');
-      const project = await getProject(projectPath);
+      const cardTypesDir = join(context.cardsConfigPath, 'local', 'cardTypes');
+      if (!existsSync(cardTypesDir)) {
+        return { success: true, message: `No card types in the project` };
+      }
 
-      // Try to fetch cardTypes to ensure resources are accessible
-      const { ResourcesFrom } = await import('@cyberismo/data-handler');
-      const localCardTypes = project.resources.cardTypes(
-        ResourcesFrom.localOnly,
-      );
+      const cardTypeFiles = await readdir(cardTypesDir);
+      const jsonFiles = cardTypeFiles.filter((f) => f.endsWith('.json'));
 
-      console.log(
-        `Found ${localCardTypes.length} local card type(s) to migrate`,
-      );
+      console.log(`Found ${jsonFiles.length} local card type(s) to migrate`);
     } catch (error) {
       return {
         success: false,
-        message: `Failed to access project resources: ${error}`,
         error: error instanceof Error ? error : new Error(String(error)),
       };
     }
@@ -86,19 +79,22 @@ const migration: Migration = {
     );
 
     try {
-      // Extract project root from cardsConfigPath
-      const projectPath = join(context.cardsConfigPath, '..');
-      const project = await getProject(projectPath);
+      const cardTypesDir = join(context.cardsConfigPath, 'local', 'cardTypes');
 
-      // Import ResourcesFrom enum
-      const { ResourcesFrom } = await import('@cyberismo/data-handler');
+      // Check if cardTypes directory exists
+      if (!existsSync(cardTypesDir)) {
+        console.log('No local cardTypes directory found - skipping migration');
+        return {
+          success: true,
+          message: 'No local cardTypes to migrate',
+        };
+      }
 
-      // Fetch all local cardTypes (not from modules)
-      const localCardTypes = project.resources.cardTypes(
-        ResourcesFrom.localOnly,
-      );
+      // Get all cardType JSON files
+      const cardTypeFiles = await readdir(cardTypesDir);
+      const jsonFiles = cardTypeFiles.filter((f) => f.endsWith('.json'));
 
-      if (localCardTypes.length === 0) {
+      if (jsonFiles.length === 0) {
         console.log('No local cardTypes found to migrate');
         return {
           success: true,
@@ -106,43 +102,41 @@ const migration: Migration = {
         };
       }
 
-      console.log(`Migrating ${localCardTypes.length} local cardType(s)...`);
+      console.log(`Migrating ${jsonFiles.length} local cardType(s)...`);
 
       // Update each cardType's description
-      for (const cardType of localCardTypes) {
-        const cardTypeData = cardType.data;
+      for (const fileName of jsonFiles) {
+        const filePath = join(cardTypesDir, fileName);
+        const content = await readFile(filePath, 'utf8');
+        const cardType = JSON.parse(content);
 
-        if (!cardTypeData) {
-          console.warn(`Skipping cardType with no data`);
+        if (!cardType.name) {
+          console.warn(`Skipping ${fileName}: no name field`);
           continue;
         }
 
-        const originalDescription = cardTypeData.description || '';
+        const originalDescription = cardType.description || '';
         const newDescription = `Migrated: ${originalDescription}`;
 
-        console.log(`  Updating cardType '${cardTypeData.name}' description`);
+        console.log(`  Updating cardType '${cardType.name}' description`);
         console.log(`    From: "${originalDescription}"`);
         console.log(`    To: "${newDescription}"`);
 
-        // Update the description using the update() method
-        await cardType.update(
-          { key: 'description' },
-          {
-            name: 'change',
-            target: originalDescription,
-            to: newDescription,
-          },
-        );
+        // Update the description
+        cardType.description = newDescription;
+
+        // Write back to file
+        await writeFile(filePath, JSON.stringify(cardType, null, 4), 'utf8');
       }
 
       return {
         success: true,
-        message: `Successfully migrated ${localCardTypes.length} cardType(s)`,
+        message: `Successfully migrated ${jsonFiles.length} cardType(s)`,
       };
     } catch (error) {
       return {
         success: false,
-        message: `Migration failed: ${error}`,
+        message: `Migration failed: ${error instanceof Error ? error.message : String(error)}`,
         error: error instanceof Error ? error : new Error(String(error)),
       };
     }

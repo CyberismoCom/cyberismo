@@ -8,7 +8,7 @@ import {
   validateProjectStructure,
   createBackup,
   type MigrationContext,
-} from '@cyberismo/assets';
+} from '@cyberismo/migrations';
 
 const baseDir = dirname(fileURLToPath(import.meta.url));
 const testDir = join(baseDir, 'tmp-migration-utils-tests');

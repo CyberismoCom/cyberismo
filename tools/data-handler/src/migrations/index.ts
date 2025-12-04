@@ -17,4 +17,4 @@ export type {
   MigrationContext,
   MigrationResult,
   MigrationStepResult,
-} from '@cyberismo/assets';
+} from '@cyberismo/migrations';

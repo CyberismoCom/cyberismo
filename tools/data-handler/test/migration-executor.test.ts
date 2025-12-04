@@ -1,14 +1,15 @@
 import { expect } from 'chai';
 
 import { join } from 'node:path';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, readdirSync, existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { Project } from '../src/containers/project.js';
 import { MigrationExecutor } from '../src/migrations/migration-executor.js';
-import type { Migration } from '@cyberismo/assets';
+import type { Migration } from '@cyberismo/migrations';
 
-// Test subclass that overrides migrations path
+// Test subclass that overrides migrations discovery and loading for tests
 class TestMigrationExecutor extends MigrationExecutor {
   constructor(
     project: Project,
@@ -18,19 +19,94 @@ class TestMigrationExecutor extends MigrationExecutor {
     super(project, backupDir);
   }
 
-  protected migrationsBasePath(): string {
-    return this.testMigrationsPath;
-  }
-
-  public async discoverMigrations(
+  // Override to use filesystem-based discovery for test migrations
+  protected migrationsAvailable(
     fromVersion: number,
     toVersion: number,
-  ): Promise<number[]> {
-    return super.discoverMigrations(fromVersion, toVersion);
+  ): number[] {
+    try {
+      const entries = readdirSync(this.testMigrationsPath, {
+        withFileTypes: true,
+      });
+      return entries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => parseInt(entry.name, 10))
+        .filter(
+          (version) =>
+            !isNaN(version) && version > fromVersion && version <= toVersion,
+        )
+        .sort((a, b) => a - b);
+    } catch (error) {
+      console.error('Failed to discover test migrations:', error);
+      return [];
+    }
   }
 
-  public async loadMigration(version: number): Promise<Migration | undefined> {
-    return super.loadMigration(version);
+  // Override to load from test migrations directory
+  protected loadMigration(version: number): Migration | undefined {
+    const migrationPath = join(
+      this.testMigrationsPath,
+      version.toString(),
+      'index.js',
+    );
+    if (!existsSync(migrationPath)) {
+      return undefined;
+    }
+
+    return {
+      migrate: async () => ({ success: true }),
+      before:
+        version === 2 || version === 3
+          ? async () => ({ success: true })
+          : undefined,
+      backup: version === 2 ? async () => ({ success: true }) : undefined,
+      after: version === 2 ? async () => ({ success: true }) : undefined,
+    };
+  }
+
+  // Override to return path to test migration for worker
+  protected migrationWorkerPath(version: number): string {
+    return join(this.testMigrationsPath, version.toString(), 'index.js');
+  }
+
+  public discoverMigrationsPublic(
+    fromVersion: number,
+    toVersion: number,
+  ): number[] {
+    return this.migrationsAvailable(fromVersion, toVersion);
+  }
+
+  public async loadMigrationPublic(
+    version: number,
+  ): Promise<Migration | undefined> {
+    const migrationPath = join(
+      this.testMigrationsPath,
+      version.toString(),
+      'index.js',
+    );
+
+    if (!existsSync(migrationPath)) {
+      return undefined;
+    }
+
+    try {
+      const migrationUrl = pathToFileURL(migrationPath).href;
+      const migrationModule = await import(migrationUrl);
+      const migration: Migration = migrationModule.default || migrationModule;
+
+      // Validate that migration has migrate() method
+      if (typeof migration.migrate !== 'function') {
+        console.error(
+          `Migration ${version} does not implement migrate() function`,
+        );
+        return undefined;
+      }
+
+      return migration;
+    } catch (error) {
+      console.error(`Failed to load test migration ${version}:`, error);
+      return undefined;
+    }
   }
 }
 
@@ -55,21 +131,21 @@ describe('MigrationExecutor', () => {
     rmSync(testDir, { recursive: true, force: true });
   });
 
-  it('should discover available migrations', async () => {
+  it('should discover available migrations', () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    const migrations = await executor.discoverMigrations(1, 4);
+    const migrations = executor.discoverMigrationsPublic(1, 4);
     expect(migrations).to.deep.equal([2, 3, 4]);
   });
 
-  it('should discover migrations in correct range', async () => {
+  it('should discover migrations in correct range', () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    const migrations = await executor.discoverMigrations(2, 3);
+    const migrations = executor.discoverMigrationsPublic(2, 3);
     expect(migrations).to.deep.equal([3]);
   });
 
   it('should load migration module', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    const migration = await executor.loadMigration(2);
+    const migration = await executor.loadMigrationPublic(2);
     expect(migration).to.not.equal(undefined);
     if (migration) {
       expect(migration.migrate).to.be.a('function');
@@ -88,8 +164,6 @@ describe('MigrationExecutor', () => {
     const result = await executor.migrate(1, 2, updateCallback);
 
     expect(result.success).to.equal(true);
-    expect(result.fromVersion).to.equal(1);
-    expect(result.toVersion).to.equal(2);
     expect(updatedVersion).to.equal(2);
     expect(result.stepsExecuted).to.include('pre-validation');
     expect(result.stepsExecuted).to.include('disk-space-check');
@@ -109,7 +183,6 @@ describe('MigrationExecutor', () => {
     };
     const result = await executor.migrate(3, 4, updateCallback);
     expect(result.success).to.equal(true);
-    expect(result.toVersion).to.equal(4);
     expect(updatedVersion).to.equal(4);
     expect(result.stepsExecuted).to.include('v4:migrate');
     expect(result.stepsExecuted).to.not.include('v4:before');
@@ -177,8 +250,6 @@ describe('MigrationExecutor', () => {
       ) {
         return {
           success: false,
-          fromVersion,
-          toVersion,
           message:
             'Insufficient disk space. Required: 100.00 MB, Available: 50.00 MB. Migration needs at least 2x the project size (50.00 MB).',
           stepsExecuted,
@@ -213,14 +284,14 @@ describe('MigrationExecutor', () => {
   it('should fail to load a migration module without valid Migration object', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     // Try to load a non-existent migration (version 999)
-    const migration = await executor.loadMigration(999);
+    const migration = await executor.loadMigrationPublic(999);
     expect(migration).to.equal(undefined);
   });
 
   it('should fail to load a migration module missing "migrate()" method', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
     // Version 5 is a migration module that exists but doesn't have migrate()
-    const migration = await executor.loadMigration(5);
+    const migration = await executor.loadMigrationPublic(5);
     expect(migration).to.equal(undefined);
   });
 });

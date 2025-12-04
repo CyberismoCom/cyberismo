@@ -17,22 +17,20 @@ import { join } from 'node:path';
 
 /**
  * Context passed to migration functions.
+ * @param cardRootPath Absolute path to the project's card root directory
+ * @param cardsConfigPath Absolute path to the .cards directory
+ * @param fromVersion Current schema version before migration
+ * @param toVersion Target schema version after migration
+ * @param backupDir Parent directory where backups should be created (if user specified one)
+ * @param signal AbortSignal for cancellation - migrations should check signal.aborted or pass to cancelable operations
  */
 export interface MigrationContext {
-  // Absolute path to the project's card root directory
   cardRootPath: string;
-  // Absolute path to the .cards directory
   cardsConfigPath: string;
-  // Current schema version before migration
   fromVersion: number;
-  // Target schema version after migration
   toVersion: number;
-  // Parent directory where backups should be created (if user specified one)
-  // Migration backup() function should create: backupDir/backup-<version>-<timestamp>
   backupDir?: string;
-  // Project instance for accessing project functionality during migrations
-  // Typed as object to avoid circular dependency with @cyberismo/data-handler
-  project?: object;
+  signal?: AbortSignal;
 }
 
 /**
@@ -48,8 +46,6 @@ export interface MigrationStepResult {
  * Result of a complete migration.
  */
 export interface MigrationResult extends MigrationStepResult {
-  fromVersion: number;
-  toVersion: number;
   stepsExecuted: string[];
 }
 
@@ -70,6 +66,13 @@ export interface Migration {
    * @returns Result with backup location
    */
   backup?(context: MigrationContext): Promise<MigrationStepResult>;
+
+  /**
+   * Cancel the migration gracefully if possible.
+   * Called when migration times out or needs to be stopped.
+   * If not implemented, the worker will be terminated forcefully when needed to.
+   */
+  cancel?(): Promise<void>;
 
   /**
    * Perform the actual migration. This is mandatory to implement.

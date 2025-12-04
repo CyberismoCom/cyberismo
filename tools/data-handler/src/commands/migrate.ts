@@ -11,7 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { type MigrationResult, SCHEMA_VERSION } from '@cyberismo/assets';
+import { SCHEMA_VERSION } from '@cyberismo/assets';
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Project } from '../containers/project.js';
 
 /**
@@ -61,15 +62,13 @@ export class Migrate {
     if (currentVersion === targetVersion) {
       return {
         success: true,
-        fromVersion: currentVersion,
-        toVersion: currentVersion,
         message: `Project is already at version ${currentVersion}. No migration needed.`,
         stepsExecuted: [],
       };
     }
 
     // Prevent skipping migrations when a specific target version is provided
-    // If no version specified, allow migrating to latest
+    // If no version specified, migrate to the latest
     if (toVersion !== undefined && toVersion !== SCHEMA_VERSION) {
       // Only allow next sequential version
       if (targetVersion !== currentVersion + 1) {

@@ -867,7 +867,7 @@ export class Commands {
       );
       return {
         statusCode: 200,
-        message: `Successfully migrated from version ${result.fromVersion} to ${result.toVersion}`,
+        message: result.message || 'Migration completed successfully',
       };
     } catch (e) {
       return { statusCode: 500, message: errorFunction(e) };

@@ -1,36 +1,28 @@
 #!/usr/bin/env node
 
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { readdir } from 'node:fs/promises';
 
 /**
- * Helper for creating migration scaffolding
- * It will:
- * - Create a next folder for migration
- * - Create empty migration functions
+ * Find the migrations package root
  */
+function findMigrationsRoot() {
+  // Script is in tools/migrations/scripts, so go up one level to get package root
+  const scriptDir = import.meta.dirname;
+  const migrationsRoot = join(scriptDir, '..');
+  const packageJsonPath = join(migrationsRoot, 'package.json');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-/**
- * Find the project root by looking for package.json with the correct name
- */
-function findProjectRoot() {
-  const projectRoot = join(__dirname, '..');
-  const packageJsonPath = join(projectRoot, 'package.json');
   if (!existsSync(packageJsonPath)) {
     throw new Error(`Could not find package.json at ${packageJsonPath}`);
   }
 
-  return projectRoot;
+  return migrationsRoot;
 }
 
-const PROJECT_ROOT = findProjectRoot();
-const MIGRATIONS_DIR = join(PROJECT_ROOT, 'tools', 'migrations', 'src');
+const MIGRATIONS_ROOT = findMigrationsRoot();
+const MIGRATIONS_DIR = join(MIGRATIONS_ROOT, 'src');
 
 /**
  * Get the next migration number by checking existing migration directories
@@ -68,18 +60,13 @@ function generateDefaultMigration(migrationNumber) {
   */
 
 import { join } from 'node:path';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import type {
   Migration,
   MigrationContext,
   MigrationStepResult,
-} from '@cyberismo/assets';
-import { createBackup, validateProjectStructure } from '@cyberismo/assets';
-
-// Dynamic import to avoid circular dependencies
-async function getProject(projectPath: string) {
-  const { Project } = await import('@cyberismo/data-handler');
-  return new Project(projectPath);
-}
+} from '../migration-interfaces.js';
+import { createBackup, validateProjectStructure } from '../migration-interfaces.js';
 
 const migration: Migration = {
   /**
@@ -125,8 +112,9 @@ const migration: Migration = {
    * Guidelines:
    * - This is the mandatory to implement!
    * - Modify files in cardRoot and .cards directories as needed
-   * - cardRoot cards should be mainly modified through resource update() calls (indirect)
-   * - Use the Project API to work with resources (cards, cardTypes, workflows, etc.)
+   * - Access resources directly via filesystem (readdir, readFile, writeFile)
+   * - cardTypes are in: context.cardsConfigPath/local/cardTypes/<name>.json
+   * - workflows are in: context.cardsConfigPath/local/workflows/<name>.json
    * - Log progress for visibility during migration
    * - Handle errors and return descriptive error messages
    * - Be idempotent: migration should handle being run multiple times safely
@@ -137,11 +125,26 @@ const migration: Migration = {
     );
 
     try {
-      const projectPath = join(context.cardsConfigPath, '..');
-      const project = await getProject(projectPath);
-      const { ResourcesFrom } = await import('@cyberismo/data-handler');
+      // Example: Access cardTypes directory
+      const cardTypesDir = join(
+        context.cardsConfigPath,
+        'local',
+        'cardTypes',
+      );
+
+      // Example: List all cardType files
+      const cardTypeFiles = await readdir(cardTypesDir);
+      const jsonFiles = cardTypeFiles.filter((f) => f.endsWith('.json'));
+
+      console.log(\`Found \${jsonFiles.length} cardType(s)\`);
 
       // TODO: Implement your migration logic here
+      // For each cardType:
+      // const filePath = join(cardTypesDir, fileName);
+      // const content = await readFile(filePath, 'utf8');
+      // const cardType = JSON.parse(content);
+      // // ... modify cardType ...
+      // await writeFile(filePath, JSON.stringify(cardType, null, 2), 'utf8');
 
       console.log('Migration ${migrationNumber} completed successfully');
 
@@ -214,9 +217,11 @@ async function createMigration() {
 
     console.log(`✓ Created migration ${migrationNumber}`);
     console.log(`  Location: ${migrationDir}`);
-    console.log(
-      `  Next steps: Edit ${indexPath} and implement the migration logic`,
-    );
+    console.log(`  Next steps:`);
+    console.log(`    1. Edit ${indexPath} and implement the migration logic`);
+    console.log(`    2. Add the migration to src/index.ts in this package`);
+    console.log(`    3. Run 'pnpm build' to compile`);
+    console.log(`    4. Test the migration in data-handler package`);
   } catch (error) {
     console.error('Error creating migration:', error);
     process.exit(1);
