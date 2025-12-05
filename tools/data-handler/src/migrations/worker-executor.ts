@@ -45,7 +45,6 @@ export async function executeStep(
   function _workerPath() {
     const currentFilePath = fileURLToPath(import.meta.url);
     const currentDir = dirname(currentFilePath);
-    // Navigate from src/migrations to dist/migrations in a cross-platform way
     const srcMigrationsSegment = join('src', 'migrations');
     const distMigrationsSegment = join('dist', 'migrations');
     const distDir = currentDir.replace(

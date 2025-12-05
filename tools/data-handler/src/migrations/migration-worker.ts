@@ -151,7 +151,6 @@ if (parentPort) {
 
           abortController = new AbortController();
 
-          // Load migration module
           const migrationUrl = pathToFileURL(message.migrationPath).href;
           const migrationModule = await import(migrationUrl);
           currentMigration = migrationModule.default || migrationModule;
