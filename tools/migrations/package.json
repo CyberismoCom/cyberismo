@@ -1,0 +1,23 @@
+{
+  "name": "@cyberismo/migrations",
+  "version": "0.0.1",
+  "description": "Schema migrations for Cyberismo",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && node scripts/generate-version.mjs",
+    "clean": "rm -rf dist",
+    "create-migration": "node scripts/create-migration.mjs"
+  },
+  "type": "module",
+  "dependencies": {
+    "@cyberismo/assets": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "src"
+  ]
+}

@@ -54,7 +54,9 @@ import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { MigrationExecutor } from '../migrations/migration-executor.js';
 
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
@@ -901,6 +903,57 @@ export class Project extends CardContainer {
    */
   public get resources(): ResourceHandler {
     return this.resourceHandler;
+  }
+
+  /**
+   * Run migrations to bring project schema to current version.
+   * @param backupDir Optional directory for backups. If undefined, no backup is created.
+   * @param timeoutMs Optional timeout in milliseconds. If undefined, uses default (2 minutes).
+   * @returns Migration result
+   */
+  public async runMigrations(
+    backupDir?: string,
+    timeoutMs?: number,
+  ): Promise<MigrationResult> {
+    const { SCHEMA_VERSION } = await import('@cyberismo/assets');
+    const schemaVersion = this.settings.schemaVersion;
+
+    if (schemaVersion === undefined || schemaVersion >= SCHEMA_VERSION) {
+      return {
+        success: false,
+        message: 'No migration needed',
+        stepsExecuted: [],
+      };
+    }
+
+    this.logger.info(
+      { fromVersion: schemaVersion, toVersion: SCHEMA_VERSION },
+      'Starting schema migration',
+    );
+
+    const executor = new MigrationExecutor(this, backupDir, timeoutMs);
+    const result = await executor.migrate(
+      schemaVersion,
+      SCHEMA_VERSION,
+      async (version: number) => {
+        this.settings.schemaVersion = version;
+        await this.settings.save();
+      },
+    );
+
+    if (result.success) {
+      this.logger.info(
+        { fromVersion: schemaVersion, toVersion: SCHEMA_VERSION },
+        'Migration completed successfully',
+      );
+    } else {
+      this.logger.error(
+        { error: result.error, message: result.message },
+        'Migration failed',
+      );
+    }
+
+    return result;
   }
 
   /**

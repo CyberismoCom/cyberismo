@@ -76,6 +76,10 @@ export class ProjectPaths {
     return join(this.resourcesFolder, 'graphViews');
   }
 
+  public get internalRootFolder(): string {
+    return join(this.path, '.cards');
+  }
+
   public get linkTypesFolder(): string {
     return join(this.resourcesFolder, 'linkTypes');
   }
@@ -85,7 +89,7 @@ export class ProjectPaths {
   }
 
   public get modulesFolder(): string {
-    return join(this.path, '.cards', 'modules');
+    return join(this.internalRootFolder, 'modules');
   }
 
   public moduleResourcePath(
@@ -97,7 +101,7 @@ export class ProjectPaths {
   }
 
   public get resourcesFolder(): string {
-    return join(this.path, '.cards', 'local');
+    return join(this.internalRootFolder, 'local');
   }
 
   public get reportsFolder(): string {

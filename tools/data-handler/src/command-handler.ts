@@ -36,6 +36,7 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
+  MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -68,6 +69,7 @@ export const Cmd = {
   export: 'export',
   fetch: 'fetch',
   import: 'import',
+  migrate: 'migrate',
   move: 'move',
   rank: 'rank',
   remove: 'remove',
@@ -320,6 +322,12 @@ export class Commands {
           const [csvFile, cardKey] = args;
           return await this.importCsv(csvFile, cardKey);
         }
+      } else if (command === Cmd.migrate) {
+        const [toVersion] = args;
+        return await this.migrate(
+          toVersion ? parseInt(toVersion, 10) : undefined,
+          options as MigrateCommandOptions,
+        );
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
@@ -838,6 +846,32 @@ export class Commands {
     });
 
     return { statusCode: 200 };
+  }
+
+  // Run migrations to bring project to target schema version
+  private async migrate(
+    toVersion?: number,
+    options?: { backup?: string; timeout?: number },
+  ): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const backupDir = options?.backup ? options.backup : undefined;
+    const timeout = options?.timeout;
+    try {
+      const result = await this.commands.migrateCmd.migrate(
+        toVersion,
+        backupDir,
+        timeout,
+      );
+      return {
+        statusCode: 200,
+        message: result.message || 'Migration completed successfully',
+      };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
   }
 
   // Validates that a given path conforms to schema. Validates both file/folder structure and file content.
