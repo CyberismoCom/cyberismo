@@ -6,7 +6,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
-import { Show, Update } from '../src/commands/index.js';
+import { Fetch, Show, Update } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 const baseDir = import.meta.dirname;
@@ -47,7 +47,8 @@ describe('update command', () => {
   });
 
   it('update resource - rank item using string value (name)', async () => {
-    const show = new Show(project);
+    const fetch = new Fetch(project);
+    const show = new Show(project, fetch);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 0;
@@ -81,7 +82,8 @@ describe('update command', () => {
     expect(indexAfter).to.equal(moveToIndex);
   });
   it('update resource - rank item using partial object value', async () => {
-    const show = new Show(project);
+    const fetch = new Fetch(project);
+    const show = new Show(project, fetch);
     const name = `${project.projectPrefix}/cardTypes/decision`;
     const fileName = `${name}.json`;
     const moveToIndex = 4;

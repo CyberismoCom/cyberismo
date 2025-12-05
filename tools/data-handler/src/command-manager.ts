@@ -63,14 +63,14 @@ export class CommandManager {
     this.validateCmd = Validate.getInstance();
 
     this.calculateCmd = new Calculate(this.project);
-    this.showCmd = new Show(this.project);
+    this.fetchCmd = new Fetch(this.project);
+    this.showCmd = new Show(this.project, this.fetchCmd);
     this.createCmd = new Create(this.project);
     this.editCmd = new Edit(this.project);
     this.exportCmd = new Export(this.project, this.showCmd);
-    this.fetchCmd = new Fetch(this.project);
-    this.importCmd = new Import(this.project, this.createCmd);
+    this.importCmd = new Import(this.project, this.createCmd, this.fetchCmd);
     this.moveCmd = new Move(this.project);
-    this.removeCmd = new Remove(this.project);
+    this.removeCmd = new Remove(this.project, this.fetchCmd);
     this.renameCmd = new Rename(this.project);
     this.transitionCmd = new Transition(this.project);
     this.updateCmd = new Update(this.project);

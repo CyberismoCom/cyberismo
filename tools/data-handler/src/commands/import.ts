@@ -20,6 +20,7 @@ import type {
   Credentials,
   ModuleSettingOptions,
 } from '../interfaces/project-interfaces.js';
+import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 
 /**
@@ -36,6 +37,7 @@ export class Import {
   constructor(
     private project: Project,
     private createCmd: Create,
+    private fetchCmd: Fetch,
   ) {
     this.moduleManager = new ModuleManager(this.project);
   }
@@ -139,6 +141,9 @@ export class Import {
     destination?: string,
     options?: ModuleSettingOptions,
   ) {
+    // Ensure module list is up to date before importing
+    await this.fetchCmd.ensureModuleListUpToDate();
+
     const beforeImportValidateErrors = await Validate.getInstance().validate(
       this.project.basePath,
       () => this.project,
@@ -189,6 +194,9 @@ export class Import {
    * @throws if module is not part of the project
    */
   public async updateModule(moduleName: string, credentials?: Credentials) {
+    // Ensure module list is up to date before updating
+    await this.fetchCmd.ensureModuleListUpToDate();
+
     const module = this.project.configuration.modules.find(
       (item) => item.name === moduleName,
     );
@@ -203,6 +211,8 @@ export class Import {
    * @param credentials Optional credentials for private modules.
    */
   public async updateAllModules(credentials?: Credentials) {
+    // Ensure module list is up to date before updating all modules
+    await this.fetchCmd.ensureModuleListUpToDate();
     return this.moduleManager.updateModules(credentials);
   }
 }

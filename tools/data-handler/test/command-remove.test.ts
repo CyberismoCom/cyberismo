@@ -8,7 +8,7 @@ import { join, sep } from 'node:path';
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Remove } from '../src/commands/index.js';
+import { Fetch, Remove } from '../src/commands/index.js';
 import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
@@ -442,7 +442,8 @@ describe('remove command', () => {
       const cardId = 'decision_5';
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('attachment', cardId, '')
         .then(() => {
@@ -456,7 +457,8 @@ describe('remove command', () => {
       const cardId = 'decision_999';
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('attachment', cardId, 'the-needle.heic')
         .then(() => {
@@ -469,7 +471,8 @@ describe('remove command', () => {
     it('try to remove non-existing module', async () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('module', 'i-dont-exist')
         .then(() => {
@@ -522,7 +525,8 @@ describe('remove card', () => {
 
   it('Remove - remove card that has children', async () => {
     const cardId = 'decision_5';
-    const removeCmd = new Remove(commands.project);
+    const fetchCmd = new Fetch(commands.project);
+    const removeCmd = new Remove(commands.project, fetchCmd);
     await removeCmd.remove('card', cardId);
 
     expect(() => commands.project.findCard(cardId)).to.throw(

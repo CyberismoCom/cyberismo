@@ -5,7 +5,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { getTestProject } from './helpers/test-utils.js';
-import { Create, Import } from '../src/commands/index.js';
+import { Create, Fetch, Import } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -619,7 +619,8 @@ describe('resources', function () {
       const projectMini = getTestProject(minimalPath);
       await projectMini.populateCaches();
       const createCmdMini = new Create(projectMini);
-      const importCmdMini = new Import(projectMini, createCmdMini);
+      const fetchCmd = new Fetch(projectMini);
+      const importCmdMini = new Import(projectMini, createCmdMini, fetchCmd);
       await importCmdMini.importModule(
         decisionRecordsPath,
         projectMini.basePath,

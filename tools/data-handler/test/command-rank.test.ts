@@ -8,7 +8,7 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Show } from '../src/commands/index.js';
+import { Fetch, Show } from '../src/commands/index.js';
 import { getTestProject } from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
@@ -77,7 +77,8 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const details = new Show(project).showCardDetails(rankBefore);
+      const fetchCmd = new Fetch(project);
+      const details = new Show(project, fetchCmd).showCardDetails(rankBefore);
       expect(details.metadata?.rank).to.equal('0|c');
     });
     it('rank card in root (success)', async () => {
@@ -94,7 +95,8 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const details = new Show(project).showCardDetails(rankBefore);
+      const fetchCmd = new Fetch(project);
+      const details = new Show(project, fetchCmd).showCardDetails(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
       expect(details.metadata?.rank).to.match(/^0\|[a-z0-9]+$/);
     });
@@ -109,7 +111,8 @@ describe('rank command', () => {
 
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const details = new Show(project).showCardDetails(key);
+      const fetchCmd = new Fetch(project);
+      const details = new Show(project, fetchCmd).showCardDetails(key);
 
       expect(details.metadata?.rank).to.equal('0|a');
     });
@@ -147,7 +150,8 @@ describe('rank command', () => {
       expect(result.statusCode).to.equal(200);
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
-      const details = new Show(project).showCardDetails(key);
+      const fetchCmd = new Fetch(project);
+      const details = new Show(project, fetchCmd).showCardDetails(key);
       expect(details.metadata?.rank).to.equal('0|a');
     });
   });
