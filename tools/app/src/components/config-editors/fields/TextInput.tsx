@@ -18,6 +18,7 @@ export interface TextInputProps extends BaseInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export function TextInput({
@@ -26,6 +27,7 @@ export function TextInput({
   onChange,
   onKeyDown,
   onBlur,
+  disabled,
 }: TextInputProps) {
   return (
     <FormControl>
@@ -35,6 +37,7 @@ export function TextInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
+        disabled={disabled}
       />
     </FormControl>
   );

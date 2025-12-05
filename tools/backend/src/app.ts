@@ -34,6 +34,7 @@ import logicProgramsRouter from './domain/logicPrograms/index.js';
 import { isSSGContext } from 'hono/ssg';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
+import projectRouter from './domain/project/index.js';
 
 /**
  * Create the Hono app for the backend
@@ -70,6 +71,7 @@ export function createApp(projectPath?: string, opts?: TreeOptions) {
   app.route('/api/resources', resourcesRouter);
   app.route('/api/logicPrograms', logicProgramsRouter);
   app.route('/api/labels', labelsRouter);
+  app.route('/api/project', projectRouter);
 
   // serve index.html for all other routes
   app.notFound(async (c) => {

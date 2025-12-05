@@ -265,4 +265,19 @@ export class ProjectConfiguration implements ProjectSettings {
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,
     );
   }
+
+  /**
+   * Changes project name.
+   * @param newName New project name
+   */
+  public async setProjectName(newName: string) {
+    const isValid = Validate.isValidProjectName(newName);
+    if (isValid) {
+      this.name = newName;
+      return this.save();
+    }
+    throw new Error(
+      `Project name '${newName}' is not valid. It should be 1-63 characters and include letters, numbers, spaces, dots, underscores or dashes.`,
+    );
+  }
 }

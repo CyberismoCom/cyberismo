@@ -40,12 +40,51 @@ const resourceTypes: ResourceFolderType[] = [
   'workflows',
 ];
 
+async function getModules(commands: CommandManager) {
+  try {
+    const moduleNames = commands.showCmd.showModules();
+    return Promise.all(
+      moduleNames.map(async (moduleName) => {
+        try {
+          const module = await commands.showCmd.showModule(moduleName);
+          return { name: module.name, cardKeyPrefix: module.cardKeyPrefix };
+        } catch (error) {
+          return { name: moduleName, cardKeyPrefix: moduleName };
+        }
+      }),
+    );
+  } catch {
+    return [];
+  }
+}
+
 export async function buildResourceTree(commands: CommandManager) {
   const project = await commands.showCmd.showProject();
   const tree: unknown[] = [];
-  const allModuleResources: {
-    [prefix: string]: { [type: string]: unknown[] };
-  } = {};
+
+  const sortByDisplayName = (
+    nodes: { data: { displayName: string; name: string } }[],
+  ) =>
+    nodes.sort((a, b) =>
+      (a.data.displayName || a.data.name.split('/')[2] || '').localeCompare(
+        b.data.displayName || b.data.name.split('/')[2] || '',
+      ),
+    );
+
+  const modules = await getModules(commands);
+
+  // General section first (single node with project + modules metadata)
+  tree.push({
+    id: 'general-project',
+    type: 'general',
+    name: 'project',
+    data: {
+      name: project.name,
+      cardKeyPrefix: project.prefix,
+      modules,
+    },
+    readOnly: false,
+  });
 
   // Process each resource type
   for (const resourceType of resourceTypes) {
@@ -65,47 +104,54 @@ export async function buildResourceTree(commands: CommandManager) {
       ));
     }
 
-    // Add root level resources
-    if (rootResources.length > 0) {
+    // Sort resources by display name if present
+    sortByDisplayName(
+      rootResources as { data: { displayName: string; name: string } }[],
+    );
+
+    Object.values(moduleResources).forEach((resources) =>
+      sortByDisplayName(
+        resources as { data: { displayName: string; name: string } }[],
+      ),
+    );
+
+    const projectNode =
+      rootResources.length > 0
+        ? [
+            {
+              id: `${resourceType}-project`,
+              type: 'module',
+              name: 'project',
+              children: rootResources,
+              readOnly: false,
+            },
+          ]
+        : [];
+
+    const moduleNodes = Object.entries(moduleResources)
+      .map(([prefix, resources]) => ({
+        id: `${resourceType}-module-${prefix}`,
+        type: 'module',
+        name:
+          modules.find((module) => module.cardKeyPrefix === prefix)?.name ||
+          prefix,
+        prefix,
+        children: resources,
+        readOnly: true,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const allResources = [...projectNode, ...moduleNodes];
+
+    // Add combined resources (project + modules nested under module nodes) under the same group
+    if (allResources.length > 0) {
       tree.push({
         id: resourceType,
         type: 'resourceGroup',
         name: resourceType,
-        children: rootResources,
+        children: allResources,
       });
     }
-
-    // Collect module resources
-    Object.entries(moduleResources).forEach(([prefix, resources]) => {
-      if (!allModuleResources[prefix]) {
-        allModuleResources[prefix] = {};
-      }
-      allModuleResources[prefix][resourceType] = resources;
-    });
-  }
-
-  // Build modules section
-  if (Object.keys(allModuleResources).length > 0) {
-    const modules = Object.entries(allModuleResources).map(
-      ([prefix, resourcesByType]) => ({
-        id: `modules-${prefix}`,
-        type: 'module',
-        name: prefix,
-        children: Object.entries(resourcesByType).map(([type, resources]) => ({
-          id: `modules-${prefix}-${type}`,
-          type: 'resourceGroup',
-          name: type,
-          children: resources,
-        })),
-      }),
-    );
-
-    tree.push({
-      id: 'modules',
-      type: 'modulesGroup',
-      name: 'modules',
-      children: modules,
-    });
   }
 
   return tree;

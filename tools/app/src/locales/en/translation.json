@@ -178,6 +178,14 @@
   "failedToLoad": "Failed to load",
   "false": "False",
   "fieldSaved": "Field saved",
+  "general": {
+    "title": "General",
+    "projectName": "Project name",
+    "cardKeyPrefix": "Card key prefix",
+    "save": "Save",
+    "readOnly": "This module is read-only. Update it in the source module.",
+    "modulesSection": "Modules"
+  },
   "goToField": "Go to field",
   "identifier": "Identifier",
   "inboundDisplayName": "Inbound display name",
@@ -280,11 +288,13 @@
   "policyCheckFail": "FAIL",
   "policyCheckPass": "PASS",
   "preview": "Preview",
+  "project": "Project",
   "recents": "Recents",
   "removeLabel": "Remove label",
 
   "resourceFileContentUpdated": "Resource file content updated",
   "resources": {
+    "general": "General",
     "calculations": "Calculations",
     "cardTypes": "Card types",
     "fieldTypes": "Field types",

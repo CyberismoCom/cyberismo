@@ -38,7 +38,6 @@ import { ROOT } from '../utils/constants.js';
 export class CardContainer {
   public basePath: string;
   protected cardCache: CardCache;
-  protected containerName: string;
   protected prefix: string;
 
   static cardContentFile = 'index.adoc';
@@ -46,9 +45,8 @@ export class CardContainer {
   static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, prefix: string, name: string) {
+  constructor(path: string, prefix: string) {
     this.basePath = path;
-    this.containerName = name;
     this.prefix = prefix;
     this.cardCache = new CardCache(this.prefix);
   }

@@ -13,6 +13,7 @@
 import type { CardUpdate } from './types';
 
 export * from './fieldTypes';
+export * from './projectSettings';
 export * from './project';
 export * from './card';
 export * from './calculation';

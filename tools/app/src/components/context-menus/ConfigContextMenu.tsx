@@ -71,18 +71,22 @@ export function ConfigContextMenu({ node, enabled }: ConfigContextMenuProps) {
           </Menu>
         </Dropdown>
       )}
-      <LogicProgramModal
-        open={modalOpen.logicProgram}
-        onClose={closeModal('logicProgram')}
-        title={t('logicProgram')}
-        resourceName={node.name}
-      />
-      <ResourceDeleteModal
-        open={modalOpen.delete}
-        onClose={closeModal('delete')}
-        resourceName={node.name}
-        resourceType={node.type}
-      />
+      {enabled?.logicProgram && (
+        <LogicProgramModal
+          open={modalOpen.logicProgram}
+          onClose={closeModal('logicProgram')}
+          title={t('logicProgram')}
+          resourceName={node.name}
+        />
+      )}
+      {enabled?.delete && (
+        <ResourceDeleteModal
+          open={modalOpen.delete}
+          onClose={closeModal('delete')}
+          resourceName={node.name}
+          resourceType={node.type}
+        />
+      )}
     </>
   );
 }

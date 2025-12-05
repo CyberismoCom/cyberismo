@@ -100,7 +100,7 @@ export function getSwrConfig(): SWRConfiguration {
 }
 
 export const apiPaths = {
-  project: () => '/api/cards',
+  cards: () => '/api/cards',
   card: (key: string) => `/api/cards/${key}`,
   rawCard: (key: string) => `/api/cards/${key}?raw=true`,
   calculations: () => '/api/calculations',
@@ -128,4 +128,9 @@ export const apiPaths = {
   labels: () => '/api/labels',
   validateResource: (resourceName: string) =>
     `/api/resources/${resourceName}/validate`,
+  project: () => '/api/project',
+  projectModuleUpdate: (module: string) =>
+    `/api/project/modules/${encodeURIComponent(module)}/update`,
+  projectModuleDelete: (module: string) =>
+    `/api/project/modules/${encodeURIComponent(module)}`,
 };
