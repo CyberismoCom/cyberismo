@@ -95,7 +95,7 @@ export class Project extends CardContainer {
       join(path, '.cards', 'local', Project.projectConfigFileName),
       options.autoSave ?? true,
     );
-    super(path, settings.cardKeyPrefix, '');
+    super(path, settings.cardKeyPrefix);
     this.settings = settings;
 
     this.logger.info({ path }, 'Initializing project');
@@ -103,13 +103,11 @@ export class Project extends CardContainer {
     this.calculationEngine = new CalculationEngine(this);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
-
-    this.containerName = this.settings.name;
     // todo: implement project validation
     this.validator = Validate.getInstance();
 
     this.logger.info(
-      { name: this.containerName },
+      { name: this.settings.name },
       'Project initialization complete',
     );
 
@@ -909,7 +907,7 @@ export class Project extends CardContainer {
    */
   public async show(): Promise<ProjectMetadata> {
     return {
-      name: this.containerName,
+      name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
       hubs: this.configuration.hubs,

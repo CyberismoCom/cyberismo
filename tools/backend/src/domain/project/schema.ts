@@ -11,8 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from './TextEditor';
-export * from './ResourceEditor';
-export * from './ConfigCardEditor';
-export * from './CalculationEditor';
-export * from './GeneralEditor';
+import { z } from 'zod';
+
+export const moduleParamSchema = z.object({
+  module: z.string().min(1),
+});
+
+export const updateProjectSchema = z.object({
+  name: z.string().optional(),
+  cardKeyPrefix: z.string().optional(),
+});

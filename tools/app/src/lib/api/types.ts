@@ -57,6 +57,7 @@ export type Resources = {
   resourceTree: AnyNode[];
   logicPrograms: LogicProgramResponse;
   validateResource: ValidateResourceResponse;
+  general: GeneralSettings;
 };
 
 export type ResourceName = keyof Resources;
@@ -93,6 +94,21 @@ interface BaseResourceNode {
   readOnly?: boolean;
 }
 
+export interface GeneralSettings {
+  name: string;
+  cardKeyPrefix: string;
+  modules: {
+    name: string;
+    cardKeyPrefix: string;
+  }[];
+}
+
+interface GeneralNode extends BaseResourceNode {
+  type: 'general';
+  data: GeneralSettings;
+  readonly: false;
+}
+
 // Resource group node (e.g., "cardTypes", "templates")
 interface ResourceGroupNode extends BaseResourceNode {
   type: 'resourceGroup';
@@ -103,12 +119,7 @@ interface ResourceGroupNode extends BaseResourceNode {
 interface ModuleNode extends BaseResourceNode {
   type: 'module';
   name: string;
-}
-
-// Modules group node (top-level "modules")
-interface ModulesGroupNode extends BaseResourceNode {
-  type: 'modulesGroup';
-  name: 'modules';
+  prefix: string;
 }
 
 // Individual resource nodes with proper data types
@@ -178,8 +189,8 @@ export interface FileNode extends BaseResourceNode {
 export type AnyNode =
   | CardNode
   | FileNode
+  | GeneralNode
   | ModuleNode
-  | ModulesGroupNode
   | ResourceGroupNode
   | ResourceNode;
 
@@ -191,11 +202,11 @@ export type NodeTypeMap = {
   cardTypes: CardTypeNode;
   fieldTypes: FieldTypeNode;
   file: FileNode;
+  general: GeneralNode;
   graphModels: GraphModelNode;
   graphViews: GraphViewNode;
   linkTypes: LinkTypeNode;
   module: ModuleNode;
-  modulesGroup: ModulesGroupNode;
   reports: ReportNode;
   resourceGroup: ResourceGroupNode;
   templates: TemplateNode;
