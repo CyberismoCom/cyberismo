@@ -204,22 +204,17 @@ export class Fetch {
    * Ensures the module list is up to date by fetching if needed.
    */
   public async ensureModuleListUpToDate() {
-    const needsFetch = await this.fetchModuleList();
-    if (needsFetch) {
-      await this.fetchHubs(true);
-    }
+    await this.fetchHubs();
   }
 
   /**
    * Fetches modules from modules hub(s) and writes them to a file.
-   * @param skipVersionCheck - If true, skips hub version check and forces fetch
+   * Only fetches if the remote version is newer than the local version.
    */
-  public async fetchHubs(skipVersionCheck: boolean = false) {
-    if (!skipVersionCheck) {
-      const needsFetch = await this.fetchModuleList();
-      if (!needsFetch) {
-        return;
-      }
+  public async fetchHubs() {
+    const needsFetch = await this.fetchModuleList();
+    if (!needsFetch) {
+      return;
     }
 
     const hubs = this.project.configuration.hubs;
