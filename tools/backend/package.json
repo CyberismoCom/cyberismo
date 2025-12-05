@@ -9,7 +9,7 @@
     "dev": "tsx watch src/main.ts",
     "debug": "tsx --inspect-brk src/main.ts",
     "export": "pnpm build && node dist/main.js --export",
-    "build": "tsc -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
+    "build": "tsgo -p tsconfig.build.json && shx rm -rf ./dist/public && shx cp -r ../app/dist ./dist/public",
     "test": "vitest run --silent",
     "lint": "eslint ."
   },
