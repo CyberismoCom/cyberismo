@@ -4,7 +4,7 @@
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node scripts/download-prebuild.js || node-gyp-build",
-    "build": "pnpm format:cpp:check:optional && tsc -p tsconfig.build.json",
+    "build": "tsgo -p tsconfig.build.json",
     "build-prebuildify": "pnpm format:cpp:optional && shx rm -rf prebuilds && prebuildify --napi",
     "build-debug": "cross-env GYP_DEFINES=\"enable_cpp_logs=1\" pnpm build-prebuildify",
     "dev": "tsc -p tsconfig.build.json --watch",

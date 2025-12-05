@@ -12,6 +12,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.1",
     "@typescript-eslint/parser": "^8.54.0",
+    "@typescript/native-preview": "7.0.0-dev.20260204.1",
     "chai": "^6.2.2",
     "chai-as-promised": "^8.0.2",
     "chokidar-cli": "^3.0.0",
