@@ -1,6 +1,10 @@
 /// <reference types="cypress" />
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const t = require('../../src/locales/en/translation.json');
+const openMacroMenu = () =>
+  cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click();
+const selectMacro = (name: string) =>
+  cy.get('[role="menuitem"]').contains(name).click();
 // These e2e tests use a 'cyberismo-bat' project that is created
 // upon test run start based on the module-base repository content.
 // Run these tests with ´npm run e2e:headless´
@@ -36,9 +40,9 @@ describe('Navigation', () => {
       .type('Create cards page'); // Change page title
     cy.get('.cm-activeLine').clear(); // clear the page
 
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
+    // add create All data types card button macro to page from toolbar
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Cancel'); // Verify dialog contains cancel button
     cy.get('[role="dialog"]').contains('Create cards'); // Verify dialog contains Create cards text
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
@@ -48,12 +52,12 @@ describe('Navigation', () => {
     cy.get('[placeholder="Enter button text"]')
       .click()
       .clear()
-      .type('Test Create cards macro'); // Type graph macro on the page
+      .type('Test Create All data types page'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
+    // add create Policy checks and notifications card button macro to page from toolbar
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
     cy.get('[role="listbox"] [role="option"]')
       .contains('Policy checks and notifications')
@@ -61,12 +65,12 @@ describe('Navigation', () => {
     cy.get('[placeholder="Enter button text"]')
       .click()
       .clear()
-      .type('Create Policy checks and notifications page for Graph macro'); // Type Image macro on the page
+      .type('Create Policy checks and notifications page'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
+    // add create Test denied operations card button macro to page from toolbar
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
     cy.get('[role="listbox"] [role="option"]')
       .contains('Test denied operations')
@@ -74,89 +78,45 @@ describe('Navigation', () => {
     cy.get('[placeholder="Enter button text"]')
       .click()
       .clear()
-      .type('Create Test denied operations page for Image macro'); // Type Image macro on the page
+      .type('Create Test denied operations page'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
+    // add create empty page card button macro to page from toolbar
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
     cy.get('[role="listbox"] [role="option"]').contains('Page').click(); // select  from dropdown menu
     cy.get('[placeholder="Enter button text"]')
       .click()
       .clear()
-      .type('Create empty page for Include macro'); // Type Include macro on the page
+      .type('Create empty page'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
+        // add create page content card button macro to page from toolbar
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
     cy.get('[role="listbox"] [role="option"]').contains('Page content').click(); // select Page content from dropdown menu
     cy.get('[placeholder="Enter button text"]')
       .click()
       .clear()
-      .type('Create page for Percentage macro'); // Type Percentage macro on the page
-    cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
-
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
-    cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
-    cy.get('[role="listbox"] [role="option"]').contains('Page').click(); // select Page from dropdown menu
-    cy.get('[placeholder="Enter button text"]')
-      .click()
-      .clear()
-      .type('Create empty Page for Report macro'); // Type Report macro on the page
-    cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
-
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
-    cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
-    cy.get('[role="listbox"] [role="option"]').contains('Page').click(); // select Page from dropdown menu
-    cy.get('[placeholder="Enter button text"]')
-      .click()
-      .clear()
-      .type('Create empty page for Score card macro'); // Type Score card macro on the page
-    cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
-
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
-    cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
-    cy.get('[role="listbox"] [role="option"]').contains('Page').click(); // select Page from dropdown menu
-    cy.get('[placeholder="Enter button text"]')
-      .click()
-      .clear()
-      .type('Create empty page for Vega-Lite and Vega macros'); // Type Vega-Lite and Vega macros on the page
-    cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
-
-    // add create card button macro to page from toolbar
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Create cards').click(); // Click Graph button
-    cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
-    cy.get('[role="listbox"] [role="option"]').contains('Page').click(); // select Page from dropdown menu
-    cy.get('[placeholder="Enter button text"]')
-      .click()
-      .clear()
-      .type('Create empty page for Xref macro'); // Type Xref macro on the page
+      .type('Create page content'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
     // update page
     cy.get('[data-cy="updateButton"]').click(); // Click update button
     cy.get('[role="presentation"]').contains('Card saved successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card saved successfully')
       .should('not.exist'); // Verify popup infobox closes
     // verify macro
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Test Create cards macro')
+      .contains('Test Create All data types page')
       .click(); // Create test card with the button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
@@ -167,10 +127,10 @@ describe('Navigation', () => {
     cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create Policy checks and notifications page for Graph macro')
+      .contains('Create Policy checks and notifications page')
       .click(); // Create card for graph macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
@@ -179,8 +139,8 @@ describe('Navigation', () => {
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
     cy.get('.cm-activeLine').clear(); // clear the page
     // add Graph macro with Macro helpers for toolbars
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Graph').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Graph'); // Click Graph button
     cy.get('[role="dialog"]').contains('Cancel'); // Verify dialog contains cancel button
     cy.get('[role="dialog"]').contains('Graph'); // Verify dialog contains Graph text
     cy.get('[role="dialog"]').contains('Graph model').click(); // Click Graph model to open dropdown
@@ -195,7 +155,7 @@ describe('Navigation', () => {
     // verify macro
     cy.get('[data-cy="updateButton"]').click(); // Click update button
     cy.get('[role="presentation"]').contains(t.saveCard['success']); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]').contains('success').should('not.exist'); // Verify popup infobox closes
     cy.get('[class="doc"]')
       .get('.cyberismo-svg-wrapper')
@@ -241,7 +201,7 @@ describe('Navigation', () => {
       }); // Extract card key on the page
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create Test denied operations page for Image macro')
+      .contains('Create Test denied operations page')
       .click(); // Create card for image macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('h1').contains('Test denied operations'); // Verify Title in content area
@@ -275,14 +235,14 @@ describe('Navigation', () => {
 
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Include macro')
+      .contains('Create empty page')
       .click(); // Create card for include macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
     // included card macro
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Include a card').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Include a card'); // Click Include a card button
     cy.get('[role="dialog"]').contains('Cancel'); // Verify dialog contains cancel button
     cy.get('[role="dialog"]').contains('Include a card');
     cy.get('[role="dialog"]').get('label').contains('Card');
@@ -311,37 +271,25 @@ describe('Navigation', () => {
     cy.get('h2').contains('Create cards page'); // Verify included card title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Xref macro');
+      .contains('Create empty page');
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Vega-Lite and Vega macros');
+      .contains('Create Test denied operations page');
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Score card macro');
+      .contains('Create Policy checks and notifications page');
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty Page for Report macro');
+      .contains('Test Create All data types page');
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create page for Percentage macro');
-    cy.get('[class="doc"]')
-      .get('[type="button"]')
-      .contains('Create empty page for Include macro');
-    cy.get('[class="doc"]')
-      .get('[type="button"]')
-      .contains('Create Test denied operations page for Image macro');
-    cy.get('[class="doc"]')
-      .get('[type="button"]')
-      .contains('Create Policy checks and notifications page for Graph macro');
-    cy.get('[class="doc"]')
-      .get('[type="button"]')
-      .contains('Test Create cards macro');
+      .contains('Create page content');
 
     // included card macro
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
     cy.get('.cm-activeLine').clear(); // clear the page
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Include a card').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Include a card'); // Click Include a card button
     cy.get('[placeholder="Select a card"]').click();
     cy.then(() => {
       cy.get('[role="listbox"] [role="option"]')
@@ -360,14 +308,14 @@ describe('Navigation', () => {
     cy.get('h3').get('[class="discrete"]').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Xref macro')
+      .contains('Create empty page')
       .should('not.exist'); // Verify page does not contain create buttons
 
     // included card macro
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
     cy.get('.cm-activeLine').clear(); // clear the page
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Include a card').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Include a card'); // Click Include a card button
     cy.get('[placeholder="Select a card"]').click();
     cy.then(() => {
       cy.get('[role="listbox"] [role="option"]')
@@ -384,18 +332,18 @@ describe('Navigation', () => {
     cy.get('h3').should('not.exist'); // Verify no title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty page for Xref macro');
+      .contains('Create empty page');
   });
 
   it('Percentage macro', () => {
-    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Test denied operations in tree menu
+    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create page for Percentage macro')
+      .contains('Create page content')
       .click(); // Create card for precentage macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
@@ -417,22 +365,22 @@ describe('Navigation', () => {
   });
 
   it('Report macro', () => {
-    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Test denied operations in tree menu
+    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty Page for Report macro')
+      .contains('Create empty page')
       .click(); // Create card for report macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
 
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Report').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Report'); // Click Report button
     cy.get('[role="dialog"]').contains('Cancel'); // Verify dialog contains cancel button
     cy.get('[role="dialog"]').get('label').contains('Report').click();
     cy.get('[role="listbox"] [role="option"]')
@@ -446,14 +394,14 @@ describe('Navigation', () => {
   });
 
   it('Score card macro', () => {
-    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Test denied operations in tree menu
+    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty Page for Report macro')
+      .contains('Create empty page')
       .click();
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
@@ -475,14 +423,14 @@ describe('Navigation', () => {
   });
 
   it('Vega-Lite and Vega macros', () => {
-    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Test denied operations in tree menu
+    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty Page for Report macro')
+      .contains('Create empty page')
       .click(); // Create card for vega macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
@@ -500,7 +448,7 @@ describe('Navigation', () => {
   });
 
   it('Xref macro', () => {
-    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Test denied operations in tree menu
+    cy.get('[role="tree"]').contains('Create cards page').click(); // Navigate to Create cards page in tree menu
     cy.get('h1').contains('Create cards page'); // Verify Title in content area
 
     let cardKey: string;
@@ -513,18 +461,18 @@ describe('Navigation', () => {
       }); // Extract card key on the page
     cy.get('[class="doc"]')
       .get('[type="button"]')
-      .contains('Create empty Page for Report macro')
+      .contains('Create empty page')
       .click(); // Create card for xref macro with create card button
     cy.get('[role="presentation"]').contains('Card created successfully'); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[role="presentation"]')
       .contains('Card created successfully')
       .should('not.exist'); // Verify popup infobox closes
     cy.get('h1').contains('Untitled page'); // Verify Title in content area
 
     cy.get('[data-cy="editButton"]').contains(t['edit']).click(); // Click edit button
-    cy.get('[role="tabpanel"] [aria-haspopup="menu"]').click(); // Click macro helpers on toolbar
-    cy.get('[role="menuitem"]').contains('Cross reference').click(); // Click Graph button
+    openMacroMenu(); // Click macro helpers on toolbar
+    selectMacro('Cross reference'); // Click Cross reference button
     cy.get('[role="dialog"]').contains('Cancel'); // Verify dialog contains cancel button
     cy.get('[role="dialog"]').get('label').contains('Card');
     cy.get('[placeholder="Select a card"]').click(); // Type graph macro on the page

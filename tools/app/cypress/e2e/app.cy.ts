@@ -92,7 +92,7 @@ describe('Navigation', () => {
       .contains(t.moveCardModal['title'])
       .click();
     cy.get('[role="presentation"]').contains(t.moveCardModal['success']); // Verify text in popup infobox
-    cy.get('.MuiSnackbar-endDecorator > .MuiIconButton-root').click(); // closes popup infobox
+    cy.get('[data-cy="notification"]').click(); // closes popup infobox
     cy.get('[data-cy="ExpandMoreIcon"]'); // Verifies expand more icon exists in tree menu
   });
 
