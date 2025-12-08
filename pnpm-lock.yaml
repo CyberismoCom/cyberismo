@@ -297,6 +297,9 @@ importers:
       '@cyberismo/assets':
         specifier: workspace:*
         version: link:../assets
+      '@cyberismo/migrations':
+        specifier: workspace:*
+        version: link:../migrations
       '@cyberismo/node-clingo':
         specifier: workspace:*
         version: link:../node-clingo
@@ -379,6 +382,16 @@ importers:
       sinon:
         specifier: ^21.0.0
         version: 21.0.0
+
+  tools/migrations:
+    dependencies:
+      '@cyberismo/assets':
+        specifier: workspace:*
+        version: link:../assets
+    devDependencies:
+      typescript:
+        specifier: ^5
+        version: 5.9.3
 
   tools/node-clingo:
     dependencies:
