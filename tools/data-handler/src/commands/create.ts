@@ -192,7 +192,7 @@ export class Create {
     Validate.getInstance().validResourceName(
       'templates',
       resourceNameToString(resourceName(templateName)),
-      this.project.projectPrefixes(),
+      this.project.allModulePrefixes(),
     );
 
     await templateResource.validate();
