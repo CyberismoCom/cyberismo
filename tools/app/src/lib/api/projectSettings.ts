@@ -54,15 +54,12 @@ export const useProjectSettingsMutations = () => {
     deleteModule: (moduleName: string) =>
       call(() => deleteProjectModule(moduleName), `delete-${moduleName}`),
     updateAllModules: (moduleNames: string[]) =>
-      call(
-        async () => {
-          for (const moduleName of moduleNames) {
-            // Ensure modules are updated sequentially to avoid backend conflicts
-            await updateProjectModule(moduleName);
-          }
-        },
-        'update-all-modules',
-      ),
+      call(async () => {
+        for (const moduleName of moduleNames) {
+          // Ensure modules are updated sequentially to avoid backend conflicts
+          await updateProjectModule(moduleName);
+        }
+      }, 'update-all-modules'),
   };
   return mutations;
 };

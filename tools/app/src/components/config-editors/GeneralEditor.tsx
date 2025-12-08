@@ -136,9 +136,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
               }}
               loading={isUpdating('update-all-modules')}
               disabled={
-                isUpdating('update-all-modules') ||
-                !general?.modules?.length ||
-                node.readOnly
+                isUpdating() || !general?.modules?.length || node.readOnly
               }
             >
               {t('general.updateAllModules')}
@@ -159,7 +157,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   loading={isUpdating(`update-${mod.cardKeyPrefix}`)}
                   disabled={
                     isUpdating(`update-${mod.cardKeyPrefix}`) ||
-                    isUpdating('update-all-modules') ||
+                    isUpdating() ||
                     node.readOnly
                   }
                   onClick={() => updateModule(mod.cardKeyPrefix)}
