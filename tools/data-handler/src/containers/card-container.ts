@@ -24,12 +24,13 @@ import { writeJsonFile } from '../utils/json.js';
 import type {
   CardAttachment,
   Card,
+  CardMetadata,
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
 import asciidoctor from '@asciidoctor/core';
 
-import { ROOT } from '../utils/constants.js';
+import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -226,13 +227,40 @@ export class CardContainer {
     if (card.metadata != null) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
-      await writeJsonFile(metadataFile, card.metadata);
+
+      const sanitizedMetadata = CardContainer.sanitizeMetadata(card.metadata);
+      await writeJsonFile(metadataFile, sanitizedMetadata);
       return this.cardCache.updateCardMetadata(card.key, card.metadata);
     }
     return false;
   }
 
   /**
+   * Removes non-metadata fields that should not be persisted.
+   *
+   * @param metadata The metadata object to sanitize
+   * @returns Clean metadata object with only valid metadata fields
+   */
+  private static sanitizeMetadata(metadata: CardMetadata): CardMetadata {
+    const sanitized: Record<string, unknown> = {};
+    const KNOWN_METADATA_FIELDS = ['labels', 'links'];
+
+    for (const [key, value] of Object.entries(metadata)) {
+      // Keys are not filtered out if they are: predefined, known, or field types
+      if (
+        isPredefinedField(key) ||
+        KNOWN_METADATA_FIELDS.includes(key) ||
+        key.includes('/')
+      ) {
+        sanitized[key] = value;
+      }
+      // Everything else is filtered out
+    }
+
+    return sanitized as CardMetadata;
+  }
+
+  /*
    * Show root cards from a given path.
    * @param path The path to get cards from
    * @returns an array of root-level cards (each with their children populated).

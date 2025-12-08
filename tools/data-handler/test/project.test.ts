@@ -327,6 +327,52 @@ describe('project', () => {
         .catch(() => expect(true));
     }
   });
+  it('metadata should not contain Card-level fields after save', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const cardToOperateOn = 'decision_5';
+
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    const card = project.findCard(cardToOperateOn);
+    expect(card).to.not.equal(undefined);
+
+    if (card && card.metadata) {
+      const originalTitle = card.metadata.title;
+      const newTitle = 'Test Title Change';
+
+      // Contaminate metadata with Card properties
+      const badMetadata = card.metadata as Record<string, unknown>;
+      badMetadata['parent'] = 'test_parent';
+      badMetadata['key'] = 'test_key';
+      badMetadata['path'] = '/test/path';
+      badMetadata['children'] = ['child1', 'child2'];
+      badMetadata['location'] = 'test_location';
+      await project.updateCardMetadataKey(card.key, 'title', newTitle);
+
+      // Read the metadata file directly from disk & verify that Card properties have not been stored
+      const metadataPath = join(card.path, 'index.json');
+      const savedMetadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
+      expect(savedMetadata).to.not.have.property('parent');
+      expect(savedMetadata).to.not.have.property('key');
+      expect(savedMetadata).to.not.have.property('path');
+      expect(savedMetadata).to.not.have.property('children');
+      expect(savedMetadata).to.not.have.property('location');
+      expect(savedMetadata).to.not.have.property('attachments');
+      expect(savedMetadata).to.not.have.property('calculations');
+      expect(savedMetadata).to.not.have.property('content');
+
+      // Verify that metadata is correct
+      expect(savedMetadata).to.have.property('title');
+      expect(savedMetadata.title).to.equal(newTitle);
+      expect(savedMetadata).to.have.property('cardType');
+      expect(savedMetadata).to.have.property('workflowState');
+      expect(savedMetadata).to.have.property('rank');
+      expect(savedMetadata).to.have.property('links');
+
+      // Restore original title to avoid impacting other tests
+      await project.updateCardMetadataKey(card.key, 'title', originalTitle);
+    }
+  });
   it('update card content (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const cardToOperateOn = 'decision_5';
