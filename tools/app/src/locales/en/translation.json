@@ -159,6 +159,12 @@
   "deleteCardSuccess": "Card deleted successfully",
   "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
+  "deleteModuleModal": {
+    "title": "Remove module",
+    "content": "Are you sure you want to remove the module <bold>\"{{moduleName}}\"</bold>? This will delete all of its resources from the project.",
+    "warning": "I acknowledge that removing \"{{moduleName}}\" ({{cardKeyPrefix}}) will delete all resources it provides.",
+    "success": "Module \"{{moduleName}}\" removed successfully"
+  },
   "deleteResource": "Delete resource",
   "deleteResourceModal": {
     "title": "Delete resource",

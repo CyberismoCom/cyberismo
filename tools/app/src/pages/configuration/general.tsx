@@ -21,7 +21,7 @@ function GeneralPage() {
 
   const generalNode = resourceTree[0];
   if (!generalNode || generalNode.type !== 'general') {
-    return <div>{t('error')}</div>;
+    return <div>{t('unknownError')}</div>;
   }
   return <GeneralEditor node={generalNode} />;
 }

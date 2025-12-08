@@ -18,10 +18,14 @@ import {
   CardActions,
   Button,
 } from '@mui/joy';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GenericNode } from '@/lib/api/types';
 import { useProjectSettings, useProjectSettingsMutations } from '@/lib/api';
-import { useEditableField } from '@/lib/hooks';
+import { useEditableField, useAppDispatch } from '@/lib/hooks';
+import { useModals } from '@/lib/utils';
+import { ModuleDeleteModal } from '@/components/modals';
+import { addNotification } from '@/lib/slices/notifications';
 import BaseEditor from './BaseEditor';
 import FieldRow from './fields/FieldRow';
 import TextInput from './fields/TextInput';
@@ -35,6 +39,14 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
   const { general, isLoading } = useProjectSettings(undefined);
   const { updateModule, deleteModule, isUpdating, updateProject } =
     useProjectSettingsMutations();
+  const { modalOpen, openModal, closeModal } = useModals({
+    deleteModule: false,
+  });
+  const [moduleToDelete, setModuleToDelete] = useState<{
+    name: string;
+    cardKeyPrefix: string;
+  } | null>(null);
+  const dispatch = useAppDispatch();
 
   const nameField = useEditableField({
     initialValue: general?.name ?? node.data.name ?? '',
@@ -115,7 +127,10 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   disabled={
                     isUpdating(`delete-${mod.cardKeyPrefix}`) || node.readOnly
                   }
-                  onClick={() => deleteModule(mod.cardKeyPrefix)}
+                  onClick={() => {
+                    setModuleToDelete(mod);
+                    openModal('deleteModule')();
+                  }}
                 >
                   {t('delete')}
                 </Button>
@@ -124,6 +139,44 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
           ))}
         </Stack>
       </Stack>
+      {moduleToDelete && (
+        <ModuleDeleteModal
+          open={modalOpen.deleteModule}
+          onClose={() => {
+            setModuleToDelete(null);
+            closeModal('deleteModule')();
+          }}
+          moduleName={moduleToDelete.name}
+          cardKeyPrefix={moduleToDelete.cardKeyPrefix}
+          onDelete={async () => {
+            try {
+              if (!moduleToDelete) {
+                return;
+              }
+              await deleteModule(moduleToDelete.cardKeyPrefix);
+              dispatch(
+                addNotification({
+                  message: t('deleteModuleModal.success', {
+                    moduleName: moduleToDelete.name,
+                  }),
+                  type: 'success',
+                }),
+              );
+              setModuleToDelete(null);
+              closeModal('deleteModule')();
+            } catch (error) {
+              dispatch(
+                addNotification({
+                  message:
+                    error instanceof Error ? error.message : t('failedToLoad'),
+                  type: 'error',
+                }),
+              );
+            }
+          }}
+          isDeleting={isUpdating(`delete-${moduleToDelete.cardKeyPrefix}`)}
+        />
+      )}
     </BaseEditor>
   );
 }
