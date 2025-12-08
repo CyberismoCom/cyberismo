@@ -194,15 +194,16 @@ export class ResourceCache {
   }
 
   // Collect all module resources from the filesystem
-  // Only collects modules that are registered in the project configuration
-  // todo: For future:
-  // Should it also try to collect what is in .local/modules and then log for disparities?
   private collectModuleResources() {
     try {
-      const registeredModules = this.project.configuration.modules.map(
-        (m) => m.name,
-      );
-      if (registeredModules.length === 0) {
+      const moduleEntries = readdirSync(this.project.paths.modulesFolder, {
+        withFileTypes: true,
+      });
+      const moduleNames = moduleEntries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+
+      if (moduleNames.length === 0) {
         return;
       }
 
@@ -218,13 +219,15 @@ export class ResourceCache {
         'workflows',
       ];
 
-      for (const moduleName of registeredModules) {
+      for (const moduleName of moduleNames) {
         for (const type of resourceTypes) {
           this.collectResourcesOfType(type, 'module', moduleName);
         }
       }
     } catch {
-      ResourceCache.logger.warn(`.cards/modules folder is missing`);
+      ResourceCache.logger.debug(
+        `.cards/modules folder is missing or inaccessible`,
+      );
     }
   }
 
