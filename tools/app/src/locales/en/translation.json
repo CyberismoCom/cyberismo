@@ -185,7 +185,7 @@
   "invalid": "Invalid",
   "invalidResource": "Invalid resource",
   "labelEditor": {
-    "splitterHint": "Use the splitter ({{splitter}}) to add multiple labels at once"
+    "splitterHint": "Use the splitter ({{splitter}}) between labels to add multiple labels at once"
   },
   "labels": "Labels",
   "lastTransitioned": "Last transitioned",
