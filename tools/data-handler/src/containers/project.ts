@@ -21,6 +21,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -83,6 +84,7 @@ export class Project extends CardContainer {
   private resourceWatcher: ContentWatcher | undefined;
   private settings: ProjectConfiguration;
   private validator: Validate;
+  private cachedAllModulePrefixes: string[] = [];
 
   constructor(
     path: string,
@@ -112,6 +114,8 @@ export class Project extends CardContainer {
       { name: this.containerName },
       'Project initialization complete',
     );
+
+    this.refreshAllModulePrefixes();
 
     const ignoreRenameFileChanges = true;
 
@@ -217,12 +221,34 @@ export class Project extends CardContainer {
     }
   }
 
+  // Refreshes the cached list of all module prefixes.
+  // This includes both direct and transient module dependencies.
+  private refreshAllModulePrefixes(): void {
+    const prefixes: string[] = [this.projectPrefix];
+
+    try {
+      const modules = readdirSync(this.paths.modulesFolder, {
+        withFileTypes: true,
+      })
+        .filter((item) => item.isDirectory())
+        .map((item) => item.name);
+
+      prefixes.push(...modules);
+    } catch {
+      // If modules folder doesn't exist, fall back to configuration modules only
+      const moduleNames = this.configuration.modules.map((item) => item.name);
+      prefixes.push(...moduleNames);
+    }
+
+    this.cachedAllModulePrefixes = prefixes;
+  }
+
   // Validates that card's data is valid.
   private async validateCard(card: Card): Promise<string> {
     const invalidCustomData = await this.validator.validateCustomFields(
       this,
       card,
-      this.projectPrefixes(),
+      this.allModulePrefixes(),
     );
     const invalidWorkFlow = await this.validator.validateWorkflowState(
       this,
@@ -256,7 +282,7 @@ export class Project extends CardContainer {
   protected async populateTemplateCards(): Promise<void> {
     try {
       const templateResources = this.resources.templates();
-      const prefixes = this.projectPrefixes();
+      const prefixes = this.allModulePrefixes();
       const loadPromises = templateResources.map(async (template) => {
         try {
           this.validator.validResourceName(
@@ -614,6 +640,7 @@ export class Project extends CardContainer {
     // Add module as a dependency.
     await this.configuration.addModule(module);
     this.resources.changedModules();
+    this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
     this.logger.info(`Imported module '${module.name}'`);
   }
@@ -831,8 +858,17 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns all prefixes used in the project (project's own plus all from imported modules).
+   * Returns all prefixes used in the project.
+   * This includes both direct dependencies and transient dependencies.
    * @returns all prefixes used in the project.
+   */
+  public allModulePrefixes(): string[] {
+    return this.cachedAllModulePrefixes;
+  }
+
+  /**
+   * Returns prefixes for direct module dependencies only (from cardsConfig.json).
+   * @returns prefixes for direct module dependencies.
    */
   public projectPrefixes(): string[] {
     const prefixes: string[] = [this.projectPrefix];
@@ -891,6 +927,9 @@ export class Project extends CardContainer {
 
     // Finally, remove module from project configuration
     await this.configuration.removeModule(moduleName);
+
+    // Refresh cached module prefixes after removal
+    this.refreshAllModulePrefixes();
 
     this.logger.info(`Removed module '${moduleName}'`);
   }

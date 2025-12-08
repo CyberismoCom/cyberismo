@@ -222,7 +222,7 @@ export class Validate {
   ): Promise<string[]> {
     const message: string[] = [];
     try {
-      const prefixes = project.projectPrefixes();
+      const prefixes = project.allModulePrefixes();
       const files = await readdir(path, {
         withFileTypes: true,
       });
@@ -554,7 +554,7 @@ export class Validate {
         cards.push(...project.allTemplateCards());
 
         const cardIds = new Map<string, number>();
-        const allPrefixes = await project.projectPrefixes();
+        const allPrefixes = project.allModulePrefixes();
 
         for (const card of cards) {
           if (cardIds.has(card.key)) {
