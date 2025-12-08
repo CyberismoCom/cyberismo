@@ -19,6 +19,7 @@ import { writeFile } from 'node:fs/promises';
 import { CardCache } from './project/card-cache.js';
 import { cardPathParts } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
 import type {
@@ -41,6 +42,10 @@ export class CardContainer {
   protected cardCache: CardCache;
   protected containerName: string;
   protected prefix: string;
+
+  protected static get logger() {
+    return getChildLogger({ module: 'CardContainer' });
+  }
 
   static cardContentFile = 'index.adoc';
   static cardMetadataFile = 'index.json';
@@ -228,7 +233,7 @@ export class CardContainer {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
 
-      const sanitizedMetadata = CardContainer.sanitizeMetadata(card.metadata);
+      const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
       await writeJsonFile(metadataFile, sanitizedMetadata);
       return this.cardCache.updateCardMetadata(card.key, card.metadata);
     }
@@ -241,20 +246,26 @@ export class CardContainer {
    * @param metadata The metadata object to sanitize
    * @returns Clean metadata object with only valid metadata fields
    */
-  private static sanitizeMetadata(metadata: CardMetadata): CardMetadata {
+  private static sanitizeMetadata(card: Card): CardMetadata {
     const sanitized: Record<string, unknown> = {};
     const KNOWN_METADATA_FIELDS = ['labels', 'links'];
 
-    for (const [key, value] of Object.entries(metadata)) {
-      // Keys are not filtered out if they are: predefined, known, or field types
-      if (
-        isPredefinedField(key) ||
-        KNOWN_METADATA_FIELDS.includes(key) ||
-        key.includes('/')
-      ) {
-        sanitized[key] = value;
+    if (card.metadata) {
+      for (const [key, value] of Object.entries(card.metadata)) {
+        // Keys are not filtered out if they are: predefined, known, or field types
+        if (
+          isPredefinedField(key) ||
+          KNOWN_METADATA_FIELDS.includes(key) ||
+          key.includes('/')
+        ) {
+          sanitized[key] = value;
+        } else {
+          this.logger.warn(
+            `Card ${card.key} had extra metadata key ${key} with value ${value}. Key was removed`,
+          );
+        }
+        // Everything else is filtered out
       }
-      // Everything else is filtered out
     }
 
     return sanitized as CardMetadata;
