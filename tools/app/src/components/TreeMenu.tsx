@@ -11,6 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { useCallback } from 'react';
 import type { NodeApi } from 'react-arborist';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
 import { BaseTreeComponent } from './BaseTreeComponent';
@@ -33,15 +34,15 @@ export const TreeMenu = ({
   tree,
   openByDefault = false,
 }: TreeMenuProps) => {
-  const handleMove = (
-    dragIds: string[],
-    parentId: string | null,
-    index: number,
-  ) => {
-    if (onMove && dragIds.length === 1) {
-      onMove(dragIds[0], parentId ?? 'root', index);
-    }
-  };
+  // Memoize handleMove to prevent unnecessary re-renders of BaseTreeComponent
+  const handleMove = useCallback(
+    (dragIds: string[], parentId: string | null, index: number) => {
+      if (onMove && dragIds.length === 1) {
+        onMove(dragIds[0], parentId ?? 'root', index);
+      }
+    },
+    [onMove],
+  );
 
   return (
     <BaseTreeComponent

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Stack, Typography } from '@mui/joy';
 import type { NodeRendererProps, NodeApi, TreeApi } from 'react-arborist';
 import { Tree } from 'react-arborist';
@@ -55,17 +55,28 @@ export function BaseTreeComponent<T>({
     if (selectedId && tree && !tree.selectedIds.has(selectedId)) {
       tree.select(selectedId);
     }
-  }, [selectedId, data]);
+  }, [selectedId]);
 
-  const handleMove = (moveData: {
-    dragIds: string[];
-    parentId: string | null;
-    index: number;
-  }) => {
-    if (onMove && moveData.dragIds.length === 1) {
-      onMove(moveData.dragIds, moveData.parentId, moveData.index);
-    }
-  };
+  const handleMove = useCallback(
+    (moveData: {
+      dragIds: string[];
+      parentId: string | null;
+      index: number;
+    }) => {
+      if (onMove && moveData.dragIds.length === 1) {
+        onMove(moveData.dragIds, moveData.parentId, moveData.index);
+      }
+    },
+    [onMove],
+  );
+
+  // Create stable node renderer wrapper to prevent component remounting
+  const renderNode = useCallback(
+    (props: NodeRendererProps<T>) => (
+      <NodeRenderer {...props} onNodeClick={onNodeClick} />
+    ),
+    [NodeRenderer, onNodeClick],
+  );
 
   return (
     <Stack paddingTop={2} paddingLeft={2} height="100%" width="100%" ref={ref}>
@@ -93,9 +104,7 @@ export function BaseTreeComponent<T>({
         rowHeight={28}
         onMove={handleMove}
       >
-        {(props: NodeRendererProps<T>) => (
-          <NodeRenderer {...props} onNodeClick={onNodeClick} />
-        )}
+        {renderNode}
       </Tree>
     </Stack>
   );

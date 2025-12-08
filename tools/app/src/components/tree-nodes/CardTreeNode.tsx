@@ -18,6 +18,7 @@ import FiberManualRecord from '@mui/icons-material/FiberManualRecord';
 import ErrorIcon from '@mui/icons-material/Error';
 import { getStateColor } from '../../lib/utils';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { useTreeNodeVisualState } from '../../lib/hooks';
 
 interface CardTreeNodeProps extends NodeRendererProps<QueryResult<'tree'>> {
   onNodeClick?: (node: NodeApi<QueryResult<'tree'>>) => void;
@@ -38,6 +39,7 @@ export const CardTreeNode = ({
   onNodeClick,
 }: CardTreeNodeProps) => {
   const progress = node.data.progress;
+  const visualState = useTreeNodeVisualState(node);
 
   const renderStatusIndicator = () => {
     const statusIndicator = node.data.statusIndicator;
@@ -86,7 +88,7 @@ export const CardTreeNode = ({
       className="treenode"
       style={style}
       ref={dragHandle}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         if (node.isClosed) node.toggle();
         onNodeClick?.(node);
@@ -97,7 +99,13 @@ export const CardTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={visualState.backgroundColor}
+      sx={{
+        opacity: visualState.opacity,
+        transition: 'all 0.15s ease-in-out',
+        ...visualState.borderStyle,
+        cursor: visualState.cursor,
+      }}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"

@@ -17,6 +17,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { hasResourceData } from '@/lib/api/resources';
 import type { AnyNode } from '@/lib/api/types';
 import { useTranslation } from 'react-i18next';
+import { useTreeNodeVisualState } from '../../lib/hooks';
 
 interface ConfigTreeNodeProps extends NodeRendererProps<AnyNode> {
   onNodeClick?: (node: NodeApi<AnyNode>) => void;
@@ -51,13 +52,14 @@ export const ConfigTreeNode = ({
   onNodeClick,
 }: ConfigTreeNodeProps) => {
   const { t } = useTranslation();
+  const visualState = useTreeNodeVisualState(node);
 
   return (
     <Box
       className="treenode"
       style={style}
       ref={dragHandle}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent) => {
         e.stopPropagation();
         if (node.isClosed) node.toggle();
         onNodeClick?.(node);
@@ -68,7 +70,13 @@ export const ConfigTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={visualState.backgroundColor}
+      sx={{
+        opacity: visualState.opacity,
+        transition: 'all 0.15s ease-in-out',
+        ...visualState.borderStyle,
+        cursor: visualState.cursor,
+      }}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"
