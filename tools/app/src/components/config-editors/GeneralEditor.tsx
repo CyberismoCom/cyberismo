@@ -37,8 +37,13 @@ type GeneralEditorProps = {
 export function GeneralEditor({ node }: GeneralEditorProps) {
   const { t } = useTranslation();
   const { general, isLoading } = useProjectSettings(undefined);
-  const { updateModule, deleteModule, isUpdating, updateProject } =
-    useProjectSettingsMutations();
+  const {
+    updateModule,
+    deleteModule,
+    updateAllModules,
+    isUpdating,
+    updateProject,
+  } = useProjectSettingsMutations();
   const { modalOpen, openModal, closeModal } = useModals({
     deleteModule: false,
   });
@@ -96,9 +101,49 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
         </FieldRow>
 
         <Stack spacing={1}>
-          <Typography level="title-lg">
-            {t('general.modulesSection')}
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography level="title-lg">
+              {t('general.modulesSection')}
+            </Typography>
+            <Button
+              size="sm"
+              variant="outlined"
+              onClick={async () => {
+                if (!general?.modules?.length) {
+                  return;
+                }
+                try {
+                  await updateAllModules(
+                    general.modules.map((mod) => mod.cardKeyPrefix),
+                  );
+                  dispatch(
+                    addNotification({
+                      message: t('general.updateAllModulesSuccess'),
+                      type: 'success',
+                    }),
+                  );
+                } catch (error) {
+                  dispatch(
+                    addNotification({
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : t('failedToLoad'),
+                      type: 'error',
+                    }),
+                  );
+                }
+              }}
+              loading={isUpdating('update-all-modules')}
+              disabled={
+                isUpdating('update-all-modules') ||
+                !general?.modules?.length ||
+                node.readOnly
+              }
+            >
+              {t('general.updateAllModules')}
+            </Button>
+          </Stack>
           {general?.modules?.map((mod) => (
             <Card key={mod.cardKeyPrefix} size="sm" variant="outlined">
               <CardContent>
@@ -113,7 +158,9 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                   variant="outlined"
                   loading={isUpdating(`update-${mod.cardKeyPrefix}`)}
                   disabled={
-                    isUpdating(`update-${mod.cardKeyPrefix}`) || node.readOnly
+                    isUpdating(`update-${mod.cardKeyPrefix}`) ||
+                    isUpdating('update-all-modules') ||
+                    node.readOnly
                   }
                   onClick={() => updateModule(mod.cardKeyPrefix)}
                 >

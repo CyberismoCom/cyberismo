@@ -190,7 +190,9 @@
     "cardKeyPrefix": "Card key prefix",
     "save": "Save",
     "readOnly": "This module is read-only. Update it in the source module.",
-    "modulesSection": "Modules"
+    "modulesSection": "Modules",
+    "updateAllModules": "Update all modules",
+    "updateAllModulesSuccess": "All modules updated successfully"
   },
   "goToField": "Go to field",
   "identifier": "Identifier",
