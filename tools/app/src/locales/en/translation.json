@@ -315,6 +315,7 @@
   "svgViewerHelpWindow": "Pinch or Shift+Wheel = Zoom • Scroll/Drag = Pan",
   "tableOfContents": "Table of contents",
   "templateCard": "Template card",
+  "templateCardDisabledTooltip": "To create a template card, you must first navigate to an existing template or template card.",
   "title": "Title",
   "toolbar": {
     "newCard": "Create",

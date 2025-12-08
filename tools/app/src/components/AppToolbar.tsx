@@ -11,6 +11,7 @@
 */
 
 import { useTranslation } from 'react-i18next';
+import { Fragment } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Link } from 'react-router';
@@ -23,6 +24,7 @@ import {
   Menu,
   MenuButton,
   MenuItem,
+  Tooltip,
 } from '@mui/joy';
 import { config } from '@/lib/utils';
 import {
@@ -46,6 +48,7 @@ export function CreateButton({
 }) {
   const { t } = useTranslation();
   const { showTemplateCard } = useConfigTemplateCreationContext();
+  const templateCardDisabled = !showTemplateCard;
 
   if (type === 'Card') {
     return (
@@ -74,15 +77,35 @@ export function CreateButton({
         {t('toolbar.newResource')}
       </MenuButton>
       <Menu>
-        {type === 'Resource' && showTemplateCard && (
-          <MenuItem onClick={() => onClick('templateCard' as ResourceName)}>
-            {t('templateCard')}
-          </MenuItem>
-        )}
         {RESOURCES.map((resource) => (
-          <MenuItem key={resource} onClick={() => onClick(resource)}>
-            {t(`newResourceModal.${resource}.name`)}
-          </MenuItem>
+          <Fragment key={resource}>
+            <MenuItem onClick={() => onClick(resource)}>
+              {t(`newResourceModal.${resource}.name`)}
+            </MenuItem>
+            {resource === 'templates' && (
+              <Tooltip
+                title={
+                  templateCardDisabled
+                    ? t('templateCardDisabledTooltip')
+                    : undefined
+                }
+                placement="left"
+                disableHoverListener={!templateCardDisabled}
+              >
+                <span>
+                  <MenuItem
+                    disabled={templateCardDisabled}
+                    onClick={() =>
+                      !templateCardDisabled &&
+                      onClick('templateCard' as ResourceName)
+                    }
+                  >
+                    {t('templateCard')}
+                  </MenuItem>
+                </span>
+              </Tooltip>
+            )}
+          </Fragment>
         ))}
       </Menu>
     </Dropdown>
