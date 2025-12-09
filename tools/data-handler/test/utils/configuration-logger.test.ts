@@ -32,42 +32,11 @@ describe('configuration logger', () => {
 
   after(async () => {
     await deleteDir(testDir);
-    ConfigurationLogger.reset();
-  });
-
-  describe('singleton instance management', () => {
-    it('should create and return singleton instance', () => {
-      const logger1 = ConfigurationLogger.getInstance(testProjectPath);
-      const logger2 = ConfigurationLogger.getInstance(testProjectPath);
-
-      expect(logger1).to.equal(logger2);
-    });
-    it('should create new instance for different project path', () => {
-      const testProjectPath2 = join(testDir, 'test-project-2');
-      const logger1 = ConfigurationLogger.getInstance(testProjectPath);
-      const logger2 = ConfigurationLogger.getInstance(testProjectPath2);
-
-      expect(logger1).to.not.equal(logger2);
-    });
-    it('should reset singleton instance', () => {
-      const logger1 = ConfigurationLogger.getInstance(testProjectPath);
-      ConfigurationLogger.reset();
-      const logger2 = ConfigurationLogger.getInstance(testProjectPath);
-
-      expect(logger1).to.not.equal(logger2);
-    });
   });
 
   describe('basic logging operations', () => {
-    let logger: ConfigurationLogger;
-
-    before(() => {
-      ConfigurationLogger.reset();
-      logger = ConfigurationLogger.getInstance(testProjectPath);
-    });
-
     after(async () => {
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
     });
 
     it('should log resource creation', async () => {
@@ -80,7 +49,7 @@ describe('configuration logger', () => {
         },
       );
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(1);
       expect(entries[0].operation).to.equal(
         ConfigurationOperation.RESOURCE_CREATE,
@@ -96,7 +65,7 @@ describe('configuration logger', () => {
         'deleted-resource',
       );
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       const deleteEntry = entries.find(
         (e) => e.operation === ConfigurationOperation.RESOURCE_DELETE,
       );
@@ -105,12 +74,21 @@ describe('configuration logger', () => {
       expect(deleteEntry!.parameters).to.be.undefined;
     });
     it('should append entries in JSON Lines format', async () => {
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
 
-      await logger.log(ConfigurationOperation.RESOURCE_CREATE, 'resource1');
-      await logger.log(ConfigurationOperation.RESOURCE_DELETE, 'resource2');
+      await ConfigurationLogger.log(
+        testProjectPath,
+        ConfigurationOperation.RESOURCE_CREATE,
+        'resource1',
+      );
+      await ConfigurationLogger.log(
+        testProjectPath,
+        ConfigurationOperation.RESOURCE_DELETE,
+        'resource2',
+      );
 
-      const logContent = await readFile(logger.configurationLog, 'utf-8');
+      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
+      const logContent = await readFile(logPath, 'utf-8');
       const lines = logContent.trim().split('\n');
 
       expect(lines.length).to.equal(2);
@@ -124,7 +102,7 @@ describe('configuration logger', () => {
       expect(entry2.target).to.equal('resource2');
     });
     it('should preserve entry order', async () => {
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
 
       const operations = [
         { op: ConfigurationOperation.RESOURCE_CREATE, target: 'first' },
@@ -133,10 +111,10 @@ describe('configuration logger', () => {
       ];
 
       for (const { op, target } of operations) {
-        await logger.log(op, target);
+        await ConfigurationLogger.log(testProjectPath, op, target);
       }
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(3);
       expect(entries[0].target).to.equal('first');
       expect(entries[1].target).to.equal('second');
@@ -144,20 +122,23 @@ describe('configuration logger', () => {
     });
     it('should handle logging errors gracefully', async () => {
       const invalidPath = '/invalid/path/that/does/not/exist';
-      const logger = ConfigurationLogger.getInstance(invalidPath);
 
-      await expect(logger.log(ConfigurationOperation.RESOURCE_CREATE, 'test'))
-        .to.not.be.rejected;
+      await expect(
+        ConfigurationLogger.log(
+          invalidPath,
+          ConfigurationOperation.RESOURCE_CREATE,
+          'test',
+        ),
+      ).to.not.be.rejected;
     });
     it('should handle reading non-existent log file', async () => {
       const nonExistentPath = join(testDir, 'non-existent');
-      const logger = ConfigurationLogger.getInstance(nonExistentPath);
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(nonExistentPath);
       expect(entries.length).to.equal(0);
     });
     it('should log module addition', async () => {
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
 
       await ConfigurationLogger.log(
         testProjectPath,
@@ -172,7 +153,7 @@ describe('configuration logger', () => {
         },
       );
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(1);
       expect(entries[0].operation).to.equal(ConfigurationOperation.MODULE_ADD);
       expect(entries[0].target).to.equal('test-module');
@@ -192,7 +173,7 @@ describe('configuration logger', () => {
         },
       );
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       const removeEntry = entries.find(
         (e) => e.operation === ConfigurationOperation.MODULE_REMOVE,
       );
@@ -201,14 +182,15 @@ describe('configuration logger', () => {
       expect(removeEntry!.parameters?.location).to.equal('/path/to/module');
     });
     it('should get configuration log path', () => {
-      const logPath = logger.configurationLog;
+      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
       expect(logPath).to.include('.cards');
       expect(logPath).to.include('migrationLog');
       expect(logPath).to.include('current');
       expect(logPath).to.include('migrationLog.jsonl');
     });
     it('should clear log entries', async () => {
-      const beforeEntries = (await logger.entries()).length;
+      const beforeEntries = (await ConfigurationLogger.entries(testProjectPath))
+        .length;
       await ConfigurationLogger.log(
         testProjectPath,
         ConfigurationOperation.RESOURCE_CREATE,
@@ -220,22 +202,22 @@ describe('configuration logger', () => {
         'test2',
       );
 
-      let entries = await logger.entries();
+      let entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(beforeEntries + 2);
 
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
 
-      entries = await logger.entries();
+      entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(0);
     });
     it('should return empty array when log file does not exist', async () => {
-      await logger.clearLog();
+      await ConfigurationLogger.clearLog(testProjectPath);
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(0);
     });
     it('should handle corrupted log entries gracefully', async () => {
-      const logPath = logger.configurationLog;
+      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
 
       // Write some valid and invalid JSON lines
       const testContent = [
@@ -247,23 +229,23 @@ describe('configuration logger', () => {
 
       await writeFile(logPath, testContent + '\n');
 
-      const entries = await logger.entries();
+      const entries = await ConfigurationLogger.entries(testProjectPath);
       expect(entries.length).to.equal(2);
       expect(entries[0].target).to.equal('valid');
       expect(entries[1].target).to.equal('valid2');
     });
-    it('should check log existence via instance property', async () => {
+    it('should check log existence via static method', async () => {
       const testProjectPath2 = join(testDir, 'test-project-static');
       // Create a log entry
-      const logger2 = ConfigurationLogger.getInstance(testProjectPath2);
       await ConfigurationLogger.log(
         testProjectPath2,
         ConfigurationOperation.RESOURCE_CREATE,
         'test',
       );
 
-      // Check if log path exists for the logger that has entries
-      expect(pathExists(logger2.configurationLog)).to.equal(true);
+      // Check if log path exists for the project that has entries
+      const logPath = ConfigurationLogger.getLogPath(testProjectPath2);
+      expect(pathExists(logPath)).to.equal(true);
       expect(ConfigurationLogger.hasLog(testProjectPath2)).to.equal(true);
     });
   });

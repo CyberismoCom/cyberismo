@@ -15,8 +15,6 @@
 import { readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Logger } from 'pino';
-
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
 import { writeFileSafe, pathExists } from './file-utils.js';
@@ -60,65 +58,26 @@ export interface ConfigurationLogOptions {
  * Logger for tracking configuration changes that affect project structure.
  */
 export class ConfigurationLogger {
-  private static instance: ConfigurationLogger | null = null;
-  private readonly paths: ProjectPaths;
-  private readonly logger: Logger;
-  private readonly logFile: string;
-
   /**
-   * Constructor - Creates an instance of ConfigurationLogger
-   * @param projectPath Path to a project root
-   * @param logger Logger instance; creates new if missing
-   */
-  private constructor(
-    private projectPath: string,
-    logger?: Logger,
-  ) {
-    this.logger = logger || getChildLogger({ module: 'ConfigurationLogger' });
-    this.paths = new ProjectPaths(projectPath);
-    this.logFile = this.paths.configurationChangesLog;
-  }
-
-  // Internal async method that does the actual logging.
-  private async doLog(
-    operation: ConfigurationOperation,
-    target: string,
-    options?: ConfigurationLogOptions,
-  ): Promise<void> {
-    try {
-      const entry: ConfigurationLogEntry = {
-        timestamp: new Date().toISOString(),
-        operation,
-        target,
-        parameters: options?.parameters,
-      };
-
-      await writeFileSafe(this.logFile, JSON.stringify(entry) + '\n', {
-        flag: 'a',
-      });
-
-      this.logger.debug(`Logged ${operation} operation for target: ${target}`);
-    } catch (error) {
-      this.logger.error({ error }, `Failed to log change`);
-      throw error;
-    }
-  }
-
-  /**
-   * Gets the path to the configuration log file.
+   * Path to the configuration log file.
+   * @param projectPath Path to the project root
    * @returns Path to the log file
    */
-  public get configurationLog(): string {
-    return this.logFile;
+  public static logFile(projectPath: string): string {
+    const paths = new ProjectPaths(projectPath);
+    return paths.configurationChangesLog;
   }
 
   /**
    * Clears all log entries.
+   * @param projectPath Path to the project root
    * @note Use with caution.
    */
-  public async clearLog(): Promise<void> {
-    await writeFileSafe(this.logFile, '', 'utf-8');
-    this.logger.info('Configuration log cleared');
+  public static async clearLog(projectPath: string): Promise<void> {
+    const logFile = ConfigurationLogger.logFile(projectPath);
+    await writeFileSafe(logFile, '', 'utf-8');
+    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+    logger.info('Configuration log cleared');
   }
 
   /**
@@ -154,7 +113,7 @@ export class ConfigurationLogger {
 
     const logger = getChildLogger({ module: 'ConfigurationLogger' });
     logger.info(
-      `Created migration log version: ${version} at ${versionedLogPath}`,
+      `Created migration to version: ${version} at ${versionedLogPath}`,
     );
 
     return versionedLogPath;
@@ -162,11 +121,17 @@ export class ConfigurationLogger {
 
   /**
    * Reads all configuration log entries using JSON Lines format.
+   * @param projectPath Path to the project root
    * @returns Array of log entries
    */
-  public async entries(): Promise<ConfigurationLogEntry[]> {
+  public static async entries(
+    projectPath: string,
+  ): Promise<ConfigurationLogEntry[]> {
+    const logFile = ConfigurationLogger.logFile(projectPath);
+    const logger = getChildLogger({ module: 'ConfigurationLogger' });
+
     try {
-      const content = await readFile(this.logFile, 'utf-8');
+      const content = await readFile(logFile, 'utf-8');
       const lines = content
         .trim()
         .split('\n')
@@ -180,37 +145,15 @@ export class ConfigurationLogger {
             entries.push(entry);
           }
         } catch {
-          this.logger.error(`Invalid configuration line: ${line}`);
+          logger.error(`Invalid configuration line: ${line}`);
         }
       }
 
       return entries;
     } catch (error) {
-      this.logger.error({ error }, `Failed to read configuration log`);
+      logger.error({ error }, `Failed to read configuration log`);
       return [];
     }
-  }
-
-  /**
-   * Gets or creates a singleton instance of ConfigurationLogger.
-   * @param projectPath Path to the project root
-   * @param logger Logger to use. Configuration logger logs failures to this instance.
-   * @returns ConfigurationLogger instance
-   */
-  public static getInstance(
-    projectPath: string,
-    logger?: Logger,
-  ): ConfigurationLogger {
-    if (
-      !ConfigurationLogger.instance ||
-      ConfigurationLogger.instance.projectPath !== projectPath
-    ) {
-      ConfigurationLogger.instance = new ConfigurationLogger(
-        projectPath,
-        logger,
-      );
-    }
-    return ConfigurationLogger.instance;
   }
 
   /**
@@ -237,31 +180,27 @@ export class ConfigurationLogger {
     target: string,
     options?: ConfigurationLogOptions,
   ): Promise<void> {
-    const logger = ConfigurationLogger.getInstance(projectPath);
-    return logger.log(operation, target, options);
-  }
+    const logFile = ConfigurationLogger.logFile(projectPath);
+    const logger = getChildLogger({ module: 'ConfigurationLogger' });
 
-  /**
-   * Logs a configuration change operation.
-   * @note This is designed to be called AFTER the operation succeeds.
-   * @param operation The type of operation
-   * @param target The target of the operation
-   * @param options Additional options for the log entry
-   */
-  public async log(
-    operation: ConfigurationOperation,
-    target: string,
-    options?: ConfigurationLogOptions,
-  ): Promise<void> {
-    return this.doLog(operation, target, options).catch((error) => {
-      this.logger.warn(`Configuration logging failed: ${error}`);
-    });
-  }
+    try {
+      const entry: ConfigurationLogEntry = {
+        timestamp: new Date().toISOString(),
+        operation,
+        target,
+        parameters: options?.parameters,
+      };
 
-  /**
-   * Reset the singleton instance.
-   */
-  public static reset() {
-    ConfigurationLogger.instance = null;
+      await writeFileSafe(logFile, JSON.stringify(entry) + '\n', {
+        flag: 'a',
+      });
+
+      logger.debug(`Logged ${operation} operation for target: ${target}`);
+    } catch (error) {
+      logger.error(
+        { error, operation, target },
+        `Configuration logging failed`,
+      );
+    }
   }
 }
