@@ -2,12 +2,18 @@ name: Publish
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - cyberismo-*
+      - node-clingo-*
+  workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   CI: true
@@ -30,6 +36,36 @@ jobs:
         with:
           node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Determine package for tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == cyberismo-* ]]; then
+            PKG_PATH="tools/cli/package.json"
+            PREFIX="cyberismo-"
+          elif [[ "$TAG" == node-clingo-* ]]; then
+            PKG_PATH="tools/node-clingo/package.json"
+            PREFIX="node-clingo-"
+          else
+            echo "Unsupported tag pattern: $TAG" >&2
+            exit 1
+          fi
+          echo "package_path=$PKG_PATH" >> "$GITHUB_OUTPUT"
+          echo "expected_version=${TAG#$PREFIX}" >> "$GITHUB_OUTPUT"
+          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag matches package version
+        run: |
+          tag_version="${{ steps.tag.outputs.expected_version }}"
+          pkg_path="${{ steps.tag.outputs.package_path }}"
+          pkg_version=$(node -p "require('./' + process.env.PKG_PATH).version" PKG_PATH="$pkg_path")
+          echo "Tag version: $tag_version"
+          echo "Package version in $pkg_path: $pkg_version"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "Tag version ($tag_version) does not match package version ($pkg_version)"
+            exit 1
+          fi
 
       - name: Set publishing config
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
