@@ -105,43 +105,47 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
             <Typography level="title-lg">
               {t('general.modulesSection')}
             </Typography>
-            <Button
-              size="sm"
-              variant="outlined"
-              onClick={async () => {
-                if (!general?.modules?.length) {
-                  return;
-                }
-                try {
-                  await updateAllModules(
-                    general.modules.map((mod) => mod.cardKeyPrefix),
-                  );
-                  dispatch(
-                    addNotification({
-                      message: t('general.updateAllModulesSuccess'),
-                      type: 'success',
-                    }),
-                  );
-                } catch (error) {
-                  dispatch(
-                    addNotification({
-                      message:
-                        error instanceof Error
-                          ? error.message
-                          : t('failedToLoad'),
-                      type: 'error',
-                    }),
-                  );
-                }
-              }}
-              loading={isUpdating('update-all-modules')}
-              disabled={
-                isUpdating() || !general?.modules?.length || node.readOnly
-              }
-            >
-              {t('general.updateAllModules')}
-            </Button>
+            {general?.modules.length ? (
+              <Button
+                size="sm"
+                variant="outlined"
+                onClick={async () => {
+                  if (!general?.modules?.length) {
+                    return;
+                  }
+                  try {
+                    await updateAllModules(
+                      general.modules.map((mod) => mod.cardKeyPrefix),
+                    );
+                    dispatch(
+                      addNotification({
+                        message: t('general.updateAllModulesSuccess'),
+                        type: 'success',
+                      }),
+                    );
+                  } catch (error) {
+                    dispatch(
+                      addNotification({
+                        message:
+                          error instanceof Error
+                            ? error.message
+                            : t('failedToLoad'),
+                        type: 'error',
+                      }),
+                    );
+                  }
+                }}
+                loading={isUpdating('update-all-modules')}
+                disabled={isUpdating() || node.readOnly}
+              >
+                {t('general.updateAllModules')}
+              </Button>
+            ) : null}
           </Stack>
+          {!general?.modules ||
+            (general.modules.length === 0 && (
+              <Typography>{t('noModules')}</Typography>
+            ))}
           {general?.modules?.map((mod) => (
             <Card key={mod.cardKeyPrefix} size="sm" variant="outlined">
               <CardContent>

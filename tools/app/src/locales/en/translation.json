@@ -270,6 +270,7 @@
     "required": "{{field}} is required"
   },
   "no": "No",
+  "noModules": "Project does not contain any modules.",
   "none": "None",
   "notifications": "Notifications",
   "openInEditor": "Open in editor",
