@@ -13,10 +13,11 @@
 
 // node
 import { join, resolve } from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -38,6 +39,12 @@ import { writeJsonFile } from '../utils/json.js';
 export class Create {
   constructor(private project: Project) {}
 
+  private get logger() {
+    return getChildLogger({
+      module: 'create',
+    });
+  }
+
   static JSONFileContent: ProjectFile[] = [
     {
       path: '.cards/local',
@@ -48,6 +55,7 @@ export class Create {
       path: '.cards/local',
       content: {
         schemaVersion: SCHEMA_VERSION,
+        version: 1,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         description: '',
@@ -517,6 +525,60 @@ export class Create {
     return this.project.resources
       .byType(templateName, 'templates')
       .create(templateContent ? JSON.parse(templateContent) : undefined);
+  }
+
+  /**
+   * Creates a new version of the project.
+   * This increments the version number, archives the current migration log,
+   * and creates a new migration log folder.
+   * @throws if project validation fails
+   */
+  public async createVersion() {
+    // First, validate the project is in correct state
+    const validationErrors = await this.project.projectValidator.validate(
+      this.project.basePath,
+      () => this.project,
+    );
+
+    if (validationErrors.length > 0) {
+      throw new Error(
+        `Cannot create version. Project has validation errors:\n${validationErrors}`,
+      );
+    }
+
+    const currentVersion = this.project.configuration.version;
+    const newVersion = currentVersion + 1;
+
+    // Update version in configuration
+    this.project.configuration.version = newVersion;
+    await this.project.configuration.save();
+
+    // Create new version folder
+    const versionedFolder =
+      this.project.paths.versionedMigrationFolder(currentVersion);
+    await mkdir(versionedFolder, { recursive: true });
+
+    // Move migration log from current to versioned folder
+    const currentMigrationLog = join(
+      this.project.paths.currentMigrationFolder,
+      'migrationLog.jsonl',
+    );
+    const versionedMigrationLog = join(versionedFolder, 'migrationLog.jsonl');
+
+    try {
+      await copyFile(currentMigrationLog, versionedMigrationLog);
+      // Create new empty migration log in current folder
+      await writeFile(currentMigrationLog, '', 'utf-8');
+    } catch (error) {
+      this.logger.error({ error }, `Creating new version failed`);
+      // If migration log doesn't exist, that's okay - just create empty one
+      await writeFile(currentMigrationLog, '', 'utf-8');
+    }
+
+    return {
+      previousVersion: currentVersion,
+      newVersion: newVersion,
+    };
   }
 
   /**

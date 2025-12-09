@@ -294,6 +294,8 @@ export class Commands {
         } else if (target === 'template') {
           const [name, content] = rest;
           await this.commands?.createCmd.createTemplate(name, content);
+        } else if (target === 'version') {
+          return await this.createVersion();
         } else if (target === 'workflow') {
           const [name, content] = rest;
           await this.commands?.createCmd.createWorkflow(name, content);
@@ -561,6 +563,15 @@ export class Commands {
       statusCode: 200,
       affectsCards: createdCards?.map((card) => card.key),
       message: `Created cards ${JSON.stringify(createdCards?.map((card) => card.key))}`,
+    };
+  }
+
+  // Creates a new version of the project.
+  private async createVersion(): Promise<requestStatus> {
+    const result = await this.commands?.createCmd.createVersion();
+    return {
+      statusCode: 200,
+      message: `Version updated from ${result?.previousVersion} to ${result?.newVersion}`,
     };
   }
 

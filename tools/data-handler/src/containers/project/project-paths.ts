@@ -96,6 +96,14 @@ export class ProjectPaths {
     return join(this.resourcesFolder, 'migrations');
   }
 
+  public get currentMigrationFolder(): string {
+    return join(this.migrationLogFolder, 'current');
+  }
+
+  public versionedMigrationFolder(version: number): string {
+    return join(this.migrationLogFolder, version.toString());
+  }
+
   public get modulesFolder(): string {
     return join(this.internalRootFolder, 'modules');
   }

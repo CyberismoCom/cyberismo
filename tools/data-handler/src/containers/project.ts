@@ -799,6 +799,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version || 1,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -1069,6 +1070,13 @@ export class Project extends CardContainer {
 
     return result;
   }
+  /**
+   * Accessor for validator.
+   * @returns Validator instance.
+   */
+  public get projectValidator(): Validate {
+    return this.validator;
+  }
 
   /**
    * Shows details of a project.
@@ -1081,6 +1089,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
+      version: this.configuration.version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

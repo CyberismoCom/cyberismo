@@ -173,6 +173,7 @@ export interface ProjectMetadata {
   prefix: string;
   category?: string;
   description?: string;
+  version: number;
   modules: string[];
   hubs: HubSetting[];
   numberOfCards: number;
@@ -181,6 +182,7 @@ export interface ProjectMetadata {
 // Project's settings (=cardsConfig.json).
 export interface ProjectSettings {
   schemaVersion?: number;
+  version: number;
   cardKeyPrefix: string;
   name: string;
   category?: string;

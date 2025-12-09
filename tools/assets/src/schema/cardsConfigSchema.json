@@ -7,6 +7,11 @@
       "type": "number",
       "description": "Project schema version"
     },
+    "version": {
+      "type": "number",
+      "description": "Version of the project",
+      "minimum": 1
+    },
     "cardKeyPrefix": {
       "type": "string",
       "description": "The prefix or the fist component of the card key. For example, ABC",
@@ -67,7 +72,7 @@
       }
     }
   },
-  "required": ["cardKeyPrefix"],
+  "required": ["cardKeyPrefix", "version"],
   "title": "CardsConfig",
   "type": "object"
 }

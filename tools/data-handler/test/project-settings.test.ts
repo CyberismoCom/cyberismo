@@ -20,6 +20,7 @@ describe('project settings', () => {
     filename: string,
     overrides: {
       schemaVersion?: number;
+      version?: number;
       cardKeyPrefix?: string;
       name?: string;
       modules?: ModuleSetting[];
@@ -31,6 +32,7 @@ describe('project settings', () => {
     const configPath = join(testDir, filename);
     const config = {
       schemaVersion: SCHEMA_VERSION,
+      version: 1,
       cardKeyPrefix: 'test',
       name: 'Test Project',
       description: undefined,
@@ -375,5 +377,58 @@ describe('project settings', () => {
     expect(savedConfig.description).to.equal(
       'Infrastructure management project',
     );
+  });
+
+  describe('version property', () => {
+    it('should have version in configuration file', () => {
+      const configPath = createTestConfig('test-config-version.json', {
+        version: 5,
+      });
+      const projectSettings = new ProjectConfiguration(configPath, false);
+      expect(projectSettings.version).to.equal(5);
+    });
+
+    it('should auto-add version when it was missing', () => {
+      const configPath = createTestConfig('test-config-no-version.json', {
+        version: undefined as unknown as number,
+      });
+      const config = new ProjectConfiguration(configPath, true);
+      expect(config.version).to.equal(1);
+      const savedConfig = readJsonFileSync(configPath);
+      expect(savedConfig.version).to.equal(1);
+    });
+
+    it('should initialize version to 1 for new projects', () => {
+      const configPath = createTestConfig('test-config-new-version.json');
+      const projectSettings = new ProjectConfiguration(configPath, false);
+      expect(projectSettings.version).to.equal(1);
+    });
+
+    it('should save version when configuration is saved', async () => {
+      const configPath = createTestConfig('test-config-save-version.json', {
+        version: 3,
+      });
+      const projectSettings = new ProjectConfiguration(configPath, false);
+      projectSettings.version = 4;
+      await projectSettings.save();
+      const savedConfig = readJsonFileSync(configPath);
+      expect(savedConfig.version).to.equal(4);
+    });
+
+    it('should increment version correctly', async () => {
+      const configPath = createTestConfig(
+        'test-config-increment-version.json',
+        {
+          version: 2,
+        },
+      );
+      const projectSettings = new ProjectConfiguration(configPath, false);
+      expect(projectSettings.version).to.equal(2);
+      projectSettings.version = projectSettings.version + 1;
+      await projectSettings.save();
+      expect(projectSettings.version).to.equal(3);
+      const savedConfig = readJsonFileSync(configPath);
+      expect(savedConfig.version).to.equal(3);
+    });
   });
 });

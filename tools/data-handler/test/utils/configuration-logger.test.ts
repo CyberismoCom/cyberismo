@@ -24,10 +24,13 @@ describe('configuration logger', () => {
   before(async () => {
     await mkdir(testDir, { recursive: true });
     await mkdir(testProjectPath, { recursive: true });
-    // Create .cards/local directory structure for new migration log location
-    await mkdir(join(testProjectPath, '.cards', 'local', 'migrationLog'), {
-      recursive: true,
-    });
+    // Create .cards/local directory structure for migration log location
+    await mkdir(
+      join(testProjectPath, '.cards', 'local', 'migrations', 'current'),
+      {
+        recursive: true,
+      },
+    );
   });
 
   after(async () => {
@@ -184,7 +187,7 @@ describe('configuration logger', () => {
     it('should get configuration log path', () => {
       const logPath = ConfigurationLogger.logFile(testProjectPath);
       expect(logPath).to.include('.cards');
-      expect(logPath).to.include('migrationLog');
+      expect(logPath).to.include('migrations');
       expect(logPath).to.include('current');
       expect(logPath).to.include('migrationLog.jsonl');
     });
