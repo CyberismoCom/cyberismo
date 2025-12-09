@@ -511,7 +511,7 @@ program
                 module.branch ?? '',
                 module.private ? 'true' : 'false',
               ],
-              commandOptions,
+              { ...commandOptions, skipMigrationLog: true },
             );
           }
         } catch (error) {

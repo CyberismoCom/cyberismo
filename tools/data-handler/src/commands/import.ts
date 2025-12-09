@@ -135,11 +135,13 @@ export class Import {
    * @param options Additional options for module import. Optional.
    *        branch: Git branch for module from Git.
    *        private: If true, uses credentials to clone the repository
+   * @param skipMigrationLog If true, skip logging to migration log (used during project creation)
    */
   public async importModule(
     source: string,
     destination?: string,
     options?: ModuleSettingOptions,
+    skipMigrationLog = false,
   ) {
     // Ensure module list is up to date before importing
     await this.fetchCmd.ensureModuleListUpToDate();
@@ -173,7 +175,7 @@ export class Import {
     );
 
     // Add module as a dependency.
-    await this.project.importModule(moduleSettings);
+    await this.project.importModule(moduleSettings, skipMigrationLog);
 
     // Validate the project after module has been imported
     const afterImportValidateErrors = await Validate.getInstance().validate(

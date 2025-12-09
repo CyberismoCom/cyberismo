@@ -44,6 +44,11 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
+
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
 
@@ -308,6 +313,9 @@ export abstract class ResourceObject<
 
     const resourceString = resourceNameToString(this.resourceName);
     this.project.resources.add(resourceString, this);
+
+    // Log resource creation to migration log
+    await this.logResourceOperation('create');
   }
 
   /**
@@ -408,6 +416,56 @@ export abstract class ResourceObject<
     }
   }
 
+  // Log details
+  protected async logResourceOperation<Type>(
+    operationType: 'create' | 'delete' | 'update' | 'rename',
+    op?: Operation<Type>,
+    key?: string,
+  ): Promise<void> {
+    let configOperation: ConfigurationOperation;
+    const target = resourceNameToString(this.resourceName);
+    const parameters: Record<string, unknown> = { type: this.type };
+
+    switch (operationType) {
+      case 'create':
+        configOperation = ConfigurationOperation.RESOURCE_CREATE;
+        break;
+      case 'delete':
+        configOperation = ConfigurationOperation.RESOURCE_DELETE;
+        break;
+      case 'update':
+        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
+        if (op) {
+          parameters.operation = op.name;
+        }
+        if (key) {
+          parameters.key = key;
+        }
+        break;
+      case 'rename':
+        configOperation = ConfigurationOperation.RESOURCE_RENAME;
+        if (op && op.name === 'change') {
+          const changeOp = op as ChangeOperation<string>;
+          parameters.oldName = changeOp.target;
+          parameters.newName = changeOp.to;
+        }
+        break;
+      default:
+        throw new Error(`Unknown operation type: ${operationType}`);
+    }
+
+    await ConfigurationLogger.log(
+      this.project.basePath,
+      configOperation,
+      target,
+      {
+        parameters,
+      },
+    );
+
+    this.logger.info(`Configuration: ${configOperation} - ${target}`);
+  }
+
   /**
    * Called after inherited class has finished 'update' operation.
    * @param content New content for resource
@@ -449,6 +507,9 @@ export abstract class ResourceObject<
 
     this.content = content;
     await this.write();
+
+    // Log resource update to migration log
+    await this.logResourceOperation('update', op, updateKey.key);
   }
 
   /**
@@ -496,9 +557,17 @@ export abstract class ResourceObject<
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
+    const newNameString = this.content.name;
     this.resourceName = newName;
 
-    this.project.resources.rename(oldName, this.content.name);
+    this.project.resources.rename(oldName, newNameString);
+
+    // Log resource rename to migration log
+    await this.logResourceOperation('rename', {
+      name: 'change',
+      target: oldName,
+      to: newNameString,
+    } as ChangeOperation<string>);
   }
 
   /**
@@ -712,6 +781,9 @@ export abstract class ResourceObject<
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
+
+    // Log resource deletion to migration log
+    await this.logResourceOperation('delete');
   }
 
   /**

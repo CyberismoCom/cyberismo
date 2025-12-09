@@ -37,6 +37,7 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
+  ImportCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -315,6 +316,7 @@ export class Commands {
             branch,
             useCredentials && useCredentials === 'true' ? true : false,
             credentials,
+            (options as ImportCommandOptions).skipMigrationLog,
           );
         }
         if (target === 'csv') {
@@ -610,12 +612,18 @@ export class Commands {
     branch?: string,
     useCredentials?: boolean,
     credentials?: Credentials,
+    skipMigrationLog = false,
   ) {
-    return this.commands?.importCmd.importModule(source, this.projectPath, {
-      branch: branch,
-      private: useCredentials,
-      credentials,
-    });
+    return this.commands?.importCmd.importModule(
+      source,
+      this.projectPath,
+      {
+        branch: branch,
+        private: useCredentials,
+        credentials,
+      },
+      skipMigrationLog,
+    );
   }
 
   // Imports cards from a CSV file to a project.

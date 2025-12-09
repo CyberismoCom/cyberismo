@@ -64,6 +64,10 @@ export class ProjectPaths {
     return join(this.resourcesFolder, 'cardsConfig.json');
   }
 
+  public get configurationChangesLog(): string {
+    return join(this.migrationLogFolder, 'current', 'migrationLog.jsonl');
+  }
+
   public get fieldTypesFolder(): string {
     return join(this.resourcesFolder, 'fieldTypes');
   }
@@ -82,6 +86,10 @@ export class ProjectPaths {
 
   public get logPath(): string {
     return join(this.path, '.logs', 'cyberismo_data-handler.log');
+  }
+
+  public get migrationLogFolder(): string {
+    return join(this.resourcesFolder, 'migrations');
   }
 
   public get modulesFolder(): string {
