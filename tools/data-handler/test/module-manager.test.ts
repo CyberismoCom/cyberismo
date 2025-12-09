@@ -1,6 +1,7 @@
 // testing
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
+import type * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -9,6 +10,7 @@ import * as os from 'node:os';
 
 import { copyDir } from '../src/utils/file-utils.js';
 import { CommandManager } from '../src/command-manager.js';
+import { mockEnsureModuleListUpToDate } from './helpers/test-utils.js';
 
 describe('module-manager', () => {
   const skipTest = process.env.CI && os.platform() === 'win32';
@@ -16,10 +18,12 @@ describe('module-manager', () => {
   const testDir = join(baseDir, 'tmp-module-manager-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
+  let ensureModuleListStub: sinon.SinonStub;
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
     commands = new CommandManager(decisionRecordsPath, {
       autoSaveConfiguration: false,
     });
@@ -29,6 +33,7 @@ describe('module-manager', () => {
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
     rmSync(join(testDir, '.temp'), { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   it('import local module', async () => {

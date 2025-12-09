@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -7,22 +8,28 @@ import type { CardType } from '../src/interfaces/resource-interfaces.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import type { Project } from '../src/containers/project.js';
 import { Fetch, Show, Update } from '../src/commands/index.js';
-import { getTestProject } from './helpers/test-utils.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 const baseDir = import.meta.dirname;
 const testDir = join(baseDir, 'tmp-update-tests');
 const decisionRecordsPath = join(testDir, 'valid/decision-records');
 let project: Project;
 let update: Update;
+let ensureModuleListStub: sinon.SinonStub;
 
 describe('update command', () => {
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
 
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();

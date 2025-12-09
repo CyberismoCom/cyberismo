@@ -1,10 +1,14 @@
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { getTestProject } from './helpers/test-utils.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 import { Create, Fetch, Import } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
@@ -174,18 +178,21 @@ describe('resources', function () {
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   const minimalPath = join(testDir, 'valid/minimal');
   let project: Project;
+  let ensureModuleListStub: sinon.SinonStub;
 
   this.timeout(10000);
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
   });
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('resource-cache', () => {
