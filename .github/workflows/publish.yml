@@ -11,10 +11,6 @@ permissions:
   contents: read
   id-token: write
 
-concurrency:
-  group: publish-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   CI: true
 
@@ -143,5 +139,5 @@ jobs:
           cyberismo --version
           cyberismo --version | grep "cyberismo version: ${VERSION}"
 
-          pnpm install --ignore-scripts
+          pnpm install
           pnpm --filter cli test

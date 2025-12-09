@@ -120,7 +120,9 @@ if (tagExistsLocally || tagExistsRemotely) {
   console.log(`Tag ${tagName} already exists; skipping tag creation.`);
 } else {
   console.log(`Creating and pushing tag ${tagName}...`);
-  execCommand(`git tag -a "${tagName}" -m "Release version ${newVersion}" ${releaseBranch}`);
+  execCommand(
+    `git tag -a "${tagName}" -m "Release version ${newVersion}" ${releaseBranch}`,
+  );
   execCommand(`git push origin "${tagName}"`);
 }
 

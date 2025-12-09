@@ -4,11 +4,6 @@ on:
   push:
     tags:
       - cyberismo-*
-  workflow_dispatch:
-
-concurrency:
-  group: docker-image-${{ github.ref }}
-  cancel-in-progress: false
 
 jobs:
   build-and-publish:
