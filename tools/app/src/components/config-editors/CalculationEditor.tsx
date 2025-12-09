@@ -99,6 +99,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
         render={({ field }) => (
           <Textarea
             {...TITLE_FIELD_PROPS}
+            sx={{ ...(TITLE_FIELD_PROPS.sx ?? {}), flexShrink: 0 }}
             value={field.value}
             onChange={field.onChange}
           />
