@@ -106,6 +106,26 @@ await new Promise((resolve) => process.stdin.once('data', resolve));
 console.log('Pushing release branch to remote...');
 execCommand(`git push origin ${releaseBranch}`);
 
+// Create and push tag for this release commit
+const tagName = `cyberismo-${newVersion}`;
+const tagRemoteRef = `refs/tags/${tagName}`;
+const tagExistsLocally =
+  execCommand(`git tag -l "${tagName}"`, { stdio: 'pipe' }).trim().length > 0;
+const tagExistsRemotely =
+  execCommand(`git ls-remote --exit-code origin "${tagRemoteRef}" || true`, {
+    stdio: 'pipe',
+  }).trim().length > 0;
+
+if (tagExistsLocally || tagExistsRemotely) {
+  console.log(`Tag ${tagName} already exists; skipping tag creation.`);
+} else {
+  console.log(`Creating and pushing tag ${tagName}...`);
+  execCommand(
+    `git tag -a "${tagName}" -m "Release version ${newVersion}" ${releaseBranch}`,
+  );
+  execCommand(`git push origin "${tagName}"`);
+}
+
 // Create pull request using Github CLI
 console.log('Creating pull request...');
 const prTitle = `Release v${newVersion}`;
