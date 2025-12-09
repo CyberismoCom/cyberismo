@@ -10,9 +10,6 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  CI: true
-
 jobs:
   version:
     timeout-minutes: 15
