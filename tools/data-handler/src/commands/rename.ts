@@ -17,6 +17,10 @@ import { join } from 'node:path';
 import { rename, readdir, readFile, writeFile } from 'node:fs/promises';
 
 import type { Card } from '../interfaces/project-interfaces.js';
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
 import { isTemplateCard } from '../utils/card-utils.js';
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
@@ -276,6 +280,13 @@ export class Rename {
     // Remove these when operations properly update card cache
     this.project.cardsCache.clear();
     await this.project.populateCaches();
+
+    await ConfigurationLogger.log(
+      this.project.basePath,
+      ConfigurationOperation.PROJECT_RENAME,
+      this.to,
+      {},
+    );
 
     return this.project.calculationEngine.generate();
   }
