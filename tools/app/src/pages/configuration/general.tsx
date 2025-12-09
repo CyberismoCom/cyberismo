@@ -10,7 +10,20 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-export * from './BaseDeleteModal';
-export * from './DeleteModal';
-export * from './ModuleDeleteModal';
-export * from './ResourceDeleteModal';
+
+import { GeneralEditor } from '@/components/config-editors';
+import { useResourceTree } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
+
+function GeneralPage() {
+  const { resourceTree } = useResourceTree();
+  const { t } = useTranslation();
+
+  const generalNode = resourceTree[0];
+  if (!generalNode || generalNode.type !== 'general') {
+    return <div>{t('unknownError')}</div>;
+  }
+  return <GeneralEditor node={generalNode} />;
+}
+
+export default GeneralPage;

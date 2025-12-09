@@ -29,6 +29,8 @@ const createMockCommandManager = (overrides: any = {}) => {
   return {
     showCmd: {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+      showModules: vi.fn().mockResolvedValue([]),
+      showModule: vi.fn(),
       showResources: vi.fn(),
       showResource: vi.fn(),
       showAllTemplateCards: vi.fn(),
@@ -124,23 +126,47 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
-      expect(result).toHaveLength(2); // fieldTypes and templates groups
-      expect(result[0].name).toBe('fieldTypes');
-      expect(result[0].children).toHaveLength(1);
-      expect(result[0].children[0].name).toBe('test/fieldTypes/status');
-      expect(result[0].children[0].data).toEqual(mockResourceData);
+      expect(result).toHaveLength(3); // general + fieldTypes and templates groups
 
-      expect(result[1].name).toBe('templates');
+      expect(result[0].name).toBe('project');
+
+      expect(result[1].name).toBe('fieldTypes');
       expect(result[1].children).toHaveLength(1);
-      expect(result[1].children[0].name).toBe('test/templates/basic');
-      expect(result[1].children[0].children).toHaveLength(1);
-      expect(result[1].children[0].children[0].type).toBe('card');
+      const fieldProjectNode = result[1].children[0];
+      expect(fieldProjectNode.name).toBe('project');
+      expect(fieldProjectNode.children[0].name).toBe('test/fieldTypes/status');
+      expect(fieldProjectNode.children[0].data).toEqual(mockResourceData);
+
+      expect(result[2].name).toBe('templates');
+      expect(result[2].children).toHaveLength(1);
+      const templateProjectNode = result[2].children[0];
+      expect(templateProjectNode.name).toBe('project');
+      expect(templateProjectNode.children[0].name).toBe('test/templates/basic');
+      expect(templateProjectNode.children[0].children).toHaveLength(1);
+      expect(templateProjectNode.children[0].children[0].type).toBe('card');
     });
 
     test('should build resource tree with modules section', async () => {
       const mockCommands = createMockCommandManager({
         showCmd: {
           showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+          showModules: vi.fn().mockResolvedValue(['module1']),
+          showModule: vi.fn().mockResolvedValue({
+            name: 'Module One',
+            cardKeyPrefix: 'module1',
+            modules: [],
+            hubs: [],
+            path: '/tmp/module1',
+            calculations: [],
+            cardTypes: [],
+            fieldTypes: [],
+            graphModels: [],
+            graphViews: [],
+            linkTypes: [],
+            reports: [],
+            templates: [],
+            workflows: [],
+          }),
           showResources: vi.fn().mockImplementation((type) => {
             if (type === 'fieldTypes') {
               return Promise.resolve([
@@ -165,30 +191,47 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
-      expect(result).toHaveLength(2); // fieldTypes group and modules group
+      expect(result).toHaveLength(2); // general + fieldTypes group
 
-      // Check root fieldTypes
-      expect(result[0].name).toBe('fieldTypes');
-      expect(result[0].children).toHaveLength(1);
-      expect(result[0].children[0].name).toBe('test/fieldTypes/status');
+      expect(result[0].name).toBe('project');
 
-      // Check modules section
-      expect(result[1].name).toBe('modules');
-      expect(result[1].type).toBe('modulesGroup');
-      expect(result[1].children).toHaveLength(1);
-      expect(result[1].children[0].name).toBe('module1');
-      expect(result[1].children[0].type).toBe('module');
-      expect(result[1].children[0].children).toHaveLength(1);
-      expect(result[1].children[0].children[0].name).toBe('fieldTypes');
-      expect(result[1].children[0].children[0].children[0].name).toBe(
-        'module1/fieldTypes/priority',
-      );
+      expect(result[1].name).toBe('fieldTypes');
+      expect(result[1].children).toHaveLength(2);
+
+      const projectNode = result[1].children.find(
+        (child) => child.name === 'project',
+      )!;
+      expect(projectNode.children[0].name).toBe('test/fieldTypes/status');
+
+      const moduleNode = result[1].children.find(
+        (child) => child.name === 'module1',
+      )!;
+      expect(moduleNode.type).toBe('module');
+      expect(moduleNode.children).toHaveLength(1);
+      expect(moduleNode.children[0].name).toBe('module1/fieldTypes/priority');
     });
 
     test('should handle template processing with hierarchical cards', async () => {
       const mockCommands = createMockCommandManager({
         showCmd: {
           showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+          showModules: vi.fn().mockResolvedValue(['module1']),
+          showModule: vi.fn().mockResolvedValue({
+            name: 'Module One',
+            cardKeyPrefix: 'module1',
+            modules: [],
+            hubs: [],
+            path: '/tmp/module1',
+            calculations: [],
+            cardTypes: [],
+            fieldTypes: [],
+            graphModels: [],
+            graphViews: [],
+            linkTypes: [],
+            reports: [],
+            templates: [],
+            workflows: [],
+          }),
           showResources: vi.fn().mockImplementation((type) => {
             if (type === 'templates') return Promise.resolve([]);
             return Promise.resolve([]);
@@ -207,11 +250,14 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
-      expect(result).toHaveLength(1); // templates group only
-      expect(result[0].name).toBe('templates');
-      expect(result[0].children).toHaveLength(1);
+      expect(result).toHaveLength(2); // general + templates group
+      expect(result[0].name).toBe('project');
+      expect(result[1].name).toBe('templates');
+      expect(result[1].children).toHaveLength(1);
 
-      const templateNode = result[0].children[0];
+      const projectNode = result[1].children[0];
+      expect(projectNode.name).toBe('project');
+      const templateNode = projectNode.children[0];
       expect(templateNode.name).toBe('test/templates/hierarchy');
       expect(templateNode.children).toHaveLength(1);
 
@@ -248,19 +294,22 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
-      expect(result).toHaveLength(2); // templates group and modules group
+      expect(result).toHaveLength(2); // general + templates group
 
       // Check root templates
-      expect(result[0].name).toBe('templates');
-      expect(result[0].children).toHaveLength(1);
-      expect(result[0].children[0].name).toBe('test/templates/root-template');
+      expect(result[0].name).toBe('project');
+      expect(result[1].name).toBe('templates');
+      expect(result[1].children).toHaveLength(2);
+      expect(result[1].children[0].name).toBe('project');
+      expect(result[1].children[0].children[0].name).toBe(
+        'test/templates/root-template',
+      );
 
       // Check module templates
-      expect(result[1].name).toBe('modules');
-      expect(result[1].children).toHaveLength(1);
-      expect(result[1].children[0].name).toBe('module1');
-      expect(result[1].children[0].children[0].name).toBe('templates');
-      expect(result[1].children[0].children[0].children[0].name).toBe(
+      const moduleNode = result[1].children.find(
+        (child) => child.name === 'module1',
+      );
+      expect(moduleNode?.children?.[0].name).toBe(
         'module1/templates/module-template',
       );
     });
@@ -275,9 +324,12 @@ describe('Resources Service', () => {
         },
       });
 
-      const result = await buildResourceTree(mockCommands);
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
 
-      expect(result).toHaveLength(0); // No resource groups
+      expect(result).toHaveLength(1); // General group only
+      expect(result[0].name).toBe('project');
     });
 
     test('should handle all resource types', async () => {
@@ -314,13 +366,16 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
-      expect(result).toHaveLength(resourceTypes.length); // One group per resource type
+      expect(result).toHaveLength(resourceTypes.length + 1); // general + one group per resource type
+
+      expect(result[0].name).toBe('project');
 
       resourceTypes.forEach((resourceType, index) => {
-        expect(result[index].name).toBe(resourceType);
-        expect(result[index].type).toBe('resourceGroup');
-        expect(result[index].children).toHaveLength(1);
-        expect(result[index].children[0].name).toBe(
+        expect(result[index + 1].name).toBe(resourceType);
+        expect(result[index + 1].type).toBe('resourceGroup');
+        expect(result[index + 1].children).toHaveLength(1);
+        expect(result[index + 1].children[0].name).toBe('project');
+        expect(result[index + 1].children[0].children?.[0].name).toBe(
           `test/${resourceType}/example`,
         );
       });
@@ -348,25 +403,35 @@ describe('Resources Service', () => {
         mockCommands,
       )) as testObjectNode[];
 
+      expect(result[0].name).toBe('project');
+
       // Check resource group IDs and types
-      expect(result[0].id).toBe('fieldTypes');
-      expect(result[0].type).toBe('resourceGroup');
+      expect(result[1].id).toBe('fieldTypes');
+      expect(result[1].type).toBe('resourceGroup');
 
       // Check resource node IDs and types
-      expect(result[0].children[0].id).toBe(
+      expect(result[1].children[0].id).toBe('fieldTypes-project');
+      expect(result[1].children[0].type).toBe('module');
+      expect(result[1].children[0].children[0].id).toBe(
         'fieldTypes-test/fieldTypes/status',
       );
-      expect(result[0].children[0].type).toBe('fieldTypes');
+      expect(result[1].children[0].children[0].type).toBe('fieldTypes');
 
       // Check template processing
-      expect(result[1].id).toBe('templates');
-      expect(result[1].type).toBe('resourceGroup');
-      expect(result[1].children[0].id).toBe('templates-test/templates/basic');
-      expect(result[1].children[0].type).toBe('templates');
+      expect(result[2].id).toBe('templates');
+      expect(result[2].type).toBe('resourceGroup');
+      expect(result[2].children[0].id).toBe('templates-project');
+      expect(result[2].children[0].type).toBe('module');
+      expect(result[2].children[0].children[0].id).toBe(
+        'templates-test/templates/basic',
+      );
+      expect(result[2].children[0].children[0].type).toBe('templates');
 
       // Check card node IDs and types
-      expect(result[1].children[0].children[0].id).toBe('test_card1');
-      expect(result[1].children[0].children[0].type).toBe('card');
+      expect(result[2].children[0].children[0].children[0].id).toBe(
+        'test_card1',
+      );
+      expect(result[2].children[0].children[0].children[0].type).toBe('card');
     });
 
     test('should handle error when showProject fails', async () => {

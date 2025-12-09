@@ -1,6 +1,6 @@
 /**
-    Cyberismo
-    Copyright © Cyberismo Ltd and contributors 2024
+  Cyberismo
+  Copyright © Cyberismo Ltd and contributors 2024
 
     This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License version 3 as published by the Free Software Foundation.
 
@@ -17,9 +17,12 @@ import type { SWRConfiguration } from 'swr';
 import type { CardUpdate } from './types';
 import { updateCard } from './card';
 
+/**
+ * @deprecated Use useProjectSettings for project configuration. Use resource hooks for resources
+ */
 export const useProject = (options?: SWRConfiguration) => {
   const { callUpdate, ...rest } = useSWRHook<'project'>(
-    apiPaths.project(),
+    apiPaths.cards(),
     'project',
     null,
     options,

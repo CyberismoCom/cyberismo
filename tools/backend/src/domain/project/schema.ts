@@ -10,7 +10,14 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-export * from './BaseDeleteModal';
-export * from './DeleteModal';
-export * from './ModuleDeleteModal';
-export * from './ResourceDeleteModal';
+
+import { z } from 'zod';
+
+export const moduleParamSchema = z.object({
+  module: z.string().min(1),
+});
+
+export const updateProjectSchema = z.object({
+  name: z.string().optional(),
+  cardKeyPrefix: z.string().optional(),
+});

@@ -273,6 +273,10 @@ export class Rename {
     this.project.resources.changed();
     console.info('Collected renamed resources');
 
+    // Remove these when operations properly update card cache
+    this.project.cardsCache.clear();
+    await this.project.populateCaches();
+
     return this.project.calculationEngine.generate();
   }
 }
