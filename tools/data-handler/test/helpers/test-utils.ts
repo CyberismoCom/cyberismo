@@ -43,11 +43,7 @@ export function mockEnsureModuleListUpToDate(): sinon.SinonStub {
   const stub = sinon
     .stub(Fetch.prototype, 'ensureModuleListUpToDate')
     .resolves();
-
-  // Log each call to verify the mock is being used
   stub.callsFake(async function (this: typeof Fetch.prototype) {
-    const callCount = stub.callCount;
-    console.log(`[MOCK] ensureModuleListUpToDate called (call #${callCount})`);
     return Promise.resolve();
   });
 
