@@ -276,8 +276,6 @@ export class ProjectConfiguration implements ProjectSettings {
       this.name = newName;
       return this.save();
     }
-    throw new Error(
-      `Project name '${newName}' is not valid. It should be 1-63 characters and include letters, numbers, spaces, dots, underscores or dashes.`,
-    );
+    throw new Error(`Project name '${newName}' is not valid.`);
   }
 }
