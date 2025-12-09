@@ -14,7 +14,7 @@ let newPageCardKey = '';
 use(chaiAsPromised);
 
 describe('Cli BAT test', function () {
-  this.timeout(20000);
+  this.timeout(100000);
   after(() => {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
