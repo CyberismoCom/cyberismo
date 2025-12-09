@@ -248,16 +248,11 @@ export class CardContainer {
    */
   private static sanitizeMetadata(card: Card): CardMetadata {
     const sanitized: Record<string, unknown> = {};
-    const KNOWN_METADATA_FIELDS = ['labels', 'links'];
 
     if (card.metadata) {
       for (const [key, value] of Object.entries(card.metadata)) {
-        // Keys are not filtered out if they are: predefined, known, or field types
-        if (
-          isPredefinedField(key) ||
-          KNOWN_METADATA_FIELDS.includes(key) ||
-          key.includes('/')
-        ) {
+        // Keys are not filtered out if they are: predefined, or field types
+        if (isPredefinedField(key) || key.includes('/')) {
           sanitized[key] = value;
         } else {
           this.logger.warn(

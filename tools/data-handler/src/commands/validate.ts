@@ -819,11 +819,7 @@ export class Validate {
 
     // Validate that all metadata keys are either predefined fields or valid field type names
     for (const key of Object.keys(card.metadata)) {
-      if (
-        (isPredefinedField(key) as boolean) ||
-        key === 'labels' ||
-        key === 'links'
-      ) {
+      if (isPredefinedField(key) as boolean) {
         continue;
       }
       try {
