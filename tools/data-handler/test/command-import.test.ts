@@ -10,7 +10,10 @@ import { join } from 'node:path';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
 import { Fetch, Show } from '../src/commands/index.js';
-import { getTestProject } from './helpers/test-utils.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -112,13 +115,17 @@ describe('import csv command', () => {
 });
 
 describe('import module', () => {
+  let ensureModuleListStub: sinon.SinonStub;
+
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('import module command', () => {
@@ -240,7 +247,7 @@ describe('import module', () => {
   });
 
   describe('modifying imported module content is forbidden', () => {
-    beforeEach(async () => {
+    before(async () => {
       await commandHandler.command(
         Cmd.import,
         ['module', minimalPath],

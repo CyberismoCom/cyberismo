@@ -4,7 +4,9 @@
 
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as sinon from 'sinon';
 import { Project } from '../../src/containers/project.js';
+import { Fetch } from '../../src/commands/index.js';
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 
 /**
@@ -31,4 +33,23 @@ export function getTestProject(path: string): InstanceType<typeof Project> {
     project.configuration.schemaVersion = SCHEMA_VERSION;
   }
   return project;
+}
+
+/**
+ * Mocks the ensureModuleListUpToDate method to avoid network calls during tests.
+ * Returns a sinon stub that can be restored after tests.
+ */
+export function mockEnsureModuleListUpToDate(): sinon.SinonStub {
+  const stub = sinon
+    .stub(Fetch.prototype, 'ensureModuleListUpToDate')
+    .resolves();
+
+  // Log each call to verify the mock is being used
+  stub.callsFake(async function (this: typeof Fetch.prototype) {
+    const callCount = stub.callCount;
+    console.log(`[MOCK] ensureModuleListUpToDate called (call #${callCount})`);
+    return Promise.resolve();
+  });
+
+  return stub;
 }

@@ -1,5 +1,6 @@
 // testing
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -9,7 +10,11 @@ import { join, sep } from 'node:path';
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { Fetch, Remove } from '../src/commands/index.js';
-import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
+import {
+  getTestBaseDir,
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -508,10 +513,12 @@ describe('remove card', () => {
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
+  let ensureModuleListStub: sinon.SinonStub;
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
     commands = new CommandManager(decisionRecordsPath, {
       autoSaveConfiguration: false,
     });
@@ -521,6 +528,7 @@ describe('remove card', () => {
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   it('Remove - remove card that has children', async () => {

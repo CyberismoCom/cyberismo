@@ -1,5 +1,6 @@
 // testing
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -11,9 +12,13 @@ import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 import { Fetch, Show } from '../src/commands/index.js';
+import {
+  getTestBaseDir,
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
-import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -29,13 +34,17 @@ const optionsDecision: ShowCommandOptions = {
 const optionsMini: ShowCommandOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
+  let ensureModuleListStub: sinon.SinonStub;
+
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('show command', () => {
