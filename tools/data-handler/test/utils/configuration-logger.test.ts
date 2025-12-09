@@ -87,7 +87,7 @@ describe('configuration logger', () => {
         'resource2',
       );
 
-      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
+      const logPath = ConfigurationLogger.logFile(testProjectPath);
       const logContent = await readFile(logPath, 'utf-8');
       const lines = logContent.trim().split('\n');
 
@@ -182,7 +182,7 @@ describe('configuration logger', () => {
       expect(removeEntry!.parameters?.location).to.equal('/path/to/module');
     });
     it('should get configuration log path', () => {
-      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
+      const logPath = ConfigurationLogger.logFile(testProjectPath);
       expect(logPath).to.include('.cards');
       expect(logPath).to.include('migrationLog');
       expect(logPath).to.include('current');
@@ -217,7 +217,7 @@ describe('configuration logger', () => {
       expect(entries.length).to.equal(0);
     });
     it('should handle corrupted log entries gracefully', async () => {
-      const logPath = ConfigurationLogger.getLogPath(testProjectPath);
+      const logPath = ConfigurationLogger.logFile(testProjectPath);
 
       // Write some valid and invalid JSON lines
       const testContent = [
@@ -244,7 +244,7 @@ describe('configuration logger', () => {
       );
 
       // Check if log path exists for the project that has entries
-      const logPath = ConfigurationLogger.getLogPath(testProjectPath2);
+      const logPath = ConfigurationLogger.logFile(testProjectPath2);
       expect(pathExists(logPath)).to.equal(true);
       expect(ConfigurationLogger.hasLog(testProjectPath2)).to.equal(true);
     });
