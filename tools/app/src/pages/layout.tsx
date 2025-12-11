@@ -166,6 +166,7 @@ export default function Layout() {
               variant="plain"
               size="sm"
               color="neutral"
+              data-cy="notificationClose"
               onClick={() => {
                 dispatch(closeNotification(notification.id));
               }}
