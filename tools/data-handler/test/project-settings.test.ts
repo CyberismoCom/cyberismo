@@ -24,6 +24,8 @@ describe('project settings', () => {
       name?: string;
       modules?: ModuleSetting[];
       hubs?: HubSetting[];
+      category?: string;
+      description?: string;
     } = {},
   ): string {
     const configPath = join(testDir, filename);
@@ -31,6 +33,8 @@ describe('project settings', () => {
       schemaVersion: SCHEMA_VERSION,
       cardKeyPrefix: 'test',
       name: 'Test Project',
+      description: undefined,
+      category: undefined,
       modules: [],
       hubs: [],
       ...overrides,
@@ -57,6 +61,36 @@ describe('project settings', () => {
     expect(projectSettings.schemaVersion).to.equal(SCHEMA_VERSION);
     expect(projectSettings.modules).to.deep.equal([]);
     expect(projectSettings.hubs).to.deep.equal([]);
+    // category and description are by default empty
+    expect(projectSettings.category).to.equal(undefined);
+    expect(projectSettings.description).to.equal(undefined);
+  });
+
+  it('should load configuration with category and description', () => {
+    const configPath = createTestConfig('test-config-with-category-desc.json', {
+      category: 'Development',
+      description: 'A test project with category and description',
+    });
+    const projectSettings = new ProjectConfiguration(configPath, false);
+
+    expect(projectSettings.category).to.equal('Development');
+    expect(projectSettings.description).to.equal(
+      'A test project with category and description',
+    );
+  });
+
+  it('should handle category and description', () => {
+    const configPath = createTestConfig(
+      'test-config-empty-category-desc.json',
+      {
+        category: '',
+        description: '',
+      },
+    );
+    const projectSettings = new ProjectConfiguration(configPath, false);
+
+    expect(projectSettings.category).to.equal('');
+    expect(projectSettings.description).to.equal('');
   });
 
   // Test disabled for now to avoid getting the schemaVersion to test files.
@@ -331,9 +365,16 @@ describe('project settings', () => {
       location: 'https://example.com',
     });
     await projectSettings.addHub('https://hub.example.com');
+    projectSettings.category = 'Infrastructure';
+    projectSettings.description = 'Infrastructure management project';
+    await projectSettings.save();
     const savedConfig = readJsonFileSync(configPath);
     expect(savedConfig.modules.length).to.equal(1);
     expect(savedConfig.hubs.length).to.equal(1);
     expect(savedConfig.schemaVersion).to.equal(SCHEMA_VERSION);
+    expect(savedConfig.category).to.equal('Infrastructure');
+    expect(savedConfig.description).to.equal(
+      'Infrastructure management project',
+    );
   });
 });

@@ -979,6 +979,8 @@ export class Project extends CardContainer {
       name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
+      category: this.configuration.category,
+      description: this.configuration.description,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

@@ -174,10 +174,12 @@ const additionalHelpForCreate = `Sub-command help:
   create linkType <name>, where
       <name> Name for linkType. ${nameGuideline}
 
-  create project <name> <prefix> <path>, where
+  create project <name> <prefix> <path> [category] [description], where
       <name> Name of the project.
       <prefix> Prefix for the project.
       <path> Path where to create the project
+      [category] Optional category for the project
+      [description] Optional description for the project
 
   create report <name>, where
       <name> Name for report. ${nameGuideline}
@@ -408,6 +410,14 @@ createCmd
     '[parameter3]',
     'Depends on context; see below for specific remove operation',
   )
+  .argument(
+    '[parameter4]',
+    'Depends on context; see below for specific remove operation',
+  )
+  .argument(
+    '[parameter5]',
+    'Depends on context; see below for specific remove operation',
+  )
   .addHelpText('after', additionalHelpForCreate)
   .option(
     '-s, --skipModuleImport',
@@ -420,6 +430,8 @@ createCmd
       parameter1: string,
       parameter2: string,
       parameter3: string,
+      parameter4: string,
+      parameter5: string,
       options: CommandOptions<'create'>,
     ) => {
       if (!type) {
@@ -487,7 +499,15 @@ createCmd
       const commandOptions = Object.assign({}, options, program.opts());
       const result = await commandHandler.command(
         Cmd.create,
-        [type, target, parameter1, parameter2, parameter3],
+        [
+          type,
+          target,
+          parameter1,
+          parameter2,
+          parameter3,
+          parameter4,
+          parameter5,
+        ],
         commandOptions,
       );
 

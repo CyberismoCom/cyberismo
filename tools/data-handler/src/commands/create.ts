@@ -372,11 +372,15 @@ export class Create {
    * @param projectPath where to create the project.
    * @param projectPrefix prefix for the project.
    * @param projectName name for the project.
+   * @param projectCategory category for the project.
+   * @param projectDescription description for the project.
    */
   public static async createProject(
     projectPath: string,
     projectPrefix: string,
     projectName: string,
+    projectCategory?: string,
+    projectDescription?: string,
   ) {
     projectPath = resolve(projectPath);
 
@@ -438,6 +442,12 @@ export class Create {
           }
           if (entry.content.name.includes('$PROJECT-NAME')) {
             entry.content.name = projectName;
+          }
+          if (projectCategory !== undefined) {
+            entry.content.category = projectCategory;
+          }
+          if (projectDescription !== undefined) {
+            entry.content.description = projectDescription;
           }
         }
         await writeJsonFile(

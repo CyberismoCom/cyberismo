@@ -3,7 +3,12 @@ import { expect } from 'chai';
 
 // node
 import { access } from 'node:fs/promises';
-import { constants as fsConstants, mkdirSync, rmSync } from 'node:fs';
+import {
+  constants as fsConstants,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { join } from 'node:path';
 
 import { Cmd, Commands } from '../src/command-handler.js';
@@ -705,6 +710,26 @@ describe('create command', () => {
       testOptions,
     );
     expect(result.statusCode).to.equal(400);
+  });
+  it('should create project with optional values', async () => {
+    const prefix = 'cdes';
+    const name = 'test-project-with-category';
+    const category = 'Development';
+    const description = 'A test project with category and description';
+    const projectDir = join(testDir, name);
+    const testOptions: CreateCommandOptions = { projectPath: projectDir };
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['project', name, prefix, projectDir, category, description],
+      testOptions,
+    );
+    await expect(access(projectDir, fsConstants.F_OK)).to.be.fulfilled;
+    expect(result.statusCode).to.equal(200);
+
+    const configPath = join(projectDir, '.cards', 'local', 'cardsConfig.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    expect(config.category).to.equal(category);
+    expect(config.description).to.equal(description);
   });
 
   // report

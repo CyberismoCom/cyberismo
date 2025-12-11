@@ -272,11 +272,14 @@ export class Commands {
           const [name] = rest;
           await this.commands?.createCmd.createLinkType(name);
         } else if (target === 'project') {
-          const [name, prefix] = rest;
+          // 3rd parameter - path - is skipped it is used in general command handling
+          const [name, prefix, , category, description] = rest;
           await Create.createProject(
             resolveTilde(this.projectPath),
             prefix,
             name,
+            category,
+            description,
           );
         } else if (target === 'report') {
           const [name] = rest;
