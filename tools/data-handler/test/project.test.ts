@@ -437,6 +437,23 @@ describe('project', () => {
     const projectCards = project.showProjectCards();
     expect(projectCards.length).to.equal(0);
   });
+  it('show project metadata includes category and description', async () => {
+    const decisionRecordsPath = join(testDir, 'valid/decision-records');
+    const project = getTestProject(decisionRecordsPath);
+    await project.populateCaches();
+    expect(project).to.not.equal(undefined);
+
+    const projectMetadata = await project.show();
+    expect(projectMetadata).to.not.equal(undefined);
+    expect(projectMetadata).to.have.property('name');
+    expect(projectMetadata).to.have.property('path');
+    expect(projectMetadata).to.have.property('prefix');
+    expect(projectMetadata).to.have.property('modules');
+    expect(projectMetadata).to.have.property('hubs');
+    expect(projectMetadata).to.have.property('numberOfCards');
+    expect(projectMetadata).to.have.property('category');
+    expect(projectMetadata).to.have.property('description');
+  });
   it('access workflow details (success)', async () => {
     const decisionRecordsPath = join(testDir, 'valid/decision-records');
     const project = getTestProject(decisionRecordsPath);

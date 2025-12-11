@@ -20,6 +20,14 @@
       "minLength": 1,
       "pattern": "^[A-Za-z ._-]+$"
     },
+    "category": {
+      "description": "Category of the project",
+      "type": "string"
+    },
+    "description": {
+      "description": "Description of the project",
+      "type": "string"
+    },
     "hubs": {
       "description": "List of hubs from where to fetch module information",
       "type": "array",
