@@ -99,7 +99,7 @@ describe('Navigation', () => {
       .type('Create empty page'); // Type button text
     cy.get('[role="dialog"]').contains('Insert macro').click(); // Click Insert macro button
 
-        // add create page content card button macro to page from toolbar
+    // add create page content card button macro to page from toolbar
     openMacroMenu(); // Click macro helpers on toolbar
     selectMacro('Create cards'); // Click Create cards button
     cy.get('[role="dialog"]').contains('Template').click(); // Click Template button
