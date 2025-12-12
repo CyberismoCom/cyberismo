@@ -24,7 +24,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.2",
     "@cyberismo/data-handler": "workspace:*",
-    "@mui/icons-material": "^7.3.2",
+    "@mui/icons-material": "^7.3.5",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.3.2",
     "@reduxjs/toolkit": "^2.9.0",
