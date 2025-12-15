@@ -5,7 +5,7 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "description": "Version of the schema used by this project"
+      "description": "Project schema version"
     },
     "cardKeyPrefix": {
       "type": "string",
@@ -15,21 +15,21 @@
       "maxLength": 10
     },
     "name": {
-      "description": "Name of the project",
+      "description": "Project name",
       "type": "string",
       "minLength": 1,
       "pattern": "^[A-Za-z ._-]+$"
     },
     "category": {
-      "description": "Category of the project",
+      "description": "Project category",
       "type": "string"
     },
     "description": {
-      "description": "Description of the project",
+      "description": "Project description",
       "type": "string"
     },
     "hubs": {
-      "description": "List of hubs from where to fetch module information",
+      "description": "Hub list. List contains information from where to fetch module information",
       "type": "array",
       "items": {
         "type": "object",
