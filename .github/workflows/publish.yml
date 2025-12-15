@@ -3,8 +3,8 @@ name: Publish
 on:
   push:
     tags:
-      - cyberismo-*
-      - node-clingo-*
+      - 'cyberismo-*'
+      - 'node-clingo-*'
 
 permissions:
   contents: read

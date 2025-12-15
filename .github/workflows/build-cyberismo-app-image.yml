@@ -3,7 +3,7 @@ name: Build and Publish Multi-Arch Image
 on:
   push:
     tags:
-      - cyberismo-*
+      - 'cyberismo-*'
 
 jobs:
   build-and-publish:
