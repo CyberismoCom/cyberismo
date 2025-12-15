@@ -2,78 +2,41 @@ name: Build and Publish Multi-Arch Image
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - cyberismo-*
 
 jobs:
-  version-check:
+  build-and-publish:
     runs-on: ubuntu-latest
-    outputs:
-      version-changed: ${{ steps.check.outputs.changed }}
-      version: ${{ steps.check.outputs.version }}
+
     permissions:
       contents: read
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history to access tags
+          fetch-depth: 1
 
-      - name: Check if CLI version changed
-        id: check
-        run: |
-          # Get current version from CLI package.json
-          current_version=$(node -p 'require("./tools/cli/package.json").version')
-          
-          # Get the latest cyberismo tag (previous release)
-          latest_tag=$(git tag -l "cyberismo-*" --sort=-version:refname | head -n 1)
-          
-          if [ -z "$latest_tag" ]; then
-            echo "No previous cyberismo tags found, this will be the first release"
-            previous_version="none"
-          else
-            # Extract version from tag (remove "cyberismo-" prefix)
-            previous_version=${latest_tag#cyberismo-}
-            echo "Latest tag found: $latest_tag (version: $previous_version)"
-          fi
-          
-          echo "Current CLI version: $current_version"
-          echo "Previous release version: $previous_version"
-          
-          if [ "$current_version" != "$previous_version" ]; then
-            echo "CLI version changed from $previous_version to $current_version"
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "version=$current_version" >> $GITHUB_OUTPUT
-          else
-            echo "CLI version unchanged: $current_version"
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "version=$current_version" >> $GITHUB_OUTPUT
-          fi
-
-  build-and-publish:
-    needs: version-check
-    if: needs.version-check.outputs.version-changed == 'true'
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Parse version for multi-level tags
+      - name: Extract version from tag
         id: parse
         run: |
-          VERSION="${{ needs.version-check.outputs.version }}"
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f1-2)
-          echo "major=$MAJOR" >> $GITHUB_OUTPUT
-          echo "minor=$MINOR" >> $GITHUB_OUTPUT
+          VERSION="${GITHUB_REF_NAME#cyberismo-}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
+            echo "Tag must be prefixed with cyberismo-" >&2
+            exit 1
+          fi
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f1-2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
           echo "Full version: $VERSION"
           echo "Major version: $MAJOR"
           echo "Minor version: $MINOR"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -96,13 +59,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:latest
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ needs.version-check.outputs.version }}
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ steps.parse.outputs.version }}
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ steps.parse.outputs.minor }}
             docker.io/${{ secrets.DOCKERHUB_USERNAME }}/cyberismo:${{ steps.parse.outputs.major }}
-
-      - name: Create and push git tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "cyberismo-${{ needs.version-check.outputs.version }}" -m "Release version ${{ needs.version-check.outputs.version }}"
-          git push origin "cyberismo-${{ needs.version-check.outputs.version }}"
