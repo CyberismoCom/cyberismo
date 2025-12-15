@@ -61,7 +61,7 @@ describe('project settings', () => {
     expect(projectSettings.schemaVersion).to.equal(SCHEMA_VERSION);
     expect(projectSettings.modules).to.deep.equal([]);
     expect(projectSettings.hubs).to.deep.equal([]);
-    // category and description are by default empty
+    // category and description are by default undefined
     expect(projectSettings.category).to.equal(undefined);
     expect(projectSettings.description).to.equal(undefined);
   });
@@ -79,7 +79,7 @@ describe('project settings', () => {
     );
   });
 
-  it('should handle category and description', () => {
+  it('should handle empty category and description', () => {
     const configPath = createTestConfig(
       'test-config-empty-category-desc.json',
       {

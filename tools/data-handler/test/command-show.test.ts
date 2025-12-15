@@ -807,6 +807,8 @@ describe('show', () => {
     expect(results).to.have.property('modules');
     expect(results).to.have.property('hubs');
     expect(results).to.have.property('numberOfCards');
+    expect(results).to.have.property('description');
+    expect(results).to.have.property('category');
   });
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';
