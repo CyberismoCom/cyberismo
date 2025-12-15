@@ -47,8 +47,7 @@ const filterTree = (
     if (titleMatches || filteredChildren.length > 0) {
       acc.push({
         ...node,
-        children:
-          filteredChildren.length > 0 ? filteredChildren : node.children,
+        children: filteredChildren,
       });
     }
 
