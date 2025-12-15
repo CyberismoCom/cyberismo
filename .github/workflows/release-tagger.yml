@@ -1,0 +1,50 @@
+name: Release Tagger
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tools/cli/package.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-tagger
+  cancel-in-progress: true
+
+jobs:
+  tag-cli-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine CLI version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./tools/cli/package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=cyberismo-${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists on remote; exiting."
+            exit 0
+          fi
+
+          if git rev-parse --verify "${TAG}" >/dev/null 2>&1; then
+            git tag -d "${TAG}"
+          fi
+
+          git tag -a "${TAG}" -m "Release version ${TAG#cyberismo-}"
+          git push origin "${TAG}"
