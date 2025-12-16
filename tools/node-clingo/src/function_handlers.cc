@@ -151,6 +151,34 @@ namespace node_clingo
         return return_string(today_str.c_str(), symbol_callback, symbol_callback_data);
     }
 
+    bool handle_now(
+        clingo_symbol_t const* arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void* symbol_callback_data)
+    {
+        if (arguments_size != 0)
+        {
+            return false;
+        }
+
+// clang used on mac does not support
+// current_zone and zoned_time
+#if USE_FORMAT_FALLBACK
+        time_t now = time(nullptr);
+        std::stringstream ss;
+        ss << std::put_time(std::localtime(&now), "%Y-%m-%dT%H:%M:%S%z");
+        const auto now_str = ss.str();
+#else
+        const auto now_point = std::chrono::system_clock::now();
+        const auto current_zone = std::chrono::current_zone();
+        const std::chrono::zoned_time zt{current_zone, now_point};
+        const auto now_str = std::format("{:%Y-%m-%dT%H:%M:%S%z}", zt);
+#endif
+
+        return return_string(now_str.c_str(), symbol_callback, symbol_callback_data);
+    }
+
     bool handle_wrap(
         clingo_symbol_t const* arguments,
         size_t arguments_size,
@@ -240,6 +268,7 @@ namespace node_clingo
             {"concatenate", handle_concatenate},
             {"daysSince", handle_days_since},
             {"today", handle_today},
+            {"now", handle_now},
             {"wrap", handle_wrap},
             {"resourcePrefix", handle_resource_prefix},
             {"resourceType", handle_resource_type},

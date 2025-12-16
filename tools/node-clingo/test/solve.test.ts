@@ -306,6 +306,72 @@ describe('Clingo solver', () => {
     });
   });
 
+  describe('@now function', () => {
+    it('should return current datetime in ISO 8601 format with timezone', async () => {
+      const program = `
+        current_time(@now).
+      `;
+      const result = await solve(program);
+
+      // Extract the datetime value from the result
+      const match = result.answers[0].match(/current_time\("([^"]+)"\)/);
+      expect(match).toBeTruthy();
+      const datetime = match![1];
+
+      // Validate ISO 8601 format: YYYY-MM-DDTHH:MM:SS with timezone (e.g., +0200 or -0500)
+      expect(datetime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}$/);
+
+      // Verify the date components are reasonable (strip timezone for Date parsing)
+      const dateWithoutTz = datetime.replace(/[+-]\d{4}$/, '');
+      const date = new Date(dateWithoutTz);
+      expect(date.getTime()).toBeGreaterThan(new Date('2024-01-01').getTime());
+      expect(date.getTime()).toBeLessThan(new Date('2030-01-01').getTime());
+    });
+
+    it('should not accept any arguments', async () => {
+      const program = `
+        result(@now()).
+      `;
+      const result = await solve(program);
+
+      // @now with parentheses should work (0 arguments)
+      expect(result.answers[0]).toContain('result("');
+    });
+
+    it('should work with @today for date comparison', async () => {
+      const program = `
+        today_date(@today).
+        current_datetime(@now).
+      `;
+      const result = await solve(program);
+
+      // Extract both values
+      const todayMatch = result.answers[0].match(/today_date\("([^"]+)"\)/);
+      const nowMatch = result.answers[0].match(/current_datetime\("([^"]+)"\)/);
+
+      expect(todayMatch).toBeTruthy();
+      expect(nowMatch).toBeTruthy();
+
+      const today = todayMatch![1];
+      const now = nowMatch![1];
+
+      // @now should start with @today's date
+      expect(now).toContain(today);
+
+      // @now should have additional time portion
+      expect(now.length).toBeGreaterThan(today.length);
+    });
+
+    it('should work in combination with other functions', async () => {
+      const program = `
+        result(@concatenate("Time: ", @now)).
+      `;
+      const result = await solve(program);
+
+      expect(result.answers[0]).toMatch(/result\("Time: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}"\)/);
+    });
+  });
+
   describe('Single program removal', () => {
     it('should remove a specific program by key', async () => {
       // Set up programs

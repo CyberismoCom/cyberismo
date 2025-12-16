@@ -74,6 +74,21 @@ namespace node_clingo
         void* symbol_callback_data);
 
     /**
+     * Handler for the @now function.
+     * Returns the current datetime in ISO 8601 format.
+     * @param arguments Array of clingo symbols (expected to be empty).
+     * @param arguments_size Number of arguments.
+     * @param symbol_callback Callback function to return the result symbol.
+     * @param symbol_callback_data User data for the callback.
+     * @returns True on success, false on error.
+     */
+    bool handle_now(
+        clingo_symbol_t const* arguments,
+        size_t arguments_size,
+        clingo_symbol_callback_t symbol_callback,
+        void* symbol_callback_data);
+
+    /**
      * Handler for the @wrap function.
      * Wraps a value within a specified range. Also escapes the result.
      * @param arguments Array of clingo symbols representing the value, min, and max.
