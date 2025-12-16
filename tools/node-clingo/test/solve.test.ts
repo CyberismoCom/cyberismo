@@ -319,7 +319,9 @@ describe('Clingo solver', () => {
       const datetime = match![1];
 
       // Validate ISO 8601 format: YYYY-MM-DDTHH:MM:SS with timezone (e.g., +0200 or -0500)
-      expect(datetime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}$/);
+      expect(datetime).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}$/,
+      );
 
       // Verify the date components are reasonable (strip timezone for Date parsing)
       const dateWithoutTz = datetime.replace(/[+-]\d{4}$/, '');
@@ -368,7 +370,9 @@ describe('Clingo solver', () => {
       `;
       const result = await solve(program);
 
-      expect(result.answers[0]).toMatch(/result\("Time: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}"\)/);
+      expect(result.answers[0]).toMatch(
+        /result\("Time: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4}"\)/,
+      );
     });
   });
 
