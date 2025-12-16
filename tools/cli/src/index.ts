@@ -287,7 +287,7 @@ addCmd
     'Card type to use for the new card. \nYou can list the card types in a project with "show cardTypes" command.',
   )
   .argument('[cardKey]', "Parent card's card key")
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .option('-r, --repeat <quantity>', 'Add multiple cards to a template')
   .action(
     async (
@@ -312,7 +312,7 @@ addCmd
     '<location>',
     'Hub URL. Default hub can be added by using "default"',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (location: string, options: CommandOptions<'add'>) => {
     if (location === 'default') {
       location = DEFAULT_HUB;
@@ -337,7 +337,7 @@ calculate
     'Path to an output file. Command writes the logic program to this file.',
   )
   .argument('[query]', 'Query to run')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       destination: string,
@@ -358,7 +358,7 @@ calculate
   .description('Run a logic program')
   .argument('<filePath>', 'Path to the logic program')
   .addOption(contextOption)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (filePath: string, options: CommandOptions<'calc'>) => {
     const result = await commandHandler.command(
       Cmd.calc,
@@ -393,7 +393,7 @@ program
     'Depends on context; see below for specific remove operation',
   )
   .addHelpText('after', additionalHelpForCreate)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .option(
     '-s, --skipModuleImport',
     'Skip importing modules when creating a project',
@@ -533,7 +533,7 @@ program
   .command('edit')
   .description('Edit a card')
   .argument('<cardKey>', 'Card key of card')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (cardKey: string, options: CommandOptions<'edit'>) => {
     const result = await commandHandler.command(
       Cmd.edit,
@@ -557,7 +557,7 @@ program
     '[cardKey]',
     'Export a specific card by card key. If omitted, exports the whole site.',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .option(
     '-r, --recursive',
     'Export cards under the specified card recursively',
@@ -640,12 +640,12 @@ program
 const fetchCmd = program
   .command('fetch')
   .description('Retrieve external data to local file system.')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+  .option('-p, --project-path <path>', `${pathGuideline}`);
 
 fetchCmd
   .command('hubs')
   .description('Retrieves module lists from hubs')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (options: CommandOptions<'fetch'>) => {
     const result = await commandHandler.command(
       Cmd.fetch,
@@ -658,7 +658,7 @@ fetchCmd
 const importCmd = program
   .command('import')
   .description('Import modules and data into the project')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+  .option('-p, --project-path <path>', `${pathGuideline}`);
 
 // Import module
 importCmd
@@ -675,7 +675,7 @@ importCmd
     '[useCredentials]',
     'When using git URL uses credentials for cloning. Default: false',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       source: string,
@@ -765,7 +765,7 @@ importCmd
     '[cardKey]',
     'Card key of the parent. If defined, cards are created as children of this card',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       csvFile: string,
@@ -792,7 +792,7 @@ program
     '[destination]',
     'Destination Card key where "source" is moved to. If moving to root, use "root"',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       source: string,
@@ -822,7 +822,7 @@ program
 const rank = program
   .command('rank')
   .description('Manage card ranking and ordering')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+  .option('-p, --project-path <path>', `${pathGuideline}`);
 
 rank
   .command('card')
@@ -834,7 +834,7 @@ rank
     '<afterCardKey>',
     'Card key of the card that the card should be after. Use "first" to rank the card first.',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       cardKey: string,
@@ -859,7 +859,7 @@ rank
     '[parentCardKey]',
     'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
     const result = await commandHandler.command(
       Cmd.rank,
@@ -891,7 +891,7 @@ program
     'Depends on context; see below for specific remove operation',
   )
   .addHelpText('after', additionalHelpForRemove)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       type: string,
@@ -948,7 +948,7 @@ program
     'Change project prefix and rename all the content with the new prefix',
   )
   .argument('<to>', 'New project prefix')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (to: string, options: CommandOptions<'rename'>) => {
     const result = await commandHandler.command(
       Cmd.rename,
@@ -971,7 +971,7 @@ program
     'Optional output file; if omitted output will be directed to stdout',
   )
   .addOption(contextOption)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       parameters: string,
@@ -1008,7 +1008,7 @@ program
     '-a --showAll',
     'Show all modules, irregardless if it has been imported or not. Only with "show importableModules"',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .option(
     '-u --show-use',
     'Show where resource is used. Only used with resources, otherwise will be ignored.',
@@ -1043,7 +1043,7 @@ program
     '<transition>',
     'Workflow state transition that is done.\nYou can list the workflows in a project with "show workflows" command.\nYou can see the available transitions with "show workflow <name>" command.',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(
     async (
       cardKey: string,
@@ -1075,10 +1075,10 @@ program
     'When using "change" define new value for detail.\nWhen using "remove" provide optional replacement value for removed value',
   )
   .option(
-    '-m, --mapping-file [path]',
+    '-m, --mapping-file <path>',
     'Path to JSON file containing workflow state mapping (only used when changing workflow)',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .addHelpText('after', additionalHelpForUpdate)
   .action(
     async (
@@ -1105,7 +1105,7 @@ program
     'Updates to latest versions either all modules or a specific module',
   )
   .argument('[moduleName]', 'Module name')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (moduleName, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
@@ -1120,7 +1120,7 @@ program
 program
   .command('validate')
   .description('Validate project structure')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (options: CommandOptions<'validate'>) => {
     const result = await commandHandler.command(
       Cmd.validate,
@@ -1144,7 +1144,7 @@ program
     '-w, --watch-resource-changes',
     'Project watches changes in .cards folder resources',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .option('-p, --project-path <path>', `${pathGuideline}`)
   .action(async (options: CommandOptions<'start'>) => {
     // validate project
     const result = await commandHandler.command(
