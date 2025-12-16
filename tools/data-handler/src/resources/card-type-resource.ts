@@ -246,21 +246,8 @@ export class CardTypeResource extends FileResource<CardType> {
         if (item.isCalculated === undefined) {
           item.isCalculated = false;
         }
-        // Fetch "displayName" from field type if it is missing.
-        if (item.name && item.displayName === undefined) {
-          const fieldType = this.project.resources.byType(
-            item.name,
-            'fieldTypes',
-          );
-          const fieldTypeContent = fieldType.data;
-          if (fieldTypeContent) {
-            item.displayName = fieldTypeContent.displayName;
-          }
-        } else if (!item.name) {
-          console.error(
-            `Custom field '${item.name}' is missing mandatory 'name' in card type '${content.name}'`,
-          );
-          return undefined;
+        if (!item.name) {
+          continue;
         }
       }
     } else {
