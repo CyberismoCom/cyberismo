@@ -140,35 +140,15 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     updateKey: UpdateKey<K>,
     op: Operation<Type>,
   ) {
-    const { key } = updateKey;
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
-
-    // Only call super.update for keys that base class supports
-    if (key === 'name' || key === 'displayName' || key === 'description') {
-      await super.update(updateKey, op);
-    }
-
-    const content = structuredClone(this.content);
-
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'category') {
+    if (updateKey.key === 'category') {
+      const content = structuredClone(this.content);
       content.category = super.handleScalar(op) as string;
-    } else {
-      throw new Error(`Unknown property '${key}' for Template`);
+
+      await super.postUpdate(content, updateKey, op);
+      return;
     }
 
-    await super.postUpdate(content, updateKey, op);
-
-    // Renaming this template causes that references to its name must be updated.
-    if (nameChange) {
-      await this.onNameChange(existingName);
-    }
+    await super.update(updateKey, op);
   }
 
   /**

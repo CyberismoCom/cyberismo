@@ -1411,6 +1411,22 @@ describe('resources', function () {
       const res = project.resources.byType(name, 'linkTypes');
       await res.create();
       await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Link type display name',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Link type description',
+        },
+      );
+      await res.update(
         {
           key: 'enableLinkDescription',
         },
@@ -1437,6 +1453,8 @@ describe('resources', function () {
         },
       );
       const data = res.data as LinkType;
+      expect(data.displayName).to.equal('Link type display name');
+      expect(data.description).to.equal('Link type description');
       expect(data.inboundDisplayName).to.equal('inbound');
       expect(data.outboundDisplayName).to.equal('outbound');
       expect(data.enableLinkDescription).to.equal(true);
