@@ -524,8 +524,11 @@ createCmd
   .argument('<name>', 'Project name')
   .argument('<prefix>', 'Project prefix')
   .argument('<path>', 'Path where to create the project')
-  .argument('[category]', 'Optional project category')
-  .argument('[description]', 'Optional project description')
+  .argument('[category]', 'Project category (optional)')
+  .argument(
+    '<description>',
+    'Project description (use empty string "" if none)',
+  )
   .option(
     '-s, --skipModuleImport',
     'Skip importing modules when creating a project',
@@ -536,7 +539,7 @@ createCmd
       prefix: string,
       path: string,
       category: string | undefined,
-      description: string | undefined,
+      description: string,
       options: CommandOptions<'create'>,
     ) => {
       // Project path must be set to 'options' when creating a project
@@ -545,9 +548,7 @@ createCmd
 
       const result = await commandHandler.command(
         Cmd.create,
-        ['project', name, prefix, path, category, description].filter(
-          Boolean,
-        ) as string[],
+        ['project', name, prefix, path, category || '', description || ''],
         commandOptions,
       );
 

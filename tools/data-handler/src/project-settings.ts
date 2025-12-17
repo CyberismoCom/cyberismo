@@ -47,6 +47,7 @@ export class ProjectConfiguration implements ProjectSettings {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
+    this.description = '';
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
@@ -82,7 +83,7 @@ export class ProjectConfiguration implements ProjectSettings {
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.category = settings.category;
-      this.description = settings.description;
+      this.description = settings.description || '';
       this.modules = settings.modules || [];
       this.hubs = settings.hubs || [];
     } else {

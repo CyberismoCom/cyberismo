@@ -279,8 +279,8 @@ export class Commands {
             resolveTilde(this.projectPath),
             prefix,
             name,
-            category,
-            description,
+            category || '',
+            description || '',
           );
         } else if (target === 'report') {
           const [name] = rest;

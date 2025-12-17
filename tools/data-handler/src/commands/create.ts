@@ -372,15 +372,15 @@ export class Create {
    * @param projectPath where to create the project.
    * @param projectPrefix prefix for the project.
    * @param projectName name for the project.
-   * @param projectCategory category for the project.
-   * @param projectDescription description for the project.
+   * @param projectCategory category for the project (empty string if not provided).
+   * @param projectDescription description for the project (empty string if not provided).
    */
   public static async createProject(
     projectPath: string,
     projectPrefix: string,
     projectName: string,
-    projectCategory?: string,
-    projectDescription?: string,
+    projectCategory: string,
+    projectDescription: string,
   ) {
     projectPath = resolve(projectPath);
 
@@ -443,10 +443,10 @@ export class Create {
           if (entry.content.name.includes('$PROJECT-NAME')) {
             entry.content.name = projectName;
           }
-          if (projectCategory !== undefined) {
+          if (projectCategory) {
             entry.content.category = projectCategory;
           }
-          if (projectDescription !== undefined) {
+          if (projectDescription) {
             entry.content.description = projectDescription;
           }
         }

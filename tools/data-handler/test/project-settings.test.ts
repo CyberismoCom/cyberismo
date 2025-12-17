@@ -61,9 +61,8 @@ describe('project settings', () => {
     expect(projectSettings.schemaVersion).to.equal(SCHEMA_VERSION);
     expect(projectSettings.modules).to.deep.equal([]);
     expect(projectSettings.hubs).to.deep.equal([]);
-    // category and description are by default undefined
     expect(projectSettings.category).to.equal(undefined);
-    expect(projectSettings.description).to.equal(undefined);
+    expect(projectSettings.description).to.equal('');
   });
 
   it('should load configuration with category and description', () => {
