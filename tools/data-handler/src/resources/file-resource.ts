@@ -22,7 +22,8 @@ import type {
 import type { Project } from '../containers/project.js';
 import type { ResourceBaseMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
-import type { ShowReturnType } from './resource-object.js';
+import type { Operation, ShowReturnType } from './resource-object.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 
 /**
  * Base class for file based resources (card types, field types, link types, workflows, ...)
@@ -59,6 +60,13 @@ export abstract class FileResource<
     );
     return cards;
   }
+
+  /**
+   * For handling name changes.
+   * @param previousName The previous name before the change
+   */
+  protected abstract onNameChange?(previousName: string): Promise<void>;
+
   // Updates resource key to a new prefix
   protected updatePrefixInResourceName(name: string, prefixes: string[]) {
     const { identifier, prefix, type } = resourceName(name);
@@ -68,6 +76,40 @@ export abstract class FileResource<
     return !prefixes.includes(prefix)
       ? `${this.project.configuration.cardKeyPrefix}/${type}/${identifier}`
       : name;
+  }
+
+  /**
+   * Updates resource.
+   * @param updateKey Key to modify
+   * @param op Operation to perform on 'key'
+   * @throws if key is unknown.
+   */
+  public async update<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
+
+    const nameChange = key === 'name';
+    const existingName = this.content.name;
+    await super.update(updateKey, op);
+    const content = structuredClone(this.content);
+
+    if (key === 'name') {
+      content.name = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
+    } else {
+      throw new Error(`Unknown property '${key}' for folder resource`);
+    }
+
+    await super.postUpdate(content, updateKey, op);
+
+    if (nameChange) {
+      await this.onNameChange?.(existingName);
+    }
   }
 
   /**

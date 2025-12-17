@@ -223,15 +223,6 @@ export class FieldTypeResource extends FileResource<FieldType> {
     );
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-    ]);
-    await this.write();
-  }
-
   // Checks if value 'from' can be converted 'to' value.
   private isConversionValid(from: DataType, to: DataType) {
     // Set helpers to avoid dragging 'Operation' object everywhere.
@@ -282,6 +273,19 @@ export class FieldTypeResource extends FileResource<FieldType> {
         }
       }
     }
+  }
+
+  /**
+   * When resource name changes.
+   * @param existingName Current resource name.
+   */
+  protected async onNameChange(existingName: string) {
+    await Promise.all([
+      super.updateHandleBars(existingName, this.content.name),
+      super.updateCalculations(existingName, this.content.name),
+      this.updateCardTypes(existingName),
+    ]);
+    await this.write();
   }
 
   /**
@@ -372,7 +376,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -389,64 +393,56 @@ export class FieldTypeResource extends FileResource<FieldType> {
     op: Operation<Type>,
   ) {
     const { key } = updateKey;
-    const nameChange = key === 'name';
-    const typeChange = key === 'dataType';
-    const enumChange = key === 'enumValues';
-    const existingName = this.content.name;
-    const existingType = this.content.dataType;
 
-    await super.update(updateKey, op);
-
-    const content = structuredClone(this.content);
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'dataType') {
-      const toType = op as ChangeOperation<DataType>;
-      if (!FieldTypeResource.fieldDataTypes().includes(toType.to)) {
-        throw new Error(
-          `Cannot change '${key}' to unknown type '${toType.to}'`,
-        );
-      }
-      if (existingType === toType.to) {
-        throw new Error(`'${key}' is already '${toType.to}'`);
-      }
-      if (!this.isConversionValid(content.dataType, toType.to)) {
-        throw new Error(
-          `Cannot change data type from '${content.dataType}' to '${toType.to}'`,
-        );
-      }
-      content.dataType = super.handleScalar(op) as DataType;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'enumValues') {
-      if (op.name === 'add' || op.name === 'change' || op.name === 'remove') {
-        const existingValue = this.enumValueExists<EnumDefinition>(
-          op as Operation<EnumDefinition>,
-          content.enumValues as EnumDefinition[],
-        ) as Type;
-        op.target = existingValue ?? op.target;
-      }
-      content.enumValues = super.handleArray(
-        op,
-        key,
-        content.enumValues as Type[],
-      ) as EnumDefinition[];
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
+    if (key === 'name' || key === 'description' || key === 'displayName') {
+      await super.update(updateKey, op);
     } else {
-      throw new Error(`Unknown property '${key}' for FieldType`);
-    }
+      const content = structuredClone(this.content);
+      const typeChange = key === 'dataType';
+      const enumChange = key === 'enumValues';
+      const existingType = this.content.dataType;
+      if (key === 'name') {
+        content.name = super.handleScalar(op) as string;
+      } else if (key === 'dataType') {
+        const toType = op as ChangeOperation<DataType>;
+        if (!FieldTypeResource.fieldDataTypes().includes(toType.to)) {
+          throw new Error(
+            `Cannot change '${key}' to unknown type '${toType.to}'`,
+          );
+        }
+        if (existingType === toType.to) {
+          throw new Error(`'${key}' is already '${toType.to}'`);
+        }
+        if (!this.isConversionValid(content.dataType, toType.to)) {
+          throw new Error(
+            `Cannot change data type from '${content.dataType}' to '${toType.to}'`,
+          );
+        }
+        content.dataType = super.handleScalar(op) as DataType;
+      } else if (key === 'enumValues') {
+        if (op.name === 'add' || op.name === 'change' || op.name === 'remove') {
+          const existingValue = this.enumValueExists<EnumDefinition>(
+            op as Operation<EnumDefinition>,
+            content.enumValues as EnumDefinition[],
+          ) as Type;
+          op.target = existingValue ?? op.target;
+        }
+        content.enumValues = super.handleArray(
+          op,
+          key,
+          content.enumValues as Type[],
+        ) as EnumDefinition[];
+      } else {
+        throw new Error(`Unknown property '${key}' for FieldType`);
+      }
 
-    await super.postUpdate(content, updateKey, op);
+      await super.postUpdate(content, updateKey, op);
 
-    if (nameChange) {
-      // Renaming this field type causes that references to its name must be updated.
-      await this.handleNameChange(existingName);
-      await this.updateCardTypes(existingName);
-    } else if (typeChange) {
-      await this.dataTypeChanged();
-    } else if (enumChange && op.name === 'remove') {
-      await this.handleEnumValueReplacements(op);
+      if (typeChange) {
+        await this.dataTypeChanged();
+      } else if (enumChange && op.name === 'remove') {
+        await this.handleEnumValueReplacements(op);
+      }
     }
   }
 

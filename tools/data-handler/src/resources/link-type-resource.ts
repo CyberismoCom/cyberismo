@@ -32,8 +32,11 @@ export class LinkTypeResource extends FileResource<LinkType> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
+  /**
+   * When resource name changes.
+   * @param existingName Current resource name.
+   */
+  protected async onNameChange(existingName: string) {
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.sourceCardTypes) {
@@ -76,7 +79,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -89,45 +92,34 @@ export class LinkTypeResource extends FileResource<LinkType> {
     op: Operation<Type>,
   ) {
     const { key } = updateKey;
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
 
-    await super.update(updateKey, op);
-
-    const content = structuredClone(this.content);
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'destinationCardTypes') {
-      content.destinationCardTypes = super.handleArray(
-        op,
-        key,
-        content.destinationCardTypes as Type[],
-      ) as string[];
-    } else if (key === 'enableLinkDescription') {
-      content.enableLinkDescription = super.handleScalar(op) as boolean;
-    } else if (key === 'inboundDisplayName') {
-      content.inboundDisplayName = super.handleScalar(op) as string;
-    } else if (key === 'outboundDisplayName') {
-      content.outboundDisplayName = super.handleScalar(op) as string;
-    } else if (key === 'sourceCardTypes') {
-      content.sourceCardTypes = super.handleArray(
-        op,
-        key,
-        content.sourceCardTypes as Type[],
-      ) as string[];
+    if (key === 'name' || key === 'displayName' || key === 'description') {
+      await super.update(updateKey, op);
     } else {
-      throw new Error(`Unknown property '${key}' for LinkType`);
-    }
+      const content = structuredClone(this.content);
+      if (key === 'destinationCardTypes') {
+        content.destinationCardTypes = super.handleArray(
+          op,
+          key,
+          content.destinationCardTypes as Type[],
+        ) as string[];
+      } else if (key === 'enableLinkDescription') {
+        content.enableLinkDescription = super.handleScalar(op) as boolean;
+      } else if (key === 'inboundDisplayName') {
+        content.inboundDisplayName = super.handleScalar(op) as string;
+      } else if (key === 'outboundDisplayName') {
+        content.outboundDisplayName = super.handleScalar(op) as string;
+      } else if (key === 'sourceCardTypes') {
+        content.sourceCardTypes = super.handleArray(
+          op,
+          key,
+          content.sourceCardTypes as Type[],
+        ) as string[];
+      } else {
+        throw new Error(`Unknown property '${key}' for LinkType`);
+      }
 
-    await super.postUpdate(content, updateKey, op);
-
-    // Renaming this card type causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
+      await super.postUpdate(content, updateKey, op);
     }
   }
 
