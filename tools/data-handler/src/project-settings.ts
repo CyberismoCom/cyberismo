@@ -47,8 +47,6 @@ export class ProjectConfiguration implements ProjectSettings {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
-    this.category = undefined;
-    this.description = undefined;
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;

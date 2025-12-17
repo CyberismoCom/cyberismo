@@ -22,6 +22,8 @@ import type {
   Card,
   CardListContainer,
 } from '../src/interfaces/project-interfaces.js';
+import { Project } from '../src/containers/project.js';
+import { Validate } from '../src/commands/index.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -730,6 +732,12 @@ describe('create command', () => {
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
     expect(config.category).to.equal(category);
     expect(config.description).to.equal(description);
+    const validator = new Validate();
+    const validationResult = await validator.validate(
+      projectDir,
+      () => new Project(projectDir),
+    );
+    expect(validationResult.length).equals(0);
   });
 
   // report

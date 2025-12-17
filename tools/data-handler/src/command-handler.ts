@@ -273,7 +273,8 @@ export class Commands {
           await this.commands?.createCmd.createLinkType(name);
         } else if (target === 'project') {
           // 3rd parameter - path - is skipped it is used in general command handling
-          const [name, prefix, , category, description] = rest;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const [name, prefix, _, category, description] = rest;
           await Create.createProject(
             resolveTilde(this.projectPath),
             prefix,
