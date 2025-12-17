@@ -97,6 +97,10 @@ export class LinkTypeResource extends FileResource<LinkType> {
     const content = structuredClone(this.content);
     if (key === 'name') {
       content.name = super.handleScalar(op) as string;
+    } else if (key === 'displayName') {
+      content.displayName = super.handleScalar(op) as string;
+    } else if (key === 'description') {
+      content.description = super.handleScalar(op) as string;
     } else if (key === 'destinationCardTypes') {
       content.destinationCardTypes = super.handleArray(
         op,
@@ -116,7 +120,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
         content.sourceCardTypes as Type[],
       ) as string[];
     } else {
-      throw new Error(`Unknown property '${key}' for FieldType`);
+      throw new Error(`Unknown property '${key}' for LinkType`);
     }
 
     await super.postUpdate(content, updateKey, op);
