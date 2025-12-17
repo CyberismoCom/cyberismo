@@ -256,6 +256,20 @@ const contextOption = new Option(
   .choices(validContexts)
   .default('app');
 
+const pathOption = new Option('-p, --project-path <path>', pathGuideline);
+
+// Custom Command class with pathOption pre-configured
+class CommandWithPath extends Command {
+  createCommand(name?: string): CommandWithPath {
+    return new CommandWithPath(name);
+  }
+
+  constructor(name?: string) {
+    super(name);
+    this.addOption(pathOption);
+  }
+}
+
 // Main CLI program.
 program
   .name('cyberismo')
@@ -272,7 +286,10 @@ program
       .default('fatal'),
   );
 
-const addCmd = program.command('add').description('Add items to the project');
+const addCmd = new CommandWithPath('add').description(
+  'Add items to the project',
+);
+program.addCommand(addCmd);
 
 // Add card to a template
 addCmd
@@ -287,7 +304,6 @@ addCmd
     'Card type to use for the new card. \nYou can list the card types in a project with "show cardTypes" command.',
   )
   .argument('[cardKey]', "Parent card's card key")
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .option('-r, --repeat <quantity>', 'Add multiple cards to a template')
   .action(
     async (
@@ -312,7 +328,6 @@ addCmd
     '<location>',
     'Hub URL. Default hub can be added by using "default"',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (location: string, options: CommandOptions<'add'>) => {
     if (location === 'default') {
       location = DEFAULT_HUB;
@@ -325,9 +340,10 @@ addCmd
     handleResponse(result);
   });
 
-const calculate = program
-  .command('calc')
-  .description('Used for running logic programs');
+const calculate = new CommandWithPath('calc').description(
+  'Used for running logic programs',
+);
+program.addCommand(calculate);
 
 calculate
   .command('generate')
@@ -337,7 +353,6 @@ calculate
     'Path to an output file. Command writes the logic program to this file.',
   )
   .argument('[query]', 'Query to run')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       destination: string,
@@ -358,7 +373,6 @@ calculate
   .description('Run a logic program')
   .argument('<filePath>', 'Path to the logic program')
   .addOption(contextOption)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (filePath: string, options: CommandOptions<'calc'>) => {
     const result = await commandHandler.command(
       Cmd.calc,
@@ -368,9 +382,11 @@ calculate
     handleResponse(result);
   });
 
-program
-  .command('create')
-  .description('Create cards, resources and other project items')
+const createCmd = new CommandWithPath('create').description(
+  'Create cards, resources and other project items',
+);
+program.addCommand(createCmd);
+createCmd
   .argument(
     '<type>',
     `types to create: '${Parser.listTargets('create').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
@@ -393,7 +409,6 @@ program
     'Depends on context; see below for specific remove operation',
   )
   .addHelpText('after', additionalHelpForCreate)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .option(
     '-s, --skipModuleImport',
     'Skip importing modules when creating a project',
@@ -529,24 +544,25 @@ program
   );
 
 // Edit command
-program
-  .command('edit')
+const editCmd = new CommandWithPath('edit')
   .description('Edit a card')
-  .argument('<cardKey>', 'Card key of card')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (cardKey: string, options: CommandOptions<'edit'>) => {
-    const result = await commandHandler.command(
-      Cmd.edit,
-      [cardKey],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+  .argument('<cardKey>', 'Card key of card');
+program.addCommand(editCmd);
+editCmd.action(async (cardKey: string, options: CommandOptions<'edit'>) => {
+  const result = await commandHandler.command(
+    Cmd.edit,
+    [cardKey],
+    Object.assign({}, options, program.opts()),
+  );
+  handleResponse(result);
+});
 
 // Export command
-program
-  .command('export')
-  .description('Export a project or a card')
+const exportCmd = new CommandWithPath('export').description(
+  'Export a project or a card',
+);
+program.addCommand(exportCmd);
+exportCmd
   .addArgument(
     new Argument('<format>', 'Export format').choices(
       Object.values(ExportFormats),
@@ -557,7 +573,6 @@ program
     '[cardKey]',
     'Export a specific card by card key. If omitted, exports the whole site.',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .option(
     '-r, --recursive',
     'Export cards under the specified card recursively',
@@ -637,15 +652,14 @@ program
     },
   );
 
-const fetchCmd = program
-  .command('fetch')
-  .description('Retrieve external data to local file system.')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+const fetchCmd = new CommandWithPath('fetch').description(
+  'Retrieve external data to local file system.',
+);
+program.addCommand(fetchCmd);
 
 fetchCmd
   .command('hubs')
   .description('Retrieves module lists from hubs')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (options: CommandOptions<'fetch'>) => {
     const result = await commandHandler.command(
       Cmd.fetch,
@@ -655,10 +669,10 @@ fetchCmd
     handleResponse(result);
   });
 
-const importCmd = program
-  .command('import')
-  .description('Import modules and data into the project')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+const importCmd = new CommandWithPath('import').description(
+  'Import modules and data into the project',
+);
+program.addCommand(importCmd);
 
 // Import module
 importCmd
@@ -675,7 +689,6 @@ importCmd
     '[useCredentials]',
     'When using git URL uses credentials for cloning. Default: false',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       source: string,
@@ -765,7 +778,6 @@ importCmd
     '[cardKey]',
     'Card key of the parent. If defined, cards are created as children of this card',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       csvFile: string,
@@ -782,8 +794,7 @@ importCmd
   );
 
 // Move command
-program
-  .command('move')
+const moveCmd = new CommandWithPath('move')
   .description(
     'Moves a card from root to under another card, from under another card to root, or from under a one card to another.',
   )
@@ -791,22 +802,22 @@ program
   .argument(
     '[destination]',
     'Destination Card key where "source" is moved to. If moving to root, use "root"',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(
-    async (
-      source: string,
-      destination: string,
-      options: CommandOptions<'move'>,
-    ) => {
-      const result = await commandHandler.command(
-        Cmd.move,
-        [source, destination],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
-    },
   );
+program.addCommand(moveCmd);
+moveCmd.action(
+  async (
+    source: string,
+    destination: string,
+    options: CommandOptions<'move'>,
+  ) => {
+    const result = await commandHandler.command(
+      Cmd.move,
+      [source, destination],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  },
+);
 
 program
   .command('preview')
@@ -819,10 +830,10 @@ program
     await previewSite(dir || '.', true);
   });
 
-const rank = program
-  .command('rank')
-  .description('Manage card ranking and ordering')
-  .option('-p, --project-path [path]', `${pathGuideline}`);
+const rank = new CommandWithPath('rank').description(
+  'Manage card ranking and ordering',
+);
+program.addCommand(rank);
 
 rank
   .command('card')
@@ -834,7 +845,6 @@ rank
     '<afterCardKey>',
     'Card key of the card that the card should be after. Use "first" to rank the card first.',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       cardKey: string,
@@ -859,7 +869,6 @@ rank
     '[parentCardKey]',
     'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
     const result = await commandHandler.command(
       Cmd.rank,
@@ -870,9 +879,11 @@ rank
   });
 
 // Remove command
-program
-  .command('remove')
-  .description('Remove cards, resources and other project items')
+const removeCmd = new CommandWithPath('remove').description(
+  'Remove cards, resources and other project items',
+);
+program.addCommand(removeCmd);
+removeCmd
   .argument(
     '<type>',
     `removable types: '${Parser.listTargets('remove').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
@@ -891,7 +902,6 @@ program
     'Depends on context; see below for specific remove operation',
   )
   .addHelpText('after', additionalHelpForRemove)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .action(
     async (
       type: string,
@@ -942,25 +952,23 @@ program
   );
 
 // Rename command
-program
-  .command('rename')
+const renameCmd = new CommandWithPath('rename')
   .description(
     'Change project prefix and rename all the content with the new prefix',
   )
-  .argument('<to>', 'New project prefix')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (to: string, options: CommandOptions<'rename'>) => {
-    const result = await commandHandler.command(
-      Cmd.rename,
-      [to],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+  .argument('<to>', 'New project prefix');
+program.addCommand(renameCmd);
+renameCmd.action(async (to: string, options: CommandOptions<'rename'>) => {
+  const result = await commandHandler.command(
+    Cmd.rename,
+    [to],
+    Object.assign({}, options, program.opts()),
+  );
+  handleResponse(result);
+});
 
 // Report command
-program
-  .command('report')
+const reportCmd = new CommandWithPath('report')
   .description('Runs a report')
   .argument(
     '<parameters>',
@@ -970,27 +978,29 @@ program
     '[output]',
     'Optional output file; if omitted output will be directed to stdout',
   )
-  .addOption(contextOption)
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(
-    async (
-      parameters: string,
-      output: string,
-      options: CommandOptions<'report'>,
-    ) => {
-      const result = await commandHandler.command(
-        Cmd.report,
-        [parameters, output],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
-    },
-  );
+  .addOption(contextOption);
+program.addCommand(reportCmd);
+reportCmd.action(
+  async (
+    parameters: string,
+    output: string,
+    options: CommandOptions<'report'>,
+  ) => {
+    const result = await commandHandler.command(
+      Cmd.report,
+      [parameters, output],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  },
+);
 
 // Show command
-program
-  .command('show')
-  .description('Shows details from a project')
+const showCmd = new CommandWithPath('show').description(
+  'Shows details from a project',
+);
+program.addCommand(showCmd);
+showCmd
   .argument(
     '<type>',
     `details can be seen from: ${Parser.listTargets('show').join(', ')}`,
@@ -1008,7 +1018,6 @@ program
     '-a --showAll',
     'Show all modules, irregardless if it has been imported or not. Only with "show importableModules"',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .option(
     '-u --show-use',
     'Show where resource is used. Only used with resources, otherwise will be ignored.',
@@ -1035,34 +1044,35 @@ program
   });
 
 // Transition command
-program
-  .command('transition')
+const transitionCmd = new CommandWithPath('transition')
   .description('Transition a card to the specified state')
   .argument('<cardKey>', 'card key of a card')
   .argument(
     '<transition>',
     'Workflow state transition that is done.\nYou can list the workflows in a project with "show workflows" command.\nYou can see the available transitions with "show workflow <name>" command.',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(
-    async (
-      cardKey: string,
-      transition: string,
-      options: CommandOptions<'transition'>,
-    ) => {
-      const result = await commandHandler.command(
-        Cmd.transition,
-        [cardKey, transition],
-        Object.assign({}, options, program.opts()),
-      );
-      handleResponse(result);
-    },
   );
+program.addCommand(transitionCmd);
+transitionCmd.action(
+  async (
+    cardKey: string,
+    transition: string,
+    options: CommandOptions<'transition'>,
+  ) => {
+    const result = await commandHandler.command(
+      Cmd.transition,
+      [cardKey, transition],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  },
+);
 
 // Update command
-program
-  .command('update')
-  .description('Update resource details')
+const updateCmd = new CommandWithPath('update').description(
+  'Update resource details',
+);
+program.addCommand(updateCmd);
+updateCmd
   .argument('<resourceName>', 'Resource name')
   .argument(
     '<operation>',
@@ -1075,10 +1085,9 @@ program
     'When using "change" define new value for detail.\nWhen using "remove" provide optional replacement value for removed value',
   )
   .option(
-    '-m, --mapping-file [path]',
+    '-m, --mapping-file <path>',
     'Path to JSON file containing workflow state mapping (only used when changing workflow)',
   )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
   .addHelpText('after', additionalHelpForUpdate)
   .action(
     async (
@@ -1099,14 +1108,14 @@ program
   );
 
 // Updates all modules, or specific named module in the project.
-program
-  .command('update-modules')
+const updateModulesCmd = new CommandWithPath('update-modules')
   .description(
     'Updates to latest versions either all modules or a specific module',
   )
-  .argument('[moduleName]', 'Module name')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (moduleName, options: CommandOptions<'updateModules'>) => {
+  .argument('[moduleName]', 'Module name');
+program.addCommand(updateModulesCmd);
+updateModulesCmd.action(
+  async (moduleName, options: CommandOptions<'updateModules'>) => {
     const result = await commandHandler.command(
       Cmd.updateModules,
       [moduleName],
@@ -1114,66 +1123,66 @@ program
       credentials(),
     );
     handleResponse(result);
-  });
+  },
+);
 
 // Validate command
-program
-  .command('validate')
-  .description('Validate project structure')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CommandOptions<'validate'>) => {
-    const result = await commandHandler.command(
-      Cmd.validate,
-      [],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
+const validateCmd = new CommandWithPath('validate').description(
+  'Validate project structure',
+);
+program.addCommand(validateCmd);
+validateCmd.action(async (options: CommandOptions<'validate'>) => {
+  const result = await commandHandler.command(
+    Cmd.validate,
+    [],
+    Object.assign({}, options, program.opts()),
+  );
+  handleResponse(result);
+});
 
 // Start app command.
 // If there are validation errors, user is prompted to continue or not.
 // There is 10 sec timeout on the prompt. If user does not reply, then
 // it is assumed that validation errors do not matter and application
 // start is resumed.
-program
-  .command('app')
+const appCmd = new CommandWithPath('app')
   .description(
     'Starts the cyberismo app, accessible with a web browser at http://localhost:3000',
   )
   .option(
     '-w, --watch-resource-changes',
     'Project watches changes in .cards folder resources',
-  )
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CommandOptions<'start'>) => {
-    // validate project
-    const result = await commandHandler.command(
-      Cmd.validate,
-      [],
-      Object.assign({}, options, program.opts()),
-    );
-    if (!result.message) {
-      program.error('Expected validation result, but got none');
+  );
+program.addCommand(appCmd);
+appCmd.action(async (options: CommandOptions<'start'>) => {
+  // validate project
+  const result = await commandHandler.command(
+    Cmd.validate,
+    [],
+    Object.assign({}, options, program.opts()),
+  );
+  if (!result.message) {
+    program.error('Expected validation result, but got none');
+    return;
+  }
+  if (result.message !== 'Project structure validated') {
+    truncateMessage(result.message).forEach((item) => console.error(item));
+    console.error('\n'); // The output looks nicer with one extra row.
+    result.message = '';
+    const userConfirmation = await confirm(
+      {
+        message: 'There are validation errors. Do you want to continue?',
+      },
+      { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
+    ).catch((error) => {
+      return error.name === 'AbortPromptError';
+    });
+    if (!userConfirmation) {
+      handleResponse(result);
       return;
     }
-    if (result.message !== 'Project structure validated') {
-      truncateMessage(result.message).forEach((item) => console.error(item));
-      console.error('\n'); // The output looks nicer with one extra row.
-      result.message = '';
-      const userConfirmation = await confirm(
-        {
-          message: 'There are validation errors. Do you want to continue?',
-        },
-        { signal: AbortSignal.timeout(10000), clearPromptOnDone: true },
-      ).catch((error) => {
-        return error.name === 'AbortPromptError';
-      });
-      if (!userConfirmation) {
-        handleResponse(result);
-        return;
-      }
-    }
-    await startServer(await commandHandler.getProjectPath(options.projectPath));
-  });
+  }
+  await startServer(await commandHandler.getProjectPath(options.projectPath));
+});
 
 export default program;
