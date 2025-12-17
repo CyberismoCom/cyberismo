@@ -54,7 +54,7 @@
     "prepare-export": "pnpm --filter backend export && shx cp -r tools/backend/static/api tools/app/public",
     "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
     "build-docker": "docker build -t cyberismo .",
-    "ci:publish": "pnpm --filter !app publish --access public",
+    "ci:publish": "pnpm --filter !app publish --access public --no-git-checks",
     "release": "node scripts/release.mjs"
   },
   "pnpm": {
