@@ -753,6 +753,7 @@ export class Project extends CardContainer {
       );
       return {
         name: moduleConfig.name,
+        description: moduleConfig.description || '',
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -979,6 +980,8 @@ export class Project extends CardContainer {
       name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
+      category: this.configuration.category,
+      description: this.configuration.description,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

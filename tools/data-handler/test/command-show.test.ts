@@ -801,6 +801,14 @@ describe('show', () => {
   it('showProject (success)', async () => {
     const results = await showCmd.showProject();
     expect(results).to.not.equal(undefined);
+    expect(results).to.have.property('name');
+    expect(results).to.have.property('path');
+    expect(results).to.have.property('prefix');
+    expect(results).to.have.property('modules');
+    expect(results).to.have.property('hubs');
+    expect(results).to.have.property('numberOfCards');
+    expect(results).to.have.property('description');
+    expect(results).to.have.property('category');
   });
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';

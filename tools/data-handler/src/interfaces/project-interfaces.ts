@@ -171,6 +171,8 @@ export interface ProjectMetadata {
   name: string;
   path: string;
   prefix: string;
+  category?: string;
+  description?: string;
   modules: string[];
   hubs: HubSetting[];
   numberOfCards: number;
@@ -181,6 +183,8 @@ export interface ProjectSettings {
   schemaVersion?: number;
   cardKeyPrefix: string;
   name: string;
+  category?: string;
+  description: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
 }

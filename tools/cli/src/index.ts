@@ -138,62 +138,6 @@ const nameGuideline =
 const pathGuideline =
   'Path to the project root. Mandatory if not running inside a project tree.';
 
-const additionalHelpForCreate = `Sub-command help:
-  create attachment <cardKey> <filename>, where
-      <cardKey> is card key of a card to have the attachment,
-      <filename> is attachment filename.
-
-  create card <template> [cardKey], where
-      <template> Template to use. You can list the templates in a project with "show templates" command.
-      [cardKey] Parent card's card key. If defined, new card will be created as a child card to that card.
-
-  create cardType <name> <workflow>, where
-      <name> Name for cardType. ${nameGuideline}
-      <workflow> Workflow for the card type. You can list workflows in a project with "show workflows" command.
-
-  create fieldType <name> <dataType>, where
-      <name> Name for fieldType. ${nameGuideline}
-      <dataType> Type of field. You can list field types in a project with "show fieldTypes" command.
-
-  create graphModel <name>, where
-      <name> Name for graph model. ${nameGuideline}
-
-  create graphView <name>, where
-      <name> Name for graph view. ${nameGuideline}
-
-  create label <cardKey> <labelName>, where
-      <cardKey> Card key of the label
-      <labelName> Name for the new label
-
-  create link <source> <destination> <linkType> [description], where
-      <source> Source card key of the link
-      <destination> Destination card key of the link
-      <linkType> Link type to create
-      [description] Link description
-
-  create linkType <name>, where
-      <name> Name for linkType. ${nameGuideline}
-
-  create project <name> <prefix> <path>, where
-      <name> Name of the project.
-      <prefix> Prefix for the project.
-      <path> Path where to create the project
-
-  create report <name>, where
-      <name> Name for report. ${nameGuideline}
-
-  create template <name> [content], where
-      <name> Name for template. ${nameGuideline}
-      [content] If empty, template is created with default values. Template content must conform to schema "templateSchema.json"
-
-  create workflow <name> [content], where
-      <name> Name for workflow. ${nameGuideline}
-      [content] If empty, workflow is created with default values. Workflow content must conform to schema "workflowSchema.json"
-
-  create <resourceName> [content], where
-      <resourceName> Name of the resource (e.g. <prefix>/<type>/<identifier>)
-      [content] If empty, resource is created with default values. Content must conform to its resource schema.`;
-
 const additionalHelpForRemove = `Sub-command help:
   remove attachment <cardKey> <filename>, where
       <cardKey> is card key of the owning card,
@@ -386,117 +330,227 @@ const createCmd = new CommandWithPath('create').description(
   'Create cards, resources and other project items',
 );
 program.addCommand(createCmd);
+
+// Create attachment subcommand
 createCmd
+  .command('attachment')
+  .description('Create an attachment for a card')
+  .argument('<cardKey>', 'Card key of the card to attach to')
+  .argument('<filename>', 'Path to the file to attach')
+  .action(
+    async (
+      cardKey: string,
+      filename: string,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['attachment', cardKey, filename],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create card subcommand
+createCmd
+  .command('card')
+  .description('Create a card from a template')
   .argument(
-    '<type>',
-    `types to create: '${Parser.listTargets('create').join("', '")}', or resource name (e.g. <prefix>/<type>/<identifier>)`,
-    Parser.parseCreateTypes,
+    '<template>',
+    'Template to use. You can list templates with "show templates" command',
   )
   .argument(
-    '[target]',
-    'Name to create, or in some operations cardKey to create data to a specific card. See below',
+    '[parentCardKey]',
+    "Parent card's card key. If defined, new card will be created as a child",
   )
+  .action(
+    async (
+      template: string,
+      parentCardKey: string | undefined,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['card', template, parentCardKey].filter(Boolean) as string[],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create cardType subcommand
+createCmd
+  .command('cardType')
+  .description('Create a new card type')
+  .argument('<name>', `Name for card type. ${nameGuideline}`)
   .argument(
-    '[parameter1]',
-    'Depends on context; see below for specific remove operation',
+    '<workflow>',
+    'Workflow for the card type. You can list workflows with "show workflows" command',
   )
+  .action(
+    async (
+      name: string,
+      workflow: string,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['cardType', name, workflow],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create fieldType subcommand
+createCmd
+  .command('fieldType')
+  .description('Create a new field type')
+  .argument('<name>', `Name for field type. ${nameGuideline}`)
   .argument(
-    '[parameter2]',
-    'Depends on context; see below for specific remove operation',
+    '<dataType>',
+    'Type of field. You can list field types with "show fieldTypes" command',
   )
-  .argument(
-    '[parameter3]',
-    'Depends on context; see below for specific remove operation',
-  )
-  .addHelpText('after', additionalHelpForCreate)
+  .action(
+    async (
+      name: string,
+      dataType: string,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['fieldType', name, dataType],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create graphModel subcommand
+createCmd
+  .command('graphModel')
+  .description('Create a new graph model')
+  .argument('<name>', `Name for graph model. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['graphModel', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+// Create graphView subcommand
+createCmd
+  .command('graphView')
+  .description('Create a new graph view')
+  .argument('<name>', `Name for graph view. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['graphView', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+// Create label subcommand
+createCmd
+  .command('label')
+  .description('Create a label on a card')
+  .argument('<cardKey>', 'Card key')
+  .argument('<labelName>', 'Name for the new label')
+  .action(
+    async (
+      cardKey: string,
+      labelName: string,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['label', cardKey, labelName],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create link subcommand
+createCmd
+  .command('link')
+  .description('Create a link between two cards')
+  .argument('<source>', 'Source card key')
+  .argument('<destination>', 'Destination card key')
+  .argument('<linkType>', 'Link type to create')
+  .argument('[description]', 'Optional link description')
+  .action(
+    async (
+      source: string,
+      destination: string,
+      linkType: string,
+      description: string | undefined,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['link', source, destination, linkType, description].filter(
+          Boolean,
+        ) as string[],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create linkType subcommand
+createCmd
+  .command('linkType')
+  .description('Create a new link type')
+  .argument('<name>', `Name for link type. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['linkType', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+// Create project subcommand
+createCmd
+  .command('project')
+  .description('Create a new project')
+  .argument('<name>', 'Project name')
+  .argument('<prefix>', 'Project prefix')
+  .argument('<path>', 'Path where to create the project')
+  .argument('[category]', 'Project category (optional)')
+  .argument('[description]', 'Project description (optional)')
   .option(
     '-s, --skipModuleImport',
     'Skip importing modules when creating a project',
   )
   .action(
     async (
-      type: string,
-      target: string,
-      parameter1: string,
-      parameter2: string,
-      parameter3: string,
+      name: string,
+      prefix: string,
+      path: string,
+      category: string | undefined,
+      description: string | undefined,
       options: CommandOptions<'create'>,
     ) => {
-      if (!type) {
-        program.error(`missing required argument <type>`);
-      }
-
-      const resourceName: boolean = type.split('/').length === 3;
-
-      function nameOfFirstArgument(type: string) {
-        if (type === 'attachment' || type === 'label') return 'cardKey';
-        if (type === 'card') return 'template';
-        if (type === 'link') return 'source';
-        return 'name';
-      }
-
-      function nameOfSecondArgument(type: string) {
-        if (type === 'attachment') return 'fileName';
-        if (type === 'cardType') return 'workflow';
-        if (type === 'fieldType') return 'dataType';
-        if (type === 'label') return 'labelName';
-        if (type === 'link') return 'destination';
-        if (type === 'project') return 'prefix';
-        return type;
-      }
-
-      if (!target && !resourceName) {
-        program.error(
-          `missing required argument <${nameOfFirstArgument(type)}>`,
-        );
-      }
-
-      if (
-        !resourceName &&
-        !parameter1 &&
-        type !== 'card' &&
-        type !== 'graphModel' &&
-        type !== 'graphView' &&
-        type !== 'linkType' &&
-        type !== 'report' &&
-        type !== 'template' &&
-        type !== 'workflow'
-      ) {
-        program.error(
-          `missing required argument <${nameOfSecondArgument(type)}>`,
-        );
-      }
-
-      if (
-        resourceName &&
-        (type.includes('cardTypes') || type.includes('fieldTypes')) &&
-        !target
-      ) {
-        program.error(
-          `missing required argument <${nameOfSecondArgument(type)}>`,
-        );
-      }
-
-      if (type === 'project') {
-        if (!parameter2) {
-          program.error(`missing required argument <path>`);
-        }
-        // Project path must be set to 'options' when creating a project.
-        options.projectPath = parameter2;
-      }
+      // Project path must be set to 'options' when creating a project
+      options.projectPath = path;
       const commandOptions = Object.assign({}, options, program.opts());
+
       const result = await commandHandler.command(
         Cmd.create,
-        [type, target, parameter1, parameter2, parameter3],
+        ['project', name, prefix, path, category || '', description || ''],
         commandOptions,
       );
 
-      // Post-handling after creating a new project.
-      if (
-        type === 'project' &&
-        !commandOptions.skipModuleImport &&
-        result.statusCode === 200
-      ) {
+      // Post-handling after creating a new project
+      if (!commandOptions.skipModuleImport && result.statusCode === 200) {
         try {
           // add default hub
           await commandHandler.command(
@@ -539,6 +593,95 @@ createCmd
         }
       }
 
+      handleResponse(result);
+    },
+  );
+
+// Create report subcommand
+createCmd
+  .command('report')
+  .description('Create a new report')
+  .argument('<name>', `Name for report. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['report', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+// Create template subcommand
+createCmd
+  .command('template')
+  .description('Create a new template')
+  .argument('<name>', `Name for template. ${nameGuideline}`)
+  .argument(
+    '[content]',
+    'Template content. If empty, template is created with default values. Must conform to templateSchema.json',
+  )
+  .action(
+    async (
+      name: string,
+      content: string | undefined,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['template', name, content].filter(Boolean) as string[],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create workflow subcommand
+createCmd
+  .command('workflow')
+  .description('Create a new workflow')
+  .argument('<name>', `Name for workflow. ${nameGuideline}`)
+  .argument(
+    '[content]',
+    'Workflow content. If empty, workflow is created with default values. Must conform to workflowSchema.json',
+  )
+  .action(
+    async (
+      name: string,
+      content: string | undefined,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        ['workflow', name, content].filter(Boolean) as string[],
+        Object.assign({}, options, program.opts()),
+      );
+      handleResponse(result);
+    },
+  );
+
+// Create new resource subcommand
+createCmd
+  .command('resource')
+  .description('Create a new resource')
+  .argument(
+    '<resourceName>',
+    'Resource name (e.g. <prefix>/<type>/<identifier>)',
+  )
+  .argument(
+    '[content]',
+    'Resource content. If empty, resource is created with default values. Must conform to its resource schema',
+  )
+  .action(
+    async (
+      resourceName: string,
+      content: string | undefined,
+      options: CommandOptions<'create'>,
+    ) => {
+      const result = await commandHandler.command(
+        Cmd.create,
+        [resourceName, content].filter(Boolean) as string[],
+        Object.assign({}, options, program.opts()),
+      );
       handleResponse(result);
     },
   );
@@ -776,7 +919,7 @@ importCmd
   .argument('<csvFile>', 'File to import from')
   .argument(
     '[cardKey]',
-    'Card key of the parent. If defined, cards are created as children of this card',
+    'Parent card key. If defined, cards are created as children of this card',
   )
   .action(
     async (
@@ -867,7 +1010,7 @@ rank
   )
   .argument(
     '[parentCardKey]',
-    'if null, rebalance the whole project, otherwise rebalance only the direct children of the card key',
+    'if null, rebalance the whole project, otherwise rebalance only the direct children',
   )
   .action(async (cardKey: string, options: CommandOptions<'rank'>) => {
     const result = await commandHandler.command(
