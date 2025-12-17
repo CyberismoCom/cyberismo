@@ -36,7 +36,7 @@ export class ProjectConfiguration implements ProjectSettings {
   name: string;
   cardKeyPrefix: string;
   category?: string;
-  description?: string;
+  description: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
   private logger = getChildLogger({ module: 'Project' });

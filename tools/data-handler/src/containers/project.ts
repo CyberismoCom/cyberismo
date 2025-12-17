@@ -753,6 +753,7 @@ export class Project extends CardContainer {
       );
       return {
         name: moduleConfig.name,
+        description: moduleConfig.description || '',
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,

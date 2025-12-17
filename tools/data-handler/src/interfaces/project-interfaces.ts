@@ -184,7 +184,7 @@ export interface ProjectSettings {
   cardKeyPrefix: string;
   name: string;
   category?: string;
-  description?: string;
+  description: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
 }

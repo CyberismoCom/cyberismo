@@ -48,6 +48,7 @@ export class Create {
         schemaVersion: SCHEMA_VERSION,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
+        description: '',
         modules: [],
         hubs: [],
       },

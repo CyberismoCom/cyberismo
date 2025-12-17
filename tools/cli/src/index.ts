@@ -525,10 +525,7 @@ createCmd
   .argument('<prefix>', 'Project prefix')
   .argument('<path>', 'Path where to create the project')
   .argument('[category]', 'Project category (optional)')
-  .argument(
-    '<description>',
-    'Project description (use empty string "" if none)',
-  )
+  .argument('[description]', 'Project description (optional)')
   .option(
     '-s, --skipModuleImport',
     'Skip importing modules when creating a project',
@@ -539,7 +536,7 @@ createCmd
       prefix: string,
       path: string,
       category: string | undefined,
-      description: string,
+      description: string | undefined,
       options: CommandOptions<'create'>,
     ) => {
       // Project path must be set to 'options' when creating a project
