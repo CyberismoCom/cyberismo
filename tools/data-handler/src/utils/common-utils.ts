@@ -52,3 +52,18 @@ export function isBigInt(value: string): boolean {
     return false;
   }
 }
+
+/**
+ * Removes the first occurrence of a value from an array.
+ * Modifies the array in place.
+ * @param array The array to modify
+ * @param value The value to remove
+ * @returns The modified array (same reference as input)
+ */
+export function removeValue<T>(array: T[], value: T): T[] {
+  const index = array.findIndex((element) => element === value);
+  if (index !== -1) {
+    array.splice(index, 1);
+  }
+  return array;
+}

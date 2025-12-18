@@ -50,6 +50,11 @@ export class FieldTypeResource extends FileResource<FieldType> {
   private fromType: DataType = 'integer';
   private toType: DataType = 'integer';
 
+  /**
+   * Creates an instance of FieldTypeResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'fieldTypes');
 
@@ -206,7 +211,12 @@ export class FieldTypeResource extends FileResource<FieldType> {
     const removedValue = (op.target as EnumDefinition).enumValue;
     const cardTypes = this.relevantCardTypes();
     const allCards = await Promise.all(
-      cardTypes.map((cardType) => this.collectCards(cardType)),
+      cardTypes.map((cardType) =>
+        this.collectCards(
+          cardType,
+          (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+        ),
+      ),
     );
     const cardsToUpdate = allCards
       .flat()
@@ -283,6 +293,7 @@ export class FieldTypeResource extends FileResource<FieldType> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
       this.updateCardTypes(existingName),
     ]);
     await this.write();
@@ -314,16 +325,16 @@ export class FieldTypeResource extends FileResource<FieldType> {
    */
   public static fieldDataTypes(): DataType[] {
     return [
-      'shortText',
-      'longText',
-      'number',
-      'integer',
       'boolean',
-      'enum',
-      'list',
       'date',
       'dateTime',
+      'enum',
+      'integer',
+      'list',
+      'longText',
+      'number',
       'person',
+      'shortText',
     ];
   }
 

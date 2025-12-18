@@ -17,6 +17,7 @@ import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { ResourcesFrom } from '../containers/project.js';
 import { sortCards } from '../utils/card-utils.js';
+import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
 import type {
@@ -39,6 +40,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
  * Card type resource class.
  */
 export class CardTypeResource extends FileResource<CardType> {
+  /**
+   * Creates instance of CardTypeResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'cardTypes');
 
@@ -69,7 +75,10 @@ export class CardTypeResource extends FileResource<CardType> {
     if (op && op.name === 'rank') return;
 
     // Collect both project cards and template cards.
-    const cards = await this.collectCards(this.content.name);
+    const cards = await this.collectCards(
+      this.content.name,
+      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+    );
 
     if (op && op.name === 'change') {
       const from = (op as ChangeOperation<string>).target;
@@ -119,7 +128,10 @@ export class CardTypeResource extends FileResource<CardType> {
     op: ChangeOperation<Type>,
   ) {
     await this.verifyStateMapping(stateMapping, op);
-    const cards = await this.collectCards(this.content.name);
+    const cards = await this.collectCards(
+      this.content.name,
+      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+    );
 
     const unmappedStates: string[] = [];
 
@@ -179,15 +191,6 @@ export class CardTypeResource extends FileResource<CardType> {
     return references;
   }
 
-  // Remove value from array.
-  // todo: make it as generic and move to utils
-  private removeValue(array: string[], value: string) {
-    const index = array.findIndex((element) => element === value);
-    if (index !== -1) {
-      array.splice(index, 1);
-    }
-  }
-
   // If value from 'customFields' is removed, remove it also from 'optionallyVisible' and 'alwaysVisible' arrays.
   private removeValueFromOtherArrays<Type>(
     op: Operation<Type>,
@@ -201,8 +204,8 @@ export class CardTypeResource extends FileResource<CardType> {
       field = { name: target['name' as keyof Type] };
     }
     const fieldName = (field ? field.name : target) as string;
-    this.removeValue(content.alwaysVisibleFields, fieldName);
-    this.removeValue(content.optionallyVisibleFields, fieldName);
+    removeValue(content.alwaysVisibleFields, fieldName);
+    removeValue(content.optionallyVisibleFields, fieldName);
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -385,6 +388,7 @@ export class CardTypeResource extends FileResource<CardType> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
       this.updateLinkTypes(existingName),
     ]);
 
@@ -394,7 +398,8 @@ export class CardTypeResource extends FileResource<CardType> {
   /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
-   * @throws when workflow is empty, or does not exist in the project.
+   * @throws when workflow is empty, or
+   *         when workflow does not exist in the project.
    */
   public async createCardType(workflowName: string) {
     if (!workflowName) {

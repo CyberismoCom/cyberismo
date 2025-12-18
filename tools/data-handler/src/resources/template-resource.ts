@@ -39,6 +39,11 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   private cardsFolder = '';
   private cardsSchema = super.contentSchemaContent('cardBaseSchema');
 
+  /**
+   * Creates an instance of TemplateResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'templates');
 
@@ -63,6 +68,7 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
     ]);
     await this.write();
   }
@@ -70,7 +76,6 @@ export class TemplateResource extends FolderResource<TemplateMetadata, never> {
   /**
    * Sets new metadata into the template object.
    * @param newContent metadata content for the template.
-   * @throws if 'newContent' is not valid.
    */
   public async create(newContent?: TemplateMetadata) {
     if (!newContent) {

@@ -25,11 +25,43 @@ import type { ResourceName } from '../utils/resource-utils.js';
  * Link Type resource class.
  */
 export class LinkTypeResource extends FileResource<LinkType> {
+  /**
+   * Creates instance of LinkTypeResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'linkTypes');
 
     this.contentSchemaId = 'linkTypeSchema';
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
+  }
+
+  // Update card metadata links when link type is renamed
+  private async updateCardLinks(from: string, to: string) {
+    const cards = await this.collectCards(
+      from,
+      (card, linkTypeName) =>
+        card.metadata?.links?.some((link) => link.linkType === linkTypeName) ??
+        false,
+    );
+    if (cards.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      cards.map(async (card) => {
+        if (card.metadata?.links) {
+          card.metadata.links = card.metadata.links.map((link) => {
+            if (link.linkType === from) {
+              return { ...link, linkType: to };
+            }
+            return link;
+          });
+          await this.project.updateCardMetadata(card, card.metadata);
+        }
+      }),
+    );
   }
 
   /**
@@ -52,6 +84,8 @@ export class LinkTypeResource extends FileResource<LinkType> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
+      this.updateCardLinks(existingName, this.content.name),
     ]);
     // Finally, write updated content.
     await this.write();

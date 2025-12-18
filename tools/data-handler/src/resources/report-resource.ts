@@ -42,6 +42,11 @@ export class ReportResource extends FolderResource<
   ReportMetadata,
   ReportContent
 > {
+  /**
+   * Creates instance of ReportResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'reports');
 
@@ -68,6 +73,7 @@ export class ReportResource extends FolderResource<
         await this.handleBarFiles(),
       ),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
     ]);
     // Finally, write updated content.
     await this.write();
@@ -152,9 +158,9 @@ export class ReportResource extends FolderResource<
 
   /**
    * Validates report.
-   * @throws when there are validation errors.
    * @param content Content to be validated.
    * @note If content is not provided, base class validation will use resource's current content.
+   * @throws when there are validation errors.
    */
   public async validate(content?: object) {
     const resourceContent = this.contentData();

@@ -416,7 +416,13 @@ export abstract class ResourceObject<
     }
   }
 
-  // Log details
+  /**
+   * Log to migration log resource change
+   * @param operationType Operation type
+   * @param op Details of operation
+   * @param key Which property has been changed
+   * @throws when operation type is unknown
+   */
   protected async logResourceOperation<Type>(
     operationType: 'create' | 'delete' | 'update' | 'rename',
     op?: Operation<Type>,
@@ -597,26 +603,10 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Validates resource identifier to prevent filesystem operations with invalid names
-   * todo: To Validate?
-   */
-  protected validateResourceIdentifier() {
-    if (!this.moduleResource && this.resourceName.identifier) {
-      const identifier = this.resourceName.identifier;
-      if (!/^[a-zA-Z0-9._-]+$/.test(identifier)) {
-        throw new Error(
-          `Resource identifier must follow naming rules. Identifier '${identifier}' is invalid`,
-        );
-      }
-    }
-  }
-
-  /**
    * Update calculation files.
    * @param from Resource name to update
    * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string, or
-   *         if there was error accessing calculation files.
+   * @throws if 'from' or 'to' is empty string
    */
   protected async updateCalculations(from: string, to: string) {
     if (!from.trim() || !to.trim()) {
@@ -675,6 +665,39 @@ export abstract class ResourceObject<
   }
 
   /**
+   * Update references in card content.
+   * Searches through all card content in the cache and replaces references to the old resource name.
+   * @param from Resource name to update
+   * @param to New name for resource
+   * @throws if 'from' or 'to' is empty string
+   */
+  protected async updateCardContentReferences(from: string, to: string) {
+    if (!from.trim() || !to.trim()) {
+      throw new Error(
+        'updateCardContentReferences: "from" and "to" parameters must not be empty',
+      );
+    }
+
+    const allCards = this.cards();
+    const cardsToUpdate = allCards.filter(
+      (card) => card.content && card.content.includes(from),
+    );
+
+    if (cardsToUpdate.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      cardsToUpdate.map(async (card) => {
+        if (card.content) {
+          const updatedContent = card.content.replaceAll(from, to);
+          await this.project.updateCardContent(card.key, updatedContent);
+        }
+      }),
+    );
+  }
+
+  /**
    * Check if there are references to the resource in the card content.
    * @note that this needs to be async, since inherited classes need to async operations
    * @param cards cards to check
@@ -693,6 +716,22 @@ export abstract class ResourceObject<
         card.content?.includes(resourceNameToString(this.resourceName)),
       )
       .map((card) => card.key);
+  }
+
+  /**
+   * Validates resource identifier to prevent filesystem operations with invalid names
+   * todo: move to Validate?
+   * @throws if identifier is incorrect
+   */
+  protected validateResourceIdentifier() {
+    if (!this.moduleResource && this.resourceName.identifier) {
+      const identifier = this.resourceName.identifier;
+      if (!/^[a-zA-Z0-9._-]+$/.test(identifier)) {
+        throw new Error(
+          `Resource identifier must follow naming rules. Identifier '${identifier}' is invalid`,
+        );
+      }
+    }
   }
 
   /**
