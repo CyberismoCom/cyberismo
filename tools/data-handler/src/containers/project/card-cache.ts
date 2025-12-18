@@ -162,13 +162,30 @@ export class CardCache {
         this.fetchAttachments(currentPath),
       ]);
 
+      let metadata;
+      try {
+        metadata = JSON.parse(cardMetadata);
+      } catch (error) {
+        const metadataPath = join(currentPath, cardMetadataFile);
+        CardCache.logger.error(
+          { error, metadataPath },
+          `Incorrect card metadata file`,
+        );
+        if (error instanceof Error) {
+          throw new Error(
+            `Invalid JSON in file '${metadataPath}': ${error.message}`,
+          );
+        }
+        throw error;
+      }
+
       return {
         key: entry.name,
         path: currentPath,
         children: [],
         attachments: Array.isArray(cardAttachments) ? cardAttachments : [],
         content: typeof cardContent === 'string' ? cardContent : '',
-        metadata: JSON.parse(cardMetadata),
+        metadata: metadata,
         parent: parentCard(currentPath),
         location: location,
       };
