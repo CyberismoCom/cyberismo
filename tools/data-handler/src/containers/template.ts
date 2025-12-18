@@ -152,6 +152,11 @@ export class Template extends CardContainer {
 
       card.key = templateIDMap.get(card.key) || card.key;
 
+      // Remap children keys from template keys to new project card keys
+      card.children = card.children.map(
+        (childKey) => templateIDMap.get(childKey) || childKey,
+      );
+
       // Set parent field based on template hierarchy and creation location
       // Store the original template parent before key remapping
       const originalParentKey = card.parent;

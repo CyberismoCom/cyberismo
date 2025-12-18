@@ -572,12 +572,27 @@ export class Project extends CardContainer {
   public async handleCardDeleted(deletedCard: Card) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
+      const parentCachedCard = this.cardCache.getCard(deletedCard.key);
+      const parentLocation = parentCachedCard?.location || 'project';
+
       for (const child of deletedCard.children) {
         try {
           const childCard = this.findCard(child);
+          const childCachedCard = this.cardCache.getCard(child);
+
+          // Safety check: only delete children from the same location (project or template)
+          if (childCachedCard && childCachedCard.location !== parentLocation) {
+            const errorMessage =
+              `Cannot delete child card '${child}' from different location '${childCachedCard.location}' ` +
+              `than parent card '${deletedCard.key}' from '${parentLocation}'`;
+            this.logger.error(errorMessage);
+            throw new Error(errorMessage);
+          }
+
           await this.handleCardDeleted(childCard);
-        } catch {
+        } catch (error) {
           this.logger.warn(
+            { error },
             `Accessing child '${child}' of '${deletedCard.key}' when deleting cards caused an exception`,
           );
           continue;
