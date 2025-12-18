@@ -16,12 +16,11 @@ import type { ReactElement } from 'react';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import type { ExpandedLinkType } from '../lib/definitions';
 
-import { parse } from 'node-html-parser';
+// Removed sidebar-specific imports after extraction
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
-  Alert,
   Autocomplete,
   Box,
   Button,
@@ -38,7 +37,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MetadataView from './MetadataView';
-import { ChecksAccordion, type CheckCollection } from './ChecksAccordion';
+// Removed ChecksAccordion (moved to ContentSidebar)
 import {
   canCreateLinkToCard,
   createPredicate,
@@ -62,6 +61,9 @@ import EditLinkModal from './modals/EditLinkModal';
 
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import { viewChanged } from '../lib/slices/pageState';
+import { ContentSidebar } from '@/components/ContentSidebar';
+import { useTheme } from '@mui/joy';
+import { useMediaQuery } from '@mui/material';
 
 import type { MacroMetadata } from '@cyberismo/data-handler/interfaces/macros';
 import { macroMetadata } from '@cyberismo/data-handler/macros/common';
@@ -69,8 +71,6 @@ import type { UIMacroName } from './macros';
 import { macros as UImacros } from './macros';
 import parseReact from 'html-react-parser';
 import type {
-  PolicyCheckCollection,
-  Notification,
   QueryResult,
   CalculationLink,
   LinkDirection,
@@ -326,111 +326,7 @@ export function LinkForm({
   );
 }
 
-const Notifications = ({
-  notifications,
-}: {
-  notifications: Notification[];
-}) => {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(true);
-
-  if (notifications.length === 0) {
-    return null;
-  }
-  return (
-    <Box sx={{ marginTop: 2, maxWidth: 400 }}>
-      {notifications.length > 0 && (
-        <Accordion expanded={expanded}>
-          <AccordionSummary
-            indicator={<ExpandMore />}
-            onClick={() => setExpanded(!expanded)}
-            sx={{
-              borderRadius: '4px',
-              marginTop: 1,
-              marginBottom: 1,
-            }}
-          >
-            <Typography
-              level="body-xs"
-              color="primary"
-              variant="soft"
-              width={24}
-              height={24}
-              alignContent="center"
-              borderRadius={40}
-              marginLeft={0}
-              paddingX={1.1}
-            >
-              {notifications.length}
-            </Typography>
-            <Typography
-              level="title-sm"
-              fontWeight="bold"
-              sx={{ width: '100%' }}
-            >
-              {t('notifications')}
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Stack spacing={1}>
-              {notifications.map((notification, index) => (
-                <Alert
-                  key={index}
-                  color="primary"
-                  variant="soft"
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Box>
-                    <Typography level="title-sm" fontWeight="bold">
-                      {notification.category} - {notification.title}
-                    </Typography>
-                    <Typography fontSize="xs">
-                      {notification.message}
-                    </Typography>
-                  </Box>
-                </Alert>
-              ))}
-            </Stack>
-          </AccordionDetails>
-        </Accordion>
-      )}
-    </Box>
-  );
-};
-
-const PolicyChecks = ({
-  policyChecks,
-  cardKey,
-}: {
-  policyChecks: PolicyCheckCollection;
-  cardKey: string;
-}) => {
-  const { t } = useTranslation();
-
-  // Convert PolicyCheckCollection to CheckCollection format
-  const checksData: CheckCollection = {
-    successes: policyChecks.successes,
-    failures: policyChecks.failures,
-  };
-
-  return (
-    <ChecksAccordion
-      checks={checksData}
-      cardKey={cardKey}
-      successTitle={t('passedPolicyChecks')}
-      failureTitle={t('failedPolicyChecks')}
-      successPassText={t('policyCheckPass')}
-      failureFailText={t('policyCheckFail')}
-      goToFieldText={t('goToField')}
-      initialSuccessesExpanded={false}
-      initialFailuresExpanded={true}
-    />
-  );
-};
+// Notifications & PolicyChecks moved to ContentSidebar
 
 export const ContentArea: React.FC<ContentAreaProps> = ({
   card,
@@ -704,6 +600,21 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           cardKey: card.key,
         }),
       );
+
+      // Broadcast visible headers for mobile TOC consumers
+      try {
+        const event = new CustomEvent('cyberismo:visibleHeaders', {
+          detail: {
+            cardKey: card.key,
+            headers: lastHeaderVisible
+              ? onScreenHeaderIds
+              : [firstVisibleHeaderId],
+          },
+        });
+        window.dispatchEvent(event);
+      } catch (_) {
+        /* ignore */
+      }
     }
   };
 
@@ -721,8 +632,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
     }
   }, [linkFormState]);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(
+    `(max-width:${theme.breakpoints.values.md - 0.05}px)`,
+  );
+
   return (
-    <Stack direction="row" height="100%">
+    <Stack direction="row" height="100%" width="100%">
       <SvgViewerModal
         open={isModalOpen}
         svgMarkup={modalSvg}
@@ -735,11 +651,13 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
         sx={{
           overflowY: 'scroll',
           scrollbarWidth: 'thin',
+          // Extra bottom padding to ensure content isn't cut off by mobile browser chrome
+          paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
         }}
         onScroll={handleScroll}
         ref={boxRef}
       >
-        <Stack spacing={3} height="100%">
+        <Stack spacing={3}>
           <Typography level="h1">{card.title}</Typography>
           <MetadataView
             editMode={false}
@@ -950,25 +868,14 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
           </Box>
         </Stack>
       </Box>
-      <Stack
-        m={2}
-        flexGrow={1}
-        sx={{
-          overflowY: 'auto',
-          scrollbarWidth: 'thin',
-        }}
-        data-cy="cardSidebar"
-      >
-        <Box sx={{ marginBottom: 1 }}>
-          {renderTableOfContents(
-            t('tableOfContents'),
-            htmlContent,
-            visibleHeaderIds,
-          )}
-        </Box>
-        <Notifications notifications={card.notifications} />
-        <PolicyChecks policyChecks={card.policyChecks} cardKey={card.key} />
-      </Stack>
+      {/* Sidebar hidden on mobile (moved to Drawer) */}
+      {!isMobile && (
+        <ContentSidebar
+          card={card}
+          htmlContent={htmlContent}
+          visibleHeaderIds={visibleHeaderIds}
+        />
+      )}
 
       {/* Modals */}
       {!preview && (
@@ -1009,56 +916,4 @@ export const ContentArea: React.FC<ContentAreaProps> = ({
   );
 };
 
-function renderTableOfContents(
-  title: string,
-  htmlContent: string,
-  visibleHeaderIds: string[] | null = null,
-) {
-  // Parse the HTML content
-  const root = parse(htmlContent);
-  // Find all header tags
-  const headers = root.querySelectorAll('h1, h2, h3').map((header) => ({
-    id:
-      header.getAttribute('id') ||
-      header.text.trim().replace(/\s+/g, '-').toLowerCase(), // Create an id if it doesn't exist
-    text: header.text,
-    level: parseInt(header.tagName[1]),
-  }));
-
-  // Hack for first render: mark first header as visible, after this updates via handleScroll
-  const highlightedHeaders = visibleHeaderIds ?? [headers[0]?.id ?? ''];
-
-  return (
-    <aside className="contentSidebar toc sidebar">
-      <div className="toc-menu" style={{ marginLeft: 2 }}>
-        {headers.length > 0 && (
-          <Typography level="title-sm" fontWeight="bold">
-            {title}
-          </Typography>
-        )}
-        <ul>
-          {headers.map(
-            (
-              header: { id: string; text: string; level: number },
-              index: number,
-            ) => (
-              <li key={index} data-level={header.level - 1}>
-                <a
-                  id={`toc_${header.id}`}
-                  className={
-                    highlightedHeaders.includes(header.id)
-                      ? 'is-active'
-                      : undefined
-                  }
-                  href={`#${header.id}`}
-                >
-                  {header.text}
-                </a>
-              </li>
-            ),
-          )}
-        </ul>
-      </div>
-    </aside>
-  );
-}
+// Table of contents rendering moved to ContentSidebar component.

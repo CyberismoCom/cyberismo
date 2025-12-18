@@ -32,7 +32,9 @@ import {
   IconButton,
   Link,
   Tooltip,
+  useTheme,
 } from '@mui/joy';
+import { useMediaQuery } from '@mui/material';
 
 import type { EditorState, ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import CodeMirror from '@uiw/react-codemirror';
@@ -240,6 +242,12 @@ export default function CardEditor({
   onCancel?: () => void;
 }) {
   const { t } = useTranslation();
+
+  // Responsive breakpoint detection
+  const theme = useTheme();
+  const isMobile = useMediaQuery(
+    `(max-width:${theme.breakpoints.values.md - 0.05}px)`,
+  );
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -590,7 +598,18 @@ export default function CardEditor({
             linkButtonDisabled={true}
             readOnly={readOnly}
           />
-          <Stack flexGrow={1} minHeight={0} padding={3} paddingRight={0}>
+          <Stack
+            flexGrow={1}
+            minHeight={0}
+            padding={isMobile ? 2 : 3}
+            paddingRight={isMobile ? 2 : 0}
+            sx={{
+              // Extra bottom padding for mobile browser chrome
+              paddingBottom: isMobile
+                ? 'calc(64px + env(safe-area-inset-bottom, 0px))'
+                : 3,
+            }}
+          >
             <Tabs
               value={tab}
               onChange={(_, newValue) =>
@@ -603,7 +622,7 @@ export default function CardEditor({
               <TabList
                 sx={{
                   justifyContent: 'right',
-                  width: '70%',
+                  width: isMobile ? '100%' : '70%',
                 }}
               >
                 <Tab data-cy="editTab">{t('edit')}</Tab>
@@ -622,8 +641,8 @@ export default function CardEditor({
                       overflowY: 'scroll',
                       scrollbarWidth: 'thin',
                     }}
-                    width="70%"
-                    paddingRight={3}
+                    width={isMobile ? '100%' : '70%'}
+                    paddingRight={isMobile ? 0 : 3}
                     onScroll={handleScroll}
                   >
                     <Controller
@@ -652,7 +671,7 @@ export default function CardEditor({
                       extensions={extensions}
                       value={contentRef.current}
                       onDrop={handleDragDrop}
-                      onChange={(value) => {
+                      onChange={(value: string) => {
                         if (!isEditedValue) {
                           dispatch(isEdited(true));
                         }
@@ -661,85 +680,88 @@ export default function CardEditor({
                       readOnly={readOnly}
                     />
                   </Box>
-                  <Box
-                    flexGrow={1}
-                    display="flex"
-                    flexDirection="column"
-                    padding={2}
-                    sx={{
-                      scrollbarWidth: 'thin',
-                      overflowY: 'scroll',
-                    }}
-                    alignItems="flex-start"
-                    width="30%"
-                  >
-                    <Stack
-                      direction="row"
-                      padding={4}
-                      paddingTop={0}
-                      alignItems="center"
+                  {/* Attachments panel - hidden on mobile (available via TOC drawer) */}
+                  {!isMobile && (
+                    <Box
+                      flexGrow={1}
+                      display="flex"
+                      flexDirection="column"
+                      padding={2}
+                      sx={{
+                        scrollbarWidth: 'thin',
+                        overflowY: 'scroll',
+                      }}
+                      alignItems="flex-start"
+                      width="30%"
                     >
-                      <Typography
-                        level="body-xs"
-                        color="warning"
-                        variant="soft"
-                        width={24}
-                        height={24}
-                        alignContent="center"
-                        borderRadius={40}
-                        paddingX={1.1}
+                      <Stack
+                        direction="row"
+                        padding={4}
+                        paddingTop={0}
+                        alignItems="center"
                       >
-                        {card?.attachments?.length || 0}
-                      </Typography>
-                      <Typography level="body-xs" marginLeft={1.5}>
-                        {(card?.attachments?.length || 0) === 1
-                          ? t('attachment')
-                          : t('attachments')}
-                      </Typography>
-                      <Tooltip title={t('addAttachment')}>
-                        <IconButton onClick={openModal('addAttachment')}>
-                          <img
-                            alt="Add attachment"
-                            width={24}
-                            height={24}
-                            src="/images/attach_file_add.svg"
-                          />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                    <Grid container gap={2} paddingLeft={3}>
-                      {card?.attachments?.map((attachment) => (
-                        <Grid
-                          key={attachment.fileName}
-                          display="flex"
-                          justifyContent="center"
-                          width={160}
+                        <Typography
+                          level="body-xs"
+                          color="warning"
+                          variant="soft"
+                          width={24}
+                          height={24}
+                          alignContent="center"
+                          borderRadius={40}
+                          paddingX={1.1}
                         >
-                          <AttachmentPreviewCard
-                            name={attachment.fileName}
-                            cardKey={cardKey}
-                            onInsert={() => {
-                              if (view && card) {
-                                addAttachment(view, attachment, card.key);
-                              }
-                            }}
+                          {card?.attachments?.length || 0}
+                        </Typography>
+                        <Typography level="body-xs" marginLeft={1.5}>
+                          {(card?.attachments?.length || 0) === 1
+                            ? t('attachment')
+                            : t('attachments')}
+                        </Typography>
+                        <Tooltip title={t('addAttachment')}>
+                          <IconButton onClick={openModal('addAttachment')}>
+                            <img
+                              alt="Add attachment"
+                              width={24}
+                              height={24}
+                              src="/images/attach_file_add.svg"
+                            />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                      <Grid container gap={2} paddingLeft={3}>
+                        {card?.attachments?.map((attachment) => (
+                          <Grid
+                            key={attachment.fileName}
+                            display="flex"
+                            justifyContent="center"
+                            width={160}
                           >
-                            {attachment.mimeType?.startsWith('image') ? (
-                              <img
-                                src={apiPaths.attachment(
-                                  card.key,
-                                  attachment.fileName,
-                                )}
-                                alt=""
-                              />
-                            ) : (
-                              <InsertDriveFile />
-                            )}
-                          </AttachmentPreviewCard>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
+                            <AttachmentPreviewCard
+                              name={attachment.fileName}
+                              cardKey={cardKey}
+                              onInsert={() => {
+                                if (view && card) {
+                                  addAttachment(view, attachment, card.key);
+                                }
+                              }}
+                            >
+                              {attachment.mimeType?.startsWith('image') ? (
+                                <img
+                                  src={apiPaths.attachment(
+                                    card.key,
+                                    attachment.fileName,
+                                  )}
+                                  alt=""
+                                />
+                              ) : (
+                                <InsertDriveFile />
+                              )}
+                            </AttachmentPreviewCard>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Box>
+                  )}
                 </Stack>
               </TabPanel>
               <TabPanel
