@@ -86,6 +86,20 @@ jobs:
       - name: Checkout code repository
         uses: actions/checkout@v4
 
+      - name: Install clingo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+      
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install asciidoctor-pdf
+        run: |
+          gem install --no-document asciidoctor-pdf rouge
+
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
         with:
@@ -100,6 +114,8 @@ jobs:
       - name: Verify published packages via npm
         env:
           RELEASE_VERSION: ${{ github.ref_name }}
+          CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
+          CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
         run: |
           VERSION="${RELEASE_VERSION#cyberismo-}"
           PACKAGES=(
