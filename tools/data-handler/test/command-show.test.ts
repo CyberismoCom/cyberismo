@@ -907,6 +907,34 @@ describe('show', () => {
         ),
       );
   });
+  it('should show existing resources without category', async () => {
+    const cardType = 'decision/cardTypes/decision';
+    const ctResults = await showCmd.showResource(cardType);
+    expect(ctResults).to.not.equal(undefined);
+    expect(ctResults.category).to.equal(undefined);
+
+    const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
+    const ftResults = await showCmd.showResource(fieldTypeName);
+    expect(ftResults).to.not.equal(undefined);
+    expect(ftResults.category).to.equal(undefined);
+
+    const linkTypeName = 'decision/linkTypes/test';
+    const ltResults = await showCmd.showResource(linkTypeName);
+    expect(ltResults).to.not.equal(undefined);
+    expect(ltResults.category).to.equal(undefined);
+
+    // Test data for template has category... skipped!
+
+    const workflowName = 'decision/workflows/decision';
+    const wfResults = await showCmd.showResource(workflowName);
+    expect(wfResults).to.not.equal(undefined);
+    expect(wfResults.category).to.equal(undefined);
+
+    const reportName = 'decision/reports/testReport';
+    const reportResults = await showCmd.showResource(reportName);
+    expect(reportResults).to.not.equal(undefined);
+    expect(reportResults.category).to.equal(undefined);
+  });
   it('showWorkflowsWithDetails (success)', async () => {
     const results = await showCmd.showWorkflowsWithDetails();
     expect(results).to.not.equal(undefined);

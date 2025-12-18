@@ -270,7 +270,7 @@ export abstract class ResourceObject<
    * @param newContent Content for resource.
    * @throws when resource already exists in the project.
    */
-  protected async create(newContent?: T) {
+  public async create(newContent?: T) {
     this.validateResourceIdentifier();
 
     if (this.exists()) {

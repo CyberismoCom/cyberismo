@@ -62,7 +62,7 @@ export abstract class FolderResource<
    * Creates a new folder type object. Base class writes the object to disk automatically.
    * @param newContent Content for the type.
    */
-  protected async create(newContent?: T) {
+  public async create(newContent?: T) {
     // Validate resource identifier before creating on disk
     this.validateResourceIdentifier();
     await super.create(newContent);
@@ -252,6 +252,8 @@ export abstract class FolderResource<
       content.displayName = super.handleScalar(op) as string;
     } else if (key === 'description') {
       content.description = super.handleScalar(op) as string;
+    } else if (key === 'category') {
+      content.category = super.handleScalar(op) as string;
     } else {
       throw new Error(`Unknown property '${key}' for folder resource`);
     }
