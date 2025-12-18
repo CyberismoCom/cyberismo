@@ -1,8 +1,12 @@
 {
   "$id": "fieldTypeSchema",
   "additionalProperties": false,
-  "description": "Field type defines the workflow and optional additional fields for the cards.",
+  "description": "Field type defines one field for a card type",
   "properties": {
+    "category": {
+      "description": "The category of the field type. For example, 'UserData'.",
+      "type": "string"
+    },
     "name": {
       "type": "string",
       "description": "The technical name by which the field is referred to in JSON files.",

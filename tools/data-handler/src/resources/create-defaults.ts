@@ -184,7 +184,6 @@ export abstract class DefaultContent {
     return {
       name: reportName,
       displayName: '',
-      category: 'Uncategorised report',
     };
   }
 

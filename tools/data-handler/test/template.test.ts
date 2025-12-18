@@ -362,7 +362,7 @@ describe('template', () => {
     expect(templateDetails.path).includes('.cards');
     expect(templateDetails.path).includes('decision');
     expect(templateDetails.description).to.equal('description');
-    expect(templateDetails.category).to.equal('category');
+    expect(templateDetails.category).to.equal(undefined);
     expect(templateDetails.displayName).to.equal('Decision');
   });
   it('list template cards with card keys', async () => {

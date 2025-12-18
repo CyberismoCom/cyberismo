@@ -139,7 +139,6 @@ const resourceConfigs: ResourceConfig[] = [
     expectedData: {
       name: 'decision/reports/newREP',
       displayName: '',
-      category: 'Uncategorised report',
     },
   },
   {
@@ -405,6 +404,133 @@ describe('resources', function () {
       found = after.find((item) => item.data?.name === name);
       expect(found).to.not.equal(undefined);
     });
+    it('should create calculation with category', async () => {
+      const name = 'decision/calculations/newCALCWithCategory';
+      const before = project.resources.calculations();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+
+      const calculationData = {
+        name: name,
+        displayName: 'Test calculation with category',
+        description: 'A test calculation with category',
+        category: 'Architecture',
+        calculation: '',
+      } as CalculationMetadata;
+      const res = project.resources.byType(name, 'calculations');
+      await res.create(calculationData);
+      const after = project.resources.calculations();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Architecture');
+    });
+    it('should update card type with category', async () => {
+      const name = 'decision/cardTypes/newCTWithCategory';
+      const before = project.resources.cardTypes();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+      const res = project.resources.byType(name, 'cardTypes');
+      await res.createCardType('decision/workflows/decision');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Security',
+        },
+      );
+      const after = project.resources.cardTypes();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Security');
+    });
+    it('should update field type with category', async () => {
+      const name = 'decision/fieldTypes/newFTWithCategory';
+      const before = project.resources.fieldTypes();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+      const res = project.resources.byType(name, 'fieldTypes');
+      await res.createFieldType('shortText');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Custom',
+        },
+      );
+      const after = project.resources.fieldTypes();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Custom');
+    });
+    it('should create link type with category', async () => {
+      const name = 'decision/linkTypes/newLTWithCategory';
+      const before = project.resources.linkTypes();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+      const linkTypeData = {
+        name: name,
+        displayName: 'Test link type with category',
+        category: 'Relationships',
+        inboundDisplayName: 'in',
+        outboundDisplayName: 'out',
+        destinationCardTypes: ['decision/cardTypes/decision'],
+        sourceCardTypes: ['decision/cardTypes/decision'],
+        enableLinkDescription: false,
+      } as LinkType;
+      const res = project.resources.byType(name, 'linkTypes');
+      await res.create(linkTypeData);
+      const after = project.resources.linkTypes();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Relationships');
+    });
+    it('should create workflow with category', async () => {
+      const name = 'decision/workflows/newWFWithCategory';
+      const before = project.resources.workflows();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+      const workflowData = {
+        name: name,
+        displayName: 'Test workflow with category',
+        category: 'Process',
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await res.create(workflowData);
+      const after = project.resources.workflows();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Process');
+    });
+    it('should update report with category', async () => {
+      const name = 'decision/reports/newREPWithCategory';
+      const before = project.resources.reports();
+      let found = before.find((item) => item.data?.name === name);
+      expect(found).to.equal(undefined);
+      const res = project.resources.byType(name, 'reports');
+      await res.createReport();
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Analytics',
+        },
+      );
+      const after = project.resources.reports();
+      found = after.find((item) => item.data?.name === name);
+      expect(found).to.not.equal(undefined);
+      expect(found?.data?.category).to.equal('Analytics');
+    });
     it('try to create calculation with invalid provided content', async () => {
       const name = 'decision/calculations/invalidCALCWithContent';
       const before = project.resources.calculations();
@@ -607,7 +733,6 @@ describe('resources', function () {
           queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
         },
         name: 'decision/reports/newREP',
-        category: 'Uncategorised report',
         displayName: '',
       });
     });
@@ -664,7 +789,6 @@ describe('resources', function () {
         },
         name: 'decision/reports/newREP',
         displayName: '',
-        category: 'Uncategorised report',
       });
     });
     it('show template', async () => {
@@ -680,6 +804,32 @@ describe('resources', function () {
         displayName: '',
         numberOfCards: 0,
       });
+    });
+    it('should show resources with category created', async () => {
+      const calcName = 'decision/calculations/newCALCWithCategory';
+      const calcRes = project.resources.byType(calcName, 'calculations');
+      const calcData = calcRes.show();
+      expect(calcData).to.have.property('category', 'Architecture');
+
+      const ctName = 'decision/cardTypes/newCTWithCategory';
+      const ctRes = project.resources.byType(ctName, 'cardTypes');
+      const ctData = ctRes.show();
+      expect(ctData).to.have.property('category', 'Security');
+
+      const ftName = 'decision/fieldTypes/newFTWithCategory';
+      const ftRes = project.resources.byType(ftName, 'fieldTypes');
+      const ftData = ftRes.show();
+      expect(ftData).to.have.property('category', 'Custom');
+
+      const ltName = 'decision/linkTypes/newLTWithCategory';
+      const ltRes = project.resources.byType(ltName, 'linkTypes');
+      const ltData = ltRes.show();
+      expect(ltData).have.property('category', 'Relationships');
+
+      const wfName = 'decision/workflows/newWFWithCategory';
+      const wfRes = project.resources.byType(wfName, 'workflows');
+      const wfData = wfRes.show();
+      expect(wfData).to.have.property('category', 'Process');
     });
     // Parameterized validate tests
     it('validate resources', async () => {
@@ -1375,6 +1525,76 @@ describe('resources', function () {
         'Updated Calculation Display Name',
       );
       expect(res.data?.description).to.equal('Updated calculation description');
+    });
+    it('should update calculation with category', async () => {
+      const name = 'decision/calculations/newCALCWithCategory';
+      const res = project.resources.byType(name, 'calculations');
+      expect(res.data?.category).to.equal('Architecture');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: 'Architecture',
+          to: 'Testing Category',
+        },
+      );
+      expect(res.data?.category).to.equal('Testing Category');
+    });
+    it('should update card type with category', async () => {
+      const name = 'decision/cardTypes/newCTWithCategory';
+      const res = project.resources.byType(name, 'cardTypes');
+      expect(res.data?.category).to.equal('Security');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: 'Security',
+          to: 'CardType Category',
+        },
+      );
+      expect(res.data?.category).to.equal('CardType Category');
+    });
+    it('should update field type with category', async () => {
+      const name = 'decision/fieldTypes/newFTWithCategory';
+      const res = project.resources.byType(name, 'fieldTypes');
+      expect(res.data?.category).to.equal('Custom');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: 'Custom',
+          to: 'FieldType Category',
+        },
+      );
+      expect(res.data?.category).to.equal('FieldType Category');
+    });
+    it('should update link type with category', async () => {
+      const name = 'decision/linkTypes/newLTWithCategory';
+      const res = project.resources.byType(name, 'linkTypes');
+      expect(res.data?.category).to.equal('Relationships');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: 'Relationships',
+          to: 'LinkType Category',
+        },
+      );
+      expect(res.data?.category).to.equal('LinkType Category');
+    });
+    it('should change category in workflow', async () => {
+      const name = 'decision/workflows/newWFWithCategory';
+      const res = project.resources.byType(name, 'workflows');
+      expect(res.data?.category).to.equal('Process');
+      await res.update(
+        { key: 'category' },
+        {
+          name: 'change',
+          target: 'Process',
+          to: 'Workflow Category',
+        },
+      );
+      expect(res.data?.category).to.equal('Workflow Category');
     });
     it('update calculation - change calculation content', async () => {
       const name = 'decision/calculations/newCALCWithContent';

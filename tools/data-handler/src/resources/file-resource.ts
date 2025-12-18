@@ -101,6 +101,8 @@ export abstract class FileResource<
       content.displayName = super.handleScalar(op) as string;
     } else if (key === 'description') {
       content.description = super.handleScalar(op) as string;
+    } else if (key === 'category') {
+      content.category = super.handleScalar(op) as string;
     } else {
       throw new Error(`Unknown property '${key}' for folder resource`);
     }
