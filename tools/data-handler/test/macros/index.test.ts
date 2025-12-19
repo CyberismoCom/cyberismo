@@ -644,6 +644,135 @@ Some content here`;
           true,
         );
       });
+
+      it('should trim whitespace with "trim" option', async () => {
+        const testCardWithWhitespace: Card = {
+          key: 'test-card-whitespace',
+          path: '',
+          content: '\n\n  Content with whitespace  \n\n',
+          metadata: {
+            title: 'Card with Whitespace',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-whitespace')
+          .returns(testCardWithWhitespace);
+
+        const macro = `{{#include}}"cardKey": "test-card-whitespace", "title": "exclude", "trim": true{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        // When trim is true, no leading \n\n prefix and content is trimmed
+        expect(result).to.equal('Content with whitespace');
+      });
+
+      it('should escape special characters with "escape" option using JSON', async () => {
+        const testCardWithSpecialChars: Card = {
+          key: 'test-card-special',
+          path: '',
+          content: 'Line 1\nLine 2\t"quoted"\\backslash',
+          metadata: {
+            title: 'Card with Special Characters',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-special')
+          .returns(testCardWithSpecialChars);
+
+        const macro = `{{#include}}"cardKey": "test-card-special", "title": "exclude", "escape": "json"{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        // Include macro adds \n\n prefix (trim not set), then escaped content
+        expect(result).to.match(/^\n\n/);
+        expect(result).to.contain('\\n');
+        expect(result).to.contain('\\t');
+        expect(result).to.contain('\\"');
+        expect(result).to.contain('\\\\');
+      });
+
+      it('should escape special characters with "escape" option using CSV', async () => {
+        const testCardWithQuotes: Card = {
+          key: 'test-card-csv',
+          path: '',
+          content: 'Text with "quotes" and, comma',
+          metadata: {
+            title: 'Card for CSV',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-csv')
+          .returns(testCardWithQuotes);
+
+        const macro = `{{#include}}"cardKey": "test-card-csv", "title": "exclude", "escape": "csv"{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        // CSV escaping should double quotes and wrap in quotes if contains comma or quotes
+        expect(result).to.contain('""');
+        expect(result).to.match(/^\n\n".*"$/);
+      });
+
+      it('should both trim and escape when using both options', async () => {
+        const testCardCombined: Card = {
+          key: 'test-card-combined',
+          path: '',
+          content: '  \n  Line with "quotes"  \n  ',
+          metadata: {
+            title: 'Card for Combined Test',
+            cardType: '',
+            workflowState: '',
+            rank: '',
+            links: [],
+          },
+          children: [],
+          attachments: [],
+        };
+        cardDetailsByIdStub
+          .withArgs('test-card-combined')
+          .returns(testCardCombined);
+
+        const macro = `{{#include}}"cardKey": "test-card-combined", "title": "exclude", "trim": true, "escape": "json"{{/include}}`;
+        const result = await evaluateMacros(macro, {
+          mode: 'static',
+          project: project,
+          cardKey: '',
+          context: 'localApp',
+        });
+
+        // When trim is true, no \n\n prefix, content is trimmed then escaped
+        expect(result).to.equal('Line with \\"quotes\\"');
+      });
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;

@@ -19,6 +19,15 @@
       "type": "string",
       "description": "If discrete, page titles will be included as discrete headings(read asciidoctor docs for more info). If normal, page titles will be included as normal headings.",
       "enum": ["normal", "discrete"]
+    },
+    "trim": {
+      "type": "boolean",
+      "description": "If true, trims leading and trailing whitespace (including newlines) from the included content."
+    },
+    "escape": {
+      "type": "string",
+      "description": "Type of escaping to apply to the included content. 'json' escapes for JSON strings, 'csv' escapes for CSV fields.",
+      "enum": ["json", "csv"]
     }
   },
   "required": ["cardKey"],
