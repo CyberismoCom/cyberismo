@@ -63,7 +63,7 @@ jobs:
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-  
+
       - name: Install dependencies
         run: pnpm install --ignore-scripts
 
@@ -72,7 +72,7 @@ jobs:
 
       - name: Update npm
         run: npm install -g npm@latest
-        
+
       - name: Publish packages
         run: pnpm ci:publish
 
@@ -90,7 +90,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gringo
-      
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
         with:
@@ -123,6 +123,7 @@ jobs:
             "@cyberismo/backend"
             "@cyberismo/data-handler"
             "@cyberismo/assets"
+            "@cyberismo/migrations"
           )
           echo "Testing published packages at version ${VERSION}: ${PACKAGES[*]}"
 

@@ -35,6 +35,9 @@ export interface MigrationContext {
 
 /**
  * Result of a migration step.
+ * @param success true, if migration succeeded
+ * @param message optional message about the migration
+ * @param error Error object when migration failed.
  */
 export interface MigrationStepResult {
   success: boolean;
@@ -44,6 +47,7 @@ export interface MigrationStepResult {
 
 /**
  * Result of a complete migration.
+ * @param stepsExecuted: step names that were executed in migration.
  */
 export interface MigrationResult extends MigrationStepResult {
   stepsExecuted: string[];
@@ -123,7 +127,7 @@ export function validateProjectStructure(
 /**
  * Creates backup to folder: backupDir/backup-v<fromVersion>-<timestamp>
  *
- * Note: context.backupDir must be set, otherwise this function returns an error.
+ * @note: context.backupDir must be set, otherwise this function returns an error.
  *
  * @param context Migration context
  * @returns Result with success status
