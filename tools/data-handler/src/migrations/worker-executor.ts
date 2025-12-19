@@ -32,14 +32,14 @@ const logger = getChildLogger({ module: 'WorkerExecutor' });
  * @param migrationPath Absolute path to the migration's 'index.js' file
  * @param stepName The migration step to execute
  * @param context Migration context
- * @param timeoutMS Timeout in milliseconds to wait for the step to complete
+ * @param timeoutMilliSeconds Timeout in milliseconds to wait for the step to complete
  * @returns Migration step result
  */
 export async function executeStep(
   migrationPath: string,
   stepName: string,
   context: MigrationContext,
-  timeoutMS: number,
+  timeoutMilliSeconds: number,
 ): Promise<MigrationStepResult> {
   // Always uses the compiled .js version from the dist directory.
   function _workerPath() {
@@ -101,7 +101,7 @@ export async function executeStep(
           });
         })();
       }
-    }, timeoutMS);
+    }, timeoutMilliSeconds);
 
     worker.on('message', (response: WorkerResponse) => {
       if (isResolved) return;

@@ -993,18 +993,22 @@ export class Project extends CardContainer {
    * @param fromVersion Current schema version
    * @param toVersion Target schema version
    * @param backupDir Optional directory for backups. If undefined, no backup is created.
-   * @param timeoutMS Optional timeout in milliseconds. If undefined, uses default (2 minutes).
+   * @param timeoutMilliSeconds Optional timeout in milliseconds. If undefined, uses default (2 minutes).
    * @returns Migration result
    */
   public async runMigrations(
     fromVersion: number,
     toVersion: number,
     backupDir?: string,
-    timeoutMS?: number,
+    timeoutMilliSeconds?: number,
   ): Promise<MigrationResult> {
     this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
 
-    const executor = new MigrationExecutor(this, backupDir, timeoutMS);
+    const executor = new MigrationExecutor(
+      this,
+      backupDir,
+      timeoutMilliSeconds,
+    );
     const result = await executor.migrate(
       fromVersion,
       toVersion,

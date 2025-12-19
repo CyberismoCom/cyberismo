@@ -63,20 +63,21 @@ interface ExecutionState {
  */
 export class MigrationExecutor {
   private logger = getChildLogger({ module: 'MigrationExecutor' });
-  private timeoutMs: number;
+  private timeoutMilliSeconds: number;
 
   /**
    * Constructs instance of MigrationExecutor
    * @param project Project instance to use
    * @param backupDir Backup directory, if any.
-   * @param timeoutMS Timeout in milliseconds (defaults to 2 minutes)
+   * @param timeoutMilliSeconds Timeout in milliseconds (defaults to 2 minutes)
    */
   constructor(
     private project: Project,
     private backupDir?: string,
-    timeoutMS?: number,
+    timeoutMilliSeconds?: number,
   ) {
-    this.timeoutMs = timeoutMS ?? DEFAULT_MIGRATION_TIMEOUT_MS;
+    this.timeoutMilliSeconds =
+      timeoutMilliSeconds ?? DEFAULT_MIGRATION_TIMEOUT_MS;
   }
 
   // Helper to create failure result from ExecutionState
@@ -103,7 +104,7 @@ export class MigrationExecutor {
       migrationPath,
       stepName,
       state.context,
-      this.timeoutMs,
+      this.timeoutMilliSeconds,
     );
     state.stepsExecuted.push(stepName);
     if (!result.success) {

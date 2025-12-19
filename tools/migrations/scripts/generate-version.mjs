@@ -36,7 +36,7 @@ async function latestMigrationVersion() {
  */
 async function generateVersionFile() {
   const latestVersion = await latestMigrationVersion();
-  
+
   if (latestVersion === null) {
     console.log('No migrations found, skipping version.json generation');
     return;

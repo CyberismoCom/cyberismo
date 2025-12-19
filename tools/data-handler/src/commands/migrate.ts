@@ -29,13 +29,13 @@ export class Migrate {
    * Run migrations to bring project to target schema version.
    * @param toVersion Target version (defaults to latest)
    * @param backupDir Optional directory for backups
-   * @param timeoutMS Optional timeout in milliseconds (defaults to 2 minutes)
+   * @param timeoutMilliSeconds Optional timeout in milliseconds (defaults to 2 minutes)
    * @returns Migration result
    */
   public async migrate(
     toVersion?: number,
     backupDir?: string,
-    timeoutMS?: number,
+    timeoutMilliSeconds?: number,
   ): Promise<MigrationResult> {
     const currentVersion = this.project.configuration.schemaVersion;
     if (currentVersion === undefined) {
@@ -82,7 +82,7 @@ export class Migrate {
       currentVersion,
       targetVersion,
       backupDir,
-      timeoutMS,
+      timeoutMilliSeconds,
     );
   }
 }
