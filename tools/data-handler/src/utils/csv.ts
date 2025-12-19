@@ -15,6 +15,24 @@ import { parse } from 'csv-parse/sync';
 import type { CSVRowRaw } from '../interfaces/project-interfaces.js';
 
 /**
+ * Escapes a string for use as a CSV field.
+ * Escapes double quotes by doubling them and wraps the field in quotes if it contains
+ * special characters (comma, newline, or double quote).
+ * @param str The string to escape
+ * @returns The escaped string suitable for use in CSV
+ */
+export function escapeCsvField(str: string): string {
+  // Check if the field needs to be quoted (contains comma, newline, or double quote)
+  const needsQuoting = /[,\n\r"]/.test(str);
+
+  // Escape double quotes by doubling them
+  const escaped = str.replace(/"/g, '""');
+
+  // Wrap in quotes if necessary
+  return needsQuoting ? `"${escaped}"` : escaped;
+}
+
+/**
  * Reads a CSV file and returns its content as an array of objects.
  * @param file Path to the CSV file.
  * @returns Array of objects. Each object represents a row in the CSV file.
