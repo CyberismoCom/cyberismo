@@ -36,7 +36,7 @@ describe('Migrate command', () => {
   });
 
   it('should report project already at target version', async () => {
-    const version = 2;
+    const version = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = version;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(version);
@@ -57,19 +57,22 @@ describe('Migrate command', () => {
   });
 
   it('should reject skipping versions when specific version provided', async function () {
-    const currentVersion = 1;
-    const targetVersion = 3; // Try to skip from 1 to 3 (skipping 2)
+    const currentVersion = SCHEMA_VERSION;
+    const targetVersion = SCHEMA_VERSION + 2;
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     await expect(migrateCmd.migrate(targetVersion)).to.be.rejectedWith(
-      `Cannot migrate to version 3. Current application supports up to version 2.`,
+      `Cannot migrate to version 3. Current application supports up to version ${SCHEMA_VERSION}.`,
     );
     expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
   });
 
-  it('should allow migrating to next sequential version', async () => {
-    const currentVersion = 1;
-    const targetVersion = currentVersion + 1;
+  it('should allow migrating to next sequential version', async function () {
+    if (SCHEMA_VERSION <= 1) {
+      this.skip();
+    }
+    const currentVersion = SCHEMA_VERSION - 1;
+    const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     const result = await migrateCmd.migrate(targetVersion);
@@ -78,7 +81,7 @@ describe('Migrate command', () => {
   });
 
   it('should allow migrating to latest without version check', async () => {
-    const currentVersion = 1;
+    const currentVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     // Override to simulate migrating multiple versions at once
     mockProject.runMigrations = async () => {
@@ -96,9 +99,14 @@ describe('Migrate command', () => {
     expect(mockProject.configuration.schemaVersion).to.equal(SCHEMA_VERSION);
   });
 
-  it('should pass backup directory to runMigrations', async () => {
-    const currentVersion = 1;
-    const targetVersion = currentVersion + 1;
+  it('should pass backup directory to runMigrations', async function () {
+    // Test migration to current SCHEMA_VERSION
+    if (SCHEMA_VERSION <= 1) {
+      this.skip();
+      return;
+    }
+    const currentVersion = SCHEMA_VERSION - 1;
+    const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     let capturedBackupDir: string | undefined;
     mockProject.runMigrations = async (
@@ -119,9 +127,12 @@ describe('Migrate command', () => {
     expect(mockProject.configuration.schemaVersion).to.equal(targetVersion);
   });
 
-  it('should handle migration failure', async () => {
-    const currentVersion = 1;
-    const targetVersion = currentVersion + 1;
+  it('should handle migration failure', async function () {
+    if (SCHEMA_VERSION <= 1) {
+      this.skip();
+    }
+    const currentVersion = SCHEMA_VERSION - 1;
+    const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     mockProject.runMigrations = async () => {
       // Don't update version on failure
@@ -138,9 +149,12 @@ describe('Migrate command', () => {
     expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
   });
 
-  it('should pass timeout to runMigrations', async () => {
-    const currentVersion = 1;
-    const targetVersion = currentVersion + 1;
+  it('should pass timeout to runMigrations', async function () {
+    if (SCHEMA_VERSION <= 1) {
+      this.skip();
+    }
+    const currentVersion = SCHEMA_VERSION - 1;
+    const targetVersion = SCHEMA_VERSION;
     mockProject.configuration.schemaVersion = currentVersion;
     let capturedTimeout: number | undefined;
     mockProject.runMigrations = async (

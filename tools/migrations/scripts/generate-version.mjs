@@ -16,6 +16,7 @@ const assetsSchemaDir = join(migrationsRoot, '..', 'assets', 'src', 'schema');
 
 /**
  * Fetches the highest migration version.
+ * Returns null if no migrations exist yet.
  */
 async function latestMigrationVersion() {
   const entries = await readdir(migrationsDir, { withFileTypes: true });
@@ -24,7 +25,7 @@ async function latestMigrationVersion() {
     .map((entry) => parseInt(entry.name, 10));
 
   if (versions.length === 0) {
-    throw new Error('No migration versions found');
+    return null;
   }
 
   return Math.max(...versions);
@@ -35,6 +36,12 @@ async function latestMigrationVersion() {
  */
 async function generateVersionFile() {
   const latestVersion = await latestMigrationVersion();
+  
+  if (latestVersion === null) {
+    console.log('No migrations found, skipping version.json generation');
+    return;
+  }
+
   const versionContent = {
     schemaVersion: latestVersion,
   };
