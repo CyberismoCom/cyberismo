@@ -55,7 +55,8 @@
     "dev-export": "pnpm prepare-export && cross-env VITE_CYBERISMO_EXPORT=true pnpm --filter app dev",
     "build-docker": "docker build -t cyberismo .",
     "ci:publish": "pnpm --filter !app publish --access public --no-git-checks",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "create-migration": "node scripts/create-migration.mjs"
   },
   "pnpm": {
     "overrides": {

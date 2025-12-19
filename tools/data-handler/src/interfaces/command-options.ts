@@ -60,6 +60,12 @@ export interface ImportCommandOptions extends BaseCommandOptions {
   skipMigrationLog?: boolean;
 }
 
+// Options for 'migrate' command
+export interface MigrateCommandOptions extends BaseCommandOptions {
+  backup?: string;
+  timeout?: number;
+}
+
 // Options for 'move' command
 export type MoveCommandOptions = BaseCommandOptions;
 
@@ -111,6 +117,7 @@ export type AllCommandOptions =
   | ExportCommandOptions
   | FetchCommandOptions
   | ImportCommandOptions
+  | MigrateCommandOptions
   | MoveCommandOptions
   | RankCommandOptions
   | RemoveCommandOptions
@@ -132,6 +139,7 @@ export type CommandOptions<T extends CmdKey> = {
   export: ExportCommandOptions;
   fetch: FetchCommandOptions;
   import: ImportCommandOptions;
+  migrate: MigrateCommandOptions;
   move: MoveCommandOptions;
   rank: RankCommandOptions;
   remove: RemoveCommandOptions;
