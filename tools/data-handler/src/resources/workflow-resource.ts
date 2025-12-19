@@ -36,6 +36,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
  * Workflow resource class.
  */
 export class WorkflowResource extends FileResource<Workflow> {
+  /**
+   * Creates an instance of WorkflowResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'workflows');
 
@@ -49,7 +54,12 @@ export class WorkflowResource extends FileResource<Workflow> {
     const promises: Promise<Card[]>[] = [];
     for (const cardType of cardTypes) {
       if (cardType.data?.workflow === resourceNameToString(this.resourceName)) {
-        promises.push(this.collectCards(cardType.data.name));
+        promises.push(
+          this.collectCards(
+            cardType.data.name,
+            (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+          ),
+        );
       }
     }
     return (await Promise.all(promises)).flat();
@@ -60,6 +70,7 @@ export class WorkflowResource extends FileResource<Workflow> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
       this.updateCardTypes(existingName),
     ]);
     // Finally, write updated content.
@@ -132,6 +143,11 @@ export class WorkflowResource extends FileResource<Workflow> {
     }
   }
 
+  // Check if operation is a string operation.
+  private isStringOperation(op: Operation<unknown>): op is Operation<string> {
+    return typeof op.target === 'string';
+  }
+
   // Returns target name irregardless of the type
   private targetName(op: Operation<WorkflowState | WorkflowTransition>) {
     const name = op.target.name ? op.target.name : op.target;
@@ -166,11 +182,6 @@ export class WorkflowResource extends FileResource<Workflow> {
       );
     }
     return op.to;
-  }
-
-  // Check if operation is a string operation.
-  private isStringOperation(op: Operation<unknown>): op is Operation<string> {
-    return typeof op.target === 'string';
   }
 
   // Update card states when state is changed
@@ -209,7 +220,6 @@ export class WorkflowResource extends FileResource<Workflow> {
   /**
    * Sets new metadata into the workflow object.
    * @param newContent metadata content for the workflow.
-   * @throws if 'newContent' is not valid.
    */
   public async create(newContent?: Workflow) {
     if (!newContent) {

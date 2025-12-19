@@ -34,6 +34,11 @@ export class CalculationResource extends FolderResource<
   CalculationMetadata,
   CalculationContent
 > {
+  /**
+   * Creates instance of CalculationResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'calculations');
 
@@ -41,9 +46,15 @@ export class CalculationResource extends FolderResource<
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // When resource name changes
+  /**
+   * When resource name changes
+   * @param existingName Current resource name
+   */
   protected async onNameChange(existingName: string) {
-    await super.updateCalculations(existingName, this.content.name);
+    await Promise.all([
+      super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
+    ]);
     await this.write();
   }
 
