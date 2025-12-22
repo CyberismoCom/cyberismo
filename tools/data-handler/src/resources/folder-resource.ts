@@ -61,7 +61,7 @@ export abstract class FolderResource<
    * Creates a new folder type object. Base class writes the object to disk automatically.
    * @param newContent Content for the type.
    */
-  protected async create(newContent?: T) {
+  public async create(newContent?: T) {
     // Validate resource identifier before creating on disk
     this.validateResourceIdentifier();
     await super.create(newContent);
