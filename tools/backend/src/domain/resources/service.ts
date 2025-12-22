@@ -58,6 +58,24 @@ async function getModules(commands: CommandManager) {
   }
 }
 
+function sortTemplateCardsByRank(
+  cards: CardWithChildrenCards[],
+): CardWithChildrenCards[] {
+  return [...cards]
+    .sort((a, b) => {
+      const rankA = a.metadata?.rank ?? '';
+      const rankB = b.metadata?.rank ?? '';
+      if (rankA === rankB) {
+        return a.key.localeCompare(b.key);
+      }
+      return rankA.localeCompare(rankB);
+    })
+    .map((card) => ({
+      ...card,
+      childrenCards: sortTemplateCardsByRank(card.childrenCards ?? []),
+    }));
+}
+
 export async function buildResourceTree(commands: CommandManager) {
   const project = await commands.showCmd.showProject();
   const tree: unknown[] = [];
@@ -263,8 +281,9 @@ function createCardNode(
   };
 
   // Recursively process children if they exist
-  if (childrenCards && childrenCards.length > 0) {
-    cardNode.children = childrenCards.map((child) =>
+  if (childrenCards?.length) {
+    const sortedChildren = sortTemplateCardsByRank(childrenCards);
+    cardNode.children = sortedChildren.map((child) =>
       createCardNode(child, module, projectPrefix),
     );
   }
@@ -286,7 +305,8 @@ async function processTemplates(
   } = {};
 
   for (const { name, cards } of templateTree) {
-    for (const card of cards) {
+    const sortedCards = sortTemplateCardsByRank(cards);
+    for (const card of sortedCards) {
       const { prefix } = parseResourcePrefix(name);
       const cardNode = createCardNode(card, prefix, projectPrefix);
 
