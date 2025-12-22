@@ -130,7 +130,7 @@ describe('validate cmd tests', () => {
   });
   it('validateJson() - card type', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/cardTypes/decision.json';
+      'test/test-data/valid/decision-records/.cards/local/1/cardTypes/decision.json';
     const schemaId = 'cardTypeSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -138,7 +138,7 @@ describe('validate cmd tests', () => {
   });
   it('validateJson() - template', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/templates/decision.json';
+      'test/test-data/valid/decision-records/.cards/local/1/templates/decision.json';
     const schemaId = 'templateSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -146,7 +146,7 @@ describe('validate cmd tests', () => {
   });
   it('validateJson() - workflow', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
+      'test/test-data/valid/decision-records/.cards/local/1/workflows/decision.json';
     const schemaId = 'workflowSchema';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -159,7 +159,7 @@ describe('validate cmd tests', () => {
   });
   it('try to validateJson() - invalid schemaId', async () => {
     const path =
-      'test/test-data/valid/decision-records/.cards/local/workflows/decision.json';
+      'test/test-data/valid/decision-records/.cards/local/1/workflows/decision.json';
     const schemaId = 'i-do-not-exists';
     const jsonSchema = (await readJsonFile(path)) as object;
     const valid = validateCmd.validateJson(jsonSchema, schemaId);
@@ -316,8 +316,8 @@ describe('validate cmd tests', () => {
       "Wrong prefix in resource 'wrong/templates/decision'. Project prefixes are '[decision]'";
     const expectWrongPrefix2 =
       "Wrong prefix in resource 'wrong/cardTypesWrong/decisionWrong'. Project prefixes are '[decision]'";
-    const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
-    const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}cardTypes${sep}decision.json'`;
+    const expectWrongName = `Resource 'name' wrong/cardTypesWrong/decisionWrong mismatch with file path 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}1${sep}cardTypes${sep}decision.json'`;
+    const expectWrongType = `Wrong type name in resource 'wrong/cardTypesWrong/decisionWrong'. Should match filename path: 'test${sep}test-data${sep}invalid${sep}invalid-wrong-resource-names${sep}.cards${sep}local${sep}1${sep}cardTypes${sep}decision.json'`;
     expect(separatedErrors[0]).to.equal(expectWrongPrefix1);
     expect(separatedErrors[1]).to.equal(expectWrongPrefix2);
     expect(separatedErrors[2]).to.equal(expectWrongName);

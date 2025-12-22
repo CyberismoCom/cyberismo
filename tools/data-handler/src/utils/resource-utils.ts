@@ -160,9 +160,18 @@ export function pathToResourceName(
   // Finally check that all relevant parts are defined.
   const prefix =
     modulesIndex !== -1 ? parts.at(modulesIndex + 1) : project.projectPrefix;
-  const typeIndex = modulesIndex !== -1 ? modulesIndex + 2 : localIndex + 1;
+  // For local resources, check if there's a version folder (numeric) after 'local'
+  let versionOffset = 0;
+  if (localIndex !== -1 && localIndex + 1 < parts.length) {
+    const potentialVersion = parts.at(localIndex + 1);
+    if (potentialVersion && /^[0-9]+$/.test(potentialVersion)) {
+      versionOffset = 1;
+    }
+  }
+  const typeIndex =
+    modulesIndex !== -1 ? modulesIndex + 2 : localIndex + 1 + versionOffset;
   const identifierIndex =
-    modulesIndex !== -1 ? modulesIndex + 3 : localIndex + 2;
+    modulesIndex !== -1 ? modulesIndex + 3 : localIndex + 2 + versionOffset;
   const type = parts.at(typeIndex);
   const identifier = stripExtension(parts.at(identifierIndex)!);
   if (!identifier || !type || !prefix) {
