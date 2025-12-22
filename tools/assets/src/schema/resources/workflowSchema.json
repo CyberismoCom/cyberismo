@@ -3,6 +3,10 @@
   "additionalProperties": false,
   "description": "A state machine for the workflow of cards",
   "properties": {
+    "category": {
+      "description": "The category of the workflow. For example, 'Review'.",
+      "type": "string"
+    },
     "description": {
       "description": "A description that describes the workflow",
       "type": "string"
