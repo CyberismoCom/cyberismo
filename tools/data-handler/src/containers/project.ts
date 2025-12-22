@@ -116,7 +116,7 @@ export class Project extends CardContainer {
     this.logger.info({ path }, 'Initializing project');
 
     this.calculationEngine = new CalculationEngine(this);
-    this.projectPaths = new ProjectPaths(path);
+    this.projectPaths = new ProjectPaths(path, settings.version);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
     this.validator = Validate.getInstance();

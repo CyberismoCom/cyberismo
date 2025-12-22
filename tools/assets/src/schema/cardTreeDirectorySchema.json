@@ -551,33 +551,51 @@
                       "properties": {
                         "migrations": {
                           "$ref": "#/$defs/migrationsSchema"
-                        },
-                        "calculations": {
-                          "$ref": "#/$defs/calculationResourceSchema"
-                        },
-                        "cardTypes": {
-                          "$ref": "#/$defs/cardTypeResourceSchema"
-                        },
-                        "fieldTypes": {
-                          "$ref": "#/$defs/fieldTypeResourceSchema"
-                        },
-                        "graphViews": {
-                          "$ref": "#/$defs/graphViewResourceSchema"
-                        },
-                        "graphModels": {
-                          "$ref": "#/$defs/graphModelResourceSchema"
-                        },
-                        "linkTypes": {
-                          "$ref": "#/$defs/linkTypeResourceSchema"
-                        },
-                        "reports": {
-                          "$ref": "#/$defs/reportResourceSchema"
-                        },
-                        "templates": {
-                          "$ref": "#/$defs/templatesResourceSchema"
-                        },
-                        "workflows": {
-                          "$ref": "#/$defs/workflowResourceSchema"
+                        }
+                      },
+                      "patternProperties": {
+                        "^[0-9]+$": {
+                          "description": "Version folders containing snapshots of all resources",
+                          "type": "object",
+                          "properties": {
+                            "directories": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "properties": {
+                                "calculations": {
+                                  "$ref": "#/$defs/calculationResourceSchema"
+                                },
+                                "cardTypes": {
+                                  "$ref": "#/$defs/cardTypeResourceSchema"
+                                },
+                                "fieldTypes": {
+                                  "$ref": "#/$defs/fieldTypeResourceSchema"
+                                },
+                                "graphViews": {
+                                  "$ref": "#/$defs/graphViewResourceSchema"
+                                },
+                                "graphModels": {
+                                  "$ref": "#/$defs/graphModelResourceSchema"
+                                },
+                                "linkTypes": {
+                                  "$ref": "#/$defs/linkTypeResourceSchema"
+                                },
+                                "reports": {
+                                  "$ref": "#/$defs/reportResourceSchema"
+                                },
+                                "templates": {
+                                  "$ref": "#/$defs/templatesResourceSchema"
+                                },
+                                "workflows": {
+                                  "$ref": "#/$defs/workflowResourceSchema"
+                                }
+                              }
+                            },
+                            "files": {
+                              "type": "object",
+                              "additionalProperties": false
+                            }
+                          }
                         }
                       }
                     }

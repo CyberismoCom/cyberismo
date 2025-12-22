@@ -12,6 +12,7 @@
 */
 
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 
 import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
 
@@ -20,8 +21,13 @@ import type { ResourceFolderType } from '../../interfaces/project-interfaces.js'
  */
 export class ProjectPaths {
   private pathMap: Map<ResourceFolderType, string>;
+  private currentVersion: number;
 
-  constructor(private path: string) {
+  constructor(
+    private path: string,
+    version: number = 1,
+  ) {
+    this.currentVersion = version;
     this.pathMap = new Map([
       ['calculations', this.calculationProjectFolder],
       ['cardTypes', this.cardTypesFolder],
@@ -45,7 +51,7 @@ export class ProjectPaths {
   }
 
   public get calculationProjectFolder(): string {
-    return join(this.resourcesFolder, 'calculations');
+    return join(this.versionedBaseFolder, 'calculations');
   }
 
   public get calculationResourcesFolder(): string {
@@ -57,11 +63,11 @@ export class ProjectPaths {
   }
 
   public get cardTypesFolder(): string {
-    return join(this.resourcesFolder, 'cardTypes');
+    return join(this.versionedBaseFolder, 'cardTypes');
   }
 
   public get configurationFile(): string {
-    return join(this.resourcesFolder, 'cardsConfig.json');
+    return join(this.localFolder, 'cardsConfig.json');
   }
 
   public get configurationChangesLog(): string {
@@ -69,15 +75,15 @@ export class ProjectPaths {
   }
 
   public get fieldTypesFolder(): string {
-    return join(this.resourcesFolder, 'fieldTypes');
+    return join(this.versionedBaseFolder, 'fieldTypes');
   }
 
   public get graphModelsFolder(): string {
-    return join(this.resourcesFolder, 'graphModels');
+    return join(this.versionedBaseFolder, 'graphModels');
   }
 
   public get graphViewsFolder(): string {
-    return join(this.resourcesFolder, 'graphViews');
+    return join(this.versionedBaseFolder, 'graphViews');
   }
 
   public get internalRootFolder(): string {
@@ -85,7 +91,7 @@ export class ProjectPaths {
   }
 
   public get linkTypesFolder(): string {
-    return join(this.resourcesFolder, 'linkTypes');
+    return join(this.versionedBaseFolder, 'linkTypes');
   }
 
   public get logPath(): string {
@@ -93,7 +99,7 @@ export class ProjectPaths {
   }
 
   public get migrationLogFolder(): string {
-    return join(this.resourcesFolder, 'migrations');
+    return join(this.localFolder, 'migrations');
   }
 
   public get currentMigrationFolder(): string {
@@ -116,12 +122,41 @@ export class ProjectPaths {
     return join(moduleRoot, resourceType);
   }
 
-  public get resourcesFolder(): string {
+  /**
+   * Get module resource path, handling both versioned and legacy structures.
+   * For now, modules are always imported flat (resources directly under module prefix).
+   * This method exists for future versioned module support.
+   * @param modulePrefix Module prefix
+   * @param resourceType Type of resource
+   * @returns Path to module's resource folder
+   */
+  public moduleResourcePathCompat(
+    modulePrefix: string,
+    resourceType: ResourceFolderType,
+  ): string {
+    // Modules are currently imported flat (not versioned)
+    const moduleRoot = join(this.modulesFolder, modulePrefix);
+    return join(moduleRoot, resourceType);
+  }
+
+  public get localFolder(): string {
     return join(this.internalRootFolder, 'local');
   }
 
+  public get versionedBaseFolder(): string {
+    return join(this.localFolder, this.currentVersion.toString());
+  }
+
+  public versionedResourcesFolderFor(version: number): string {
+    return join(this.localFolder, version.toString());
+  }
+
+  public get resourcesFolder(): string {
+    return this.versionedBaseFolder;
+  }
+
   public get reportsFolder(): string {
-    return join(this.resourcesFolder, 'reports');
+    return join(this.versionedBaseFolder, 'reports');
   }
 
   /**
@@ -146,10 +181,46 @@ export class ProjectPaths {
   }
 
   public get templatesFolder(): string {
-    return join(this.resourcesFolder, 'templates');
+    return join(this.versionedBaseFolder, 'templates');
   }
 
   public get workflowsFolder(): string {
-    return join(this.resourcesFolder, 'workflows');
+    return join(this.versionedBaseFolder, 'workflows');
+  }
+
+  /**
+   * Get the current version number.
+   */
+  public get version(): number {
+    return this.currentVersion;
+  }
+
+  /**
+   * Check if this project uses the legacy (non-versioned) structure.
+   * Legacy projects have resources directly under .cards/local/ without version folders.
+   */
+  public get isLegacyStructure(): boolean {
+    // Check for common resource folders directly under .cards/local/
+    const resourceFolders = ['cardTypes', 'workflows', 'templates'];
+
+    for (const folder of resourceFolders) {
+      const legacyPath = join(this.localFolder, folder);
+      if (existsSync(legacyPath)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Get the resources folder, handling both versioned and legacy structures.
+   * This is useful when importing modules that might not be migrated yet.
+   */
+  public get resourcesFolderCompat(): string {
+    if (this.isLegacyStructure) {
+      return this.localFolder;
+    }
+    return this.versionedBaseFolder;
   }
 }

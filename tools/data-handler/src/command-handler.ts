@@ -336,6 +336,10 @@ export class Commands {
           return await this.importCsv(csvFile, cardKey);
         }
       } else if (command === Cmd.migrate) {
+        const target = args[0];
+        if (target === 'to-versioned') {
+          return await this.migrateToVersioned();
+        }
         const [toVersion] = args;
         return await this.migrate(
           toVersion ? parseInt(toVersion, 10) : undefined,
@@ -572,6 +576,15 @@ export class Commands {
     return {
       statusCode: 200,
       message: `Version updated from ${result?.previousVersion} to ${result?.newVersion}`,
+    };
+  }
+
+  // Migrates a legacy project to versioned structure.
+  private async migrateToVersioned(): Promise<requestStatus> {
+    const result = await this.commands?.createCmd.migrateToVersioned();
+    return {
+      statusCode: 200,
+      message: result?.message || 'Project migrated to versioned structure',
     };
   }
 

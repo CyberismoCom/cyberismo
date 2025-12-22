@@ -279,7 +279,7 @@ export class ResourceCache {
     const resourceFolder =
       source === 'local'
         ? this.project.paths.resourcePath(type)
-        : join(this.project.paths.modulesFolder, moduleName!, type);
+        : this.project.paths.moduleResourcePathCompat(moduleName!, type);
 
     try {
       const entries = readdirSync(resourceFolder, { withFileTypes: true });
@@ -351,7 +351,7 @@ export class ResourceCache {
       const resName = typeof name === 'string' ? resourceName(name) : name;
       const isModule = resName.prefix !== this.project.projectPrefix;
       const resourcePath = isModule
-        ? this.project.paths.moduleResourcePath(
+        ? this.project.paths.moduleResourcePathCompat(
             resName.prefix,
             resName.type as ResourceFolderType,
           )
