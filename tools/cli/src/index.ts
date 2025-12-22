@@ -717,6 +717,19 @@ createCmd
     },
   );
 
+// Create version subcommand
+createCmd
+  .command('version')
+  .description('Create a new version snapshot of the project')
+  .action(async (options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['version'],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 // Create new resource subcommand
 createCmd
   .command('resource')
@@ -1002,9 +1015,26 @@ importCmd
   );
 
 // Migrate command
-program
+const migrateCmd = program
   .command('migrate')
-  .description('Migrate project schema to a newer version.')
+  .description('Migrate project schema or structure');
+
+// Migrate to-versioned subcommand
+migrateCmd
+  .command('to-versioned')
+  .description('Migrate a legacy project to versioned structure')
+  .option('-p, --project-path [path]', `${pathGuideline}`)
+  .action(async (options: CommandOptions<'migrate'>) => {
+    const result = await commandHandler.command(
+      Cmd.migrate,
+      ['to-versioned'],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+// Migrate schema version (default migrate command)
+migrateCmd
   .argument(
     '[version]',
     'Target schema version. If not provided, migrates to the latest version. Can only migrate one version at a time when specified.',
