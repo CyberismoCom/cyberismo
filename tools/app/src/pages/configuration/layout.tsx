@@ -18,13 +18,15 @@ import { useProject } from '../../lib/api';
 
 export default function ConfigLayout() {
   // TODO: resource is not implemented yet, might need to change this
-  const { resource } = useParams();
+  const { resource, resourceType } = useParams();
   const { project } = useProject();
 
   const title =
     resource && project?.name
       ? `${resource} - ${project.name}`
-      : project?.name || 'Cyberismo App';
+      : resourceType && project?.name
+        ? `${resourceType} - ${project.name}`
+        : project?.name || 'Cyberismo App';
   useDocumentTitle(title);
 
   return <TwoColumnLayout leftPanel={<ConfigMenu />} rightPanel={<Outlet />} />;
