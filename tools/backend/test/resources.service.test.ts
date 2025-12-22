@@ -271,6 +271,110 @@ describe('Resources Service', () => {
       expect(childCard.type).toBe('card');
     });
 
+    test('orders template cards by rank', async () => {
+      const rootLaterByRank: CardWithChildrenCards = {
+        key: 'aa_card',
+        path: '',
+        content: 'AA content',
+        attachments: [],
+        metadata: {
+          links: [],
+          title: 'AA Template',
+          cardType: 'test/cardTypes/template',
+          workflowState: 'initial',
+          rank: '0|b',
+        },
+        children: ['child_b', 'child_a'],
+        childrenCards: [
+          {
+            key: 'child_b',
+            path: '',
+            content: 'Child B',
+            attachments: [],
+            metadata: {
+              links: [],
+              title: 'Child B Template',
+              cardType: 'test/cardTypes/template',
+              workflowState: 'initial',
+              rank: '0|a',
+            },
+            children: [],
+            childrenCards: [],
+          },
+          {
+            key: 'child_a',
+            path: '',
+            content: 'Child A',
+            attachments: [],
+            metadata: {
+              links: [],
+              title: 'Child A Template',
+              cardType: 'test/cardTypes/template',
+              workflowState: 'initial',
+              rank: '0|b',
+            },
+            children: [],
+            childrenCards: [],
+          },
+        ],
+      };
+      const rootSoonerByRank: CardWithChildrenCards = {
+        key: 'zz_card',
+        path: '',
+        content: 'ZZ content',
+        attachments: [],
+        metadata: {
+          links: [],
+          title: 'ZZ Template',
+          cardType: 'test/cardTypes/template',
+          workflowState: 'initial',
+          rank: '0|a',
+        },
+        children: [],
+        childrenCards: [],
+      };
+
+      const mockCommands = createMockCommandManager({
+        showCmd: {
+          showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
+          showResources: vi.fn().mockImplementation((type) => {
+            if (type === 'templates')
+              return Promise.resolve(['test/templates/sorted']);
+            return Promise.resolve([]);
+          }),
+          showResource: vi.fn().mockImplementation((name) => ({
+            ...mockResourceData,
+            name,
+          })),
+          showAllTemplateCards: vi.fn().mockResolvedValue([
+            {
+              name: 'test/templates/sorted',
+              cards: [rootLaterByRank, rootSoonerByRank],
+            },
+          ]),
+        },
+      });
+
+      const result = (await buildResourceTree(
+        mockCommands,
+      )) as testObjectNode[];
+
+      const templateNode = result[1].children[0].children[0];
+      const rootCardNames = templateNode.children.map((card) => card.name);
+      expect(rootCardNames).toEqual([
+        'test/cards/zz_card',
+        'test/cards/aa_card',
+      ]);
+
+      const childCardNames = templateNode.children[1].children.map(
+        (card) => card.name,
+      );
+      expect(childCardNames).toEqual([
+        'test/cards/child_b',
+        'test/cards/child_a',
+      ]);
+    });
+
     test('should handle mixed root and module templates', async () => {
       const mockCommands = createMockCommandManager({
         showCmd: {
