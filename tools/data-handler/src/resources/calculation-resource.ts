@@ -22,9 +22,13 @@ import { sortCards } from '../utils/card-utils.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 
 import type { CalculationContent } from '../interfaces/folder-content-interfaces.js';
-import type { CalculationMetadata } from '../interfaces/resource-interfaces.js';
+import type {
+  CalculationMetadata,
+  UpdateKey,
+} from '../interfaces/resource-interfaces.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
+import type { Operation } from './resource-object.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 /**
@@ -81,6 +85,23 @@ export class CalculationResource extends FolderResource<
 
     await this.loadContentFiles();
   }
+
+  /**
+   * Apply transient changes for calculation migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ) {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement calculation-specific transient changes
+  }
+
   /**
    * Renames resource metadata file and renames memory resident object 'name'.
    * @param newName New name for the resource.

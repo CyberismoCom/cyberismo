@@ -102,6 +102,22 @@ export class GraphViewResource extends FolderResource<
   }
 
   /**
+   * Apply transient changes for field type migrations.
+   */
+  public async migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    op: Operation<Type>,
+  ): Promise<void> {
+    const { key } = updateKey;
+    await super.migrate(updateKey, op);
+    // TODO: move to base class
+    if (key === 'name') {
+      await this.onNameChange(this.content.name);
+    }
+    // TODO: Implement graph view-specific transient changes
+  }
+
+  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */
