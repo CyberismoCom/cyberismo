@@ -37,6 +37,9 @@ import { useAppDispatch, useIsInCards } from '../lib/hooks';
 import { useModals } from '@/lib/utils';
 import { NewTemplateCardModal } from '../components/modals/resource-forms/NewTemplateCardModal';
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
+import { AppModalsProvider } from '@/lib/contexts/AppModalsProvider';
+import type { ResourceName } from '@/lib/constants';
+import { useCallback } from 'react';
 
 const Main = styled('main')(() => ({
   height: 'calc(100vh - 44px)', // 44px is the height of the toolbar
@@ -68,6 +71,13 @@ export default function Layout() {
     (state) => state.notifications.notifications,
   );
 
+  const openCreateResourceModal = useCallback(
+    (resourceType: ResourceName) => {
+      openModal(resourceType)();
+    },
+    [openModal],
+  );
+
   return (
     <Stack>
       <AppToolbar
@@ -85,9 +95,15 @@ export default function Layout() {
           }
         }}
       />
-      <Main>
-        <Outlet />
-      </Main>
+      <AppModalsProvider
+        value={{
+          openCreateResourceModal,
+        }}
+      >
+        <Main>
+          <Outlet />
+        </Main>
+      </AppModalsProvider>
       <NewCardModal
         open={modalOpen.card}
         onClose={closeModal('card')}
