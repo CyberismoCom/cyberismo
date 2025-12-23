@@ -117,6 +117,10 @@ export abstract class AbstractResource<
   protected abstract calculate(): Promise<void>; // update resource specific calculations
   protected abstract create(content?: T): Promise<void>; // create a new with the content (memory)
   protected abstract delete(): Promise<void>; // delete from disk
+  protected abstract migrate<Type, K extends string>(
+    updateKey: UpdateKey<K>,
+    operation: Operation<Type>,
+  ): Promise<void>; // apply transient changes (idempotent)
   protected abstract read(): Promise<void>; // read content from disk (replaces existing content, if any)
   protected abstract rename(newName: ResourceName): Promise<void>; // change name of the resource and filename; same as update('name', ...)
   protected abstract show(): ShowReturnType<T, U>; // return the content as JSON
@@ -224,6 +228,18 @@ export abstract class ResourceObject<
    * Calculate; empty implementation.
    */
   protected async calculate() {}
+
+  /**
+   * Migrate; apply transient changes to this resource.
+   * Base implementation is empty - subclasses should override if they have transient changes.
+   * Migrations should be idempotent.
+   */
+  protected async migrate<Type, K extends string>(
+    _key: UpdateKey<K>,
+    _op: Operation<Type>,
+  ): Promise<void> {
+    // Base implementation: no transient changes
+  }
 
   /**
    * Calculations that use this resource.
