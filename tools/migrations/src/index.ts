@@ -6,6 +6,7 @@
  */
 
 import type { Migration } from './migration-interfaces.js';
+import migration2 from './2/index.js';
 
 // Re-export migration interfaces and utilities
 export type {
@@ -23,7 +24,7 @@ export {
  * Map of migration version to migration implementation.
  */
 export const migrations: Record<number, Migration> = {
-  // migrations are to be added here
+  2: migration2,
 };
 
 /**
