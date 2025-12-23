@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/migrations",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Schema migrations for Cyberismo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
