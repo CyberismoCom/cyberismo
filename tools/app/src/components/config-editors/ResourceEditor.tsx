@@ -49,12 +49,19 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       ? options(editor.resourceTree || [], node)
       : staticOptions || [];
     const labelText = t(label);
+    const parts = node.name.split('/');
+    if (parts.length < 3) {
+      // Shouldn't happen
+      console.warn('Received unexpected name', node.name);
+      return null;
+    }
 
     switch (type) {
       case 'identifier':
         return (
           <IdentifierInput
             label={labelText}
+            prefix={parts[0]}
             type={node.type}
             value={String(editor.form[key] ?? '')}
             onChange={(v) => editor.onChange(key, v)}

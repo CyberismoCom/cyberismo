@@ -12,12 +12,13 @@
 */
 
 import { FormControl, FormLabel, Input } from '@mui/joy';
-import ProjectIdentifier from '@/components/modals/resource-forms/Identifier';
+import { Identifier } from '@/components/modals/resource-forms/Identifier';
 import type { BaseInputProps } from './types';
 
 export interface IdentifierInputProps extends BaseInputProps {
   label: string;
   type: string;
+  prefix: string;
   value: string;
   onChange: (value: string) => void;
 }
@@ -25,35 +26,32 @@ export interface IdentifierInputProps extends BaseInputProps {
 export function IdentifierInput({
   label,
   type,
+  prefix,
   value,
   onChange,
   onKeyDown,
   onBlur,
 }: IdentifierInputProps) {
-  // Extract just the identifier part from full resource name (prefix/type/identifier)
-  const getDisplayValue = (fullValue: string) => {
-    const parts = fullValue.split('/');
-    return parts.length >= 3 ? parts[2] : fullValue;
-  };
+  const parts = value.split('/');
+  const identifier = parts.length >= 3 ? parts[2] : value;
 
   // always include the full name
   const onChangeHandler = (newValue: string) => {
-    const parts = value.split('/');
     if (parts.length !== 3) {
       throw new Error('Invalid identifier');
     }
-    onChange(`${parts[0]}/${parts[1]}/${newValue}`);
+    onChange(`${prefix}/${type}/${newValue}`);
   };
 
   return (
     <FormControl>
       <FormLabel>{label}</FormLabel>
       <Input
-        value={getDisplayValue(value)}
+        value={identifier}
         onChange={(e) => onChangeHandler(e.target.value)}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
-        startDecorator={<ProjectIdentifier type={type} />}
+        startDecorator={<Identifier prefix={prefix} type={type} />}
       />
     </FormControl>
   );
