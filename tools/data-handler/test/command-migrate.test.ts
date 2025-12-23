@@ -62,7 +62,7 @@ describe('Migrate command', () => {
     mockProject.configuration.schemaVersion = currentVersion;
     const migrateCmd = new Migrate(mockProject as unknown as Project);
     await expect(migrateCmd.migrate(targetVersion)).to.be.rejectedWith(
-      `Cannot migrate to version 3. Current application supports up to version ${SCHEMA_VERSION}.`,
+      `Cannot migrate to version ${targetVersion}. Current application supports up to version ${SCHEMA_VERSION}.`,
     );
     expect(mockProject.configuration.schemaVersion).to.equal(currentVersion);
   });
