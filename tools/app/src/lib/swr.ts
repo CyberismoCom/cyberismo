@@ -106,6 +106,8 @@ export const apiPaths = {
   calculations: () => '/api/calculations',
   calculation: (name: string) => `/api/calculations/${name}`,
   cardTypes: () => '/api/cardTypes',
+  cardTypeFieldVisibility: (cardTypeName: string) =>
+    `/api/cardTypes/${encodeURIComponent(cardTypeName)}/field-visibility`,
   fieldTypes: () => '/api/fieldTypes',
   graphModels: () => '/api/graphModels',
   graphViews: () => '/api/graphViews',
