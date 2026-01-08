@@ -36,68 +36,40 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import type { AnyNode } from '@/lib/api/types';
+import type { VisibilityGroup } from '@/lib/api/cardType';
 import { useTranslation } from 'react-i18next';
 import { useResource, useCardTypeMutations } from '@/lib/api';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
-import type {
-  CustomField,
-  CardType,
-} from '@cyberismo/data-handler/interfaces/resource-interfaces';
-import type { Operation } from '@cyberismo/data-handler';
+import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
-
-type Visibility = 'always' | 'optional' | 'hidden';
-type FieldUpdateKey =
-  | 'customFields'
-  | 'alwaysVisibleFields'
-  | 'optionallyVisibleFields';
 
 type FieldView = {
   name: string;
   displayName: string;
   isCalculated: boolean;
-  visibility: Visibility;
+  visibility: VisibilityGroup;
   fieldTypeLabel: string;
 };
 
-type FieldDraft = {
+type NewFieldDraft = {
   name: string;
   displayName: string;
   isCalculated: boolean;
-  visibility: Visibility;
+  visibility: VisibilityGroup;
 };
 
-type KeyOperationType = {
-  customFields: CustomField | string;
-  alwaysVisibleFields: string;
-  optionallyVisibleFields: string;
+type EditFieldDraft = {
+  displayName: string;
+  isCalculated: boolean;
 };
 
-type OperationWithKey<K extends FieldUpdateKey = FieldUpdateKey> = {
-  key: K;
-  operation: Operation<KeyOperationType[K]>;
-};
-
-const visibilityToKey: Record<Visibility, FieldUpdateKey | null> = {
+const visibilityToKey: Record<VisibilityGroup, string | null> = {
   always: 'alwaysVisibleFields',
   optional: 'optionallyVisibleFields',
   hidden: null,
 };
-
-function normalizeDisplayName(value: string) {
-  return value.trim();
-}
-
-function customFieldPayload(draft: FieldDraft): CustomField {
-  const displayName = normalizeDisplayName(draft.displayName);
-  return {
-    name: draft.name,
-    ...(displayName ? { displayName } : {}),
-    isCalculated: draft.isCalculated,
-  };
-}
 
 export function CardTypeFieldsEditor({
   cardType,
@@ -117,7 +89,6 @@ export function CardTypeFieldsEditor({
   } = useCardTypeMutations(cardType.name);
 
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [pending, setPending] = useState<string | null>(null);
   const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
 
   const {
@@ -125,7 +96,7 @@ export function CardTypeFieldsEditor({
     handleSubmit: handleNewSubmit,
     reset: resetNewField,
     watch: watchNewField,
-  } = useForm<FieldDraft>({
+  } = useForm<NewFieldDraft>({
     defaultValues: {
       name: '',
       displayName: '',
@@ -138,12 +109,10 @@ export function CardTypeFieldsEditor({
     control: editFieldControl,
     reset: resetEditField,
     handleSubmit: handleEditSubmit,
-  } = useForm<FieldDraft>({
+  } = useForm<EditFieldDraft>({
     defaultValues: {
-      name: '',
       displayName: '',
       isCalculated: false,
-      visibility: 'always',
     },
   });
 
@@ -172,7 +141,10 @@ export function CardTypeFieldsEditor({
     (option) => !usedFieldNames.has(option.id),
   );
 
-  const buildFieldView = (name: string, visibility: Visibility): FieldView => {
+  const buildFieldView = (
+    name: string,
+    visibility: VisibilityGroup,
+  ): FieldView => {
     const existing = customFields.find((field) => field.name === name);
     return {
       name,
@@ -195,62 +167,34 @@ export function CardTypeFieldsEditor({
       .map((field) => buildFieldView(field.name, 'hidden')),
   };
 
-  const busy = pending !== null || isUpdating() || isVisibilityUpdating();
+  const busy = isUpdating() || isVisibilityUpdating();
   const editingLocked = !!editingField;
   const disableAll = readOnly || busy;
 
-  const runOperations = async (
-    ops: OperationWithKey[],
-    successMessage: string,
-    pendingKey?: string,
-  ) => {
-    setPending(pendingKey ?? 'pending');
-    try {
-      for (const { key, operation } of ops) {
-        await update({
-          updateKey: { key },
-          operation: operation as Operation<CustomField | string>,
-        });
-      }
-      dispatch(
-        addNotification({
-          message: successMessage,
-          type: 'success',
-        }),
-      );
-      return true;
-    } catch (error) {
-      dispatch(
-        addNotification({
-          message:
-            error instanceof Error ? error.message : (t('unknownError') ?? ''),
-          type: 'error',
-        }),
-      );
-      return false;
-    } finally {
-      setPending(null);
-    }
-  };
-
-  const handleAddField = async (data: FieldDraft) => {
+  const handleAddField = async (data: NewFieldDraft) => {
     if (!data.name || disableAll) return;
-    const payload = customFieldPayload(data);
-    let addedCustomField = false;
 
     try {
-      setPending('new');
       await update({
         updateKey: { key: 'customFields' },
-        operation: { name: 'add', target: payload },
+        operation: {
+          name: 'add',
+          target: {
+            name: data.name,
+            displayName: data.displayName.trim(),
+            isCalculated: data.isCalculated,
+          },
+        },
       });
-      addedCustomField = true;
 
       const addKey = visibilityToKey[data.visibility];
       if (addKey) {
         await update({
           updateKey: { key: addKey },
-          operation: { name: 'add', target: data.name },
+          operation: {
+            name: 'add',
+            target: data.name,
+          },
         });
       }
 
@@ -267,16 +211,6 @@ export function CardTypeFieldsEditor({
         visibility: 'always',
       });
     } catch (error) {
-      if (addedCustomField) {
-        try {
-          await update({
-            updateKey: { key: 'customFields' },
-            operation: { name: 'remove', target: data.name },
-          });
-        } catch {
-          // swallow rollback errors; primary failure already reported
-        }
-      }
       dispatch(
         addNotification({
           message:
@@ -284,37 +218,19 @@ export function CardTypeFieldsEditor({
           type: 'error',
         }),
       );
-    } finally {
-      setPending(null);
     }
   };
 
   const handleDeleteField = async (fieldName: string) => {
     if (disableAll) return;
-    await runOperations(
-      [
-        {
-          key: 'customFields',
-          operation: { name: 'remove', target: fieldName },
-        },
-      ],
-      t('customFieldDeleted'),
-      fieldName,
-    );
-  };
-
-  const handleFieldVisibilityUpdate = async (
-    fieldName: string,
-    group: Visibility,
-    index?: number,
-  ) => {
-    if (disableAll) return;
-    setPending(fieldName);
     try {
-      await updateVisibility({ fieldName, group, index });
+      await update({
+        updateKey: { key: 'customFields' },
+        operation: { name: 'remove', target: fieldName },
+      });
       dispatch(
         addNotification({
-          message: t('fieldSaved', { field: fieldName }),
+          message: t('customFieldDeleted'),
           type: 'success',
         }),
       );
@@ -326,14 +242,31 @@ export function CardTypeFieldsEditor({
           type: 'error',
         }),
       );
-    } finally {
-      setPending(null);
+    }
+  };
+
+  const handleFieldVisibilityUpdate = async (
+    fieldName: string,
+    group: VisibilityGroup,
+    index?: number,
+  ) => {
+    if (disableAll) return;
+    try {
+      await updateVisibility({ fieldName, group, index });
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message:
+            error instanceof Error ? error.message : (t('unknownError') ?? ''),
+          type: 'error',
+        }),
+      );
     }
   };
 
   const handleMove = async (
     fieldName: string,
-    visibility: Exclude<Visibility, 'hidden'>,
+    visibility: Exclude<VisibilityGroup, 'hidden'>,
     direction: 'up' | 'down',
   ) => {
     if (disableAll) return;
@@ -351,11 +284,11 @@ export function CardTypeFieldsEditor({
     await handleFieldVisibilityUpdate(fieldName, visibility, targetIndex);
   };
 
-  const visibilityOrder: Visibility[] = ['always', 'optional', 'hidden'];
+  const visibilityOrder: VisibilityGroup[] = ['always', 'optional', 'hidden'];
 
   const handleChangeGroup = async (
     fieldName: string,
-    currentVisibility: Visibility,
+    currentVisibility: VisibilityGroup,
     direction: 'up' | 'down',
   ) => {
     if (disableAll) return;
@@ -371,88 +304,52 @@ export function CardTypeFieldsEditor({
     await handleFieldVisibilityUpdate(fieldName, targetVisibility);
   };
 
-  const handleSaveEdit = async (field: FieldView, draft: FieldDraft) => {
+  const handleSaveEdit = async (field: FieldView, draft: EditFieldDraft) => {
     if (!draft || disableAll) return;
 
-    const ops: OperationWithKey[] = [];
-    const normalizedDraft: FieldDraft = {
-      ...draft,
-      displayName: normalizeDisplayName(draft.displayName),
-    };
-
-    const detailsChanged =
-      normalizedDraft.displayName !== normalizeDisplayName(field.displayName) ||
-      normalizedDraft.isCalculated !== field.isCalculated;
-
-    if (detailsChanged) {
-      ops.push({
-        key: 'customFields',
+    try {
+      await update({
+        updateKey: { key: 'customFields' },
         operation: {
           name: 'change',
           target: field.name,
-          to: customFieldPayload(normalizedDraft),
+          to: {
+            name: field.name,
+            displayName: draft.displayName.trim(),
+            isCalculated: draft.isCalculated,
+          },
         },
       });
-    }
-
-    if (normalizedDraft.visibility !== field.visibility) {
-      const removeKey = visibilityToKey[field.visibility];
-      const addKey = visibilityToKey[normalizedDraft.visibility];
-
-      if (removeKey) {
-        ops.push({
-          key: removeKey,
-          operation: { name: 'remove', target: field.name },
-        });
-      }
-      if (addKey) {
-        ops.push({
-          key: addKey,
-          operation: { name: 'add', target: field.name },
-        });
-      }
-    }
-
-    if (ops.length === 0) {
+      dispatch(
+        addNotification({
+          message: t('customFieldUpdated', { field: field.name }),
+          type: 'success',
+        }),
+      );
       setEditingField(null);
-      resetEditField({
-        name: '',
-        displayName: '',
-        isCalculated: false,
-        visibility: 'always',
-      });
-      return;
-    }
-
-    const success = await runOperations(
-      ops,
-      t('customFieldUpdated', { field: field.name }),
-      field.name,
-    );
-    if (success) {
-      setEditingField(null);
-      resetEditField({
-        name: '',
-        displayName: '',
-        isCalculated: false,
-        visibility: 'always',
-      });
+      resetEditField({ displayName: '', isCalculated: false });
+    } catch (error) {
+      dispatch(
+        addNotification({
+          message:
+            error instanceof Error ? error.message : (t('unknownError') ?? ''),
+          type: 'error',
+        }),
+      );
     }
   };
 
   const startEditing = (field: FieldView) => {
     setEditingField(field.name);
     resetEditField({
-      name: field.name,
       displayName: field.displayName,
       isCalculated: field.isCalculated,
-      visibility: field.visibility,
     });
   };
 
   const renderFieldRow = (
     field: FieldView,
-    groupVisibility: Visibility,
+    groupVisibility: VisibilityGroup,
     index: number,
     total: number,
   ) => {
@@ -469,6 +366,7 @@ export function CardTypeFieldsEditor({
         variant="outlined"
         sx={{
           p: 1.5,
+          py: 0,
           border: '0',
           borderRadius: 16,
           backgroundColor: 'neutral.softBg',
@@ -505,7 +403,7 @@ export function CardTypeFieldsEditor({
               onClick={() =>
                 handleMove(
                   field.name,
-                  groupVisibility as Exclude<Visibility, 'hidden'>,
+                  groupVisibility as Exclude<VisibilityGroup, 'hidden'>,
                   'up',
                 )
               }
@@ -521,7 +419,7 @@ export function CardTypeFieldsEditor({
               onClick={() =>
                 handleMove(
                   field.name,
-                  groupVisibility as Exclude<Visibility, 'hidden'>,
+                  groupVisibility as Exclude<VisibilityGroup, 'hidden'>,
                   'down',
                 )
               }
@@ -587,10 +485,8 @@ export function CardTypeFieldsEditor({
                             e.preventDefault();
                             setEditingField(null);
                             resetEditField({
-                              name: '',
                               displayName: '',
                               isCalculated: false,
-                              visibility: 'always',
                             });
                           }
                         }}
@@ -653,10 +549,8 @@ export function CardTypeFieldsEditor({
                   onClick={() => {
                     setEditingField(null);
                     resetEditField({
-                      name: '',
                       displayName: '',
                       isCalculated: false,
-                      visibility: 'always',
                     });
                   }}
                 >
@@ -694,7 +588,7 @@ export function CardTypeFieldsEditor({
   const renderGroup = (
     label: string,
     groupFields: FieldView[],
-    groupVisibility: Visibility,
+    groupVisibility: VisibilityGroup,
   ) => (
     <Stack spacing={1}>
       <Typography level="body-sm" fontWeight="lg" textColor="text.primary">
@@ -732,7 +626,8 @@ export function CardTypeFieldsEditor({
                   value={field.value}
                   onChange={(event) =>
                     field.onChange(
-                      (event.target as HTMLInputElement).value as Visibility,
+                      (event.target as HTMLInputElement)
+                        .value as VisibilityGroup,
                     )
                   }
                   sx={{ gap: 2 }}
