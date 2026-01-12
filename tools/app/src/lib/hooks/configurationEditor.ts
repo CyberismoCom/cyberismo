@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useResourceTree } from '@/lib/api';
 import type { ResourceNode } from '@/lib/api/types';
@@ -24,6 +24,42 @@ import { useAppRouter } from '@/lib/hooks/redux';
 import { useAppDispatch } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { useResource } from '@/lib/api';
+type EditableFieldOptions = {
+  initialValue: string;
+  actionKey: string;
+  readOnly: boolean;
+  isLoading?: boolean;
+  saveValue: (value: string) => Promise<void>;
+  isUpdating: (action?: string) => boolean;
+};
+
+export function useEditableField({
+  initialValue,
+  actionKey,
+  readOnly,
+  isLoading = false,
+  saveValue,
+  isUpdating,
+}: EditableFieldOptions) {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const dirty = value !== initialValue;
+  const saving = isUpdating(actionKey);
+  const disabled = saving || readOnly || isLoading;
+
+  const save = async () => {
+    if (!dirty || disabled) return;
+    await saveValue(value);
+  };
+
+  const cancel = () => setValue(initialValue);
+
+  return { value, setValue, dirty, save, cancel, saving, disabled };
+}
 
 export function useResourceEditorHelpers(node: ResourceNode) {
   const originalData = ('data' in node ? node.data : {}) as Record<

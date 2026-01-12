@@ -42,13 +42,15 @@ export const VALID_FOLDER_RESOURCE_FILES = [
  * These are field names that are non-custom fields that present in metadata
  */
 export const PREDEFINED_FIELDS = [
-  'rank',
   'cardType',
-  'title',
-  'workflowState',
+  'labels',
   'lastUpdated',
   'lastTransitioned',
+  'links',
+  'rank',
   'templateCardKey',
+  'title',
+  'workflowState',
 ] satisfies (keyof PredefinedCardMetadata)[];
 
 /**

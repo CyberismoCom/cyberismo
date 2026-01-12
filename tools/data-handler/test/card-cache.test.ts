@@ -546,6 +546,34 @@ describe('Card cache', () => {
       rmSync(testDir, { recursive: true, force: true });
     });
 
+    it('should throw error with file path when index.json has invalid JSON', async () => {
+      const invalidCardKey = 'test_invalid';
+      const invalidCardPath = join(testCardsPath, invalidCardKey);
+      mkdirSync(invalidCardPath, { recursive: true });
+
+      // Create a card with invalid JSON in index.json
+      writeFileSync(
+        join(invalidCardPath, 'index.json'),
+        '{ "title": "Invalid Card", "cardType": "test/cardTypes/page", invalid json }',
+      );
+      writeFileSync(join(invalidCardPath, 'index.adoc'), 'Content');
+
+      const newCache = new CardCache(prefix);
+      try {
+        await newCache.populateFromPath(testProjectPath);
+        expect.fail('Should have thrown an error for invalid JSON');
+      } catch (error) {
+        expect(error).to.be.instanceOf(Error);
+        if (error instanceof Error) {
+          expect(error.message).to.include('Invalid JSON in file');
+          expect(error.message).to.include(join(invalidCardPath, 'index.json'));
+        }
+      } finally {
+        // Clean up the invalid card
+        rmSync(invalidCardPath, { recursive: true, force: true });
+      }
+    });
+
     it('should rebuild parent-child relationships', () => {
       const parentCard = cache.getCard('test_1');
       expect(parentCard).to.not.equal(undefined);

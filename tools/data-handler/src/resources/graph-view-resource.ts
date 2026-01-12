@@ -39,6 +39,11 @@ export class GraphViewResource extends FolderResource<
   GraphViewMetadata,
   GraphViewContent
 > {
+  /**
+   * Creates instance of GraphViewResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'graphViews');
 
@@ -56,6 +61,7 @@ export class GraphViewResource extends FolderResource<
         await this.handleBarFile(),
       ]),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
     ]);
     await this.write();
   }

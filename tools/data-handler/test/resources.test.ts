@@ -1,11 +1,15 @@
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
 
 import { copyDir } from '../src/utils/file-utils.js';
-import { getTestProject } from './helpers/test-utils.js';
-import { Create, Import } from '../src/commands/index.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
+import { Create, Fetch, Import, Remove } from '../src/commands/index.js';
 import type { Project } from '../src/containers/project.js';
 import { resourceName } from '../src/utils/resource-utils.js';
 
@@ -174,18 +178,21 @@ describe('resources', function () {
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   const minimalPath = join(testDir, 'valid/minimal');
   let project: Project;
+  let ensureModuleListStub: sinon.SinonStub;
 
   this.timeout(10000);
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
     project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
   });
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('resource-cache', () => {
@@ -619,7 +626,8 @@ describe('resources', function () {
       const projectMini = getTestProject(minimalPath);
       await projectMini.populateCaches();
       const createCmdMini = new Create(projectMini);
-      const importCmdMini = new Import(projectMini, createCmdMini);
+      const fetchCmd = new Fetch(projectMini);
+      const importCmdMini = new Import(projectMini, createCmdMini, fetchCmd);
       await importCmdMini.importModule(
         decisionRecordsPath,
         projectMini.basePath,
@@ -1403,6 +1411,22 @@ describe('resources', function () {
       const res = project.resources.byType(name, 'linkTypes');
       await res.create();
       await res.update(
+        { key: 'displayName' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Link type display name',
+        },
+      );
+      await res.update(
+        { key: 'description' },
+        {
+          name: 'change',
+          target: '',
+          to: 'Link type description',
+        },
+      );
+      await res.update(
         {
           key: 'enableLinkDescription',
         },
@@ -1429,6 +1453,8 @@ describe('resources', function () {
         },
       );
       const data = res.data as LinkType;
+      expect(data.displayName).to.equal('Link type display name');
+      expect(data.description).to.equal('Link type description');
       expect(data.inboundDisplayName).to.equal('inbound');
       expect(data.outboundDisplayName).to.equal('outbound');
       expect(data.enableLinkDescription).to.equal(true);
@@ -1899,6 +1925,347 @@ describe('resources', function () {
         .then((references) =>
           expect(references).to.include('decision/cardTypes/decision'),
         );
+    });
+  });
+
+  describe('card content reference updates on resource rename', () => {
+    async function cleanup(cardKey: string) {
+      const fetch = new Fetch(project);
+      const remove = new Remove(project, fetch);
+      await remove.remove('card', cardKey);
+    }
+
+    it('should update card contents when renaming template', async () => {
+      const cardKey = 'decision_5';
+      const card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/templates/simplepage');
+
+      const templateName = 'decision/templates/simplepage';
+      const template = project.resources.byType(templateName, 'templates');
+      await template.rename(resourceName('decision/templates/renamedpage'));
+      const updatedCard = project.findCard(cardKey);
+
+      expect(template.data?.name).to.equal('decision/templates/renamedpage');
+      expect(updatedCard.content).to.include('decision/templates/renamedpage');
+      expect(updatedCard.content).to.not.include(
+        'decision/templates/simplepage',
+      );
+
+      await template.rename(resourceName('decision/templates/simplepage'));
+    });
+
+    it('should update card contents when renaming report', async () => {
+      const cardKey = 'decision_5';
+      const card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/reports/testReport');
+
+      const reportName = 'decision/reports/testReport';
+      const report = project.resources.byType(reportName, 'reports');
+      await report.rename(resourceName('decision/reports/renamedReport'));
+      const updatedCard = project.findCard(cardKey);
+
+      expect(report.data?.name).to.equal('decision/reports/renamedReport');
+      expect(updatedCard.content).to.include('decision/reports/renamedReport');
+      expect(updatedCard.content).to.not.include('decision/reports/testReport');
+
+      await report.rename(resourceName('decision/reports/testReport'));
+    });
+
+    it('should update card contents when renaming workflow', async () => {
+      const workflowName = 'decision/workflows/testWorkflowForContent';
+      const workflow = project.resources.byType(workflowName, 'workflows');
+      await workflow.create();
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${workflowName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(workflowName);
+
+      await workflow.rename(resourceName('decision/workflows/renamedWorkflow'));
+
+      expect(workflow.data?.name).to.equal(
+        'decision/workflows/renamedWorkflow',
+      );
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/workflows/renamedWorkflow');
+      expect(card.content).to.not.include(workflowName);
+
+      await cleanup(cardKey);
+      await workflow.delete();
+    });
+
+    it('should update card contents when renaming field type', async () => {
+      const fieldTypeName = 'decision/fieldTypes/testFieldForContent';
+      const fieldType = project.resources.byType(fieldTypeName, 'fieldTypes');
+      await fieldType.createFieldType('shortText');
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${fieldTypeName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(fieldTypeName);
+
+      await fieldType.rename(resourceName('decision/fieldTypes/renamedField'));
+      expect(fieldType.data?.name).to.equal('decision/fieldTypes/renamedField');
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/fieldTypes/renamedField');
+      expect(card.content).to.not.include(fieldTypeName);
+
+      await cleanup(cardKey);
+      await fieldType.delete();
+    });
+
+    it('should update card contents when renaming card type', async () => {
+      const cardTypeName = 'decision/cardTypes/testTypeForContent';
+      const cardType = project.resources.byType(cardTypeName, 'cardTypes');
+      await cardType.createCardType('decision/workflows/decision');
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${cardTypeName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(cardTypeName);
+
+      await cardType.rename(resourceName('decision/cardTypes/renamedType'));
+      expect(cardType.data?.name).to.equal('decision/cardTypes/renamedType');
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/cardTypes/renamedType');
+      expect(card.content).to.not.include(cardTypeName);
+
+      await cleanup(cardKey);
+      await cardType.delete();
+    });
+
+    it('should update card contents when renaming link type', async () => {
+      const linkTypeName = 'decision/linkTypes/testLinkForContent';
+      const linkType = project.resources.byType(linkTypeName, 'linkTypes');
+      await linkType.create();
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${linkTypeName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(linkTypeName);
+
+      await linkType.rename(resourceName('decision/linkTypes/renamedLink'));
+      expect(linkType.data?.name).to.equal('decision/linkTypes/renamedLink');
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/linkTypes/renamedLink');
+      expect(card.content).to.not.include(linkTypeName);
+
+      await cleanup(cardKey);
+      await linkType.delete();
+    });
+
+    it('should update card contents when renaming calculations', async () => {
+      const calculationName = 'decision/calculations/testCalcForContent';
+      const calculation = project.resources.byType(
+        calculationName,
+        'calculations',
+      );
+      await calculation.create();
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${calculationName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(calculationName);
+      await calculation.rename(
+        resourceName('decision/calculations/renamedCalc'),
+      );
+
+      expect(calculation.data?.name).to.equal(
+        'decision/calculations/renamedCalc',
+      );
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/calculations/renamedCalc');
+      expect(card.content).to.not.include(calculationName);
+
+      await cleanup(cardKey);
+      await calculation.delete();
+    });
+
+    it('should update card contents when renaming graph models', async () => {
+      const graphModelName = 'decision/graphModels/testGraphForContent';
+      const graphModel = project.resources.byType(
+        graphModelName,
+        'graphModels',
+      );
+      await graphModel.create();
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${graphModelName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(graphModelName);
+
+      await graphModel.rename(
+        resourceName('decision/graphModels/renamedGraph'),
+      );
+      expect(graphModel.data?.name).to.equal(
+        'decision/graphModels/renamedGraph',
+      );
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/graphModels/renamedGraph');
+      expect(card.content).to.not.include(graphModelName);
+
+      await cleanup(cardKey);
+      await graphModel.delete();
+    });
+
+    it('should update card contents when renaming graph views', async () => {
+      const graphViewName = 'decision/graphViews/testViewForContent';
+      const graphView = project.resources.byType(graphViewName, 'graphViews');
+      await graphView.create();
+
+      const create = new Create(project);
+      const result = await create.createCard('decision/templates/simplepage');
+      const cardKey = result[0].key;
+      await project.updateCardContent(
+        cardKey,
+        `This card references ${graphViewName} in its content.`,
+      );
+
+      let card = project.findCard(cardKey);
+      expect(card.content).to.include(graphViewName);
+
+      await graphView.rename(resourceName('decision/graphViews/renamedView'));
+      expect(graphView.data?.name).to.equal('decision/graphViews/renamedView');
+
+      card = project.findCard(cardKey);
+      expect(card.content).to.include('decision/graphViews/renamedView');
+      expect(card.content).to.not.include(graphViewName);
+
+      await cleanup(cardKey);
+      await graphView.delete();
+    });
+
+    it('should rename all card content references', async () => {
+      const templateName = 'decision/templates/multiRefTemplate';
+      const template = project.resources.byType(templateName, 'templates');
+      await template.create();
+
+      const cardKeys: string[] = [];
+      for (let i = 0; i < 3; i++) {
+        const create = new Create(project);
+        const result = await create.createCard('decision/templates/simplepage');
+        const cardKey = result[0].key;
+        cardKeys.push(cardKey);
+
+        await project.updateCardContent(
+          cardKey,
+          `Card references ${templateName}.`,
+        );
+      }
+
+      await template.rename(resourceName('decision/templates/renamedMultiRef'));
+
+      for (const cardKey of cardKeys) {
+        const card = project.findCard(cardKey);
+        expect(card.content).to.include('decision/templates/renamedMultiRef');
+        expect(card.content).to.not.include(templateName);
+      }
+
+      // Cleanup
+      const fetch = new Fetch(project);
+      const remove = new Remove(project, fetch);
+      for (const cardKey of cardKeys) {
+        await remove.remove('card', cardKey);
+      }
+      await template.delete();
+    });
+
+    it('should not make changes to card content if no references', async () => {
+      const workflowName = 'decision/workflows/noReferencesWorkflow';
+      const workflow = project.resources.byType(workflowName, 'workflows');
+      await workflow.create();
+
+      await workflow.rename(resourceName('decision/workflows/renamedNoRef'));
+      expect(workflow.data?.name).to.equal('decision/workflows/renamedNoRef');
+
+      await workflow.delete();
+    });
+
+    it('should update card metadata links when renaming link types', async () => {
+      const linkTypeName = 'decision/linkTypes/testLinkForMetadata';
+      const linkTypeRenamed = 'decision/linkTypes/renamedLink';
+      const linkType = project.resources.byType(linkTypeName, 'linkTypes');
+      await linkType.create();
+
+      // Create two cards
+      const create = new Create(project);
+      const result1 = await create.createCard('decision/templates/simplepage');
+      const cardKey1 = result1[0].key;
+      const result2 = await create.createCard('decision/templates/simplepage');
+      const cardKey2 = result2[0].key;
+
+      // Link card1 -> card2
+      let card1 = project.findCard(cardKey1);
+      if (!card1 || !card1.metadata || !card1.metadata?.links || !cardKey2) {
+        expect(false, 'Issue with test cards');
+        return;
+      }
+      card1.metadata.links.push({
+        linkType: linkTypeName,
+        cardKey: cardKey2,
+        linkDescription: 'test link',
+      });
+
+      await project.updateCardMetadata(card1, card1.metadata);
+      card1 = project.findCard(cardKey1);
+      expect(card1.metadata?.links).to.have.lengthOf(1);
+      expect(card1.metadata?.links[0].linkType).to.equal(linkTypeName);
+
+      await linkType.rename(resourceName(linkTypeRenamed));
+      expect(linkType.data?.name).to.equal(linkTypeRenamed);
+      card1 = project.findCard(cardKey1);
+      expect(card1.metadata?.links).to.have.lengthOf(1);
+      expect(card1.metadata?.links[0].linkType).to.equal(linkTypeRenamed);
+      expect(card1.metadata?.links[0].cardKey).to.equal(cardKey2);
+
+      await cleanup(cardKey1);
+      await cleanup(cardKey2);
+      await linkType.delete();
     });
   });
 });

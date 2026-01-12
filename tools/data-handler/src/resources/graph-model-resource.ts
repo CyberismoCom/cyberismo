@@ -38,6 +38,11 @@ export class GraphModelResource extends FolderResource<
   GraphModelMetadata,
   GraphModelContent
 > {
+  /**
+   * Creates an instance of GraphModelResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'graphModels');
 
@@ -55,6 +60,7 @@ export class GraphModelResource extends FolderResource<
         join(this.internalFolder, CONTENT_FILES.model),
       ]),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
     ]);
     // Finally, write updated content.
     await this.write();

@@ -2,14 +2,13 @@ name: Publish
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'cyberismo-*'
+      - 'node-clingo-*'
 
 permissions:
   contents: read
-
-env:
-  CI: true
+  id-token: write
 
 jobs:
   version:
@@ -30,16 +29,128 @@ jobs:
           node-version: ${{ vars.NODE_VERSION }}
           cache: 'pnpm'
 
+      - name: Determine package for tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" == cyberismo-* ]]; then
+            PKG_PATH="tools/cli/package.json"
+            PREFIX="cyberismo-"
+          elif [[ "$TAG" == node-clingo-* ]]; then
+            PKG_PATH="tools/node-clingo/package.json"
+            PREFIX="node-clingo-"
+          else
+            echo "Unsupported tag pattern: $TAG" >&2
+            exit 1
+          fi
+          echo "package_path=$PKG_PATH" >> "$GITHUB_OUTPUT"
+          echo "expected_version=${TAG#$PREFIX}" >> "$GITHUB_OUTPUT"
+          echo "prefix=$PREFIX" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag matches package version
+        run: |
+          tag_version="${{ steps.tag.outputs.expected_version }}"
+          pkg_path="${{ steps.tag.outputs.package_path }}"
+          pkg_version=$(node -p "require('./$pkg_path').version")
+          echo "Tag version: $tag_version"
+          echo "Package version in $pkg_path: $pkg_version"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "Tag version ($tag_version) does not match package version ($pkg_version)"
+            exit 1
+          fi
+
       - name: Set publishing config
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-  
+
       - name: Install dependencies
         run: pnpm install --ignore-scripts
 
       - name: Build
         run: pnpm build
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Publish packages
         run: pnpm ci:publish
+
+  npm-cli-test:
+    needs: version
+    if: startsWith(github.ref, 'refs/tags/cyberismo-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@v4
+
+      - name: Install clingo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gringo
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@829114fc20da43a41d27359103ec7a63020954d4 # v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install asciidoctor-pdf
+        run: |
+          gem install --no-document asciidoctor-pdf rouge
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
+        with:
+          version: 9
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Verify published packages via npm
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          CYBERISMO_GIT_USER: ${{ secrets.CYBERISMO_GIT_USER }}
+          CYBERISMO_GIT_TOKEN: ${{ secrets.CYBERISMO_GIT_TOKEN }}
+        run: |
+          VERSION="${RELEASE_VERSION#cyberismo-}"
+          PACKAGES=(
+            "@cyberismo/cli"
+            "@cyberismo/backend"
+            "@cyberismo/data-handler"
+            "@cyberismo/assets"
+            "@cyberismo/migrations"
+          )
+          echo "Testing published packages at version ${VERSION}: ${PACKAGES[*]}"
+
+          npm install -g npm@latest
+
+          # Wait briefly for npm replication
+          for pkg in "${PACKAGES[@]}"; do
+            for i in {1..8}; do
+              published_version=$(npm view "${pkg}@${VERSION}" version 2>/dev/null || true)
+              if [ "${published_version}" = "${VERSION}" ]; then
+                echo "${pkg}@${VERSION} available."
+                break
+              fi
+              if [ "$i" -eq 8 ]; then
+                echo "Package ${pkg}@${VERSION} not available after waiting."
+                exit 1
+              fi
+              echo "Waiting for ${pkg}@${VERSION} to be available (attempt $i)..."
+              sleep 10
+            done
+          done
+
+          npm install -g @cyberismo/cli@"${VERSION}"
+
+          # Assert reported version matches tag
+          cyberismo --version
+          cyberismo --version | grep "cyberismo version: ${VERSION}"
+
+          pnpm install
+          pnpm --filter cli test

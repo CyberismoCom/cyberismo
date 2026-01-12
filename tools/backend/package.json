@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/backend",
-  "version": "0.0.16",
+  "version": "0.0.19",
   "description": "Express backend for Cyberismo",
   "main": "dist/index.js",
   "scripts": {
@@ -14,8 +14,15 @@
     "lint": "eslint ."
   },
   "keywords": [],
-  "author": "",
+  "author": "sami.merila@cyberismo.com",
   "license": "AGPL-3.0",
+  "homepage": "https://github.com/CyberismoCom/cyberismo",
+  "packageManager": "pnpm@10.8.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/cyberismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
   "dependencies": {
     "@asciidoctor/core": "^3.0.4",
     "@cyberismo/data-handler": "workspace:*",
@@ -23,9 +30,9 @@
     "@hono/zod-validator": "^0.7.5",
     "@types/mime-types": "^3.0.1",
     "dotenv": "^17.2.3",
-    "hono": "^4.10.6",
+    "hono": "^4.10.7",
     "mime-types": "^3.0.2",
-    "zod": "^4.1.12"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@cyberismo/app": "workspace:*"

@@ -65,7 +65,7 @@ export class Template extends CardContainer {
   constructor(project: Project, template: Resource) {
     // Templates might come from modules. Remove module name from template name.
     const templateName = stripExtension(basename(template.name));
-    super(template.path, project.projectPrefix, templateName);
+    super(template.path, project.projectPrefix);
     this.templateName = templateName;
     this.fullTemplateName = template.name;
 
@@ -151,6 +151,11 @@ export class Template extends CardContainer {
       }
 
       card.key = templateIDMap.get(card.key) || card.key;
+
+      // Remap children keys from template keys to new project card keys
+      card.children = card.children.map(
+        (childKey) => templateIDMap.get(childKey) || childKey,
+      );
 
       // Set parent field based on template hierarchy and creation location
       // Store the original template parent before key remapping
@@ -399,7 +404,7 @@ export class Template extends CardContainer {
     try {
       // todo: to use cache instead of file access
       if (!pathExists(this.templateFolder())) {
-        throw new Error(`Template '${this.containerName}' does not exist`);
+        throw new Error(`Template '${this.templateName}' does not exist`);
       }
       const cardType = this.project.resources
         .byType(cardTypeName, 'cardTypes')
@@ -407,7 +412,7 @@ export class Template extends CardContainer {
 
       if (parentCard && !this.hasTemplateCard(parentCard.key)) {
         throw new Error(
-          `Card '${parentCard.key}' does not exist in template '${this.containerName}'`,
+          `Card '${parentCard.key}' does not exist in template '${this.templateName}'`,
         );
       }
 
@@ -496,7 +501,7 @@ export class Template extends CardContainer {
     const cards = this.cards();
     if (cards.length === 0) {
       throw new Error(
-        `No cards in template '${this.containerName}'. Please add template cards with 'add' command first.`,
+        `No cards in template '${this.templateName}'. Please add template cards with 'add' command first.`,
       );
     }
     return this.doCreateCards(cards, parentCard);

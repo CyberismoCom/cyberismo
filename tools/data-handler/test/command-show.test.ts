@@ -1,5 +1,6 @@
 // testing
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -10,10 +11,14 @@ import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
 import { errorFunction } from '../src/utils/error-utils.js';
 import { resourceName } from '../src/utils/resource-utils.js';
-import { Show } from '../src/commands/index.js';
+import { Fetch, Show } from '../src/commands/index.js';
+import {
+  getTestBaseDir,
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 import type { ModuleContent } from '../src/interfaces/project-interfaces.js';
 import type { ShowCommandOptions } from '../src/interfaces/command-options.js';
-import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
 
 // validation tests do not modify the content - so they can use the original files
 const baseDir = getTestBaseDir(import.meta.dirname, import.meta.url);
@@ -29,13 +34,17 @@ const optionsDecision: ShowCommandOptions = {
 const optionsMini: ShowCommandOptions = { projectPath: minimalPath };
 
 describe('shows command', () => {
+  let ensureModuleListStub: sinon.SinonStub;
+
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('show command', () => {
@@ -51,7 +60,8 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const showCommand = new Show(project);
+      const fetchCmd = new Fetch(project);
+      const showCommand = new Show(project, fetchCmd);
       const result = showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
@@ -64,7 +74,8 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const showCommand = new Show(project);
+      const fetch = new Fetch(project);
+      const showCommand = new Show(project, fetch);
       expect(() =>
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
       ).to.throw(`Card 'invalid_key' does not exist in the project`);
@@ -73,7 +84,8 @@ describe('shows command', () => {
       // No commandHandler command for getting attachment files, so using Show directly
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const showCommand = new Show(project);
+      const fetchCmd = new Fetch(project);
+      const showCommand = new Show(project, fetchCmd);
       expect(() =>
         showCommand.showAttachment('decision_1', 'does-not-exist.png'),
       ).to.throw(
@@ -789,6 +801,14 @@ describe('show', () => {
   it('showProject (success)', async () => {
     const results = await showCmd.showProject();
     expect(results).to.not.equal(undefined);
+    expect(results).to.have.property('name');
+    expect(results).to.have.property('path');
+    expect(results).to.have.property('prefix');
+    expect(results).to.have.property('modules');
+    expect(results).to.have.property('hubs');
+    expect(results).to.have.property('numberOfCards');
+    expect(results).to.have.property('description');
+    expect(results).to.have.property('category');
   });
   it('showResource - template (success)', async () => {
     const templateName = 'decision/templates/decision';

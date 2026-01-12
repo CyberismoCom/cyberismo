@@ -1,5 +1,6 @@
 // testing
 import { expect } from 'chai';
+import type * as sinon from 'sinon';
 
 // node
 import { mkdirSync, rmSync } from 'node:fs';
@@ -8,8 +9,12 @@ import { join, sep } from 'node:path';
 // cyberismo
 import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir } from '../src/utils/file-utils.js';
-import { Remove } from '../src/commands/index.js';
-import { getTestBaseDir, getTestProject } from './helpers/test-utils.js';
+import { Fetch, Remove } from '../src/commands/index.js';
+import {
+  getTestBaseDir,
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 import type { Card } from '../src/interfaces/project-interfaces.js';
 import type { requestStatus } from '../src/interfaces/request-status-interfaces.js';
@@ -442,7 +447,8 @@ describe('remove command', () => {
       const cardId = 'decision_5';
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('attachment', cardId, '')
         .then(() => {
@@ -456,7 +462,8 @@ describe('remove command', () => {
       const cardId = 'decision_999';
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('attachment', cardId, 'the-needle.heic')
         .then(() => {
@@ -469,7 +476,8 @@ describe('remove command', () => {
     it('try to remove non-existing module', async () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
-      const removeCmd = new Remove(project);
+      const fetchCmd = new Fetch(project);
+      const removeCmd = new Remove(project, fetchCmd);
       await removeCmd
         .remove('module', 'i-dont-exist')
         .then(() => {
@@ -505,10 +513,12 @@ describe('remove card', () => {
   const testDir = join(baseDir, 'tmp-remove-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
   let commands: CommandManager;
+  let ensureModuleListStub: sinon.SinonStub;
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data/', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
     commands = new CommandManager(decisionRecordsPath, {
       autoSaveConfiguration: false,
     });
@@ -518,11 +528,13 @@ describe('remove card', () => {
 
   after(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
-  it('Remove - remove card that has children', async () => {
+  it('should remove card that has children', async () => {
     const cardId = 'decision_5';
-    const removeCmd = new Remove(commands.project);
+    const fetchCmd = new Fetch(commands.project);
+    const removeCmd = new Remove(commands.project, fetchCmd);
     await removeCmd.remove('card', cardId);
 
     expect(() => commands.project.findCard(cardId)).to.throw(
@@ -532,5 +544,69 @@ describe('remove card', () => {
     expect(() => commands.project.findCard('decision_6')).to.throw(
       `Card 'decision_6' does not exist in the project`,
     );
+  });
+
+  it('should not delete template cards when removing project cards', async () => {
+    // Use simple-page template which has a parent card (decision_3) with a child card (decision_4)
+    const templateName = 'decision/templates/simplepage';
+    await commands.project.populateCaches();
+    const templateResource = commands.project.resources.byType(
+      templateName,
+      'templates',
+    );
+
+    const template = templateResource.templateObject();
+    if (!template) {
+      expect(false, 'No template cards');
+      return;
+    }
+
+    // Get template cards
+    const templateCardsBefore = template.cards();
+    expect(templateCardsBefore.length).to.be.greaterThan(0);
+
+    // Verify at least one template card has children
+    const templateCardsWithChildren = templateCardsBefore.filter(
+      (c) => c.children && c.children.length > 0,
+    );
+    expect(templateCardsWithChildren.length).to.be.greaterThan(0);
+
+    // Create cards from template
+    const createdCards = await commands.createCmd.createCard(templateName);
+    expect(createdCards.length).to.be.greaterThan(0);
+
+    const parentCardKey = createdCards.find(
+      (card) => card.parent === 'root' && card.children.length > 0,
+    )?.key;
+    if (parentCardKey) {
+      const parentCard = commands.project.findCard(parentCardKey);
+      expect(parentCard.children.length).to.be.greaterThan(0);
+
+      // Delete the created project cards
+      await commands.removeCmd.remove('card', parentCardKey!);
+
+      // Verify project card and its children are deleted
+      expect(() => commands.project.findCard(parentCardKey)).to.throw(
+        `Card '${parentCardKey}' does not exist in the project`,
+      );
+
+      for (const childKey of parentCard.children) {
+        expect(() => commands.project.findCard(childKey)).to.throw(
+          `Card '${childKey}' does not exist in the project`,
+        );
+      }
+    }
+
+    // Verify template cards still exist and were not deleted
+    const templateCardsAfter = template.cards();
+    expect(templateCardsAfter.length).to.equal(templateCardsBefore.length);
+
+    // Verify each template card still exists
+    for (const templateCard of templateCardsBefore) {
+      const foundCard = templateCardsAfter.find(
+        (c) => c.key === templateCard.key,
+      );
+      expect(foundCard).to.not.equal(undefined);
+    }
   });
 });

@@ -25,6 +25,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
  * Link Type resource class.
  */
 export class LinkTypeResource extends FileResource<LinkType> {
+  /**
+   * Creates instance of LinkTypeResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'linkTypes');
 
@@ -32,8 +37,38 @@ export class LinkTypeResource extends FileResource<LinkType> {
     this.contentSchema = super.contentSchemaContent(this.contentSchemaId);
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
+  // Update card metadata links when link type is renamed
+  private async updateCardLinks(from: string, to: string) {
+    const cards = await this.collectCards(
+      from,
+      (card, linkTypeName) =>
+        card.metadata?.links?.some((link) => link.linkType === linkTypeName) ??
+        false,
+    );
+    if (cards.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      cards.map(async (card) => {
+        if (card.metadata?.links) {
+          card.metadata.links = card.metadata.links.map((link) => {
+            if (link.linkType === from) {
+              return { ...link, linkType: to };
+            }
+            return link;
+          });
+          await this.project.updateCardMetadata(card, card.metadata);
+        }
+      }),
+    );
+  }
+
+  /**
+   * When resource name changes.
+   * @param existingName Current resource name.
+   */
+  protected async onNameChange(existingName: string) {
     const current = this.content;
     const prefixes = this.project.projectPrefixes();
     if (current.sourceCardTypes) {
@@ -49,6 +84,8 @@ export class LinkTypeResource extends FileResource<LinkType> {
     await Promise.all([
       super.updateHandleBars(existingName, this.content.name),
       super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
+      this.updateCardLinks(existingName, this.content.name),
     ]);
     // Finally, write updated content.
     await this.write();
@@ -76,7 +113,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -89,41 +126,34 @@ export class LinkTypeResource extends FileResource<LinkType> {
     op: Operation<Type>,
   ) {
     const { key } = updateKey;
-    const nameChange = key === 'name';
-    const existingName = this.content.name;
 
-    await super.update(updateKey, op);
-
-    const content = structuredClone(this.content);
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'destinationCardTypes') {
-      content.destinationCardTypes = super.handleArray(
-        op,
-        key,
-        content.destinationCardTypes as Type[],
-      ) as string[];
-    } else if (key === 'enableLinkDescription') {
-      content.enableLinkDescription = super.handleScalar(op) as boolean;
-    } else if (key === 'inboundDisplayName') {
-      content.inboundDisplayName = super.handleScalar(op) as string;
-    } else if (key === 'outboundDisplayName') {
-      content.outboundDisplayName = super.handleScalar(op) as string;
-    } else if (key === 'sourceCardTypes') {
-      content.sourceCardTypes = super.handleArray(
-        op,
-        key,
-        content.sourceCardTypes as Type[],
-      ) as string[];
+    if (key === 'name' || key === 'displayName' || key === 'description') {
+      await super.update(updateKey, op);
     } else {
-      throw new Error(`Unknown property '${key}' for FieldType`);
-    }
+      const content = structuredClone(this.content);
+      if (key === 'destinationCardTypes') {
+        content.destinationCardTypes = super.handleArray(
+          op,
+          key,
+          content.destinationCardTypes as Type[],
+        ) as string[];
+      } else if (key === 'enableLinkDescription') {
+        content.enableLinkDescription = super.handleScalar(op) as boolean;
+      } else if (key === 'inboundDisplayName') {
+        content.inboundDisplayName = super.handleScalar(op) as string;
+      } else if (key === 'outboundDisplayName') {
+        content.outboundDisplayName = super.handleScalar(op) as string;
+      } else if (key === 'sourceCardTypes') {
+        content.sourceCardTypes = super.handleArray(
+          op,
+          key,
+          content.sourceCardTypes as Type[],
+        ) as string[];
+      } else {
+        throw new Error(`Unknown property '${key}' for LinkType`);
+      }
 
-    await super.postUpdate(content, updateKey, op);
-
-    // Renaming this card type causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
+      await super.postUpdate(content, updateKey, op);
     }
   }
 

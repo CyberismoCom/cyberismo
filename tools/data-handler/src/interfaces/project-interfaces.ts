@@ -47,13 +47,15 @@ export interface CardListContainer {
 }
 // Remember to add all these keys to utils/constants.ts
 export interface PredefinedCardMetadata {
-  title: string;
   cardType: string;
-  workflowState: string;
-  rank: string;
+  labels?: string[];
   lastTransitioned?: string;
   lastUpdated?: string;
+  links: Link[];
+  rank: string;
   templateCardKey?: string;
+  title: string;
+  workflowState: string;
 }
 
 // todo: do we need in the future separation between module-template-cards and local template-cards
@@ -65,8 +67,6 @@ export enum CardLocation {
 
 // Card's index.json file content.
 export interface CardMetadata extends PredefinedCardMetadata {
-  labels?: string[];
-  links: Link[];
   [key: string]: MetadataContent;
 }
 
@@ -171,6 +171,8 @@ export interface ProjectMetadata {
   name: string;
   path: string;
   prefix: string;
+  category?: string;
+  description?: string;
   modules: string[];
   hubs: HubSetting[];
   numberOfCards: number;
@@ -181,6 +183,8 @@ export interface ProjectSettings {
   schemaVersion?: number;
   cardKeyPrefix: string;
   name: string;
+  category?: string;
+  description: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
 }

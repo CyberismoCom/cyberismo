@@ -21,6 +21,7 @@ import type {
   CardAttachment,
   CardListContainer,
   Credentials,
+  HubSetting,
   ModuleContent,
   ModuleSettingFromHub,
   ProjectMetadata,
@@ -36,6 +37,8 @@ import type {
   AllCommandOptions,
   CalcCommandOptions,
   ExportCommandOptions,
+  ImportCommandOptions,
+  MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -68,6 +71,7 @@ export const Cmd = {
   export: 'export',
   fetch: 'fetch',
   import: 'import',
+  migrate: 'migrate',
   move: 'move',
   rank: 'rank',
   remove: 'remove',
@@ -270,11 +274,15 @@ export class Commands {
           const [name] = rest;
           await this.commands?.createCmd.createLinkType(name);
         } else if (target === 'project') {
-          const [name, prefix] = rest;
+          // 3rd parameter - path - is skipped it is used in general command handling
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const [name, prefix, _, category, description] = rest;
           await Create.createProject(
             resolveTilde(this.projectPath),
             prefix,
             name,
+            category || '',
+            description || '',
           );
         } else if (target === 'report') {
           const [name] = rest;
@@ -314,12 +322,19 @@ export class Commands {
             branch,
             useCredentials && useCredentials === 'true' ? true : false,
             credentials,
+            (options as ImportCommandOptions).skipMigrationLog,
           );
         }
         if (target === 'csv') {
           const [csvFile, cardKey] = args;
           return await this.importCsv(csvFile, cardKey);
         }
+      } else if (command === Cmd.migrate) {
+        const [toVersion] = args;
+        return await this.migrate(
+          toVersion ? parseInt(toVersion, 10) : undefined,
+          options as MigrateCommandOptions,
+        );
       } else if (command === Cmd.move) {
         const [source, destination] = args;
         await this.commands?.moveCmd.moveCard(source, destination);
@@ -609,12 +624,18 @@ export class Commands {
     branch?: string,
     useCredentials?: boolean,
     credentials?: Credentials,
+    skipMigrationLog = false,
   ) {
-    return this.commands?.importCmd.importModule(source, this.projectPath, {
-      branch: branch,
-      private: useCredentials,
-      credentials,
-    });
+    return this.commands?.importCmd.importModule(
+      source,
+      this.projectPath,
+      {
+        branch: branch,
+        private: useCredentials,
+        credentials,
+      },
+      skipMigrationLog,
+    );
   }
 
   // Imports cards from a CSV file to a project.
@@ -721,6 +742,7 @@ export class Commands {
       | Card
       | CardAttachment[]
       | CardListContainer[]
+      | HubSetting[]
       | ModuleContent
       | ModuleSettingFromHub[]
       | ProjectMetadata
@@ -779,10 +801,8 @@ export class Commands {
         promise = this.commands!.showCmd.showModule(detail);
         break;
       case 'hubs':
-        return {
-          statusCode: 200,
-          payload: this.commands!.showCmd.showHubs(),
-        };
+        promise = this.commands!.showCmd.showHubs();
+        break;
       case 'modules':
         return {
           statusCode: 200,
@@ -838,6 +858,31 @@ export class Commands {
     });
 
     return { statusCode: 200 };
+  }
+
+  // Run migrations to bring project to target schema version
+  private async migrate(
+    toVersion?: number,
+    options?: { backup?: string; timeout?: number },
+  ): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    const timeout = options?.timeout;
+    try {
+      const result = await this.commands.migrateCmd.migrate(
+        toVersion,
+        options?.backup,
+        timeout,
+      );
+      return {
+        statusCode: 200,
+        message: result.message || 'Migration completed successfully',
+      };
+    } catch (e) {
+      return { statusCode: 500, message: errorFunction(e) };
+    }
   }
 
   // Validates that a given path conforms to schema. Validates both file/folder structure and file content.

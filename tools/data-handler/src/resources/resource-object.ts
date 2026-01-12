@@ -44,6 +44,11 @@ import type {
 } from '../interfaces/resource-interfaces.js';
 import type { Validate } from '../commands/validate.js';
 
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
+
 // Possible operations to perform when doing "update"
 export type UpdateOperations = 'add' | 'change' | 'rank' | 'remove';
 
@@ -308,6 +313,9 @@ export abstract class ResourceObject<
 
     const resourceString = resourceNameToString(this.resourceName);
     this.project.resources.add(resourceString, this);
+
+    // Log resource creation to migration log
+    await this.logResourceOperation('create');
   }
 
   /**
@@ -409,6 +417,62 @@ export abstract class ResourceObject<
   }
 
   /**
+   * Log to migration log resource change
+   * @param operationType Operation type
+   * @param op Details of operation
+   * @param key Which property has been changed
+   * @throws when operation type is unknown
+   */
+  protected async logResourceOperation<Type>(
+    operationType: 'create' | 'delete' | 'update' | 'rename',
+    op?: Operation<Type>,
+    key?: string,
+  ): Promise<void> {
+    let configOperation: ConfigurationOperation;
+    const target = resourceNameToString(this.resourceName);
+    const parameters: Record<string, unknown> = { type: this.type };
+
+    switch (operationType) {
+      case 'create':
+        configOperation = ConfigurationOperation.RESOURCE_CREATE;
+        break;
+      case 'delete':
+        configOperation = ConfigurationOperation.RESOURCE_DELETE;
+        break;
+      case 'update':
+        configOperation = ConfigurationOperation.RESOURCE_UPDATE;
+        if (op) {
+          parameters.operation = op.name;
+        }
+        if (key) {
+          parameters.key = key;
+        }
+        break;
+      case 'rename':
+        configOperation = ConfigurationOperation.RESOURCE_RENAME;
+        if (op && op.name === 'change') {
+          const changeOp = op as ChangeOperation<string>;
+          parameters.oldName = changeOp.target;
+          parameters.newName = changeOp.to;
+        }
+        break;
+      default:
+        throw new Error(`Unknown operation type: ${operationType}`);
+    }
+
+    await ConfigurationLogger.log(
+      this.project.basePath,
+      configOperation,
+      target,
+      {
+        parameters,
+      },
+    );
+
+    this.logger.info(`Configuration: ${configOperation} - ${target}`);
+  }
+
+  /**
    * Called after inherited class has finished 'update' operation.
    * @param content New content for resource
    * @param updateKey Which property to change
@@ -449,6 +513,9 @@ export abstract class ResourceObject<
 
     this.content = content;
     await this.write();
+
+    // Log resource update to migration log
+    await this.logResourceOperation('update', op, updateKey.key);
   }
 
   /**
@@ -496,9 +563,17 @@ export abstract class ResourceObject<
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
+    const newNameString = this.content.name;
     this.resourceName = newName;
 
-    this.project.resources.rename(oldName, this.content.name);
+    this.project.resources.rename(oldName, newNameString);
+
+    // Log resource rename to migration log
+    await this.logResourceOperation('rename', {
+      name: 'change',
+      target: oldName,
+      to: newNameString,
+    } as ChangeOperation<string>);
   }
 
   /**
@@ -528,26 +603,10 @@ export abstract class ResourceObject<
   }
 
   /**
-   * Validates resource identifier to prevent filesystem operations with invalid names
-   * todo: To Validate?
-   */
-  protected validateResourceIdentifier() {
-    if (!this.moduleResource && this.resourceName.identifier) {
-      const identifier = this.resourceName.identifier;
-      if (!/^[a-zA-Z0-9._-]+$/.test(identifier)) {
-        throw new Error(
-          `Resource identifier must follow naming rules. Identifier '${identifier}' is invalid`,
-        );
-      }
-    }
-  }
-
-  /**
    * Update calculation files.
    * @param from Resource name to update
    * @param to New name for resource
-   * @throws if 'from' or 'to' is empty string, or
-   *         if there was error accessing calculation files.
+   * @throws if 'from' or 'to' is empty string
    */
   protected async updateCalculations(from: string, to: string) {
     if (!from.trim() || !to.trim()) {
@@ -606,6 +665,39 @@ export abstract class ResourceObject<
   }
 
   /**
+   * Update references in card content.
+   * Searches through all card content in the cache and replaces references to the old resource name.
+   * @param from Resource name to update
+   * @param to New name for resource
+   * @throws if 'from' or 'to' is empty string
+   */
+  protected async updateCardContentReferences(from: string, to: string) {
+    if (!from.trim() || !to.trim()) {
+      throw new Error(
+        'updateCardContentReferences: "from" and "to" parameters must not be empty',
+      );
+    }
+
+    const allCards = this.cards();
+    const cardsToUpdate = allCards.filter(
+      (card) => card.content && card.content.includes(from),
+    );
+
+    if (cardsToUpdate.length === 0) {
+      return;
+    }
+
+    await Promise.all(
+      cardsToUpdate.map(async (card) => {
+        if (card.content) {
+          const updatedContent = card.content.replaceAll(from, to);
+          await this.project.updateCardContent(card.key, updatedContent);
+        }
+      }),
+    );
+  }
+
+  /**
    * Check if there are references to the resource in the card content.
    * @note that this needs to be async, since inherited classes need to async operations
    * @param cards cards to check
@@ -624,6 +716,22 @@ export abstract class ResourceObject<
         card.content?.includes(resourceNameToString(this.resourceName)),
       )
       .map((card) => card.key);
+  }
+
+  /**
+   * Validates resource identifier to prevent filesystem operations with invalid names
+   * todo: move to Validate?
+   * @throws if identifier is incorrect
+   */
+  protected validateResourceIdentifier() {
+    if (!this.moduleResource && this.resourceName.identifier) {
+      const identifier = this.resourceName.identifier;
+      if (!/^[a-zA-Z0-9._-]+$/.test(identifier)) {
+        throw new Error(
+          `Resource identifier must follow naming rules. Identifier '${identifier}' is invalid`,
+        );
+      }
+    }
   }
 
   /**
@@ -712,6 +820,9 @@ export abstract class ResourceObject<
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';
+
+    // Log resource deletion to migration log
+    await this.logResourceOperation('delete');
   }
 
   /**

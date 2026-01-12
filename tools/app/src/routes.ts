@@ -17,6 +17,7 @@ import CardPage from './pages/cards/card-view';
 import CardEditPage from './pages/cards/card-edit';
 import Configuration from './pages/configuration/configuration';
 import Resource from './pages/configuration/resource';
+import General from './pages/configuration/general';
 import Layout from './pages/layout';
 import ConfigLayout from './pages/configuration/layout';
 
@@ -103,6 +104,10 @@ export const router = createBrowserRouter([
           {
             path: '/configuration/',
             Component: Configuration,
+          },
+          {
+            path: '/configuration/general',
+            Component: General,
           },
           {
             path: '/configuration/:module/:type/:resource',

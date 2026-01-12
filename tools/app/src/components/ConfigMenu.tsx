@@ -45,6 +45,10 @@ export default function ConfigMenu() {
       idAccessor="id"
       childrenAccessor="children"
       onNodeClick={(node) => {
+        if (node.data.name === 'project') {
+          safePush('/configuration/general');
+          return;
+        }
         if (!node.data.name.includes('/')) {
           return;
         }

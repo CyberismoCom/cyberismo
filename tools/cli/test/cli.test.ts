@@ -14,7 +14,7 @@ let newPageCardKey = '';
 use(chaiAsPromised);
 
 describe('Cli BAT test', function () {
-  this.timeout(20000);
+  this.timeout(100000);
   after(() => {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
@@ -469,6 +469,20 @@ describe('Cli BAT test', function () {
   it('Add default hub and remove it', function (done) {
     exec(
       `cd ../../.tmp/cyberismo-cli&&cyberismo add hub default &&cyberismo remove hub default&&cyberismo validate`,
+      (error, stdout, _stderr) => {
+        if (error != null) {
+          console.log(error);
+        }
+        expect(error).to.be.null;
+        expect(stdout).to.include('Done');
+        expect(stdout).to.include('Project structure validated');
+        done();
+      },
+    );
+  });
+  it('Add default hub and check hub version', function (done) {
+    exec(
+      `cd ../../.tmp/cyberismo-cli&&cyberismo add hub default&&cyberismo fetch hubs&&cyberismo validate`,
       (error, stdout, _stderr) => {
         if (error != null) {
           console.log(error);

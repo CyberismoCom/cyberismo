@@ -19,17 +19,19 @@ import { writeFile } from 'node:fs/promises';
 import { CardCache } from './project/card-cache.js';
 import { cardPathParts } from '../utils/card-utils.js';
 import { deleteDir } from '../utils/file-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { writeJsonFile } from '../utils/json.js';
 
 import type {
   CardAttachment,
   Card,
+  CardMetadata,
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
 import asciidoctor from '@asciidoctor/core';
 
-import { ROOT } from '../utils/constants.js';
+import { isPredefinedField, ROOT } from '../utils/constants.js';
 
 /**
  * Card container base class. Used for both Project and Template.
@@ -38,17 +40,19 @@ import { ROOT } from '../utils/constants.js';
 export class CardContainer {
   public basePath: string;
   protected cardCache: CardCache;
-  protected containerName: string;
   protected prefix: string;
+
+  protected static get logger() {
+    return getChildLogger({ module: 'CardContainer' });
+  }
 
   static cardContentFile = 'index.adoc';
   static cardMetadataFile = 'index.json';
   static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, prefix: string, name: string) {
+  constructor(path: string, prefix: string) {
     this.basePath = path;
-    this.containerName = name;
     this.prefix = prefix;
     this.cardCache = new CardCache(this.prefix);
   }
@@ -226,13 +230,41 @@ export class CardContainer {
     if (card.metadata != null) {
       const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
-      await writeJsonFile(metadataFile, card.metadata);
+
+      const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
+      await writeJsonFile(metadataFile, sanitizedMetadata);
       return this.cardCache.updateCardMetadata(card.key, card.metadata);
     }
     return false;
   }
 
   /**
+   * Removes non-metadata fields that should not be persisted.
+   *
+   * @param metadata The metadata object to sanitize
+   * @returns Clean metadata object with only valid metadata fields
+   */
+  private static sanitizeMetadata(card: Card): CardMetadata {
+    const sanitized: Record<string, unknown> = {};
+
+    if (card.metadata) {
+      for (const [key, value] of Object.entries(card.metadata)) {
+        // Keys are not filtered out if they are: predefined, or field types
+        if (isPredefinedField(key) || key.includes('/')) {
+          sanitized[key] = value;
+        } else {
+          this.logger.warn(
+            `Card ${card.key} had extra metadata key ${key} with value ${value}. Key was removed`,
+          );
+        }
+        // Everything else is filtered out
+      }
+    }
+
+    return sanitized as CardMetadata;
+  }
+
+  /*
    * Show root cards from a given path.
    * @param path The path to get cards from
    * @returns an array of root-level cards (each with their children populated).

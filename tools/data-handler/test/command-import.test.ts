@@ -9,8 +9,11 @@ import { join } from 'node:path';
 // cyberismo
 import { copyDir } from '../src/utils/file-utils.js';
 import { Cmd, Commands } from '../src/command-handler.js';
-import { Show } from '../src/commands/index.js';
-import { getTestProject } from './helpers/test-utils.js';
+import { Fetch, Show } from '../src/commands/index.js';
+import {
+  getTestProject,
+  mockEnsureModuleListUpToDate,
+} from './helpers/test-utils.js';
 
 // Create test artifacts in a temp folder.
 const baseDir = import.meta.dirname;
@@ -45,7 +48,8 @@ describe('import csv command', () => {
 
     const project = getTestProject(decisionRecordsPath);
     await project.populateCaches();
-    const show = new Show(project);
+    const fetchCmd = new Fetch(project);
+    const show = new Show(project, fetchCmd);
     const card1 = show.showCardDetails(key1);
     const card2 = show.showCardDetails(key2);
     expect(card1.metadata?.title).to.equal('Title1');
@@ -111,13 +115,17 @@ describe('import csv command', () => {
 });
 
 describe('import module', () => {
+  let ensureModuleListStub: sinon.SinonStub;
+
   beforeEach(async () => {
     mkdirSync(testDir, { recursive: true });
     await copyDir('test/test-data', testDir);
+    ensureModuleListStub = mockEnsureModuleListUpToDate();
   });
 
   afterEach(() => {
     rmSync(testDir, { recursive: true, force: true });
+    ensureModuleListStub.restore();
   });
 
   describe('import module command', () => {
@@ -239,7 +247,7 @@ describe('import module', () => {
   });
 
   describe('modifying imported module content is forbidden', () => {
-    beforeEach(async () => {
+    before(async () => {
       await commandHandler.command(
         Cmd.import,
         ['module', minimalPath],

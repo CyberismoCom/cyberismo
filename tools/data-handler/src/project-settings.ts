@@ -35,6 +35,8 @@ export class ProjectConfiguration implements ProjectSettings {
   schemaVersion?: number;
   name: string;
   cardKeyPrefix: string;
+  category?: string;
+  description: string;
   modules: ModuleSetting[];
   hubs: HubSetting[];
   private logger = getChildLogger({ module: 'Project' });
@@ -45,6 +47,7 @@ export class ProjectConfiguration implements ProjectSettings {
     this.name = '';
     this.settingPath = path;
     this.cardKeyPrefix = '';
+    this.description = '';
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
@@ -79,6 +82,8 @@ export class ProjectConfiguration implements ProjectSettings {
       this.schemaVersion = settings.schemaVersion;
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
+      this.category = settings.category;
+      this.description = settings.description || '';
       this.modules = settings.modules || [];
       this.hubs = settings.hubs || [];
     } else {
@@ -106,6 +111,8 @@ export class ProjectConfiguration implements ProjectSettings {
       schemaVersion: this.schemaVersion,
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
+      category: this.category,
+      description: this.description,
       modules: this.modules,
       hubs: this.hubs,
     };
@@ -264,5 +271,18 @@ export class ProjectConfiguration implements ProjectSettings {
     throw new Error(
       `Prefix '${newPrefix}' is not valid prefix. Prefix should be in lowercase and contain letters from a to z (max length 10).`,
     );
+  }
+
+  /**
+   * Changes project name.
+   * @param newName New project name
+   */
+  public async setProjectName(newName: string) {
+    const isValid = Validate.isValidProjectName(newName);
+    if (isValid) {
+      this.name = newName;
+      return this.save();
+    }
+    throw new Error(`Project name '${newName}' is not valid.`);
   }
 }

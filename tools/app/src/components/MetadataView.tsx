@@ -25,7 +25,8 @@ import type { EditableFieldProps } from './EditableField';
 import EditableField from './EditableField';
 import type { CardResponse } from '../lib/api/types';
 import { getDefaultValue } from '@/lib/utils';
-import moment from 'moment';
+import { format } from 'date-fns';
+import { LABEL_SPLITTER } from '@/lib/constants';
 
 interface FieldItemProps {
   expanded?: boolean;
@@ -179,7 +180,7 @@ function MetadataView({
         />
         <FieldItem
           name="__lastUpdated__"
-          forceValue={moment(card.lastUpdated).format('lll')}
+          forceValue={format(new Date(card.lastUpdated), 'PPp')}
           expanded={true}
           editableFieldProps={{
             label: t('lastUpdated'),
@@ -189,6 +190,9 @@ function MetadataView({
         />
         <FieldItem
           name="__labels__"
+          description={t('labelEditor.splitterHint', {
+            splitter: LABEL_SPLITTER,
+          })}
           context={context}
           handleChange={handleChange}
           forceValue={!editMode ? card.labels : undefined}

@@ -21,6 +21,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -54,10 +55,17 @@ import { ResourceHandler } from './project/resource-handler.js';
 import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
+import { MigrationExecutor } from '../migrations/migration-executor.js';
 
+import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
+
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../utils/configuration-logger.js';
 
 // Re-export this, so that classes that use Project do not need to have separate import.
 export { ResourcesFrom };
@@ -83,6 +91,7 @@ export class Project extends CardContainer {
   private resourceWatcher: ContentWatcher | undefined;
   private settings: ProjectConfiguration;
   private validator: Validate;
+  private cachedAllModulePrefixes: string[] = [];
 
   constructor(
     path: string,
@@ -95,7 +104,7 @@ export class Project extends CardContainer {
       join(path, '.cards', 'local', Project.projectConfigFileName),
       options.autoSave ?? true,
     );
-    super(path, settings.cardKeyPrefix, '');
+    super(path, settings.cardKeyPrefix);
     this.settings = settings;
 
     this.logger.info({ path }, 'Initializing project');
@@ -103,15 +112,15 @@ export class Project extends CardContainer {
     this.calculationEngine = new CalculationEngine(this);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
-
-    this.containerName = this.settings.name;
     // todo: implement project validation
     this.validator = Validate.getInstance();
 
     this.logger.info(
-      { name: this.containerName },
+      { name: this.settings.name },
       'Project initialization complete',
     );
+
+    this.refreshAllModulePrefixes();
 
     const ignoreRenameFileChanges = true;
 
@@ -217,12 +226,34 @@ export class Project extends CardContainer {
     }
   }
 
+  // Refreshes the cached list of all module prefixes.
+  // This includes both direct and transient module dependencies.
+  private refreshAllModulePrefixes(): void {
+    const prefixes: string[] = [this.projectPrefix];
+
+    try {
+      const modules = readdirSync(this.paths.modulesFolder, {
+        withFileTypes: true,
+      })
+        .filter((item) => item.isDirectory())
+        .map((item) => item.name);
+
+      prefixes.push(...modules);
+    } catch {
+      // If modules folder doesn't exist, fall back to configuration modules only
+      const moduleNames = this.configuration.modules.map((item) => item.name);
+      prefixes.push(...moduleNames);
+    }
+
+    this.cachedAllModulePrefixes = prefixes;
+  }
+
   // Validates that card's data is valid.
   private async validateCard(card: Card): Promise<string> {
     const invalidCustomData = await this.validator.validateCustomFields(
       this,
       card,
-      this.projectPrefixes(),
+      this.allModulePrefixes(),
     );
     const invalidWorkFlow = await this.validator.validateWorkflowState(
       this,
@@ -256,7 +287,7 @@ export class Project extends CardContainer {
   protected async populateTemplateCards(): Promise<void> {
     try {
       const templateResources = this.resources.templates();
-      const prefixes = this.projectPrefixes();
+      const prefixes = this.allModulePrefixes();
       const loadPromises = templateResources.map(async (template) => {
         try {
           this.validator.validResourceName(
@@ -543,12 +574,27 @@ export class Project extends CardContainer {
   public async handleCardDeleted(deletedCard: Card) {
     // Delete children from the cache first
     if (deletedCard.children && deletedCard.children.length > 0) {
+      const parentCachedCard = this.cardCache.getCard(deletedCard.key);
+      const parentLocation = parentCachedCard?.location || 'project';
+
       for (const child of deletedCard.children) {
         try {
           const childCard = this.findCard(child);
+          const childCachedCard = this.cardCache.getCard(child);
+
+          // Safety check: only delete children from the same location (project or template)
+          if (childCachedCard && childCachedCard.location !== parentLocation) {
+            const errorMessage =
+              `Cannot delete child card '${child}' from different location '${childCachedCard.location}' ` +
+              `than parent card '${deletedCard.key}' from '${parentLocation}'`;
+            this.logger.error(errorMessage);
+            throw new Error(errorMessage);
+          }
+
           await this.handleCardDeleted(childCard);
-        } catch {
+        } catch (error) {
           this.logger.warn(
+            { error },
             `Accessing child '${child}' of '${deletedCard.key}' when deleting cards caused an exception`,
           );
           continue;
@@ -609,12 +655,30 @@ export class Project extends CardContainer {
   /**
    * Adds a module from project.
    * @param module Module to add
+   * @param skipMigrationLog If true, skip logging to migration log. Used during project creation.
    */
-  public async importModule(module: ModuleSetting) {
+  public async importModule(module: ModuleSetting, skipMigrationLog = false) {
     // Add module as a dependency.
     await this.configuration.addModule(module);
     this.resources.changedModules();
+    this.refreshAllModulePrefixes();
     await this.populateTemplateCards();
+
+    // Log configuration change
+    if (!skipMigrationLog) {
+      await ConfigurationLogger.log(
+        this.basePath,
+        ConfigurationOperation.MODULE_ADD,
+        module.name,
+        {
+          parameters: {
+            location: module.location,
+            branch: module.branch,
+            private: module.private,
+          },
+        },
+      );
+    }
     this.logger.info(`Imported module '${module.name}'`);
   }
 
@@ -706,6 +770,7 @@ export class Project extends CardContainer {
       );
       return {
         name: moduleConfig.name,
+        description: moduleConfig.description || '',
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -831,8 +896,17 @@ export class Project extends CardContainer {
   }
 
   /**
-   * Returns all prefixes used in the project (project's own plus all from imported modules).
+   * Returns all prefixes used in the project.
+   * This includes both direct dependencies and transient dependencies.
    * @returns all prefixes used in the project.
+   */
+  public allModulePrefixes(): string[] {
+    return this.cachedAllModulePrefixes;
+  }
+
+  /**
+   * Returns prefixes for direct module dependencies only (from cardsConfig.json).
+   * @returns prefixes for direct module dependencies.
    */
   public projectPrefixes(): string[] {
     const prefixes: string[] = [this.projectPrefix];
@@ -892,6 +966,17 @@ export class Project extends CardContainer {
     // Finally, remove module from project configuration
     await this.configuration.removeModule(moduleName);
 
+    // Refresh cached module prefixes after removal
+    this.refreshAllModulePrefixes();
+
+    // Log configuration change
+    await ConfigurationLogger.log(
+      this.basePath,
+      ConfigurationOperation.MODULE_REMOVE,
+      moduleName,
+      {},
+    );
+
     this.logger.info(`Removed module '${moduleName}'`);
   }
 
@@ -904,14 +989,61 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Run migrations to bring project schema to target version.
+   * @param fromVersion Current schema version
+   * @param toVersion Target schema version
+   * @param backupDir Optional directory for backups. If undefined, no backup is created.
+   * @param timeoutMilliSeconds Optional timeout in milliseconds. If undefined, uses default (2 minutes).
+   * @returns Migration result
+   */
+  public async runMigrations(
+    fromVersion: number,
+    toVersion: number,
+    backupDir?: string,
+    timeoutMilliSeconds?: number,
+  ): Promise<MigrationResult> {
+    this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
+
+    const executor = new MigrationExecutor(
+      this,
+      backupDir,
+      timeoutMilliSeconds,
+    );
+    const result = await executor.migrate(
+      fromVersion,
+      toVersion,
+      async (version: number) => {
+        this.settings.schemaVersion = version;
+        await this.settings.save();
+      },
+    );
+
+    if (result.success) {
+      this.logger.info(
+        { fromVersion, toVersion },
+        'Migration completed successfully',
+      );
+    } else {
+      this.logger.error(
+        { error: result.error, message: result.message },
+        'Migration failed',
+      );
+    }
+
+    return result;
+  }
+
+  /**
    * Shows details of a project.
    * @returns details of a project.
    */
   public async show(): Promise<ProjectMetadata> {
     return {
-      name: this.containerName,
+      name: this.settings.name,
       path: this.basePath,
       prefix: this.projectPrefix,
+      category: this.configuration.category,
+      description: this.configuration.description,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

@@ -222,7 +222,7 @@ export class Validate {
   ): Promise<string[]> {
     const message: string[] = [];
     try {
-      const prefixes = project.projectPrefixes();
+      const prefixes = project.allModulePrefixes();
       const files = await readdir(path, {
         withFileTypes: true,
       });
@@ -554,7 +554,7 @@ export class Validate {
         cards.push(...project.allTemplateCards());
 
         const cardIds = new Map<string, number>();
-        const allPrefixes = await project.projectPrefixes();
+        const allPrefixes = project.allModulePrefixes();
 
         for (const card of cards) {
           if (cardIds.has(card.key)) {
@@ -819,11 +819,7 @@ export class Validate {
 
     // Validate that all metadata keys are either predefined fields or valid field type names
     for (const key of Object.keys(card.metadata)) {
-      if (
-        (isPredefinedField(key) as boolean) ||
-        key === 'labels' ||
-        key === 'links'
-      ) {
+      if (isPredefinedField(key) as boolean) {
         continue;
       }
       try {

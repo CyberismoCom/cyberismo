@@ -17,6 +17,8 @@ import {
   mkdir,
   readdir,
   rm,
+  stat,
+  statfs,
   unlink,
   writeFile,
 } from 'node:fs/promises';
@@ -25,19 +27,17 @@ import { dirname, join, sep } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
- * Works like the writeFile method, but ensures that the directory exists
- * There is only one difference: This method only supports a string as the filePath
+ * Get available disk space for a given path.
+ * @param path Path to check
+ * @returns Available space in bytes
  */
-export async function writeFileSafe(
-  filePath: string,
-  data: Parameters<typeof writeFile>[1],
-  options?: Parameters<typeof writeFile>[2],
-) {
-  const dir = dirname(filePath);
-  await mkdir(dir, {
-    recursive: true,
-  });
-  return writeFile(filePath, data, options);
+export async function availableSpace(path: string): Promise<number> {
+  try {
+    const stats = await statfs(path);
+    return stats.bavail * stats.bsize;
+  } catch (error) {
+    throw new Error(`Failed to check available disk space: ${error}`);
+  }
 }
 
 /**
@@ -85,6 +85,34 @@ export async function deleteFile(path: string): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+/**
+ * Calculate the total size of a directory recursively.
+ * @param dirPath Path to directory
+ * @returns Size in bytes
+ */
+export async function folderSize(dirPath: string): Promise<number> {
+  let size = 0;
+
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name);
+
+      if (entry.isDirectory()) {
+        size += await folderSize(fullPath);
+      } else if (entry.isFile()) {
+        const stats = await stat(fullPath);
+        size += stats.size;
+      }
+    }
+  } catch {
+    // Ignore permission errors or missing directories
+  }
+
+  return size;
 }
 
 /**
@@ -180,3 +208,19 @@ export function resolveTilde(filePath: string): string {
  * Path separator RE.
  */
 export const sepRegex = /[/\\]/;
+
+/**
+ * Works like the writeFile method, but ensures that the directory exists
+ * There is only one difference: This method only supports a string as the filePath
+ */
+export async function writeFileSafe(
+  filePath: string,
+  data: Parameters<typeof writeFile>[1],
+  options?: Parameters<typeof writeFile>[2],
+) {
+  const dir = dirname(filePath);
+  await mkdir(dir, {
+    recursive: true,
+  });
+  return writeFile(filePath, data, options);
+}

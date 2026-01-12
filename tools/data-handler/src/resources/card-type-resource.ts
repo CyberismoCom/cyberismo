@@ -17,6 +17,7 @@ import { FileResource } from './file-resource.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { ResourcesFrom } from '../containers/project.js';
 import { sortCards } from '../utils/card-utils.js';
+import { removeValue } from '../utils/common-utils.js';
 import { Validate } from '../commands/validate.js';
 
 import type {
@@ -39,6 +40,11 @@ import type { ResourceName } from '../utils/resource-utils.js';
  * Card type resource class.
  */
 export class CardTypeResource extends FileResource<CardType> {
+  /**
+   * Creates instance of CardTypeResource
+   * @param project Project to use
+   * @param name Resource name
+   */
   constructor(project: Project, name: ResourceName) {
     super(project, name, 'cardTypes');
 
@@ -69,7 +75,10 @@ export class CardTypeResource extends FileResource<CardType> {
     if (op && op.name === 'rank') return;
 
     // Collect both project cards and template cards.
-    const cards = await this.collectCards(this.content.name);
+    const cards = await this.collectCards(
+      this.content.name,
+      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+    );
 
     if (op && op.name === 'change') {
       const from = (op as ChangeOperation<string>).target;
@@ -102,38 +111,6 @@ export class CardTypeResource extends FileResource<CardType> {
     }
   }
 
-  // When resource name changes.
-  private async handleNameChange(existingName: string) {
-    const current = this.content;
-    const prefixes = this.project.projectPrefixes();
-    if (current.customFields) {
-      current.customFields.map(
-        (field) =>
-          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
-      );
-    }
-    if (current.alwaysVisibleFields) {
-      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
-        this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    if (current.optionallyVisibleFields) {
-      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
-        (item) => this.updatePrefixInResourceName(item, prefixes),
-      );
-    }
-    current.workflow = this.updatePrefixInResourceName(
-      current.workflow,
-      prefixes,
-    );
-    await Promise.all([
-      super.updateHandleBars(existingName, this.content.name),
-      super.updateCalculations(existingName, this.content.name),
-    ]);
-    // Finally, write updated content.
-    await this.write();
-  }
-
   // When a field is removed, remove it from all affected cards.
   private async handleRemoveField(cards: Card[], item: CustomField) {
     for (const card of cards) {
@@ -151,7 +128,10 @@ export class CardTypeResource extends FileResource<CardType> {
     op: ChangeOperation<Type>,
   ) {
     await this.verifyStateMapping(stateMapping, op);
-    const cards = await this.collectCards(this.content.name);
+    const cards = await this.collectCards(
+      this.content.name,
+      (card, cardTypeName) => card.metadata?.cardType === cardTypeName,
+    );
 
     const unmappedStates: string[] = [];
 
@@ -189,15 +169,6 @@ export class CardTypeResource extends FileResource<CardType> {
     );
   }
 
-  // Remove value from array.
-  // todo: make it as generic and move to utils
-  private removeValue(array: string[], value: string) {
-    const index = array.findIndex((element) => element === value);
-    if (index !== -1) {
-      array.splice(index, 1);
-    }
-  }
-
   // Return link types that use this card type.
   private relevantLinkTypes(): string[] {
     const resourceName = resourceNameToString(this.resourceName);
@@ -233,8 +204,8 @@ export class CardTypeResource extends FileResource<CardType> {
       field = { name: target['name' as keyof Type] };
     }
     const fieldName = (field ? field.name : target) as string;
-    this.removeValue(content.alwaysVisibleFields, fieldName);
-    this.removeValue(content.optionallyVisibleFields, fieldName);
+    removeValue(content.alwaysVisibleFields, fieldName);
+    removeValue(content.optionallyVisibleFields, fieldName);
   }
 
   // Sets content container values to be either '[]' or with proper values.
@@ -246,21 +217,8 @@ export class CardTypeResource extends FileResource<CardType> {
         if (item.isCalculated === undefined) {
           item.isCalculated = false;
         }
-        // Fetch "displayName" from field type if it is missing.
-        if (item.name && item.displayName === undefined) {
-          const fieldType = this.project.resources.byType(
-            item.name,
-            'fieldTypes',
-          );
-          const fieldTypeContent = fieldType.data;
-          if (fieldTypeContent) {
-            item.displayName = fieldTypeContent.displayName;
-          }
-        } else if (!item.name) {
-          console.error(
-            `Custom field '${item.name}' is missing mandatory 'name' in card type '${content.name}'`,
-          );
-          return undefined;
+        if (!item.name) {
+          continue;
         }
       }
     } else {
@@ -401,9 +359,47 @@ export class CardTypeResource extends FileResource<CardType> {
   }
 
   /**
+   * When resource name changes
+   * @param existingName Current resource name
+   */
+  protected async onNameChange(existingName: string) {
+    const current = this.content;
+    const prefixes = this.project.projectPrefixes();
+    if (current.customFields) {
+      current.customFields.map(
+        (field) =>
+          (field.name = this.updatePrefixInResourceName(field.name, prefixes)),
+      );
+    }
+    if (current.alwaysVisibleFields) {
+      current.alwaysVisibleFields = current.alwaysVisibleFields.map((item) =>
+        this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    if (current.optionallyVisibleFields) {
+      current.optionallyVisibleFields = current.optionallyVisibleFields.map(
+        (item) => this.updatePrefixInResourceName(item, prefixes),
+      );
+    }
+    current.workflow = this.updatePrefixInResourceName(
+      current.workflow,
+      prefixes,
+    );
+    await Promise.all([
+      super.updateHandleBars(existingName, this.content.name),
+      super.updateCalculations(existingName, this.content.name),
+      super.updateCardContentReferences(existingName, this.content.name),
+      this.updateLinkTypes(existingName),
+    ]);
+
+    await this.write();
+  }
+
+  /**
    * Creates a new card type object. Base class writes the object to disk automatically.
    * @param workflowName Workflow name that this card type uses.
-   * @throws when workflow is empty, or does not exist in the project.
+   * @throws when workflow is empty, or
+   *         when workflow does not exist in the project.
    */
   public async createCardType(workflowName: string) {
     if (!workflowName) {
@@ -438,7 +434,7 @@ export class CardTypeResource extends FileResource<CardType> {
   public async rename(newName: ResourceName) {
     const existingName = this.content.name;
     await super.rename(newName);
-    return this.handleNameChange(existingName);
+    return this.onNameChange(existingName);
   }
 
   /**
@@ -451,60 +447,51 @@ export class CardTypeResource extends FileResource<CardType> {
     op: Operation<Type>,
   ) {
     const { key } = updateKey;
-    const nameChange = key === 'name';
-    const customFieldsChange = key === 'customFields';
-    const existingName = this.content.name;
-    await super.update(updateKey, op);
 
-    const content = structuredClone(this.content);
-    if (key === 'name') {
-      content.name = super.handleScalar(op) as string;
-    } else if (key === 'alwaysVisibleFields') {
-      await this.validateFieldType(key, op);
-      content.alwaysVisibleFields = super.handleArray(
-        op,
-        key,
-        content.alwaysVisibleFields as Type[],
-      ) as string[];
-    } else if (key === 'optionallyVisibleFields') {
-      await this.validateFieldType(key, op);
-      content.optionallyVisibleFields = super.handleArray(
-        op,
-        key,
-        content.optionallyVisibleFields as Type[],
-      ) as string[];
-    } else if (key === 'workflow') {
-      const changeOp = op as ChangeOperation<string>;
-      const stateMapping = changeOp.mappingTable?.stateMapping || {};
-      content.workflow = super.handleScalar(op) as string;
-      if (Object.keys(stateMapping).length > 0) {
-        await this.handleWorkflowChange(stateMapping, changeOp);
-      }
-    } else if (key === 'customFields') {
-      await this.validateFieldType(key, op);
-      content.customFields = super.handleArray(
-        op,
-        key,
-        content.customFields as Type[],
-      ) as CustomField[];
-      if (op.name === 'remove') {
-        this.removeValueFromOtherArrays(op, content);
-      }
-    } else if (key === 'description') {
-      content.description = super.handleScalar(op) as string;
-    } else if (key === 'displayName') {
-      content.displayName = super.handleScalar(op) as string;
+    if (key === 'name' || key === 'description' || key === 'displayName') {
+      await super.update(updateKey, op);
     } else {
-      throw new Error(`Unknown property '${key}' for CardType`);
-    }
-    await super.postUpdate(content, updateKey, op);
+      const content = structuredClone(this.content);
+      const customFieldsChange = key === 'customFields';
+      if (key === 'alwaysVisibleFields') {
+        await this.validateFieldType(key, op);
+        content.alwaysVisibleFields = super.handleArray(
+          op,
+          key,
+          content.alwaysVisibleFields as Type[],
+        ) as string[];
+      } else if (key === 'optionallyVisibleFields') {
+        await this.validateFieldType(key, op);
+        content.optionallyVisibleFields = super.handleArray(
+          op,
+          key,
+          content.optionallyVisibleFields as Type[],
+        ) as string[];
+      } else if (key === 'workflow') {
+        const changeOp = op as ChangeOperation<string>;
+        const stateMapping = changeOp.mappingTable?.stateMapping || {};
+        content.workflow = super.handleScalar(op) as string;
+        if (Object.keys(stateMapping).length > 0) {
+          await this.handleWorkflowChange(stateMapping, changeOp);
+        }
+      } else if (key === 'customFields') {
+        await this.validateFieldType(key, op);
+        content.customFields = super.handleArray(
+          op,
+          key,
+          content.customFields as Type[],
+        ) as CustomField[];
+        if (op.name === 'remove') {
+          this.removeValueFromOtherArrays(op, content);
+        }
+      } else {
+        throw new Error(`Unknown property '${key}' for CardType`);
+      }
+      await super.postUpdate(content, updateKey, op);
 
-    // Renaming this card type causes that references to its name must be updated.
-    if (nameChange) {
-      await this.handleNameChange(existingName);
-      await this.updateLinkTypes(existingName);
-    } else if (customFieldsChange) {
-      return this.handleCustomFieldsChange(op as ChangeOperation<string>);
+      if (customFieldsChange) {
+        return this.handleCustomFieldsChange(op as ChangeOperation<string>);
+      }
     }
   }
 
