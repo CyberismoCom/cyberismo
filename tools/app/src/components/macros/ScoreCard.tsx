@@ -49,7 +49,6 @@ export default function ScoreCard({
           style={{
             fontSize: '48px',
             fontWeight: 'bold',
-            color: '#333333',
           }}
         >
           {value}
@@ -58,16 +57,15 @@ export default function ScoreCard({
           style={{
             fontSize: '24px',
             marginLeft: '4px',
-            color: '#333333',
           }}
         >
           {unit}
         </Typography>
       </Box>
       <Typography
+        level="body-sm"
         style={{
           fontSize: '14px',
-          color: '#999999',
         }}
       >
         {legend}
