@@ -140,7 +140,6 @@ export const CardTreeNode = ({
             marginLeft: '4px',
             textAlign: 'center',
             alignSelf: 'center',
-            '--Chip-decoratorChildHeight': '20px',
           }}
         >
           {progress + '%'}

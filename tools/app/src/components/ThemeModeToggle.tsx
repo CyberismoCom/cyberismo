@@ -21,10 +21,13 @@ import LightModeIcon from '@mui/icons-material/LightMode';
  * Automatically syncs with system preferences when defaultMode="system".
  */
 export function ThemeModeToggle() {
-  const { mode, setMode } = useColorScheme();
+  const { mode, setMode, systemMode } = useColorScheme();
+
+  // When mode is "system", use the actual system mode for display and toggle logic
+  const currentMode = mode === 'system' ? systemMode : mode;
 
   const handleToggle = () => {
-    setMode(mode === 'light' ? 'dark' : 'light');
+    setMode(currentMode === 'light' ? 'dark' : 'light');
   };
 
   return (
@@ -32,13 +35,13 @@ export function ThemeModeToggle() {
       variant="plain"
       color="neutral"
       onClick={handleToggle}
-      aria-label={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}
+      aria-label={`Switch to ${currentMode === 'light' ? 'dark' : 'light'} mode`}
       sx={{
         '--IconButton-size': '32px',
         marginRight: '6px',
       }}
     >
-      {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+      {currentMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
     </IconButton>
   );
 }

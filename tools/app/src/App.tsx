@@ -34,6 +34,7 @@ function App() {
         theme={theme}
         defaultMode="system"
         modeStorageKey="cyberismo-color-scheme"
+        disableNestedContext
       >
         <CssBaseline />
         <StoreProvider>

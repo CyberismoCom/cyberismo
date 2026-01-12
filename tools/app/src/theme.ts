@@ -23,7 +23,7 @@ const theme = extendTheme({
           level2: '#f0f0f0',
         },
         neutral: {
-          softBg: '#f0f0f0',
+          softBg: '#e4e4e4',
         },
       },
     },
