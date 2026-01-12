@@ -31,7 +31,7 @@ export function NewCalculationModal({
 
   const handleCreate = async (data: CreateCalculationData) => {
     await createCalculation(data);
-    return `${project?.prefix}/calculations/${data.fileName}`;
+    return `${project?.prefix}/calculations/${data.identifier}`;
   };
 
   return (

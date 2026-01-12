@@ -21,7 +21,7 @@ test('POST /api/calculations creates a calculation successfully', async () => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      fileName: 'test-calculation',
+      identifier: 'test-calculation',
     }),
   });
 

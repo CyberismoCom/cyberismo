@@ -12,10 +12,34 @@
 */
 
 import type { CommandManager } from '@cyberismo/data-handler';
+import { updateResourceWithOperation } from '../resources/service.js';
+
+/**
+ * Capitalizes the first letter of a string.
+ */
+function capitalize(str: string): string {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 export async function createCalculation(
   commands: CommandManager,
-  fileName: string,
+  identifier: string,
 ) {
-  await commands.createCmd.createCalculation(fileName);
+  await commands.createCmd.createCalculation(identifier);
+
+  // Set displayName to capitalized version of identifier
+  const project = await commands.showCmd.showProject();
+  await updateResourceWithOperation(
+    commands,
+    { prefix: project.prefix, type: 'calculations', identifier },
+    {
+      updateKey: { key: 'displayName' },
+      operation: {
+        name: 'change',
+        target: '',
+        to: capitalize(identifier),
+      },
+    },
+  );
 }

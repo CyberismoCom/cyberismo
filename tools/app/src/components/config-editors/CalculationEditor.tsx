@@ -63,20 +63,34 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
       node={node}
       onCancel={() =>
         reset({
-          calculation: node.data.calculation,
+          calculation: node.data.content.calculation,
           displayName: node.data.displayName,
         })
       }
       onUpdate={handleSubmit(async (data) => {
         try {
-          await update({
-            updateKey: { key: 'content', subKey: 'calculation' },
-            operation: {
-              name: 'change',
-              target: node.data.calculation,
-              to: data.calculation,
-            },
-          });
+          // Update displayName if changed
+          if (data.displayName !== node.data.displayName) {
+            await update({
+              updateKey: { key: 'displayName' },
+              operation: {
+                name: 'change',
+                target: node.data.displayName,
+                to: data.displayName,
+              },
+            });
+          }
+          // Update calculation content if changed
+          if (data.calculation !== node.data.content.calculation) {
+            await update({
+              updateKey: { key: 'content', subKey: 'calculation' },
+              operation: {
+                name: 'change',
+                target: node.data.content.calculation,
+                to: data.calculation,
+              },
+            });
+          }
           dispatch(
             addNotification({
               message: t('saveFile.success'),
@@ -85,6 +99,7 @@ export function CalculationEditor({ node }: { node: CalculationNode }) {
           );
           reset({
             calculation: data.calculation,
+            displayName: data.displayName,
           });
         } catch (error) {
           dispatch(
