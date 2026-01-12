@@ -14,19 +14,6 @@ import { extendTheme } from '@mui/joy/styles';
 
 const theme = extendTheme({
   colorSchemes: {
-    light: {
-      palette: {
-        background: {
-          body: '#ffffff',
-          surface: '#f0f0f0',
-          level1: '#fafafa',
-          level2: '#f0f0f0',
-        },
-        neutral: {
-          softBg: '#e4e4e4',
-        },
-      },
-    },
     dark: {
       palette: {
         background: {
@@ -37,11 +24,6 @@ const theme = extendTheme({
         },
         neutral: {
           softBg: '#22272e',
-        },
-        primary: {
-          500: '#58a6ff',
-          600: '#79c0ff',
-          700: '#a5d6ff',
         },
       },
     },
