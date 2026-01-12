@@ -15,19 +15,46 @@ import { IconButton } from '@mui/joy';
 import { useColorScheme } from '@mui/joy/styles';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 
 /**
- * Toggle button for switching between light and dark color schemes.
- * Automatically syncs with system preferences when defaultMode="system".
+ * Toggle button for cycling between system, light, and dark color schemes.
+ * Cycles: system → light → dark → system
  */
 export function ThemeModeToggle() {
-  const { mode, setMode, systemMode } = useColorScheme();
-
-  // When mode is "system", use the actual system mode for display and toggle logic
-  const currentMode = mode === 'system' ? systemMode : mode;
+  const { mode, setMode } = useColorScheme();
 
   const handleToggle = () => {
-    setMode(currentMode === 'light' ? 'dark' : 'light');
+    // Cycle: system → light → dark → system
+    if (mode === 'system') {
+      setMode('light');
+    } else if (mode === 'light') {
+      setMode('dark');
+    } else {
+      setMode('system');
+    }
+  };
+
+  const getIcon = () => {
+    switch (mode) {
+      case 'light':
+        return <LightModeIcon />;
+      case 'dark':
+        return <DarkModeIcon />;
+      default:
+        return <SettingsBrightnessIcon />;
+    }
+  };
+
+  const getNextModeLabel = () => {
+    switch (mode) {
+      case 'system':
+        return 'light';
+      case 'light':
+        return 'dark';
+      default:
+        return 'system';
+    }
   };
 
   return (
@@ -35,13 +62,14 @@ export function ThemeModeToggle() {
       variant="plain"
       color="neutral"
       onClick={handleToggle}
-      aria-label={`Switch to ${currentMode === 'light' ? 'dark' : 'light'} mode`}
+      aria-label={`Switch to ${getNextModeLabel()} mode`}
       sx={{
         '--IconButton-size': '32px',
         marginRight: '6px',
+        color: 'common.white',
       }}
     >
-      {currentMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+      {getIcon()}
     </IconButton>
   );
 }
