@@ -25,6 +25,12 @@ const theme = extendTheme({
         neutral: {
           softBg: '#22272e',
         },
+        primary: {
+          // Lighter blues for better contrast on dark backgrounds
+          500: '#58a6ff',
+          600: '#79c0ff',
+          700: '#a5d6ff',
+        },
       },
     },
   },
