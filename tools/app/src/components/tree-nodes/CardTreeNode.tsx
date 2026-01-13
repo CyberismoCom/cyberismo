@@ -97,7 +97,7 @@ export const CardTreeNode = ({
       height="100%"
       marginRight={1}
       borderRadius="6px 6px 6px 6px"
-      bgcolor={node.isSelected ? 'white' : 'transparent'}
+      bgcolor={node.isSelected ? 'background.body' : 'transparent'}
     >
       <ExpandMoreIcon
         data-cy="ExpandMoreIcon"
@@ -132,6 +132,8 @@ export const CardTreeNode = ({
           size="sm"
           sx={{
             backgroundColor: chipColor(progress),
+            color: 'common.black',
+            fontWeight: 600,
             fontSize: '0.8rem',
             padding: '0px 6px 0px 6px',
             height: '20px',

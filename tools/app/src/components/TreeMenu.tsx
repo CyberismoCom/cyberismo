@@ -13,6 +13,7 @@
 
 import type { NodeApi } from 'react-arborist';
 import type { QueryResult } from '@cyberismo/data-handler/types/queries';
+import { Stack } from '@mui/joy';
 import { BaseTreeComponent } from './BaseTreeComponent';
 import { CardTreeNode } from './tree-nodes';
 
@@ -44,17 +45,19 @@ export const TreeMenu = ({
   };
 
   return (
-    <BaseTreeComponent
-      title={title}
-      linkTo={title ? '/cards' : ''}
-      data={tree}
-      selectedId={selectedCardKey}
-      nodeRenderer={CardTreeNode}
-      idAccessor={(node) => node.key}
-      childrenAccessor="children"
-      onMove={handleMove}
-      onNodeClick={onCardSelect}
-      openByDefault={openByDefault}
-    />
+    <Stack height="100%" width="100%" bgcolor="background.surface">
+      <BaseTreeComponent
+        title={title}
+        linkTo={title ? '/cards' : ''}
+        data={tree}
+        selectedId={selectedCardKey}
+        nodeRenderer={CardTreeNode}
+        idAccessor={(node) => node.key}
+        childrenAccessor="children"
+        onMove={handleMove}
+        onNodeClick={onCardSelect}
+        openByDefault={openByDefault}
+      />
+    </Stack>
   );
 };

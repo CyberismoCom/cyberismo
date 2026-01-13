@@ -71,10 +71,14 @@ export function percentage(options: PercentageOptions): string {
   const dynamicSVGHeight = donutYOffset + SIZE / 2 + R + 20;
   return `
 <svg width="${SVG_WIDTH}" height="${dynamicSVGHeight}" viewBox="0 0 ${SVG_WIDTH} ${dynamicSVGHeight}" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .percentage-text { fill: var(--joy-palette-text-primary, #333); }
+    .percentage-legend { fill: var(--joy-palette-text-secondary, #666); }
+  </style>
   <title>${title}</title>
 
   <!-- Visible Title (wrapped) -->
-  <text x="${SVG_WIDTH / 2}" y="${TITLE_Y}" text-anchor="middle" font-size="${TITLE_FONT_SIZE}" font-weight="bold">
+  <text class="percentage-text" x="${SVG_WIDTH / 2}" y="${TITLE_Y}" text-anchor="middle" font-size="${TITLE_FONT_SIZE}" font-weight="bold">
     ${titleLines.map((line, i) => `<tspan x='${SVG_WIDTH / 2}' dy='${i === 0 ? 0 : LINE_SPACING}em'>${line}</tspan>`).join('')}
   </text>
 
@@ -90,8 +94,8 @@ export function percentage(options: PercentageOptions): string {
           transform="rotate(-90 ${SVG_WIDTH / 2} ${donutCenterY})" />
 
   <!-- Numbers -->
-  <text x="${SVG_WIDTH / 2}" y="${donutCenterY - 8}" text-anchor="middle" font-size="${VALUE_FONT_SIZE}" font-weight="bold">${value}%</text>
-  <text x="${SVG_WIDTH / 2}" y="${donutCenterY + 20}" text-anchor="middle" font-size="${LEGEND_FONT_SIZE}">${legend}</text>
+  <text class="percentage-text" x="${SVG_WIDTH / 2}" y="${donutCenterY - 8}" text-anchor="middle" font-size="${VALUE_FONT_SIZE}" font-weight="bold">${value}%</text>
+  <text class="percentage-legend" x="${SVG_WIDTH / 2}" y="${donutCenterY + 20}" text-anchor="middle" font-size="${LEGEND_FONT_SIZE}">${legend}</text>
 </svg>
 `;
 }
