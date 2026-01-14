@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Box,
   Button,
@@ -28,22 +28,20 @@ import {
   Stack,
   Typography,
 } from '@mui/joy';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import type { AnyNode } from '@/lib/api/types';
 import type { VisibilityGroup } from '@/lib/api/cardType';
 import { useTranslation } from 'react-i18next';
 import { useResource, useCardTypeMutations } from '@/lib/api';
-import { useAppDispatch } from '@/lib/hooks';
+import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
+import { EditableRowActions } from './EditableRowActions';
+import { listRowStyles, reorderButtonContainerStyles } from './listEditorStyles';
 
 type FieldView = {
   name: string;
@@ -88,14 +86,20 @@ export function CardTypeFieldsEditor({
     isUpdating: isVisibilityUpdating,
   } = useCardTypeMutations(cardType.name);
 
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
+  const {
+    editingItem: editingField,
+    itemToDelete: fieldToDelete,
+    isEditingLocked,
+    startEditing: setEditingField,
+    cancelEditing,
+    setItemToDelete: setFieldToDelete,
+    clearItemToDelete,
+  } = useListItemEditing<string>();
 
   const {
     control: newFieldControl,
     handleSubmit: handleNewSubmit,
     reset: resetNewField,
-    watch: watchNewField,
   } = useForm<NewFieldDraft>({
     defaultValues: {
       name: '',
@@ -116,7 +120,7 @@ export function CardTypeFieldsEditor({
     },
   });
 
-  const newFieldValues = watchNewField();
+  const newFieldValues = useWatch({ control: newFieldControl });
 
   const fieldTypeOptions = useMemo(
     () => getFieldTypeOptions(resourceTree),
@@ -168,7 +172,6 @@ export function CardTypeFieldsEditor({
   };
 
   const busy = isUpdating() || isVisibilityUpdating();
-  const editingLocked = !!editingField;
   const disableAll = readOnly || busy;
 
   const handleAddField = async (data: NewFieldDraft) => {
@@ -304,8 +307,25 @@ export function CardTypeFieldsEditor({
     await handleFieldVisibilityUpdate(fieldName, targetVisibility);
   };
 
+  const closeEditMode = () => {
+    cancelEditing();
+    resetEditField({ displayName: '', isCalculated: false });
+  };
+
   const handleSaveEdit = async (field: FieldView, draft: EditFieldDraft) => {
     if (!draft || disableAll) return;
+
+    const trimmedDisplayName = draft.displayName.trim();
+
+    // Check if anything actually changed
+    const hasChanges =
+      trimmedDisplayName !== field.displayName ||
+      draft.isCalculated !== field.isCalculated;
+
+    if (!hasChanges) {
+      closeEditMode();
+      return;
+    }
 
     try {
       await update({
@@ -315,7 +335,7 @@ export function CardTypeFieldsEditor({
           target: field.name,
           to: {
             name: field.name,
-            displayName: draft.displayName.trim(),
+            displayName: trimmedDisplayName,
             isCalculated: draft.isCalculated,
           },
         },
@@ -326,8 +346,7 @@ export function CardTypeFieldsEditor({
           type: 'success',
         }),
       );
-      setEditingField(null);
-      resetEditField({ displayName: '', isCalculated: false });
+      closeEditMode();
     } catch (error) {
       dispatch(
         addNotification({
@@ -364,25 +383,10 @@ export function CardTypeFieldsEditor({
       <Sheet
         key={field.name}
         variant="outlined"
-        sx={{
-          p: 1.5,
-          py: 0,
-          border: '0',
-          borderRadius: 16,
-          backgroundColor: 'neutral.softBg',
-        }}
+        sx={{ ...listRowStyles, py: 0 }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Stack
-            spacing={-0.5}
-            sx={{
-              '& .MuiIconButton-root': {
-                minHeight: 20,
-                minWidth: 20,
-                p: 0,
-              },
-            }}
-          >
+          <Stack spacing={-0.5} sx={reorderButtonContainerStyles}>
             <IconButton
               size="sm"
               variant="plain"
@@ -483,11 +487,7 @@ export function CardTypeFieldsEditor({
                             )();
                           } else if (e.key === 'Escape') {
                             e.preventDefault();
-                            setEditingField(null);
-                            resetEditField({
-                              displayName: '',
-                              isCalculated: false,
-                            });
+                            closeEditMode();
                           }
                         }}
                       />
@@ -525,61 +525,16 @@ export function CardTypeFieldsEditor({
             />
           )}
 
-          <Stack direction="row" spacing={0.5}>
-            {isEditing ? (
-              <>
-                <IconButton
-                  size="sm"
-                  color="success"
-                  variant="solid"
-                  disabled={rowDisabled}
-                  onClick={() =>
-                    void handleEditSubmit((data) =>
-                      handleSaveEdit(field, data),
-                    )()
-                  }
-                >
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="sm"
-                  color="neutral"
-                  variant="plain"
-                  disabled={rowDisabled}
-                  onClick={() => {
-                    setEditingField(null);
-                    resetEditField({
-                      displayName: '',
-                      isCalculated: false,
-                    });
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </>
-            ) : (
-              <>
-                <IconButton
-                  size="sm"
-                  color="primary"
-                  variant="solid"
-                  disabled={rowDisabled}
-                  onClick={() => startEditing(field)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="sm"
-                  color="danger"
-                  variant="outlined"
-                  disabled={rowDisabled}
-                  onClick={() => setFieldToDelete(field.name)}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </>
-            )}
-          </Stack>
+          <EditableRowActions
+            isEditing={isEditing}
+            disabled={rowDisabled}
+            onEdit={() => startEditing(field)}
+            onDelete={() => setFieldToDelete(field.name)}
+            onSave={() =>
+              void handleEditSubmit((data) => handleSaveEdit(field, data))()
+            }
+            onCancel={closeEditMode}
+          />
         </Stack>
       </Sheet>
     );
@@ -635,17 +590,17 @@ export function CardTypeFieldsEditor({
                   <Radio
                     value="always"
                     label={t('alwaysVisibleFields')}
-                    disabled={disableAll || editingLocked}
+                    disabled={disableAll || isEditingLocked}
                   />
                   <Radio
                     value="optional"
                     label={t('optionallyVisibleFields')}
-                    disabled={disableAll || editingLocked}
+                    disabled={disableAll || isEditingLocked}
                   />
                   <Radio
                     value="hidden"
                     label={t('notVisible')}
-                    disabled={disableAll || editingLocked}
+                    disabled={disableAll || isEditingLocked}
                   />
                 </RadioGroup>
               )}
@@ -668,7 +623,7 @@ export function CardTypeFieldsEditor({
                   size="sm"
                   disabled={
                     disableAll ||
-                    editingLocked ||
+                    isEditingLocked ||
                     availableFieldTypes.length === 0
                   }
                 >
@@ -692,12 +647,12 @@ export function CardTypeFieldsEditor({
                   size="sm"
                   value={field.value}
                   onChange={field.onChange}
-                  disabled={disableAll || editingLocked}
+                  disabled={disableAll || isEditingLocked}
                   onKeyDown={(e) => {
                     if (
                       e.key === 'Enter' &&
                       !disableAll &&
-                      !editingLocked &&
+                      !isEditingLocked &&
                       newFieldValues.name &&
                       availableFieldTypes.length > 0
                     ) {
@@ -718,7 +673,7 @@ export function CardTypeFieldsEditor({
                 size="sm"
                 label={t('isCalculated')}
                 checked={field.value}
-                disabled={disableAll || editingLocked}
+                disabled={disableAll || isEditingLocked}
                 onChange={(event) => field.onChange(event.target.checked)}
               />
             )}
@@ -731,7 +686,7 @@ export function CardTypeFieldsEditor({
             onClick={() => void handleNewSubmit(handleAddField)()}
             disabled={
               disableAll ||
-              editingLocked ||
+              isEditingLocked ||
               !newFieldValues.name ||
               availableFieldTypes.length === 0
             }
@@ -749,12 +704,12 @@ export function CardTypeFieldsEditor({
 
       <GenericConfirmModal
         open={fieldToDelete !== null}
-        onClose={() => setFieldToDelete(null)}
+        onClose={clearItemToDelete}
         onConfirm={async () => {
           if (fieldToDelete) {
             await handleDeleteField(fieldToDelete);
           }
-          setFieldToDelete(null);
+          clearItemToDelete();
         }}
         title={t('deleteCustomField')}
         content={t('deleteCustomFieldConfirm', { field: fieldToDelete })}
