@@ -3,7 +3,7 @@
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { exec } from 'node:child_process';
-import { rmSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 
 const cliPath = '../../.tmp/cyberismo-cli';
 
@@ -18,6 +18,9 @@ describe('Cli BAT test', function () {
   after(() => {
     rmSync(cliPath, { recursive: true, force: true });
     return true;
+  });
+  before(() => {
+    mkdirSync(cliPath, { recursive: true });
   });
   it('Check version', function (done) {
     exec('cyberismo --version', (error, stdout, _stderr) => {
