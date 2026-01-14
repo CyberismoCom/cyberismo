@@ -19,6 +19,7 @@ import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
   filename,
   contentPropertyName,
+  ALL_FILE_MAPPINGS,
 } from '../interfaces/folder-content-interfaces.js';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
@@ -95,7 +96,7 @@ export abstract class FolderResource<
     for (const [fileName, fileContent] of contentFiles.entries()) {
       const key = contentPropertyName(fileName);
       if (key) {
-        const isJson = key === 'schema';
+        const isJson = key === ALL_FILE_MAPPINGS['parameterSchema.json'];
         content[key] = isJson ? JSON.parse(fileContent) : fileContent;
       }
     }
@@ -145,7 +146,7 @@ export abstract class FolderResource<
 
     // TODO: Updates should either use valid strings or allow for objects
     const key = contentPropertyName(fileName);
-    const isJson = key === 'schema';
+    const isJson = key === ALL_FILE_MAPPINGS['parameterSchema.json'];
     const parsedContent = isJson ? JSON.parse(changedContent) : changedContent;
     const contentToWrite = isJson ? formatJson(parsedContent) : changedContent;
 
