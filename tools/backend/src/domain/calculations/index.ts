@@ -23,7 +23,7 @@ const router = new Hono();
  * /api/calculations:
  *   post:
  *     summary: Create a new calculation
- *     description: Creates a new calculation file with the specified fileName
+ *     description: Creates a new calculation with the specified identifier
  *     requestBody:
  *       required: true
  *       content:
@@ -31,10 +31,10 @@ const router = new Hono();
  *           schema:
  *             type: object
  *             properties:
- *               fileName:
+ *               identifier:
  *                 type: string
  *             required:
- *               - fileName
+ *               - identifier
  *     responses:
  *       200:
  *         description: Calculation created successfully
@@ -45,9 +45,9 @@ const router = new Hono();
  */
 router.post('/', zValidator('json', createCalculationSchema), async (c) => {
   const commands = c.get('commands');
-  const { fileName } = c.req.valid('json');
+  const { identifier } = c.req.valid('json');
 
-  await calculationService.createCalculation(commands, fileName);
+  await calculationService.createCalculation(commands, identifier);
   return c.json({ message: 'Calculation created successfully' });
 });
 

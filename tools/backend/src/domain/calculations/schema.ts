@@ -14,5 +14,5 @@
 import { z } from 'zod';
 
 export const createCalculationSchema = z.object({
-  fileName: z.string().min(1),
+  identifier: z.string().min(1),
 });

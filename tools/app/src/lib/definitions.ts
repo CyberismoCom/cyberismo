@@ -116,9 +116,7 @@ export type CreateTemplateData = CreateWithIdentifier;
 export type CreateWorkflowData = CreateWithIdentifier;
 
 // Data for creating a new calculation
-export interface CreateCalculationData {
-  fileName: string;
-}
+export type CreateCalculationData = CreateWithIdentifier;
 
 // Array of field types.
 export type FieldTypes = Array<FieldType>;

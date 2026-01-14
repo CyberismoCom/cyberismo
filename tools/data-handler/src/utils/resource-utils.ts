@@ -30,6 +30,7 @@ const IDENTIFIER_INDEX = 2;
 // Valid resource name has three parts
 const RESOURCE_NAME_PARTS = 3;
 const RESOURCE_FOLDER_TYPES = [
+  'calculations',
   'graphModels',
   'graphViews',
   'reports',
