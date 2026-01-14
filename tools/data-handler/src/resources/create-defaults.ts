@@ -115,7 +115,7 @@ export abstract class DefaultContent {
       displayName: '',
       dataType: dataType,
     } as FieldType;
-    if (dataType === 'enum') {
+    if (dataType === 'enum' || dataType === 'list') {
       value.enumValues = [{ enumValue: 'value1' }, { enumValue: 'value2' }];
     }
     return value;
