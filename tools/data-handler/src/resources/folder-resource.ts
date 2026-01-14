@@ -19,6 +19,7 @@ import { isContentKey } from '../interfaces/resource-interfaces.js';
 import {
   filename,
   contentPropertyName,
+  ALL_FILE_MAPPINGS,
 } from '../interfaces/folder-content-interfaces.js';
 import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
@@ -95,7 +96,7 @@ export abstract class FolderResource<
     for (const [fileName, fileContent] of contentFiles.entries()) {
       const key = contentPropertyName(fileName);
       if (key) {
-        const isJson = key === 'schema';
+        const isJson = key === ALL_FILE_MAPPINGS['parameterSchema.json'];
         content[key] = isJson ? JSON.parse(fileContent) : fileContent;
       }
     }
@@ -143,15 +144,28 @@ export abstract class FolderResource<
       throw new Error(`File '${fileName}' is not allowed to be updated`);
     }
 
-    await writeFileSafe(filePath, changedContent, { flag: 'w' });
+    // TODO: Updates should either use valid strings or allow for objects
+    const key = contentPropertyName(fileName);
+    const isJson = key === ALL_FILE_MAPPINGS['parameterSchema.json'];
+    let parsedContent: unknown = changedContent;
+    if (isJson) {
+      try {
+        parsedContent = JSON.parse(changedContent);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Invalid JSON content for '${key}' update: ${message}`);
+      }
+    }
+    const contentToWrite = isJson
+      ? formatJson(parsedContent as object)
+      : changedContent;
+
+    await writeFileSafe(filePath, contentToWrite, { flag: 'w' });
 
     // Update this resource's content
-    const key = contentPropertyName(fileName);
     if (key) {
-      const isJson = key === 'schema';
-      (this.resourceContent as Record<string, unknown>)[key] = isJson
-        ? JSON.parse(changedContent)
-        : changedContent;
+      (this.resourceContent as Record<string, unknown>)[key] = parsedContent;
     }
   }
 
