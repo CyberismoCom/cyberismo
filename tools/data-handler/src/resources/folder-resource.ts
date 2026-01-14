@@ -143,15 +143,17 @@ export abstract class FolderResource<
       throw new Error(`File '${fileName}' is not allowed to be updated`);
     }
 
-    await writeFileSafe(filePath, changedContent, { flag: 'w' });
+    // TODO: Updates should either use valid strings or allow for objects
+    const key = contentPropertyName(fileName);
+    const isJson = key === 'schema';
+    const parsedContent = isJson ? JSON.parse(changedContent) : changedContent;
+    const contentToWrite = isJson ? formatJson(parsedContent) : changedContent;
+
+    await writeFileSafe(filePath, contentToWrite, { flag: 'w' });
 
     // Update this resource's content
-    const key = contentPropertyName(fileName);
     if (key) {
-      const isJson = key === 'schema';
-      (this.resourceContent as Record<string, unknown>)[key] = isJson
-        ? JSON.parse(changedContent)
-        : changedContent;
+      (this.resourceContent as Record<string, unknown>)[key] = parsedContent;
     }
   }
 
