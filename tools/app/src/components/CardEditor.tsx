@@ -39,7 +39,6 @@ import CodeMirror from '@uiw/react-codemirror';
 import { StreamLanguage } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { asciidoc } from 'codemirror-asciidoc';
-import { useColorScheme } from '@mui/joy/styles';
 
 import CardToolbar from '@/components/toolbar/CardToolbar';
 import { useSearchParams } from 'react-router';
@@ -57,6 +56,7 @@ import {
   useAppDispatch,
   useAppRouter,
   useAppSelector,
+  useIsDarkMode,
   useKeyboardShortcut,
 } from '@/lib/hooks';
 import { addNotification } from '@/lib/slices/notifications';
@@ -245,7 +245,7 @@ export default function CardEditor({
   onCancel?: () => void;
 }) {
   const { t } = useTranslation();
-  const { mode } = useColorScheme();
+  const isDarkMode = useIsDarkMode();
 
   const { modalOpen, openModal, closeModal } = useModals({
     delete: false,
@@ -656,7 +656,7 @@ export default function CardEditor({
                       {...CODE_MIRROR_BASE_PROPS}
                       ref={setRef}
                       theme={
-                        mode === 'dark'
+                        isDarkMode
                           ? CODE_MIRROR_THEMES.dark
                           : CODE_MIRROR_THEMES.light
                       }

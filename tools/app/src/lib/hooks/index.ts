@@ -14,3 +14,4 @@ export * from './swrHelpers';
 export * from './redux';
 export * from './utils';
 export * from './configurationEditor';
+export * from './theme';
