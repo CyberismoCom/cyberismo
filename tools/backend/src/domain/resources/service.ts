@@ -220,7 +220,10 @@ async function createResourceNode(
           fileName,
           displayName: fileName,
           data: {
-            content,
+            content:
+              typeof content === 'string'
+                ? content
+                : JSON.stringify(content, null, 2),
           },
           readOnly: resourceName(name).prefix !== projectPrefix,
         }),
