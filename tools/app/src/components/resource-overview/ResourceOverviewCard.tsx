@@ -45,7 +45,6 @@ export function ResourceOverviewCard({
         <Typography
           level="body-sm"
           sx={{
-            color: 'neutral.700',
             mt: 0.5,
             overflow: 'hidden',
             display: '-webkit-box',
