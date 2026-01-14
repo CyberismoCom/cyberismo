@@ -147,8 +147,19 @@ export abstract class FolderResource<
     // TODO: Updates should either use valid strings or allow for objects
     const key = contentPropertyName(fileName);
     const isJson = key === ALL_FILE_MAPPINGS['parameterSchema.json'];
-    const parsedContent = isJson ? JSON.parse(changedContent) : changedContent;
-    const contentToWrite = isJson ? formatJson(parsedContent) : changedContent;
+    let parsedContent: unknown = changedContent;
+    if (isJson) {
+      try {
+        parsedContent = JSON.parse(changedContent);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Invalid JSON content for '${key}' update: ${message}`);
+      }
+    }
+    const contentToWrite = isJson
+      ? formatJson(parsedContent as object)
+      : changedContent;
 
     await writeFileSafe(filePath, contentToWrite, { flag: 'w' });
 
