@@ -259,6 +259,9 @@ export class Commands {
         } else if (target === 'graphView') {
           const [name] = rest;
           await this.commands?.createCmd.createGraphView(name);
+        } else if (target === 'calculation') {
+          const [name] = rest;
+          await this.commands?.createCmd.createCalculation(name);
         } else if (target == 'label') {
           const [cardKey, label] = rest;
           await this.commands?.createCmd.createLabel(cardKey, label);
