@@ -18,17 +18,36 @@ import { useProject } from '@/lib/api/project';
 import { useParams } from 'react-router';
 import { findResourceNodeByName } from '@/lib/utils';
 import { useAppRouter } from '@/lib/hooks';
+import type { NodeApi } from 'react-arborist';
+import type { AnyNode } from '@/lib/api/types';
+import { RESOURCES } from '@/lib/constants';
+
+function findAncestorResourceGroup(
+  node: NodeApi<AnyNode>,
+): Extract<AnyNode, { type: 'resourceGroup' }> | null {
+  let current: NodeApi<AnyNode> | null = node.parent;
+  while (current) {
+    if (current.data.type === 'resourceGroup') return current.data;
+    current = current.parent;
+  }
+  return null;
+}
 
 export default function ConfigMenu() {
   const { resourceTree } = useResourceTree();
   const { project } = useProject();
 
-  const { module, type, resource, file } = useParams();
+  const { module, type, resource, file, resourceType } = useParams();
 
-  const selectedName =
-    module && type && resource
-      ? `${module}/${type}/${resource}${file ? `/${file}` : ''}`
-      : null;
+  const selectedName = (() => {
+    if (module && type && resource) {
+      return `${module}/${type}/${resource}${file ? `/${file}` : ''}`;
+    }
+    if (resourceType) {
+      return resourceType;
+    }
+    return null;
+  })();
   const selectedId =
     selectedName && resourceTree
       ? findResourceNodeByName(resourceTree, selectedName)?.id
@@ -45,8 +64,23 @@ export default function ConfigMenu() {
       idAccessor="id"
       childrenAccessor="children"
       onNodeClick={(node) => {
-        if (node.data.name === 'project') {
+        if (node.data.type === 'general') {
           safePush('/configuration/general');
+          return;
+        }
+        if (node.data.type === 'resourceGroup') {
+          if ((RESOURCES as readonly string[]).includes(node.data.name)) {
+            safePush(`/configuration/${node.data.name}`);
+          }
+          return;
+        }
+        if (node.data.type === 'module') {
+          const group = findAncestorResourceGroup(node);
+          if (group && (RESOURCES as readonly string[]).includes(group.name)) {
+            safePush(
+              `/configuration/${group.name}?modules=${encodeURIComponent(node.data.name)}`,
+            );
+          }
           return;
         }
         if (!node.data.name.includes('/')) {

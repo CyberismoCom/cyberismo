@@ -281,6 +281,13 @@
   "optionallyVisibleFields": "Optionally visible fields",
   "or": "or",
   "outboundDisplayName": "Outbound display name",
+  "overview": {
+    "clearFilters": "Clear Filters",
+    "createNew": "Create New {{resourceType}}",
+    "filter": "Filter",
+    "localProject": "Local project",
+    "viewMore": "View more"
+  },
   "passedPolicyChecks": "Passed policy checks",
   "placeholder": {
     "integer": "Enter number (integer)",
