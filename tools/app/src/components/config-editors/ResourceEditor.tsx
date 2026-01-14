@@ -19,13 +19,14 @@ import BaseEditor from './BaseEditor';
 import { useValidateResource } from '@/lib/api/validate';
 import { ChecksAccordion, type CheckCollection } from '../ChecksAccordion';
 import { useResourceEditorHelpers } from '../../lib/hooks/configurationEditor';
-import IdentifierInput from './fields/IdentifierInput';
 import {
-  TextInput,
-  TextareaInput,
-  SelectInput,
-  MultiSelectInput,
   BooleanInput,
+  CardTypeFieldsEditor,
+  IdentifierInput,
+  MultiSelectInput,
+  TextareaInput,
+  TextInput,
+  SelectInput,
 } from './fields';
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
@@ -109,6 +110,14 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             onChange={(v) => editor.onChange(key, v)}
           />
         );
+      case 'cardFields':
+        return (
+          <CardTypeFieldsEditor
+            cardType={node.data as never}
+            resourceTree={editor.resourceTree || []}
+            readOnly={node.readOnly}
+          />
+        );
       default:
         return null;
     }
@@ -140,16 +149,20 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
       </Typography>
 
       <Stack direction="column" spacing={2} sx={{ maxWidth: 720 }}>
-        {fieldConfigs.map((config) => (
-          <FieldRow
-            key={config.key}
-            dirty={editor.isDirty(config.key)}
-            onSave={() => editor.saveField(config.key)}
-            onCancel={() => editor.cancelField(config.key)}
-          >
-            {renderField(config)}
-          </FieldRow>
-        ))}
+        {fieldConfigs.map((config) =>
+          config.type === 'cardFields' ? (
+            <div key={config.key}>{renderField(config)}</div>
+          ) : (
+            <FieldRow
+              key={config.key}
+              dirty={editor.isDirty(config.key)}
+              onSave={() => editor.saveField(config.key)}
+              onCancel={() => editor.cancelField(config.key)}
+            >
+              {renderField(config)}
+            </FieldRow>
+          ),
+        )}
 
         {/* Validation */}
         {validateResource && (

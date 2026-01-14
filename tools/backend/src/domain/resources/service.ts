@@ -48,7 +48,7 @@ async function getModules(commands: CommandManager) {
         try {
           const module = await commands.showCmd.showModule(moduleName);
           return { name: module.name, cardKeyPrefix: module.cardKeyPrefix };
-        } catch (error) {
+        } catch {
           return { name: moduleName, cardKeyPrefix: moduleName };
         }
       }),

@@ -135,6 +135,10 @@
     "partialFailure_plural": "{{count}} links failed to create"
   },
   "createUnder": "Create under \"{{parent}}\"",
+  "customFieldAdded": "Custom field added",
+  "customFieldDeleted": "Custom field deleted",
+  "customFieldUpdated": "Custom field updated",
+  "customFields": "Custom fields",
   "dataType": "Data Type",
   "dataTypes": {
     "shortText": "Short Text",
@@ -158,6 +162,8 @@
     "content_one": "Are you sure you want to delete the card <bold>\"{{card}}\"</bold>? This cannot be undone."
   },
   "deleteCardSuccess": "Card deleted successfully",
+  "deleteCustomField": "Delete custom field",
+  "deleteCustomFieldConfirm": "Are you sure you want to delete the custom field \"{{field}}\"?",
   "deleteLink": "Delete link",
   "deleteLinkConfirm": "Are you sure you want to delete this link?",
   "deleteModuleModal": {
@@ -185,6 +191,7 @@
   "failedToLoad": "Failed to load",
   "false": "False",
   "fieldSaved": "Field saved",
+  "fieldType": "Field type",
   "general": {
     "title": "General",
     "projectName": "Project name",
@@ -201,6 +208,7 @@
   "insertToContent": "Insert to content",
   "invalid": "Invalid",
   "invalidResource": "Invalid resource",
+  "isCalculated": "Is calculated",
   "labelEditor": {
     "splitterHint": "Use the splitter ({{splitter}}) between labels to add multiple labels at once"
   },
@@ -228,6 +236,10 @@
     "search": "Search or paste a link",
     "success": "Card moved successfully"
   },
+  "moveDown": "Move down",
+  "moveToHigherVisibility": "Move to higher visibility group",
+  "moveToLowerVisibility": "Move to lower visibility group",
+  "moveUp": "Move up",
   "name": "Name",
   "navigationDialogMsg": "You have unsaved changes. Are you sure you want to leave?",
   "newCardDialog": {
@@ -274,8 +286,10 @@
     "required": "{{field}} is required"
   },
   "no": "No",
+  "noCustomFields": "No custom fields yet",
   "noModules": "Project does not contain any modules.",
   "none": "None",
+  "notVisible": "Not visible",
   "notifications": "Notifications",
   "openInEditor": "Open in editor",
   "optionallyVisibleFields": "Optionally visible fields",
@@ -360,6 +374,7 @@
   "value": "Value",
   "viewLogicProgram": "View logic program",
   "viewedAgo": "Viewed {{time}} ago",
+  "visibility": "Visibility",
   "workflow": "Workflow",
   "workflowState": "Workflow state",
   "yes": "Yes"

@@ -13,7 +13,11 @@
 
 import { Hono } from 'hono';
 import * as cardTypeService from './service.js';
-import { createCardTypeSchema } from './schema.js';
+import {
+  createCardTypeSchema,
+  cardTypeNameParamSchema,
+  fieldVisibilityBodySchema,
+} from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 
 const router = new Hono();
@@ -92,5 +96,75 @@ router.post('/', zValidator('json', createCardTypeSchema), async (c) => {
     );
   }
 });
+
+/**
+ * @swagger
+ * /api/cardTypes/{cardTypeName}/field-visibility:
+ *   patch:
+ *     summary: Update field visibility for a card type
+ *     description: Move a field between visibility groups (always, optional, hidden) and optionally set its position
+ *     parameters:
+ *       - in: path
+ *         name: cardTypeName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Full name of the card type (e.g., "prefix/cardTypes/identifier")
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fieldName:
+ *                 type: string
+ *                 description: Name of the field to update
+ *               group:
+ *                 type: string
+ *                 enum: [always, optional, hidden]
+ *                 description: Target visibility group
+ *               index:
+ *                 type: number
+ *                 description: Optional position within the group
+ *             required:
+ *               - fieldName
+ *               - group
+ *     responses:
+ *       200:
+ *         description: Field visibility updated successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Card type not found
+ *       500:
+ *         description: Server error
+ */
+router.patch(
+  '/:cardTypeName/field-visibility',
+  zValidator('param', cardTypeNameParamSchema),
+  zValidator('json', fieldVisibilityBodySchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { cardTypeName } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    try {
+      await cardTypeService.updateFieldVisibility(commands, cardTypeName, body);
+      return c.json({ message: 'Field visibility updated successfully' });
+    } catch (error) {
+      // TODO: Implement NotFoundError etc and handle them globally
+      if (error instanceof Error && error.message.includes('does not exist')) {
+        return c.json({ error: error.message }, 404);
+      }
+      return c.json(
+        {
+          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
+    }
+  },
+);
 
 export default router;

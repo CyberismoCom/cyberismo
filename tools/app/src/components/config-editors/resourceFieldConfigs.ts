@@ -11,9 +11,13 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { AnyNode, ResourceNode } from '@/lib/api/types';
+import type {
+  AnyNode,
+  ResourceNode,
+  NodeKey,
+  NodeTypeMap,
+} from '@/lib/api/types';
 import { DATA_TYPES } from '@/lib/constants';
-import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
 export type FieldType =
   | 'identifier'
@@ -21,7 +25,8 @@ export type FieldType =
   | 'textarea'
   | 'select'
   | 'multiselect'
-  | 'boolean';
+  | 'boolean'
+  | 'cardFields';
 
 export interface FieldConfig {
   key: string;
@@ -42,71 +47,38 @@ const commonFields: FieldConfig[] = [
 
 const dataTypeOptions = DATA_TYPES.map((dt) => ({ id: dt, displayName: dt }));
 
+type NodeByType<T extends NodeKey> = NodeTypeMap[T];
+
+const collectByType = <T extends NodeKey>(
+  nodes: AnyNode[],
+  type: T,
+): NodeByType<T>[] =>
+  nodes.flatMap((node) =>
+    node.type === type
+      ? [node as NodeByType<T>]
+      : node.children
+        ? collectByType(node.children, type)
+        : [],
+  );
+
 // Helper functions for options
 const getWorkflowOptions = (resourceTree: AnyNode[]) =>
-  resourceTree
-    .flatMap((group) => group.children || [])
-    .filter((g) => g.type === 'workflows')
-    .map((w) => ({ id: w.name, displayName: w.data.displayName || w.name }));
+  collectByType(resourceTree, 'workflows').map((w) => ({
+    id: w.name,
+    displayName: w.data.displayName || w.name,
+  }));
 
-const getFieldTypeOptions = (resourceTree: AnyNode[]) =>
-  resourceTree
-    .flatMap((group) => group.children || [])
-    .filter((g) => g.type === 'fieldTypes')
-    .map((f) => ({ id: f.name, displayName: f.data.displayName || f.name }));
+export const getFieldTypeOptions = (resourceTree: AnyNode[]) =>
+  collectByType(resourceTree, 'fieldTypes').map((f) => ({
+    id: f.name,
+    displayName: f.data.displayName || f.name,
+  }));
 
 const getCardTypeOptions = (resourceTree: AnyNode[]) =>
-  resourceTree
-    .flatMap((group) => group.children || [])
-    .filter((g) => g.type === 'cardTypes')
-    .map((c) => ({ id: c.name, displayName: c.data.displayName || c.name }));
-
-// Get only field types that are defined in customFields for this card type
-const getCustomFieldOptions = (
-  resourceTree: AnyNode[],
-  currentNode: ResourceNode,
-) => {
-  if (currentNode.type !== 'cardTypes' || !('data' in currentNode)) return [];
-
-  const cardTypeData = currentNode.data as CardType;
-  const customFieldNames = (cardTypeData.customFields || []).map(
-    (cf) => cf.name,
-  );
-
-  return getFieldTypeOptions(resourceTree).filter((option) =>
-    customFieldNames.includes(option.id),
-  );
-};
-
-// Get custom field options for alwaysVisibleFields (exclude optionallyVisibleFields)
-const getAlwaysVisibleFieldOptions = (
-  resourceTree: AnyNode[],
-  currentNode: ResourceNode,
-) => {
-  if (currentNode.type !== 'cardTypes' || !('data' in currentNode)) return [];
-
-  const cardTypeData = currentNode.data as CardType;
-  const optionallyVisible = cardTypeData.optionallyVisibleFields || [];
-
-  return getCustomFieldOptions(resourceTree, currentNode).filter(
-    (option) => !optionallyVisible.includes(option.id),
-  );
-};
-
-// Get custom field options for optionallyVisibleFields (exclude alwaysVisibleFields)
-const getOptionallyVisibleFieldOptions = (
-  resourceTree: AnyNode[],
-  currentNode: ResourceNode,
-) => {
-  if (currentNode.type !== 'cardTypes' || !('data' in currentNode)) return [];
-
-  const cardTypeData = currentNode.data as CardType;
-  const alwaysVisible = cardTypeData.alwaysVisibleFields || [];
-
-  return getCustomFieldOptions(resourceTree, currentNode).filter(
-    (option) => !alwaysVisible.includes(option.id),
-  );
-};
+  collectByType(resourceTree, 'cardTypes').map((c) => ({
+    id: c.name,
+    displayName: c.data.displayName || c.name,
+  }));
 
 export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
   {
@@ -119,16 +91,9 @@ export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
         options: getWorkflowOptions,
       },
       {
-        key: 'alwaysVisibleFields',
-        type: 'multiselect',
-        label: 'alwaysVisibleFields',
-        options: getAlwaysVisibleFieldOptions,
-      },
-      {
-        key: 'optionallyVisibleFields',
-        type: 'multiselect',
-        label: 'optionallyVisibleFields',
-        options: getOptionallyVisibleFieldOptions,
+        key: 'customFields',
+        type: 'cardFields',
+        label: 'customFields',
       },
     ],
     fieldTypes: [
