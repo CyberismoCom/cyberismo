@@ -14,5 +14,4 @@
 export * from './TextEditor';
 export * from './ResourceEditor';
 export * from './ConfigCardEditor';
-export * from './CalculationEditor';
 export * from './GeneralEditor';

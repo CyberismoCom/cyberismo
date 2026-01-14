@@ -18,7 +18,6 @@ import {
   TextEditor,
   ResourceEditor,
   ConfigCardEditor,
-  CalculationEditor,
 } from '@/components/config-editors';
 import { useTranslation } from 'react-i18next';
 import { findResourceNodeByName } from '@/lib/utils';
@@ -28,7 +27,7 @@ type ResourceRendererMap = {
 };
 
 const resourceMap: Partial<ResourceRendererMap> = {
-  calculations: (node, key) => <CalculationEditor node={node} key={key} />,
+  calculations: (node, key) => <ResourceEditor node={node} key={key} />,
   card: (node, key) => <ConfigCardEditor node={node} key={key} />,
   cardTypes: (node, key) => <ResourceEditor node={node} key={key} />,
   fieldTypes: (node, key) => <ResourceEditor node={node} key={key} />,

@@ -108,6 +108,7 @@
   "close": "Close",
   "configTree": {
     "files": {
+      "calculation": "Calculation",
       "model": "Model",
       "contentTemplate": "Content template",
       "queryTemplate": "Query template",
