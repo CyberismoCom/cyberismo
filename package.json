@@ -63,8 +63,13 @@
       "@types/node": "^22.18.1",
       "rollup": "^4.45.1",
       "tar-fs": "^2.1.4",
-      "@codemirror/state": "^6.5.2",
-      "@codemirror/view": "^6.38.2"
+      "@codemirror/state": "6.5.2",
+      "@codemirror/view": "6.38.2",
+      "@codemirror/language": "6.11.3",
+      "@codemirror/autocomplete": "6.18.2",
+      "@codemirror/commands": "6.10.0",
+      "@codemirror/lint": "6.8.2",
+      "@codemirror/search": "6.5.7"
     }
   }
 }
