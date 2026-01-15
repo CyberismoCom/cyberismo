@@ -62,7 +62,9 @@
     "overrides": {
       "@types/node": "^22.18.1",
       "rollup": "^4.45.1",
-      "tar-fs": "^2.1.4"
+      "tar-fs": "^2.1.4",
+      "@codemirror/state": "^6.5.2",
+      "@codemirror/view": "^6.38.2"
     }
   }
 }
