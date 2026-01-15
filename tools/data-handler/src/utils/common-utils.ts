@@ -67,3 +67,12 @@ export function removeValue<T>(array: T[], value: T): T[] {
   }
   return array;
 }
+
+/**
+ * Trims leading and trailing whitespace from a string, including newlines.
+ * @param str The string to trim
+ * @returns The trimmed string
+ */
+export function trimWhitespace(str: string): string {
+  return str.trim();
+}
