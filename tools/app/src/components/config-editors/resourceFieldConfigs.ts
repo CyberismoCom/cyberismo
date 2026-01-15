@@ -26,7 +26,8 @@ export type FieldType =
   | 'select'
   | 'multiselect'
   | 'boolean'
-  | 'cardFields';
+  | 'cardFields'
+  | 'enumValues';
 
 export interface FieldConfig {
   key: string;
@@ -103,6 +104,11 @@ export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
         type: 'select',
         label: 'dataType',
         staticOptions: dataTypeOptions,
+      },
+      {
+        key: 'enumValues',
+        type: 'enumValues',
+        label: 'enumValues',
       },
     ],
     linkTypes: [

@@ -22,12 +22,14 @@ import { useResourceEditorHelpers } from '../../lib/hooks/configurationEditor';
 import {
   BooleanInput,
   CardTypeFieldsEditor,
+  EnumValuesEditor,
   IdentifierInput,
   MultiSelectInput,
   TextareaInput,
   TextInput,
   SelectInput,
 } from './fields';
+import type { FieldType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
 
@@ -118,6 +120,13 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             readOnly={node.readOnly}
           />
         );
+      case 'enumValues':
+        return (
+          <EnumValuesEditor
+            fieldType={node.data as FieldType}
+            readOnly={node.readOnly}
+          />
+        );
       default:
         return null;
     }
@@ -150,7 +159,7 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
 
       <Stack direction="column" spacing={2} sx={{ maxWidth: 720 }}>
         {fieldConfigs.map((config) =>
-          config.type === 'cardFields' ? (
+          config.type === 'cardFields' || config.type === 'enumValues' ? (
             <div key={config.key}>{renderField(config)}</div>
           ) : (
             <FieldRow

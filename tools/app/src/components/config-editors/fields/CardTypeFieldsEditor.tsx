@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Box,
   Button,
@@ -28,22 +28,24 @@ import {
   Stack,
   Typography,
 } from '@mui/joy';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CheckIcon from '@mui/icons-material/Check';
-import CloseIcon from '@mui/icons-material/Close';
 import type { AnyNode } from '@/lib/api/types';
 import type { VisibilityGroup } from '@/lib/api/cardType';
 import { useTranslation } from 'react-i18next';
 import { useResource, useCardTypeMutations } from '@/lib/api';
-import { useAppDispatch } from '@/lib/hooks';
+import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
+import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
+import { EditableRowActions } from './EditableRowActions';
+import {
+  listRowStyles,
+  reorderButtonContainerStyles,
+} from './listEditorStyles';
 
 type FieldView = {
   name: string;
@@ -88,14 +90,20 @@ export function CardTypeFieldsEditor({
     isUpdating: isVisibilityUpdating,
   } = useCardTypeMutations(cardType.name);
 
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
+  const {
+    editingItem: editingField,
+    itemToDelete: fieldToDelete,
+    isEditingLocked,
+    startEditing: setEditingField,
+    cancelEditing,
+    setItemToDelete: setFieldToDelete,
+    clearItemToDelete,
+  } = useListItemEditing<string>();
 
   const {
     control: newFieldControl,
     handleSubmit: handleNewSubmit,
     reset: resetNewField,
-    watch: watchNewField,
   } = useForm<NewFieldDraft>({
     defaultValues: {
       name: '',
@@ -116,7 +124,7 @@ export function CardTypeFieldsEditor({
     },
   });
 
-  const newFieldValues = watchNewField();
+  const newFieldValues = useWatch({ control: newFieldControl });
 
   const fieldTypeOptions = useMemo(
     () => getFieldTypeOptions(resourceTree),
@@ -168,8 +176,12 @@ export function CardTypeFieldsEditor({
   };
 
   const busy = isUpdating() || isVisibilityUpdating();
-  const editingLocked = !!editingField;
   const disableAll = readOnly || busy;
+  const canAddField =
+    !disableAll &&
+    !isEditingLocked &&
+    !!newFieldValues.name &&
+    availableFieldTypes.length > 0;
 
   const handleAddField = async (data: NewFieldDraft) => {
     if (!data.name || disableAll) return;
@@ -304,8 +316,32 @@ export function CardTypeFieldsEditor({
     await handleFieldVisibilityUpdate(fieldName, targetVisibility);
   };
 
+  const closeEditMode = () => {
+    cancelEditing();
+    resetEditField({ displayName: '', isCalculated: false });
+  };
+
+  // Allow cancelling edit mode with Escape even when not focused on an input
+  useKeyboardShortcut({ key: 'Escape' }, () => {
+    if (editingField !== null) {
+      closeEditMode();
+    }
+  });
+
   const handleSaveEdit = async (field: FieldView, draft: EditFieldDraft) => {
     if (!draft || disableAll) return;
+
+    const trimmedDisplayName = draft.displayName.trim();
+
+    // Check if anything actually changed
+    const hasChanges =
+      trimmedDisplayName !== field.displayName ||
+      draft.isCalculated !== field.isCalculated;
+
+    if (!hasChanges) {
+      closeEditMode();
+      return;
+    }
 
     try {
       await update({
@@ -315,7 +351,7 @@ export function CardTypeFieldsEditor({
           target: field.name,
           to: {
             name: field.name,
-            displayName: draft.displayName.trim(),
+            displayName: trimmedDisplayName,
             isCalculated: draft.isCalculated,
           },
         },
@@ -326,8 +362,7 @@ export function CardTypeFieldsEditor({
           type: 'success',
         }),
       );
-      setEditingField(null);
-      resetEditField({ displayName: '', isCalculated: false });
+      closeEditMode();
     } catch (error) {
       dispatch(
         addNotification({
@@ -360,29 +395,20 @@ export function CardTypeFieldsEditor({
     const canMoveUp = groupVisibility !== 'hidden' && index > 0;
     const canMoveDown = groupVisibility !== 'hidden' && index < total - 1;
 
+    const handleRowKeyDown = formKeyHandler({
+      canSubmit: !rowDisabled,
+      onSubmit: () => handleEditSubmit((data) => handleSaveEdit(field, data))(),
+      onCancel: closeEditMode,
+    });
+
     return (
       <Sheet
         key={field.name}
         variant="outlined"
-        sx={{
-          p: 1.5,
-          py: 0,
-          border: '0',
-          borderRadius: 16,
-          backgroundColor: 'neutral.softBg',
-        }}
+        sx={{ ...listRowStyles, py: 0 }}
       >
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Stack
-            spacing={-0.5}
-            sx={{
-              '& .MuiIconButton-root': {
-                minHeight: 20,
-                minWidth: 20,
-                p: 0,
-              },
-            }}
-          >
+          <Stack spacing={-0.5} sx={reorderButtonContainerStyles}>
             <IconButton
               size="sm"
               variant="plain"
@@ -475,21 +501,7 @@ export function CardTypeFieldsEditor({
                         value={ctrl.value ?? ''}
                         onChange={ctrl.onChange}
                         disabled={rowDisabled}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !rowDisabled) {
-                            e.preventDefault();
-                            void handleEditSubmit((data) =>
-                              handleSaveEdit(field, data),
-                            )();
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            setEditingField(null);
-                            resetEditField({
-                              displayName: '',
-                              isCalculated: false,
-                            });
-                          }
-                        }}
+                        onKeyDown={handleRowKeyDown}
                       />
                     )}
                   />
@@ -525,61 +537,16 @@ export function CardTypeFieldsEditor({
             />
           )}
 
-          <Stack direction="row" spacing={0.5}>
-            {isEditing ? (
-              <>
-                <IconButton
-                  size="sm"
-                  color="success"
-                  variant="solid"
-                  disabled={rowDisabled}
-                  onClick={() =>
-                    void handleEditSubmit((data) =>
-                      handleSaveEdit(field, data),
-                    )()
-                  }
-                >
-                  <CheckIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="sm"
-                  color="neutral"
-                  variant="plain"
-                  disabled={rowDisabled}
-                  onClick={() => {
-                    setEditingField(null);
-                    resetEditField({
-                      displayName: '',
-                      isCalculated: false,
-                    });
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </>
-            ) : (
-              <>
-                <IconButton
-                  size="sm"
-                  color="primary"
-                  variant="solid"
-                  disabled={rowDisabled}
-                  onClick={() => startEditing(field)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="sm"
-                  color="danger"
-                  variant="outlined"
-                  disabled={rowDisabled}
-                  onClick={() => setFieldToDelete(field.name)}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </>
-            )}
-          </Stack>
+          <EditableRowActions
+            isEditing={isEditing}
+            disabled={rowDisabled}
+            onEdit={() => startEditing(field)}
+            onDelete={() => setFieldToDelete(field.name)}
+            onSave={() =>
+              void handleEditSubmit((data) => handleSaveEdit(field, data))()
+            }
+            onCancel={closeEditMode}
+          />
         </Stack>
       </Sheet>
     );
@@ -614,131 +581,123 @@ export function CardTypeFieldsEditor({
         <Typography level="h4" sx={{ mb: 4 }}>
           {t('customFields')}
         </Typography>
-        <Stack spacing={1.25}>
-          <FormControl>
-            <FormLabel>{t('visibility')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="visibility"
-              render={({ field }) => (
-                <RadioGroup
-                  orientation="horizontal"
-                  value={field.value}
-                  onChange={(event) =>
-                    field.onChange(
-                      (event.target as HTMLInputElement)
-                        .value as VisibilityGroup,
-                    )
-                  }
-                  sx={{ gap: 2 }}
-                >
-                  <Radio
-                    value="always"
-                    label={t('alwaysVisibleFields')}
-                    disabled={disableAll || editingLocked}
-                  />
-                  <Radio
-                    value="optional"
-                    label={t('optionallyVisibleFields')}
-                    disabled={disableAll || editingLocked}
-                  />
-                  <Radio
-                    value="hidden"
-                    label={t('notVisible')}
-                    disabled={disableAll || editingLocked}
-                  />
-                </RadioGroup>
-              )}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('fieldType')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="name"
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  placeholder={t('selectResource')}
-                  onChange={(_, value) =>
-                    field.onChange((value as string) ?? '')
-                  }
-                  size="sm"
-                  disabled={
-                    disableAll ||
-                    editingLocked ||
-                    availableFieldTypes.length === 0
-                  }
-                >
-                  {availableFieldTypes.map((option) => (
-                    <Option key={option.id} value={option.id}>
-                      {option.displayName}
-                    </Option>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('displayName')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="displayName"
-              render={({ field }) => (
-                <Input
-                  size="sm"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disableAll || editingLocked}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === 'Enter' &&
-                      !disableAll &&
-                      !editingLocked &&
-                      newFieldValues.name &&
-                      availableFieldTypes.length > 0
-                    ) {
-                      e.preventDefault();
-                      void handleNewSubmit(handleAddField)();
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canAddField) {
+              void handleNewSubmit(handleAddField)();
+            }
+          }}
+        >
+          <Stack spacing={1.25}>
+            <FormControl>
+              <FormLabel>{t('visibility')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="visibility"
+                render={({ field }) => (
+                  <RadioGroup
+                    orientation="horizontal"
+                    value={field.value}
+                    onChange={(event) =>
+                      field.onChange(
+                        (event.target as HTMLInputElement)
+                          .value as VisibilityGroup,
+                      )
                     }
-                  }}
+                    sx={{ gap: 2 }}
+                  >
+                    <Radio
+                      value="always"
+                      label={t('alwaysVisibleFields')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                    <Radio
+                      value="optional"
+                      label={t('optionallyVisibleFields')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                    <Radio
+                      value="hidden"
+                      label={t('notVisible')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                  </RadioGroup>
+                )}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('fieldType')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="name"
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    placeholder={t('selectResource')}
+                    onChange={(_, value) =>
+                      field.onChange((value as string) ?? '')
+                    }
+                    size="sm"
+                    disabled={
+                      disableAll ||
+                      isEditingLocked ||
+                      availableFieldTypes.length === 0
+                    }
+                  >
+                    {availableFieldTypes.map((option) => (
+                      <Option key={option.id} value={option.id}>
+                        {option.displayName}
+                      </Option>
+                    ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('displayName')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="displayName"
+                render={({ field }) => (
+                  <Input
+                    size="sm"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disableAll || isEditingLocked}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <Controller
+              control={newFieldControl}
+              name="isCalculated"
+              render={({ field }) => (
+                <Checkbox
+                  size="sm"
+                  label={t('isCalculated')}
+                  checked={field.value}
+                  disabled={disableAll || isEditingLocked}
+                  onChange={(event) => field.onChange(event.target.checked)}
                 />
               )}
             />
-          </FormControl>
 
-          <Controller
-            control={newFieldControl}
-            name="isCalculated"
-            render={({ field }) => (
-              <Checkbox
-                size="sm"
-                label={t('isCalculated')}
-                checked={field.value}
-                disabled={disableAll || editingLocked}
-                onChange={(event) => field.onChange(event.target.checked)}
-              />
-            )}
-          />
-
-          <Button
-            variant="solid"
-            size="sm"
-            sx={{ alignSelf: 'stretch' }}
-            onClick={() => void handleNewSubmit(handleAddField)()}
-            disabled={
-              disableAll ||
-              editingLocked ||
-              !newFieldValues.name ||
-              availableFieldTypes.length === 0
-            }
-          >
-            {t('add')}
-          </Button>
-        </Stack>
+            <Button
+              type="submit"
+              variant="solid"
+              size="sm"
+              sx={{ alignSelf: 'stretch' }}
+              disabled={!canAddField}
+            >
+              {t('add')}
+            </Button>
+          </Stack>
+        </form>
       </Box>
 
       <Stack spacing={4}>
@@ -749,12 +708,12 @@ export function CardTypeFieldsEditor({
 
       <GenericConfirmModal
         open={fieldToDelete !== null}
-        onClose={() => setFieldToDelete(null)}
+        onClose={clearItemToDelete}
         onConfirm={async () => {
           if (fieldToDelete) {
             await handleDeleteField(fieldToDelete);
           }
-          setFieldToDelete(null);
+          clearItemToDelete();
         }}
         title={t('deleteCustomField')}
         content={t('deleteCustomFieldConfirm', { field: fieldToDelete })}

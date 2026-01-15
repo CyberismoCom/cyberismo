@@ -188,13 +188,16 @@ export class FieldTypeResource extends FileResource<FieldType> {
         );
       }
       const newValue = (op as ChangeOperation<EnumDefinition>).to;
-      const foundTo = values.find(
-        (item) => (item as EnumDefinition).enumValue === newValue.enumValue,
-      );
-      if (foundTo) {
-        throw new Error(
-          `Cannot perform operation on 'enumValues'. Enum with value '${(op.to as EnumDefinition).enumValue}' already exists`,
+      // Only check for duplicates if the enumValue itself is being changed
+      if (newValue.enumValue !== targetValue.enumValue) {
+        const foundTo = values.find(
+          (item) => (item as EnumDefinition).enumValue === newValue.enumValue,
         );
+        if (foundTo) {
+          throw new Error(
+            `Cannot perform operation on 'enumValues'. Enum with value '${(op.to as EnumDefinition).enumValue}' already exists`,
+          );
+        }
       }
     }
     // Return the whole object; caller can just provide 'enumValue'.
@@ -431,6 +434,10 @@ export class FieldTypeResource extends FileResource<FieldType> {
         }
         content.dataType = super.handleScalar(op) as DataType;
       } else if (key === 'enumValues') {
+        // Initialize enumValues array if it doesn't exist
+        if (!content.enumValues) {
+          content.enumValues = [];
+        }
         if (op.name === 'add' || op.name === 'change' || op.name === 'remove') {
           const existingValue = this.enumValueExists<EnumDefinition>(
             op as Operation<EnumDefinition>,

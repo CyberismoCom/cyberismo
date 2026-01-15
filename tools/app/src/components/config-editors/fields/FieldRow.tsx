@@ -16,7 +16,7 @@ import { cloneElement, type ReactElement } from 'react';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import type { BaseInputProps } from './types';
-import { useKeyboardShortcut } from '@/lib/hooks';
+import { useKeyboardShortcut, formKeyHandler } from '@/lib/hooks';
 
 export function FieldRow({
   dirty,
@@ -29,19 +29,11 @@ export function FieldRow({
   onCancel: () => void;
   children: ReactElement<BaseInputProps> | null;
 }) {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && dirty) {
-      // require ctrl key for textarea so that new lines can be created
-      const isTextarea = (e.target as HTMLElement).tagName === 'TEXTAREA';
-      if (!isTextarea || e.ctrlKey) {
-        e.preventDefault();
-        void onSave();
-      }
-    } else if (e.key === 'Escape' && dirty) {
-      e.preventDefault();
-      onCancel();
-    }
-  };
+  const handleKeyDown = formKeyHandler({
+    canSubmit: dirty,
+    onSubmit: onSave,
+    onCancel,
+  });
 
   const handleBlur = () => {
     if (dirty) {

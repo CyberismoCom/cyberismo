@@ -3,7 +3,132 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { render, screen } from '@testing-library/react';
 
 import { useConfigTemplateCreationContext } from '@/lib/hooks';
+import { formKeyHandler } from '@/lib/hooks/utils';
 import type { AnyNode } from '@/lib/api/types';
+
+/**
+ * Creates a mock React keyboard event for testing
+ */
+function createKeyboardEvent(
+  key: string,
+  options: {
+    ctrlKey?: boolean;
+    target?: { tagName: string };
+  } = {},
+): React.KeyboardEvent {
+  return {
+    key,
+    ctrlKey: options.ctrlKey ?? false,
+    target: options.target ?? { tagName: 'INPUT' },
+    preventDefault: vi.fn(),
+  } as unknown as React.KeyboardEvent;
+}
+
+describe('formKeyHandler', () => {
+  describe('Enter key behavior', () => {
+    test('calls onSubmit when Enter is pressed and canSubmit is true', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('Enter');
+      handler(event);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    test('does not call onSubmit when Enter is pressed and canSubmit is false', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: false, onSubmit });
+
+      const event = createKeyboardEvent('Enter');
+      handler(event);
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+
+    test('does not call onSubmit for plain Enter in textarea (allows newlines)', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('Enter', {
+        target: { tagName: 'TEXTAREA' },
+      });
+      handler(event);
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+
+    test('calls onSubmit for Ctrl+Enter in textarea', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('Enter', {
+        ctrlKey: true,
+        target: { tagName: 'TEXTAREA' },
+      });
+      handler(event);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    test('calls onSubmit for Enter in regular input', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('Enter', {
+        target: { tagName: 'INPUT' },
+      });
+      handler(event);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+  });
+
+  describe('Escape key behavior', () => {
+    test('calls onCancel when Escape is pressed', () => {
+      const onSubmit = vi.fn();
+      const onCancel = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit, onCancel });
+
+      const event = createKeyboardEvent('Escape');
+      handler(event);
+
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(event.preventDefault).toHaveBeenCalled();
+    });
+
+    test('does not throw when Escape is pressed without onCancel handler', () => {
+      const onSubmit = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit });
+
+      const event = createKeyboardEvent('Escape');
+
+      expect(() => handler(event)).not.toThrow();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('other keys', () => {
+    test('ignores other keys', () => {
+      const onSubmit = vi.fn();
+      const onCancel = vi.fn();
+      const handler = formKeyHandler({ canSubmit: true, onSubmit, onCancel });
+
+      const event = createKeyboardEvent('Tab');
+      handler(event);
+
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+  });
+});
 
 let mockedResourceTree: AnyNode[] | null = null;
 
