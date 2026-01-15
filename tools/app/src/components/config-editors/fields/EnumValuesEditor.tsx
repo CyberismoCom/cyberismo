@@ -97,6 +97,22 @@ export function EnumValuesEditor({
 
   const newEnumValues = useWatch({ control: newEnumControl });
 
+  const closeEditMode = () => {
+    cancelEditing();
+    resetEditEnum({
+      enumValue: '',
+      enumDisplayValue: '',
+      enumDescription: '',
+    });
+  };
+
+  // Allow cancelling edit mode with Escape even when not focused on an input
+  useKeyboardShortcut({ key: 'Escape' }, () => {
+    if (editingEnum !== null) {
+      closeEditMode();
+    }
+  });
+
   // Hide the editor if the data type doesn't support enum values
   if (!ENUM_DATA_TYPES.includes(fieldType.dataType)) {
     return null;
@@ -177,22 +193,6 @@ export function EnumValuesEditor({
       );
     }
   };
-
-  const closeEditMode = () => {
-    cancelEditing();
-    resetEditEnum({
-      enumValue: '',
-      enumDisplayValue: '',
-      enumDescription: '',
-    });
-  };
-
-  // Allow cancelling edit mode with Escape even when not focused on an input
-  useKeyboardShortcut({ key: 'Escape' }, () => {
-    if (editingEnum !== null) {
-      closeEditMode();
-    }
-  });
 
   const handleSaveEdit = async (
     originalEnum: EnumDefinition,
