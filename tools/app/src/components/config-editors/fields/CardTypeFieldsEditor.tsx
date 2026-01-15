@@ -36,12 +36,16 @@ import type { VisibilityGroup } from '@/lib/api/cardType';
 import { useTranslation } from 'react-i18next';
 import { useResource, useCardTypeMutations } from '@/lib/api';
 import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
+import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
 import { EditableRowActions } from './EditableRowActions';
-import { listRowStyles, reorderButtonContainerStyles } from './listEditorStyles';
+import {
+  listRowStyles,
+  reorderButtonContainerStyles,
+} from './listEditorStyles';
 
 type FieldView = {
   name: string;
@@ -173,6 +177,11 @@ export function CardTypeFieldsEditor({
 
   const busy = isUpdating() || isVisibilityUpdating();
   const disableAll = readOnly || busy;
+  const canAddField =
+    !disableAll &&
+    !isEditingLocked &&
+    !!newFieldValues.name &&
+    availableFieldTypes.length > 0;
 
   const handleAddField = async (data: NewFieldDraft) => {
     if (!data.name || disableAll) return;
@@ -312,6 +321,13 @@ export function CardTypeFieldsEditor({
     resetEditField({ displayName: '', isCalculated: false });
   };
 
+  // Allow cancelling edit mode with Escape even when not focused on an input
+  useKeyboardShortcut({ key: 'Escape' }, () => {
+    if (editingField !== null) {
+      closeEditMode();
+    }
+  });
+
   const handleSaveEdit = async (field: FieldView, draft: EditFieldDraft) => {
     if (!draft || disableAll) return;
 
@@ -378,6 +394,12 @@ export function CardTypeFieldsEditor({
 
     const canMoveUp = groupVisibility !== 'hidden' && index > 0;
     const canMoveDown = groupVisibility !== 'hidden' && index < total - 1;
+
+    const handleRowKeyDown = formKeyHandler({
+      canSubmit: !rowDisabled,
+      onSubmit: () => handleEditSubmit((data) => handleSaveEdit(field, data))(),
+      onCancel: closeEditMode,
+    });
 
     return (
       <Sheet
@@ -479,17 +501,7 @@ export function CardTypeFieldsEditor({
                         value={ctrl.value ?? ''}
                         onChange={ctrl.onChange}
                         disabled={rowDisabled}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !rowDisabled) {
-                            e.preventDefault();
-                            void handleEditSubmit((data) =>
-                              handleSaveEdit(field, data),
-                            )();
-                          } else if (e.key === 'Escape') {
-                            e.preventDefault();
-                            closeEditMode();
-                          }
-                        }}
+                        onKeyDown={handleRowKeyDown}
                       />
                     )}
                   />
@@ -569,131 +581,123 @@ export function CardTypeFieldsEditor({
         <Typography level="h4" sx={{ mb: 4 }}>
           {t('customFields')}
         </Typography>
-        <Stack spacing={1.25}>
-          <FormControl>
-            <FormLabel>{t('visibility')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="visibility"
-              render={({ field }) => (
-                <RadioGroup
-                  orientation="horizontal"
-                  value={field.value}
-                  onChange={(event) =>
-                    field.onChange(
-                      (event.target as HTMLInputElement)
-                        .value as VisibilityGroup,
-                    )
-                  }
-                  sx={{ gap: 2 }}
-                >
-                  <Radio
-                    value="always"
-                    label={t('alwaysVisibleFields')}
-                    disabled={disableAll || isEditingLocked}
-                  />
-                  <Radio
-                    value="optional"
-                    label={t('optionallyVisibleFields')}
-                    disabled={disableAll || isEditingLocked}
-                  />
-                  <Radio
-                    value="hidden"
-                    label={t('notVisible')}
-                    disabled={disableAll || isEditingLocked}
-                  />
-                </RadioGroup>
-              )}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('fieldType')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="name"
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Select
-                  value={field.value}
-                  placeholder={t('selectResource')}
-                  onChange={(_, value) =>
-                    field.onChange((value as string) ?? '')
-                  }
-                  size="sm"
-                  disabled={
-                    disableAll ||
-                    isEditingLocked ||
-                    availableFieldTypes.length === 0
-                  }
-                >
-                  {availableFieldTypes.map((option) => (
-                    <Option key={option.id} value={option.id}>
-                      {option.displayName}
-                    </Option>
-                  ))}
-                </Select>
-              )}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('displayName')}</FormLabel>
-            <Controller
-              control={newFieldControl}
-              name="displayName"
-              render={({ field }) => (
-                <Input
-                  size="sm"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disableAll || isEditingLocked}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === 'Enter' &&
-                      !disableAll &&
-                      !isEditingLocked &&
-                      newFieldValues.name &&
-                      availableFieldTypes.length > 0
-                    ) {
-                      e.preventDefault();
-                      void handleNewSubmit(handleAddField)();
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canAddField) {
+              void handleNewSubmit(handleAddField)();
+            }
+          }}
+        >
+          <Stack spacing={1.25}>
+            <FormControl>
+              <FormLabel>{t('visibility')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="visibility"
+                render={({ field }) => (
+                  <RadioGroup
+                    orientation="horizontal"
+                    value={field.value}
+                    onChange={(event) =>
+                      field.onChange(
+                        (event.target as HTMLInputElement)
+                          .value as VisibilityGroup,
+                      )
                     }
-                  }}
+                    sx={{ gap: 2 }}
+                  >
+                    <Radio
+                      value="always"
+                      label={t('alwaysVisibleFields')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                    <Radio
+                      value="optional"
+                      label={t('optionallyVisibleFields')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                    <Radio
+                      value="hidden"
+                      label={t('notVisible')}
+                      disabled={disableAll || isEditingLocked}
+                    />
+                  </RadioGroup>
+                )}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('fieldType')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="name"
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    placeholder={t('selectResource')}
+                    onChange={(_, value) =>
+                      field.onChange((value as string) ?? '')
+                    }
+                    size="sm"
+                    disabled={
+                      disableAll ||
+                      isEditingLocked ||
+                      availableFieldTypes.length === 0
+                    }
+                  >
+                    {availableFieldTypes.map((option) => (
+                      <Option key={option.id} value={option.id}>
+                        {option.displayName}
+                      </Option>
+                    ))}
+                  </Select>
+                )}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('displayName')}</FormLabel>
+              <Controller
+                control={newFieldControl}
+                name="displayName"
+                render={({ field }) => (
+                  <Input
+                    size="sm"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disableAll || isEditingLocked}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <Controller
+              control={newFieldControl}
+              name="isCalculated"
+              render={({ field }) => (
+                <Checkbox
+                  size="sm"
+                  label={t('isCalculated')}
+                  checked={field.value}
+                  disabled={disableAll || isEditingLocked}
+                  onChange={(event) => field.onChange(event.target.checked)}
                 />
               )}
             />
-          </FormControl>
 
-          <Controller
-            control={newFieldControl}
-            name="isCalculated"
-            render={({ field }) => (
-              <Checkbox
-                size="sm"
-                label={t('isCalculated')}
-                checked={field.value}
-                disabled={disableAll || isEditingLocked}
-                onChange={(event) => field.onChange(event.target.checked)}
-              />
-            )}
-          />
-
-          <Button
-            variant="solid"
-            size="sm"
-            sx={{ alignSelf: 'stretch' }}
-            onClick={() => void handleNewSubmit(handleAddField)()}
-            disabled={
-              disableAll ||
-              isEditingLocked ||
-              !newFieldValues.name ||
-              availableFieldTypes.length === 0
-            }
-          >
-            {t('add')}
-          </Button>
-        </Stack>
+            <Button
+              type="submit"
+              variant="solid"
+              size="sm"
+              sx={{ alignSelf: 'stretch' }}
+              disabled={!canAddField}
+            >
+              {t('add')}
+            </Button>
+          </Stack>
+        </form>
       </Box>
 
       <Stack spacing={4}>

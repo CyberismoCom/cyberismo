@@ -28,6 +28,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTranslation } from 'react-i18next';
 import { useResource } from '@/lib/api';
 import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
+import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
@@ -41,13 +42,7 @@ import type {
   DataType,
 } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
-type NewEnumDraft = {
-  enumValue: string;
-  enumDisplayValue: string;
-  enumDescription: string;
-};
-
-type EditEnumDraft = {
+type EnumDraft = {
   enumValue: string;
   enumDisplayValue: string;
   enumDescription: string;
@@ -80,7 +75,7 @@ export function EnumValuesEditor({
     control: newEnumControl,
     handleSubmit: handleNewSubmit,
     reset: resetNewEnum,
-  } = useForm<NewEnumDraft>({
+  } = useForm<EnumDraft>({
     defaultValues: {
       enumValue: '',
       enumDisplayValue: '',
@@ -92,7 +87,7 @@ export function EnumValuesEditor({
     control: editEnumControl,
     reset: resetEditEnum,
     handleSubmit: handleEditSubmit,
-  } = useForm<EditEnumDraft>({
+  } = useForm<EnumDraft>({
     defaultValues: {
       enumValue: '',
       enumDisplayValue: '',
@@ -108,26 +103,23 @@ export function EnumValuesEditor({
   }
 
   const enumValues = fieldType.enumValues || [];
-  const busy = isUpdating();
-  const disableAll = readOnly || busy;
+  const disableAll = readOnly || isUpdating();
 
   const existingEnumValues = new Set(enumValues.map((e) => e.enumValue));
-  const newEnumValue = newEnumValues.enumValue ?? '';
+  const newEnumValue = (newEnumValues.enumValue ?? '').trim();
   const isValueUnique = !newEnumValue || !existingEnumValues.has(newEnumValue);
+  const canAddEnum =
+    !disableAll && !isEditingLocked && !!newEnumValue && isValueUnique;
 
-  const handleAddEnum = async (data: NewEnumDraft) => {
-    if (!data.enumValue.trim() || disableAll || !isValueUnique) return;
+  const handleAddEnum = async (data: EnumDraft) => {
+    if (disableAll || !isValueUnique) return;
 
     try {
       const newEnum: EnumDefinition = {
         enumValue: data.enumValue.trim(),
+        enumDisplayValue: data.enumDisplayValue.trim(),
+        enumDescription: data.enumDescription.trim(),
       };
-      if (data.enumDisplayValue.trim()) {
-        newEnum.enumDisplayValue = data.enumDisplayValue.trim();
-      }
-      if (data.enumDescription.trim()) {
-        newEnum.enumDescription = data.enumDescription.trim();
-      }
 
       await update({
         updateKey: { key: 'enumValues' },
@@ -195,11 +187,18 @@ export function EnumValuesEditor({
     });
   };
 
+  // Allow cancelling edit mode with Escape even when not focused on an input
+  useKeyboardShortcut({ key: 'Escape' }, () => {
+    if (editingEnum !== null) {
+      closeEditMode();
+    }
+  });
+
   const handleSaveEdit = async (
     originalEnum: EnumDefinition,
-    draft: EditEnumDraft,
+    draft: EnumDraft,
   ) => {
-    if (!draft || disableAll) return;
+    if (disableAll) return;
 
     // Check if the new enumValue already exists (and is different from original)
     if (
@@ -217,21 +216,15 @@ export function EnumValuesEditor({
 
     const updatedEnum: EnumDefinition = {
       enumValue: draft.enumValue.trim(),
+      enumDisplayValue: draft.enumDisplayValue.trim(),
+      enumDescription: draft.enumDescription.trim(),
     };
-    if (draft.enumDisplayValue.trim()) {
-      updatedEnum.enumDisplayValue = draft.enumDisplayValue.trim();
-    }
-    if (draft.enumDescription.trim()) {
-      updatedEnum.enumDescription = draft.enumDescription.trim();
-    }
 
     // Check if anything actually changed
     const hasChanges =
       updatedEnum.enumValue !== originalEnum.enumValue ||
-      (updatedEnum.enumDisplayValue ?? '') !==
-        (originalEnum.enumDisplayValue ?? '') ||
-      (updatedEnum.enumDescription ?? '') !==
-        (originalEnum.enumDescription ?? '');
+      updatedEnum.enumDisplayValue !== originalEnum.enumDisplayValue ||
+      updatedEnum.enumDescription !== originalEnum.enumDescription;
 
     if (!hasChanges) {
       closeEditMode();
@@ -321,15 +314,12 @@ export function EnumValuesEditor({
     const canMoveUp = index > 0;
     const canMoveDown = index < total - 1;
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !rowDisabled) {
-        e.preventDefault();
-        void handleEditSubmit((data) => handleSaveEdit(enumDef, data))();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        closeEditMode();
-      }
-    };
+    const handleRowKeyDown = formKeyHandler({
+      canSubmit: !rowDisabled,
+      onSubmit: () =>
+        handleEditSubmit((data) => handleSaveEdit(enumDef, data))(),
+      onCancel: closeEditMode,
+    });
 
     return (
       <Sheet key={enumDef.enumValue} variant="outlined" sx={listRowStyles}>
@@ -384,7 +374,7 @@ export function EnumValuesEditor({
                         value={ctrl.value ?? ''}
                         onChange={ctrl.onChange}
                         disabled={rowDisabled}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={handleRowKeyDown}
                       />
                     )}
                   />
@@ -407,7 +397,7 @@ export function EnumValuesEditor({
                         value={ctrl.value ?? ''}
                         onChange={ctrl.onChange}
                         disabled={rowDisabled}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={handleRowKeyDown}
                       />
                     )}
                   />
@@ -430,7 +420,7 @@ export function EnumValuesEditor({
                         value={ctrl.value ?? ''}
                         onChange={ctrl.onChange}
                         disabled={rowDisabled}
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={handleRowKeyDown}
                       />
                     )}
                   />
@@ -499,92 +489,84 @@ export function EnumValuesEditor({
         <Typography level="h4" sx={{ mb: 2 }}>
           {t('enumValues')}
         </Typography>
-        <Stack spacing={1.25}>
-          <FormControl>
-            <FormLabel>{t('value')} *</FormLabel>
-            <Controller
-              control={newEnumControl}
-              name="enumValue"
-              rules={{ required: true }}
-              render={({ field }) => (
-                <Input
-                  size="sm"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disableAll || isEditingLocked}
-                  error={!isValueUnique}
-                  placeholder={t('enumValuePlaceholder')}
-                />
-              )}
-            />
-            {!isValueUnique && (
-              <Typography level="body-xs" color="danger">
-                {t('enumValueExists')}
-              </Typography>
-            )}
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('displayName')}</FormLabel>
-            <Controller
-              control={newEnumControl}
-              name="enumDisplayValue"
-              render={({ field }) => (
-                <Input
-                  size="sm"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disableAll || isEditingLocked}
-                  placeholder={t('enumDisplayValuePlaceholder')}
-                />
-              )}
-            />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>{t('description')}</FormLabel>
-            <Controller
-              control={newEnumControl}
-              name="enumDescription"
-              render={({ field }) => (
-                <Input
-                  size="sm"
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={disableAll || isEditingLocked}
-                  placeholder={t('enumDescriptionPlaceholder')}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === 'Enter' &&
-                      !disableAll &&
-                      !isEditingLocked &&
-                      newEnumValue.trim() &&
-                      isValueUnique
-                    ) {
-                      e.preventDefault();
-                      void handleNewSubmit(handleAddEnum)();
-                    }
-                  }}
-                />
-              )}
-            />
-          </FormControl>
-
-          <Button
-            variant="solid"
-            size="sm"
-            sx={{ alignSelf: 'stretch' }}
-            onClick={() => void handleNewSubmit(handleAddEnum)()}
-            disabled={
-              disableAll ||
-              isEditingLocked ||
-              !newEnumValue.trim() ||
-              !isValueUnique
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canAddEnum) {
+              void handleNewSubmit(handleAddEnum)();
             }
-          >
-            {t('add')}
-          </Button>
-        </Stack>
+          }}
+        >
+          <Stack spacing={1.25}>
+            <FormControl>
+              <FormLabel>{t('value')} *</FormLabel>
+              <Controller
+                control={newEnumControl}
+                name="enumValue"
+                rules={{ required: true }}
+                render={({ field }) => (
+                  <Input
+                    size="sm"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disableAll || isEditingLocked}
+                    error={!isValueUnique}
+                    placeholder={t('enumValuePlaceholder')}
+                  />
+                )}
+              />
+              {!isValueUnique && (
+                <Typography level="body-xs" color="danger">
+                  {t('enumValueExists')}
+                </Typography>
+              )}
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('displayName')}</FormLabel>
+              <Controller
+                control={newEnumControl}
+                name="enumDisplayValue"
+                render={({ field }) => (
+                  <Input
+                    size="sm"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disableAll || isEditingLocked}
+                    placeholder={t('enumDisplayValuePlaceholder')}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>{t('description')}</FormLabel>
+              <Controller
+                control={newEnumControl}
+                name="enumDescription"
+                render={({ field }) => (
+                  <Input
+                    size="sm"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disableAll || isEditingLocked}
+                    placeholder={t('enumDescriptionPlaceholder')}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <Button
+              type="submit"
+              variant="solid"
+              size="sm"
+              sx={{ alignSelf: 'stretch' }}
+              disabled={!canAddEnum}
+            >
+              {t('add')}
+            </Button>
+          </Stack>
+        </form>
       </Box>
 
       <Stack spacing={1}>

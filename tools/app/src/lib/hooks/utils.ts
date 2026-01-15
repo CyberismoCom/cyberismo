@@ -222,6 +222,37 @@ export function useKeyboardShortcut(
 }
 
 /**
+ * Creates a keyboard event handler for form inputs that handles Enter to submit and Escape to cancel.
+ * For textarea elements, Ctrl+Enter is required to submit (allowing plain Enter for newlines).
+ * @param canSubmit - Whether the form is in a valid state to submit
+ * @param onSubmit - Callback to execute on Enter key
+ * @param onCancel - Optional callback to execute on Escape key
+ */
+export function formKeyHandler({
+  canSubmit,
+  onSubmit,
+  onCancel,
+}: {
+  canSubmit: boolean;
+  onSubmit: () => void | Promise<void>;
+  onCancel?: () => void;
+}) {
+  return (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && canSubmit) {
+      const isTextarea = (e.target as HTMLElement).tagName === 'TEXTAREA';
+      if (isTextarea && !e.ctrlKey) {
+        return; // allow normal newline in textarea
+      }
+      e.preventDefault();
+      void onSubmit();
+    } else if (e.key === 'Escape' && onCancel) {
+      e.preventDefault();
+      onCancel();
+    }
+  };
+}
+
+/**
  * This function is used to get the value of a ResizeObserverEntry.
  * @param entry - the ResizeObserverEntry
  * @param value - the value to get
