@@ -3,6 +3,10 @@
   "additionalProperties": false,
   "description": "Card type defines the workflow and optional additional fields for the cards.",
   "properties": {
+    "category": {
+      "description": "The category of the card type. For example, 'Documentation'.",
+      "type": "string"
+    },
     "name": {
       "description": "The name of the card type",
       "type": "string",
