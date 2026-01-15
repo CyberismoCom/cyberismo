@@ -484,9 +484,9 @@ export function EnumValuesEditor({
   };
 
   return (
-    <Stack spacing={3}>
+    <Stack spacing={7}>
       <Box>
-        <Typography level="h4" sx={{ mb: 2 }}>
+        <Typography level="h4" sx={{ mb: 4 }}>
           {t('enumValues')}
         </Typography>
         <form
