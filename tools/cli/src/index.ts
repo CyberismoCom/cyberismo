@@ -607,7 +607,7 @@ createCmd
           }
 
           if (failedModules.length > 0) {
-            console.log(
+            console.warn(
               `\nSome modules failed to import: ${failedModules.join(', ')}`,
             );
           }
