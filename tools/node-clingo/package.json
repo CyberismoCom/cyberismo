@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/node-clingo",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "Node.js bindings for Clingo answer set solver",
   "scripts": {
     "install": "node scripts/download-prebuild.js || node-gyp-build",
