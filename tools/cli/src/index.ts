@@ -456,6 +456,20 @@ createCmd
     handleResponse(result);
   });
 
+// Create calculation subcommand
+createCmd
+  .command('calculation')
+  .description('Create a new calculation')
+  .argument('<name>', `Name for calculation. ${nameGuideline}`)
+  .action(async (name: string, options: CommandOptions<'create'>) => {
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['calculation', name],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 // Create label subcommand
 createCmd
   .command('label')
