@@ -114,9 +114,7 @@ export function GeneralEditor({ node }: GeneralEditorProps) {
                     return;
                   }
                   try {
-                    await updateAllModules(
-                      general.modules.map((mod) => mod.cardKeyPrefix),
-                    );
+                    await updateAllModules();
                     dispatch(
                       addNotification({
                         message: t('general.updateAllModulesSuccess'),

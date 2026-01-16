@@ -83,6 +83,10 @@ export async function updateModule(commands: CommandManager, module: string) {
   await commands.importCmd.updateModule(module);
 }
 
+export async function updateAllModules(commands: CommandManager) {
+  await commands.importCmd.updateAllModules();
+}
+
 export async function deleteModule(commands: CommandManager, module: string) {
   await commands.removeCmd.remove('module', module);
 }

@@ -41,6 +41,12 @@ export const deleteProjectModule = async (moduleName: string) => {
   mutate(apiPaths.resourceTree());
 };
 
+export const updateAllProjectModules = async () => {
+  await callApi(apiPaths.projectModulesUpdate(), 'POST');
+  mutate(apiPaths.project());
+  mutate(apiPaths.resourceTree());
+};
+
 export const useProjectSettingsMutations = () => {
   const { call, isUpdating } = useUpdating(apiPaths.project());
   const mutations = {
@@ -53,13 +59,8 @@ export const useProjectSettingsMutations = () => {
       call(() => updateProjectModule(moduleName), `update-${moduleName}`),
     deleteModule: (moduleName: string) =>
       call(() => deleteProjectModule(moduleName), `delete-${moduleName}`),
-    updateAllModules: (moduleNames: string[]) =>
-      call(async () => {
-        for (const moduleName of moduleNames) {
-          // Ensure modules are updated sequentially to avoid backend conflicts
-          await updateProjectModule(moduleName);
-        }
-      }, 'update-all-modules'),
+    updateAllModules: () =>
+      call(() => updateAllProjectModules(), 'update-all-modules'),
   };
   return mutations;
 };

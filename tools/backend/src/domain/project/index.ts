@@ -33,6 +33,12 @@ router.patch('/', zValidator('json', updateProjectSchema), async (c) => {
   return c.json(project);
 });
 
+router.post('/modules/update', async (c) => {
+  const commands = c.get('commands');
+  await projectService.updateAllModules(commands);
+  return c.json({ message: 'All modules updated' });
+});
+
 router.post(
   '/modules/:module/update',
   zValidator('param', moduleParamSchema),
