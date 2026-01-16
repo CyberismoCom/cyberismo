@@ -72,7 +72,9 @@ export default function CreateCards({
 
           if (cards && cards.length > 0) {
             if (link) {
-              const rootCards = cards.filter((card) => card.parent === 'root');
+              const rootCards = cards.filter(
+                (card) => card.parent === (cardKey || macroKey),
+              );
               if (rootCards.length > 0) {
                 try {
                   const linkResults = await Promise.allSettled(
