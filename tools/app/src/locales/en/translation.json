@@ -338,6 +338,20 @@
   "removeLabel": "Remove label",
 
   "resourceFileContentUpdated": "Resource file content updated",
+  "visual": "Visual",
+  "visualEditor": {
+    "macroBlock": "Macro (click to view source)",
+    "macroBlockWithName": "Macro: {{name}}",
+    "passthroughBlock": "Passthrough Block",
+    "clickToViewSource": "Click to view source",
+    "placeholder": "Start typing...",
+    "toolbar": {
+      "monospace": "Monospace",
+      "blockquote": "Block Quote",
+      "codeBlock": "Code Block",
+      "horizontalRule": "Horizontal Rule"
+    }
+  },
   "resources": {
     "general": "General",
     "calculations": "Calculations",

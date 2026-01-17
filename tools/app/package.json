@@ -32,12 +32,13 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
+    "@uiw/codemirror-theme-github": "^4.25.2",
+    "@uiw/codemirror-theme-vscode": "^4.25.2",
     "@uiw/react-codemirror": "^4.25.4",
     "@vitejs/plugin-react": "^5.1.2",
     "codemirror-asciidoc": "^2.0.1",
-    "@uiw/codemirror-theme-github": "^4.25.2",
-    "@uiw/codemirror-theme-vscode": "^4.25.2",
     "cypress": "^15.7.0",
+    "date-fns": "^4.1.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.26",
     "global-jsdom": "^26.0.0",
@@ -45,7 +46,6 @@
     "html-react-parser": "^5.2.11",
     "i18next": "^25.7.4",
     "jsdom": "^27.0.0",
-    "date-fns": "^4.1.0",
     "node-html-parser": "^7.0.1",
     "react": "^19.2.3",
     "react-arborist": "^3.4.3",
@@ -64,5 +64,15 @@
     "vega-lite": "^6.4.1",
     "vite": "^7.2.6",
     "vite-plugin-top-level-await": "^1.6.0"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.15.3",
+    "@tiptap/extension-highlight": "^3.15.3",
+    "@tiptap/extension-image": "^3.15.3",
+    "@tiptap/extension-link": "^3.15.3",
+    "@tiptap/extension-placeholder": "^3.15.3",
+    "@tiptap/pm": "^3.15.3",
+    "@tiptap/react": "^3.15.3",
+    "@tiptap/starter-kit": "^3.15.3"
   }
 }

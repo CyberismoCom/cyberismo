@@ -1017,3 +1017,91 @@ describe('createMacro', () => {
     expect(result).to.equal('{{#scoreCard}}"a":{"b":1}{{/scoreCard}}');
   });
 });
+
+describe('macro output wrapping for inject mode', () => {
+  describe('macros that should be wrapped', () => {
+    it('scoreCard in inject mode should be wrapped with macro-content div', async () => {
+      const validAdoc = `{{#scoreCard}}"title":"Test","value":42{{/scoreCard}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'inject',
+        project,
+        cardKey: 'decision_1',
+      });
+      // scoreCard output should be wrapped in macro-content div
+      expect(result).to.include('<div class="macro-content"');
+      expect(result).to.include('data-macro-name="scoreCard"');
+    });
+
+    it('percentage in inject mode should be wrapped with macro-content div', async () => {
+      // Use the exact same format as the existing percentage tests
+      const validAdoc = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'inject',
+        project,
+        cardKey: 'decision_1',
+      });
+      // percentage output should be wrapped in macro-content div
+      expect(result).to.include('<div class="macro-content"');
+      expect(result).to.include('data-macro-name="percentage"');
+    });
+
+    it('wrapped macro preserves inner content', async () => {
+      const validAdoc = `{{#scoreCard}}"title":"Test","value":42{{/scoreCard}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'inject',
+        project,
+        cardKey: 'decision_1',
+      });
+      // The SVG content should be inside the wrapper
+      expect(result).to.include('<svg');
+      expect(result).to.include('</svg>');
+    });
+  });
+
+  describe('macros that should NOT be wrapped', () => {
+    it('vega in inject mode should NOT be wrapped (produces placeholder tag)', async () => {
+      const validAdoc = `{{#vega}}"spec":{"$schema":"https://vega.github.io/schema/vega/v5.json","width":100,"height":100}{{/vega}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'inject',
+        project,
+        cardKey: 'decision_1',
+      });
+      // vega should produce a <vega> placeholder tag, not be wrapped
+      expect(result).to.include('<vega');
+      expect(result).to.not.include('<div class="macro-content"');
+    });
+
+    // Note: createCards, xref, and image tests require specific test data.
+    // The main functionality is tested via the vega and scoreCard tests above.
+  });
+
+  describe('static mode should NOT wrap output', () => {
+    it('scoreCard in static mode should NOT be wrapped', async () => {
+      const validAdoc = `{{#scoreCard}}"title":"Test","value":42{{/scoreCard}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'static',
+        project,
+        cardKey: 'decision_1',
+      });
+      // static mode should not wrap output
+      expect(result).to.not.include('<div class="macro-content"');
+    });
+
+    it('percentage in static mode should NOT be wrapped', async () => {
+      const validAdoc = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
+      const result = await evaluateMacros(validAdoc, {
+        context: 'localApp',
+        mode: 'static',
+        project,
+        cardKey: 'decision_1',
+      });
+      // static mode should not wrap output
+      expect(result).to.not.include('<div class="macro-content"');
+    });
+  });
+});

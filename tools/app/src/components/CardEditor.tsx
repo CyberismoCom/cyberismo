@@ -94,6 +94,7 @@ import {
   TITLE_FIELD_PROPS,
 } from '@/lib/constants';
 import AsciiDocToolbar from '@/components/AsciiDocToolbar';
+import TipTapEditor from '@/components/TipTapEditor';
 
 const asciiDoctor = AsciiDoctor();
 
@@ -613,6 +614,7 @@ export default function CardEditor({
                 }}
               >
                 <Tab data-cy="editTab">{t('edit')}</Tab>
+                <Tab data-cy="visualTab">{t('visual')}</Tab>
                 <Tab data-cy="previewTab">{t('preview')}</Tab>
               </TabList>
               <TabPanel
@@ -755,6 +757,29 @@ export default function CardEditor({
               </TabPanel>
               <TabPanel
                 value={1}
+                sx={{
+                  height: '100%',
+                }}
+              >
+                <Box height="100%">
+                  <LoadingGate values={[linkTypes, previewCard]}>
+                    <TipTapEditor
+                      content={contentRef.current || ''}
+                      cardKey={cardKey}
+                      contentRef={contentRef}
+                      onContentChange={() => {
+                        if (!isEditedValue) {
+                          dispatch(isEdited(true));
+                        }
+                      }}
+                      readOnly={readOnly}
+                      renderedHtml={parsed}
+                    />
+                  </LoadingGate>
+                </Box>
+              </TabPanel>
+              <TabPanel
+                value={2}
                 sx={{
                   height: '100%',
                 }}

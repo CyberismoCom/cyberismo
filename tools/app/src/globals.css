@@ -28,6 +28,54 @@
   max-height: 100vh;
 }
 
+/* Visual Editor styles */
+.visual-editor {
+  cursor: text;
+}
+
+.visual-editor:focus {
+  outline: none;
+}
+
+.visual-editor-macro-block {
+  position: relative;
+  border: 2px dashed var(--joy-palette-primary-300, #90caf9);
+  border-radius: 8px;
+  margin: 16px 0;
+  padding: 8px;
+  padding-top: 24px;
+  background-color: var(--joy-palette-background-level1, #f5f5f5);
+  user-select: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.visual-editor-macro-block:hover {
+  border-color: var(--joy-palette-primary-500, #2196f3);
+}
+
+.visual-editor-macro-block::before {
+  content: 'Macro (click to view source)';
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  background-color: var(--joy-palette-primary-100, #e3f2fd);
+  color: var(--joy-palette-primary-700, #1976d2);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.visual-editor-macro-block[contenteditable='false'] {
+  pointer-events: auto;
+}
+
+/* Prevent caret from appearing in macro blocks */
+.visual-editor-macro-block * {
+  caret-color: transparent;
+}
+
 /* Add margin for inline macro buttons */
 .doc .MuiButton-root {
   margin-top: 12px;

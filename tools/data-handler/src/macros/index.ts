@@ -277,6 +277,46 @@ export async function evaluateMacros(
     : result.replaceAll(CURLY_LEFT, '{').replaceAll(CURLY_RIGHT, '}');
 }
 
+// Macros whose output should NOT be wrapped in inject mode because they:
+// - produce HTML placeholder tags (createCards, vega) that are identifiable
+// - produce AsciiDoc syntax that needs further processing (xref, image, include, vegaLite)
+// - produce complex AsciiDoc with headings/sections that break passthrough blocks (report)
+const MACROS_WITHOUT_WRAPPING = [
+  'createCards',
+  'vega',
+  'xref',
+  'image',
+  'include',
+  'vegaLite',
+  'report',
+];
+
+/**
+ * Wraps macro output with an identifiable container for inject mode.
+ * This allows the Visual Editor to identify and preserve macros that produce
+ * rendered content (like reports, graphs) rather than placeholder tags.
+ *
+ * @param macroName - The name of the macro
+ * @param parameters - The JSON parameters of the macro
+ * @param output - The rendered output from the macro
+ * @returns The wrapped output with identifying markers
+ */
+function wrapMacroOutputForInject(
+  macroName: string,
+  output: string,
+): string {
+  // Macros that already produce identifiable placeholder tags don't need wrapping
+  // Also macros that produce AsciiDoc syntax for further processing
+  if (MACROS_WITHOUT_WRAPPING.includes(macroName)) {
+    return output;
+  }
+
+  // Wrap the output in an identifiable div using AsciiDoc passthrough
+  // The data-macro-name attribute allows the Visual Editor to identify this as macro output
+  // and match it with the original source from the raw content
+  return `++++\n<div class="macro-content" data-macro-name="${macroName}">\n++++\n${output}\n++++\n</div>\n++++\n`;
+}
+
 /**
  * This function assumes that tasks, which were started by macros, are complete.
  * It replaces the placeholders of the tasks with the actual results
@@ -308,7 +348,12 @@ export function applyMacroResults(
         context,
       );
     } else {
-      input = input.replace(item.placeholder, item.promiseResult);
+      // In inject mode, wrap macro output for Visual Editor identification
+      const result =
+        context.mode === 'inject'
+          ? wrapMacroOutputForInject(item.macro, item.promiseResult)
+          : item.promiseResult;
+      input = input.replace(item.placeholder, result);
     }
   }
   return input;
