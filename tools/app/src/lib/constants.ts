@@ -73,3 +73,10 @@ export const TITLE_FIELD_PROPS: Pick<TextareaProps, 'sx'> = {
     fontSize: '1.8rem',
   },
 };
+
+// Special fromState values for workflow transitions
+export const ANY_STATE = '*'; // Wildcard for any state
+export const NEW_CARD = ''; // Empty string represents new card
+
+// Max width for form fields in config editors
+export const FORM_FIELD_MAX_WIDTH = 720;

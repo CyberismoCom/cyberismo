@@ -378,8 +378,8 @@ describe('resources', function () {
       const workflowData = {
         name: name,
         displayName: name,
-        states: [],
-        transitions: [],
+        states: [{ name: 'Draft', category: 'initial' }],
+        transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
       } as Workflow;
       const res = project.resources.byType(name, 'workflows');
       await res.create(workflowData);
@@ -1817,6 +1817,68 @@ describe('resources', function () {
         (item) => item.name === expectedItem.name,
       );
       expect(found).to.equal(undefined);
+    });
+    it('try to create workflow without new card transition', async () => {
+      const name = 'decision/workflows/noNewCardTransition';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await expect(res.create(workflowData)).to.be.rejectedWith(
+        `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 0.`,
+      );
+    });
+    it('try to create workflow with multiple new card transitions', async () => {
+      const name = 'decision/workflows/multipleNewCardTransitions';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Review', category: 'active' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'CreateForReview', fromState: [''], toState: 'Review' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await expect(res.create(workflowData)).to.be.rejectedWith(
+        `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 2.`,
+      );
+    });
+    it('try to remove the only new card transition from workflow', async () => {
+      const name = 'decision/workflows/removeNewCardTransition';
+      const workflowData = {
+        name: name,
+        displayName: name,
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
+        ],
+      } as Workflow;
+      const res = project.resources.byType(name, 'workflows');
+      await res.create(workflowData);
+
+      const op = {
+        name: 'remove',
+        target: { name: 'Create', fromState: [''], toState: 'Draft' },
+      } as RemoveOperation<WorkflowTransition>;
+      await expect(res.update({ key: 'transitions' }, op)).to.be.rejectedWith(
+        `Workflow '${name}' must have exactly one transition from "New Card" (empty fromState), found 0.`,
+      );
     });
     // Parameterized delete tests
     resourceConfigs.forEach((config) => {

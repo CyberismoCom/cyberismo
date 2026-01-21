@@ -78,16 +78,11 @@ export class WorkflowResource extends FileResource<Workflow> {
   }
 
   // Handle change of workflow state.
-  private async handleStateChange(op: ChangeOperation<WorkflowState>) {
-    const content = structuredClone(this.content);
+  private async handleStateChange(
+    content: Workflow,
+    op: ChangeOperation<WorkflowState>,
+  ) {
     const stateName = this.targetName(op) as string;
-    // Check that state can be changed to
-    content.transitions = content.transitions.filter(
-      (t) => t.toState !== stateName,
-    );
-    content.transitions.forEach((t) => {
-      t.fromState = t.fromState.filter((state) => state !== stateName);
-    });
     // validate that new state contains 'name' and 'category'
     if (op.to.name === undefined || op.to.category === undefined) {
       throw new Error(
@@ -95,6 +90,13 @@ export class WorkflowResource extends FileResource<Workflow> {
          Updated state must have 'name' and 'category' properties.`,
       );
     }
+    // Delete transitions to the old state and remove references from fromStates
+    content.transitions = content.transitions.filter(
+      (t) => t.toState !== stateName,
+    );
+    content.transitions.forEach((t) => {
+      t.fromState = t.fromState.filter((state) => state !== stateName);
+    });
     // Update all cards that use this state.
     const toStateName = op.to.name;
 
@@ -103,8 +105,10 @@ export class WorkflowResource extends FileResource<Workflow> {
 
   // Handle removal of workflow state.
   // State can be removed with or without replacement.
-  private async handleStateRemoval(op: RemoveOperation<WorkflowState>) {
-    const content = structuredClone(this.content);
+  private async handleStateRemoval(
+    content: Workflow,
+    op: RemoveOperation<WorkflowState>,
+  ) {
     const stateName = this.targetName(op) as string;
 
     // If there is no replacement value, remove all transitions "to" and "from" this state.
@@ -233,6 +237,28 @@ export class WorkflowResource extends FileResource<Workflow> {
   }
 
   /**
+   * Validates the content of the workflow resource.
+   * @param content Content to be validated.
+   * @throws if content is invalid.
+   */
+  public async validate(content?: Workflow) {
+    // Base class run basic schema checks
+    await super.validate(content);
+
+    const workflowContent = content ?? this.content;
+
+    const newCardTransitions = workflowContent.transitions.filter((t) =>
+      t.fromState.includes(''),
+    );
+
+    if (newCardTransitions.length !== 1) {
+      throw new Error(
+        `Workflow '${workflowContent.name}' must have exactly one transition from "New Card" (empty fromState), found ${newCardTransitions.length}.`,
+      );
+    }
+  }
+
+  /**
    * Renames the object and the file.
    * @param newName New name for the resource.
    */
@@ -329,11 +355,13 @@ export class WorkflowResource extends FileResource<Workflow> {
           removeOp = {
             name: 'remove',
             target: toBeRemovedState as WorkflowState,
+            replacementValue: (op as RemoveOperation<unknown>)
+              .replacementValue as WorkflowState,
           };
         } else {
           removeOp = op as RemoveOperation<WorkflowState>;
         }
-        await this.handleStateRemoval(removeOp);
+        await this.handleStateRemoval(content, removeOp);
       } else if (key === 'states' && op.name === 'change') {
         // If workflow state is renamed, replace all transitions "to" and "from" the old state with new state.
         let changeOp: ChangeOperation<WorkflowState>;
@@ -349,7 +377,7 @@ export class WorkflowResource extends FileResource<Workflow> {
         } else {
           changeOp = op as ChangeOperation<WorkflowState>;
         }
-        await this.handleStateChange(changeOp);
+        await this.handleStateChange(content, changeOp);
       }
 
       await super.postUpdate(content, updateKey, op);

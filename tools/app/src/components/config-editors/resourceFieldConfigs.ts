@@ -27,12 +27,14 @@ export type FieldType =
   | 'multiselect'
   | 'boolean'
   | 'cardFields'
-  | 'enumValues';
+  | 'enumValues'
+  | 'workflowStates';
 
 export interface FieldConfig {
   key: string;
   type: FieldType;
   label: string;
+  fullWidth?: boolean;
   options?: (
     resourceTree: AnyNode[],
     currentNode: ResourceNode,
@@ -142,5 +144,13 @@ export const resourceFieldConfigs: Record<ResourceNode['type'], FieldConfig[]> =
     graphViews: [...commonFields],
     reports: [...commonFields],
     templates: [...commonFields],
-    workflows: [...commonFields],
+    workflows: [
+      ...commonFields,
+      {
+        key: 'states',
+        type: 'workflowStates',
+        label: 'workflowStates',
+        fullWidth: true,
+      },
+    ],
   };

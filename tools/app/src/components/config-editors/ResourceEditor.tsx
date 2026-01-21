@@ -28,10 +28,15 @@ import {
   TextareaInput,
   TextInput,
   SelectInput,
+  WorkflowStatesEditor,
 } from './fields';
-import type { FieldType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
+import type {
+  FieldType,
+  Workflow,
+} from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import FieldRow from './fields/FieldRow';
 import { resourceFieldConfigs, type FieldConfig } from './resourceFieldConfigs';
+import { FORM_FIELD_MAX_WIDTH } from '@/lib/constants';
 
 export function ResourceEditor({ node }: { node: ResourceNode }) {
   const { t } = useTranslation();
@@ -45,6 +50,8 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
   }
 
   const fieldConfigs = resourceFieldConfigs[node.type] || [];
+  const constrainedConfigs = fieldConfigs.filter((c) => !c.fullWidth);
+  const fullWidthConfigs = fieldConfigs.filter((c) => c.fullWidth);
 
   const renderField = (config: FieldConfig) => {
     const { key, type, label, options, staticOptions } = config;
@@ -127,6 +134,13 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
             readOnly={node.readOnly}
           />
         );
+      case 'workflowStates':
+        return (
+          <WorkflowStatesEditor
+            workflow={node.data as Workflow}
+            readOnly={node.readOnly}
+          />
+        );
       default:
         return null;
     }
@@ -157,9 +171,16 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
         {node.name}
       </Typography>
 
-      <Stack direction="column" spacing={2} sx={{ maxWidth: 720 }}>
-        {fieldConfigs.map((config) =>
-          config.type === 'cardFields' || config.type === 'enumValues' ? (
+      {/* Constrained width fields */}
+      <Stack
+        direction="column"
+        spacing={2}
+        sx={{ maxWidth: FORM_FIELD_MAX_WIDTH }}
+      >
+        {constrainedConfigs.map((config) =>
+          config.type === 'cardFields' ||
+          config.type === 'enumValues' ||
+          config.type === 'workflowStates' ? (
             <div key={config.key}>{renderField(config)}</div>
           ) : (
             <FieldRow
@@ -188,6 +209,11 @@ export function ResourceEditor({ node }: { node: ResourceNode }) {
           />
         )}
       </Stack>
+
+      {/* Full width fields (no maxWidth constraint) */}
+      {fullWidthConfigs.map((config) => (
+        <div key={config.key}>{renderField(config)}</div>
+      ))}
     </BaseEditor>
   );
 }

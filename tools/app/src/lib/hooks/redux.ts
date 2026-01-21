@@ -13,8 +13,9 @@
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch, AppStore } from '../store';
 import { setIsUpdating } from '../slices/swr';
+import { addNotification } from '../slices/notifications';
 import { useNavigate } from 'react-router';
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { createFunctionGuard } from './utils';
 import { useTranslation } from 'react-i18next';
 
@@ -119,4 +120,53 @@ export function useUpdating(key: string | null) {
       }
     },
   };
+}
+
+type ErrorNotificationOptions = {
+  onSuccess?: () => void;
+  successMessage?: string;
+};
+
+/**
+ * A hook that wraps async operations with error notification handling.
+ * Automatically uses the app's dispatch and translation.
+ *
+ * @returns A wrapper function that executes the async operation and handles errors
+ */
+export function useErrorNotification() {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+
+  return useCallback(
+    async <T>(
+      fn: () => Promise<T>,
+      options?: ErrorNotificationOptions,
+    ): Promise<T | undefined> => {
+      try {
+        const result = await fn();
+        if (options?.successMessage) {
+          dispatch(
+            addNotification({
+              message: options.successMessage,
+              type: 'success',
+            }),
+          );
+        }
+        options?.onSuccess?.();
+        return result;
+      } catch (error) {
+        dispatch(
+          addNotification({
+            message:
+              error instanceof Error
+                ? error.message
+                : (t('unknownError') ?? ''),
+            type: 'error',
+          }),
+        );
+        return undefined;
+      }
+    },
+    [dispatch, t],
+  );
 }

@@ -27,6 +27,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { getStateColor } from '../lib/utils';
 import { config } from '@/lib/utils';
+import { ANY_STATE } from '@/lib/constants';
 
 interface StateSelectorProps {
   currentState: WorkflowState | null;
@@ -57,7 +58,7 @@ const StateSelector: React.FC<StateSelectorProps> = ({
     return workflow?.transitions.filter(
       (transition) =>
         transition.fromState.includes(currentState.name) ||
-        transition.fromState.includes('*'),
+        transition.fromState.includes(ANY_STATE),
     );
   }, [currentState, workflow]);
 

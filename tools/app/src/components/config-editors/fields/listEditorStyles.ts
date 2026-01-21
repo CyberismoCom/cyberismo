@@ -19,6 +19,7 @@ export const listRowStyles: SxProps = {
   border: '0',
   borderRadius: 16,
   backgroundColor: 'neutral.softBg',
+  width: '100%',
 };
 
 export const reorderButtonContainerStyles: SxProps = {

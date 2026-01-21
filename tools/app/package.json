@@ -24,6 +24,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.2",
     "@cyberismo/data-handler": "workspace:*",
+    "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^7.3.7",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.3.7",
@@ -32,12 +33,13 @@
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
+    "@uiw/codemirror-theme-github": "^4.25.2",
+    "@uiw/codemirror-theme-vscode": "^4.25.2",
     "@uiw/react-codemirror": "^4.25.4",
     "@vitejs/plugin-react": "^5.1.2",
     "codemirror-asciidoc": "^2.0.1",
-    "@uiw/codemirror-theme-github": "^4.25.2",
-    "@uiw/codemirror-theme-vscode": "^4.25.2",
     "cypress": "^15.7.0",
+    "date-fns": "^4.1.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.26",
     "global-jsdom": "^26.0.0",
@@ -45,7 +47,6 @@
     "html-react-parser": "^5.2.11",
     "i18next": "^25.7.4",
     "jsdom": "^27.0.0",
-    "date-fns": "^4.1.0",
     "node-html-parser": "^7.0.1",
     "react": "^19.2.3",
     "react-arborist": "^3.4.3",
@@ -63,6 +64,7 @@
     "vega": "^6.2.0",
     "vega-lite": "^6.4.1",
     "vite": "^7.2.6",
-    "vite-plugin-top-level-await": "^1.6.0"
+    "vite-plugin-top-level-await": "^1.6.0",
+    "zod": "^4.1.13"
   }
 }
