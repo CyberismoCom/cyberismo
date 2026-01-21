@@ -280,7 +280,6 @@ export async function evaluateMacros(
 // Macros whose output should NOT be wrapped in inject mode because they:
 // - produce HTML placeholder tags (createCards, vega) that are identifiable
 // - produce AsciiDoc syntax that needs further processing (xref, image, include, vegaLite)
-// - produce complex AsciiDoc with headings/sections that break passthrough blocks (report)
 const MACROS_WITHOUT_WRAPPING = [
   'createCards',
   'vega',
@@ -288,7 +287,6 @@ const MACROS_WITHOUT_WRAPPING = [
   'image',
   'include',
   'vegaLite',
-  'report',
 ];
 
 /**
@@ -296,8 +294,12 @@ const MACROS_WITHOUT_WRAPPING = [
  * This allows the Visual Editor to identify and preserve macros that produce
  * rendered content (like reports, graphs) rather than placeholder tags.
  *
+ * Uses HTML comments as markers because they:
+ * - Survive AsciiDoctor processing unchanged
+ * - Don't interfere with document structure (unlike passthrough blocks with headings)
+ * - Can wrap any AsciiDoc content including headings, tables, etc.
+ *
  * @param macroName - The name of the macro
- * @param parameters - The JSON parameters of the macro
  * @param output - The rendered output from the macro
  * @returns The wrapped output with identifying markers
  */
@@ -311,10 +313,12 @@ function wrapMacroOutputForInject(
     return output;
   }
 
-  // Wrap the output in an identifiable div using AsciiDoc passthrough
-  // The data-macro-name attribute allows the Visual Editor to identify this as macro output
-  // and match it with the original source from the raw content
-  return `++++\n<div class="macro-content" data-macro-name="${macroName}">\n++++\n${output}\n++++\n</div>\n++++\n`;
+  // Use HTML comments as markers - they pass through AsciiDoctor unchanged
+  // and don't break document structure like passthrough blocks would with headings
+  const startMarker = `++++\n<!-- MACRO_START:${macroName} -->\n++++\n`;
+  const endMarker = `\n++++\n<!-- MACRO_END:${macroName} -->\n++++`;
+
+  return `${startMarker}${output}${endMarker}`;
 }
 
 /**

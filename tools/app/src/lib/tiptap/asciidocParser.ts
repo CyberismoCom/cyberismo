@@ -198,7 +198,13 @@ function parseInlineContent(text: string): JSONContent[] {
 
 /**
  * Extract rendered content for macros from the parsed HTML
- * The backend wraps macro output in: <div class="macro-content" data-macro-name="...">...</div>
+ * The backend wraps macro output with HTML comment markers:
+ * <!-- MACRO_START:macroName --> ... content ... <!-- MACRO_END:macroName -->
+ *
+ * HTML comments are used because they:
+ * - Survive AsciiDoctor processing unchanged
+ * - Don't interfere with document structure
+ * - Can wrap any content including headings, tables, etc.
  */
 function extractMacroRenderedContent(
   renderedHtml: string | null | undefined,
@@ -207,20 +213,26 @@ function extractMacroRenderedContent(
 
   if (!renderedHtml) return macroContent;
 
-  // Parse the HTML and find all macro-content divs
-  const parser = new DOMParser();
-  const htmlDoc = parser.parseFromString(renderedHtml, 'text/html');
-  const macroElements = htmlDoc.querySelectorAll('.macro-content[data-macro-name]');
+  // Find content between MACRO_START and MACRO_END comment markers
+  // The regex captures the macro name and all content between the markers
+  const markerRegex = /<!-- MACRO_START:(\w+) -->[\s\S]*?<!-- MACRO_END:\1 -->/g;
 
-  macroElements.forEach((element) => {
-    const macroName = element.getAttribute('data-macro-name') || 'unknown';
-    const content = element.innerHTML;
+  let match;
+  while ((match = markerRegex.exec(renderedHtml)) !== null) {
+    const macroName = match[1];
+    // Extract content between the markers (excluding the markers themselves)
+    const fullMatch = match[0];
+    const startMarker = `<!-- MACRO_START:${macroName} -->`;
+    const endMarker = `<!-- MACRO_END:${macroName} -->`;
+    const content = fullMatch
+      .slice(startMarker.length, -endMarker.length)
+      .trim();
 
     if (!macroContent.has(macroName)) {
       macroContent.set(macroName, []);
     }
     macroContent.get(macroName)!.push(content);
-  });
+  }
 
   return macroContent;
 }

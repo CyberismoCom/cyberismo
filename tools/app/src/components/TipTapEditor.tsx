@@ -254,6 +254,8 @@ export function TipTapEditor({
 
   // Use a ref to track the initial content to avoid re-parsing on every render
   const initialContentRef = useRef<string | null>(null);
+  // Track if editor has been initialized to skip the first onUpdate
+  const isInitializedRef = useRef(false);
 
   // Initialize the editor
   const editor = useEditor({
@@ -292,23 +294,40 @@ export function TipTapEditor({
     content: parseAsciidoc(content, renderedHtml),
     editable: !readOnly,
     onUpdate: ({ editor: ed }) => {
+      // Skip the first update that fires during initialization
+      if (!isInitializedRef.current) {
+        return;
+      }
       // Serialize back to AsciiDoc and update contentRef
       const asciidoc = serializeAsciidoc(ed.getJSON());
       contentRef.current = asciidoc;
       onContentChange();
     },
-    // Avoid re-parsing on first mount
+    // Mark editor as initialized after first render
     onCreate: () => {
       initialContentRef.current = content;
+      // Use setTimeout to ensure we skip the initial onUpdate but catch subsequent ones
+      setTimeout(() => {
+        isInitializedRef.current = true;
+      }, 0);
     },
   });
 
   // Update editor content when external content changes (e.g., from backend)
   useEffect(() => {
     if (editor && initialContentRef.current !== content && content !== contentRef.current) {
+      // Temporarily disable updates while setting content programmatically
+      const wasInitialized = isInitializedRef.current;
+      isInitializedRef.current = false;
+      
       const newContent = parseAsciidoc(content, renderedHtml);
       editor.commands.setContent(newContent);
       initialContentRef.current = content;
+      
+      // Re-enable updates after a tick
+      setTimeout(() => {
+        isInitializedRef.current = wasInitialized;
+      }, 0);
     }
   }, [content, editor, contentRef, renderedHtml]);
 

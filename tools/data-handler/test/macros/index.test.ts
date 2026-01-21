@@ -1020,7 +1020,7 @@ describe('createMacro', () => {
 
 describe('macro output wrapping for inject mode', () => {
   describe('macros that should be wrapped', () => {
-    it('scoreCard in inject mode should be wrapped with macro-content div', async () => {
+    it('scoreCard in inject mode should be wrapped with HTML comment markers', async () => {
       const validAdoc = `{{#scoreCard}}"title":"Test","value":42{{/scoreCard}}`;
       const result = await evaluateMacros(validAdoc, {
         context: 'localApp',
@@ -1028,12 +1028,12 @@ describe('macro output wrapping for inject mode', () => {
         project,
         cardKey: 'decision_1',
       });
-      // scoreCard output should be wrapped in macro-content div
-      expect(result).to.include('<div class="macro-content"');
-      expect(result).to.include('data-macro-name="scoreCard"');
+      // scoreCard output should be wrapped in HTML comment markers
+      expect(result).to.include('<!-- MACRO_START:scoreCard -->');
+      expect(result).to.include('<!-- MACRO_END:scoreCard -->');
     });
 
-    it('percentage in inject mode should be wrapped with macro-content div', async () => {
+    it('percentage in inject mode should be wrapped with HTML comment markers', async () => {
       // Use the exact same format as the existing percentage tests
       const validAdoc = `{{#percentage}}"title": "Test Percentage", "value": 85, "legend": "of Assets", "colour": "red"{{/percentage}}`;
       const result = await evaluateMacros(validAdoc, {
@@ -1042,9 +1042,9 @@ describe('macro output wrapping for inject mode', () => {
         project,
         cardKey: 'decision_1',
       });
-      // percentage output should be wrapped in macro-content div
-      expect(result).to.include('<div class="macro-content"');
-      expect(result).to.include('data-macro-name="percentage"');
+      // percentage output should be wrapped in HTML comment markers
+      expect(result).to.include('<!-- MACRO_START:percentage -->');
+      expect(result).to.include('<!-- MACRO_END:percentage -->');
     });
 
     it('wrapped macro preserves inner content', async () => {
@@ -1072,7 +1072,7 @@ describe('macro output wrapping for inject mode', () => {
       });
       // vega should produce a <vega> placeholder tag, not be wrapped
       expect(result).to.include('<vega');
-      expect(result).to.not.include('<div class="macro-content"');
+      expect(result).to.not.include('<!-- MACRO_START:');
     });
 
     // Note: createCards, xref, and image tests require specific test data.
@@ -1089,7 +1089,7 @@ describe('macro output wrapping for inject mode', () => {
         cardKey: 'decision_1',
       });
       // static mode should not wrap output
-      expect(result).to.not.include('<div class="macro-content"');
+      expect(result).to.not.include('<!-- MACRO_START:');
     });
 
     it('percentage in static mode should NOT be wrapped', async () => {
@@ -1101,7 +1101,7 @@ describe('macro output wrapping for inject mode', () => {
         cardKey: 'decision_1',
       });
       // static mode should not wrap output
-      expect(result).to.not.include('<div class="macro-content"');
+      expect(result).to.not.include('<!-- MACRO_START:');
     });
   });
 });
