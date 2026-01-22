@@ -644,6 +644,122 @@ Some content here`;
           true,
         );
       });
+
+      describe('whitespace option', () => {
+        it('includeMacro with whitespace="keep" should preserve whitespace (default behavior)', async () => {
+          const macro = `{{#include}}"cardKey": "test-card", "whitespace": "keep"{{/include}}`;
+          const result = await evaluateMacros(macro, {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+
+          // Default behavior: content should start with newlines
+          expect(result).to.match(/^\n\n/);
+          expect(result).to.contain('= Test Card Title');
+          expect(result).to.contain(
+            'This is test content for the included card.',
+          );
+        });
+
+        it('includeMacro with whitespace="trim" should trim whitespace', async () => {
+          const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
+          const result = await evaluateMacros(macro, {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+
+          // Trimmed: content should NOT start with whitespace
+          expect(result).to.not.match(/^\s/);
+          expect(result).to.match(/^\[\[test-card\]\]/);
+          expect(result).to.contain('= Test Card Title');
+          expect(result).to.contain(
+            'This is test content for the included card.',
+          );
+        });
+
+        it('includeMacro without whitespace option should keep whitespace (default)', async () => {
+          const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
+          const result = await evaluateMacros(macro, {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+
+          // Default: content should start with newlines
+          expect(result).to.match(/^\n\n/);
+        });
+
+        it('includeMacro with whitespace="trim" for JSON-like content', async () => {
+          // Create a card with JSON-like content that benefits from trimming
+          const jsonCard: Card = {
+            key: 'json-content-card',
+            path: '',
+            content: '{"key": "value", "number": 42}',
+            metadata: {
+              title: 'JSON Card',
+              cardType: '',
+              workflowState: '',
+              rank: '',
+              links: [],
+            },
+            children: [],
+            attachments: [],
+          };
+          cardDetailsByIdStub.withArgs('json-content-card').returns(jsonCard);
+
+          const macro = `{{#include}}"cardKey": "json-content-card", "whitespace": "trim", "title": "exclude"{{/include}}`;
+          const result = await evaluateMacros(macro, {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+
+          // Content should be trimmed and not have leading/trailing whitespace
+          expect(result).to.equal('{"key": "value", "number": 42}');
+          expect(cardDetailsByIdStub.calledWith('json-content-card')).to.equal(
+            true,
+          );
+        });
+
+        it('includeMacro with whitespace="trim" and title="only" should trim title', async () => {
+          const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim", "title": "only"{{/include}}`;
+          const result = await evaluateMacros(macro, {
+            mode: 'static',
+            project: project,
+            cardKey: '',
+            context: 'localApp',
+          });
+
+          // Should only contain title, trimmed
+          expect(result).to.match(/^\[\[test-card\]\]/);
+          expect(result).to.contain('= Test Card Title');
+          expect(result).to.not.contain(
+            'This is test content for the included card.',
+          );
+        });
+
+        ['static', 'inject', 'staticSite'].forEach((mode) => {
+          it(`includeMacro with whitespace="trim" works in ${mode} mode`, async () => {
+            const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
+
+            // Trimmed content should not start with whitespace in any mode
+            expect(result).to.not.match(/^\s/);
+            expect(result).to.contain('= Test Card Title');
+          });
+        });
+      });
     });
     describe('xrefMacro', () => {
       let cardDetailsByIdStub: sinon.SinonStub;
