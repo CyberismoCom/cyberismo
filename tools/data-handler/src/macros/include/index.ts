@@ -71,7 +71,9 @@ export default class IncludeMacro extends BaseMacro {
       levelOffset,
       options.pageTitles === 'discrete',
     );
-    return options.whitespace === 'trim' ? adjustedContent.trim() : adjustedContent;
+    return options.whitespace === 'trim'
+      ? adjustedContent.trim()
+      : adjustedContent;
   };
 
   private validate(input: unknown): IncludeMacroOptions {
