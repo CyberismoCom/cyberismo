@@ -29,4 +29,10 @@ export interface IncludeMacroOptions {
    */
   title?: 'include' | 'exclude' | 'only';
   pageTitles?: 'normal' | 'discrete';
+  /**
+   * Whether to trim initial and final whitespace and newlines from the output.
+   * Useful for generating non-AsciiDoc content such as JSON.
+   * Default is 'keep'.
+   */
+  whitespace?: 'keep' | 'trim';
 }
