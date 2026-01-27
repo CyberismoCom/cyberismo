@@ -25,7 +25,7 @@ import { formatJson } from '../utils/json.js';
 import { VALID_FOLDER_RESOURCE_FILES } from '../utils/constants.js';
 import { writeFileSafe } from '../utils/file-utils.js';
 import { ResourceObject } from './resource-object.js';
-import { resourceName } from '../utils/resource-utils.js';
+import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 
 import type { UpdateKey } from '../interfaces/resource-interfaces.js';
 import type { FolderResourceContent } from '../interfaces/folder-content-interfaces.js';
@@ -66,7 +66,12 @@ export abstract class FolderResource<
     // Validate resource identifier before creating on disk
     this.validateResourceIdentifier();
     await super.create(newContent);
-    await mkdir(this.internalFolder, { recursive: true });
+
+    const storage = this.project.storageProvider;
+    if (!storage) {
+      // Only create folder when not using storage (storage handles this internally)
+      await mkdir(this.internalFolder, { recursive: true });
+    }
   }
 
   /**
@@ -109,12 +114,36 @@ export abstract class FolderResource<
    */
   protected async loadContentFiles() {
     const contentFiles = new Map<string, string>();
-    const files = await readdir(this.internalFolder, { withFileTypes: true });
-    for (const file of files) {
-      if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
-        const filePath = join(this.internalFolder, file.name);
-        const content = await readFile(filePath, 'utf-8');
-        contentFiles.set(file.name, content);
+    const storage = this.project.storageProvider;
+
+    if (storage) {
+      // Use storage provider
+      const resourceNameStr = resourceNameToString(this.resourceName);
+      const fileNames = await storage.listResourceFiles(
+        resourceNameStr,
+        this.type,
+      );
+      for (const fileName of fileNames) {
+        if (VALID_FOLDER_RESOURCE_FILES.includes(fileName)) {
+          const content = await storage.getResourceFile(
+            resourceNameStr,
+            this.type,
+            fileName,
+          );
+          if (content) {
+            contentFiles.set(fileName, content);
+          }
+        }
+      }
+    } else {
+      // Use filesystem directly (backward compatibility)
+      const files = await readdir(this.internalFolder, { withFileTypes: true });
+      for (const file of files) {
+        if (file.isFile() && VALID_FOLDER_RESOURCE_FILES.includes(file.name)) {
+          const filePath = join(this.internalFolder, file.name);
+          const content = await readFile(filePath, 'utf-8');
+          contentFiles.set(file.name, content);
+        }
       }
     }
     this.setContentFiles(contentFiles);
@@ -161,7 +190,19 @@ export abstract class FolderResource<
       ? formatJson(parsedContent as object)
       : changedContent;
 
-    await writeFileSafe(filePath, contentToWrite, { flag: 'w' });
+    const storage = this.project.storageProvider;
+    if (storage) {
+      // Use storage provider
+      await storage.saveResourceFile(
+        resourceNameToString(this.resourceName),
+        this.type,
+        fileName,
+        contentToWrite,
+      );
+    } else {
+      // Use filesystem directly (backward compatibility)
+      await writeFileSafe(filePath, contentToWrite, { flag: 'w' });
+    }
 
     // Update this resource's content
     if (key) {
@@ -179,7 +220,15 @@ export abstract class FolderResource<
     const nameInContent = resourceName(this.content.name).identifier;
     if (folderName !== nameInContent) {
       const newFolderName = join(this.resourceFolder, nameInContent);
-      await rename(this.internalFolder, newFolderName);
+      const storage = this.project.storageProvider;
+
+      if (storage) {
+        // Storage provider handles rename through renameResource in parent write()
+        // Just update local path tracking
+      } else {
+        // Use filesystem directly (backward compatibility)
+        await rename(this.internalFolder, newFolderName);
+      }
       this.internalFolder = newFolderName;
     }
     return super.write();
@@ -201,7 +250,12 @@ export abstract class FolderResource<
    */
   public async delete() {
     await super.delete();
-    await rm(this.internalFolder, { recursive: true, force: true });
+    const storage = this.project.storageProvider;
+    if (!storage) {
+      // Only delete folder directly when not using storage
+      // (storage deleteResource handles content files internally)
+      await rm(this.internalFolder, { recursive: true, force: true });
+    }
   }
 
   /**

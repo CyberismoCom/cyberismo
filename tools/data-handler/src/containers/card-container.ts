@@ -29,6 +29,8 @@ import type {
   FetchCardDetails,
 } from '../interfaces/project-interfaces.js';
 
+import type { StorageProvider } from '../storage/index.js';
+
 import asciidoctor from '@asciidoctor/core';
 
 import { isPredefinedField, ROOT } from '../utils/constants.js';
@@ -36,11 +38,16 @@ import { isPredefinedField, ROOT } from '../utils/constants.js';
 /**
  * Card container base class. Used for both Project and Template.
  * Contains common card-related functionality.
+ *
+ * The container supports an optional StorageProvider for abstracting
+ * persistence operations. When no provider is configured, the container
+ * uses the filesystem directly (traditional behavior).
  */
 export class CardContainer {
   public basePath: string;
   protected cardCache: CardCache;
   protected prefix: string;
+  protected storage?: StorageProvider;
 
   protected static get logger() {
     return getChildLogger({ module: 'CardContainer' });
@@ -51,10 +58,11 @@ export class CardContainer {
   static projectConfigFileName = 'cardsConfig.json';
   static schemaContentFile = '.schema';
 
-  constructor(path: string, prefix: string) {
+  constructor(path: string, prefix: string, storage?: StorageProvider) {
     this.basePath = path;
     this.prefix = prefix;
-    this.cardCache = new CardCache(this.prefix);
+    this.storage = storage;
+    this.cardCache = new CardCache(this.prefix, storage);
   }
 
   // Filters one card to only include the details requested.
@@ -192,7 +200,14 @@ export class CardContainer {
       for (const child of children) {
         await this.removeCard(child);
       }
-      await deleteDir(card.path);
+
+      if (this.storage) {
+        // Use storage provider
+        await this.storage.deleteCard(cardKey);
+      } else {
+        // Use filesystem directly (backward compatibility)
+        await deleteDir(card.path);
+      }
       return this.cardCache.deleteCard(cardKey);
     }
     return false;
@@ -203,19 +218,78 @@ export class CardContainer {
    * @param card Card to persist
    */
   protected async saveCard(card: Card) {
-    await this.saveCardContent(card);
-    await this.saveCardMetadata(card);
+    // Check if card already exists in cache
+    const existsInCache = this.cardCache.hasCard(card.key);
+
+    if (this.storage && !existsInCache) {
+      // For new cards with storage, use createCard to handle directory creation
+      await this.createNewCard(card);
+    } else {
+      // For existing cards or filesystem mode
+      await this.saveCardContent(card);
+      await this.saveCardMetadata(card);
+    }
+  }
+
+  /**
+   * Creates a new card.
+   *
+   * If a StorageProvider is configured, it is used for creation.
+   * Otherwise, the filesystem is used directly (traditional behavior).
+   *
+   * @param card Card to create
+   */
+  protected async createNewCard(card: Card): Promise<void> {
+    if (card.metadata) {
+      card.metadata.lastUpdated = new Date().toISOString();
+    }
+    const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
+
+    if (this.storage) {
+      // Use storage provider
+      const location = this.determineContainer(card.path);
+      await this.storage.createCard({
+        key: card.key,
+        metadata: sanitizedMetadata,
+        content: card.content || '',
+        attachments: card.attachments.map((a) => ({
+          fileName: a.fileName,
+          mimeType: a.mimeType,
+        })),
+        parent: card.parent,
+        location,
+      });
+    } else {
+      // Use filesystem directly (backward compatibility)
+      const { mkdir } = await import('node:fs/promises');
+      await mkdir(card.path, { recursive: true });
+      await this.saveCardContent(card);
+      await this.saveCardMetadata(card);
+    }
+
+    // Update cache
+    this.cardCache.updateCard(card.key, card);
   }
 
   /**
    * Persists card content.
+   *
+   * If a StorageProvider is configured, it is used for persistence.
+   * Otherwise, the filesystem is written directly (traditional behavior).
+   *
    * @param card Card to persist.
    * @returns true if card was updated; false otherwise.
    */
   protected async saveCardContent(card: Card): Promise<boolean> {
     if (card.content != null) {
-      const contentFile = join(card.path, CardContainer.cardContentFile);
-      await writeFile(contentFile, card.content);
+      if (this.storage) {
+        // Use storage provider
+        await this.storage.saveCardContent(card.key, card.content);
+      } else {
+        // Use filesystem directly (backward compatibility)
+        const contentFile = join(card.path, CardContainer.cardContentFile);
+        await writeFile(contentFile, card.content);
+      }
       return this.cardCache.updateCardContent(card.key, card.content);
     }
     return false;
@@ -223,16 +297,26 @@ export class CardContainer {
 
   /**
    * Persists card metadata.
+   *
+   * If a StorageProvider is configured, it is used for persistence.
+   * Otherwise, the filesystem is written directly (traditional behavior).
+   *
    * @param card Card to persist
    * @returns true if card was updated; false otherwise.
    */
   protected async saveCardMetadata(card: Card): Promise<boolean> {
     if (card.metadata != null) {
-      const metadataFile = join(card.path, CardContainer.cardMetadataFile);
       card.metadata!.lastUpdated = new Date().toISOString();
-
       const sanitizedMetadata = CardContainer.sanitizeMetadata(card);
-      await writeJsonFile(metadataFile, sanitizedMetadata);
+
+      if (this.storage) {
+        // Use storage provider
+        await this.storage.saveCardMetadata(card.key, sanitizedMetadata);
+      } else {
+        // Use filesystem directly (backward compatibility)
+        const metadataFile = join(card.path, CardContainer.cardMetadataFile);
+        await writeJsonFile(metadataFile, sanitizedMetadata);
+      }
       return this.cardCache.updateCardMetadata(card.key, card.metadata);
     }
     return false;

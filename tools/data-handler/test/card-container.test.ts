@@ -24,11 +24,7 @@ describe('project', () => {
   const baseDir = import.meta.dirname;
   const testDir = join(baseDir, 'tmp-card-container-tests');
   const decisionRecordsPath = join(testDir, 'valid/decision-records');
-  const container = new TestContainer(
-    decisionRecordsPath,
-    'decision',
-    'Decision',
-  );
+  const container = new TestContainer(decisionRecordsPath, 'decision');
 
   before(async () => {
     mkdirSync(testDir, { recursive: true });

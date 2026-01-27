@@ -188,9 +188,27 @@ export class Move {
         ? getRankAfter(lastChild.metadata.rank)
         : FIRST_RANK;
 
-    // First do the file operations, then update metadata
-    await copyDir(sourceCard.path, destinationPath);
-    await deleteDir(sourceCard.path);
+    // Capture old parent before any updates
+    const oldParent = sourceCard.parent;
+    let oldParentCard: Card | undefined;
+    if (oldParent && oldParent !== ROOT) {
+      oldParentCard = this.project.findCard(oldParent);
+    }
+
+    // Perform the file operations
+    const storage = this.project.storageProvider;
+    if (storage) {
+      // Use storage provider
+      await storage.moveCard(
+        source,
+        movingToRoot ? null : destination,
+        destinationPath,
+      );
+    } else {
+      // Use filesystem directly (backward compatibility)
+      await copyDir(sourceCard.path, destinationPath);
+      await deleteDir(sourceCard.path);
+    }
 
     // Update card with new path, parent, and rank
     sourceCard.path = destinationPath!;
@@ -212,13 +230,6 @@ export class Move {
           }
         : undefined,
     };
-
-    // Fetch old parent
-    const oldParent = sourceCard.parent;
-    let oldParentCard: Card | undefined;
-    if (oldParent && oldParent !== ROOT) {
-      oldParentCard = this.project.findCard(oldParent);
-    }
 
     let newParentCard: Card | undefined;
     if (!movingToRoot) {

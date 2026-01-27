@@ -26,6 +26,8 @@ import { cardPathParts, parentCard } from '../../utils/card-utils.js';
 import { getChildLogger } from '../../utils/log-utils.js';
 import { pathExists } from '../../utils/file-utils.js';
 
+import type { StorageProvider, CardStorageData } from '../../storage/index.js';
+
 import mime from 'mime-types';
 
 /**
@@ -41,12 +43,23 @@ const cardMetadataFile = 'index.json';
 const cardContentFile = 'index.adoc';
 
 /**
+ * CardCache manages an in-memory cache of cards for fast lookups.
  *
+ * The cache can be populated from:
+ * - The filesystem (traditional behavior) via `populateFromPath`
+ * - A StorageProvider (abstracted storage) via `populateFromStorage`
+ *
+ * When a StorageProvider is configured, it is used for loading cards.
+ * Otherwise, the filesystem is used directly for backward compatibility.
  */
 export class CardCache {
   private cardCache: Map<string, CachedCard> = new Map();
   private cachePopulated: boolean = false;
-  constructor(private prefix: string) {}
+  private storage?: StorageProvider;
+
+  constructor(private prefix: string, storage?: StorageProvider) {
+    this.storage = storage;
+  }
 
   // Recursively builds children relationships for all cards in the cache.
   private buildChildrenRelationshipsRecursively() {
@@ -414,13 +427,108 @@ export class CardCache {
   }
 
   /**
-   * Populates the cache from a given path
+   * Populates the cache from a given path.
+   *
+   * If a StorageProvider is configured, it will be used to load cards.
+   * Otherwise, the filesystem is read directly (traditional behavior).
+   *
    * @param path File system path where the cache should be built from.
    * @param buildRelationships Whether to build parent-child relationships immediately
    */
   public async populateFromPath(path: string, buildRelationships = true) {
-    const cards = await this.fetchFileEntries(path);
+    let cards: CachedCard[];
+
+    if (this.storage) {
+      // Use storage provider to load cards
+      cards = await this.fetchFromStorage(path);
+    } else {
+      // Use filesystem directly (backward compatibility)
+      cards = await this.fetchFileEntries(path);
+    }
+
     this.populateFromCards(cards, buildRelationships);
+  }
+
+  /**
+   * Fetches cards from the storage provider.
+   * @param path Path hint for determining location (project vs template)
+   * @returns Array of cards from storage
+   */
+  private async fetchFromStorage(path: string): Promise<CachedCard[]> {
+    if (!this.storage) {
+      return [];
+    }
+
+    const location = this.determineLocationFromPath(path);
+    const storageCards = await this.storage.getAllCards(location);
+
+    return storageCards.map((storageCard) =>
+      this.storageCardToCachedCard(storageCard),
+    );
+  }
+
+  /**
+   * Converts a CardStorageData to a CachedCard.
+   * The main difference is that CachedCard includes path and children fields.
+   */
+  private storageCardToCachedCard(storageCard: CardStorageData): CachedCard {
+    // For storage-backed cards, we need to compute a virtual path
+    // This maintains compatibility with code that uses card.path
+    // The actual path is derived from the card's location and parent hierarchy
+    const virtualPath = this.computeVirtualPath(storageCard);
+
+    // Convert AttachmentInfo[] to CardAttachment[]
+    const attachments: CardAttachment[] = storageCard.attachments.map((att) => ({
+      card: storageCard.key,
+      path: join(virtualPath, 'a'),
+      fileName: att.fileName,
+      mimeType: att.mimeType,
+    }));
+
+    return {
+      key: storageCard.key,
+      path: virtualPath,
+      children: [], // Will be populated by buildChildrenRelationshipsRecursively
+      attachments,
+      content: storageCard.content,
+      metadata: storageCard.metadata,
+      parent: storageCard.parent,
+      location: storageCard.location,
+    };
+  }
+
+  /**
+   * Computes a virtual filesystem path for a storage-backed card.
+   * This maintains backward compatibility with code that uses card.path.
+   */
+  private computeVirtualPath(storageCard: CardStorageData): string {
+    // This is a virtual path - actual storage may not use filesystem
+    // The path is computed to match the expected filesystem structure
+    if (storageCard.location === 'project') {
+      // Project cards are under cardRoot, possibly nested under parent
+      // For now, we use a simple flat structure
+      // In a full implementation, you would track the actual hierarchy
+      return `cardRoot/${storageCard.key}`;
+    } else {
+      // Template cards use the template location
+      return `templates/${storageCard.location}/c/${storageCard.key}`;
+    }
+  }
+
+  /**
+   * Sets the storage provider for this cache.
+   * @param storage The storage provider to use
+   */
+  public setStorageProvider(storage: StorageProvider | undefined) {
+    this.storage = storage;
+  }
+
+  /**
+   * Gets the current storage provider.
+   * @returns The storage provider or undefined if using filesystem
+   */
+  public getStorageProvider(): StorageProvider | undefined {
+    return this.storage;
   }
 
   /**

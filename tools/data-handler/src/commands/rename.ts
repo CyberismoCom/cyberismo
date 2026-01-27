@@ -47,7 +47,15 @@ export class Rename {
 
     // Then rename card file.
     const newCardPath = card.path.replace(re, this.to);
-    await rename(card.path, newCardPath);
+    const storage = this.project.storageProvider;
+
+    if (storage) {
+      // Use storage provider - move card to new path
+      await storage.moveCard(card.key, card.parent || null, newCardPath);
+    } else {
+      // Use filesystem directly (backward compatibility)
+      await rename(card.path, newCardPath);
+    }
   }
 
   // Update all the cards in a container.
@@ -94,16 +102,31 @@ export class Rename {
   private async updateCardAttachments(re: RegExp, card: Card) {
     if (!isTemplateCard(card)) {
       const attachments = card.attachments ? card.attachments : [];
+      const storage = this.project.storageProvider;
+
       await Promise.all(
         attachments.map(async (attachment) => {
           const newAttachmentFileName = attachment.fileName.replace(
             re,
             this.to,
           );
-          await rename(
-            join(attachment.path, attachment.fileName),
-            join(attachment.path, newAttachmentFileName),
-          );
+
+          if (storage) {
+            // Use storage provider - copy attachment to new name, then delete old
+            await storage.copyAttachment(
+              card.key,
+              attachment.fileName,
+              card.key,
+              newAttachmentFileName,
+            );
+            await storage.deleteAttachment(card.key, attachment.fileName);
+          } else {
+            // Use filesystem directly (backward compatibility)
+            await rename(
+              join(attachment.path, attachment.fileName),
+              join(attachment.path, newAttachmentFileName),
+            );
+          }
           // NOTE: content is renamed by updateFiles method
         }),
       );

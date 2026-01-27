@@ -522,7 +522,20 @@ export abstract class ResourceObject<
    * Reads content from file to memory.
    */
   protected async read() {
-    this.content = await readJsonFile(this.fileName);
+    const storage = this.project.storageProvider;
+    if (storage) {
+      // Use storage provider
+      const resourceData = await storage.getResource(
+        resourceNameToString(this.resourceName),
+        this.type,
+      );
+      if (resourceData) {
+        this.content = resourceData.metadata as T;
+      }
+    } else {
+      // Use filesystem directly (backward compatibility)
+      this.content = await readJsonFile(this.fileName);
+    }
   }
 
   /**
@@ -559,7 +572,19 @@ export abstract class ResourceObject<
     );
 
     const oldName = resourceNameToString(this.resourceName);
-    await rename(this.fileName, newFilename);
+    const storage = this.project.storageProvider;
+
+    if (storage) {
+      // Use storage provider
+      await storage.renameResource(
+        oldName,
+        resourceNameToString(newName),
+        this.type,
+      );
+    } else {
+      // Use filesystem directly (backward compatibility)
+      await rename(this.fileName, newFilename);
+    }
 
     this.fileName = newFilename;
     this.content.name = resourceNameToString(newName);
@@ -654,12 +679,41 @@ export abstract class ResourceObject<
       );
     }
 
+    const storage = this.project.storageProvider;
+
     // Process all files in parallel.
     await Promise.all(
       handleBarFiles.map(async (handleBarFile) => {
-        const content = await readFile(handleBarFile);
-        const updatedContent = content.toString().replaceAll(from, to);
-        await writeFile(handleBarFile, Buffer.from(updatedContent));
+        if (storage) {
+          // Use storage provider
+          // Extract resource name and file name from path
+          // handleBarFile format: .../resources/<type>/<name>/<file>.hbs
+          const parts = handleBarFile.split('/');
+          const fileName = parts.pop()!;
+          const resourceIdentifier = parts.pop()!;
+          const type = parts.pop() as ResourceFolderType;
+
+          const resourceNameStr = `${this.project.projectPrefix}/${type}/${resourceIdentifier}`;
+          const content = await storage.getResourceFile(
+            resourceNameStr,
+            type,
+            fileName,
+          );
+          if (content) {
+            const updatedContent = content.replaceAll(from, to);
+            await storage.saveResourceFile(
+              resourceNameStr,
+              type,
+              fileName,
+              updatedContent,
+            );
+          }
+        } else {
+          // Use filesystem directly (backward compatibility)
+          const content = await readFile(handleBarFile);
+          const updatedContent = content.toString().replaceAll(from, to);
+          await writeFile(handleBarFile, Buffer.from(updatedContent));
+        }
       }),
     );
   }
@@ -758,28 +812,61 @@ export abstract class ResourceObject<
       throw new Error(`Cannot change module resources`);
     }
 
-    // Create folder for resources and add correct .schema file.
-    await mkdir(this.resourceFolder, { recursive: true });
-    await writeJsonFile(
-      join(this.resourceFolder, '.schema'),
-      this.contentSchema,
-      {
-        flag: 'wx',
-      },
-    );
-    // Check if "name" has changed. Changing "name" means renaming the file.
-    const nameInContent = resourceName(this.content.name).identifier + '.json';
-    const currentFileName = basename(this.fileName);
-    const resourceString = resourceNameToString(this.resourceName);
+    const storage = this.project.storageProvider;
 
-    if (nameInContent !== currentFileName) {
-      const newFileName = join(this.resourceFolder, nameInContent);
-      await rename(this.fileName, newFileName);
-      this.fileName = newFileName;
-      this.resourceName = resourceName(this.content.name);
-      this.project.resources.rename(resourceString, this.content.name);
+    if (storage) {
+      // Use storage provider
+      // Check if "name" has changed. Changing "name" means renaming the file.
+      const nameInContent =
+        resourceName(this.content.name).identifier + '.json';
+      const currentFileName = basename(this.fileName);
+      const resourceString = resourceNameToString(this.resourceName);
+
+      if (nameInContent !== currentFileName) {
+        await storage.renameResource(
+          resourceString,
+          this.content.name,
+          this.type,
+        );
+        const newFileName = join(this.resourceFolder, nameInContent);
+        this.fileName = newFileName;
+        this.resourceName = resourceName(this.content.name);
+        this.project.resources.rename(resourceString, this.content.name);
+      }
+
+      await storage.saveResource({
+        name: resourceNameToString(this.resourceName),
+        type: this.type,
+        metadata: this.content as Record<string, unknown>,
+        contentFiles: new Map<string, string>(),
+        source: this.moduleResource ? 'module' : 'local',
+      });
+    } else {
+      // Use filesystem directly (backward compatibility)
+      // Create folder for resources and add correct .schema file.
+      await mkdir(this.resourceFolder, { recursive: true });
+      await writeJsonFile(
+        join(this.resourceFolder, '.schema'),
+        this.contentSchema,
+        {
+          flag: 'wx',
+        },
+      );
+      // Check if "name" has changed. Changing "name" means renaming the file.
+      const nameInContent =
+        resourceName(this.content.name).identifier + '.json';
+      const currentFileName = basename(this.fileName);
+      const resourceString = resourceNameToString(this.resourceName);
+
+      if (nameInContent !== currentFileName) {
+        const newFileName = join(this.resourceFolder, nameInContent);
+        await rename(this.fileName, newFileName);
+        this.fileName = newFileName;
+        this.resourceName = resourceName(this.content.name);
+        this.project.resources.rename(resourceString, this.content.name);
+      }
+      await writeJsonFile(this.fileName, this.content);
     }
-    await writeJsonFile(this.fileName, this.content);
   }
 
   /**

@@ -14,10 +14,12 @@
 // node
 import { basename, join, resolve, sep } from 'node:path';
 import { type Dirent, readdirSync } from 'node:fs';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 // Base class
 import { CardContainer } from './card-container.js';
+
+import type { StorageProvider } from '../storage/index.js';
 
 import {
   type Card,
@@ -54,6 +56,13 @@ export class Template extends CardContainer {
     return getChildLogger({
       module: 'template',
     });
+  }
+
+  /**
+   * Gets the storage provider from the project, if configured.
+   */
+  private get projectStorage(): StorageProvider | undefined {
+    return this.project.storageProvider;
   }
 
   /**
@@ -180,8 +189,13 @@ export class Template extends CardContainer {
     const processAttachments = async (card: Card) => {
       if (!card.attachments.length) return card;
 
-      const attachmentsFolder = join(card.path, 'a');
-      await mkdir(attachmentsFolder, { recursive: true });
+      const storage = this.projectStorage;
+
+      if (!storage) {
+        // Use filesystem directly (backward compatibility)
+        const attachmentsFolder = join(card.path, 'a');
+        await mkdir(attachmentsFolder, { recursive: true });
+      }
 
       let content = card.content;
       await Promise.all(
@@ -199,10 +213,19 @@ export class Template extends CardContainer {
             new RegExp(`image::${attachment.fileName}`, 'g'),
             `image::${attachmentUniqueName}`,
           );
-          await copyFile(
-            join(attachment.path, attachment.fileName),
-            join(card.path, 'a', attachmentUniqueName),
-          );
+
+          if (storage) {
+            // Use storage provider - read source file and save to destination
+            const sourceFile = join(attachment.path, attachment.fileName);
+            const data = await readFile(sourceFile);
+            await storage.saveAttachment(card.key, attachmentUniqueName, data);
+          } else {
+            // Use filesystem directly (backward compatibility)
+            await copyFile(
+              join(attachment.path, attachment.fileName),
+              join(card.path, 'a', attachmentUniqueName),
+            );
+          }
         }),
       );
       return { ...card, content };
@@ -257,6 +280,7 @@ export class Template extends CardContainer {
       // Create mapping and handle ranks
       const parentCards = await createMappingAndRanks();
       const templatesFolder = this.templateFolder();
+      const storage = this.projectStorage;
 
       // Process all cards in parallel
       // Create deep copies to avoid mutating the cached template cards
@@ -272,16 +296,28 @@ export class Template extends CardContainer {
             processAttachments(card),
           ]);
 
-          // Create directory and write files
-          await mkdir(processedCard.path, { recursive: true });
-
-          await Promise.all([
-            this.saveCardMetadata(processedCard),
-            writeFile(
-              join(processedCard.path, Project.cardContentFile),
+          if (storage) {
+            // Use storage provider
+            // Save metadata (createCard will handle directory creation equivalent)
+            await this.saveCardMetadata(processedCard);
+            // Save content
+            await storage.saveCardContent(
+              processedCard.key,
               processedAttachments.content || '',
-            ),
-          ]);
+            );
+          } else {
+            // Use filesystem directly (backward compatibility)
+            // Create directory and write files
+            await mkdir(processedCard.path, { recursive: true });
+
+            await Promise.all([
+              this.saveCardMetadata(processedCard),
+              writeFile(
+                join(processedCard.path, Project.cardContentFile),
+                processedAttachments.content || '',
+              ),
+            ]);
+          }
           return processedCard;
         }),
       );
@@ -427,7 +463,6 @@ export class Template extends CardContainer {
         : this.cards();
       const defaultContent = DefaultContent.card(cardType, templateCards);
 
-      await mkdir(templateCardToCreate, { recursive: true });
       const defaultCard: Card = {
         key: basename(templateCardToCreate),
         path: templateCardToCreate,
@@ -437,6 +472,13 @@ export class Template extends CardContainer {
         content: '',
         parent: parentCard ? parentCard.key : ROOT,
       };
+
+      const storage = this.projectStorage;
+      if (!storage) {
+        // Use filesystem directly (backward compatibility)
+        await mkdir(templateCardToCreate, { recursive: true });
+      }
+      // saveCard handles both storage and filesystem cases
       await this.saveCard(defaultCard);
       await this.project.handleNewCards([defaultCard]);
     } catch (error) {

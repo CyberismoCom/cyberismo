@@ -39,6 +39,17 @@ import {
 } from './utils/resource-utils.js';
 import { moduleNameFromCardKey } from './utils/card-utils.js';
 
+// Storage abstraction layer
+export type {
+  StorageProvider,
+  StorageTransaction,
+  CardStorageData,
+  ResourceStorageData,
+  AttachmentInfo,
+} from './storage/index.js';
+export { FileSystemProvider } from './storage/index.js';
+export type { FileSystemProviderConfig } from './storage/index.js';
+
 export {
   Cmd,
   CmdKey,

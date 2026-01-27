@@ -59,6 +59,7 @@ import { MigrationExecutor } from '../migrations/migration-executor.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
+import type { StorageProvider } from '../storage/index.js';
 
 import { ROOT } from '../utils/constants.js';
 
@@ -74,10 +75,12 @@ export { ResourcesFrom };
  * Options for Project initialization.
  * autoSave - If project configuration changes are saved automatically. Default true.
  * watchResourceChanges - If project refresh automatically to filesystem changes. Default false.
+ * storageProvider - Optional storage backend. If not provided, uses filesystem directly.
  */
 export interface ProjectOptions {
   autoSave?: boolean;
   watchResourceChanges?: boolean;
+  storageProvider?: StorageProvider;
 }
 
 /**
@@ -104,7 +107,7 @@ export class Project extends CardContainer {
       join(path, '.cards', 'local', Project.projectConfigFileName),
       options.autoSave ?? true,
     );
-    super(path, settings.cardKeyPrefix);
+    super(path, settings.cardKeyPrefix, options.storageProvider);
     this.settings = settings;
 
     this.logger.info({ path }, 'Initializing project');
@@ -390,31 +393,47 @@ export class Project extends CardContainer {
       throw new Error(`Cannot modify imported module`);
     }
 
-    // Create the attachment folder if it doesn't exist
-    await mkdir(attachmentFolder, { recursive: true });
+    const fileName = basename(attachmentName);
 
-    const attachmentPath = join(attachmentFolder, basename(attachmentName));
-
-    if (Buffer.isBuffer(attachmentData)) {
-      await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
+    if (this.storage) {
+      // Use storage provider
+      let data: Buffer;
+      if (Buffer.isBuffer(attachmentData)) {
+        data = attachmentData;
+      } else {
+        // Read file from filesystem to get buffer
+        const { readFile: fsReadFile } = await import('node:fs/promises');
+        try {
+          data = await fsReadFile(attachmentData);
+        } catch {
+          throw new Error(`Attachment file not found: ${attachmentData}`);
+        }
+      }
+      await this.storage.saveAttachment(cardKey, fileName, data);
     } else {
-      try {
-        await copyFile(
-          attachmentData,
-          attachmentPath,
-          fsConstants.COPYFILE_EXCL,
-        );
-      } catch {
-        throw new Error(`Attachment file not found: ${attachmentData}`);
+      // Use filesystem directly (backward compatibility)
+      // Create the attachment folder if it doesn't exist
+      await mkdir(attachmentFolder, { recursive: true });
+
+      const attachmentPath = join(attachmentFolder, fileName);
+
+      if (Buffer.isBuffer(attachmentData)) {
+        await writeFile(attachmentPath, attachmentData, { flag: 'wx' });
+      } else {
+        try {
+          await copyFile(
+            attachmentData,
+            attachmentPath,
+            fsConstants.COPYFILE_EXCL,
+          );
+        } catch {
+          throw new Error(`Attachment file not found: ${attachmentData}`);
+        }
       }
     }
 
     // Update cache
-    await this.handleAttachmentChange(
-      cardKey,
-      'added',
-      basename(attachmentName),
-    );
+    await this.handleAttachmentChange(cardKey, 'added', fileName);
   }
 
   /**
@@ -479,6 +498,14 @@ export class Project extends CardContainer {
    */
   public get cardsCache() {
     return this.cardCache;
+  }
+
+  /**
+   * Accessor for the storage provider.
+   * Returns undefined if using filesystem directly (traditional behavior).
+   */
+  public get storageProvider() {
+    return this.storage;
   }
 
   /**
@@ -933,13 +960,22 @@ export class Project extends CardContainer {
       throw new Error(`Cannot modify imported module`);
     }
 
-    const attachmentPath = join(attachmentFolder, fileName);
+    if (this.storage) {
+      // Use storage provider
+      const deleted = await this.storage.deleteAttachment(cardKey, fileName);
+      if (!deleted) {
+        throw new Error(`Attachment not found: ${fileName}`);
+      }
+    } else {
+      // Use filesystem directly (backward compatibility)
+      const attachmentPath = join(attachmentFolder, fileName);
 
-    try {
-      await unlink(attachmentPath);
-    } catch (error) {
-      this.logger.error({ error }, 'Removing card attachment');
-      throw new Error(`Attachment not found: ${fileName}`);
+      try {
+        await unlink(attachmentPath);
+      } catch (error) {
+        this.logger.error({ error }, 'Removing card attachment');
+        throw new Error(`Attachment not found: ${fileName}`);
+      }
     }
     await this.handleAttachmentChange(cardKey, 'removed', fileName);
   }

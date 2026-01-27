@@ -127,6 +127,24 @@ export class Show {
     return attachment;
   }
 
+  // Gets attachment data using storage provider or filesystem
+  private async getAttachmentData(
+    cardKey: string,
+    filename: string,
+  ): Promise<Buffer | undefined> {
+    const storage = this.project.storageProvider;
+    if (storage) {
+      return storage.getAttachment(cardKey, filename);
+    }
+    // Fall back to filesystem
+    const attachment = this.getAttachment(cardKey, filename);
+    if (!attachment) {
+      return undefined;
+    }
+    const attachmentPath = `${attachment.path}/${attachment.fileName}`;
+    return readFileSync(attachmentPath);
+  }
+
   // Opens the given path using the operating system's default application. Doesn't block the main thread.
   // @todo: Move away from Show.
   private openUsingDefaultApplication(path: string) {
@@ -178,7 +196,10 @@ export class Show {
    * @param filename attachment filename
    * @returns attachment details
    */
-  public showAttachment(cardKey: string, filename: string): attachmentPayload {
+  public async showAttachment(
+    cardKey: string,
+    filename: string,
+  ): Promise<attachmentPayload> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
@@ -189,8 +210,11 @@ export class Show {
       throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
     }
 
-    const attachmentPath = `${attachment.path}/${attachment.fileName}`;
-    const fileBuffer = readFileSync(attachmentPath);
+    const fileBuffer = await this.getAttachmentData(cardKey, filename);
+    if (!fileBuffer) {
+      throw new Error(`Attachment '${filename}' not found for card ${cardKey}`);
+    }
+
     const mimeType = attachment.mimeType || 'application/octet-stream';
     const payload: attachmentPayload = { fileBuffer, mimeType };
     return payload;
