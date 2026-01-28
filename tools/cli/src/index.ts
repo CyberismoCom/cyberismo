@@ -111,8 +111,7 @@ async function importableModules(options: CommandOptions<'show'>) {
     !importableModules?.payload ||
     (importableModules.payload as ModuleSettingFromHub[]).length === 0
   ) {
-    console.error('No modules available');
-    process.exit(1);
+    program.error('No modules available');
   }
 
   // return potential importable modules
@@ -554,14 +553,28 @@ createCmd
       if (!commandOptions.skipModuleImport && result.statusCode === 200) {
         try {
           // add default hub
-          await commandHandler.command(
+          const addHubResult = await commandHandler.command(
             Cmd.add,
             ['hub', DEFAULT_HUB],
             commandOptions,
           );
+          if (addHubResult.statusCode !== 200) {
+            program.error(
+              `Project creation failed: could not add default hub - ${addHubResult.message || 'Unknown error'}`,
+            );
+          }
 
           // fetch modules from default hub
-          await commandHandler.command(Cmd.fetch, ['hubs'], commandOptions);
+          const fetchResult = await commandHandler.command(
+            Cmd.fetch,
+            ['hubs'],
+            commandOptions,
+          );
+          if (fetchResult.statusCode !== 200) {
+            program.error(
+              `Project creation failed: could not fetch hub data - ${fetchResult.message || 'Unknown error'}`,
+            );
+          }
 
           // show importable modules
           const choices = await importableModules(commandOptions);
@@ -572,8 +585,9 @@ createCmd
           });
 
           // finally, import the selected modules
+          const failedModules: string[] = [];
           for (const module of selectedModules) {
-            await commandHandler.command(
+            const importResult = await commandHandler.command(
               Cmd.import,
               [
                 'module',
@@ -582,6 +596,19 @@ createCmd
                 module.private ? 'true' : 'false',
               ],
               { ...commandOptions, skipMigrationLog: true },
+            );
+            if (importResult.statusCode !== 200) {
+              console.warn(
+                `Failed to import module '${module.name}':`,
+                importResult.message || 'Unknown error',
+              );
+              failedModules.push(module.name);
+            }
+          }
+
+          if (failedModules.length > 0) {
+            console.warn(
+              `\nSome modules failed to import: ${failedModules.join(', ')}`,
             );
           }
         } catch (error) {
