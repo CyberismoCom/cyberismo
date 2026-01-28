@@ -180,7 +180,9 @@ function MetadataView({
         />
         <FieldItem
           name="__lastUpdated__"
-          forceValue={format(new Date(card.lastUpdated), 'PPp')}
+          forceValue={
+            card.lastUpdated ? format(new Date(card.lastUpdated), 'PPp') : ''
+          }
           expanded={true}
           editableFieldProps={{
             label: t('lastUpdated'),
