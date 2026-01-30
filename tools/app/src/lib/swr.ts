@@ -136,4 +136,11 @@ export const apiPaths = {
     `/api/project/modules/${encodeURIComponent(module)}/update`,
   projectModuleDelete: (module: string) =>
     `/api/project/modules/${encodeURIComponent(module)}`,
+  // Edit sessions
+  sessions: () => '/api/sessions',
+  session: (id: string) => `/api/sessions/${id}`,
+  sessionSave: (id: string) => `/api/sessions/${id}/save`,
+  sessionPublish: (id: string) => `/api/sessions/${id}/publish`,
+  sessionForCard: (cardKey: string) => `/api/sessions/card/${cardKey}`,
+  sessionsCleanup: () => '/api/sessions/cleanup',
 };

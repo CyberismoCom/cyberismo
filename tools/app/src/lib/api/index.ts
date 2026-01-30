@@ -28,4 +28,5 @@ export * from './templates';
 export * from './report';
 export * from './workflow';
 export * from './labels';
+export * from './sessions';
 export type { CardUpdate };
