@@ -33,6 +33,7 @@ import {
   Cmd,
   Commands,
   ExportFormats,
+  GitManager,
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
@@ -624,6 +625,26 @@ createCmd
             console.warn(
               `\nSome modules failed to import: ${failedModules.join(', ')}`,
             );
+          }
+
+          // Commit the imported modules to Git
+          if (selectedModules.length > 0) {
+            try {
+              const gitManager = new GitManager(path);
+              await gitManager.addAll();
+              const moduleNames = selectedModules
+                .filter((m) => !failedModules.includes(m.name))
+                .map((m) => m.name)
+                .join(', ');
+              if (moduleNames) {
+                await gitManager.commit(`Import modules: ${moduleNames}`);
+              }
+            } catch (gitError) {
+              console.warn(
+                'Failed to commit imported modules:',
+                gitError instanceof Error ? gitError.message : gitError,
+              );
+            }
           }
         } catch (error) {
           if (error instanceof Error) {
