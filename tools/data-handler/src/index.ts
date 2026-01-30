@@ -19,6 +19,13 @@ import {
   ExportFormats,
 } from './command-handler.js';
 import { Validate } from './commands/validate.js';
+import {
+  GitManager,
+  type GitStatus,
+  type GitUserConfig,
+  type WorktreeInfo,
+  type MergeResult,
+} from './containers/project/git-manager.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
@@ -46,6 +53,7 @@ export {
   CommandManager,
   Commands,
   ExportFormats,
+  GitManager,
   isResourceFolderType,
   moduleNameFromCardKey,
   requestStatus,
@@ -55,6 +63,8 @@ export {
   Validate,
   evaluateMacros,
 };
+
+export type { GitStatus, GitUserConfig, MergeResult, WorktreeInfo };
 
 // Export command-specific option interfaces
 export type {

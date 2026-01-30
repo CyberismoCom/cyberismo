@@ -60,3 +60,4 @@ logs
 prebuilds
 
 tools/backend/static
+.claude/settings.local.json

@@ -17,6 +17,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
+import { GitManager } from '../containers/project/git-manager.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -60,6 +61,7 @@ export class Create {
     '.calc',
     '.asciidoctor',
     '.vscode',
+    '.worktrees',
     '*.html',
     '*.pdf',
     '*.puml',
@@ -464,7 +466,21 @@ export class Create {
         this.gitIgnoreContent.join('\n') + '\n',
       );
     } catch {
-      console.error('Failed to create project');
+      console.error('Failed to create .gitignore file');
+    }
+
+    // Initialize Git repository and create initial commit
+    try {
+      const gitManager = new GitManager(projectPath);
+      await gitManager.init();
+      await gitManager.addAll();
+      await gitManager.commit('Initial project creation');
+    } catch (error) {
+      // Git initialization is not critical - project is still usable without it
+      console.error(
+        'Failed to initialize Git repository:',
+        error instanceof Error ? error.message : error,
+      );
     }
   }
 

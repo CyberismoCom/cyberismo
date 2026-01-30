@@ -28,6 +28,11 @@ import { CardContainer } from './card-container.js';
 
 import { CalculationEngine } from './project/calculation-engine.js';
 import {
+  GitManager,
+  type GitStatus,
+  type GitUserConfig,
+} from './project/git-manager.js';
+import {
   type Card,
   type CardAttachment,
   CardLocation,
@@ -85,6 +90,7 @@ export interface ProjectOptions {
  */
 export class Project extends CardContainer {
   public calculationEngine: CalculationEngine;
+  private gitManager: GitManager;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
@@ -110,6 +116,7 @@ export class Project extends CardContainer {
     this.logger.info({ path }, 'Initializing project');
 
     this.calculationEngine = new CalculationEngine(this);
+    this.gitManager = new GitManager(path);
     this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
@@ -1175,5 +1182,45 @@ export class Project extends CardContainer {
     if (await this.saveCardMetadata(card)) {
       await this.handleCardChanged(card);
     }
+  }
+
+  // ============================================================================
+  // Git Operations
+  // ============================================================================
+
+  /**
+   * Check if this project is a Git repository.
+   * @returns true if the project is a Git repository
+   */
+  public async isGitRepository(): Promise<boolean> {
+    return this.gitManager.isGitRepo();
+  }
+
+  /**
+   * Get the Git status of this project.
+   * @returns Git status information, or null if not a Git repository
+   */
+  public async getGitStatus(): Promise<GitStatus | null> {
+    const isRepo = await this.gitManager.isGitRepo();
+    if (!isRepo) {
+      return null;
+    }
+    return this.gitManager.getStatus();
+  }
+
+  /**
+   * Get Git user configuration for this project.
+   * @returns Git user config (name and email)
+   */
+  public async getGitUserConfig(): Promise<GitUserConfig> {
+    return this.gitManager.getUserConfig();
+  }
+
+  /**
+   * Get the GitManager instance for advanced Git operations.
+   * @returns GitManager instance
+   */
+  public get git(): GitManager {
+    return this.gitManager;
   }
 }

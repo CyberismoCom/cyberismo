@@ -191,3 +191,7 @@ pnpm --filter @cyberismo/backend test
 - Prettier for formatting
 - Async/promise best practices enforced
 - AGPL-3.0 license
+
+## Ground rules
+
+Always when learning something new, add an entry or modify CLAUDE.md accordingly.
