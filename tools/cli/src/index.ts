@@ -1385,6 +1385,91 @@ updateModulesCmd.action(
   },
 );
 
+// Session command - manage edit sessions for multi-user collaboration
+const sessionCmd = new CommandWithPath('session').description(
+  'Manage edit sessions for cards. Sessions provide isolated editing environments using Git worktrees.',
+);
+program.addCommand(sessionCmd);
+
+sessionCmd
+  .command('start')
+  .description('Start a new edit session for a card')
+  .argument('<cardKey>', 'Card key of the card to edit')
+  .action(async (cardKey: string, options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['start', cardKey],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+sessionCmd
+  .command('save')
+  .description('Save (commit) changes in an edit session')
+  .argument('<sessionId>', 'Session ID to save')
+  .action(async (sessionId: string, options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['save', sessionId],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+sessionCmd
+  .command('publish')
+  .description(
+    'Publish (merge) an edit session to the main branch. Uses "theirs" strategy for conflicts (last write wins).',
+  )
+  .argument('<sessionId>', 'Session ID to publish')
+  .action(async (sessionId: string, options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['publish', sessionId],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+sessionCmd
+  .command('discard')
+  .description('Discard an edit session, removing all uncommitted changes')
+  .argument('<sessionId>', 'Session ID to discard')
+  .action(async (sessionId: string, options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['discard', sessionId],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+sessionCmd
+  .command('list')
+  .description('List all active edit sessions')
+  .action(async (options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['list'],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
+sessionCmd
+  .command('show')
+  .description('Show details of an edit session')
+  .argument('<sessionId>', 'Session ID to show')
+  .action(async (sessionId: string, options: CommandOptions<'session'>) => {
+    const result = await commandHandler.command(
+      Cmd.session,
+      ['show', sessionId],
+      Object.assign({}, options, program.opts()),
+    );
+    handleResponse(result);
+  });
+
 // Validate command
 const validateCmd = new CommandWithPath('validate').description(
   'Validate project structure',
