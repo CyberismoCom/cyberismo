@@ -27,6 +27,7 @@ import templatesRouter from './domain/templates/index.js';
 import treeRouter from './domain/tree/index.js';
 import workflowsRouter from './domain/workflows/index.js';
 import labelsRouter from './domain/labels/index.js';
+import sessionsRouter from './domain/sessions/index.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import resourcesRouter from './domain/resources/index.js';
@@ -71,6 +72,7 @@ export function createApp(projectPath?: string, opts?: TreeOptions) {
   app.route('/api/resources', resourcesRouter);
   app.route('/api/logicPrograms', logicProgramsRouter);
   app.route('/api/labels', labelsRouter);
+  app.route('/api/sessions', sessionsRouter);
   app.route('/api/project', projectRouter);
 
   // serve index.html for all other routes
