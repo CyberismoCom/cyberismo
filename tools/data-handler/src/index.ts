@@ -26,6 +26,14 @@ import {
   type WorktreeInfo,
   type MergeResult,
 } from './containers/project/git-manager.js';
+import { EditSessionManager } from './containers/edit-session-manager.js';
+import type {
+  EditSession,
+  EditSessionCreate,
+  EditSessionPublishResult,
+  EditSessionSaveResult,
+  EditSessionStatus,
+} from './types/edit-session.js';
 export * from './interfaces/project-interfaces.js';
 export * from './interfaces/macros.js';
 import { requestStatus } from './interfaces/request-status-interfaces.js';
@@ -52,6 +60,7 @@ export {
   CmdValue,
   CommandManager,
   Commands,
+  EditSessionManager,
   ExportFormats,
   GitManager,
   isResourceFolderType,
@@ -65,6 +74,14 @@ export {
 };
 
 export type { GitStatus, GitUserConfig, MergeResult, WorktreeInfo };
+
+export type {
+  EditSession,
+  EditSessionCreate,
+  EditSessionPublishResult,
+  EditSessionSaveResult,
+  EditSessionStatus,
+};
 
 // Export command-specific option interfaces
 export type {
