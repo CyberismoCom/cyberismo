@@ -13,6 +13,7 @@
 import { Calculate } from './commands/calculate.js';
 import { Create } from './commands/create.js';
 import { Edit } from './commands/edit.js';
+import { EditSessionCmd } from './commands/edit-session.js';
 import { Export } from './commands/export.js';
 import { Fetch } from './commands/fetch.js';
 import { Import } from './commands/import.js';
@@ -43,6 +44,7 @@ export class CommandManager {
   public calculateCmd: Calculate;
   public createCmd: Create;
   public editCmd: Edit;
+  public editSessionCmd: EditSessionCmd;
   public exportCmd: Export;
   public fetchCmd: Fetch;
   public importCmd: Import;
@@ -69,6 +71,7 @@ export class CommandManager {
     this.showCmd = new Show(this.project, this.fetchCmd);
     this.createCmd = new Create(this.project);
     this.editCmd = new Edit(this.project);
+    this.editSessionCmd = new EditSessionCmd(this.project);
     this.exportCmd = new Export(this.project, this.showCmd);
     this.importCmd = new Import(this.project, this.createCmd, this.fetchCmd);
     this.migrateCmd = new Migrate(this.project);

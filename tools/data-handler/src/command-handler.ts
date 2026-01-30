@@ -77,6 +77,7 @@ export const Cmd = {
   remove: 'remove',
   rename: 'rename',
   report: 'report',
+  session: 'session',
   show: 'show',
   start: 'start',
   transition: 'transition',
@@ -383,6 +384,9 @@ export class Commands {
           (options as ReportCommandOptions).context || 'localApp',
           outputPath,
         );
+      } else if (command === Cmd.session) {
+        const [subcommand, ...rest] = args;
+        return this.handleSessionCommand(subcommand, rest);
       } else if (command === Cmd.start) {
         return this.startApp((options as StartCommandOptions).forceStart);
       } else if (command === Cmd.transition) {
@@ -901,5 +905,122 @@ export class Commands {
       statusCode: 200,
       message: result.length ? result : 'Project structure validated',
     };
+  }
+
+  // Handles edit session subcommands
+  private async handleSessionCommand(
+    subcommand: string,
+    args: string[],
+  ): Promise<requestStatus> {
+    if (!this.commands) {
+      return { statusCode: 500, message: 'Commands not initialized' };
+    }
+
+    switch (subcommand) {
+      case 'start': {
+        const [cardKey] = args;
+        if (!cardKey) {
+          return { statusCode: 400, message: 'Card key is required' };
+        }
+        const session =
+          await this.commands.editSessionCmd.startSession(cardKey);
+        return {
+          statusCode: 200,
+          message: `Edit session started for card '${cardKey}'`,
+          payload: session,
+        };
+      }
+
+      case 'save': {
+        const [sessionId] = args;
+        if (!sessionId) {
+          return { statusCode: 400, message: 'Session ID is required' };
+        }
+        const result = await this.commands.editSessionCmd.saveSession(sessionId);
+        if (result.success) {
+          return {
+            statusCode: 200,
+            message: result.message || `Session saved (commit: ${result.commitHash})`,
+            payload: result,
+          };
+        }
+        return { statusCode: 400, message: result.message || 'Save failed' };
+      }
+
+      case 'publish': {
+        const [sessionId] = args;
+        if (!sessionId) {
+          return { statusCode: 400, message: 'Session ID is required' };
+        }
+        const result =
+          await this.commands.editSessionCmd.publishSession(sessionId);
+        if (result.success) {
+          return {
+            statusCode: 200,
+            message:
+              result.message || `Session published (commit: ${result.commitHash})`,
+            payload: result,
+          };
+        }
+        return {
+          statusCode: 400,
+          message: result.message || 'Publish failed',
+          payload: result,
+        };
+      }
+
+      case 'discard': {
+        const [sessionId] = args;
+        if (!sessionId) {
+          return { statusCode: 400, message: 'Session ID is required' };
+        }
+        await this.commands.editSessionCmd.discardSession(sessionId);
+        return {
+          statusCode: 200,
+          message: `Session '${sessionId}' discarded`,
+        };
+      }
+
+      case 'list': {
+        const sessions = await this.commands.editSessionCmd.listSessions();
+        return {
+          statusCode: 200,
+          payload: sessions,
+          message:
+            sessions.length > 0
+              ? `${sessions.length} active session(s)`
+              : 'No active sessions',
+        };
+      }
+
+      case 'show': {
+        const [sessionId] = args;
+        if (!sessionId) {
+          return { statusCode: 400, message: 'Session ID is required' };
+        }
+        const session = await this.commands.editSessionCmd.getSession(sessionId);
+        if (!session) {
+          return { statusCode: 400, message: `Session not found: ${sessionId}` };
+        }
+        return {
+          statusCode: 200,
+          payload: session,
+        };
+      }
+
+      case 'cleanup': {
+        await this.commands.editSessionCmd.cleanup();
+        return {
+          statusCode: 200,
+          message: 'Session cleanup completed',
+        };
+      }
+
+      default:
+        return {
+          statusCode: 400,
+          message: `Unknown session subcommand: '${subcommand}'. Valid subcommands: start, save, publish, discard, list, show, cleanup`,
+        };
+    }
   }
 }

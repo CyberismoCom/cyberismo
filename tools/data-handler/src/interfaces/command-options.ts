@@ -81,6 +81,9 @@ export type RenameCommandOptions = BaseCommandOptions;
 // Options for 'report' command
 export type ReportCommandOptions = ContextualCommandOptions;
 
+// Options for 'session' command
+export type SessionCommandOptions = BaseCommandOptions;
+
 // Options for 'show' command
 export interface ShowCommandOptions extends BaseCommandOptions {
   details?: boolean;
@@ -123,6 +126,7 @@ export type AllCommandOptions =
   | RemoveCommandOptions
   | RenameCommandOptions
   | ReportCommandOptions
+  | SessionCommandOptions
   | ShowCommandOptions
   | StartCommandOptions
   | TransitionCommandOptions
@@ -145,6 +149,7 @@ export type CommandOptions<T extends CmdKey> = {
   remove: RemoveCommandOptions;
   rename: RenameCommandOptions;
   report: ReportCommandOptions;
+  session: SessionCommandOptions;
   show: ShowCommandOptions;
   start: StartCommandOptions;
   transition: TransitionCommandOptions;

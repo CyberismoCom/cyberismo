@@ -18,6 +18,7 @@ import {
   CommandManager,
   ExportFormats,
 } from './command-handler.js';
+import { EditSessionCmd } from './commands/edit-session.js';
 import { Validate } from './commands/validate.js';
 import {
   GitManager,
@@ -60,6 +61,7 @@ export {
   CmdValue,
   CommandManager,
   Commands,
+  EditSessionCmd,
   EditSessionManager,
   ExportFormats,
   GitManager,
@@ -99,6 +101,7 @@ export type {
   RemoveCommandOptions,
   RenameCommandOptions,
   ReportCommandOptions,
+  SessionCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
   TransitionCommandOptions,
