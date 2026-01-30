@@ -1,6 +1,6 @@
 {
   "name": "@cyberismo/assets",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "This package contains static resources",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
