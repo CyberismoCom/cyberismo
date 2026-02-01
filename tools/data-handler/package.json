@@ -54,7 +54,7 @@
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",
     "mime-types": "^3.0.2",
-    "pino": "^10.1.0",
+    "pino": "^10.3.0",
     "simple-git": "^3.29.0",
     "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
