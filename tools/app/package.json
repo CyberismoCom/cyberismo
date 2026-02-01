@@ -27,7 +27,7 @@
     "@mui/icons-material": "^7.3.7",
     "@mui/joy": "5.0.0-beta.52",
     "@mui/material": "^7.3.7",
-    "@reduxjs/toolkit": "^2.9.0",
+    "@reduxjs/toolkit": "^2.11.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.2.8",
