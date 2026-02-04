@@ -30,6 +30,7 @@
   "dependencies": {
     "@cyberismo/backend": "workspace:*",
     "@cyberismo/data-handler": "workspace:*",
+    "@cyberismo/mcp": "workspace:*",
     "@inquirer/confirm": "^6.0.4",
     "@inquirer/prompts": "^7.9.0",
     "cli-progress": "^3.12.0",

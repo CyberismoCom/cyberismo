@@ -37,6 +37,7 @@ import {
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
 import { startServer, exportSite, previewSite } from '@cyberismo/backend';
+import { startMcpServer } from '@cyberismo/mcp';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
@@ -1442,6 +1443,28 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     }
   }
   await startServer(await commandHandler.getProjectPath(options.projectPath));
+});
+
+// MCP Server command
+const mcpCmd = new CommandWithPath('mcp').description(
+  'Starts the MCP (Model Context Protocol) server for AI assistant integration',
+);
+program.addCommand(mcpCmd);
+mcpCmd.action(async (options: CommandOptions<'start'>) => {
+  try {
+    const projectPath = await commandHandler.getProjectPath(
+      options.projectPath,
+    );
+    console.error(`Starting MCP server for project at: ${projectPath}`);
+    console.error(
+      'Connect via stdio transport (e.g., Claude Desktop, Claude Code)',
+    );
+    await startMcpServer(projectPath);
+  } catch (error) {
+    program.error(
+      `Failed to start MCP server: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 });
 
 export default program;
