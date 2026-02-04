@@ -13,12 +13,13 @@
 
 import CodeMirror from '@uiw/react-codemirror';
 import type { FileNode } from '@/lib/api/types';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import BaseEditor from './BaseEditor';
 import { addNotification } from '@/lib/slices/notifications';
+import { isEdited } from '@/lib/slices/pageState';
 import { useAppDispatch } from '@/lib/hooks';
 import { useTranslation } from 'react-i18next';
-import { CODE_MIRROR_BASE_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
+import { CODE_MIRROR_CONFIG_PROPS, CODE_MIRROR_THEMES } from '@/lib/constants';
 import { useResource } from '@/lib/api';
 import { useIsDarkMode } from '@/lib/hooks';
 
@@ -30,13 +31,32 @@ export function TextEditor({ node }: { node: FileNode }) {
 
   const { update, isUpdating } = useResource(node.resourceName);
 
+  const isDirty = content !== node.data.content;
+
   useEffect(() => {
     setContent(node.data.content);
   }, [node]);
 
+  useEffect(() => {
+    dispatch(isEdited(isDirty));
+  }, [isDirty, dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(isEdited(false));
+    };
+  }, [dispatch]);
+
+  const handleCancel = useCallback(() => {
+    setContent(node.data.content);
+    dispatch(isEdited(false));
+  }, [node.data.content, dispatch]);
+
   return (
     <BaseEditor
       node={node}
+      isDirty={isDirty}
+      onCancel={handleCancel}
       onUpdate={async () => {
         try {
           await update({
@@ -47,6 +67,7 @@ export function TextEditor({ node }: { node: FileNode }) {
               to: content,
             },
           });
+          dispatch(isEdited(false));
           dispatch(
             addNotification({
               message: t('saveFile.success'),
@@ -65,7 +86,7 @@ export function TextEditor({ node }: { node: FileNode }) {
       loading={isUpdating()}
     >
       <CodeMirror
-        {...CODE_MIRROR_BASE_PROPS}
+        {...CODE_MIRROR_CONFIG_PROPS}
         theme={isDarkMode ? CODE_MIRROR_THEMES.dark : CODE_MIRROR_THEMES.light}
         readOnly={node.readOnly}
         value={content}

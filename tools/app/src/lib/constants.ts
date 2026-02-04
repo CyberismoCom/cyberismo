@@ -60,6 +60,16 @@ export const CODE_MIRROR_BASE_PROPS: ReactCodeMirrorProps = {
   },
 };
 
+export const CODE_MIRROR_CONFIG_PROPS: ReactCodeMirrorProps = Object.assign(
+  {},
+  CODE_MIRROR_BASE_PROPS,
+  {
+    basicSetup: {
+      lineNumbers: true,
+    },
+  },
+);
+
 export const CODE_MIRROR_THEMES = {
   light: githubLight,
   dark: vscodeDark,
