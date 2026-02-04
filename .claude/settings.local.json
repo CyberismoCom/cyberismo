@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(git -C /Users/sami/Cyberismo/source/cyberismo log --oneline --all)",
+      "Bash(du -sh:*)",
+      "Bash(chmod:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm --filter @cyberismo/mcp build:*)",
+      "Bash(timeout 5 node:*)",
+      "Bash(CYBERISMO_PROJECT_PATH=\".tmp/cyberismo-docs\" node:*)",
+      "Bash(CYBERISMO_PROJECT_PATH=\"../../.tmp/cyberismo-docs\" node:*)",
+      "Bash(pnpm --filter @cyberismo/mcp lint:*)",
+      "Bash(pnpm --filter @cyberismo/cli build:*)",
+      "Bash(node tools/cli/bin/run:*)",
+      "Bash(jobs:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(pnpm --filter backend build:*)",
+      "Bash(pnpm --filter @cyberismo/mcp test:*)",
+      "Bash(pnpm --filter backend test:*)"
+    ]
+  }
+}
