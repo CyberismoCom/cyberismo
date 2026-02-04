@@ -55,7 +55,7 @@
     "jsonschema": "^1.5.0",
     "mime-types": "^3.0.2",
     "pino": "^10.3.0",
-    "simple-git": "^3.29.0",
+    "simple-git": "^3.30.0",
     "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
     "vega": "^6.2.0",
