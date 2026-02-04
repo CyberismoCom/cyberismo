@@ -59,7 +59,7 @@
     "string-pixel-width": "^1.11.0",
     "tslib": "^2.6.2",
     "vega": "^6.2.0",
-    "vega-lite": "^6.4.1",
+    "vega-lite": "^6.4.2",
     "write-json-file": "^7.0.0"
   },
   "type": "module",
