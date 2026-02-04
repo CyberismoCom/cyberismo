@@ -47,7 +47,7 @@
     "html-react-parser": "^5.2.11",
     "i18next": "^25.7.4",
     "jsdom": "^27.0.0",
-    "node-html-parser": "^7.0.1",
+    "node-html-parser": "^7.0.2",
     "react": "^19.2.3",
     "react-arborist": "^3.4.3",
     "react-dom": "^19.2.3",
