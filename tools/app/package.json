@@ -21,7 +21,7 @@
     "@asciidoctor/core": "^3.0.4",
     "@codemirror/commands": "^6.10.1",
     "@codemirror/language": "^6.12.1",
-    "@codemirror/state": "^6.5.2",
+    "@codemirror/state": "^6.5.4",
     "@codemirror/view": "^6.38.2",
     "@cyberismo/data-handler": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
