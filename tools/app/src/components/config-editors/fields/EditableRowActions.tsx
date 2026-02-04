@@ -51,7 +51,6 @@ export function EditableRowActions({
             size="sm"
             color="neutral"
             variant="plain"
-            disabled={disabled}
             onClick={onCancel}
           >
             <CloseIcon fontSize="small" />

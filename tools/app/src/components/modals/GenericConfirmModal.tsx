@@ -26,9 +26,10 @@ export interface GenericConfirmModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  content: string;
+  content: React.ReactNode;
   confirmText: string;
   confirmColor?: 'primary' | 'danger';
+  confirmDisabled?: boolean;
   onConfirm: () => void;
 }
 
@@ -39,6 +40,7 @@ export function GenericConfirmModal({
   content,
   confirmText,
   confirmColor = 'danger',
+  confirmDisabled = false,
   onConfirm,
 }: GenericConfirmModalProps) {
   const { t } = useTranslation();
@@ -49,9 +51,17 @@ export function GenericConfirmModal({
         <DialogTitle>{title}</DialogTitle>
         <Divider />
         <DialogContent>
-          <Typography level="body-md">{content}</Typography>
+          {typeof content === 'string' ? (
+            <Typography level="body-md">{content}</Typography>
+          ) : (
+            content
+          )}
           <DialogActions>
-            <Button onClick={onConfirm} color={confirmColor}>
+            <Button
+              onClick={onConfirm}
+              color={confirmColor}
+              disabled={confirmDisabled}
+            >
               {confirmText}
             </Button>
             <Button onClick={onClose} variant="plain" color="neutral">

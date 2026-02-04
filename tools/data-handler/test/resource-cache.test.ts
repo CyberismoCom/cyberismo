@@ -11,6 +11,7 @@ import {
   ResourcesFrom,
 } from '../src/containers/project/resource-cache.js';
 import { getTestProject } from './helpers/test-utils.js';
+import { WorkflowCategory } from '../src/interfaces/resource-interfaces.js';
 
 describe('Resource cache', () => {
   const baseDir = import.meta.dirname;
@@ -292,10 +293,10 @@ describe('Resource cache', () => {
 
       const workflow = project.resources.byType(resourceName, 'workflows');
       await workflow.create({
-        name: 'Initial',
-        displayName: 'Initial',
-        states: [],
-        transitions: [],
+        name: resourceName,
+        displayName: 'Test Workflow',
+        states: [{ name: 'Draft', category: WorkflowCategory.initial }],
+        transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
       });
       expect(project.resources.exists(resourceName)).to.equal(true);
     });
@@ -305,8 +306,8 @@ describe('Resource cache', () => {
       await workflow.create({
         name: resourceName,
         displayName: 'Test Workflow',
-        states: [],
-        transitions: [],
+        states: [{ name: 'Draft', category: WorkflowCategory.initial }],
+        transitions: [{ name: 'Create', fromState: [''], toState: 'Draft' }],
       });
 
       expect(project.resources.exists(resourceName)).to.equal(true);

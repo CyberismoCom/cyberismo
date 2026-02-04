@@ -18,19 +18,15 @@ import {
   Checkbox,
   FormControl,
   FormLabel,
-  IconButton,
   Input,
   Option,
   Radio,
   RadioGroup,
   Select,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import type { AnyNode } from '@/lib/api/types';
 import type { VisibilityGroup } from '@/lib/api/cardType';
 import { useTranslation } from 'react-i18next';
@@ -42,10 +38,8 @@ import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
 import { EditableRowActions } from './EditableRowActions';
-import {
-  listRowStyles,
-  reorderButtonContainerStyles,
-} from './listEditorStyles';
+import { ListRow } from './ListRow';
+import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
 
 type FieldView = {
   name: string;
@@ -402,30 +396,20 @@ export function CardTypeFieldsEditor({
     });
 
     return (
-      <Sheet
-        key={field.name}
-        variant="outlined"
-        sx={{ ...listRowStyles, py: 0 }}
-      >
+      <ListRow key={field.name} sx={{ py: 0 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Stack spacing={-0.5} sx={reorderButtonContainerStyles}>
-            <IconButton
-              size="sm"
-              variant="plain"
+          <ReorderButtonContainer>
+            <ReorderButton
+              direction="up"
               color="primary"
-              disabled={rowDisabled}
               onClick={() =>
                 handleChangeGroup(field.name, groupVisibility, 'up')
               }
+              disabled={rowDisabled}
               title={t('moveToHigherVisibility')}
-            >
-              <KeyboardArrowUpIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="sm"
-              variant="plain"
-              color="neutral"
-              disabled={rowDisabled || !canMoveUp}
+            />
+            <ReorderButton
+              direction="up"
               onClick={() =>
                 handleMove(
                   field.name,
@@ -433,15 +417,11 @@ export function CardTypeFieldsEditor({
                   'up',
                 )
               }
+              disabled={rowDisabled || !canMoveUp}
               title={t('moveUp')}
-            >
-              <KeyboardArrowUpIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="sm"
-              variant="plain"
-              color="neutral"
-              disabled={rowDisabled || !canMoveDown}
+            />
+            <ReorderButton
+              direction="down"
               onClick={() =>
                 handleMove(
                   field.name,
@@ -449,24 +429,20 @@ export function CardTypeFieldsEditor({
                   'down',
                 )
               }
+              disabled={rowDisabled || !canMoveDown}
               title={t('moveDown')}
               sx={{ mt: 0.5 }}
-            >
-              <KeyboardArrowDownIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="sm"
-              variant="plain"
+            />
+            <ReorderButton
+              direction="down"
               color="primary"
-              disabled={rowDisabled}
               onClick={() =>
                 handleChangeGroup(field.name, groupVisibility, 'down')
               }
+              disabled={rowDisabled}
               title={t('moveToLowerVisibility')}
-            >
-              <KeyboardArrowDownIcon fontSize="small" />
-            </IconButton>
-          </Stack>
+            />
+          </ReorderButtonContainer>
 
           <Stack flex={1} spacing={0.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
@@ -548,7 +524,7 @@ export function CardTypeFieldsEditor({
             onCancel={closeEditMode}
           />
         </Stack>
-      </Sheet>
+      </ListRow>
     );
   };
 

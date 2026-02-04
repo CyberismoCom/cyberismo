@@ -51,6 +51,7 @@ export const updateOperationBodySchema = z.object({
     z.object({
       name: z.literal('remove'),
       target: z.unknown(),
+      replacementValue: z.unknown().optional(),
     }),
     z.object({
       name: z.literal('rank'),

@@ -16,15 +16,11 @@ import {
   Button,
   FormControl,
   FormLabel,
-  IconButton,
   Input,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useTranslation } from 'react-i18next';
 import { useResource } from '@/lib/api';
 import { useAppDispatch, useListItemEditing } from '@/lib/hooks';
@@ -32,10 +28,8 @@ import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
-import {
-  listRowStyles,
-  reorderButtonContainerStyles,
-} from './listEditorStyles';
+import { ListRow } from './ListRow';
+import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
 import type {
   FieldType,
   EnumDefinition,
@@ -322,30 +316,22 @@ export function EnumValuesEditor({
     });
 
     return (
-      <Sheet key={enumDef.enumValue} variant="outlined" sx={listRowStyles}>
+      <ListRow key={enumDef.enumValue}>
         <Stack direction="row" spacing={1.5} alignItems="center">
-          <Stack spacing={-0.5} sx={reorderButtonContainerStyles}>
-            <IconButton
-              size="sm"
-              variant="plain"
-              color="neutral"
-              disabled={rowDisabled || !canMoveUp}
+          <ReorderButtonContainer>
+            <ReorderButton
+              direction="up"
               onClick={() => handleMove(enumDef, 'up')}
+              disabled={rowDisabled || !canMoveUp}
               title={t('moveUp')}
-            >
-              <KeyboardArrowUpIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="sm"
-              variant="plain"
-              color="neutral"
-              disabled={rowDisabled || !canMoveDown}
+            />
+            <ReorderButton
+              direction="down"
               onClick={() => handleMove(enumDef, 'down')}
+              disabled={rowDisabled || !canMoveDown}
               title={t('moveDown')}
-            >
-              <KeyboardArrowDownIcon fontSize="small" />
-            </IconButton>
-          </Stack>
+            />
+          </ReorderButtonContainer>
 
           <Stack flex={1} spacing={0.5} sx={{ minWidth: 0 }}>
             {isEditing ? (
@@ -479,7 +465,7 @@ export function EnumValuesEditor({
             onCancel={closeEditMode}
           />
         </Stack>
-      </Sheet>
+      </ListRow>
     );
   };
 
