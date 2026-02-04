@@ -195,7 +195,7 @@ export class ProjectConfiguration implements ProjectSettings {
     if (this.schemaVersion < SCHEMA_VERSION) {
       return {
         isCompatible: false,
-        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is older than the application schema version (${SCHEMA_VERSION}). A migration is needed.`,
+        message: `Schema version mismatch: Project schema version (${this.schemaVersion}) is older than the application schema version (${SCHEMA_VERSION}). A migration is needed. Run 'cyberismo migrate' to update the project schema.`,
       };
     }
 
