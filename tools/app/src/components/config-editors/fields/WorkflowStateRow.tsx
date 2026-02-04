@@ -17,7 +17,6 @@ import {
   Input,
   Option,
   Select,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
@@ -26,8 +25,8 @@ import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import { formKeyHandler } from '@/lib/hooks/utils';
 import { EditableRowActions } from './EditableRowActions';
+import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import { listRowStyles } from './listEditorStyles';
 import type { WorkflowState } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
@@ -90,7 +89,7 @@ export function WorkflowStateRow({
   });
 
   return (
-    <Sheet variant="outlined" sx={listRowStyles}>
+    <ListRow>
       <Stack direction="row" spacing={1.5} alignItems="center">
         <ReorderButtonContainer>
           <ReorderButton
@@ -225,7 +224,7 @@ export function WorkflowStateRow({
           onCancel={onCancel}
         />
       </Stack>
-    </Sheet>
+    </ListRow>
   );
 }
 

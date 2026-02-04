@@ -17,7 +17,6 @@ import {
   Input,
   Option,
   Select,
-  Sheet,
   Stack,
   Tooltip,
   Typography,
@@ -26,8 +25,8 @@ import { Controller, useFormState, type Control } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { formKeyHandler } from '@/lib/hooks/utils';
 import { EditableRowActions } from './EditableRowActions';
+import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import { listRowStyles } from './listEditorStyles';
 import type {
   WorkflowState,
   WorkflowTransition,
@@ -247,7 +246,7 @@ export function WorkflowTransitionRow({
   });
 
   return (
-    <Sheet variant="outlined" sx={listRowStyles}>
+    <ListRow>
       <Stack direction="row" spacing={1.5} alignItems="center">
         <ReorderButtonContainer>
           <ReorderButton
@@ -357,7 +356,7 @@ export function WorkflowTransitionRow({
           onCancel={onCancel}
         />
       </Stack>
-    </Sheet>
+    </ListRow>
   );
 }
 
@@ -388,7 +387,7 @@ export function WorkflowPreviewTransitionRow({
   });
 
   return (
-    <Sheet ref={previewRowRef} variant="outlined" sx={listRowStyles}>
+    <ListRow ref={previewRowRef}>
       <Stack direction="row" spacing={1.5} alignItems="center">
         {/* Empty space where reorder buttons would be */}
         <ReorderButtonContainer>
@@ -415,7 +414,7 @@ export function WorkflowPreviewTransitionRow({
           onCancel={onCancel}
         />
       </Stack>
-    </Sheet>
+    </ListRow>
   );
 }
 

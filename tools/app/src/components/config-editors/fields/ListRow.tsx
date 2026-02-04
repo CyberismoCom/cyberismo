@@ -11,13 +11,31 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { forwardRef } from 'react';
+import { Sheet } from '@mui/joy';
 import type { SxProps } from '@mui/joy/styles/types';
 
-export const listRowStyles: SxProps = {
-  p: 1.5,
-  py: 1,
-  border: '0',
-  borderRadius: 16,
-  backgroundColor: 'neutral.softBg',
-  width: '100%',
-};
+export interface ListRowProps {
+  children: React.ReactNode;
+  sx?: SxProps;
+}
+
+export const ListRow = forwardRef<HTMLDivElement, ListRowProps>(
+  ({ children, sx }, ref) => (
+    <Sheet
+      ref={ref}
+      variant="outlined"
+      sx={{
+        p: 1.5,
+        py: 1,
+        border: '0',
+        borderRadius: 16,
+        backgroundColor: 'neutral.softBg',
+        width: '100%',
+        ...sx,
+      }}
+    >
+      {children}
+    </Sheet>
+  ),
+);

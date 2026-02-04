@@ -23,7 +23,6 @@ import {
   Radio,
   RadioGroup,
   Select,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
@@ -39,8 +38,8 @@ import { GenericConfirmModal } from '@/components/modals';
 import type { CardType } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { getFieldTypeOptions } from '../resourceFieldConfigs';
 import { EditableRowActions } from './EditableRowActions';
+import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import { listRowStyles } from './listEditorStyles';
 
 type FieldView = {
   name: string;
@@ -397,11 +396,7 @@ export function CardTypeFieldsEditor({
     });
 
     return (
-      <Sheet
-        key={field.name}
-        variant="outlined"
-        sx={{ ...listRowStyles, py: 0 }}
-      >
+      <ListRow key={field.name} sx={{ py: 0 }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ReorderButtonContainer>
             <ReorderButton
@@ -529,7 +524,7 @@ export function CardTypeFieldsEditor({
             onCancel={closeEditMode}
           />
         </Stack>
-      </Sheet>
+      </ListRow>
     );
   };
 

@@ -17,7 +17,6 @@ import {
   FormControl,
   FormLabel,
   Input,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
@@ -29,8 +28,8 @@ import { formKeyHandler, useKeyboardShortcut } from '@/lib/hooks/utils';
 import { addNotification } from '@/lib/slices/notifications';
 import { GenericConfirmModal } from '@/components/modals';
 import { EditableRowActions } from './EditableRowActions';
+import { ListRow } from './ListRow';
 import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
-import { listRowStyles } from './listEditorStyles';
 import type {
   FieldType,
   EnumDefinition,
@@ -317,7 +316,7 @@ export function EnumValuesEditor({
     });
 
     return (
-      <Sheet key={enumDef.enumValue} variant="outlined" sx={listRowStyles}>
+      <ListRow key={enumDef.enumValue}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ReorderButtonContainer>
             <ReorderButton
@@ -466,7 +465,7 @@ export function EnumValuesEditor({
             onCancel={closeEditMode}
           />
         </Stack>
-      </Sheet>
+      </ListRow>
     );
   };
 
