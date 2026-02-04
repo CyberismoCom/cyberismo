@@ -21,11 +21,3 @@ export const listRowStyles: SxProps = {
   backgroundColor: 'neutral.softBg',
   width: '100%',
 };
-
-export const reorderButtonContainerStyles: SxProps = {
-  '& .MuiIconButton-root': {
-    minHeight: 20,
-    minWidth: 20,
-    p: 0,
-  },
-};

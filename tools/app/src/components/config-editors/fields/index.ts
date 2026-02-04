@@ -20,4 +20,5 @@ export { default as CardTypeFieldsEditor } from './CardTypeFieldsEditor';
 export { default as EnumValuesEditor } from './EnumValuesEditor';
 export { default as WorkflowStatesEditor } from './WorkflowStatesEditor';
 export { EditableRowActions } from './EditableRowActions';
+export { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
 export * from './listEditorStyles';

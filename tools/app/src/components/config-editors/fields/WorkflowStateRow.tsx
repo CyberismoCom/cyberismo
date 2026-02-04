@@ -14,7 +14,6 @@
 import {
   Box,
   Button,
-  IconButton,
   Input,
   Option,
   Select,
@@ -23,16 +22,12 @@ import {
   Typography,
 } from '@mui/joy';
 import { Controller, useFormState, type Control } from 'react-hook-form';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import { formKeyHandler } from '@/lib/hooks/utils';
 import { EditableRowActions } from './EditableRowActions';
-import {
-  listRowStyles,
-  reorderButtonContainerStyles,
-} from './listEditorStyles';
+import { ReorderButton, ReorderButtonContainer } from './ReorderButtons';
+import { listRowStyles } from './listEditorStyles';
 import type { WorkflowState } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 import { WorkflowCategory } from '@cyberismo/data-handler/interfaces/resource-interfaces';
 
@@ -97,28 +92,20 @@ export function WorkflowStateRow({
   return (
     <Sheet variant="outlined" sx={listRowStyles}>
       <Stack direction="row" spacing={1.5} alignItems="center">
-        <Stack spacing={-0.5} sx={reorderButtonContainerStyles}>
-          <IconButton
-            size="sm"
-            variant="plain"
-            color="neutral"
-            disabled={disabled || !canMoveUp}
+        <ReorderButtonContainer>
+          <ReorderButton
+            direction="up"
             onClick={onMoveUp}
+            disabled={disabled || !canMoveUp}
             title={t('moveUp')}
-          >
-            <KeyboardArrowUpIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="sm"
-            variant="plain"
-            color="neutral"
-            disabled={disabled || !canMoveDown}
+          />
+          <ReorderButton
+            direction="down"
             onClick={onMoveDown}
+            disabled={disabled || !canMoveDown}
             title={t('moveDown')}
-          >
-            <KeyboardArrowDownIcon fontSize="small" />
-          </IconButton>
-        </Stack>
+          />
+        </ReorderButtonContainer>
 
         <Stack flex={1} spacing={0.5} sx={{ minWidth: 0 }}>
           {isEditing ? (
