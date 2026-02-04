@@ -60,7 +60,7 @@
     "redux-persist": "^6.0.0",
     "rollup-plugin-license": "^3.6.0",
     "start-server-and-test": "^2.1.2",
-    "swr": "^2.3.8",
+    "swr": "^2.4.0",
     "vega": "^6.2.0",
     "vega-lite": "^6.4.1",
     "vite": "^7.2.6",
