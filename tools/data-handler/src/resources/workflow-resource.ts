@@ -90,16 +90,17 @@ export class WorkflowResource extends FileResource<Workflow> {
          Updated state must have 'name' and 'category' properties.`,
       );
     }
-    // Delete transitions to the old state and remove references from fromStates
-    content.transitions = content.transitions.filter(
-      (t) => t.toState !== stateName,
-    );
+    // Rename transitions to use the new state name
+    const toStateName = op.to.name;
     content.transitions.forEach((t) => {
-      t.fromState = t.fromState.filter((state) => state !== stateName);
+      if (t.toState === stateName) {
+        t.toState = toStateName;
+      }
+      t.fromState = t.fromState.map((state) =>
+        state === stateName ? toStateName : state,
+      );
     });
     // Update all cards that use this state.
-    const toStateName = op.to.name;
-
     await this.updateCardStates(stateName, toStateName);
   }
 
@@ -247,8 +248,8 @@ export class WorkflowResource extends FileResource<Workflow> {
 
     const workflowContent = content ?? this.content;
 
-    const newCardTransitions = workflowContent.transitions.filter((t) =>
-      t.fromState.includes(''),
+    const newCardTransitions = workflowContent.transitions.filter(
+      (t) => t.fromState.includes('') || t.fromState.length === 0,
     );
 
     if (newCardTransitions.length !== 1) {
