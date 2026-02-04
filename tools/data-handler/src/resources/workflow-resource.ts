@@ -247,8 +247,8 @@ export class WorkflowResource extends FileResource<Workflow> {
 
     const workflowContent = content ?? this.content;
 
-    const newCardTransitions = workflowContent.transitions.filter((t) =>
-      t.fromState.includes(''),
+    const newCardTransitions = workflowContent.transitions.filter(
+      (t) => t.fromState.includes('') || t.fromState.length === 0,
     );
 
     if (newCardTransitions.length !== 1) {
