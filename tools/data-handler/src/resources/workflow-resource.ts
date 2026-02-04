@@ -281,7 +281,12 @@ export class WorkflowResource extends FileResource<Workflow> {
   ) {
     const { key } = updateKey;
 
-    if (key === 'name' || key === 'displayName' || key === 'description') {
+    if (
+      key === 'name' ||
+      key === 'displayName' ||
+      key === 'description' ||
+      key === 'category'
+    ) {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content) as Workflow;
