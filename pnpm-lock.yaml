@@ -8,11 +8,11 @@ overrides:
   '@types/node': ^22.18.1
   rollup: ^4.45.1
   tar-fs: ^2.1.4
-  '@codemirror/state': 6.5.2
-  '@codemirror/view': 6.38.2
-  '@codemirror/language': 6.11.3
+  '@codemirror/state': 6.5.4
+  '@codemirror/view': 6.39.12
+  '@codemirror/language': 6.12.1
   '@codemirror/autocomplete': 6.18.2
-  '@codemirror/commands': 6.10.0
+  '@codemirror/commands': 6.10.1
   '@codemirror/lint': 6.8.2
   '@codemirror/search': 6.5.7
 
@@ -96,17 +96,17 @@ importers:
         specifier: ^3.0.4
         version: 3.0.4
       '@codemirror/commands':
-        specifier: 6.10.0
-        version: 6.10.0
+        specifier: 6.10.1
+        version: 6.10.1
       '@codemirror/language':
-        specifier: 6.11.3
-        version: 6.11.3
+        specifier: 6.12.1
+        version: 6.12.1
       '@codemirror/state':
-        specifier: 6.5.2
-        version: 6.5.2
+        specifier: 6.5.4
+        version: 6.5.4
       '@codemirror/view':
-        specifier: 6.38.2
-        version: 6.38.2
+        specifier: 6.39.12
+        version: 6.39.12
       '@cyberismo/data-handler':
         specifier: workspace:*
         version: link:../data-handler
@@ -139,13 +139,13 @@ importers:
         version: 19.2.3(@types/react@19.2.11)
       '@uiw/codemirror-theme-github':
         specifier: ^4.25.2
-        version: 4.25.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+        version: 4.25.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)
       '@uiw/codemirror-theme-vscode':
         specifier: ^4.25.4
-        version: 4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+        version: 4.25.4(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)
       '@uiw/react-codemirror':
         specifier: ^4.25.4
-        version: 4.25.4(@babel/runtime@7.28.6)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0))(@codemirror/language@6.11.3)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.5.0))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        version: 4.25.4(@babel/runtime@7.28.6)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0))(@codemirror/language@6.12.1)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.4)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.39.12)(codemirror@6.0.1(@lezer/common@1.5.0))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@vitejs/plugin-react':
         specifier: ^5.1.2
         version: 5.1.2(vite@7.2.6(@types/node@22.19.8)(terser@5.40.0)(tsx@4.20.6))
@@ -602,16 +602,16 @@ packages:
   '@codemirror/autocomplete@6.18.2':
     resolution: {integrity: sha512-wJGylKtMFR/Ds6Gh01+OovXE/pncPiKZNNBKuC39pKnH+XK5d9+WsNqcrdxPjFPFTigRBqse0rfxw9UxrfyhPg==}
     peerDependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       '@lezer/common': ^1.0.0
 
-  '@codemirror/commands@6.10.0':
-    resolution: {integrity: sha512-2xUIc5mHXQzT16JnyOFkh8PvfeXuIut3pslWGfsGOhxP/lpgRm9HOl/mpzLErgt5mXDovqA0d11P21gofRLb9w==}
+  '@codemirror/commands@6.10.1':
+    resolution: {integrity: sha512-uWDWFypNdQmz2y1LaNJzK7fL7TYKLeUAU0npEC685OKTF3KcQ2Vu3klIM78D7I6wGhktme0lh3CuQLv0ZCrD9Q==}
 
-  '@codemirror/language@6.11.3':
-    resolution: {integrity: sha512-9HBM2XnwDj7fnu0551HkGdrUrrqmYq/WC5iv6nbY2WdicXdGbhR/gfbZOH73Aqj4351alY1+aoG9rCNfiwS1RA==}
+  '@codemirror/language@6.12.1':
+    resolution: {integrity: sha512-Fa6xkSiuGKc8XC8Cn96T+TQHYj4ZZ7RdFmXA3i9xe/3hLHfwPZdM+dqfX0Cp0zQklBKhVD8Yzc8LS45rkqcwpQ==}
 
   '@codemirror/lint@6.8.2':
     resolution: {integrity: sha512-PDFG5DjHxSEjOXk9TQYYVjZDqlZTFaDBfhQixHnQOEVDDNHUbEh/hstAjcQJaA6FQdZTD1hquXTK0rVBLADR1g==}
@@ -619,14 +619,14 @@ packages:
   '@codemirror/search@6.5.7':
     resolution: {integrity: sha512-6+iLsXvITWKHYlkgHPCs/qiX4dNzn8N78YfhOFvPtPYCkuXqZq10rAfsUMhOq7O/1VjJqdXRflyExlfVcu/9VQ==}
 
-  '@codemirror/state@6.5.2':
-    resolution: {integrity: sha512-FVqsPqtPWKVVL3dPSxy8wEF/ymIEuVzF1PK3VbUgrxXpJUSHQWWZz4JMToquRxnkw+36LTamCZG2iua2Ptq0fA==}
+  '@codemirror/state@6.5.4':
+    resolution: {integrity: sha512-8y7xqG/hpB53l25CIoit9/ngxdfoG+fx+V3SHBrinnhOtLvKHRyAJJuHzkWrR4YXXLX8eXBsejgAAxHUOdW1yw==}
 
   '@codemirror/theme-one-dark@6.1.2':
     resolution: {integrity: sha512-F+sH0X16j/qFLMAfbciKTxVOwkdAS336b7AXTKOZhy8BR3eH/RelsnLgLFINrpST63mmN2OuwUt0W2ndUgYwUA==}
 
-  '@codemirror/view@6.38.2':
-    resolution: {integrity: sha512-bTWAJxL6EOFLPzTx+O5P5xAO3gTqpatQ2b/ARQ8itfU/v2LlpS3pH2fkL0A3E/Fx8Y2St2KES7ZEV0sHTsSW/A==}
+  '@codemirror/view@6.39.12':
+    resolution: {integrity: sha512-f+/VsHVn/kOA9lltk/GFzuYwVVAKmOnNjxbrhkk3tPHntFqjWeI2TbIXx006YkBkqC10wZ4NsnWXCQiFPeAISQ==}
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -1393,7 +1393,7 @@ packages:
   '@mui/base@5.0.0-beta.40-1':
     resolution: {integrity: sha512-agKXuNNy0bHUmeU7pNmoZwNFr7Hiyhojkb9+2PVyDG5+6RafYuyMgbrav8CndsB7KUc/U51JAw9vKNDLYBzaUA==}
     engines: {node: '>=12.0.0'}
-    deprecated: This package has been replaced by @base-ui/react
+    deprecated: This package has been replaced by @base-ui-components/react
     peerDependencies:
       '@types/react': ^17.0.0 || ^18.0.0 || ^19.0.0
       react: ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -2036,12 +2036,12 @@ packages:
     resolution: {integrity: sha512-YzNwkm0AbPv1EXhCHYR5v0nqfemG2jEB0Z3Att4rBYqKrlG7AA9Rhjc3IyBaOzsBu18wtrp9/+uhTyu7TXSRng==}
     peerDependencies:
       '@codemirror/autocomplete': 6.18.2
-      '@codemirror/commands': 6.10.0
-      '@codemirror/language': 6.11.3
+      '@codemirror/commands': 6.10.1
+      '@codemirror/language': 6.12.1
       '@codemirror/lint': 6.8.2
       '@codemirror/search': 6.5.7
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
   '@uiw/codemirror-theme-github@4.25.2':
     resolution: {integrity: sha512-9g3ujmYCNU2VQCp0+XzI1NS5hSZGgXRtH+5yWli5faiPvHGYZUVke+5Pnzdn/1tkgW6NpTQ7U/JHsyQkgbnZ/w==}
@@ -2052,24 +2052,24 @@ packages:
   '@uiw/codemirror-themes@4.25.2':
     resolution: {integrity: sha512-WFYxW3OlCkMomXQBlQdGj1JZ011UNCa7xYdmgYqywVc4E8f5VgIzRwCZSBNVjpWGGDBOjc+Z6F65l7gttP16pg==}
     peerDependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
   '@uiw/codemirror-themes@4.25.4':
     resolution: {integrity: sha512-2SLktItgcZC4p0+PfFusEbAHwbuAWe3bOOntCevVgHtrWGtGZX3IPv2k8IKZMgOXtAHyGKpJvT9/nspPn/uCQg==}
     peerDependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
   '@uiw/react-codemirror@4.25.4':
     resolution: {integrity: sha512-ipO067oyfUw+DVaXhQCxkB0ZD9b7RnY+ByrprSYSKCHaULvJ3sqWYC/Zen6zVQ8/XC4o5EPBfatGiX20kC7XGA==}
     peerDependencies:
       '@babel/runtime': '>=7.11.0'
-      '@codemirror/state': 6.5.2
+      '@codemirror/state': 6.5.4
       '@codemirror/theme-one-dark': '>=6.0.0'
-      '@codemirror/view': 6.38.2
+      '@codemirror/view': 6.39.12
       codemirror: '>=6.0.0'
       react: '>=17.0.0'
       react-dom: '>=17.0.0'
@@ -3231,7 +3231,7 @@ packages:
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+    deprecated: Glob versions prior to v9 are no longer supported
 
   global-dirs@3.0.1:
     resolution: {integrity: sha512-NBcGGFbBA9s1VzD41QXDG+3++t9Mn5t1FpLdhESY6oKY4gYTFpX4wO3sqGUa0Srjtbfj3szX0RnemmrVRUdULA==}
@@ -4670,7 +4670,7 @@ packages:
   tar@7.5.7:
     resolution: {integrity: sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==}
     engines: {node: '>=18'}
-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   terser@5.40.0:
     resolution: {integrity: sha512-cfeKl/jjwSR5ar7d0FGmave9hFGJT8obyo0z+CrQOylLDbk7X81nPU6vq9VORa5jU30SkDnT2FXjLbR8HLP+xA==}
@@ -5553,24 +5553,24 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0)':
+  '@codemirror/autocomplete@6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0)':
     dependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       '@lezer/common': 1.5.0
 
-  '@codemirror/commands@6.10.0':
+  '@codemirror/commands@6.10.1':
     dependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       '@lezer/common': 1.5.0
 
-  '@codemirror/language@6.11.3':
+  '@codemirror/language@6.12.1':
     dependencies:
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       '@lezer/common': 1.5.0
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.7
@@ -5578,30 +5578,30 @@ snapshots:
 
   '@codemirror/lint@6.8.2':
     dependencies:
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       crelt: 1.0.6
 
   '@codemirror/search@6.5.7':
     dependencies:
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       crelt: 1.0.6
 
-  '@codemirror/state@6.5.2':
+  '@codemirror/state@6.5.4':
     dependencies:
       '@marijn/find-cluster-break': 1.0.2
 
   '@codemirror/theme-one-dark@6.1.2':
     dependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
       '@lezer/highlight': 1.2.3
 
-  '@codemirror/view@6.38.2':
+  '@codemirror/view@6.39.12':
     dependencies:
-      '@codemirror/state': 6.5.2
+      '@codemirror/state': 6.5.4
       crelt: 1.0.6
       style-mod: 4.1.3
       w3c-keyname: 2.2.8
@@ -6844,52 +6844,52 @@ snapshots:
       '@typescript-eslint/types': 8.54.0
       eslint-visitor-keys: 4.2.1
 
-  '@uiw/codemirror-extensions-basic-setup@4.25.4(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0))(@codemirror/commands@6.10.0)(@codemirror/language@6.11.3)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-extensions-basic-setup@4.25.4(@codemirror/autocomplete@6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0))(@codemirror/commands@6.10.1)(@codemirror/language@6.12.1)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)':
     dependencies:
-      '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0)
-      '@codemirror/commands': 6.10.0
-      '@codemirror/language': 6.11.3
+      '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0)
+      '@codemirror/commands': 6.10.1
+      '@codemirror/language': 6.12.1
       '@codemirror/lint': 6.8.2
       '@codemirror/search': 6.5.7
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
-  '@uiw/codemirror-theme-github@4.25.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-theme-github@4.25.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)':
     dependencies:
-      '@uiw/codemirror-themes': 4.25.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+      '@uiw/codemirror-themes': 4.25.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)
     transitivePeerDependencies:
       - '@codemirror/language'
       - '@codemirror/state'
       - '@codemirror/view'
 
-  '@uiw/codemirror-theme-vscode@4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-theme-vscode@4.25.4(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)':
     dependencies:
-      '@uiw/codemirror-themes': 4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+      '@uiw/codemirror-themes': 4.25.4(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)
     transitivePeerDependencies:
       - '@codemirror/language'
       - '@codemirror/state'
       - '@codemirror/view'
 
-  '@uiw/codemirror-themes@4.25.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-themes@4.25.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)':
     dependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
-  '@uiw/codemirror-themes@4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)':
+  '@uiw/codemirror-themes@4.25.4(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)':
     dependencies:
-      '@codemirror/language': 6.11.3
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/language': 6.12.1
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
 
-  '@uiw/react-codemirror@4.25.4(@babel/runtime@7.28.6)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0))(@codemirror/language@6.11.3)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.38.2)(codemirror@6.0.1(@lezer/common@1.5.0))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@uiw/react-codemirror@4.25.4(@babel/runtime@7.28.6)(@codemirror/autocomplete@6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0))(@codemirror/language@6.12.1)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.4)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.39.12)(codemirror@6.0.1(@lezer/common@1.5.0))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@babel/runtime': 7.28.6
-      '@codemirror/commands': 6.10.0
-      '@codemirror/state': 6.5.2
+      '@codemirror/commands': 6.10.1
+      '@codemirror/state': 6.5.4
       '@codemirror/theme-one-dark': 6.1.2
-      '@codemirror/view': 6.38.2
-      '@uiw/codemirror-extensions-basic-setup': 4.25.4(@codemirror/autocomplete@6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0))(@codemirror/commands@6.10.0)(@codemirror/language@6.11.3)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)
+      '@codemirror/view': 6.39.12
+      '@uiw/codemirror-extensions-basic-setup': 4.25.4(@codemirror/autocomplete@6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0))(@codemirror/commands@6.10.1)(@codemirror/language@6.12.1)(@codemirror/lint@6.8.2)(@codemirror/search@6.5.7)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)
       codemirror: 6.0.1(@lezer/common@1.5.0)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -7336,13 +7336,13 @@ snapshots:
 
   codemirror@6.0.1(@lezer/common@1.5.0):
     dependencies:
-      '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.38.2)(@lezer/common@1.5.0)
-      '@codemirror/commands': 6.10.0
-      '@codemirror/language': 6.11.3
+      '@codemirror/autocomplete': 6.18.2(@codemirror/language@6.12.1)(@codemirror/state@6.5.4)(@codemirror/view@6.39.12)(@lezer/common@1.5.0)
+      '@codemirror/commands': 6.10.1
+      '@codemirror/language': 6.12.1
       '@codemirror/lint': 6.8.2
       '@codemirror/search': 6.5.7
-      '@codemirror/state': 6.5.2
-      '@codemirror/view': 6.38.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.12
     transitivePeerDependencies:
       - '@lezer/common'
 

@@ -22,7 +22,7 @@
     "@codemirror/commands": "^6.10.1",
     "@codemirror/language": "^6.12.1",
     "@codemirror/state": "^6.5.4",
-    "@codemirror/view": "^6.38.2",
+    "@codemirror/view": "6.39.12",
     "@cyberismo/data-handler": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^7.3.7",
