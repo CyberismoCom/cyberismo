@@ -249,6 +249,7 @@ export async function evaluateMacros(
     try {
       const compiled = handlebars.compile(preprocessRawBlocks(result), {
         strict: true,
+        ignoreStandalone: true,
       });
       result = compiled({ cardKey: context.cardKey });
 

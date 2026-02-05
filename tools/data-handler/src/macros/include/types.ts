@@ -12,21 +12,23 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+/**
+ * Include macro options.
+ * @param cardKey Card key of the card being included
+ * @param levelOffset A positive number will increase the level of headings.
+ *                    A negative value will decrease the level of headings in the included content.
+ * @param title Determines behaviour with the title that is in card metadata
+ *              include --> includes the title
+ *              exclude --> excludes the title
+ *              only --> includes title but does not import content
+ * @param whitespace Whether to trim leading and trailing whitespace
+ * @param escape Type of escaping to apply to the included content
+ *               json --> escapes for JSON strings
+ *               csv --> escapes for CSV fields
+ */
 export interface IncludeMacroOptions {
-  /**
-   * Card key of the card being included
-   */
   cardKey: string;
-  /**
-   * A positive number wil increase the level of headings and a negative alue will the level of headings in the included content
-   */
   levelOffset?: string;
-  /**
-   * Determines behaviour with the title that is in card metadata
-   * include --> includes the title
-   * exclude --> excludes the title
-   * only --> includes title but does not import content
-   */
   title?: 'include' | 'exclude' | 'only';
   pageTitles?: 'normal' | 'discrete';
   /**
@@ -35,4 +37,5 @@ export interface IncludeMacroOptions {
    * Default is 'keep'.
    */
   whitespace?: 'keep' | 'trim';
+  escape?: 'json' | 'csv';
 }

@@ -19,6 +19,8 @@ import macroMetadata from './metadata.js';
 import BaseMacro from '../base-macro.js';
 import type TaskQueue from '../task-queue.js';
 import { MAX_LEVEL_OFFSET } from '../../utils/constants.js';
+import { escapeCsvField } from '../../utils/csv.js';
+import { escapeJsonString } from '../../utils/json.js';
 
 export default class IncludeMacro extends BaseMacro {
   constructor(tasksQueue: TaskQueue) {
@@ -40,6 +42,14 @@ export default class IncludeMacro extends BaseMacro {
     if (!options.pageTitles) {
       options.pageTitles = 'normal';
     }
+
+    // Validate incompatible option combinations
+    if (options.escape && options.title !== 'exclude') {
+      throw new Error(
+        'The "escape" option can only be used with "title": "exclude". ' +
+          'Escaping is meant for embedding raw content in JSON/CSV documents, not for generating AsciiDoc output.',
+      );
+    }
     const newContext = {
       ...context,
       cardKey: options.cardKey,
@@ -52,6 +62,8 @@ export default class IncludeMacro extends BaseMacro {
       card.content,
       newContext,
     );
+
+    // Skip the leading newlines if trim is enabled
     const content = `\n\n${anchor}${title}${cardContent}`;
 
     let levelOffset = 0;
@@ -102,7 +114,13 @@ export default class IncludeMacro extends BaseMacro {
     context: MacroGenerationContext,
   ): Promise<string> {
     if (options.title !== 'only') {
-      return await evaluateMacros(cardContent ?? '', context, true);
+      let content = await evaluateMacros(cardContent ?? '', context, true);
+      if (options.escape === 'json') {
+        content = escapeJsonString(content);
+      } else if (options.escape === 'csv') {
+        content = escapeCsvField(content);
+      }
+      return content;
     }
     return '';
   }

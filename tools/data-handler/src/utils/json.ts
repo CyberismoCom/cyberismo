@@ -16,6 +16,29 @@ import { readFileSync } from 'node:fs';
 import { type FileHandle, readFile, writeFile } from 'node:fs/promises';
 
 /**
+ * Escapes a string for use as a JSON string value.
+ * Escapes double quotes, backslashes, and control characters.
+ * @param content The string to escape
+ * @returns The escaped string suitable for use in JSON
+ */
+export function escapeJsonString(content: string): string {
+  return JSON.stringify(content).slice(1, -1);
+}
+
+/**
+ * Format an object with JSON.stringify
+ *
+ * The purpose of this function is to format the JSON output in a centralised function
+ * so that the format can be controlled in a single location.
+ *
+ * @param json JSON object to format.
+ * @returns Formatted JSON string
+ */
+export function formatJson(json: object) {
+  return JSON.stringify(json, trimReplacer, 4);
+}
+
+/**
  * Handles reading of a JSON file.
  * @param file file name (and path) to read.
  * @returns Parsed JSON content.
@@ -77,19 +100,6 @@ export function trimReplacer(_: string, value: unknown) {
     return value.trim();
   }
   return value;
-}
-
-/**
- * Format an object with JSON.stringify
- *
- * The purpose of this function is to format the JSON output in a centralised function
- * so that the format can be controlled in a single location.
- *
- * @param json JSON object to format.
- * @returns Formatted JSON string
- */
-export function formatJson(json: object) {
-  return JSON.stringify(json, trimReplacer, 4);
 }
 
 /**

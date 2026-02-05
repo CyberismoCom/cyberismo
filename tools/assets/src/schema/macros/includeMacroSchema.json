@@ -24,6 +24,11 @@
       "type": "string",
       "description": "Whether to trim initial and final whitespace and newlines from the output. Useful for generating non-AsciiDoc content such as JSON. Default is 'keep'.",
       "enum": ["keep", "trim"]
+    },
+    "escape": {
+      "type": "string",
+      "description": "Type of escaping to apply to the included content. 'json' escapes for JSON strings, 'csv' escapes for CSV fields.",
+      "enum": ["json", "csv"]
     }
   },
   "required": ["cardKey"],
