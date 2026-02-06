@@ -130,6 +130,14 @@ export async function exportSite(
     concurrency: 5,
     plugins: [
       {
+        beforeRequestHook: (req) => {
+          const url = new URL(req.url);
+          // Skip MCP routes — they require session state and are not part of the static site
+          if (url.pathname.startsWith('/mcp')) {
+            return false;
+          }
+          return req;
+        },
         afterResponseHook: async (response) => {
           if (![200, 201, 204].includes(response.status)) {
             const error = await response.json();
