@@ -1,0 +1,52 @@
+{
+  "name": "@cyberismo/mcp",
+  "version": "0.0.20",
+  "description": "MCP server for Cyberismo content projects",
+  "main": "dist/index.js",
+  "bin": {
+    "cyberismo-mcp": "bin/run"
+  },
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "mcp",
+    "cyberismo",
+    "security",
+    "cards"
+  ],
+  "author": "sami.merila@cyberismo.com",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/CyberismoCom/cyberismo",
+  "packageManager": "pnpm@10.8.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CyberismoCom/cyberismo.git"
+  },
+  "bugs": "https://github.com/CyberismoCom/cyberismo/issues",
+  "dependencies": {
+    "@asciidoctor/core": "^3.0.4",
+    "@cyberismo/data-handler": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "vitest": "^4.0.15"
+  },
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server.js"
+  },
+  "type": "module",
+  "files": [
+    "bin",
+    "dist",
+    "src"
+  ]
+}
