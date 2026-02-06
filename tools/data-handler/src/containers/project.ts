@@ -40,7 +40,7 @@ import {
   type ProjectFetchCardDetails,
   type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
-import { pathExists } from '../utils/file-utils.js';
+import { copyDir, pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   cardPathParts,
@@ -110,7 +110,11 @@ export class Project extends CardContainer {
     this.logger.info({ path }, 'Initializing project');
 
     this.calculationEngine = new CalculationEngine(this);
-    this.projectPaths = new ProjectPaths(path);
+    this.projectPaths = new ProjectPaths(
+      path,
+      settings.version,
+      settings.versioningMode,
+    );
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
     this.validator = Validate.getInstance();
@@ -771,6 +775,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version || 1,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -866,6 +871,54 @@ export class Project extends CardContainer {
    */
   public get paths(): ProjectPaths {
     return this.projectPaths;
+  }
+
+  /**
+   * Ensures a draft folder exists by copying current version to draft folder if needed.
+   * Draft folder is version + 1 of the current version.
+   *
+   * Behavior depends on versioning mode:
+   * - 'direct' mode: No-op, returns false (changes go directly to current version)
+   * - 'draft-publish' mode: Creates draft folder if it doesn't exist
+   *
+   * @returns true if draft was created, false if it already existed or mode is 'direct'
+   */
+  public async ensureDraftExists(): Promise<boolean> {
+    // In 'direct' mode, don't create draft folders - edits go to current version
+    if (this.configuration.versioningMode === 'direct') {
+      return false;
+    }
+
+    // In 'draft-publish' mode, create draft if it doesn't exist
+    if (this.paths.hasDraft) {
+      return false;
+    }
+
+    const currentVersion = this.configuration.version;
+    const draftVersion = currentVersion + 1;
+
+    this.logger.info(
+      { currentVersion, draftVersion },
+      'Creating draft folder from current version',
+    );
+
+    // Copy entire resource folder from current version to draft
+    const currentResourcesFolder =
+      this.paths.versionedResourcesFolderFor(currentVersion);
+    const draftResourcesFolder = this.paths.draftBaseFolder;
+
+    await mkdir(draftResourcesFolder, { recursive: true });
+    await copyDir(currentResourcesFolder, draftResourcesFolder);
+
+    // Refresh resource cache to pick up new draft folder
+    this.resources.changed();
+
+    this.logger.info(
+      { from: currentVersion, to: draftVersion },
+      'Draft folder created',
+    );
+
+    return true;
   }
 
   /**
@@ -1032,6 +1085,13 @@ export class Project extends CardContainer {
 
     return result;
   }
+  /**
+   * Accessor for validator.
+   * @returns Validator instance.
+   */
+  public get projectValidator(): Validate {
+    return this.validator;
+  }
 
   /**
    * Shows details of a project.
@@ -1044,6 +1104,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
+      version: this.configuration.version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

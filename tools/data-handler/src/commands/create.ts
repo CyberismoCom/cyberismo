@@ -13,10 +13,13 @@
 
 // node
 import { join, resolve } from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { copyDir } from '../utils/file-utils.js';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import { errorFunction } from '../utils/error-utils.js';
+import { getChildLogger } from '../utils/log-utils.js';
 import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
@@ -36,6 +39,12 @@ import { writeJsonFile } from '../utils/json.js';
 export class Create {
   constructor(private project: Project) {}
 
+  private get logger() {
+    return getChildLogger({
+      module: 'create',
+    });
+  }
+
   static JSONFileContent: ProjectFile[] = [
     {
       path: '.cards/local',
@@ -46,6 +55,7 @@ export class Create {
       path: '.cards/local',
       content: {
         schemaVersion: SCHEMA_VERSION,
+        version: 1,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         description: '',
@@ -389,7 +399,20 @@ export class Create {
       throw new Error('Cannot create project without a path');
     }
 
-    const projectFolders: string[] = ['.cards/local', 'cardRoot'];
+    // Create versioned structure: .cards/local/1/ with all resource folders
+    const projectFolders: string[] = [
+      '.cards/local/1/calculations',
+      '.cards/local/1/cardTypes',
+      '.cards/local/1/fieldTypes',
+      '.cards/local/1/graphModels',
+      '.cards/local/1/graphViews',
+      '.cards/local/1/linkTypes',
+      '.cards/local/1/reports',
+      '.cards/local/1/templates',
+      '.cards/local/1/workflows',
+      '.cards/local/migrations/1',
+      'cardRoot',
+    ];
 
     if (!Validate.validateFolder(projectPath)) {
       throw new Error(
@@ -458,6 +481,62 @@ export class Create {
       }),
     );
 
+    // Create .schema files for each resource folder
+    const schemaFiles: Array<{ path: string; content: object[] }> = [
+      {
+        path: '.cards/local/1/calculations',
+        content: [{ id: 'calculationSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/cardTypes',
+        content: [{ id: 'cardTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/fieldTypes',
+        content: [{ id: 'fieldTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/graphModels',
+        content: [{ id: 'graphModelSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/graphViews',
+        content: [{ id: 'graphViewSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/linkTypes',
+        content: [{ id: 'linkTypeSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/reports',
+        content: [{ id: 'reportMetadataSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/templates',
+        content: [{ id: 'templateSchema', version: 1 }],
+      },
+      {
+        path: '.cards/local/1/workflows',
+        content: [{ id: 'workflowSchema', version: 1 }],
+      },
+    ];
+
+    await Promise.all(
+      schemaFiles.map(async (entry) => {
+        await writeJsonFile(
+          join(projectPath, entry.path, '.schema'),
+          entry.content,
+        );
+      }),
+    );
+
+    // Create empty migration log
+    await writeFile(
+      join(projectPath, '.cards/local/migrations/1/migrationLog.jsonl'),
+      '',
+      'utf-8',
+    );
+
     try {
       await writeFile(
         join(projectPath, '.gitignore'),
@@ -488,6 +567,117 @@ export class Create {
   }
 
   /**
+   * Ensures a draft folder exists by copying current version to draft folder if needed.
+   * Draft folder is version + 1 of the current version.
+   *
+   * Behavior depends on versioning mode:
+   * - 'direct' mode: No-op, returns false (changes go directly to current version)
+   * - 'draft-publish' mode: Creates draft folder if it doesn't exist
+   *
+   * @returns true if draft was created, false if it already existed or mode is 'direct'
+   */
+  public async ensureDraftExists(): Promise<boolean> {
+    return this.project.ensureDraftExists();
+  }
+
+  /**
+   * Creates a new version of the project.
+   *
+   * Behavior depends on versioning mode:
+   * - 'direct' mode: Copies resources from current version to new version, updates config
+   * - 'draft-publish' mode: Verifies draft exists, updates config (draft becomes current)
+   *
+   * Both modes archive the migration log after version creation.
+   *
+   * @throws if project validation fails or (in draft-publish mode) no draft exists
+   */
+  public async createVersion() {
+    const versioningMode = this.project.configuration.versioningMode;
+
+    // In draft-publish mode, verify draft exists
+    if (versioningMode === 'draft-publish' && !this.project.paths.hasDraft) {
+      throw new Error(
+        'Cannot create version. No draft exists. Make changes to the project first.',
+      );
+    }
+
+    // Validate the project is in correct state
+    const validationErrors = await this.project.projectValidator.validate(
+      this.project.basePath,
+      () => this.project,
+    );
+
+    if (validationErrors.length > 0) {
+      throw new Error(
+        `Cannot create version. Project has validation errors:\n${validationErrors}`,
+      );
+    }
+
+    const currentVersion = this.project.configuration.version;
+    const newVersion = currentVersion + 1;
+
+    this.logger.info(
+      { currentVersion, newVersion, versioningMode },
+      'Creating new version',
+    );
+
+    // In direct mode, copy current resources to new version folder
+    if (versioningMode === 'direct') {
+      const currentResourcesFolder =
+        this.project.paths.versionedResourcesFolderFor(currentVersion);
+      const newResourcesFolder =
+        this.project.paths.versionedResourcesFolderFor(newVersion);
+
+      await mkdir(newResourcesFolder, { recursive: true });
+      await copyDir(currentResourcesFolder, newResourcesFolder);
+
+      this.logger.info(
+        { from: currentVersion, to: newVersion },
+        'Copied resources to new version folder',
+      );
+    }
+    // In draft-publish mode, draft folder already exists as newVersion folder
+
+    // Update version in configuration
+    this.project.configuration.version = newVersion;
+    await this.project.configuration.save();
+
+    // Create migration log folder for the archived version
+    const versionedMigrationFolder =
+      this.project.paths.versionedMigrationFolder(currentVersion);
+    await mkdir(versionedMigrationFolder, { recursive: true });
+
+    // Archive migration log from current to versioned folder
+    const currentMigrationLog = join(
+      this.project.paths.currentMigrationFolder,
+      'migrationLog.jsonl',
+    );
+    const versionedMigrationLog = join(
+      versionedMigrationFolder,
+      'migrationLog.jsonl',
+    );
+
+    try {
+      await copyFile(currentMigrationLog, versionedMigrationLog);
+      await writeFile(currentMigrationLog, '', 'utf-8');
+    } catch (error) {
+      this.logger.error({ error }, `Archiving migration log failed`);
+      // If migration log doesn't exist, that's okay - just create empty one
+      await writeFile(currentMigrationLog, '', 'utf-8');
+    }
+
+    this.logger.info(
+      { previousVersion: currentVersion, newVersion },
+      'Version created successfully',
+    );
+
+    return {
+      previousVersion: currentVersion,
+      newVersion: newVersion,
+    };
+  }
+
+  /**
    * Creates a workflow.
    * @param workflowName workflow name
    * @param workflowContent workflow content JSON
@@ -496,5 +686,96 @@ export class Create {
     return this.project.resources
       .byType(workflowName, 'workflows')
       .create(workflowContent ? JSON.parse(workflowContent) : undefined);
+  }
+
+  /**
+   * Migrates a legacy (non-versioned) project to versioned structure.
+   * This moves all resources from .cards/local/ to .cards/local/1/
+   * @throws if project is already versioned or migration fails
+   */
+  public async migrateToVersioned() {
+    const localFolder = this.project.paths.localFolder;
+
+    // Check if already versioned
+    if (!this.project.paths.isLegacyStructure) {
+      throw new Error('Project is already using versioned structure');
+    }
+
+    this.logger.info('Migrating legacy project to versioned structure');
+
+    // Resource folders to move
+    const resourceFolders = [
+      'calculations',
+      'cardTypes',
+      'fieldTypes',
+      'graphModels',
+      'graphViews',
+      'linkTypes',
+      'reports',
+      'templates',
+      'workflows',
+    ];
+
+    // Create version 1 folder
+    const version1Folder = join(localFolder, '1');
+    await mkdir(version1Folder, { recursive: true });
+
+    // Move each resource folder to version 1
+    for (const folder of resourceFolders) {
+      const sourcePath = join(localFolder, folder);
+      const destPath = join(version1Folder, folder);
+
+      try {
+        if (existsSync(sourcePath)) {
+          await copyDir(sourcePath, destPath);
+          // Remove old folder after successful copy
+          await rm(sourcePath, { recursive: true, force: true });
+          this.logger.info({ folder }, 'Migrated resource folder');
+        }
+      } catch (error) {
+        this.logger.error({ folder, error }, 'Failed to migrate folder');
+        throw new Error(`Failed to migrate ${folder}: ${errorFunction(error)}`);
+      }
+    }
+
+    // Migrate migration log if it exists
+    const oldMigrationLog = join(
+      localFolder,
+      'migrations',
+      'current',
+      'migrationLog.jsonl',
+    );
+    const newMigrationLog = join(
+      localFolder,
+      'migrations',
+      '1',
+      'migrationLog.jsonl',
+    );
+
+    try {
+      if (existsSync(oldMigrationLog)) {
+        await mkdir(join(localFolder, 'migrations', '1'), { recursive: true });
+        await copyFile(oldMigrationLog, newMigrationLog);
+        this.logger.info('Migrated migration log');
+      }
+    } catch (error) {
+      this.logger.warn(
+        { error },
+        'Migration log migration failed (non-critical)',
+      );
+    }
+
+    // Update cardsConfig.json to set version = 1 if not set
+    if (this.project.configuration.version === undefined) {
+      this.project.configuration.version = 1;
+      await this.project.configuration.save();
+    }
+
+    this.logger.info('Legacy project migration completed successfully');
+
+    return {
+      message: 'Project migrated to versioned structure',
+      version: 1,
+    };
   }
 }

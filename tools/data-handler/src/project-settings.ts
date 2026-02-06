@@ -21,6 +21,7 @@ import type {
   HubSetting,
   ModuleSetting,
   ProjectSettings,
+  VersioningMode,
 } from './interfaces/project-interfaces.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
@@ -33,6 +34,8 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
  */
 export class ProjectConfiguration implements ProjectSettings {
   schemaVersion?: number;
+  version: number;
+  versioningMode: VersioningMode;
   name: string;
   cardKeyPrefix: string;
   category?: string;
@@ -48,22 +51,30 @@ export class ProjectConfiguration implements ProjectSettings {
     this.settingPath = path;
     this.cardKeyPrefix = '';
     this.description = '';
+    this.version = 1;
+    this.versioningMode = 'direct';
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
     this.readSettings();
-    this.ensureSchemaVersionAndSave();
+    this.ensureSchemaVersionAndVersion();
   }
 
-  // Ensures that schemaVersion is set in the project configuration.
-  // If missing, sets it to the current SCHEMA_VERSION and marks for auto-save.
-  private ensureSchemaVersionAndSave() {
+  // Ensures that schemaVersion and version are set in the project configuration.
+  // If missing, sets them to default values and marks for auto-save.
+  private ensureSchemaVersionAndVersion() {
+    let needsSave = false;
     if (this.schemaVersion === undefined) {
       this.schemaVersion = SCHEMA_VERSION;
-      // Auto-saves the configuration, if schema version was updated.
-      if (this.autoSave) {
-        this.saveSync();
-      }
+      needsSave = true;
+    }
+    if (this.version === undefined) {
+      this.version = 1;
+      needsSave = true;
+    }
+    // Auto-saves the configuration, if schema version or version was updated.
+    if (needsSave && this.autoSave) {
+      this.saveSync();
     }
   }
 
@@ -80,6 +91,8 @@ export class ProjectConfiguration implements ProjectSettings {
 
     if (valid) {
       this.schemaVersion = settings.schemaVersion;
+      this.version = settings.version;
+      this.versioningMode = settings.versioningMode || 'direct';
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.category = settings.category;
@@ -109,6 +122,8 @@ export class ProjectConfiguration implements ProjectSettings {
   private toJSON(): ProjectSettings {
     return {
       schemaVersion: this.schemaVersion,
+      version: this.version,
+      versioningMode: this.versioningMode,
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
       category: this.category,
