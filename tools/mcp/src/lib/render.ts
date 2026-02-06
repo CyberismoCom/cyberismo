@@ -340,9 +340,7 @@ function transformFields(
 /**
  * Transform calculation links to simpler CardLink format
  */
-function transformLinks(
-  links: QueryResult<'card'>['links'],
-): CardLink[] {
+function transformLinks(links: QueryResult<'card'>['links']): CardLink[] {
   return links.map((link) => ({
     linkType: link.linkType,
     linkTypeDisplayName: link.displayName,

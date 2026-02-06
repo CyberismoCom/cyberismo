@@ -1452,9 +1452,13 @@ const mcpCmd = new CommandWithPath('mcp').description(
 program.addCommand(mcpCmd);
 mcpCmd.action(async (options: CommandOptions<'start'>) => {
   try {
-    const projectPath = await commandHandler.getProjectPath(options.projectPath);
+    const projectPath = await commandHandler.getProjectPath(
+      options.projectPath,
+    );
     console.error(`Starting MCP server for project at: ${projectPath}`);
-    console.error('Connect via stdio transport (e.g., Claude Desktop, Claude Code)');
+    console.error(
+      'Connect via stdio transport (e.g., Claude Desktop, Claude Code)',
+    );
     await startMcpServer(projectPath);
   } catch (error) {
     program.error(

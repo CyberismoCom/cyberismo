@@ -34,7 +34,10 @@ export function registerResources(
   server.resource(
     'project',
     'file:///project',
-    { description: 'Project information and settings', mimeType: 'application/json' },
+    {
+      description: 'Project information and settings',
+      mimeType: 'application/json',
+    },
     async () => {
       const project = await commands.showCmd.showProject();
       return {
@@ -133,7 +136,9 @@ export function registerResources(
     async () => {
       const linkTypes = await commands.showCmd.showResources('linkTypes');
       const details = await Promise.all(
-        linkTypes.map((name) => commands.showCmd.showResource(name, 'linkTypes')),
+        linkTypes.map((name) =>
+          commands.showCmd.showResource(name, 'linkTypes'),
+        ),
       );
       return {
         contents: [
@@ -175,7 +180,10 @@ export function registerResources(
   server.resource(
     'calculations',
     'file:///calculations',
-    { description: 'All calculation definitions', mimeType: 'application/json' },
+    {
+      description: 'All calculation definitions',
+      mimeType: 'application/json',
+    },
     async () => {
       const calculations = await commands.showCmd.showResources('calculations');
       const details = await Promise.all(
@@ -221,7 +229,10 @@ export function registerResources(
   server.resource(
     'graph-models',
     'file:///graph-models',
-    { description: 'All graph model definitions', mimeType: 'application/json' },
+    {
+      description: 'All graph model definitions',
+      mimeType: 'application/json',
+    },
     async () => {
       const graphModels = await commands.showCmd.showResources('graphModels');
       const details = await Promise.all(
@@ -276,7 +287,6 @@ export function registerResourceTemplates(
   // Note: Resource templates use a different API with ResourceTemplate class
   // For now, we'll skip templates and rely on the tools for individual card access
   // The get_card tool provides the same functionality
-
   // Users can use the get_card tool to fetch individual cards:
   // - get_card({ cardKey: "abc123" }) for rendered content
   // - get_card({ cardKey: "abc123", raw: true }) for raw content

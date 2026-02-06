@@ -63,7 +63,10 @@ export async function startMcpServer(projectPath?: string): Promise<void> {
 const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
 if (isDirectRun) {
   startMcpServer().catch((error) => {
-    console.error('Fatal error:', error instanceof Error ? error.message : error);
+    console.error(
+      'Fatal error:',
+      error instanceof Error ? error.message : error,
+    );
     process.exit(1);
   });
 }

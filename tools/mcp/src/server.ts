@@ -15,7 +15,10 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
-import { registerResources, registerResourceTemplates } from './resources/index.js';
+import {
+  registerResources,
+  registerResourceTemplates,
+} from './resources/index.js';
 import { registerTools } from './tools/index.js';
 
 export interface McpServerOptions {

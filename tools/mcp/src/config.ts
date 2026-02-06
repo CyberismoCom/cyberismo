@@ -43,9 +43,7 @@ function findProjectRoot(startDir: string): string | undefined {
  */
 export function getProjectPath(): string | undefined {
   // Check CLI arguments
-  const cliArg = process.argv.find((arg) =>
-    arg.startsWith('--project-path='),
-  );
+  const cliArg = process.argv.find((arg) => arg.startsWith('--project-path='));
   if (cliArg) {
     const path = cliArg.substring(cliArg.indexOf('=') + 1);
     if (path && existsSync(path)) {

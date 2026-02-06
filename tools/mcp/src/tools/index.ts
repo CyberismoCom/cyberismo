@@ -29,7 +29,9 @@ export function registerTools(
     'create_card',
     'Create a new card from a template',
     {
-      template: z.string().describe('Template name to use (e.g., "base/templates/page")'),
+      template: z
+        .string()
+        .describe('Template name to use (e.g., "base/templates/page")'),
       parentKey: z
         .string()
         .optional()
@@ -109,7 +111,9 @@ export function registerTools(
     'Update a metadata field of a card',
     {
       cardKey: z.string().describe('Card key to edit'),
-      field: z.string().describe('Metadata field name (e.g., "title", "severity")'),
+      field: z
+        .string()
+        .describe('Metadata field name (e.g., "title", "severity")'),
       value: z
         .union([
           z.string(),
@@ -159,7 +163,9 @@ export function registerTools(
     },
     async ({ cardKey, transition }) => {
       try {
-        await commands.transitionCmd.cardTransition(cardKey, { name: transition });
+        await commands.transitionCmd.cardTransition(cardKey, {
+          name: transition,
+        });
         return {
           content: [
             {
@@ -232,7 +238,9 @@ export function registerTools(
     {
       sourceKey: z.string().describe('Source card key'),
       destinationKey: z.string().describe('Destination card key'),
-      linkType: z.string().describe('Link type name (e.g., "ismsa/linkTypes/mitigates")'),
+      linkType: z
+        .string()
+        .describe('Link type name (e.g., "ismsa/linkTypes/mitigates")'),
       description: z.string().optional().describe('Optional link description'),
     },
     async ({ sourceKey, destinationKey, linkType, description }) => {
@@ -324,7 +332,10 @@ export function registerTools(
       filename: z.string().describe('Attachment filename'),
       content: z
         .string()
-        .max(MAX_ATTACHMENT_SIZE, 'Attachment too large. Maximum size is 10MB (base64-encoded)')
+        .max(
+          MAX_ATTACHMENT_SIZE,
+          'Attachment too large. Maximum size is 10MB (base64-encoded)',
+        )
         .describe('Base64-encoded file content (max 10MB)'),
     },
     async ({ cardKey, filename, content }) => {
@@ -335,7 +346,11 @@ export function registerTools(
           content: [
             {
               type: 'text',
-              text: JSON.stringify({ success: true, cardKey, filename }, null, 2),
+              text: JSON.stringify(
+                { success: true, cardKey, filename },
+                null,
+                2,
+              ),
             },
           ],
         };
@@ -367,7 +382,11 @@ export function registerTools(
           content: [
             {
               type: 'text',
-              text: JSON.stringify({ success: true, removed: cardKey }, null, 2),
+              text: JSON.stringify(
+                { success: true, removed: cardKey },
+                null,
+                2,
+              ),
             },
           ],
         };
@@ -475,7 +494,9 @@ Returns:
       raw: z
         .boolean()
         .optional()
-        .describe('If true, skip macro evaluation and return basic card data without extended metadata'),
+        .describe(
+          'If true, skip macro evaluation and return basic card data without extended metadata',
+        ),
     },
     async ({ cardKey, raw }) => {
       try {

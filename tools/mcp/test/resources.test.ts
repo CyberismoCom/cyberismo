@@ -16,7 +16,10 @@
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerResources, registerResourceTemplates } from '../src/resources/index.js';
+import {
+  registerResources,
+  registerResourceTemplates,
+} from '../src/resources/index.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
