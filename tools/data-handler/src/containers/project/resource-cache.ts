@@ -276,9 +276,10 @@ export class ResourceCache {
     source: 'local' | 'module',
     moduleName?: string,
   ) {
+    // For local resources, use writable path which returns draft if it exists
     const resourceFolder =
       source === 'local'
-        ? this.project.paths.resourcePath(type)
+        ? this.project.paths.writableResourcePath(type)
         : this.project.paths.moduleResourcePathCompat(moduleName!, type);
 
     try {

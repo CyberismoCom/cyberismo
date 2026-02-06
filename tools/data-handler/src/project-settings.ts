@@ -21,6 +21,7 @@ import type {
   HubSetting,
   ModuleSetting,
   ProjectSettings,
+  VersioningMode,
 } from './interfaces/project-interfaces.js';
 import { formatJson } from './utils/json.js';
 import { getChildLogger } from './utils/log-utils.js';
@@ -34,6 +35,7 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
 export class ProjectConfiguration implements ProjectSettings {
   schemaVersion?: number;
   version: number;
+  versioningMode: VersioningMode;
   name: string;
   cardKeyPrefix: string;
   category?: string;
@@ -50,6 +52,7 @@ export class ProjectConfiguration implements ProjectSettings {
     this.cardKeyPrefix = '';
     this.description = '';
     this.version = 1;
+    this.versioningMode = 'direct';
     this.modules = [];
     this.hubs = [];
     this.autoSave = autoSave;
@@ -89,6 +92,7 @@ export class ProjectConfiguration implements ProjectSettings {
     if (valid) {
       this.schemaVersion = settings.schemaVersion;
       this.version = settings.version;
+      this.versioningMode = settings.versioningMode || 'direct';
       this.cardKeyPrefix = settings.cardKeyPrefix;
       this.name = settings.name;
       this.category = settings.category;
@@ -119,6 +123,7 @@ export class ProjectConfiguration implements ProjectSettings {
     return {
       schemaVersion: this.schemaVersion,
       version: this.version,
+      versioningMode: this.versioningMode,
       cardKeyPrefix: this.cardKeyPrefix,
       name: this.name,
       category: this.category,

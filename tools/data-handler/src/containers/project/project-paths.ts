@@ -14,7 +14,10 @@
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 
-import type { ResourceFolderType } from '../../interfaces/project-interfaces.js';
+import type {
+  ResourceFolderType,
+  VersioningMode,
+} from '../../interfaces/project-interfaces.js';
 
 /**
  * Handles paths for a project.
@@ -22,12 +25,15 @@ import type { ResourceFolderType } from '../../interfaces/project-interfaces.js'
 export class ProjectPaths {
   private pathMap: Map<ResourceFolderType, string>;
   private currentVersion: number;
+  private versioningMode: VersioningMode;
 
   constructor(
     private path: string,
     version: number = 1,
+    versioningMode: VersioningMode = 'direct',
   ) {
     this.currentVersion = version;
+    this.versioningMode = versioningMode;
     this.pathMap = new Map([
       ['calculations', this.calculationProjectFolder],
       ['cardTypes', this.cardTypesFolder],
@@ -193,6 +199,51 @@ export class ProjectPaths {
    */
   public get version(): number {
     return this.currentVersion;
+  }
+
+  /**
+   * Get the draft version number (currentVersion + 1).
+   */
+  public get draft(): number {
+    return this.currentVersion + 1;
+  }
+
+  /**
+   * Check if a draft folder exists.
+   * Draft folder is the next version folder (currentVersion + 1).
+   */
+  public get hasDraft(): boolean {
+    return existsSync(this.draftBaseFolder);
+  }
+
+  /**
+   * Get the draft base folder path (.cards/local/{version+1}/).
+   */
+  public get draftBaseFolder(): string {
+    return join(this.localFolder, this.draft.toString());
+  }
+
+  /**
+   * Get the writable base folder based on versioning mode.
+   * - 'direct' mode: Returns current version folder (changes go directly to current version)
+   * - 'draft-publish' mode: Returns draft folder (version+1, changes go to draft)
+   */
+  public get writableBaseFolder(): string {
+    if (this.versioningMode === 'direct') {
+      return this.versionedBaseFolder;
+    }
+    // draft-publish mode: writes always go to draft folder
+    return this.draftBaseFolder;
+  }
+
+  /**
+   * Get the writable resource path for a specific resource type.
+   * Returns path in draft folder if it exists, otherwise in current version folder.
+   * @param resourceType Type of resource
+   * @returns Path to the writable resource folder
+   */
+  public writableResourcePath(resourceType: ResourceFolderType): string {
+    return join(this.writableBaseFolder, resourceType);
   }
 
   /**

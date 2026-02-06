@@ -567,15 +567,41 @@ export class Create {
   }
 
   /**
+   * Ensures a draft folder exists by copying current version to draft folder if needed.
+   * Draft folder is version + 1 of the current version.
+   *
+   * Behavior depends on versioning mode:
+   * - 'direct' mode: No-op, returns false (changes go directly to current version)
+   * - 'draft-publish' mode: Creates draft folder if it doesn't exist
+   *
+   * @returns true if draft was created, false if it already existed or mode is 'direct'
+   */
+  public async ensureDraftExists(): Promise<boolean> {
+    return this.project.ensureDraftExists();
+  }
+
+  /**
    * Creates a new version of the project.
-   * This creates a complete snapshot of the current version by:
-   * 1. Copying all resources from current version to new version folder
-   * 2. Incrementing the version number in cardsConfig.json
-   * 3. Archiving the migration log
-   * @throws if project validation fails
+   *
+   * Behavior depends on versioning mode:
+   * - 'direct' mode: Copies resources from current version to new version, updates config
+   * - 'draft-publish' mode: Verifies draft exists, updates config (draft becomes current)
+   *
+   * Both modes archive the migration log after version creation.
+   *
+   * @throws if project validation fails or (in draft-publish mode) no draft exists
    */
   public async createVersion() {
-    // First, validate the project is in correct state
+    const versioningMode = this.project.configuration.versioningMode;
+
+    // In draft-publish mode, verify draft exists
+    if (versioningMode === 'draft-publish' && !this.project.paths.hasDraft) {
+      throw new Error(
+        'Cannot create version. No draft exists. Make changes to the project first.',
+      );
+    }
+
+    // Validate the project is in correct state
     const validationErrors = await this.project.projectValidator.validate(
       this.project.basePath,
       () => this.project,
@@ -591,23 +617,26 @@ export class Create {
     const newVersion = currentVersion + 1;
 
     this.logger.info(
-      { currentVersion, newVersion },
-      'Creating new version snapshot',
+      { currentVersion, newVersion, versioningMode },
+      'Creating new version',
     );
 
-    // Copy entire resource folder from current version to new version
-    const currentResourcesFolder =
-      this.project.paths.versionedResourcesFolderFor(currentVersion);
-    const newResourcesFolder =
-      this.project.paths.versionedResourcesFolderFor(newVersion);
+    // In direct mode, copy current resources to new version folder
+    if (versioningMode === 'direct') {
+      const currentResourcesFolder =
+        this.project.paths.versionedResourcesFolderFor(currentVersion);
+      const newResourcesFolder =
+        this.project.paths.versionedResourcesFolderFor(newVersion);
 
-    await mkdir(newResourcesFolder, { recursive: true });
-    await copyDir(currentResourcesFolder, newResourcesFolder);
+      await mkdir(newResourcesFolder, { recursive: true });
+      await copyDir(currentResourcesFolder, newResourcesFolder);
 
-    this.logger.info(
-      { from: currentVersion, to: newVersion },
-      'Resources copied to new version',
-    );
+      this.logger.info(
+        { from: currentVersion, to: newVersion },
+        'Copied resources to new version folder',
+      );
+    }
+    // In draft-publish mode, draft folder already exists as newVersion folder
 
     // Update version in configuration
     this.project.configuration.version = newVersion;

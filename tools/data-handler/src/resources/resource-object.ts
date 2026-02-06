@@ -766,6 +766,33 @@ export abstract class ResourceObject<
   }
 
   /**
+   * Check if the resource is in an old version folder (< current version).
+   * Old versions are immutable and should not be modified.
+   * @throws if the resource is in an old version folder
+   */
+  protected assertNotOldVersion() {
+    if (this.moduleResource) {
+      return; // Module resources have their own protection
+    }
+
+    const currentVersion = this.project.configuration.version;
+    const localFolder = this.project.paths.localFolder;
+
+    // Check if the resource folder is under an old version directory
+    if (this.resourceFolder.startsWith(localFolder)) {
+      const relativePath = this.resourceFolder.slice(localFolder.length + 1);
+      const versionPart = relativePath.split('/')[0];
+      const folderVersion = parseInt(versionPart, 10);
+
+      if (!isNaN(folderVersion) && folderVersion < currentVersion) {
+        throw new Error(
+          `Cannot modify old version ${folderVersion}. Current version is ${currentVersion}.`,
+        );
+      }
+    }
+  }
+
+  /**
    * Write the content from memory to disk.
    * @throws if trying to write a module resource.
    */
@@ -773,6 +800,19 @@ export abstract class ResourceObject<
     if (this.moduleResource) {
       throw new Error(`Cannot change module resources`);
     }
+
+    // Ensure draft exists before writing (draft-publish model)
+    await this.project.ensureDraftExists();
+
+    // Update resource folder to use writable path (draft if exists)
+    this.resourceFolder = this.project.paths.writableResourcePath(this.type);
+    this.fileName = join(
+      this.resourceFolder,
+      resourceName(this.content.name).identifier + '.json',
+    );
+
+    // Check we're not trying to modify an old version
+    this.assertNotOldVersion();
 
     // Create folder for resources and add correct .schema file.
     await mkdir(this.resourceFolder, { recursive: true });
@@ -811,7 +851,8 @@ export abstract class ResourceObject<
    * Deletes the file and removes the resource from project.
    * @throws if resource is a module resource, or
    *         if resource does not exist, or
-   *         if resource is used by other resources.
+   *         if resource is used by other resources, or
+   *         if trying to modify an old version.
    */
   public async delete() {
     if (this.moduleResource) {
@@ -833,6 +874,20 @@ export abstract class ResourceObject<
         `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
+
+    // Ensure draft exists before deleting (draft-publish model)
+    await this.project.ensureDraftExists();
+
+    // Update resource folder to use writable path (draft if exists)
+    this.resourceFolder = this.project.paths.writableResourcePath(this.type);
+    this.fileName = join(
+      this.resourceFolder,
+      resourceName(this.content.name).identifier + '.json',
+    );
+
+    // Check we're not trying to modify an old version
+    this.assertNotOldVersion();
+
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';

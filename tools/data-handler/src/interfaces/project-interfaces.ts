@@ -179,10 +179,16 @@ export interface ProjectMetadata {
   numberOfCards: number;
 }
 
+// Versioning mode for the project.
+// 'direct' (default): Changes modify the current version directly
+// 'draft-publish': Changes create/modify a draft, createVersion publishes it
+export type VersioningMode = 'direct' | 'draft-publish';
+
 // Project's settings (=cardsConfig.json).
 export interface ProjectSettings {
   schemaVersion?: number;
   version: number;
+  versioningMode?: VersioningMode;
   cardKeyPrefix: string;
   name: string;
   category?: string;
