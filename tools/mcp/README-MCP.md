@@ -59,11 +59,11 @@ After configuration, reload VS Code. Copilot Chat will have access to Cyberismo 
 
 The HTTP transport uses Server-Sent Events (SSE) for streaming:
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/mcp` | Send MCP messages (initialize, tool calls, etc.) |
-| GET | `/mcp` | SSE streaming for server-to-client messages |
-| DELETE | `/mcp` | Close session |
+| Method | Path   | Description                                      |
+| ------ | ------ | ------------------------------------------------ |
+| POST   | `/mcp` | Send MCP messages (initialize, tool calls, etc.) |
+| GET    | `/mcp` | SSE streaming for server-to-client messages      |
+| DELETE | `/mcp` | Close session                                    |
 
 Sessions are managed via the `mcp-session-id` header returned after initialization.
 
@@ -92,6 +92,7 @@ npx @modelcontextprotocol/inspector --server-url http://localhost:3000/mcp
 ```
 
 This opens a web UI where you can:
+
 - View available tools and resources
 - Execute tools interactively
 - Inspect request/response payloads
@@ -110,30 +111,33 @@ This opens a web UI where you can:
 The MCP server exposes the following tools:
 
 ### Card Operations
-| Tool | Description |
-|------|-------------|
-| `get_card` | Get detailed card info including rendered content, transitions, and field metadata |
-| `list_cards` | List all cards in the project hierarchy |
-| `create_card` | Create a new card from a template |
-| `edit_card_content` | Update the AsciiDoc content of a card |
-| `edit_card_metadata` | Update a metadata field |
-| `remove_card` | Delete a card and its children |
-| `move_card` | Move a card to a new parent |
-| `transition_card` | Transition a card to a new workflow state |
+
+| Tool                 | Description                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| `get_card`           | Get detailed card info including rendered content, transitions, and field metadata |
+| `list_cards`         | List all cards in the project hierarchy                                            |
+| `create_card`        | Create a new card from a template                                                  |
+| `edit_card_content`  | Update the AsciiDoc content of a card                                              |
+| `edit_card_metadata` | Update a metadata field                                                            |
+| `remove_card`        | Delete a card and its children                                                     |
+| `move_card`          | Move a card to a new parent                                                        |
+| `transition_card`    | Transition a card to a new workflow state                                          |
 
 ### Labels & Links
-| Tool | Description |
-|------|-------------|
-| `create_label` | Add a label to a card |
-| `remove_label` | Remove a label from a card |
-| `create_link` | Create a link between two cards |
-| `remove_link` | Remove a link between cards |
+
+| Tool           | Description                     |
+| -------------- | ------------------------------- |
+| `create_label` | Add a label to a card           |
+| `remove_label` | Remove a label from a card      |
+| `create_link`  | Create a link between two cards |
+| `remove_link`  | Remove a link between cards     |
 
 ### Attachments & Templates
-| Tool | Description |
-|------|-------------|
-| `create_attachment` | Add an attachment to a card (max 10MB) |
-| `list_templates` | List available templates for creating cards |
+
+| Tool                | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `create_attachment` | Add an attachment to a card (max 10MB)      |
+| `list_templates`    | List available templates for creating cards |
 
 ---
 
@@ -141,16 +145,16 @@ The MCP server exposes the following tools:
 
 Resources provide read-only access to project data:
 
-| Resource | URI | Description |
-|----------|-----|-------------|
-| Project info | `file:///project` | Project metadata and settings |
-| Card types | `file:///card-types` | All card type definitions |
-| Workflows | `file:///workflows` | All workflow definitions |
-| Field types | `file:///field-types` | All field type definitions |
-| Link types | `file:///link-types` | All link type definitions |
-| Templates | `file:///templates` | All template definitions |
-| Calculations | `file:///calculations` | All calculation definitions |
-| Reports | `file:///reports` | All report definitions |
+| Resource     | URI                    | Description                   |
+| ------------ | ---------------------- | ----------------------------- |
+| Project info | `file:///project`      | Project metadata and settings |
+| Card types   | `file:///card-types`   | All card type definitions     |
+| Workflows    | `file:///workflows`    | All workflow definitions      |
+| Field types  | `file:///field-types`  | All field type definitions    |
+| Link types   | `file:///link-types`   | All link type definitions     |
+| Templates    | `file:///templates`    | All template definitions      |
+| Calculations | `file:///calculations` | All calculation definitions   |
+| Reports      | `file:///reports`      | All report definitions        |
 
 ---
 

@@ -14,7 +14,7 @@
 */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CommandManager } from '@cyberismo/data-handler';
+import { resourceName, type CommandManager } from '@cyberismo/data-handler';
 import { z } from 'zod';
 import { toolResult, toolError } from '../lib/mcp-helpers.js';
 import { renderCard, getCardTree } from '../lib/render.js';
@@ -359,6 +359,469 @@ Returns:
         };
       } catch (error) {
         return toolError('listing templates', error);
+      }
+    },
+  );
+
+  // --- Phase 1: Quick Wins ---
+
+  server.tool(
+    'remove_attachment',
+    'Remove an attachment from a card',
+    {
+      cardKey: z.string().describe('Card key'),
+      filename: z.string().describe('Attachment filename to remove'),
+    },
+    async ({ cardKey, filename }) => {
+      try {
+        await commands.removeCmd.remove('attachment', cardKey, filename);
+        return toolResult({ cardKey, filename });
+      } catch (error) {
+        return toolError('removing attachment', error);
+      }
+    },
+  );
+
+  server.tool(
+    'list_labels',
+    'List all unique labels used across the project',
+    {},
+    async () => {
+      try {
+        const labels = commands.showCmd.showLabels();
+        return toolResult({ labels });
+      } catch (error) {
+        return toolError('listing labels', error);
+      }
+    },
+  );
+
+  server.tool(
+    'rank_card_first',
+    'Move a card to first position among its siblings',
+    {
+      cardKey: z.string().describe('Card key to move to first position'),
+    },
+    async ({ cardKey }) => {
+      try {
+        await commands.moveCmd.rankFirst(cardKey);
+        return toolResult({ cardKey, position: 'first' });
+      } catch (error) {
+        return toolError('ranking card first', error);
+      }
+    },
+  );
+
+  server.tool(
+    'rank_card_after',
+    'Position a card after another sibling card',
+    {
+      cardKey: z.string().describe('Card key to reposition'),
+      afterCardKey: z.string().describe('Card key to position after'),
+    },
+    async ({ cardKey, afterCardKey }) => {
+      try {
+        await commands.moveCmd.rankCard(cardKey, afterCardKey);
+        return toolResult({ cardKey, afterCardKey });
+      } catch (error) {
+        return toolError('ranking card', error);
+      }
+    },
+  );
+
+  server.tool(
+    'rank_card_by_index',
+    'Position a card at a specific index among its siblings',
+    {
+      cardKey: z.string().describe('Card key to reposition'),
+      index: z.number().int().min(0).describe('Zero-based position index'),
+    },
+    async ({ cardKey, index }) => {
+      try {
+        await commands.moveCmd.rankByIndex(cardKey, index);
+        return toolResult({ cardKey, index });
+      } catch (error) {
+        return toolError('ranking card by index', error);
+      }
+    },
+  );
+
+  // --- Phase 2: Resource Creation ---
+
+  server.tool(
+    'create_card_type',
+    'Create a new card type',
+    {
+      name: z.string().describe('Card type identifier'),
+      workflowName: z.string().describe('Workflow to use for this card type'),
+    },
+    async ({ name, workflowName }) => {
+      try {
+        await commands.createCmd.createCardType(name, workflowName);
+        return toolResult({ name, workflowName });
+      } catch (error) {
+        return toolError('creating card type', error);
+      }
+    },
+  );
+
+  server.tool(
+    'create_field_type',
+    'Create a new field type',
+    {
+      name: z.string().describe('Field type identifier'),
+      dataType: z
+        .enum([
+          'boolean',
+          'date',
+          'dateTime',
+          'enum',
+          'integer',
+          'list',
+          'longText',
+          'number',
+          'person',
+          'shortText',
+        ])
+        .describe('Data type for the field'),
+    },
+    async ({ name, dataType }) => {
+      try {
+        await commands.createCmd.createFieldType(name, dataType);
+        return toolResult({ name, dataType });
+      } catch (error) {
+        return toolError('creating field type', error);
+      }
+    },
+  );
+
+  server.tool(
+    'create_workflow',
+    'Create a new workflow',
+    {
+      name: z.string().describe('Workflow identifier'),
+      content: z
+        .string()
+        .optional()
+        .describe('JSON workflow definition (omit for default)'),
+    },
+    async ({ name, content }) => {
+      try {
+        await commands.createCmd.createWorkflow(name, content ?? '');
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating workflow', error);
+      }
+    },
+  );
+
+  server.tool(
+    'create_link_type',
+    'Create a new link type',
+    {
+      name: z.string().describe('Link type identifier'),
+    },
+    async ({ name }) => {
+      try {
+        await commands.createCmd.createLinkType(name);
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating link type', error);
+      }
+    },
+  );
+
+  server.tool(
+    'create_template',
+    'Create a new template',
+    {
+      name: z.string().describe('Template identifier'),
+      content: z
+        .string()
+        .optional()
+        .describe('JSON template definition (omit for default)'),
+    },
+    async ({ name, content }) => {
+      try {
+        await commands.createCmd.createTemplate(name, content ?? '');
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating template', error);
+      }
+    },
+  );
+
+  server.tool(
+    'add_template_cards',
+    'Add card(s) to a template',
+    {
+      templateName: z.string().describe('Template to add cards to'),
+      cardTypeName: z.string().describe('Card type for the new cards'),
+      parentCard: z
+        .string()
+        .optional()
+        .describe('Parent card key within template (omit for root)'),
+      count: z
+        .number()
+        .int()
+        .min(1)
+        .default(1)
+        .optional()
+        .describe('Number of cards to add (default: 1)'),
+    },
+    async ({ templateName, cardTypeName, parentCard, count }) => {
+      try {
+        const cards = await commands.createCmd.addCards(
+          cardTypeName,
+          templateName,
+          parentCard,
+          count ?? 1,
+        );
+        return toolResult({ templateName, created: cards });
+      } catch (error) {
+        return toolError('adding template cards', error);
+      }
+    },
+  );
+
+  // --- Phase 3: Resource Management ---
+
+  const removableResourceTypes = z.enum([
+    'calculation',
+    'cardType',
+    'fieldType',
+    'graphModel',
+    'graphView',
+    'linkType',
+    'report',
+    'template',
+    'workflow',
+  ]);
+
+  server.tool(
+    'delete_resource',
+    'Delete a project resource by type and name',
+    {
+      resourceType: removableResourceTypes.describe(
+        'Type of resource to delete',
+      ),
+      name: z.string().describe('Resource name'),
+    },
+    async ({ resourceType, name }) => {
+      try {
+        await commands.removeCmd.remove(resourceType, name);
+        return toolResult({ resourceType, name });
+      } catch (error) {
+        return toolError('deleting resource', error);
+      }
+    },
+  );
+
+  server.tool(
+    'validate_resource',
+    'Validate a resource definition and return any errors',
+    {
+      name: z
+        .string()
+        .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
+    },
+    async ({ name }) => {
+      try {
+        const parsed = resourceName(name);
+        const result = await commands.validateCmd.validateResource(
+          parsed,
+          commands.project,
+        );
+        return toolResult({
+          name,
+          valid: result === '',
+          errors: result || undefined,
+        });
+      } catch (error) {
+        return toolError('validating resource', error);
+      }
+    },
+  );
+
+  server.tool(
+    'update_resource',
+    'Update a resource property using an operation (add, change, rank, or remove)',
+    {
+      name: z
+        .string()
+        .describe('Full resource name (e.g., "prefix/cardTypes/myType")'),
+      key: z.string().describe('Property key to update'),
+      subKey: z.string().optional().describe('Sub-key for content properties'),
+      operation: z
+        .object({
+          name: z.enum(['add', 'change', 'rank', 'remove']),
+          target: z.unknown().describe('Target value for the operation'),
+          to: z
+            .unknown()
+            .optional()
+            .describe('New value (for change operations)'),
+          newIndex: z
+            .number()
+            .optional()
+            .describe('New index (for rank operations)'),
+        })
+        .describe('Operation to apply'),
+    },
+    async ({ name, key, subKey, operation }) => {
+      try {
+        const updateKey = subKey
+          ? { key: 'content' as const, subKey }
+          : { key };
+        await commands.updateCmd.applyResourceOperation(
+          name,
+          updateKey,
+          operation as Parameters<
+            typeof commands.updateCmd.applyResourceOperation
+          >[2],
+        );
+        return toolResult({ name, key });
+      } catch (error) {
+        return toolError('updating resource', error);
+      }
+    },
+  );
+
+  // --- Phase 4: Calculations & Queries ---
+
+  server.tool(
+    'create_calculation',
+    'Create a new calculation definition',
+    {
+      name: z.string().describe('Calculation identifier'),
+    },
+    async ({ name }) => {
+      try {
+        await commands.createCmd.createCalculation(name);
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating calculation', error);
+      }
+    },
+  );
+
+  server.tool(
+    'run_query',
+    'Run a predefined query against the project',
+    {
+      queryName: z
+        .enum(['card', 'onCreation', 'onTransition', 'tree'])
+        .describe('Query type to run'),
+    },
+    async ({ queryName }) => {
+      try {
+        const results = await commands.calculateCmd.runQuery(queryName);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(results, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return toolError('running query', error);
+      }
+    },
+  );
+
+  server.tool(
+    'run_logic_program',
+    'Execute a custom logic program (Clingo/ASP). AI can design and iterate on logic programs for calculations, validations, and derived fields.',
+    {
+      query: z.string().describe('Clingo/ASP logic program source code'),
+    },
+    async ({ query }) => {
+      try {
+        const result = await commands.calculateCmd.runLogicProgram(query);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return toolError('running logic program', error);
+      }
+    },
+  );
+
+  server.tool(
+    'create_report',
+    'Create a new report definition',
+    {
+      name: z.string().describe('Report identifier'),
+    },
+    async ({ name }) => {
+      try {
+        await commands.createCmd.createReport(name);
+        return toolResult({ name });
+      } catch (error) {
+        return toolError('creating report', error);
+      }
+    },
+  );
+
+  server.tool(
+    'run_report',
+    'Execute a report and return results',
+    {
+      reportName: z.string().describe('Report name to execute'),
+      cardKey: z.string().describe('Card key as report context'),
+      parameters: z
+        .record(z.string(), z.unknown())
+        .default({})
+        .optional()
+        .describe('Additional report parameters'),
+    },
+    async ({ reportName, cardKey, parameters }) => {
+      try {
+        const result = await commands.showCmd.showReportResults(
+          reportName,
+          cardKey,
+          parameters ?? {},
+          'localApp',
+        );
+        return {
+          content: [{ type: 'text' as const, text: result }],
+        };
+      } catch (error) {
+        return toolError('running report', error);
+      }
+    },
+  );
+
+  server.tool(
+    'run_graph',
+    'Generate a graph visualization',
+    {
+      model: z.string().describe('Graph model name'),
+      view: z.string().describe('Graph view name'),
+    },
+    async ({ model, view }) => {
+      try {
+        const base64 = await commands.calculateCmd.runGraph(
+          model,
+          view,
+          'localApp',
+        );
+        return {
+          content: [
+            {
+              type: 'image' as const,
+              data: base64,
+              mimeType: 'image/png',
+            },
+          ],
+        };
+      } catch (error) {
+        return toolError('running graph', error);
       }
     },
   );

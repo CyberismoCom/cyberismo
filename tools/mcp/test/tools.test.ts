@@ -48,6 +48,7 @@ describe('MCP Tools via Client', () => {
     const result = await client.listTools();
     const toolNames = result.tools.map((t) => t.name);
 
+    // Original 14 tools
     expect(toolNames).toContain('create_card');
     expect(toolNames).toContain('edit_card_content');
     expect(toolNames).toContain('edit_card_metadata');
@@ -62,6 +63,36 @@ describe('MCP Tools via Client', () => {
     expect(toolNames).toContain('get_card');
     expect(toolNames).toContain('list_cards');
     expect(toolNames).toContain('list_templates');
+
+    // Phase 1: Quick Wins
+    expect(toolNames).toContain('remove_attachment');
+    expect(toolNames).toContain('list_labels');
+    expect(toolNames).toContain('rank_card_first');
+    expect(toolNames).toContain('rank_card_after');
+    expect(toolNames).toContain('rank_card_by_index');
+
+    // Phase 2: Resource Creation
+    expect(toolNames).toContain('create_card_type');
+    expect(toolNames).toContain('create_field_type');
+    expect(toolNames).toContain('create_workflow');
+    expect(toolNames).toContain('create_link_type');
+    expect(toolNames).toContain('create_template');
+    expect(toolNames).toContain('add_template_cards');
+
+    // Phase 3: Resource Management
+    expect(toolNames).toContain('delete_resource');
+    expect(toolNames).toContain('validate_resource');
+    expect(toolNames).toContain('update_resource');
+
+    // Phase 4: Calculations & Queries
+    expect(toolNames).toContain('create_calculation');
+    expect(toolNames).toContain('run_query');
+    expect(toolNames).toContain('run_logic_program');
+    expect(toolNames).toContain('create_report');
+    expect(toolNames).toContain('run_report');
+    expect(toolNames).toContain('run_graph');
+
+    expect(toolNames).toHaveLength(34);
   });
 
   test('get_card returns rendered card data', async () => {
@@ -133,5 +164,29 @@ describe('MCP Tools via Client', () => {
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content[0] as { text: string }).text);
     expect(Array.isArray(parsed)).toBe(true);
+  });
+
+  test('list_labels returns labels array', async () => {
+    const result = await client.callTool({
+      name: 'list_labels',
+      arguments: {},
+    });
+
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    expect(parsed.success).toBe(true);
+    expect(Array.isArray(parsed.labels)).toBe(true);
+  });
+
+  test('run_query with tree returns results', async () => {
+    const result = await client.callTool({
+      name: 'run_query',
+      arguments: { queryName: 'tree' },
+    });
+
+    expect(result.isError).toBeFalsy();
+    const parsed = JSON.parse((result.content[0] as { text: string }).text);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
   });
 });

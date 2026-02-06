@@ -87,9 +87,7 @@ describe('MCP Resources via Client', () => {
     });
 
     expect(result.contents).toHaveLength(1);
-    const parsed = JSON.parse(
-      (result.contents[0] as { text: string }).text,
-    );
+    const parsed = JSON.parse((result.contents[0] as { text: string }).text);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed.length).toBeGreaterThan(0);
   });
@@ -100,9 +98,7 @@ describe('MCP Resources via Client', () => {
     });
 
     expect(result.contents).toHaveLength(1);
-    const parsed = JSON.parse(
-      (result.contents[0] as { text: string }).text,
-    );
+    const parsed = JSON.parse((result.contents[0] as { text: string }).text);
     expect(Array.isArray(parsed)).toBe(true);
     expect(parsed.length).toBeGreaterThan(0);
   });
@@ -113,9 +109,7 @@ describe('MCP Resources via Client', () => {
     });
 
     expect(result.contents).toHaveLength(1);
-    const parsed = JSON.parse(
-      (result.contents[0] as { text: string }).text,
-    );
+    const parsed = JSON.parse((result.contents[0] as { text: string }).text);
     expect(Array.isArray(parsed)).toBe(true);
   });
 
@@ -125,9 +119,7 @@ describe('MCP Resources via Client', () => {
     });
 
     expect(result.contents).toHaveLength(1);
-    const parsed = JSON.parse(
-      (result.contents[0] as { text: string }).text,
-    );
+    const parsed = JSON.parse((result.contents[0] as { text: string }).text);
     expect(Array.isArray(parsed)).toBe(true);
   });
 });

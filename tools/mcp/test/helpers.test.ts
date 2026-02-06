@@ -50,8 +50,6 @@ describe('toolError', () => {
     const result = toolError('doing something', 'string error');
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toBe(
-      'Error doing something: Unknown error',
-    );
+    expect(result.content[0].text).toBe('Error doing something: Unknown error');
   });
 });
