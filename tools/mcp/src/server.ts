@@ -15,11 +15,9 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
-import {
-  registerResources,
-  registerResourceTemplates,
-} from './resources/index.js';
+import { registerResources } from './resources/index.js';
 import { registerTools } from './tools/index.js';
+import packageJson from '../package.json' with { type: 'json' };
 
 export interface McpServerOptions {
   name?: string;
@@ -29,10 +27,6 @@ export interface McpServerOptions {
 /**
  * Create an MCP server with all Cyberismo resources and tools registered.
  * The caller is responsible for connecting a transport (stdio, HTTP, etc.)
- *
- * @param commands - CommandManager instance for the project
- * @param options - Optional server name and version
- * @returns Configured McpServer instance (not yet connected)
  */
 export function createMcpServer(
   commands: CommandManager,
@@ -40,12 +34,10 @@ export function createMcpServer(
 ): McpServer {
   const server = new McpServer({
     name: options?.name ?? 'cyberismo',
-    version: options?.version ?? '1.0.0',
+    version: options?.version ?? packageJson.version,
   });
 
-  // Register resources and tools
   registerResources(server, commands);
-  registerResourceTemplates(server, commands);
   registerTools(server, commands);
 
   return server;

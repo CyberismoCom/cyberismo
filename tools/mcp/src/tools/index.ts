@@ -16,15 +16,19 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CommandManager } from '@cyberismo/data-handler';
 import { z } from 'zod';
+import { toolResult, toolError } from '../lib/mcp-helpers.js';
+import { renderCard, getCardTree } from '../lib/render.js';
+
+// Maximum base64 content size: 10MB (which decodes to ~7.5MB actual file)
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
 /**
- * Register all MCP tools for write operations
+ * Register all MCP tools for Cyberismo operations
  */
 export function registerTools(
   server: McpServer,
   commands: CommandManager,
 ): void {
-  // Create card from template
   server.tool(
     'create_card',
     'Create a new card from a template',
@@ -40,39 +44,18 @@ export function registerTools(
     async ({ template, parentKey }) => {
       try {
         const cards = await commands.createCmd.createCard(template, parentKey);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  created: cards.map((c) => ({
-                    key: c.key,
-                    title: c.metadata?.title,
-                  })),
-                },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({
+          created: cards.map((c) => ({
+            key: c.key,
+            title: c.metadata?.title,
+          })),
+        });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating card: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('creating card', error);
       }
     },
   );
 
-  // Edit card content
   server.tool(
     'edit_card_content',
     'Update the AsciiDoc content of a card',
@@ -83,29 +66,13 @@ export function registerTools(
     async ({ cardKey, content }) => {
       try {
         await commands.editCmd.editCardContent(cardKey, content);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ success: true, cardKey }, null, 2),
-            },
-          ],
-        };
+        return toolResult({ cardKey });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error editing content: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('editing content', error);
       }
     },
   );
 
-  // Edit card metadata
   server.tool(
     'edit_card_metadata',
     'Update a metadata field of a card',
@@ -127,72 +94,34 @@ export function registerTools(
     async ({ cardKey, field, value }) => {
       try {
         await commands.editCmd.editCardMetadata(cardKey, field, value);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, cardKey, field, value },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ cardKey, field, value });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error editing metadata: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('editing metadata', error);
       }
     },
   );
 
-  // Transition card workflow state
   server.tool(
     'transition_card',
     'Transition a card to a new workflow state',
     {
       cardKey: z.string().describe('Card key to transition'),
-      transition: z.string().describe('Target state name'),
+      transition: z
+        .string()
+        .describe('Transition name (e.g., "Approve", "Reject")'),
     },
     async ({ cardKey, transition }) => {
       try {
         await commands.transitionCmd.cardTransition(cardKey, {
           name: transition,
         });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, cardKey, newState: transition },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ cardKey, transition });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error transitioning card: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('transitioning card', error);
       }
     },
   );
 
-  // Move card to new parent
   server.tool(
     'move_card',
     'Move a card to a new parent',
@@ -205,33 +134,13 @@ export function registerTools(
     async ({ cardKey, destinationKey }) => {
       try {
         await commands.moveCmd.moveCard(cardKey, destinationKey);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, cardKey, newParent: destinationKey },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ cardKey, newParent: destinationKey });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error moving card: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('moving card', error);
       }
     },
   );
 
-  // Create link between cards
   server.tool(
     'create_link',
     'Create a link between two cards',
@@ -251,33 +160,13 @@ export function registerTools(
           linkType,
           description,
         );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, sourceKey, destinationKey, linkType },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ sourceKey, destinationKey, linkType });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('creating link', error);
       }
     },
   );
 
-  // Remove link between cards
   server.tool(
     'remove_link',
     'Remove a link between two cards',
@@ -294,35 +183,12 @@ export function registerTools(
           destinationKey,
           linkType,
         );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, sourceKey, destinationKey, linkType },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ sourceKey, destinationKey, linkType });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error removing link: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('removing link', error);
       }
     },
   );
-
-  // Create attachment
-  // Maximum base64 content size: 10MB (which decodes to ~7.5MB actual file)
-  const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
   server.tool(
     'create_attachment',
@@ -342,33 +208,13 @@ export function registerTools(
       try {
         const buffer = Buffer.from(content, 'base64');
         await commands.createCmd.createAttachment(cardKey, filename, buffer);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, cardKey, filename },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ cardKey, filename });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating attachment: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('creating attachment', error);
       }
     },
   );
 
-  // Remove card
   server.tool(
     'remove_card',
     'Delete a card and its children',
@@ -378,33 +224,13 @@ export function registerTools(
     async ({ cardKey }) => {
       try {
         await commands.removeCmd.remove('card', cardKey);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                { success: true, removed: cardKey },
-                null,
-                2,
-              ),
-            },
-          ],
-        };
+        return toolResult({ removed: cardKey });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error removing card: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('removing card', error);
       }
     },
   );
 
-  // Create label
   server.tool(
     'create_label',
     'Add a label to a card',
@@ -415,29 +241,13 @@ export function registerTools(
     async ({ cardKey, label }) => {
       try {
         await commands.createCmd.createLabel(cardKey, label);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ success: true, cardKey, label }, null, 2),
-            },
-          ],
-        };
+        return toolResult({ cardKey, label });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating label: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('creating label', error);
       }
     },
   );
 
-  // Remove label
   server.tool(
     'remove_label',
     'Remove a label from a card',
@@ -448,29 +258,13 @@ export function registerTools(
     async ({ cardKey, label }) => {
       try {
         await commands.removeCmd.remove('label', cardKey, label);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ success: true, cardKey, label }, null, 2),
-            },
-          ],
-        };
+        return toolResult({ cardKey, label });
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error removing label: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('removing label', error);
       }
     },
   );
 
-  // Get card details (as a tool for convenience)
   server.tool(
     'get_card',
     `Get detailed information about a card including rendered content, available transitions, and field metadata.
@@ -500,79 +294,54 @@ Returns:
     },
     async ({ cardKey, raw }) => {
       try {
-        const card = commands.showCmd.showCardDetails(cardKey);
-        if (!card) {
-          throw new Error(`Card ${cardKey} not found`);
-        }
-
         if (raw) {
+          const card = commands.showCmd.showCardDetails(cardKey);
           return {
             content: [
               {
-                type: 'text',
+                type: 'text' as const,
                 text: JSON.stringify(card, null, 2),
               },
             ],
           };
         }
 
-        // Import render function dynamically to avoid circular dependency
-        const { renderCard } = await import('../lib/render.js');
         const rendered = await renderCard(commands, cardKey);
         return {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: JSON.stringify(rendered, null, 2),
             },
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error getting card: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('getting card', error);
       }
     },
   );
 
-  // List all cards
   server.tool(
     'list_cards',
     'List all cards in the project with their hierarchy',
     {},
     async () => {
       try {
-        const { getCardTree } = await import('../lib/render.js');
         const tree = await getCardTree(commands);
         return {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: JSON.stringify(tree, null, 2),
             },
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error listing cards: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('listing cards', error);
       }
     },
   );
 
-  // List templates
   server.tool(
     'list_templates',
     'List all available templates for creating cards',
@@ -583,21 +352,13 @@ Returns:
         return {
           content: [
             {
-              type: 'text',
+              type: 'text' as const,
               text: JSON.stringify(templates, null, 2),
             },
           ],
         };
       } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error listing templates: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
+        return toolError('listing templates', error);
       }
     },
   );

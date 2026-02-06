@@ -48,15 +48,14 @@ export async function startMcpServer(projectPath?: string): Promise<void> {
   await server.connect(transport);
 
   // Handle graceful shutdown
-  process.on('SIGINT', () => {
+  const shutdown = async () => {
+    await server.close();
     commands.project.dispose();
     process.exit(0);
-  });
+  };
 
-  process.on('SIGTERM', () => {
-    commands.project.dispose();
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 // Run directly if this is the entry point

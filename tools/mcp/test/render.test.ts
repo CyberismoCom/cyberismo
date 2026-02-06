@@ -15,15 +15,21 @@
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
 import { CommandManager } from '@cyberismo/data-handler';
-import { renderCard, getCardTree } from '../src/lib/render.js';
+import {
+  renderCard,
+  getCardTree,
+  type RenderedCard,
+} from '../src/lib/render.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
+let renderedCard: RenderedCard;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
   commands = await CommandManager.getInstance(testDataPath);
+  renderedCard = await renderCard(commands, 'decision_5');
 });
 
 afterAll(async () => {
@@ -31,38 +37,27 @@ afterAll(async () => {
 });
 
 describe('renderCard', () => {
-  test('renders a card with basic fields', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(card.key).toBe('decision_5');
-    expect(card.title).toBeDefined();
-    expect(card.cardType).toBeDefined();
-    expect(card.rawContent).toBeDefined();
-    expect(card.parsedContent).toBeDefined();
+  test('returns card with correct key and basic fields', () => {
+    expect(renderedCard.key).toBe('decision_5');
+    expect(renderedCard.title).toBeDefined();
+    expect(renderedCard.cardType).toBeDefined();
+    expect(renderedCard.cardTypeDisplayName).toBeDefined();
+    expect(renderedCard.rawContent).toBeDefined();
+    expect(renderedCard.parsedContent).toBeDefined();
   });
 
-  test('includes workflow state', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(card.workflowState).toBeDefined();
-  });
-
-  test('includes available transitions', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.availableTransitions)).toBe(true);
-    // Each transition should have name and toState
-    for (const transition of card.availableTransitions) {
+  test('includes workflow state and transitions', () => {
+    expect(renderedCard.workflowState).toBeDefined();
+    expect(Array.isArray(renderedCard.availableTransitions)).toBe(true);
+    for (const transition of renderedCard.availableTransitions) {
       expect(transition.name).toBeDefined();
       expect(transition.toState).toBeDefined();
     }
   });
 
-  test('includes fields with metadata', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.fields)).toBe(true);
-    for (const field of card.fields) {
+  test('includes fields with metadata', () => {
+    expect(Array.isArray(renderedCard.fields)).toBe(true);
+    for (const field of renderedCard.fields) {
       expect(field.key).toBeDefined();
       expect(field.dataType).toBeDefined();
       expect(typeof field.isCalculated).toBe('boolean');
@@ -71,69 +66,43 @@ describe('renderCard', () => {
     }
   });
 
-  test('includes denied operations', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(card.deniedOperations).toBeDefined();
-    expect(Array.isArray(card.deniedOperations.transitions)).toBe(true);
-    expect(Array.isArray(card.deniedOperations.editFields)).toBe(true);
-    expect(typeof card.deniedOperations.move).toBe('boolean');
-    expect(typeof card.deniedOperations.delete).toBe('boolean');
-    expect(typeof card.deniedOperations.editContent).toBe('boolean');
+  test('includes denied operations with correct types', () => {
+    expect(Array.isArray(renderedCard.deniedOperations.transitions)).toBe(true);
+    expect(Array.isArray(renderedCard.deniedOperations.editFields)).toBe(true);
+    expect(typeof renderedCard.deniedOperations.move).toBe('boolean');
+    expect(typeof renderedCard.deniedOperations.delete).toBe('boolean');
+    expect(typeof renderedCard.deniedOperations.editContent).toBe('boolean');
   });
 
-  test('includes links array', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.links)).toBe(true);
-  });
-
-  test('includes notifications array', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.notifications)).toBe(true);
-  });
-
-  test('includes labels array', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.labels)).toBe(true);
-  });
-
-  test('includes children array', async () => {
-    const card = await renderCard(commands, 'decision_5');
-
-    expect(Array.isArray(card.children)).toBe(true);
+  test('includes arrays for links, notifications, labels, children', () => {
+    expect(Array.isArray(renderedCard.links)).toBe(true);
+    expect(Array.isArray(renderedCard.notifications)).toBe(true);
+    expect(Array.isArray(renderedCard.labels)).toBe(true);
+    expect(Array.isArray(renderedCard.children)).toBe(true);
   });
 
   test('throws for invalid card key', async () => {
     await expect(renderCard(commands, 'invalid_key')).rejects.toThrow();
   });
 
-  test('raw mode returns simpler data', async () => {
+  test('raw mode skips macro evaluation and transitions', async () => {
     const card = await renderCard(commands, 'decision_5', { raw: true });
 
     expect(card.key).toBe('decision_5');
     expect(card.rawContent).toBeDefined();
-    // In raw mode, transitions may be empty since query is not run
-    expect(Array.isArray(card.availableTransitions)).toBe(true);
+    // Raw mode should return empty transitions (no async work)
+    expect(card.availableTransitions).toEqual([]);
   });
 });
 
 describe('getCardTree', () => {
-  test('returns card tree', async () => {
-    const tree = await getCardTree(commands);
-
-    expect(tree).toBeDefined();
-    expect(Array.isArray(tree)).toBe(true);
-  });
-
-  test('tree items have required fields', async () => {
+  test('returns non-empty card tree with key and title', async () => {
     const tree = (await getCardTree(commands)) as Array<{
       key: string;
       title: string;
     }>;
 
+    expect(Array.isArray(tree)).toBe(true);
     expect(tree.length).toBeGreaterThan(0);
     expect(tree[0].key).toBeDefined();
     expect(tree[0].title).toBeDefined();

@@ -14,82 +14,120 @@
 */
 
 import { beforeAll, afterAll, describe, expect, test } from 'vitest';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { CommandManager } from '@cyberismo/data-handler';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import {
-  registerResources,
-  registerResourceTemplates,
-} from '../src/resources/index.js';
+import { createMcpServer } from '../src/server.js';
 import { testDataPath } from './test-utils.js';
 
 let commands: CommandManager;
-let server: McpServer;
+let client: Client;
 
 // Fixes weird issue with asciidoctor
 beforeAll(async () => {
   process.argv = [];
   commands = await CommandManager.getInstance(testDataPath);
-  server = new McpServer({ name: 'test', version: '1.0.0' });
-  registerResources(server, commands);
-  registerResourceTemplates(server, commands);
+
+  const server = createMcpServer(commands);
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+
+  await server.connect(serverTransport);
+
+  client = new Client({ name: 'test-client', version: '1.0.0' });
+  await client.connect(clientTransport);
 });
 
 afterAll(async () => {
+  await client.close();
   commands.project.dispose();
 });
 
-describe('MCP Resources', () => {
-  test('registerResources does not throw', () => {
-    const testServer = new McpServer({ name: 'test', version: '1.0.0' });
-    expect(() => registerResources(testServer, commands)).not.toThrow();
+describe('MCP Resources via Client', () => {
+  test('listResources returns all registered resources', async () => {
+    const result = await client.listResources();
+    const names = result.resources.map((r) => r.name);
+
+    expect(names).toContain('project');
+    expect(names).toContain('cards');
+    expect(names).toContain('card-types');
+    expect(names).toContain('workflows');
+    expect(names).toContain('templates');
+    expect(names).toContain('link-types');
+    expect(names).toContain('field-types');
+    expect(names).toContain('calculations');
+    expect(names).toContain('reports');
+    expect(names).toContain('graph-models');
+    expect(names).toContain('graph-views');
   });
 
-  test('registerResourceTemplates does not throw', () => {
-    const testServer = new McpServer({ name: 'test', version: '1.0.0' });
-    expect(() => registerResourceTemplates(testServer, commands)).not.toThrow();
+  test('resources use cyberismo:// URI scheme', async () => {
+    const result = await client.listResources();
+    for (const resource of result.resources) {
+      expect(resource.uri).toMatch(/^cyberismo:\/\/\//);
+    }
   });
 
-  test('project resource can be fetched', async () => {
-    const project = await commands.showCmd.showProject();
-    expect(project).toBeDefined();
-    expect(project.name).toBe('decision');
+  test('project resource returns valid JSON', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///project',
+    });
+
+    expect(result.contents).toHaveLength(1);
+    const content = result.contents[0];
+    expect(content.mimeType).toBe('application/json');
+
+    const parsed = JSON.parse((content as { text: string }).text);
+    expect(parsed.name).toBe('decision');
   });
 
-  test('card tree can be fetched', async () => {
-    const tree = await commands.showCmd.showProjectCards('tree');
-    expect(tree).toBeDefined();
-    expect(Array.isArray(tree)).toBe(true);
+  test('card-types resource returns array', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///card-types',
+    });
+
+    expect(result.contents).toHaveLength(1);
+    const parsed = JSON.parse(
+      (result.contents[0] as { text: string }).text,
+    );
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
   });
 
-  test('card types can be fetched', async () => {
-    const cardTypes = await commands.showCmd.showCardTypesWithDetails();
-    expect(cardTypes).toBeDefined();
-    expect(Array.isArray(cardTypes)).toBe(true);
-    expect(cardTypes.length).toBeGreaterThan(0);
+  test('workflows resource returns array', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///workflows',
+    });
+
+    expect(result.contents).toHaveLength(1);
+    const parsed = JSON.parse(
+      (result.contents[0] as { text: string }).text,
+    );
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.length).toBeGreaterThan(0);
   });
 
-  test('workflows can be fetched', () => {
-    const workflows = commands.showCmd.showWorkflowsWithDetails();
-    expect(workflows).toBeDefined();
-    expect(Array.isArray(workflows)).toBe(true);
-    expect(workflows.length).toBeGreaterThan(0);
+  test('templates resource returns array', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///templates',
+    });
+
+    expect(result.contents).toHaveLength(1);
+    const parsed = JSON.parse(
+      (result.contents[0] as { text: string }).text,
+    );
+    expect(Array.isArray(parsed)).toBe(true);
   });
 
-  test('templates can be fetched', async () => {
-    const templates = await commands.showCmd.showTemplatesWithDetails();
-    expect(templates).toBeDefined();
-    expect(Array.isArray(templates)).toBe(true);
-  });
+  test('field-types resource returns array', async () => {
+    const result = await client.readResource({
+      uri: 'cyberismo:///field-types',
+    });
 
-  test('field types can be fetched', async () => {
-    const fieldTypes = await commands.showCmd.showResources('fieldTypes');
-    expect(fieldTypes).toBeDefined();
-    expect(Array.isArray(fieldTypes)).toBe(true);
-  });
-
-  test('link types can be fetched', async () => {
-    const linkTypes = await commands.showCmd.showResources('linkTypes');
-    expect(linkTypes).toBeDefined();
-    expect(Array.isArray(linkTypes)).toBe(true);
+    expect(result.contents).toHaveLength(1);
+    const parsed = JSON.parse(
+      (result.contents[0] as { text: string }).text,
+    );
+    expect(Array.isArray(parsed)).toBe(true);
   });
 });

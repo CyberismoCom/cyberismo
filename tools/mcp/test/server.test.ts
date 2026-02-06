@@ -31,7 +31,7 @@ afterAll(async () => {
 });
 
 describe('createMcpServer', () => {
-  test('creates an MCP server instance', () => {
+  test('creates an MCP server instance with default options', () => {
     const server = createMcpServer(commands);
     expect(server).toBeDefined();
   });
@@ -41,19 +41,6 @@ describe('createMcpServer', () => {
       name: 'test-server',
       version: '2.0.0',
     });
-    expect(server).toBeDefined();
-  });
-
-  test('server has registered resources', () => {
-    const server = createMcpServer(commands);
-    // The server should be created with resources registered
-    // We can verify by checking the server object exists
-    expect(server).toBeDefined();
-  });
-
-  test('server has registered tools', () => {
-    const server = createMcpServer(commands);
-    // The server should be created with tools registered
     expect(server).toBeDefined();
   });
 });

@@ -17,14 +17,30 @@ import { createMcpServer } from '@cyberismo/mcp/server';
 import type { CommandManager } from '@cyberismo/data-handler';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
+const MAX_SESSIONS = 100;
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 interface McpSession {
   transport: WebStandardStreamableHTTPServerTransport;
   server: McpServer;
   commands: CommandManager;
+  lastActivity: number;
 }
 
-// Session management: Map of sessionId -> session data
 const sessions = new Map<string, McpSession>();
+
+// Periodic cleanup of expired sessions
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of sessions) {
+    if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
+      sessions.delete(id);
+      void session.transport.close?.();
+    }
+  }
+}, CLEANUP_INTERVAL_MS);
+cleanupInterval.unref();
 
 const router = new Hono();
 
@@ -39,6 +55,7 @@ router.all('/', async (c) => {
   // Handle existing session
   if (sessionId && sessions.has(sessionId)) {
     const session = sessions.get(sessionId)!;
+    session.lastActivity = Date.now();
     const response = await session.transport.handleRequest(c.req.raw);
     return response;
   }
@@ -51,24 +68,27 @@ router.all('/', async (c) => {
     return c.json({ message: 'Session closed' });
   }
 
+  // Reject new sessions when at capacity
+  if (sessions.size >= MAX_SESSIONS) {
+    return c.json({ error: 'Too many active sessions' }, 503);
+  }
+
   // Create new session for initialization (POST with initialize message)
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: () => crypto.randomUUID(),
     onsessioninitialized: (newSessionId: string) => {
-      // Store session when initialized
       sessions.set(newSessionId, {
         transport,
         server,
         commands,
+        lastActivity: Date.now(),
       });
     },
     onsessionclosed: (closedSessionId: string) => {
-      // Clean up on session close
       sessions.delete(closedSessionId);
     },
   });
 
-  // Handle transport close
   transport.onclose = () => {
     const sid = transport.sessionId;
     if (sid) {
@@ -79,13 +99,12 @@ router.all('/', async (c) => {
   const server = createMcpServer(commands);
   await server.connect(transport);
 
-  // Handle the initial request
   const response = await transport.handleRequest(c.req.raw);
   return response;
 });
 
 /**
- * SSE endpoint for server-to-client messages (optional, for long-polling clients)
+ * SSE endpoint for server-to-client messages
  */
 router.get('/sse', async (c) => {
   const sessionId = c.req.header('mcp-session-id');
@@ -95,6 +114,7 @@ router.get('/sse', async (c) => {
   }
 
   const session = sessions.get(sessionId)!;
+  session.lastActivity = Date.now();
   const response = await session.transport.handleRequest(c.req.raw);
   return response;
 });

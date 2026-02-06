@@ -142,13 +142,8 @@ export async function renderCard(
   cardKey: string,
   options: { raw?: boolean } = {},
 ): Promise<RenderedCard> {
-  // Get raw card details
+  // showCardDetails throws on invalid keys, so no null-check needed
   const card = commands.showCmd.showCardDetails(cardKey);
-
-  if (!card) {
-    throw new Error(`Card ${cardKey} not found`);
-  }
-
   const rawContent = card.content || '';
   let parsedContent = rawContent;
 
@@ -196,15 +191,16 @@ export async function renderCard(
     }
   }
 
-  // Get workflow for computing available transitions
-  const availableTransitions = await computeAvailableTransitions(
-    commands,
-    card.metadata?.cardType,
-    cardQueryResult?.workflowState || card.metadata?.workflowState || '',
-    cardQueryResult?.deniedOperations?.transition || [],
-  );
+  // Compute available transitions (skip in raw mode)
+  const availableTransitions = options.raw
+    ? []
+    : await computeAvailableTransitions(
+        commands,
+        card.metadata?.cardType,
+        cardQueryResult?.workflowState || card.metadata?.workflowState || '',
+        cardQueryResult?.deniedOperations?.transition || [],
+      );
 
-  // Transform fields to include enum values and editability
   const fields = transformFields(
     cardQueryResult?.fields || [],
     cardQueryResult?.deniedOperations?.editField || [],
