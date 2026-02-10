@@ -215,7 +215,7 @@ export async function getAttachment(
   key: string,
   filename: string,
 ): Promise<attachmentPayload> {
-  return await commands.showCmd.showAttachment(key, filename);
+  return commands.showCmd.showAttachment(key, filename);
 }
 
 /**
