@@ -31,6 +31,7 @@ import { generateReportContent } from '../utils/report.js';
 import { getStaticDirectoryPath, pdfReport } from '@cyberismo/assets';
 import { Project } from '../containers/project.js';
 import type { QueryResult } from '../types/queries.js';
+import { read } from '../utils/rw-lock.js';
 import type { Show } from './show.js';
 import { sortItems } from '../utils/lexorank.js';
 
@@ -246,7 +247,7 @@ export class Export {
       children: [],
       attachments: [],
     };
-    const cardDetailsResponse = this.showCmd.showCardDetails(card.key, 'adoc');
+    const cardDetailsResponse = await this.showCmd.showCardDetails(card.key, 'adoc');
     let asciiDocContent = '';
     const project = this.project;
     try {
@@ -283,6 +284,7 @@ export class Export {
    * @param options Export options.
    * @returns status message
    */
+  @read
   public async exportPdf(
     destination: string,
     options: ExportPdfOptions,
@@ -320,6 +322,7 @@ export class Export {
    * @param cardKey If not exporting the whole card tree, card key of parent card.
    * @returns status message
    */
+  @read
   public async exportToADoc(
     destination: string,
     cardKey?: string,

@@ -25,6 +25,7 @@ import { isModulePath } from '../utils/card-utils.js';
 import type { DataType } from '../interfaces/resource-interfaces.js';
 import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
+import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
@@ -79,6 +80,7 @@ export class Create {
    * @param count How many cards to add. By default one.
    * @returns non-empty string array with ids of added cards
    */
+  @write
   public async addCards(
     cardTypeName: string,
     templateName: string,
@@ -139,6 +141,7 @@ export class Create {
    * Adds a new hub location.
    * @param hubUrl URL of the hub
    */
+  @write
   public async addHubLocation(hubUrl: string) {
     return this.project.configuration.addHub(hubUrl);
   }
@@ -149,6 +152,7 @@ export class Create {
    * @param attachment path to an attachment file or attachment name if buffer is defined
    * @param buffer (Optional) attachment buffer
    */
+  @write
   public async createAttachment(
     cardKey: string,
     attachment: string,
@@ -169,6 +173,7 @@ export class Create {
    * Creates a calculation resource.
    * @param calculationName name for the calculation resource
    */
+  @write
   public async createCalculation(calculationName: string) {
     return this.project.resources
       .byType(calculationName, 'calculations')
@@ -181,6 +186,7 @@ export class Create {
    * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
    * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
+  @write
   public async createCard(
     templateName: string,
     parentCardKey?: string,
@@ -222,6 +228,7 @@ export class Create {
    * @param cardTypeName name for the card type.
    * @param workflowName workflow name to use in the card type.
    */
+  @write
   public async createCardType(cardTypeName: string, workflowName: string) {
     return this.project.resources
       .byType(cardTypeName, 'cardTypes')
@@ -233,6 +240,7 @@ export class Create {
    * @param fieldTypeName name for the field type.
    * @param dataType data type for the field type
    */
+  @write
   public async createFieldType(fieldTypeName: string, dataType: DataType) {
     return this.project.resources
       .byType(fieldTypeName, 'fieldTypes')
@@ -243,6 +251,7 @@ export class Create {
    * Creates a new graph model.
    * @param graphModelName name for the graph model.
    */
+  @write
   public async createGraphModel(graphModelName: string) {
     return this.project.resources
       .byType(graphModelName, 'graphModels')
@@ -253,6 +262,7 @@ export class Create {
    * Creates a new graph view.
    * @param graphViewName name for the graph view.
    */
+  @write
   public async createGraphView(graphViewName: string) {
     return this.project.resources.byType(graphViewName, 'graphViews').create();
   }
@@ -262,6 +272,7 @@ export class Create {
    * @param cardKey The card to which the label is added to
    * @param label The label being added
    */
+  @write
   public async createLabel(cardKey: string, label: string) {
     if (!Validate.isValidLabelName(label)) {
       throw new Error(`Not a valid label name'`);
@@ -282,6 +293,7 @@ export class Create {
    * Creates a new link type.
    * @param linkTypeName name for the link type.
    */
+  @write
   public async createLinkType(linkTypeName: string) {
     return this.project.resources.byType(linkTypeName, 'linkTypes').create();
   }
@@ -293,6 +305,7 @@ export class Create {
    * @param linkType The type of link to add
    * @param linkDescription Optional description of the link
    */
+  @write
   public async createLink(
     cardKey: string,
     destinationCardKey: string,
@@ -383,6 +396,7 @@ export class Create {
     projectCategory: string,
     projectDescription: string,
   ) {
+    // No lock required, since we are creating a new project
     projectPath = resolve(projectPath);
 
     if (!projectPath) {
@@ -472,6 +486,7 @@ export class Create {
    * Creates a report
    * @param name name of the report
    */
+  @write
   public async createReport(name: string) {
     return this.project.resources.byType(name, 'reports').createReport();
   }
@@ -481,6 +496,7 @@ export class Create {
    * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.
    */
+  @write
   public async createTemplate(templateName: string, templateContent: string) {
     return this.project.resources
       .byType(templateName, 'templates')
@@ -492,6 +508,7 @@ export class Create {
    * @param workflowName workflow name
    * @param workflowContent workflow content JSON
    */
+  @write
   public async createWorkflow(workflowName: string, workflowContent: string) {
     return this.project.resources
       .byType(workflowName, 'workflows')

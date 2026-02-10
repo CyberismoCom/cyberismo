@@ -614,7 +614,7 @@ router.get(
     const commands = c.get('commands');
     return await cardService.findRelevantAttachments(commands, c.get('tree'));
   }),
-  (c) => {
+  async (c) => {
     const commands = c.get('commands');
     const { key, attachment } = c.req.param();
     const filename = decodeURI(attachment);
@@ -624,7 +624,7 @@ router.get(
     }
 
     try {
-      const attachmentResponse = cardService.getAttachment(
+      const attachmentResponse = await cardService.getAttachment(
         commands,
         key,
         filename,

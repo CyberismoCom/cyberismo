@@ -47,9 +47,11 @@ export class Update {
     T extends UpdateOperations,
     K extends string,
   >(name: string, updateKey: UpdateKey<K>, operation: OperationFor<Type, T>) {
-    const type = this.project.resources.extractType(name);
-    const resource = this.project.resources.byType(name, type);
-    await resource?.update(updateKey, operation);
+    return this.project.lock.write(async () => {
+      const type = this.project.resources.extractType(name);
+      const resource = this.project.resources.byType(name, type);
+      await resource?.update(updateKey, operation);
+    });
   }
 
   /**
@@ -69,6 +71,7 @@ export class Update {
     optionalDetail?: Type, // todo: for 'rank' it might be reasonable to accept also 'number'
     mappingTable?: { stateMapping: Record<string, string> },
   ) {
+    // Safe to not have lock here, this is just a wrapper to applyResourceOperation
     const op: Operation<Type> = {
       name: operation,
       target: '' as Type,

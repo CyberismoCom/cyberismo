@@ -13,6 +13,7 @@
 
 import Processor from '@asciidoctor/core';
 import { type MetadataContent } from '@cyberismo/data-handler/interfaces/project-interfaces';
+import type { attachmentPayload } from '@cyberismo/data-handler/interfaces/request-status-interfaces';
 import { type CommandManager, evaluateMacros } from '@cyberismo/data-handler';
 import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
@@ -209,12 +210,12 @@ export async function removeLink(
   return { message: 'Link removed successfully' };
 }
 
-export function getAttachment(
+export async function getAttachment(
   commands: CommandManager,
   key: string,
   filename: string,
-) {
-  return commands.showCmd.showAttachment(key, filename);
+): Promise<attachmentPayload> {
+  return await commands.showCmd.showAttachment(key, filename);
 }
 
 /**

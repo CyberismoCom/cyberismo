@@ -78,7 +78,7 @@ describe('rank command', () => {
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const details = new Show(project, fetchCmd).showCardDetails(rankBefore);
+      const details = await new Show(project, fetchCmd).showCardDetails(rankBefore);
       expect(details.metadata?.rank).to.equal('0|c');
     });
     it('rank card in root (success)', async () => {
@@ -96,7 +96,7 @@ describe('rank command', () => {
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const details = new Show(project, fetchCmd).showCardDetails(rankBefore);
+      const details = await new Show(project, fetchCmd).showCardDetails(rankBefore);
       // Just verify that a rank was assigned (the exact value can vary based on existing cards)
       expect(details.metadata?.rank).to.match(/^0\|[a-z0-9]+$/);
     });
@@ -112,7 +112,7 @@ describe('rank command', () => {
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const details = new Show(project, fetchCmd).showCardDetails(key);
+      const details = await new Show(project, fetchCmd).showCardDetails(key);
 
       expect(details.metadata?.rank).to.equal('0|a');
     });
@@ -151,7 +151,7 @@ describe('rank command', () => {
       const project = getTestProject(options.projectPath!);
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
-      const details = new Show(project, fetchCmd).showCardDetails(key);
+      const details = await new Show(project, fetchCmd).showCardDetails(key);
       expect(details.metadata?.rank).to.equal('0|a');
     });
   });
