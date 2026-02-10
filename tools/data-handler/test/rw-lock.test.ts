@@ -218,6 +218,52 @@ describe('RWLock', () => {
       });
       expect(result).to.equal('nested');
     });
+
+    it('should not treat leaked async continuations as reentrant', async () => {
+      const lock = new RWLock();
+      const log: string[] = [];
+
+      // Resolve function that will be called from inside the write scope
+      let leakedResolve!: () => void;
+      const leakedPromise = new Promise<void>((r) => {
+        leakedResolve = r;
+      });
+
+      await lock.write(async () => {
+        // Schedule work that will run after the lock is released.
+        // It inherits the ALS context but should NOT skip locking if it was released.
+        setTimeout(async () => {
+          await lock.write(async () => {
+            log.push('leaked-start');
+            await delay(30);
+            log.push('leaked-end');
+          });
+          leakedResolve();
+        }, 10);
+
+        log.push('w1');
+      });
+
+      // Start another write that should serialize with the leaked one
+      const w2 = lock.write(async () => {
+        log.push('w2-start');
+        await delay(30);
+        log.push('w2-end');
+      });
+
+      await Promise.all([w2, leakedPromise]);
+
+      // The two writes must not overlap
+      if (log.indexOf('w2-start') < log.indexOf('leaked-start')) {
+        expect(log.indexOf('w2-end')).to.be.lessThan(
+          log.indexOf('leaked-start'),
+        );
+      } else {
+        expect(log.indexOf('leaked-end')).to.be.lessThan(
+          log.indexOf('w2-start'),
+        );
+      }
+    });
   });
 
   describe('after-write hooks', () => {

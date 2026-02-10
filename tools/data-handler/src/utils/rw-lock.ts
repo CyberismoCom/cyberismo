@@ -13,7 +13,10 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-type LockContext = 'read' | 'write';
+interface LockContext {
+  mode: 'read' | 'write';
+  active: boolean;
+}
 
 /**
  * Promise-based read-write lock with writer priority and reentrancy.
@@ -47,14 +50,16 @@ export class RWLock {
    */
   async read<T>(fn: () => Promise<T>): Promise<T> {
     const current = this.context.getStore();
-    if (current === 'read' || current === 'write') {
+    if (current?.active) {
       return fn();
     }
 
     await this.acquireRead();
+    const ctx: LockContext = { mode: 'read', active: true };
     try {
-      return await this.context.run('read', fn);
+      return await this.context.run(ctx, fn);
     } finally {
+      ctx.active = false;
       this.releaseRead();
     }
   }
@@ -65,22 +70,24 @@ export class RWLock {
    */
   async write<T>(fn: () => Promise<T>): Promise<T> {
     const current = this.context.getStore();
-    if (current === 'write') {
+    if (current?.active && current.mode === 'write') {
       return fn();
     }
-    if (current === 'read') {
+    if (current?.active && current.mode === 'read') {
       throw new Error('Cannot acquire write lock while holding read lock');
     }
 
     await this.acquireWrite();
+    const ctx: LockContext = { mode: 'write', active: true };
     try {
-      const result = await this.context.run('write', fn);
+      const result = await this.context.run(ctx, fn);
       // Fire after-write hooks while still holding the lock
       for (const hook of this.afterWriteHooks) {
         await hook();
       }
       return result;
     } finally {
+      ctx.active = false;
       this.releaseWrite();
     }
   }
