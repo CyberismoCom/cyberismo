@@ -243,6 +243,20 @@ describe('RWLock', () => {
       expect(result).to.equal('nested');
     });
 
+    it('should reject nested write-in-read', async () => {
+      const lock = new RWLock();
+      try {
+        await lock.read(async () => {
+          await lock.write(async () => 'should not reach');
+        });
+        expect.fail('should have thrown');
+      } catch (e) {
+        expect((e as Error).message).to.equal(
+          'Cannot acquire write lock while holding read lock',
+        );
+      }
+    });
+
     it('should not treat leaked async continuations as reentrant', async () => {
       const lock = new RWLock();
       const log: string[] = [];
