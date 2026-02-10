@@ -13,8 +13,7 @@
 
 // node
 import { join, resolve } from 'node:path';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { copyDir } from '../utils/file-utils.js';
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
@@ -31,6 +30,7 @@ import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
 import { resourceName, resourceNameToString } from '../utils/resource-utils.js';
 import { write } from '../utils/rw-lock.js';
 import { writeJsonFile } from '../utils/json.js';
+import { ConfigurationLogger } from '../utils/configuration-logger.js';
 
 // todo: Is there a easy to way to make JSON schema into a TypeScript interface/type?
 //       Check this out: https://www.npmjs.com/package/json-schema-to-ts
@@ -57,7 +57,7 @@ export class Create {
       path: '.cards/local',
       content: {
         schemaVersion: SCHEMA_VERSION,
-        version: 1,
+        version: 0,
         cardKeyPrefix: '$PROJECT-PREFIX',
         name: '$PROJECT-NAME',
         description: '',
@@ -429,7 +429,7 @@ export class Create {
       throw new Error('Cannot create project without a path');
     }
 
-    // Create versioned structure: .cards/local/1/ with all resource folders
+    // Create versioned structure: .cards/local/1/ is the initial draft (version 0 = nothing published yet)
     const projectFolders: string[] = [
       '.cards/local/1/calculations',
       '.cards/local/1/cardTypes',
@@ -440,7 +440,6 @@ export class Create {
       '.cards/local/1/reports',
       '.cards/local/1/templates',
       '.cards/local/1/workflows',
-      '.cards/local/migrations/1',
       'cardRoot',
     ];
 
@@ -561,11 +560,7 @@ export class Create {
     );
 
     // Create empty migration log
-    await writeFile(
-      join(projectPath, '.cards/local/migrations/1/migrationLog.jsonl'),
-      '',
-      'utf-8',
-    );
+    await ConfigurationLogger.clearLog(projectPath, 1);
 
     try {
       await writeFile(
@@ -599,15 +594,41 @@ export class Create {
   }
 
   /**
-   * Creates a new version of the project.
-   * This creates a complete snapshot of the current version by:
-   * 1. Copying all resources from current version to new version folder
-   * 2. Incrementing the version number in cardsConfig.json
-   * 3. Archiving the migration log
-   * @throws if project validation fails
+   * Publishes the current draft as a new version and creates a new draft folder.
+   *
+   * 1. Checks that latestVersion > published version (something to release).
+   * 2. Checks that the migration log for latestVersion has entries.
+   * 3. Validates the project.
+   * 4. Sets cardsConfig.version = latestVersion (publishes draft).
+   * 5. Creates a new folder (latestVersion + 1) by copying from latestVersion.
+   * 6. Clears migration log in the new folder.
+   * 7. Invalidates version cache.
+   *
+   * @throws if there is nothing to release, no changes to publish, or validation fails
    */
   public async createVersion() {
-    // First, validate the project is in correct state
+    const latestVersion = this.project.configuration.latestVersion;
+    const publishedVersion = this.project.configuration.version;
+
+    // Nothing to release if latest folder is not ahead of published version
+    if (latestVersion <= publishedVersion) {
+      throw new Error(
+        'Nothing to release. The latest version is already published.',
+      );
+    }
+
+    // Check migration log has entries
+    const entries = await ConfigurationLogger.entries(
+      this.project.basePath,
+      latestVersion,
+    );
+    if (entries.length === 0) {
+      throw new Error(
+        'No changes to publish. Make changes to the project first.',
+      );
+    }
+
+    // Validate the project is in correct state
     const validationErrors = await this.project.projectValidator.validate(
       this.project.basePath,
       () => this.project,
@@ -619,64 +640,46 @@ export class Create {
       );
     }
 
-    const currentVersion = this.project.configuration.version;
-    const newVersion = currentVersion + 1;
-
     this.logger.info(
-      { currentVersion, newVersion },
-      'Creating new version snapshot',
+      { publishedVersion, latestVersion },
+      'Publishing draft as new version',
     );
 
-    // Copy entire resource folder from current version to new version
-    const currentResourcesFolder =
-      this.project.paths.versionedResourcesFolderFor(currentVersion);
-    const newResourcesFolder =
-      this.project.paths.versionedResourcesFolderFor(newVersion);
-
-    await mkdir(newResourcesFolder, { recursive: true });
-    await copyDir(currentResourcesFolder, newResourcesFolder);
-
-    this.logger.info(
-      { from: currentVersion, to: newVersion },
-      'Resources copied to new version',
-    );
-
-    // Update version in configuration
-    this.project.configuration.version = newVersion;
+    // Publish: set cardsConfig.version = latestVersion
+    this.project.configuration.version = latestVersion;
     await this.project.configuration.save();
 
-    // Create migration log folder for the archived version
-    const versionedMigrationFolder =
-      this.project.paths.versionedMigrationFolder(currentVersion);
-    await mkdir(versionedMigrationFolder, { recursive: true });
+    // Create new draft folder (latestVersion + 1) by copying from latestVersion
+    const newDraftVersion = latestVersion + 1;
+    const latestFolder =
+      this.project.paths.versionedResourcesFolderFor(latestVersion);
+    const newDraftFolder =
+      this.project.paths.versionedResourcesFolderFor(newDraftVersion);
 
-    // Archive migration log from current to versioned folder
-    const currentMigrationLog = join(
-      this.project.paths.currentMigrationFolder,
-      'migrationLog.jsonl',
-    );
-    const versionedMigrationLog = join(
-      versionedMigrationFolder,
-      'migrationLog.jsonl',
-    );
+    await mkdir(newDraftFolder, { recursive: true });
+    await copyDir(latestFolder, newDraftFolder);
 
-    try {
-      await copyFile(currentMigrationLog, versionedMigrationLog);
-      await writeFile(currentMigrationLog, '', 'utf-8');
-    } catch (error) {
-      this.logger.error({ error }, `Archiving migration log failed`);
-      // If migration log doesn't exist, that's okay - just create empty one
-      await writeFile(currentMigrationLog, '', 'utf-8');
-    }
+    // Create empty migration log for new draft (outside the version folder)
+    await ConfigurationLogger.clearLog(this.project.basePath, newDraftVersion);
+
+    // Invalidate version cache so latestVersion picks up the new folder
+    this.project.configuration.invalidateVersionCache();
+
+    // Refresh resource cache
+    this.project.resources.changed();
 
     this.logger.info(
-      { previousVersion: currentVersion, newVersion },
-      'Version created successfully',
+      {
+        previousVersion: publishedVersion,
+        newVersion: latestVersion,
+        newDraft: newDraftVersion,
+      },
+      'Version published successfully',
     );
 
     return {
-      previousVersion: currentVersion,
-      newVersion: newVersion,
+      previousVersion: publishedVersion,
+      newVersion: latestVersion,
     };
   }
 
@@ -690,96 +693,5 @@ export class Create {
     return this.project.resources
       .byType(workflowName, 'workflows')
       .create(workflowContent ? JSON.parse(workflowContent) : undefined);
-  }
-
-  /**
-   * Migrates a legacy (non-versioned) project to versioned structure.
-   * This moves all resources from .cards/local/ to .cards/local/1/
-   * @throws if project is already versioned or migration fails
-   */
-  public async migrateToVersioned() {
-    const localFolder = this.project.paths.localFolder;
-
-    // Check if already versioned
-    if (!this.project.paths.isLegacyStructure) {
-      throw new Error('Project is already using versioned structure');
-    }
-
-    this.logger.info('Migrating legacy project to versioned structure');
-
-    // Resource folders to move
-    const resourceFolders = [
-      'calculations',
-      'cardTypes',
-      'fieldTypes',
-      'graphModels',
-      'graphViews',
-      'linkTypes',
-      'reports',
-      'templates',
-      'workflows',
-    ];
-
-    // Create version 1 folder
-    const version1Folder = join(localFolder, '1');
-    await mkdir(version1Folder, { recursive: true });
-
-    // Move each resource folder to version 1
-    for (const folder of resourceFolders) {
-      const sourcePath = join(localFolder, folder);
-      const destPath = join(version1Folder, folder);
-
-      try {
-        if (existsSync(sourcePath)) {
-          await copyDir(sourcePath, destPath);
-          // Remove old folder after successful copy
-          await rm(sourcePath, { recursive: true, force: true });
-          this.logger.info({ folder }, 'Migrated resource folder');
-        }
-      } catch (error) {
-        this.logger.error({ folder, error }, 'Failed to migrate folder');
-        throw new Error(`Failed to migrate ${folder}: ${errorFunction(error)}`);
-      }
-    }
-
-    // Migrate migration log if it exists
-    const oldMigrationLog = join(
-      localFolder,
-      'migrations',
-      'current',
-      'migrationLog.jsonl',
-    );
-    const newMigrationLog = join(
-      localFolder,
-      'migrations',
-      '1',
-      'migrationLog.jsonl',
-    );
-
-    try {
-      if (existsSync(oldMigrationLog)) {
-        await mkdir(join(localFolder, 'migrations', '1'), { recursive: true });
-        await copyFile(oldMigrationLog, newMigrationLog);
-        this.logger.info('Migrated migration log');
-      }
-    } catch (error) {
-      this.logger.warn(
-        { error },
-        'Migration log migration failed (non-critical)',
-      );
-    }
-
-    // Update cardsConfig.json to set version = 1 if not set
-    if (this.project.configuration.version === undefined) {
-      this.project.configuration.version = 1;
-      await this.project.configuration.save();
-    }
-
-    this.logger.info('Legacy project migration completed successfully');
-
-    return {
-      message: 'Project migrated to versioned structure',
-      version: 1,
-    };
   }
 }

@@ -27,6 +27,8 @@ import type { GraphViewContent } from '../interfaces/folder-content-interfaces.j
 import type { GraphViewMetadata } from '../interfaces/resource-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Graph view resource class.

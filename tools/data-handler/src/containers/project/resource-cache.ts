@@ -276,10 +276,14 @@ export class ResourceCache {
     source: 'local' | 'module',
     moduleName?: string,
   ) {
+    // For local resources, use writable path which returns draft if it exists
     const resourceFolder =
       source === 'local'
-        ? this.project.paths.resourcePath(type)
-        : this.project.paths.moduleResourcePathCompat(moduleName!, type);
+        ? this.project.paths.resourceFolderFor(
+            this.project.configuration.latestVersion,
+            type,
+          )
+        : this.project.paths.moduleResourcePath(moduleName!, type);
 
     try {
       const entries = readdirSync(resourceFolder, { withFileTypes: true });
@@ -351,11 +355,14 @@ export class ResourceCache {
       const resName = typeof name === 'string' ? resourceName(name) : name;
       const isModule = resName.prefix !== this.project.projectPrefix;
       const resourcePath = isModule
-        ? this.project.paths.moduleResourcePathCompat(
+        ? this.project.paths.moduleResourcePath(
             resName.prefix,
             resName.type as ResourceFolderType,
           )
-        : this.project.paths.resourcePath(resName.type as ResourceFolderType);
+        : this.project.paths.resourceFolderFor(
+            this.project.configuration.latestVersion,
+            resName.type as ResourceFolderType,
+          );
 
       this.resourceRegistry.set(key, {
         name: key,

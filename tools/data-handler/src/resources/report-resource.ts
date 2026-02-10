@@ -28,6 +28,8 @@ import type { Project } from '../containers/project.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
 import type { ReportMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
 

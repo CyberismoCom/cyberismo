@@ -302,32 +302,6 @@
         }
       ]
     },
-    "migrationsSchema": {
-      "type": "object",
-      "$comment": "migrations folder contain one folder for each migration",
-      "properties": {
-        "directories": {
-          "additionalProperties": false,
-          "patternProperties": {
-            "([0-9]+|current)": {
-              "type": "object",
-              "properties": {
-                "files": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "properties": {
-                    "migrationLog.jsonl": {
-                      "type": "object"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "type": "object"
-        }
-      }
-    },
     "reportResourceSchema": {
       "type": "object",
       "properties": {
@@ -550,7 +524,19 @@
                       "additionalProperties": false,
                       "properties": {
                         "migrations": {
-                          "$ref": "#/$defs/migrationsSchema"
+                          "description": "Folder containing per-version migration log files",
+                          "type": "object",
+                          "properties": {
+                            "files": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "patternProperties": {
+                                "^migrationLog-[0-9]+\\.jsonl$": {
+                                  "type": "object"
+                                }
+                              }
+                            }
+                          }
                         }
                       },
                       "patternProperties": {
@@ -593,7 +579,12 @@
                             },
                             "files": {
                               "type": "object",
-                              "additionalProperties": false
+                              "additionalProperties": false,
+                              "properties": {
+                                "migrationLog.jsonl": {
+                                  "type": "object"
+                                }
+                              }
                             }
                           }
                         }

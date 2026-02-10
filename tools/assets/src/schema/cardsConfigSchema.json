@@ -9,8 +9,8 @@
     },
     "version": {
       "type": "number",
-      "description": "Version of the project",
-      "minimum": 1
+      "description": "Published version of the project. 0 means nothing published yet.",
+      "minimum": 0
     },
     "cardKeyPrefix": {
       "type": "string",

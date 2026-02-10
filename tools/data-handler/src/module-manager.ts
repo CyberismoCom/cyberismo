@@ -13,6 +13,7 @@
 
 import { join } from 'node:path';
 import { mkdir, readdir, rm } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -69,6 +70,18 @@ export class ModuleManager {
     if (pathExists(sourceConfigPath)) {
       await copyFile(sourceConfigPath, destConfigPath);
     }
+
+    // Copy .schema from the source module
+    const sourceDotSchemaPath = join(
+      sourceProjectPath,
+      '.cards',
+      'local',
+      '.schema',
+    );
+    const destDotSchemaPath = join(destinationPath, '.schema');
+    await copyFile(sourceDotSchemaPath, destDotSchemaPath).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
 
     // Update the resources.
     this.project.resources.changedModules();
@@ -563,6 +576,9 @@ export class ModuleManager {
       await Promise.all(promises);
       await deleteDir(this.tempModulesDir);
       this.project.resources.changedModules();
+
+      // Replay migration log to apply transient side-effects after module update
+      await this.project.migrate();
     }
   }
 
@@ -616,7 +632,13 @@ export class ModuleManager {
       this.project.paths.modulesFolder,
       modulePrefix,
     );
-    const sourcePath = sourceProject.paths.resourcesFolderCompat;
+    const versionedPath = sourceProject.paths.versionedResourcesFolderFor(
+      sourceProject.configuration.latestVersion,
+    );
+    // Fall back to flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath)
+      ? versionedPath
+      : sourceProject.paths.localFolder;
 
     this.validatePrefix(modulePrefix, skipValidation);
 
@@ -649,10 +671,33 @@ export class ModuleManager {
       credentials,
     );
     const clonePath = join(this.tempModulesDir, clonedName);
-    const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
+    const sourceConfig = await this.configuration(clonePath);
+    const modulePrefix = sourceConfig.cardKeyPrefix;
     this.validatePrefix(modulePrefix, skipValidation);
 
-    const sourcePath = new ProjectPaths(clonePath).resourcesFolderCompat;
+    const sourcePaths = new ProjectPaths(clonePath);
+    // Find the highest numbered version folder in the source project
+    const sourceLocalFolder = sourcePaths.localFolder;
+    let sourceVersion = sourceConfig.version ?? 1;
+    try {
+      const entries = readdirSync(sourceLocalFolder, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const num = parseInt(entry.name, 10);
+          if (!isNaN(num) && num > sourceVersion) {
+            sourceVersion = num;
+          }
+        }
+      }
+    } catch {
+      // fallback to config version
+    }
+    const versionedPath =
+      sourcePaths.versionedResourcesFolderFor(sourceVersion);
+    // Fall back to the flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath)
+      ? versionedPath
+      : sourceLocalFolder;
     const destinationPath = join(
       this.project.paths.modulesFolder,
       modulePrefix,

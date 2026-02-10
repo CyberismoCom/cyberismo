@@ -299,7 +299,8 @@ export abstract class ResourceObject<
       this.resourceName = resourceName(
         `${this.project.projectPrefix}/${this.type}/${this.resourceName.identifier}`,
       );
-      this.resourceFolder = this.project.paths.resourcePath(
+      this.resourceFolder = this.project.paths.resourceFolderFor(
+        this.project.configuration.latestVersion,
         this.resourceName.type as ResourceFolderType,
       );
       this.fileName = join(
@@ -415,7 +416,10 @@ export abstract class ResourceObject<
             this.resourceName.prefix,
             this.resourceName.type,
           )
-        : this.project.paths.resourcePath(this.type);
+        : this.project.paths.resourceFolderFor(
+            this.project.configuration.latestVersion,
+            this.type,
+          );
       this.fileName = resourceNameToPath(this.project, this.resourceName);
     }
     // Only load content from disk if resource exists in the cache registry
@@ -483,6 +487,7 @@ export abstract class ResourceObject<
       {
         parameters,
       },
+      this.project.configuration.latestVersion,
     );
 
     this.logger.info(`Configuration: ${configOperation} - ${target}`);
@@ -570,7 +575,10 @@ export abstract class ResourceObject<
       this.project.projectPrefixes(),
     );
     const newFilename = join(
-      this.project.paths.resourcePath(newName.type as ResourceFolderType),
+      this.project.paths.resourceFolderFor(
+        this.project.configuration.latestVersion,
+        newName.type as ResourceFolderType,
+      ),
       newName.identifier + '.json',
     );
 
@@ -830,7 +838,8 @@ export abstract class ResourceObject<
    * Deletes the file and removes the resource from project.
    * @throws if resource is a module resource, or
    *         if resource does not exist, or
-   *         if resource is used by other resources.
+   *         if resource is used by other resources, or
+   *         if trying to modify an old version.
    */
   public async delete() {
     if (this.moduleResource) {
@@ -852,6 +861,7 @@ export abstract class ResourceObject<
         `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
+
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));
     this.fileName = '';

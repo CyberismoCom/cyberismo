@@ -43,27 +43,7 @@ This command will:
 
 ### 2. Implement migration logic
 
-Open the generated `index.ts` file and implement your migration logic. The file contains four functions with detailed guidelines:
-
-#### `before(context)` - Pre-migration validation (optional)
-
-**Purpose**: Validate that migration can proceed safely
-
-**What to include**:
-
-- Check project structure is correct (use `validateProjectStructure()` helper)
-- Verify prerequisites specific to this migration
-- Check that resources needed for migration are accessible
-- Return `{ success: false }` with error message if migration cannot proceed
-
-#### `backup(context)` - Create backup (optional)
-
-**Purpose**: Create backup before making changes
-
-**What to include**:
-
-- Use the standard `createBackup()` helper function
-- Or, implement custom backup logic if needed
+Open the generated `index.ts` file and implement your migration logic.
 
 #### `migrate(context)` - Perform migration (required)
 
@@ -78,17 +58,6 @@ Open the generated `index.ts` file and implement your migration logic. The file 
 - Handle errors with descriptive messages
 - Be idempotent: migration should handle being run multiple times safely
 
-#### `after(context)` - Post-migration verification (optional)
-
-**Purpose**: Verify migration succeeded and clean up
-
-**What to include**:
-
-- Verify that migration succeeded (check file changes, data integrity, etc.)
-- Clean up temporary files or data if needed
-- Run validation checks on migrated data
-- Return `{ success: false }` if verification fails
-
 ### 3. Migration Context
 
 The `MigrationContext` object passed to each migration function provides:
@@ -97,7 +66,6 @@ The `MigrationContext` object passed to each migration function provides:
 - `cardsConfigPath`: Absolute path to the .cards directory
 - `fromVersion`: Current schema version before migration
 - `toVersion`: Target schema version after migration
-- `backupDir`: Optional parent directory for backups (if user specified one)
 
 ## Working with Project Resources
 
@@ -123,8 +91,7 @@ Migrations interact with project resources directly via the filesystem. Use the 
 ### Migration fails during execution
 
 - Check the error message in the result
-- Verify backup was created
-- Restore from backup if needed: copy backup files back to original location
+- Projects are git-tracked, so use `git restore .` to revert changes if needed
 
 ### Schema version not updating
 

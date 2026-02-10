@@ -12,8 +12,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { constants, existsSync } from 'node:fs';
-import { access, lstat, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { Argument, Command, Option } from 'commander';
@@ -720,7 +720,9 @@ createCmd
 // Create version subcommand
 createCmd
   .command('version')
-  .description('Create a new version snapshot of the project')
+  .description(
+    'Publish the current draft as a new version and create a new draft',
+  )
   .action(async (options: CommandOptions<'create'>) => {
     const result = await commandHandler.command(
       Cmd.create,
@@ -1019,36 +1021,12 @@ const migrateCmd = program
   .command('migrate')
   .description('Migrate project schema or structure');
 
-// Migrate to-versioned subcommand
-migrateCmd
-  .command('to-versioned')
-  .description('Migrate a legacy project to versioned structure')
-  .option('-p, --project-path [path]', `${pathGuideline}`)
-  .action(async (options: CommandOptions<'migrate'>) => {
-    const result = await commandHandler.command(
-      Cmd.migrate,
-      ['to-versioned'],
-      Object.assign({}, options, program.opts()),
-    );
-    handleResponse(result);
-  });
-
-// Migrate schema version (default migrate command)
 migrateCmd
   .argument(
     '[version]',
     'Target schema version. If not provided, migrates to the latest version. Can only migrate one version at a time when specified.',
   )
   .option('-p, --project-path [path]', `${pathGuideline}`)
-  .option(
-    '-b, --backup <directory>',
-    'Create a backup before migration in the specified directory. Directory must exist.',
-  )
-  .option(
-    '-t, --timeout <minutes>',
-    'Timeout for migration in minutes (default: 2 minutes)',
-    '2',
-  )
   .action(async (version: string, options: CommandOptions<'migrate'>) => {
     if (version) {
       const versionNumber = parseInt(version);
@@ -1062,37 +1040,6 @@ migrateCmd
         );
         process.exit(1);
       }
-      if (options.backup) {
-        options.backup = resolve(options.backup.toString().trim());
-        if (!existsSync(options.backup)) {
-          console.error(
-            `Error: Backup directory does not exist: ${options.backup}`,
-          );
-          process.exit(1);
-        }
-        try {
-          await access(options.backup, constants.W_OK);
-        } catch {
-          console.error(
-            `Error: Cannot write to backup directory: ${options.backup}`,
-          );
-          process.exit(1);
-        }
-        if (!(await lstat(options.backup)).isDirectory()) {
-          console.error(`Error: Backup directory is a file: ${options.backup}`);
-          process.exit(1);
-        }
-      }
-    }
-
-    if (options.timeout !== undefined) {
-      const timeoutMinutes = Number(options.timeout);
-      if (isNaN(timeoutMinutes) || timeoutMinutes <= 0) {
-        console.error(`Error: Timeout must be a positive number`);
-        process.exit(1);
-      }
-      // Convert minutes to milliseconds
-      options.timeout = timeoutMinutes * 60 * 1000;
     }
 
     const result = await commandHandler.command(

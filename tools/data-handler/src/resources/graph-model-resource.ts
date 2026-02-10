@@ -26,6 +26,8 @@ import type { GraphModelMetadata } from '../interfaces/resource-interfaces.js';
 import type { GraphModelContent } from '../interfaces/folder-content-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { ResourceName } from '../utils/resource-utils.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Graph model resource class.

@@ -38,7 +38,6 @@ import type {
   CalcCommandOptions,
   ExportCommandOptions,
   ImportCommandOptions,
-  MigrateCommandOptions,
   ReportCommandOptions,
   ShowCommandOptions,
   StartCommandOptions,
@@ -336,14 +335,9 @@ export class Commands {
           return await this.importCsv(csvFile, cardKey);
         }
       } else if (command === Cmd.migrate) {
-        const target = args[0];
-        if (target === 'to-versioned') {
-          return await this.migrateToVersioned();
-        }
         const [toVersion] = args;
         return await this.migrate(
           toVersion ? parseInt(toVersion, 10) : undefined,
-          options as MigrateCommandOptions,
         );
       } else if (command === Cmd.move) {
         const [source, destination] = args;
@@ -576,15 +570,6 @@ export class Commands {
     return {
       statusCode: 200,
       message: `Version updated from ${result?.previousVersion} to ${result?.newVersion}`,
-    };
-  }
-
-  // Migrates a legacy project to versioned structure.
-  private async migrateToVersioned(): Promise<requestStatus> {
-    const result = await this.commands?.createCmd.migrateToVersioned();
-    return {
-      statusCode: 200,
-      message: result?.message || 'Project migrated to versioned structure',
     };
   }
 
@@ -881,21 +866,13 @@ export class Commands {
   }
 
   // Run migrations to bring project to target schema version
-  private async migrate(
-    toVersion?: number,
-    options?: { backup?: string; timeout?: number },
-  ): Promise<requestStatus> {
+  private async migrate(toVersion?: number): Promise<requestStatus> {
     if (!this.commands) {
       return { statusCode: 500, message: 'Commands not initialized' };
     }
 
-    const timeout = options?.timeout;
     try {
-      const result = await this.commands.migrateCmd.migrate(
-        toVersion,
-        options?.backup,
-        timeout,
-      );
+      const result = await this.commands.migrateCmd.migrate(toVersion);
       return {
         statusCode: 200,
         message: result.message || 'Migration completed successfully',

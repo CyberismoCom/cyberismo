@@ -28,6 +28,8 @@ import type {
   TemplateConfiguration,
   TemplateMetadata,
 } from '../interfaces/resource-interfaces.js';
+import type { UpdateKey } from '../interfaces/resource-interfaces.js';
+import type { Operation } from './resource-object.js';
 
 /**
  * Template resource class.

@@ -39,15 +39,34 @@ describe('project', () => {
     await project.populateCaches();
     expect(project).to.not.equal(undefined);
 
-    const calculationFolder = project.paths.calculationProjectFolder;
+    const version = project.configuration.latestVersion;
+    const calculationFolder = project.paths.resourceFolderFor(
+      version,
+      'calculations',
+    );
     const tempCalculationFolder = project.paths.calculationFolder;
     const cardRootFolder = project.paths.cardRootFolder;
-    const cardTypesFolder = project.paths.cardTypesFolder;
-    const graphModelsFolder = project.paths.graphModelsFolder;
-    const graphViewsFolder = project.paths.graphViewsFolder;
-    const templatesFolder = project.paths.templatesFolder;
-    const workflowsFolder = project.paths.workflowsFolder;
-    const resourcesFolder = project.paths.resourcesFolder;
+    const cardTypesFolder = project.paths.resourceFolderFor(
+      version,
+      'cardTypes',
+    );
+    const graphModelsFolder = project.paths.resourceFolderFor(
+      version,
+      'graphModels',
+    );
+    const graphViewsFolder = project.paths.resourceFolderFor(
+      version,
+      'graphViews',
+    );
+    const templatesFolder = project.paths.resourceFolderFor(
+      version,
+      'templates',
+    );
+    const workflowsFolder = project.paths.resourceFolderFor(
+      version,
+      'workflows',
+    );
+    const resourcesFolder = project.paths.versionedResourcesFolderFor(version);
     const modulesFolder = project.paths.modulesFolder;
 
     expect(calculationFolder).to.include('calculations');

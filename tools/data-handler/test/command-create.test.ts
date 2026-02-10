@@ -16,6 +16,10 @@ import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
 import { getTestProject } from './helpers/test-utils.js';
+import {
+  ConfigurationLogger,
+  ConfigurationOperation,
+} from '../src/utils/configuration-logger.js';
 
 import type { CreateCommandOptions } from '../src/interfaces/command-options.js';
 import type {
@@ -1108,11 +1112,20 @@ describe('create command', () => {
       const project = getTestProject(decisionRecordsPath);
       await project.populateCaches();
 
-      const initialVersion = project.configuration.version;
+      const initialLatestVersion = project.configuration.latestVersion;
+      // Add a migration log entry so createVersion() has changes to publish
+      await ConfigurationLogger.log(
+        decisionRecordsPath,
+        ConfigurationOperation.RESOURCE_CREATE,
+        'test-resource',
+        undefined,
+        initialLatestVersion,
+      );
+
       const expectedVersionFolder = join(
         decisionRecordsPath,
-        '.cards/local/migrations',
-        initialVersion.toString(),
+        '.cards/local',
+        (initialLatestVersion + 1).toString(),
       );
 
       const result = await commandHandler.command(
@@ -1126,8 +1139,9 @@ describe('create command', () => {
         .fulfilled;
 
       const versionedLogFile = join(
-        expectedVersionFolder,
-        'migrationLog.jsonl',
+        decisionRecordsPath,
+        '.cards/local/migrations',
+        `migrationLog-${initialLatestVersion + 1}.jsonl`,
       );
       await expect(access(versionedLogFile, fsConstants.F_OK)).to.be.fulfilled;
     });

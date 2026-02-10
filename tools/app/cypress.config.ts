@@ -6,9 +6,9 @@ import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 const batPath = '../../.tmp/cyberismo-bat';
 const tmpPath = '../../.tmp';
 // paths to files used in macros
-const graphModelPath = `${batPath}/.cards/local/graphModels/test1/model.lp`;
-const graphViewPath = `${batPath}/.cards/local/graphViews/test1/view.lp.hbs`;
-const reportPath = `${batPath}/.cards/local/reports/test1/query.lp.hbs`;
+const graphModelPath = `${batPath}/.cards/local/1/graphModels/test1/model.lp`;
+const graphViewPath = `${batPath}/.cards/local/1/graphViews/test1/view.lp.hbs`;
+const reportPath = `${batPath}/.cards/local/1/reports/test1/query.lp.hbs`;
 
 // commands used to create test project
 const cd = `cd ${tmpPath}`;

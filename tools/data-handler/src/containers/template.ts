@@ -362,14 +362,15 @@ export class Template extends CardContainer {
   // Set path to template location.
   private setTemplatePath(templateName: string): string {
     const { prefix, identifier } = resourceName(templateName);
-    const localTemplate = join(this.project.paths.templatesFolder, identifier);
+    const templatesFolder = this.project.paths.resourceFolderFor(
+      this.project.configuration.latestVersion,
+      'templates',
+    );
+    const localTemplate = join(templatesFolder, identifier);
 
     // Template can either be local ...
     if (prefix === this.project.projectPrefix) {
-      const localTemplate = join(
-        this.project.paths.templatesFolder,
-        identifier,
-      );
+      const localTemplate = join(templatesFolder, identifier);
       const createdLocalTemplate = pathExists(resolve(localTemplate));
       if (createdLocalTemplate) {
         return resolve(localTemplate);

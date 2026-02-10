@@ -15,6 +15,5 @@ export { MigrationExecutor } from './migration-executor.js';
 export type {
   Migration,
   MigrationContext,
-  MigrationResult,
   MigrationStepResult,
 } from '@cyberismo/migrations';

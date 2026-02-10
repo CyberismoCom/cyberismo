@@ -393,15 +393,17 @@ describe('project settings', () => {
         version: undefined as unknown as number,
       });
       const config = new ProjectConfiguration(configPath, true);
-      expect(config.version).to.equal(1);
+      expect(config.version).to.equal(0);
       const savedConfig = readJsonFileSync(configPath);
-      expect(savedConfig.version).to.equal(1);
+      expect(savedConfig.version).to.equal(0);
     });
 
-    it('should initialize version to 1 for new projects', () => {
-      const configPath = createTestConfig('test-config-new-version.json');
+    it('should initialize version to 0 for new projects', () => {
+      const configPath = createTestConfig('test-config-new-version.json', {
+        version: undefined as unknown as number,
+      });
       const projectSettings = new ProjectConfiguration(configPath, false);
-      expect(projectSettings.version).to.equal(1);
+      expect(projectSettings.version).to.equal(0);
     });
 
     it('should save version when configuration is saved', async () => {
