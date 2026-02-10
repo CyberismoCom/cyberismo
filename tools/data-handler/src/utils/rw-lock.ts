@@ -147,7 +147,7 @@ function getLock(instance: object): RWLock {
 }
 
 /**
- * TC39 stage-3 method decorator: wraps the method in a read lock.
+ * A Helper decorator built for commands that automatically handles using a read lock
  */
 export function read<This extends object, Args extends unknown[], Return>(
   target: (this: This, ...args: Args) => Promise<Return>,
@@ -158,7 +158,7 @@ export function read<This extends object, Args extends unknown[], Return>(
 }
 
 /**
- * TC39 stage-3 method decorator: wraps the method in a write lock.
+ * A Helper decorator built for commands that automatically handles using a write lock
  */
 export function write<This extends object, Args extends unknown[], Return>(
   target: (this: This, ...args: Args) => Promise<Return>,
