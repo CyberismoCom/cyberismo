@@ -2,9 +2,13 @@ import { expect } from 'chai';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
 
-// Helper to create a delay
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// Helper to create a deferred promise latch
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
 }
 
 describe('RWLock', () => {
@@ -57,15 +61,20 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const r1Started = deferred();
+      const r2Started = deferred();
+
       const r1 = lock.read(async () => {
         log.push('r1-start');
-        await delay(50);
+        r1Started.resolve();
+        await r2Started.promise;
         log.push('r1-end');
       });
 
       const r2 = lock.read(async () => {
         log.push('r2-start');
-        await delay(50);
+        r2Started.resolve();
+        await r1Started.promise;
         log.push('r2-end');
       });
 
@@ -86,20 +95,24 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const entered = deferred();
+      const proceed = deferred();
+
       const w1 = lock.write(async () => {
         log.push('w1-start');
-        await delay(50);
+        entered.resolve();
+        await proceed.promise;
         log.push('w1-end');
       });
 
-      // Give the write a moment to acquire
-      await delay(5);
+      await entered.promise;
 
       const r1 = lock.read(async () => {
         log.push('r1-start');
-        await delay(10);
         log.push('r1-end');
       });
+
+      proceed.resolve();
 
       await Promise.all([w1, r1]);
 
@@ -111,20 +124,24 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const entered = deferred();
+      const proceed = deferred();
+
       const w1 = lock.write(async () => {
         log.push('w1-start');
-        await delay(50);
+        entered.resolve();
+        await proceed.promise;
         log.push('w1-end');
       });
 
-      // Give the write a moment to acquire
-      await delay(5);
+      await entered.promise;
 
       const w2 = lock.write(async () => {
         log.push('w2-start');
-        await delay(10);
         log.push('w2-end');
       });
+
+      proceed.resolve();
 
       await Promise.all([w1, w2]);
 
@@ -136,20 +153,24 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const entered = deferred();
+      const proceed = deferred();
+
       const r1 = lock.read(async () => {
         log.push('r1-start');
-        await delay(50);
+        entered.resolve();
+        await proceed.promise;
         log.push('r1-end');
       });
 
-      // Give the read a moment to acquire
-      await delay(5);
+      await entered.promise;
 
       const w1 = lock.write(async () => {
         log.push('w1-start');
-        await delay(10);
         log.push('w1-end');
       });
+
+      proceed.resolve();
 
       await Promise.all([r1, w1]);
 
@@ -163,29 +184,32 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const entered = deferred();
+      const proceed = deferred();
+
       // Start a read to hold the lock
       const r1 = lock.read(async () => {
         log.push('r1-start');
-        await delay(50);
+        entered.resolve();
+        await proceed.promise;
         log.push('r1-end');
       });
 
-      // Give the read time to acquire
-      await delay(5);
+      await entered.promise;
 
       // Queue a writer — it should wait for r1 to finish
       const w1 = lock.write(async () => {
         log.push('w1-start');
-        await delay(10);
         log.push('w1-end');
       });
 
-      // Queue another reader — it should wait for the writer
-      await delay(5);
+      // Queue another reader — it should wait for the writer.
       const r2 = lock.read(async () => {
         log.push('r2-start');
         log.push('r2-end');
       });
+
+      proceed.resolve();
 
       await Promise.all([r1, w1, r2]);
 
@@ -229,40 +253,40 @@ describe('RWLock', () => {
         leakedResolve = r;
       });
 
+      const leakedAttempted = deferred();
+
       await lock.write(async () => {
         // Schedule work that will run after the lock is released.
         // It inherits the ALS context but should NOT skip locking if it was released.
         setTimeout(async () => {
+          leakedAttempted.resolve();
           await lock.write(async () => {
             log.push('leaked-start');
-            await delay(30);
             log.push('leaked-end');
           });
           leakedResolve();
-        }, 10);
+        }, 0);
 
         log.push('w1');
       });
 
-      // Start another write that should serialize with the leaked one
+      // Start another write that should serialize with the leaked one.
+      // w2 holds the lock until the leaked write has attempted acquisition.
       const w2 = lock.write(async () => {
         log.push('w2-start');
-        await delay(30);
+        await leakedAttempted.promise;
         log.push('w2-end');
       });
 
       await Promise.all([w2, leakedPromise]);
 
-      // The two writes must not overlap
-      if (log.indexOf('w2-start') < log.indexOf('leaked-start')) {
-        expect(log.indexOf('w2-end')).to.be.lessThan(
-          log.indexOf('leaked-start'),
-        );
-      } else {
-        expect(log.indexOf('leaked-end')).to.be.lessThan(
-          log.indexOf('w2-start'),
-        );
-      }
+      expect(log).to.deep.equal([
+        'w1',
+        'w2-start',
+        'w2-end',
+        'leaked-start',
+        'leaked-end',
+      ]);
     });
   });
 
@@ -381,13 +405,17 @@ describe('RWLock', () => {
       const lock = new RWLock();
       const log: string[] = [];
 
+      const entered = deferred();
+      const proceed = deferred();
+
       class TestCmd {
         project = { lock };
 
         @write
         async slowWrite(): Promise<void> {
           log.push('slow-start');
-          await delay(50);
+          entered.resolve();
+          await proceed.promise;
           log.push('slow-end');
         }
 
@@ -400,8 +428,11 @@ describe('RWLock', () => {
 
       const cmd = new TestCmd();
       const p1 = cmd.slowWrite();
-      await delay(5);
+
+      await entered.promise;
+
       const p2 = cmd.fastWrite();
+      proceed.resolve();
       await Promise.all([p1, p2]);
 
       expect(log.indexOf('slow-end')).to.be.lessThan(log.indexOf('fast-start'));
