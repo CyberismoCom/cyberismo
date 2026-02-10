@@ -204,7 +204,7 @@ describe('Resources Service', () => {
       expect(projectNode.children[0].name).toBe('test/fieldTypes/status');
 
       const moduleNode = result[1].children.find(
-        (child) => child.name === 'module1',
+        (child) => child.name === 'Module One',
       )!;
       expect(moduleNode.type).toBe('module');
       expect(moduleNode.children).toHaveLength(1);
