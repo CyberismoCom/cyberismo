@@ -247,7 +247,10 @@ export class Export {
       children: [],
       attachments: [],
     };
-    const cardDetailsResponse = await this.showCmd.showCardDetails(card.key, 'adoc');
+    const cardDetailsResponse = await this.showCmd.showCardDetails(
+      card.key,
+      'adoc',
+    );
     let asciiDocContent = '';
     const project = this.project;
     try {

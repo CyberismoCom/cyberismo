@@ -710,11 +710,14 @@ describe('show', () => {
     const cardWithAttachments = 'decision_1'; // template card with attachment
 
     // Test card with no attachments
-    const noAttachmentResult = await showCmd.showCardDetails(cardWithNoAttachments);
+    const noAttachmentResult = await showCmd.showCardDetails(
+      cardWithNoAttachments,
+    );
     expect(noAttachmentResult.attachments.length).equals(0);
 
     // Test card with attachments
-    const withAttachmentResult = await showCmd.showCardDetails(cardWithAttachments);
+    const withAttachmentResult =
+      await showCmd.showCardDetails(cardWithAttachments);
     expect(withAttachmentResult.attachments.length).to.be.greaterThan(0);
     const firstAttachment = withAttachmentResult.attachments.at(0);
     expect(firstAttachment?.card).equals(cardWithAttachments);

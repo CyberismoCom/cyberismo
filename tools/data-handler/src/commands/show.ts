@@ -148,10 +148,12 @@ export class Show {
    * @returns all template cards in a project.
    */
   @read
-  public async showAllTemplateCards(): Promise<{
-    name: string;
-    cards: CardWithChildrenCards[];
-  }[]> {
+  public async showAllTemplateCards(): Promise<
+    {
+      name: string;
+      cards: CardWithChildrenCards[];
+    }[]
+  > {
     return this.project.resources.templates().map((template) => {
       const cards = template.templateObject().listCards();
       const buildCards = buildCardHierarchy(cards);
@@ -182,7 +184,10 @@ export class Show {
    * @returns attachment details
    */
   @read
-  public async showAttachment(cardKey: string, filename: string): Promise<attachmentPayload> {
+  public async showAttachment(
+    cardKey: string,
+    filename: string,
+  ): Promise<attachmentPayload> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }

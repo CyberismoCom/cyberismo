@@ -358,9 +358,7 @@ describe('RWLock', () => {
       const p2 = cmd.fastWrite();
       await Promise.all([p1, p2]);
 
-      expect(log.indexOf('slow-end')).to.be.lessThan(
-        log.indexOf('fast-start'),
-      );
+      expect(log.indexOf('slow-end')).to.be.lessThan(log.indexOf('fast-start'));
     });
   });
 });
