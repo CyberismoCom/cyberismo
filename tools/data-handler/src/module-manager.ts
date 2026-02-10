@@ -13,6 +13,7 @@
 
 import { join } from 'node:path';
 import { mkdir, readdir, rm } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
 
 import { simpleGit, type SimpleGit } from 'simple-git';
 
@@ -563,6 +564,9 @@ export class ModuleManager {
       await Promise.all(promises);
       await deleteDir(this.tempModulesDir);
       this.project.resources.changedModules();
+
+      // Replay migration log to apply transient side-effects after module update
+      await this.project.migrate();
     }
   }
 
@@ -616,7 +620,9 @@ export class ModuleManager {
       this.project.paths.modulesFolder,
       modulePrefix,
     );
-    const sourcePath = sourceProject.paths.resourcesFolderCompat;
+    const sourcePath = sourceProject.paths.versionedResourcesFolderFor(
+      sourceProject.configuration.latestVersion,
+    );
 
     this.validatePrefix(modulePrefix, skipValidation);
 
@@ -649,10 +655,28 @@ export class ModuleManager {
       credentials,
     );
     const clonePath = join(this.tempModulesDir, clonedName);
-    const modulePrefix = (await this.configuration(clonePath)).cardKeyPrefix;
+    const sourceConfig = await this.configuration(clonePath);
+    const modulePrefix = sourceConfig.cardKeyPrefix;
     this.validatePrefix(modulePrefix, skipValidation);
 
-    const sourcePath = new ProjectPaths(clonePath).resourcesFolderCompat;
+    const sourcePaths = new ProjectPaths(clonePath);
+    // Find the highest numbered version folder in the source project
+    const sourceLocalFolder = sourcePaths.localFolder;
+    let sourceVersion = sourceConfig.version ?? 1;
+    try {
+      const entries = readdirSync(sourceLocalFolder, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const num = parseInt(entry.name, 10);
+          if (!isNaN(num) && num > sourceVersion) {
+            sourceVersion = num;
+          }
+        }
+      }
+    } catch {
+      // fallback to config version
+    }
+    const sourcePath = sourcePaths.versionedResourcesFolderFor(sourceVersion);
     const destinationPath = join(
       this.project.paths.modulesFolder,
       modulePrefix,

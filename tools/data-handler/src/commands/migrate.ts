@@ -12,7 +12,7 @@
 */
 
 import { SCHEMA_VERSION } from '@cyberismo/assets';
-import type { MigrationResult } from '@cyberismo/migrations';
+import type { MigrationStepResult } from '@cyberismo/migrations';
 import type { Project } from '../containers/project.js';
 
 /**
@@ -28,15 +28,9 @@ export class Migrate {
   /**
    * Run migrations to bring project to target schema version.
    * @param toVersion Target version (defaults to latest)
-   * @param backupDir Optional directory for backups
-   * @param timeoutMilliSeconds Optional timeout in milliseconds (defaults to 2 minutes)
    * @returns Migration result
    */
-  public async migrate(
-    toVersion?: number,
-    backupDir?: string,
-    timeoutMilliSeconds?: number,
-  ): Promise<MigrationResult> {
+  public async migrate(toVersion?: number): Promise<MigrationStepResult> {
     const currentVersion = this.project.configuration.schemaVersion;
     if (currentVersion === undefined) {
       throw new Error('Project has no schema version set');
@@ -63,7 +57,6 @@ export class Migrate {
       return {
         success: true,
         message: `Project is already at version ${currentVersion}. No migration needed.`,
-        stepsExecuted: [],
       };
     }
 
@@ -78,11 +71,6 @@ export class Migrate {
       }
     }
 
-    return await this.project.runMigrations(
-      currentVersion,
-      targetVersion,
-      backupDir,
-      timeoutMilliSeconds,
-    );
+    return await this.project.runMigrations(currentVersion, targetVersion);
   }
 }

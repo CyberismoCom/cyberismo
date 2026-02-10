@@ -21,7 +21,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -40,7 +40,7 @@ import {
   type ProjectFetchCardDetails,
   type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
-import { pathExists } from '../utils/file-utils.js';
+import { copyDir, pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   cardPathParts,
@@ -56,8 +56,9 @@ import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
+import { MigrationPlayer } from '../utils/migration-player.js';
 
-import type { MigrationResult } from '@cyberismo/migrations';
+import type { MigrationStepResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
@@ -110,7 +111,7 @@ export class Project extends CardContainer {
     this.logger.info({ path }, 'Initializing project');
 
     this.calculationEngine = new CalculationEngine(this);
-    this.projectPaths = new ProjectPaths(path, settings.version);
+    this.projectPaths = new ProjectPaths(path);
     this.resourceHandler = new ResourceHandler(this);
     // todo: implement project validation
     this.validator = Validate.getInstance();
@@ -127,13 +128,16 @@ export class Project extends CardContainer {
     // Watch changes in .cards if there are multiple instances of Project being
     // run concurrently.
     if (this.options.watchResourceChanges) {
+      const watchFolder = this.paths.versionedResourcesFolderFor(
+        this.configuration.latestVersion,
+      );
       this.resourceWatcher = new ContentWatcher(
         ignoreRenameFileChanges,
-        this.paths.resourcesFolder,
+        watchFolder,
         (fileName: string) => {
           void (async () => {
             this.resources.handleFileSystemChange(
-              join(this.paths.resourcesFolder, fileName),
+              join(watchFolder, fileName),
             );
             this.resources.changed();
           })();
@@ -677,6 +681,7 @@ export class Project extends CardContainer {
             private: module.private,
           },
         },
+        this.configuration.latestVersion,
       );
     }
     this.logger.info(`Imported module '${module.name}'`);
@@ -870,6 +875,52 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Ensures the latest version folder exists by copying from published version if needed.
+   * The latest version folder is the operating version for all reads and writes.
+   *
+   * @returns true if the folder was created, false if it already existed
+   */
+  public async ensureDraftExists(): Promise<boolean> {
+    const latest = this.configuration.latestVersion;
+    const latestFolder = this.paths.versionedResourcesFolderFor(latest);
+
+    if (existsSync(latestFolder)) {
+      return false;
+    }
+
+    const currentVersion = this.configuration.version;
+    const currentFolder =
+      this.paths.versionedResourcesFolderFor(currentVersion);
+
+    this.logger.info(
+      { currentVersion, latestVersion: latest },
+      'Creating latest version folder from published version',
+    );
+
+    // Copy entire resource folder from published version to latest
+    await mkdir(latestFolder, { recursive: true });
+    await copyDir(currentFolder, latestFolder);
+
+    // Clear migration log — new folder should only track its own changes
+    await writeFile(
+      this.paths.migrationLogFor(latest),
+      '',
+      'utf-8',
+    );
+
+    // Invalidate version cache and refresh resource cache
+    this.configuration.invalidateVersionCache();
+    this.resources.changed();
+
+    this.logger.info(
+      { from: currentVersion, to: latest },
+      'Latest version folder created',
+    );
+
+    return true;
+  }
+
+  /**
    * Populates the card cache, if it has not been populated.
    */
   public async populateCaches() {
@@ -976,6 +1027,7 @@ export class Project extends CardContainer {
       ConfigurationOperation.MODULE_REMOVE,
       moduleName,
       {},
+      this.configuration.latestVersion,
     );
 
     this.logger.info(`Removed module '${moduleName}'`);
@@ -993,23 +1045,15 @@ export class Project extends CardContainer {
    * Run migrations to bring project schema to target version.
    * @param fromVersion Current schema version
    * @param toVersion Target schema version
-   * @param backupDir Optional directory for backups. If undefined, no backup is created.
-   * @param timeoutMilliSeconds Optional timeout in milliseconds. If undefined, uses default (2 minutes).
    * @returns Migration result
    */
   public async runMigrations(
     fromVersion: number,
     toVersion: number,
-    backupDir?: string,
-    timeoutMilliSeconds?: number,
-  ): Promise<MigrationResult> {
+  ): Promise<MigrationStepResult> {
     this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
 
-    const executor = new MigrationExecutor(
-      this,
-      backupDir,
-      timeoutMilliSeconds,
-    );
+    const executor = new MigrationExecutor(this);
     const result = await executor.migrate(
       fromVersion,
       toVersion,
@@ -1033,6 +1077,17 @@ export class Project extends CardContainer {
 
     return result;
   }
+
+  /**
+   * Replay the current version's migration log to apply transient side-effects.
+   * This is useful after module updates where the consumer project needs to
+   * apply transient effects from resource changes.
+   */
+  public async migrate(): Promise<void> {
+    const player = new MigrationPlayer(this);
+    await player.replayVersion(this.configuration.version);
+  }
+
   /**
    * Accessor for validator.
    * @returns Validator instance.

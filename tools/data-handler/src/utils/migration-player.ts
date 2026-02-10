@@ -13,7 +13,6 @@
 */
 
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 import { getChildLogger } from './log-utils.js';
 import { ProjectPaths } from '../containers/project/project-paths.js';
@@ -48,9 +47,8 @@ export class MigrationPlayer {
   private async readMigrationLog(
     version: number,
   ): Promise<ConfigurationLogEntry[]> {
-    const paths = new ProjectPaths(this.project.basePath, version);
-    const versionMigrationFolder = paths.versionedMigrationFolder(version);
-    const logPath = join(versionMigrationFolder, 'migrationLog.jsonl');
+    const paths = new ProjectPaths(this.project.basePath);
+    const logPath = paths.migrationLogFor(version);
 
     try {
       const content = await readFile(logPath, 'utf-8');

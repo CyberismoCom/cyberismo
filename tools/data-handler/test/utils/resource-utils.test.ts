@@ -105,7 +105,7 @@ describe('resource utils with Project instance', () => {
           type: 'cardTypes',
           identifier: 'test',
         },
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}cardTypes${sep}test.json`,
       ],
       [
         {
@@ -113,7 +113,7 @@ describe('resource utils with Project instance', () => {
           type: 'workflows',
           identifier: 'decision',
         },
-        `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}workflows${sep}decision.json`,
       ],
     ]);
 
@@ -133,7 +133,7 @@ describe('resource utils with Project instance', () => {
       '.lp',
     );
     expect(resultPath).to.equal(
-      `${project.paths.resourcesFolder}${sep}calculations${sep}test.lp`,
+      `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}calculations${sep}test.lp`,
     );
   });
   it('resourceNameToPath with empty prefix throws', () => {
@@ -149,7 +149,7 @@ describe('resource utils with Project instance', () => {
   it('resourceNameToPath with extension', () => {
     const validNames: Map<string, ResourceName> = new Map([
       [
-        `${project.paths.resourcesFolder}${sep}test${sep}test.test`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}test${sep}test.test`,
         {
           prefix: project.projectPrefix,
           type: 'test',
@@ -174,7 +174,7 @@ describe('resource utils with Project instance', () => {
   it('pathToResourceName with valid values', () => {
     const validNames: Map<string, ResourceName> = new Map([
       [
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}test.json`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}cardTypes${sep}test.json`,
         {
           prefix: project.projectPrefix,
           type: 'cardTypes',
@@ -182,7 +182,7 @@ describe('resource utils with Project instance', () => {
         },
       ],
       [
-        `${project.paths.resourcesFolder}${sep}workflows${sep}decision.json`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}workflows${sep}decision.json`,
         {
           prefix: project.projectPrefix,
           type: 'workflows',
@@ -208,7 +208,7 @@ describe('resource utils with Project instance', () => {
   it('pathToResourceName with invalid values', () => {
     const invalidNames: Map<string, string> = new Map([
       [
-        `${project.paths.resourcesFolder}${sep}cardTypes${sep}`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}cardTypes${sep}`,
         `invalid path:`,
       ],
       [
@@ -216,7 +216,7 @@ describe('resource utils with Project instance', () => {
         `invalid path:`,
       ],
       [
-        `${project.paths.resourcesFolder}${sep}base${sep}workflows${sep}decision.json`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}base${sep}workflows${sep}decision.json`,
         'not a resource path:',
       ],
     ]);
@@ -230,7 +230,7 @@ describe('resource utils with Project instance', () => {
   it('resourceFilePath with extension', () => {
     const validNames: Map<string, ResourceName> = new Map([
       [
-        `${project.paths.resourcesFolder}${sep}type${sep}identifier${sep}fileName.extension`,
+        `${project.paths.versionedResourcesFolderFor(project.configuration.latestVersion)}${sep}type${sep}identifier${sep}fileName.extension`,
         {
           prefix: project.projectPrefix,
           type: 'type',

@@ -99,7 +99,9 @@ export function resourceNameToPath(
 ): string {
   if (project.projectPrefix === resourceName.prefix) {
     return join(
-      project.paths.resourcesFolder,
+      project.paths.versionedResourcesFolderFor(
+        project.configuration.latestVersion,
+      ),
       resourceName.type,
       resourceName.identifier + extension,
     );
