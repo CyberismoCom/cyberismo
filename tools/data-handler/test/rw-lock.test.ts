@@ -4,11 +4,11 @@ import { RWLock, read, write } from '../src/utils/rw-lock.js';
 
 // Helper to create a deferred promise latch
 function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolve!: () => void;
-  const promise = new Promise<void>((r) => {
-    resolve = r;
+  let res!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    res = resolve;
   });
-  return { promise, resolve };
+  return { promise, resolve: res };
 }
 
 describe('RWLock', () => {
@@ -263,8 +263,8 @@ describe('RWLock', () => {
 
       // Resolve function that will be called from inside the write scope
       let leakedResolve!: () => void;
-      const leakedPromise = new Promise<void>((r) => {
-        leakedResolve = r;
+      const leakedPromise = new Promise<void>((resolve) => {
+        leakedResolve = resolve;
       });
 
       const leakedAttempted = deferred();
@@ -272,13 +272,15 @@ describe('RWLock', () => {
       await lock.write(async () => {
         // Schedule work that will run after the lock is released.
         // It inherits the ALS context but should NOT skip locking if it was released.
-        setTimeout(async () => {
-          leakedAttempted.resolve();
-          await lock.write(async () => {
-            log.push('leaked-start');
-            log.push('leaked-end');
-          });
-          leakedResolve();
+        setTimeout(() => {
+          void (async () => {
+            leakedAttempted.resolve();
+            await lock.write(async () => {
+              log.push('leaked-start');
+              log.push('leaked-end');
+            });
+            leakedResolve();
+          })();
         }, 0);
 
         log.push('w1');
