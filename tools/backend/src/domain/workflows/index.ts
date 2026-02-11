@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as workflowService from './service.js';
 import { createWorkflowSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -43,12 +45,17 @@ const router = new Hono();
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createWorkflowSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier } = c.req.valid('json');
+router.post(
+  '/',
+  requireRole(UserRole.Admin),
+  zValidator('json', createWorkflowSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier } = c.req.valid('json');
 
-  await workflowService.createWorkflow(commands, identifier);
-  return c.json({ message: 'Workflow created successfully' });
-});
+    await workflowService.createWorkflow(commands, identifier);
+    return c.json({ message: 'Workflow created successfully' });
+  },
+);
 
 export default router;

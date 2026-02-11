@@ -15,11 +15,14 @@ import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { resourceParamsWithCard } from '../../common/validationSchemas.js';
 import * as logicProgramService from './service.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
 router.get(
   '/:prefix/:type/:identifier',
+  requireRole(UserRole.Reader),
   zValidator('param', resourceParamsWithCard),
   async (c) => {
     const commands = c.get('commands');

@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as fieldTypeService from './service.js';
 import { createFieldTypeSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -32,7 +34,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c) => {
+router.get('/', requireRole(UserRole.Reader), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -77,21 +79,26 @@ router.get('/', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createFieldTypeSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier, dataType } = c.req.valid('json');
+router.post(
+  '/',
+  requireRole(UserRole.Admin),
+  zValidator('json', createFieldTypeSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier, dataType } = c.req.valid('json');
 
-  try {
-    await fieldTypeService.createFieldType(commands, identifier, dataType);
-    return c.json({ message: 'Field type created successfully' });
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'}`,
-      },
-      500,
-    );
-  }
-});
+    try {
+      await fieldTypeService.createFieldType(commands, identifier, dataType);
+      return c.json({ message: 'Field type created successfully' });
+    } catch (error) {
+      return c.json(
+        {
+          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
+    }
+  },
+);
 
 export default router;

@@ -45,6 +45,13 @@ export type ValidateResourceResponse = {
   errors: string[];
 };
 
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+};
+
 export type Resources = {
   project: Project;
   card: CardResponse;
@@ -58,6 +65,7 @@ export type Resources = {
   logicPrograms: LogicProgramResponse;
   validateResource: ValidateResourceResponse;
   general: GeneralSettings;
+  user: User;
 };
 
 export type ResourceName = keyof Resources;
