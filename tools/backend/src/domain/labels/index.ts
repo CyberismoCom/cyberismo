@@ -13,6 +13,8 @@
 
 import { Hono } from 'hono';
 import * as labelsService from './service.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -27,7 +29,7 @@ const router = new Hono();
  *       500:
  *         description: Internal server error
  */
-router.get('/', (c) => {
+router.get('/', requirePermission(Permission.LabelRead), (c) => {
   const commands = c.get('commands');
   const labels = labelsService.getLabels(commands);
   return c.json(labels);

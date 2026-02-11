@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as graphViewService from './service.js';
 import { createGraphViewSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -43,11 +45,16 @@ const router = new Hono();
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createGraphViewSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier } = c.req.valid('json');
-  await graphViewService.createGraphView(commands, identifier);
-  return c.json({ message: 'Graph view created successfully' });
-});
+router.post(
+  '/',
+  requirePermission(Permission.GraphViewCreate),
+  zValidator('json', createGraphViewSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier } = c.req.valid('json');
+    await graphViewService.createGraphView(commands, identifier);
+    return c.json({ message: 'Graph view created successfully' });
+  },
+);
 
 export default router;

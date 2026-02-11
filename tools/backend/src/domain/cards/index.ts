@@ -17,6 +17,8 @@ import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
 import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -34,7 +36,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set.
  */
-router.get('/', async (c) => {
+router.get('/', requirePermission(Permission.CardRead), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -75,6 +77,7 @@ router.get('/', async (c) => {
  */
 router.get(
   '/:key',
+  requirePermission(Permission.CardRead),
   ssgParams(async (c: AppContext) => {
     const commands = c.get('commands');
     const opts = c.get('tree');
@@ -144,7 +147,7 @@ router.get(
  *       500:
  *         description: project_path not set.
  */
-router.patch('/:key', async (c) => {
+router.patch('/:key', requirePermission(Permission.CardUpdate), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   if (!key) {
@@ -201,7 +204,7 @@ router.patch('/:key', async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.delete('/:key', async (c) => {
+router.delete('/:key', requirePermission(Permission.CardDelete), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   if (!key) {
@@ -244,7 +247,7 @@ router.delete('/:key', async (c) => {
  *       500:
  *         description: project_path not set
  */
-router.post('/:key', async (c) => {
+router.post('/:key', requirePermission(Permission.CardCreate), async (c) => {
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
@@ -300,35 +303,39 @@ router.post('/:key', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments', async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
+router.post(
+  '/:key/attachments',
+  requirePermission(Permission.CardUpdate),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
 
-  try {
-    const formData = await c.req.formData();
-    const files = formData.getAll('files');
-    if (!files || files.length === 0) {
-      return c.json({ error: 'No files uploaded' }, 400);
+    try {
+      const formData = await c.req.formData();
+      const files = formData.getAll('files');
+      if (!files || files.length === 0) {
+        return c.json({ error: 'No files uploaded' }, 400);
+      }
+
+      const result = await cardService.uploadAttachments(
+        commands,
+        key,
+        files as File[],
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to upload attachments',
+        },
+        500,
+      );
     }
-
-    const result = await cardService.uploadAttachments(
-      commands,
-      key,
-      files as File[],
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to upload attachments',
-      },
-      500,
-    );
-  }
-});
+  },
+);
 
 /**
  * @swagger
@@ -354,25 +361,33 @@ router.post('/:key/attachments', async (c) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/attachments/:filename', async (c) => {
-  const commands = c.get('commands');
-  const { key, filename } = c.req.param();
+router.delete(
+  '/:key/attachments/:filename',
+  requirePermission(Permission.CardUpdate),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, filename } = c.req.param();
 
-  try {
-    const result = await cardService.removeAttachment(commands, key, filename);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to remove attachment',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.removeAttachment(
+        commands,
+        key,
+        filename,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to remove attachment',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -398,23 +413,29 @@ router.delete('/:key/attachments/:filename', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments/:filename/open', async (c) => {
-  const commands = c.get('commands');
-  const { key, filename } = c.req.param();
+router.post(
+  '/:key/attachments/:filename/open',
+  requirePermission(Permission.CardRead),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, filename } = c.req.param();
 
-  try {
-    const result = await cardService.openAttachment(commands, key, filename);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to open attachment',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.openAttachment(commands, key, filename);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to open attachment',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -443,28 +464,32 @@ router.post('/:key/attachments/:filename/open', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/parse', async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { content } = await c.req.json();
+router.post(
+  '/:key/parse',
+  requirePermission(Permission.CardRead),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
+    const { content } = await c.req.json();
 
-  if (content == null) {
-    return c.json({ error: 'Content is required' }, 400);
-  }
+    if (content == null) {
+      return c.json({ error: 'Content is required' }, 400);
+    }
 
-  try {
-    const result = await cardService.parseContent(commands, key, content);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to parse content',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.parseContent(commands, key, content);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to parse content',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -497,33 +522,38 @@ router.post('/:key/parse', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/links', async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { toCard, linkType, description } = await c.req.json();
+router.post(
+  '/:key/links',
+  requirePermission(Permission.CardUpdate),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
+    const { toCard, linkType, description } = await c.req.json();
 
-  if (!toCard || !linkType) {
-    return c.json({ error: 'toCard and linkType are required' }, 400);
-  }
+    if (!toCard || !linkType) {
+      return c.json({ error: 'toCard and linkType are required' }, 400);
+    }
 
-  try {
-    const result = await cardService.createLink(
-      commands,
-      key,
-      toCard,
-      linkType,
-      description,
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to create link',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.createLink(
+        commands,
+        key,
+        toCard,
+        linkType,
+        description,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to create link',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -556,33 +586,38 @@ router.post('/:key/links', async (c) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/links', async (c) => {
-  const commands = c.get('commands');
-  const key = c.req.param('key');
-  const { toCard, linkType, description } = await c.req.json();
+router.delete(
+  '/:key/links',
+  requirePermission(Permission.CardUpdate),
+  async (c) => {
+    const commands = c.get('commands');
+    const key = c.req.param('key');
+    const { toCard, linkType, description } = await c.req.json();
 
-  if (!toCard || !linkType) {
-    return c.json({ error: 'toCard and linkType are required' }, 400);
-  }
+    if (!toCard || !linkType) {
+      return c.json({ error: 'toCard and linkType are required' }, 400);
+    }
 
-  try {
-    const result = await cardService.removeLink(
-      commands,
-      key,
-      toCard,
-      linkType,
-      description,
-    );
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error: error instanceof Error ? error.message : 'Failed to remove link',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.removeLink(
+        commands,
+        key,
+        toCard,
+        linkType,
+        description,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error ? error.message : 'Failed to remove link',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -610,6 +645,7 @@ router.delete('/:key/links', async (c) => {
  */
 router.get(
   '/:key/a/:attachment',
+  requirePermission(Permission.CardRead),
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
     return await cardService.findRelevantAttachments(commands, c.get('tree'));

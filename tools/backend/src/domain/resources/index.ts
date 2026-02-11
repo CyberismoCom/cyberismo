@@ -14,12 +14,14 @@
 import { Hono } from 'hono';
 import * as resourceService from './service.js';
 import type { ResourceValidationResponse } from '../../types.js';
+import { Permission } from '../../types.js';
 import { resourceParamsSchema } from '../../common/validationSchemas.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import {
   validateResourceParamsSchema,
   updateOperationBodySchema,
 } from './schema.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -35,7 +37,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/tree', async (c) => {
+router.get('/tree', requirePermission(Permission.CardRead), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -97,6 +99,7 @@ router.get('/tree', async (c) => {
  */
 router.get(
   '/:prefix/:type/:identifier/validate',
+  requirePermission(Permission.CardRead),
   zValidator('param', validateResourceParamsSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -117,6 +120,7 @@ router.get(
 
 router.delete(
   '/:prefix/:type/:identifier',
+  requirePermission(Permission.CardUpdate),
   zValidator('param', resourceParamsSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -130,6 +134,7 @@ router.delete(
 
 router.post(
   '/:prefix/:type/:identifier/operation',
+  requirePermission(Permission.CardUpdate),
   zValidator('param', resourceParamsSchema),
   zValidator('json', updateOperationBodySchema),
   async (c) => {

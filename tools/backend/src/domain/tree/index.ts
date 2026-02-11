@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as treeService from './service.js';
 import { isSSGContext } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -32,26 +34,30 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c: AppContext) => {
-  const commands = c.get('commands');
-  const tree = c.get('tree');
+router.get(
+  '/',
+  requirePermission(Permission.TreeRead),
+  async (c: AppContext) => {
+    const commands = c.get('commands');
+    const tree = c.get('tree');
 
-  try {
-    const response = await treeService.getCardTree(
-      commands,
-      isSSGContext(c),
-      tree?.cardKey,
-      tree?.recursive,
-    );
-    return c.json(response);
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
-      },
-      500,
-    );
-  }
-});
+    try {
+      const response = await treeService.getCardTree(
+        commands,
+        isSSGContext(c),
+        tree?.cardKey,
+        tree?.recursive,
+      );
+      return c.json(response);
+    } catch (error) {
+      return c.json(
+        {
+          error: `${error instanceof Error ? error.message : 'Unknown error'} from path ${c.get('projectPath')}`,
+        },
+        500,
+      );
+    }
+  },
+);
 
 export default router;

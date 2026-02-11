@@ -15,32 +15,44 @@ import { Hono } from 'hono';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { moduleParamSchema, updateProjectSchema } from './schema.js';
 import * as projectService from './service.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
-router.get('/', async (c) => {
+router.get('/', requirePermission(Permission.ProjectRead), async (c) => {
   const commands = c.get('commands');
 
   const project = await projectService.getProject(commands);
   return c.json(project);
 });
 
-router.patch('/', zValidator('json', updateProjectSchema), async (c) => {
-  const commands = c.get('commands');
-  const updates = c.req.valid('json');
+router.patch(
+  '/',
+  requirePermission(Permission.ProjectUpdate),
+  zValidator('json', updateProjectSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const updates = c.req.valid('json');
 
-  const project = await projectService.updateProject(commands, updates);
-  return c.json(project);
-});
+    const project = await projectService.updateProject(commands, updates);
+    return c.json(project);
+  },
+);
 
-router.post('/modules/update', async (c) => {
-  const commands = c.get('commands');
-  await projectService.updateAllModules(commands);
-  return c.json({ message: 'All modules updated' });
-});
+router.post(
+  '/modules/update',
+  requirePermission(Permission.ProjectModuleManage),
+  async (c) => {
+    const commands = c.get('commands');
+    await projectService.updateAllModules(commands);
+    return c.json({ message: 'All modules updated' });
+  },
+);
 
 router.post(
   '/modules/:module/update',
+  requirePermission(Permission.ProjectModuleManage),
   zValidator('param', moduleParamSchema),
   async (c) => {
     const commands = c.get('commands');
@@ -52,6 +64,7 @@ router.post(
 
 router.delete(
   '/modules/:module',
+  requirePermission(Permission.ProjectModuleManage),
   zValidator('param', moduleParamSchema),
   async (c) => {
     const commands = c.get('commands');
