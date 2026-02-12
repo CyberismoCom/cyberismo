@@ -12,27 +12,24 @@
 */
 
 import { Hono } from 'hono';
-import * as labelsService from './service.js';
-import { Permission } from '../../types.js';
-import { requirePermission } from '../../middleware/auth.js';
+import { getCurrentUser } from '../../middleware/auth.js';
 
-const router = new Hono();
+export function createAuthRouter() {
+  const router = new Hono();
 
-/**
- * @swagger
- * /api/labels:
- *   get:
- *     summary: Returns all unique labels defined in the project.
- *     responses:
- *       200:
- *        description: List of label strings.
- *       500:
- *         description: Internal server error
- */
-router.get('/', requirePermission(Permission.LabelRead), (c) => {
-  const commands = c.get('commands');
-  const labels = labelsService.getLabels(commands);
-  return c.json(labels);
-});
+  /**
+   * GET /api/auth/me
+   * Returns the current user's information including their role and permissions
+   */
+  router.get('/me', async (c) => {
+    const user = getCurrentUser(c);
 
-export default router;
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    return c.json(user);
+  });
+
+  return router;
+}

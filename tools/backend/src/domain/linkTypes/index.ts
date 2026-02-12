@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as linkTypeService from './service.js';
 import { createLinkTypeSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -32,7 +34,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c) => {
+router.get('/', requirePermission(Permission.LinkTypeRead), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -73,12 +75,17 @@ router.get('/', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createLinkTypeSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier } = c.req.valid('json');
+router.post(
+  '/',
+  requirePermission(Permission.LinkTypeCreate),
+  zValidator('json', createLinkTypeSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier } = c.req.valid('json');
 
-  await linkTypeService.createLinkType(commands, identifier);
-  return c.json({ message: 'Link type created successfully' });
-});
+    await linkTypeService.createLinkType(commands, identifier);
+    return c.json({ message: 'Link type created successfully' });
+  },
+);
 
 export default router;

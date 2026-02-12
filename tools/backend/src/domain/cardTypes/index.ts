@@ -19,6 +19,8 @@ import {
   fieldVisibilityBodySchema,
 } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { Permission } from '../../types.js';
+import { requirePermission } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -36,7 +38,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c) => {
+router.get('/', requirePermission(Permission.CardTypeRead), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -80,22 +82,27 @@ router.get('/', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createCardTypeSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier, workflowName } = c.req.valid('json');
+router.post(
+  '/',
+  requirePermission(Permission.CardTypeCreate),
+  zValidator('json', createCardTypeSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier, workflowName } = c.req.valid('json');
 
-  try {
-    await cardTypeService.createCardType(commands, identifier, workflowName);
-    return c.json({ message: 'Card type created successfully' });
-  } catch (error) {
-    return c.json(
-      {
-        error: `${error instanceof Error ? error.message : 'Unknown error'}`,
-      },
-      500,
-    );
-  }
-});
+    try {
+      await cardTypeService.createCardType(commands, identifier, workflowName);
+      return c.json({ message: 'Card type created successfully' });
+    } catch (error) {
+      return c.json(
+        {
+          error: `${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -142,6 +149,7 @@ router.post('/', zValidator('json', createCardTypeSchema), async (c) => {
  */
 router.patch(
   '/:cardTypeName/field-visibility',
+  requirePermission(Permission.CardTypeUpdate),
   zValidator('param', cardTypeNameParamSchema),
   zValidator('json', fieldVisibilityBodySchema),
   async (c) => {

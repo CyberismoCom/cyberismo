@@ -1,5 +1,6 @@
 import { beforeEach, afterEach, describe, expect, test } from 'vitest';
 import { createApp } from '../src/app.js';
+import { MockAuthProvider } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 type ProjectResponse = {
@@ -18,7 +19,7 @@ let tempTestDataPath: string;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
-  app = createApp(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), tempTestDataPath);
 });
 
 afterEach(async () => {
