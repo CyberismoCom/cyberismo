@@ -14,6 +14,8 @@ import type { CalculationEngine } from '../containers/project/calculation-engine
 import { registerEmptyMacros } from '../macros/index.js';
 import type { Context } from '../interfaces/project-interfaces.js';
 import { resourceName } from './resource-utils.js';
+import { escapeJsonString } from './json.js';
+import { escapeCsvField } from './csv.js';
 
 /**
  * Formats a value from a logic program for use to graphviz
@@ -125,6 +127,8 @@ export async function generateReportContent(
   }
   handlebars.registerHelper('isCustomField', isCustomField);
   handlebars.registerHelper('formatValue', formatValue);
+  handlebars.registerHelper('jsonEscape', escapeJsonString);
+  handlebars.registerHelper('csvEscape', escapeCsvField);
 
   return handlebars.compile(contentTemplate)({
     ...options,
