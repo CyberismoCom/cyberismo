@@ -377,6 +377,128 @@ describe('RWLock', () => {
     });
   });
 
+  describe('write-error hooks', () => {
+    it('should fire onWriteError hook when write fn throws', async () => {
+      const lock = new RWLock();
+      let hookCalled = false;
+
+      lock.onWriteError(async () => {
+        hookCalled = true;
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(hookCalled).to.equal(true);
+    });
+
+    it('should NOT fire onWriteError hook on success', async () => {
+      const lock = new RWLock();
+      let hookCalled = false;
+
+      lock.onWriteError(async () => {
+        hookCalled = true;
+      });
+
+      await lock.write(async () => 'ok');
+
+      expect(hookCalled).to.equal(false);
+    });
+
+    it('should NOT fire onWriteError hook for nested writes', async () => {
+      const lock = new RWLock();
+      let hookCallCount = 0;
+
+      lock.onWriteError(async () => {
+        hookCallCount++;
+      });
+
+      try {
+        await lock.write(async () => {
+          await lock.write(async () => {
+            throw new Error('inner fail');
+          });
+        });
+      } catch {
+        // expected
+      }
+
+      // Should fire once (outermost only), not twice
+      expect(hookCallCount).to.equal(1);
+    });
+
+    it('should fire onWriteError when afterWrite hook throws', async () => {
+      const lock = new RWLock();
+      const log: string[] = [];
+
+      lock.onAfterWrite(async () => {
+        log.push('afterWrite');
+        throw new Error('commit failed');
+      });
+
+      lock.onWriteError(async () => {
+        log.push('errorHook');
+      });
+
+      try {
+        await lock.write(async () => {
+          log.push('write');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(log).to.deep.equal(['write', 'afterWrite', 'errorHook']);
+    });
+
+    it('should pass the error object to onWriteError hooks', async () => {
+      const lock = new RWLock();
+      let receivedError: unknown;
+
+      lock.onWriteError(async (error) => {
+        receivedError = error;
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('specific error');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(receivedError).to.be.instanceOf(Error);
+      expect((receivedError as Error).message).to.equal('specific error');
+    });
+
+    it('should run multiple onWriteError hooks in order', async () => {
+      const lock = new RWLock();
+      const log: string[] = [];
+
+      lock.onWriteError(async () => {
+        log.push('hook1');
+      });
+      lock.onWriteError(async () => {
+        log.push('hook2');
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      expect(log).to.deep.equal(['hook1', 'hook2']);
+    });
+  });
+
   describe('@read and @write decorators', () => {
     it('should wrap methods with read lock', async () => {
       const lock = new RWLock();

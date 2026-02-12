@@ -10,6 +10,7 @@
   details. You should have received a copy of the GNU Affero General Public
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+import { CommandManager } from '@cyberismo/data-handler';
 import { startServer } from './index.js';
 import { exportSite } from './export.js';
 import { MockAuthProvider } from './auth/mock.js';
@@ -54,9 +55,12 @@ function createAuthProvider(): AuthProvider {
   process.exit(1);
 }
 
+const projectPath = process.env.npm_config_project_path || '';
+const commands = await CommandManager.getInstance(projectPath);
+
 if (process.argv.includes('--export')) {
-  await exportSite(process.env.npm_config_project_path || '');
+  await exportSite(commands);
 } else {
   const authProvider = createAuthProvider();
-  await startServer(authProvider, process.env.npm_config_project_path || '');
+  await startServer(authProvider, commands);
 }

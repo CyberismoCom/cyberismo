@@ -35,6 +35,7 @@ export class RWLock {
   private writerQueue: (() => void)[] = [];
   private context = new AsyncLocalStorage<LockContext>();
   private afterWriteHooks: (() => Promise<void>)[] = [];
+  private writeErrorHooks: ((error: unknown) => Promise<void>)[] = [];
 
   /**
    * Register a callback that fires after the outermost write completes
@@ -42,6 +43,14 @@ export class RWLock {
    */
   onAfterWrite(hook: () => Promise<void>): void {
     this.afterWriteHooks.push(hook);
+  }
+
+  /**
+   * Register a callback that fires when the outermost write fails.
+   * Hooks run while still holding the write lock.
+   */
+  onWriteError(hook: (error: unknown) => Promise<void>): void {
+    this.writeErrorHooks.push(hook);
   }
 
   /**
@@ -86,6 +95,12 @@ export class RWLock {
         await hook();
       }
       return result;
+    } catch (error) {
+      // Run rollback hooks on error (outermost write only)
+      for (const hook of this.writeErrorHooks) {
+        await hook(error);
+      }
+      throw error;
     } finally {
       ctx.active = false;
       this.releaseWrite();

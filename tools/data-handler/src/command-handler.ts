@@ -180,6 +180,7 @@ export class Commands {
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
+      autocommit: (options as StartCommandOptions).autocommit,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
