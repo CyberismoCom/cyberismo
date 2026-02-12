@@ -129,6 +129,9 @@ childResult((Card, Field), (Field, EnumValue), "enumValues") :-
 field((Field, EnumValue), "enumValue", EnumValue) :-
     enumValue(Field, EnumValue).
 
+dataType((Field, EnumValue), "index", "integer") :-
+    enumValue(Field, EnumValue).
+
 order(2, "fields", 1, "visibility", "ASC").
 order(2, "fields", 2, "index", "ASC").
 order(3, "enumValues", 1, "index", "ASC").

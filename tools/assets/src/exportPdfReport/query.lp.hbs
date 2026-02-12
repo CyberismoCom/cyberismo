@@ -74,13 +74,13 @@ resultField((Card, Field), "visibility", "optional") :-
     field(Card, "cardType", CardType),
     result(Card).
 
-resultField((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index, "integer") :-
     alwaysVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
     result(Card).
 
-resultField((Card, Field), "index", Index) :-
+resultField((Card, Field), "index", Index, "integer") :-
     optionallyVisibleField(CardType, Field),
     field((CardType, Field), "index", Index),
     field(Card, "cardType", CardType),
