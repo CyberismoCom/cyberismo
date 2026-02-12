@@ -21,6 +21,7 @@ import { Project } from '../containers/project.js';
 import { Validate } from './validate.js';
 
 import { EMPTY_RANK, sortItems } from '../utils/lexorank.js';
+import { ROOT } from '../utils/constants.js';
 import { isModulePath } from '../utils/card-utils.js';
 import type { DataType } from '../interfaces/resource-interfaces.js';
 import type { Card, ProjectFile } from '../interfaces/project-interfaces.js';
@@ -208,11 +209,20 @@ export class Create {
 
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
-      // Note: This assumes that parent keys will be ahead of 'a' in the sort order.
-      const sorted = sortItems(createdCards, (item) => {
-        return `${item.parent === 'root' ? 'a' : item.parent}${item.metadata?.rank || EMPTY_RANK}`;
-      });
-      return sorted;
+      const rootParent = specificCard?.key ?? ROOT;
+      const rootCards: Card[] = [];
+      const childCards: Card[] = [];
+      for (const card of createdCards) {
+        if (card.parent === rootParent) {
+          rootCards.push(card);
+        } else {
+          childCards.push(card);
+        }
+      }
+      return [
+        ...sortItems(rootCards, (item) => item.metadata?.rank || EMPTY_RANK),
+        ...childCards,
+      ];
     }
     return [];
   }
