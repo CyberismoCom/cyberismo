@@ -210,12 +210,19 @@ export class Create {
     const createdCards = await templateObject.createCards(specificCard);
     if (createdCards.length > 0) {
       const rootParent = specificCard?.key ?? ROOT;
-      const rootCards = sortItems(
-        createdCards.filter((c) => c.parent === rootParent),
-        (item) => item.metadata?.rank || EMPTY_RANK,
-      );
-      const childCards = createdCards.filter((c) => c.parent !== rootParent);
-      return [...rootCards, ...childCards];
+      const rootCards: Card[] = [];
+      const childCards: Card[] = [];
+      for (const card of createdCards) {
+        if (card.parent === rootParent) {
+          rootCards.push(card);
+        } else {
+          childCards.push(card);
+        }
+      }
+      return [
+        ...sortItems(rootCards, (item) => item.metadata?.rank || EMPTY_RANK),
+        ...childCards,
+      ];
     }
     return [];
   }

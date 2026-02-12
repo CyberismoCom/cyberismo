@@ -237,9 +237,13 @@ describe('create command', () => {
     expect(createdCards[1].parent).to.equal(parentCard);
 
     // Root cards should be sorted by rank
-    const rank0 = createdCards[0].metadata?.rank || '';
-    const rank1 = createdCards[1].metadata?.rank || '';
-    expect(rank0 < rank1).to.equal(true);
+    const rank0 = createdCards[0].metadata?.rank;
+    const rank1 = createdCards[1].metadata?.rank;
+    expect(rank0).to.not.equal(undefined);
+    expect(rank0).to.not.equal('');
+    expect(rank1).to.not.equal(undefined);
+    expect(rank1).to.not.equal('');
+    expect(rank0! < rank1!).to.equal(true);
 
     // Third card should be the child card (not parented under decision_5)
     expect(createdCards[2].parent).to.not.equal(parentCard);
