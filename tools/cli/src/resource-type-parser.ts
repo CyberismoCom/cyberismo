@@ -61,6 +61,7 @@ abstract class CreateTypes {
     'label',
     'link',
     'project',
+    'version',
   ];
 
   private static TargetTypes = [

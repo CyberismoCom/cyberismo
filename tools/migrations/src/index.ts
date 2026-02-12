@@ -7,24 +7,22 @@
 
 import type { Migration } from './migration-interfaces.js';
 import migration2 from './2/index.js';
+import migration3 from './3/index.js';
 
 // Re-export migration interfaces and utilities
 export type {
   Migration,
   MigrationContext,
-  MigrationResult,
   MigrationStepResult,
 } from './migration-interfaces.js';
-export {
-  validateProjectStructure,
-  createBackup,
-} from './migration-interfaces.js';
+export { validateProjectStructure } from './migration-interfaces.js';
 
 /**
  * Map of migration version to migration implementation.
  */
 export const migrations: Record<number, Migration> = {
   2: migration2,
+  3: migration3,
 };
 
 /**
