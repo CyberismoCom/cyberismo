@@ -180,6 +180,7 @@ export class Commands {
       logLevel: options.logLevel,
       watchResourceChanges: (options as StartCommandOptions)
         .watchResourceChanges,
+      autocommit: (options as StartCommandOptions).autocommit,
     });
     if (!this.commands) {
       throw new Error('Cannot get instance of CommandManager');
@@ -758,12 +759,9 @@ export class Commands {
       case 'attachments':
         promise = this.commands!.showCmd.showAttachments();
         break;
-      case 'card': {
-        return {
-          statusCode: 200,
-          payload: this.commands!.showCmd.showCardDetails(detail),
-        };
-      }
+      case 'card':
+        promise = this.commands!.showCmd.showCardDetails(detail);
+        break;
       case 'cards':
         promise = this.commands!.showCmd.showCards();
         break;
@@ -796,10 +794,8 @@ export class Commands {
         );
         break;
       case 'labels':
-        return {
-          statusCode: 200,
-          payload: this.commands!.showCmd.showLabels(),
-        };
+        promise = this.commands!.showCmd.showLabels();
+        break;
       case 'module':
         promise = this.commands!.showCmd.showModule(detail);
         break;
@@ -807,10 +803,7 @@ export class Commands {
         promise = this.commands!.showCmd.showHubs();
         break;
       case 'modules':
-        return {
-          statusCode: 200,
-          payload: this.commands!.showCmd.showModules(),
-        };
+        promise = this.commands!.showCmd.showModules();
         break;
       case 'project':
         promise = this.commands!.showCmd.showProject();

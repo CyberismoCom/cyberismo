@@ -11,7 +11,7 @@
 */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import { CommandManager } from '@cyberismo/data-handler';
+import type { CommandManager } from '@cyberismo/data-handler';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
@@ -22,22 +22,11 @@ declare module 'hono' {
 }
 
 export const attachCommandManager = (
-  projectPath?: string,
+  commands: CommandManager,
 ): MiddlewareHandler => {
   return async (c: Context, next) => {
-    if (!projectPath) {
-      return c.text('project_path environment variable not set.', 500);
-    }
-
-    try {
-      c.set('commands', await CommandManager.getInstance(projectPath));
-      c.set('projectPath', projectPath);
-      await next();
-    } catch (error) {
-      return c.text(
-        `Failed to initialize CommandManager: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        500,
-      );
-    }
+    c.set('commands', commands);
+    c.set('projectPath', commands.project.basePath);
+    await next();
   };
 };

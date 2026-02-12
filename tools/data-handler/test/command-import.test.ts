@@ -50,8 +50,8 @@ describe('import csv command', () => {
     await project.populateCaches();
     const fetchCmd = new Fetch(project);
     const show = new Show(project, fetchCmd);
-    const card1 = show.showCardDetails(key1);
-    const card2 = show.showCardDetails(key2);
+    const card1 = await show.showCardDetails(key1);
+    const card2 = await show.showCardDetails(key2);
     expect(card1.metadata?.title).to.equal('Title1');
     expect(card1.content).to.equal('content1');
     expect(card1.metadata?.labels).to.deep.equal([

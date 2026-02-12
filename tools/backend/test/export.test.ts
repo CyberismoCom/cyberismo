@@ -1,20 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getCardQueryResult, reset } from '../src/export.js';
-import { CommandManager } from '@cyberismo/data-handler';
-
-// Mock external dependencies
-vi.mock('@cyberismo/data-handler');
-vi.mock('../src/app.js');
-vi.mock('node:fs/promises');
-vi.mock('../src/utils.js', () => ({
-  runCbSafely: vi.fn((fn) => fn()),
-  runInParallel: vi.fn(async (promises) => {
-    for (const promiseFn of promises) {
-      await promiseFn();
-    }
-  }),
-  staticFrontendDirRelative: './static-frontend',
-}));
+import type { CommandManager } from '@cyberismo/data-handler';
 
 describe('export module', () => {
   beforeEach(() => {
@@ -27,30 +13,28 @@ describe('export module', () => {
   });
 
   describe('getCardQueryResult', () => {
+    function createMockCommands(mockCards: { key: string; title: string }[]) {
+      const runQuery = vi.fn().mockResolvedValue(mockCards);
+      const commands = {
+        project: {
+          calculationEngine: { runQuery },
+        },
+      } as unknown as CommandManager;
+      return { commands, runQuery };
+    }
+
     test('should return all cards when no cardKey is provided', async () => {
       const mockCards = [
         { key: 'card1', title: 'Card 1' },
         { key: 'card2', title: 'Card 2' },
       ];
 
-      const mockCommands = {
-        project: {
-          calculationEngine: {
-            runQuery: vi.fn().mockResolvedValue(mockCards),
-          },
-        },
-      };
+      const { commands, runQuery } = createMockCommands(mockCards);
 
-      vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as unknown as CommandManager,
-      );
-
-      const result = await getCardQueryResult('/test/project');
+      const result = await getCardQueryResult(commands);
 
       expect(result).toEqual(mockCards);
-      expect(
-        mockCommands.project.calculationEngine.runQuery,
-      ).toHaveBeenCalledWith('card', 'exportedSite', {});
+      expect(runQuery).toHaveBeenCalledWith('card', 'exportedSite', {});
     });
 
     test('should return specific card when cardKey is provided', async () => {
@@ -59,19 +43,9 @@ describe('export module', () => {
         { key: 'card2', title: 'Card 2' },
       ];
 
-      const mockCommands = {
-        project: {
-          calculationEngine: {
-            runQuery: vi.fn().mockResolvedValue(mockCards),
-          },
-        },
-      };
+      const { commands } = createMockCommands(mockCards);
 
-      vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as unknown as CommandManager,
-      );
-
-      const result = await getCardQueryResult('/test/project', 'card1');
+      const result = await getCardQueryResult(commands, 'card1');
 
       expect(result).toEqual([{ key: 'card1', title: 'Card 1' }]);
     });
@@ -79,55 +53,33 @@ describe('export module', () => {
     test('should throw error when card is not found', async () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
-      const mockCommands = {
-        project: {
-          calculationEngine: {
-            runQuery: vi.fn().mockResolvedValue(mockCards),
-          },
-        },
-      };
+      const { commands } = createMockCommands(mockCards);
 
-      vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as unknown as CommandManager,
+      await expect(getCardQueryResult(commands, 'nonexistent')).rejects.toThrow(
+        'Card nonexistent not found',
       );
-
-      await expect(
-        getCardQueryResult('/test/project', 'nonexistent'),
-      ).rejects.toThrow('Card nonexistent not found');
     });
 
     test('should cache query results for subsequent calls', async () => {
       const mockCards = [{ key: 'card1', title: 'Card 1' }];
 
-      const mockCommands = {
-        project: {
-          calculationEngine: {
-            runQuery: vi.fn().mockResolvedValue(mockCards),
-          },
-        },
-      };
-
-      vi.mocked(CommandManager.getInstance).mockResolvedValue(
-        mockCommands as unknown as CommandManager,
-      );
+      const { commands, runQuery } = createMockCommands(mockCards);
 
       // First call
-      await getCardQueryResult('/test/project');
+      await getCardQueryResult(commands);
       // Second call
-      await getCardQueryResult('/test/project', 'card1');
+      await getCardQueryResult(commands, 'card1');
 
-      await getCardQueryResult('/test/project', 'card1');
+      await getCardQueryResult(commands, 'card1');
 
-      await getCardQueryResult('/test/project', 'card1');
+      await getCardQueryResult(commands, 'card1');
 
-      await getCardQueryResult('/test/project', 'card1');
+      await getCardQueryResult(commands, 'card1');
 
-      await getCardQueryResult('/test/project', 'card1');
+      await getCardQueryResult(commands, 'card1');
 
       // calculate cmd should be only called once
-      expect(
-        mockCommands.project.calculationEngine.runQuery,
-      ).toHaveBeenCalledTimes(1);
+      expect(runQuery).toHaveBeenCalledTimes(1);
     });
   });
 });

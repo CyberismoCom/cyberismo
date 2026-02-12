@@ -31,6 +31,7 @@ import type {
 } from '@cyberismo/data-handler';
 import {
   Cmd,
+  CommandManager,
   Commands,
   ExportFormats,
   validContexts,
@@ -790,8 +791,14 @@ exportCmd
         );
         // Should be in commandHandler, once it is moved under the CLI package
         try {
+          const projectPath = await commandHandler.getProjectPath(
+            options.projectPath,
+          );
+          const commands = await CommandManager.getInstance(projectPath, {
+            logLevel: options.logLevel,
+          });
           const { errors } = await exportSite(
-            await commandHandler.getProjectPath(options.projectPath),
+            commands,
             output,
             {
               recursive: options.recursive,
@@ -1411,7 +1418,8 @@ const appCmd = new CommandWithPath('app')
   .option(
     '-w, --watch-resource-changes',
     'Project watches changes in .cards folder resources',
-  );
+  )
+  .option('--autocommit', 'Enable git-backed transactional writes');
 program.addCommand(appCmd);
 appCmd.action(async (options: CommandOptions<'start'>) => {
   // validate project
@@ -1441,7 +1449,12 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
       return;
     }
   }
-  await startServer(await commandHandler.getProjectPath(options.projectPath));
+  const projectPath = await commandHandler.getProjectPath(options.projectPath);
+  const commands = await CommandManager.getInstance(projectPath, {
+    autocommit: options.autocommit,
+    watchResourceChanges: options.watchResourceChanges,
+  });
+  await startServer(commands);
 });
 
 export default program;

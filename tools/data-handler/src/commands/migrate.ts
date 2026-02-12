@@ -14,6 +14,7 @@
 import { SCHEMA_VERSION } from '@cyberismo/assets';
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Project } from '../containers/project.js';
+import { write } from '../utils/rw-lock.js';
 
 /**
  * Command that handles schema migration operations.
@@ -32,6 +33,7 @@ export class Migrate {
    * @param timeoutMilliSeconds Optional timeout in milliseconds (defaults to 2 minutes)
    * @returns Migration result
    */
+  @write
   public async migrate(
     toVersion?: number,
     backupDir?: string,

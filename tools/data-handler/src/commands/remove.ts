@@ -17,6 +17,7 @@ import { ModuleManager } from '../module-manager.js';
 import type { Fetch } from './fetch.js';
 import type { Project } from '../containers/project.js';
 import type { RemovableResourceTypes } from '../interfaces/project-interfaces.js';
+import { write } from '../utils/rw-lock.js';
 
 /**
  * Remove command.
@@ -163,6 +164,7 @@ export class Remove {
    *         when removing link, some of the mandatory parameters are missing, or
    *         when trying to remove unknown type
    */
+  @write
   public async remove(
     type: RemovableResourceTypes,
     targetName: string,

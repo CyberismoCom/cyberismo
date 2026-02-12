@@ -19,6 +19,7 @@ import { spawnSync } from 'node:child_process';
 import { ActionGuard } from '../permissions/action-guard.js';
 import { Project } from '../containers/project.js';
 import { UserPreferences } from '../utils/user-preferences.js';
+import { write } from '../utils/rw-lock.js';
 
 import type { MetadataContent } from '../interfaces/project-interfaces.js';
 
@@ -76,6 +77,7 @@ export class Edit {
    * @param cardKey The card to update.
    * @param changedContent New content for the card.
    */
+  @write
   public async editCardContent(cardKey: string, changedContent: string) {
     if (this.project.hasTemplateCard(cardKey)) {
       return this.project.updateCardContent(cardKey, changedContent);
@@ -93,6 +95,7 @@ export class Edit {
    * @param changedKey Which metadata property was changed
    * @param newValue New value for the metadata property
    */
+  @write
   public async editCardMetadata(
     cardKey: string,
     changedKey: string,

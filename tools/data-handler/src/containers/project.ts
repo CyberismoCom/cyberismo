@@ -56,6 +56,8 @@ import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
+import { RWLock } from '../utils/rw-lock.js';
+import { GitManager } from '../utils/git-manager.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
@@ -78,13 +80,17 @@ export { ResourcesFrom };
 export interface ProjectOptions {
   autoSave?: boolean;
   watchResourceChanges?: boolean;
+  autocommit?: boolean;
+  author?: { name: string; email: string };
 }
 
 /**
  * Represents project folder.
  */
 export class Project extends CardContainer {
+  public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
+  private gitManager?: GitManager;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;
   private resourceHandler: ResourceHandler;
@@ -139,6 +145,24 @@ export class Project extends CardContainer {
           })();
         },
       );
+    }
+
+    if (this.options.autocommit) {
+      this.gitManager = new GitManager(path, { author: options.author });
+
+      // Commit after successful writes
+      this.lock.onAfterWrite(async () => {
+        await this.gitManager!.commit();
+      });
+
+      // Rollback on failed writes
+      this.lock.onWriteError(async () => {
+        await this.gitManager!.rollback();
+        // Invalidate caches after rollback since filesystem state changed
+        this.cardCache.clear();
+        await this.populateCardsCache();
+        this.resources.changed();
+      });
     }
   }
 
@@ -866,6 +890,15 @@ export class Project extends CardContainer {
    */
   public get paths(): ProjectPaths {
     return this.projectPaths;
+  }
+
+  /**
+   * Initialize git repo for autocommit mode. No-op if autocommit is disabled.
+   */
+  public async initializeGit(): Promise<void> {
+    if (this.gitManager) {
+      await this.gitManager.initialize();
+    }
   }
 
   /**
