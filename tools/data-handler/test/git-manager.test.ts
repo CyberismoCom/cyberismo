@@ -83,9 +83,8 @@ describe('GitManager', () => {
     });
 
     it('should use author when provided', async () => {
-      const gm = new GitManager(dir, {
-        author: { name: 'Test User', email: 'test@example.com' },
-      });
+      const author = { name: 'Test User', email: 'test@example.com' };
+      const gm = new GitManager(dir, { author });
       await gm.initialize();
 
       await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');

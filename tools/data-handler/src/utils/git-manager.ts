@@ -26,7 +26,9 @@ export class GitManager {
     projectPath: string,
     private options: GitManagerOptions = {},
   ) {
-    this.git = simpleGit(projectPath);
+    this.git = simpleGit(projectPath, {
+      config: ['user.name=Cyberismo Bot', 'user.email=bot@cyberismo.com'],
+    });
   }
 
   /** Ensure the project is a git repo. Idempotent. */
@@ -36,9 +38,14 @@ export class GitManager {
       await this.git.init();
       // Initial commit so rollback has a baseline
       await this.git.add('.');
-      await this.git.commit('Initial commit', undefined, {
+      const commitOpts: Record<string, string | null> = {
         '--allow-empty': null,
-      });
+      };
+      if (this.options.author) {
+        commitOpts['--author'] =
+          `${this.options.author.name} <${this.options.author.email}>`;
+      }
+      await this.git.commit('Initial commit', undefined, commitOpts);
       this.logger.info('New repo created with baseline commit');
     } else {
       this.logger.debug('Repo already exists');
