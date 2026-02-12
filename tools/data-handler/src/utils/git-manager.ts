@@ -47,10 +47,6 @@ export class GitManager {
 
   /** Commit current changes (cardRoot + .cards). */
   async commit(message: string = 'Autocommit'): Promise<void> {
-    this.logger.debug(
-      new Error('commit() call trace').stack,
-      'Commit called from',
-    );
     // Stage only the directories we care about
     this.logger.debug('Staging changes');
     await this.git.add(['cardRoot', '.cards']);
