@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { Cmd, Commands } from '../src/command-handler.js';
+import { Cmd, Commands, CommandManager } from '../src/command-handler.js';
 import { copyDir, deleteDir, resolveTilde } from '../src/utils/file-utils.js';
 import { DefaultContent } from '../src/resources/create-defaults.js';
 import { FieldTypeResource } from '../src/resources/field-type-resource.js';
@@ -217,6 +217,32 @@ describe('create command', () => {
         'decision/fieldTypes/admins',
       );
     }
+  });
+  it('card with parent returns root cards sorted first by rank', async () => {
+    const parentCard = 'decision_5';
+    const templateName = 'decision/templates/simplepage';
+    const commands = new CommandManager(decisionRecordsPath, {
+      autoSaveConfiguration: false,
+    });
+    await commands.initialize();
+    const createdCards = await commands.createCmd.createCard(
+      templateName,
+      parentCard,
+    );
+    // simplepage template has 2 root cards + 1 child = 3 cards total
+    expect(createdCards.length).to.equal(3);
+
+    // First two cards should be the root-level template cards (parented under decision_5)
+    expect(createdCards[0].parent).to.equal(parentCard);
+    expect(createdCards[1].parent).to.equal(parentCard);
+
+    // Root cards should be sorted by rank
+    const rank0 = createdCards[0].metadata?.rank || '';
+    const rank1 = createdCards[1].metadata?.rank || '';
+    expect(rank0 < rank1).to.equal(true);
+
+    // Third card should be the child card (not parented under decision_5)
+    expect(createdCards[2].parent).to.not.equal(parentCard);
   });
 
   it('card incorrect template name', async () => {
