@@ -26,7 +26,9 @@ declare module 'hono' {
  * Create authentication middleware from an AuthProvider.
  * Validates the user and attaches user info to the context.
  */
-export function createAuthMiddleware(provider: AuthProvider): MiddlewareHandler {
+export function createAuthMiddleware(
+  provider: AuthProvider,
+): MiddlewareHandler {
   return async (c, next) => {
     const user = await provider.authenticate(c.req.raw);
 
