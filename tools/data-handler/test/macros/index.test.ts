@@ -749,7 +749,6 @@ Some content here`;
             'This is test content for the included card.',
           );
         });
-
       });
       describe('escape option', () => {
         ['static', 'inject', 'staticSite'].forEach((mode) => {
@@ -828,7 +827,9 @@ Some content here`;
               children: [],
               attachments: [],
             };
-            cardDetailsByIdStub.withArgs('csv-multi-quote-card').returns(csvCard);
+            cardDetailsByIdStub
+              .withArgs('csv-multi-quote-card')
+              .returns(csvCard);
 
             const macro = `{{#include}}"cardKey": "csv-multi-quote-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
             const result = await evaluateMacros(macro, {
@@ -871,7 +872,6 @@ Some content here`;
           // No escaping should occur
           expect(result).to.equal('Content with "quotes" and newline\nhere');
         });
-
       });
     });
     describe('xrefMacro', () => {
