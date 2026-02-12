@@ -13,9 +13,8 @@
 
 import { Hono } from 'hono';
 import { getCurrentUser } from '../../middleware/auth.js';
-import type { AuthProvider } from '../../auth/types.js';
 
-export function createAuthRouter(provider: AuthProvider) {
+export function createAuthRouter() {
   const router = new Hono();
 
   /**
@@ -30,14 +29,6 @@ export function createAuthRouter(provider: AuthProvider) {
     }
 
     return c.json(user);
-  });
-
-  /**
-   * GET /api/auth/config
-   * Returns the authentication configuration
-   */
-  router.get('/config', async (c) => {
-    return c.json(provider.getConfig());
   });
 
   return router;

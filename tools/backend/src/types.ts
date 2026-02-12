@@ -156,16 +156,6 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
 };
 
 /**
- * Authentication modes
- * - idp: Use external Identity Provider (OIDC/OAuth2)
- * - mock: Use mock authentication for CLI/local development (gives full rights)
- */
-export enum AuthMode {
-  IdP = 'idp',
-  Mock = 'mock',
-}
-
-/**
  * User information returned by the /me endpoint
  */
 export interface UserInfo {

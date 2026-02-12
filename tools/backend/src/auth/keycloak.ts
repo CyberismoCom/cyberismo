@@ -13,9 +13,9 @@
 
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { JWTPayload } from 'jose';
-import { AuthMode, UserRole, RolePermissions } from '../types.js';
+import { UserRole, RolePermissions } from '../types.js';
 import type { UserInfo } from '../types.js';
-import type { AuthProvider, AuthConfig } from './types.js';
+import type { AuthProvider } from './types.js';
 
 export interface KeycloakConfig {
   issuer: string;
@@ -82,14 +82,6 @@ export class KeycloakAuthProvider implements AuthProvider {
     } catch {
       return null;
     }
-  }
-
-  getConfig(): AuthConfig {
-    return {
-      mode: AuthMode.IdP,
-      issuer: this.issuer,
-      clientId: this.audience,
-    };
   }
 
   private mapRole(roles?: string[]): UserRole {

@@ -11,9 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { AuthMode, UserRole, RolePermissions } from '../types.js';
+import { UserRole, RolePermissions } from '../types.js';
 import type { UserInfo } from '../types.js';
-import type { AuthProvider, AuthConfig } from './types.js';
+import type { AuthProvider } from './types.js';
 
 export interface MockUserConfig {
   name?: string;
@@ -37,7 +37,4 @@ export class MockAuthProvider implements AuthProvider {
     };
   }
 
-  getConfig(): AuthConfig {
-    return { mode: AuthMode.Mock };
-  }
 }

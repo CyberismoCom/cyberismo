@@ -68,7 +68,7 @@ export function createApp(
   app.use('/api/*', createAuthMiddleware(authProvider));
 
   // Wire up routes
-  app.route('/api/auth', createAuthRouter(authProvider));
+  app.route('/api/auth', createAuthRouter());
 
   // Mount routers
   app.route('/api/calculations', calculationsRouter);

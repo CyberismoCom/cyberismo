@@ -11,15 +11,8 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import type { AuthMode, UserInfo } from '../types.js';
-
-export interface AuthConfig {
-  mode: AuthMode;
-  issuer?: string;
-  clientId?: string;
-}
+import type { UserInfo } from '../types.js';
 
 export interface AuthProvider {
   authenticate(req: Request): Promise<UserInfo | null>;
-  getConfig(): AuthConfig;
 }

@@ -11,7 +11,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export type { AuthProvider, AuthConfig } from './types.js';
+export type { AuthProvider } from './types.js';
 export { MockAuthProvider } from './mock.js';
 export { KeycloakAuthProvider } from './keycloak.js';
 export type { KeycloakConfig } from './keycloak.js';
