@@ -24,13 +24,9 @@ import { sortCards } from '../utils/card-utils.js';
 import { Validate } from '../commands/validate.js';
 
 import type { Card } from '../interfaces/project-interfaces.js';
-import type { Operation } from './resource-object.js';
 import type { Project } from '../containers/project.js';
 import type { ReportContent } from '../interfaces/folder-content-interfaces.js';
-import type {
-  ReportMetadata,
-  UpdateKey,
-} from '../interfaces/resource-interfaces.js';
+import type { ReportMetadata } from '../interfaces/resource-interfaces.js';
 import type { ResourceName } from '../utils/resource-utils.js';
 
 const PARAMETER_SCHEMA_ID = 'jsonSchema';
@@ -118,26 +114,6 @@ export class ReportResource extends FolderResource<
     const existingName = this.content.name;
     await super.rename(newName);
     return this.onNameChange(existingName);
-  }
-
-  /**
-   * Updates report resource.
-   * @param updateKey Key to modify
-   * @param op Operation to perform on 'key'
-   */
-  public async update<Type, K extends string>(
-    updateKey: UpdateKey<K>,
-    op: Operation<Type>,
-  ) {
-    if (updateKey.key === 'category') {
-      const content = structuredClone(this.content);
-      content.category = super.handleScalar(op) as string;
-
-      await super.postUpdate(content, updateKey, op);
-      return;
-    }
-
-    await super.update(updateKey, op);
   }
 
   /**

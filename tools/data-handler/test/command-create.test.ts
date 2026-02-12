@@ -1044,6 +1044,23 @@ describe('create command', () => {
     expect(defaultContent.displayName).to.equal('');
     expect(defaultContent.category).to.equal(undefined);
   });
+  it('should create workflow without category', async () => {
+    const workflowName = 'workflowWithoutCategory';
+    const result = await commandHandler.command(
+      Cmd.create,
+      ['workflow', workflowName, ''],
+      optionsMini,
+    );
+    expect(result.statusCode).to.equal(200);
+
+    const project = getTestProject(minimalPath);
+    await project.populateCaches();
+    const workflow = project.resources.byType(
+      `mini/workflows/${workflowName}`,
+      'workflows',
+    );
+    expect(workflow.data?.category).to.equal(undefined);
+  });
   it('access default parameters for workflow (success)', () => {
     const defaultContent = DefaultContent.workflow('test');
     expect(defaultContent.name).to.equal('test');

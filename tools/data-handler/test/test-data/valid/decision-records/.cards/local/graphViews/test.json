@@ -1,6 +1,5 @@
 {
     "displayName": "Test graph view",
     "description": "This would be description...",
-    "category": "None",
     "name": "decision/graphViews/test"
 }
