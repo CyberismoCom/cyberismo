@@ -1,4 +1,5 @@
 import { beforeEach, afterEach, describe, expect, test } from 'vitest';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
@@ -18,7 +19,8 @@ let tempTestDataPath: string;
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('module-test');
-  app = createApp(tempTestDataPath);
+  const commands = await CommandManager.getInstance(tempTestDataPath);
+  app = createApp(commands);
 });
 
 afterEach(async () => {

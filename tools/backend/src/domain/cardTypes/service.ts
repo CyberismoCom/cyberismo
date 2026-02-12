@@ -107,9 +107,7 @@ export async function updateFieldVisibility(
   }
 
   // Different group - need to remove from old and add to new
-  let removedFromOld = false;
-
-  try {
+  await commands.atomic(async () => {
     // Remove from current group (if not hidden)
     if (currentGroup !== 'hidden') {
       await commands.updateCmd.applyResourceOperation(
@@ -122,7 +120,6 @@ export async function updateFieldVisibility(
           target: fieldName,
         },
       );
-      removedFromOld = true;
     }
 
     // Add to new group (if not hidden)
@@ -153,27 +150,5 @@ export async function updateFieldVisibility(
         );
       }
     }
-  } catch (error) {
-    // Attempt rollback if we removed from old group but failed to add to new
-    if (removedFromOld && currentGroup !== 'hidden') {
-      try {
-        await commands.updateCmd.applyResourceOperation(
-          cardTypeName,
-          {
-            key: groupToKey[currentGroup],
-          },
-          {
-            name: 'add',
-            target: fieldName,
-          },
-        );
-      } catch {
-        // Rollback failed - log but throw original error
-        console.error(
-          `Rollback failed for field '${fieldName}' in card type '${cardTypeName}'`,
-        );
-      }
-    }
-    throw error;
-  }
+  });
 }
