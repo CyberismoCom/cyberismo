@@ -650,52 +650,54 @@ Some content here`;
       });
 
       describe('whitespace option', () => {
-        it('includeMacro with whitespace="keep" should preserve whitespace (default behavior)', async () => {
-          const macro = `{{#include}}"cardKey": "test-card", "whitespace": "keep"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+        ['static', 'inject', 'staticSite'].forEach((mode) => {
+          it(`includeMacro with whitespace="keep" should preserve whitespace (default behavior) [${mode}]`, async () => {
+            const macro = `{{#include}}"cardKey": "test-card", "whitespace": "keep"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
+
+            // Default behavior: content should start with newlines
+            expect(result).to.match(/^\n\n/);
+            expect(result).to.contain('= Test Card Title');
+            expect(result).to.contain(
+              'This is test content for the included card.',
+            );
           });
 
-          // Default behavior: content should start with newlines
-          expect(result).to.match(/^\n\n/);
-          expect(result).to.contain('= Test Card Title');
-          expect(result).to.contain(
-            'This is test content for the included card.',
-          );
-        });
+          it(`includeMacro with whitespace="trim" should trim whitespace [${mode}]`, async () => {
+            const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
 
-        it('includeMacro with whitespace="trim" should trim whitespace', async () => {
-          const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+            // Trimmed: content should NOT start with whitespace
+            expect(result).to.not.match(/^\s/);
+            expect(result).to.match(/^\[\[test-card\]\]/);
+            expect(result).to.contain('= Test Card Title');
+            expect(result).to.contain(
+              'This is test content for the included card.',
+            );
           });
 
-          // Trimmed: content should NOT start with whitespace
-          expect(result).to.not.match(/^\s/);
-          expect(result).to.match(/^\[\[test-card\]\]/);
-          expect(result).to.contain('= Test Card Title');
-          expect(result).to.contain(
-            'This is test content for the included card.',
-          );
-        });
+          it(`includeMacro without whitespace option should keep whitespace (default) [${mode}]`, async () => {
+            const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
 
-        it('includeMacro without whitespace option should keep whitespace (default)', async () => {
-          const macro = `{{#include}}"cardKey": "test-card"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+            // Default: content should start with newlines
+            expect(result).to.match(/^\n\n/);
           });
-
-          // Default: content should start with newlines
-          expect(result).to.match(/^\n\n/);
         });
 
         it('includeMacro with whitespace="trim" for JSON-like content', async () => {
@@ -748,9 +750,27 @@ Some content here`;
           );
         });
 
+      });
+      describe('escape option', () => {
         ['static', 'inject', 'staticSite'].forEach((mode) => {
-          it(`includeMacro with whitespace="trim" works in ${mode} mode`, async () => {
-            const macro = `{{#include}}"cardKey": "test-card", "whitespace": "trim"{{/include}}`;
+          it(`includeMacro with escape="json" should escape JSON special characters [${mode}]`, async () => {
+            const jsonCard: Card = {
+              key: 'json-escape-card',
+              path: '',
+              content: 'Content with "quotes" and \\ backslash\nand newline',
+              metadata: {
+                title: 'JSON Escape Card',
+                cardType: '',
+                workflowState: '',
+                rank: '',
+                links: [],
+              },
+              children: [],
+              attachments: [],
+            };
+            cardDetailsByIdStub.withArgs('json-escape-card').returns(jsonCard);
+
+            const macro = `{{#include}}"cardKey": "json-escape-card", "title": "exclude", "whitespace": "trim", "escape": "json"{{/include}}`;
             const result = await evaluateMacros(macro, {
               mode: mode as Mode,
               project: project,
@@ -758,100 +778,69 @@ Some content here`;
               context: 'localApp',
             });
 
-            // Trimmed content should not start with whitespace in any mode
-            expect(result).to.not.match(/^\s/);
-            expect(result).to.contain('= Test Card Title');
-          });
-        });
-      });
-      describe('escape option', () => {
-        it('includeMacro with escape="json" should escape JSON special characters', async () => {
-          const jsonCard: Card = {
-            key: 'json-escape-card',
-            path: '',
-            content: 'Content with "quotes" and \\ backslash\nand newline',
-            metadata: {
-              title: 'JSON Escape Card',
-              cardType: '',
-              workflowState: '',
-              rank: '',
-              links: [],
-            },
-            children: [],
-            attachments: [],
-          };
-          cardDetailsByIdStub.withArgs('json-escape-card').returns(jsonCard);
-
-          const macro = `{{#include}}"cardKey": "json-escape-card", "title": "exclude", "whitespace": "trim", "escape": "json"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+            // JSON escaping: quotes become \", backslash becomes \\, newline becomes \n
+            expect(result).to.equal(
+              'Content with \\"quotes\\" and \\\\ backslash\\nand newline',
+            );
           });
 
-          // JSON escaping: quotes become \", backslash becomes \\, newline becomes \n
-          expect(result).to.equal(
-            'Content with \\"quotes\\" and \\\\ backslash\\nand newline',
-          );
-        });
+          it(`includeMacro with escape="csv" should escape CSV special characters [${mode}]`, async () => {
+            const csvCard: Card = {
+              key: 'csv-escape-card',
+              path: '',
+              content: 'Content with "quotes" inside',
+              metadata: {
+                title: 'CSV Escape Card',
+                cardType: '',
+                workflowState: '',
+                rank: '',
+                links: [],
+              },
+              children: [],
+              attachments: [],
+            };
+            cardDetailsByIdStub.withArgs('csv-escape-card').returns(csvCard);
 
-        it('includeMacro with escape="csv" should escape CSV special characters', async () => {
-          const csvCard: Card = {
-            key: 'csv-escape-card',
-            path: '',
-            content: 'Content with "quotes" inside',
-            metadata: {
-              title: 'CSV Escape Card',
-              cardType: '',
-              workflowState: '',
-              rank: '',
-              links: [],
-            },
-            children: [],
-            attachments: [],
-          };
-          cardDetailsByIdStub.withArgs('csv-escape-card').returns(csvCard);
+            const macro = `{{#include}}"cardKey": "csv-escape-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
 
-          const macro = `{{#include}}"cardKey": "csv-escape-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+            // CSV escaping: quotes become doubled
+            expect(result).to.equal('Content with ""quotes"" inside');
           });
 
-          // CSV escaping: quotes become doubled
-          expect(result).to.equal('Content with ""quotes"" inside');
-        });
+          it(`includeMacro with escape="csv" should handle multiple quotes [${mode}]`, async () => {
+            const csvCard: Card = {
+              key: 'csv-multi-quote-card',
+              path: '',
+              content: '"""triple quotes"""',
+              metadata: {
+                title: 'CSV Multi Quote Card',
+                cardType: '',
+                workflowState: '',
+                rank: '',
+                links: [],
+              },
+              children: [],
+              attachments: [],
+            };
+            cardDetailsByIdStub.withArgs('csv-multi-quote-card').returns(csvCard);
 
-        it('includeMacro with escape="csv" should handle multiple quotes', async () => {
-          const csvCard: Card = {
-            key: 'csv-multi-quote-card',
-            path: '',
-            content: '"""triple quotes"""',
-            metadata: {
-              title: 'CSV Multi Quote Card',
-              cardType: '',
-              workflowState: '',
-              rank: '',
-              links: [],
-            },
-            children: [],
-            attachments: [],
-          };
-          cardDetailsByIdStub.withArgs('csv-multi-quote-card').returns(csvCard);
+            const macro = `{{#include}}"cardKey": "csv-multi-quote-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
+            const result = await evaluateMacros(macro, {
+              mode: mode as Mode,
+              project: project,
+              cardKey: '',
+              context: 'localApp',
+            });
 
-          const macro = `{{#include}}"cardKey": "csv-multi-quote-card", "title": "exclude", "whitespace": "trim", "escape": "csv"{{/include}}`;
-          const result = await evaluateMacros(macro, {
-            mode: 'static',
-            project: project,
-            cardKey: '',
-            context: 'localApp',
+            // Each quote should be doubled
+            expect(result).to.equal('""""""triple quotes""""""');
           });
-
-          // Each quote should be doubled
-          expect(result).to.equal('""""""triple quotes""""""');
         });
 
         it('includeMacro without escape option should not escape content', async () => {
@@ -883,35 +872,6 @@ Some content here`;
           expect(result).to.equal('Content with "quotes" and newline\nhere');
         });
 
-        ['static', 'inject', 'staticSite'].forEach((mode) => {
-          it(`includeMacro with escape="json" works in ${mode} mode`, async () => {
-            const jsonCard: Card = {
-              key: 'json-mode-card',
-              path: '',
-              content: 'Test "content"',
-              metadata: {
-                title: 'JSON Mode Card',
-                cardType: '',
-                workflowState: '',
-                rank: '',
-                links: [],
-              },
-              children: [],
-              attachments: [],
-            };
-            cardDetailsByIdStub.withArgs('json-mode-card').returns(jsonCard);
-
-            const macro = `{{#include}}"cardKey": "json-mode-card", "title": "exclude", "whitespace": "trim", "escape": "json"{{/include}}`;
-            const result = await evaluateMacros(macro, {
-              mode: mode as Mode,
-              project: project,
-              cardKey: '',
-              context: 'localApp',
-            });
-
-            expect(result).to.equal('Test \\"content\\"');
-          });
-        });
       });
     });
     describe('xrefMacro', () => {
