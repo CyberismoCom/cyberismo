@@ -18,6 +18,6 @@ import type { CommandManager } from '@cyberismo/data-handler';
  * @param commands command manager used for the query
  * @returns a list of labels
  */
-export function getLabels(commands: CommandManager): string[] {
-  return commands.showCmd.showLabels().sort();
+export async function getLabels(commands: CommandManager): Promise<string[]> {
+  return (await commands.showCmd.showLabels()).sort();
 }

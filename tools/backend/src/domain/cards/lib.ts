@@ -32,7 +32,7 @@ export async function getCardDetails(
 ): Promise<result> {
   let cardDetailsResponse: Card;
   try {
-    cardDetailsResponse = commands.showCmd.showCardDetails(key);
+    cardDetailsResponse = await commands.showCmd.showCardDetails(key);
   } catch {
     return { status: 400, message: `Card ${key} not found from project` };
   }

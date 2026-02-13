@@ -76,7 +76,7 @@ describe('move command', () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const fetchCmd = new Fetch(project);
-    const cards = new Show(project, fetchCmd).showProjectCards();
+    const cards = await new Show(project, fetchCmd).showProjectCards();
 
     // Use the card created in beforeEach
     const sourceId = cards[cards.length - 1].key;
@@ -92,7 +92,7 @@ describe('move command', () => {
     const project = getTestProject(options.projectPath!);
     await project.populateCaches();
     const fetchCmd = new Fetch(project);
-    const cards = new Show(project, fetchCmd).showProjectCards();
+    const cards = await new Show(project, fetchCmd).showProjectCards();
     expect(cards.length).to.be.greaterThanOrEqual(2);
 
     const sourceId = cards[cards.length - 1].key;

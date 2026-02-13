@@ -5,11 +5,13 @@ import { SCHEMA_VERSION } from '@cyberismo/assets';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Project } from '../src/containers/project.js';
+import { RWLock } from '../src/utils/rw-lock.js';
 
 // Mock Project for testing
 class MockProject {
   basePath = '/test/path';
   configuration = { schemaVersion: 1 };
+  lock = new RWLock();
 
   async runMigrations(
     fromVersion?: number,

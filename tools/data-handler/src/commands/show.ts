@@ -48,6 +48,7 @@ import type { ResourceName } from '../utils/resource-utils.js';
 import type { ResourceMap } from '../containers/project/resource-cache.js';
 
 import { UserPreferences } from '../utils/user-preferences.js';
+import { read, write } from '../utils/rw-lock.js';
 import ReportMacro from '../macros/report/index.js';
 import TaskQueue from '../macros/task-queue.js';
 import { evaluateMacros } from '../macros/index.js';
@@ -146,10 +147,13 @@ export class Show {
    * Shows all template cards in a project.
    * @returns all template cards in a project.
    */
-  public showAllTemplateCards(): {
-    name: string;
-    cards: CardWithChildrenCards[];
-  }[] {
+  @read
+  public async showAllTemplateCards(): Promise<
+    {
+      name: string;
+      cards: CardWithChildrenCards[];
+    }[]
+  > {
     return this.project.resources.templates().map((template) => {
       const cards = template.templateObject().listCards();
       const buildCards = buildCardHierarchy(cards);
@@ -165,6 +169,7 @@ export class Show {
    * Shows all attachments (either template or project attachments) from a project.
    * @returns array of card attachments
    */
+  @read
   public async showAttachments(): Promise<CardAttachment[]> {
     const attachments = this.project.attachments();
     const templateAttachments = await this.attachmentsFromTemplates();
@@ -178,7 +183,11 @@ export class Show {
    * @param filename attachment filename
    * @returns attachment details
    */
-  public showAttachment(cardKey: string, filename: string): attachmentPayload {
+  @read
+  public async showAttachment(
+    cardKey: string,
+    filename: string,
+  ): Promise<attachmentPayload> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
@@ -203,6 +212,7 @@ export class Show {
    * @param waitDelay amount of time to wait for the application to open the attachment
    * @todo: Move away from Show.
    */
+  @read
   public async openAttachment(
     cardKey: string,
     filename: string,
@@ -259,10 +269,11 @@ export class Show {
    * @param contentType Content format in which content is to be shown
    * @returns card details
    */
-  public showCardDetails(
+  @read
+  public async showCardDetails(
     cardKey?: string,
     contentType?: FileContentType,
-  ): Card {
+  ): Promise<Card> {
     if (!cardKey) {
       throw new Error(`Mandatory parameter 'cardKey' missing`);
     }
@@ -285,6 +296,7 @@ export class Show {
    * @param cardsFrom - The location from which to look for cards. Either from the project, templates or both.
    * @returns cards list array
    */
+  @read
   public async showCards(
     cardsFrom?: CardLocation,
   ): Promise<CardListContainer[]> {
@@ -296,6 +308,7 @@ export class Show {
    * @param cardKey The key of the card.
    * @returns the content of the logic program.
    */
+  @read
   public async showCardLogicProgram(cardKey: string) {
     return this.project.calculationEngine.cardLogicProgram(cardKey);
   }
@@ -304,6 +317,7 @@ export class Show {
    * Shows all card types in a project.
    * @returns array of card type details
    */
+  @read
   public async showCardTypesWithDetails(): Promise<(CardType | undefined)[]> {
     const container = [];
     for (const cardType of this.project.resources.cardTypes()) {
@@ -324,6 +338,7 @@ export class Show {
    *          with 'showAll' true, the list consists of all modules in the hubs, even if they have already been imported
    *          Note that the two boolean options can be combined.
    */
+  @write
   public async showImportableModules(
     showAll?: boolean,
     showDetails?: boolean,
@@ -368,7 +383,8 @@ export class Show {
    * Returns all unique labels in a project
    * @returns labels in a list
    */
-  public showLabels(): string[] {
+  @read
+  public async showLabels(): Promise<string[]> {
     const cards = flattenCardArray(
       this.project.showProjectCards(),
       this.project,
@@ -384,6 +400,7 @@ export class Show {
    * @param resource Name of the resource.
    * @returns the content of the logic program.
    */
+  @read
   public async showLogicProgram(resource: ResourceName) {
     return this.project.calculationEngine.resourceLogicProgram(resource);
   }
@@ -393,6 +410,7 @@ export class Show {
    * @param moduleName name of a module
    * @returns details of a module.
    */
+  @read
   public async showModule(moduleName: string): Promise<ModuleContent> {
     const moduleDetails = await this.project.module(moduleName);
     if (!moduleDetails) {
@@ -405,6 +423,7 @@ export class Show {
    * Shows hubs of the project.
    * @returns list of hubs.
    */
+  @write
   public async showHubs(): Promise<HubSetting[]> {
     // Ensure module list is up to date before showing
     await this.fetchCmd.ensureModuleListUpToDate();
@@ -415,7 +434,8 @@ export class Show {
    * Returns all project cards in the project. Cards don't have content and nor metadata.
    * @returns array of cards
    */
-  public showProjectCards(): Card[] {
+  @read
+  public async showProjectCards(): Promise<Card[]> {
     return this.project.showProjectCards();
   }
 
@@ -423,7 +443,8 @@ export class Show {
    * Shows all modules (if any) in a project.
    * @returns all modules in a project.
    */
-  public showModules(): string[] {
+  @read
+  public async showModules(): Promise<string[]> {
     return this.project.resources.moduleNames().sort();
   }
 
@@ -431,6 +452,7 @@ export class Show {
    * Shows details of a particular project.
    * @returns project information
    */
+  @read
   public async showProject(): Promise<ProjectMetadata> {
     return this.project.show();
   }
@@ -445,6 +467,7 @@ export class Show {
    * @returns Report results as a string
    * @throws Error if the report does not exist
    */
+  @read
   public async showReportResults(
     reportName: string,
     cardKey: string,
@@ -515,29 +538,31 @@ export class Show {
     arg2?: boolean | ResourceType,
     arg3?: boolean,
   ): Promise<AnyResourceContent> {
-    const hasResourceType = typeof arg2 === 'string';
-    const resourceType = hasResourceType ? arg2 : null;
-    const showUse = hasResourceType ? arg3 : arg2;
+    return this.project.lock.read(async () => {
+      const hasResourceType = typeof arg2 === 'string';
+      const resourceType = hasResourceType ? arg2 : null;
+      const showUse = hasResourceType ? arg3 : arg2;
 
-    const type = this.project.resources.extractType(name);
-    if (resourceType !== null && resourceType !== type) {
-      throw new Error(
-        `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
-      );
-    }
-    const resource = this.project.resources.byType(name, type);
-    const [details, usage] = await Promise.all([
-      resource?.show(),
-      showUse ? resource?.usage() : [],
-    ]);
-    if (showUse) {
-      return {
-        ...details,
-        usedIn: [...usage],
-      };
-    } else {
-      return details;
-    }
+      const type = this.project.resources.extractType(name);
+      if (resourceType !== null && resourceType !== type) {
+        throw new Error(
+          `While fetching '${name}': Expected type '${resourceType}', but got '${type}' instead`,
+        );
+      }
+      const resource = this.project.resources.byType(name, type);
+      const [details, usage] = await Promise.all([
+        resource?.show(),
+        showUse ? resource?.usage() : [],
+      ]);
+      if (showUse) {
+        return {
+          ...details,
+          usedIn: [...usage],
+        };
+      } else {
+        return details;
+      }
+    });
   }
 
   /**
@@ -545,6 +570,7 @@ export class Show {
    * @param type Name of resources to return (in plural form, e.g. 'templates')
    * @returns sorted array of resources
    */
+  @read
   public async showResources(type: string): Promise<string[]> {
     const func = this.resourceFunctions[type];
     if (!func) return [];
@@ -555,6 +581,7 @@ export class Show {
    * Shows all templates with full details in a project.
    * @returns all templates in a project.
    */
+  @read
   public async showTemplatesWithDetails(): Promise<TemplateConfiguration[]> {
     const templates = [];
     for (const template of this.project.resources.templates()) {
@@ -567,7 +594,8 @@ export class Show {
    * Shows all workflows with full details in a project.
    * @returns workflows with full details
    */
-  public showWorkflowsWithDetails(): (Workflow | undefined)[] {
+  @read
+  public async showWorkflowsWithDetails(): Promise<(Workflow | undefined)[]> {
     const workflows = [];
     for (const workflow of this.project.resources.workflows()) {
       workflows.push(workflow.data);

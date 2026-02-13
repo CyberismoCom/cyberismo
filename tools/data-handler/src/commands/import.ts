@@ -14,6 +14,7 @@
 import { ModuleManager } from '../module-manager.js';
 import { readCsvFile } from '../utils/csv.js';
 import { Validate } from './validate.js';
+import { write } from '../utils/rw-lock.js';
 
 import type { Create } from './create.js';
 import type {
@@ -48,6 +49,7 @@ export class Import {
    * @param parentCardKey the cards in the csv file will be created under this card
    * @returns card keys of the imported cards
    */
+  @write
   public async importCsv(
     csvFilePath: string,
     parentCardKey?: string,
@@ -137,6 +139,7 @@ export class Import {
    *        private: If true, uses credentials to clone the repository
    * @param skipMigrationLog If true, skip logging to migration log (used during project creation)
    */
+  @write
   public async importModule(
     source: string,
     destination?: string,
@@ -195,6 +198,7 @@ export class Import {
    * @param credentials Optional credentials for a private module.
    * @throws if module is not part of the project
    */
+  @write
   public async updateModule(moduleName: string, credentials?: Credentials) {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
@@ -212,6 +216,7 @@ export class Import {
    * Updates all imported modules.
    * @param credentials Optional credentials for private modules.
    */
+  @write
   public async updateAllModules(credentials?: Credentials) {
     // Ensure module list is up to date before updating all modules
     await this.fetchCmd.ensureModuleListUpToDate();

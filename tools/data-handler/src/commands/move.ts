@@ -18,6 +18,7 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { copyDir, deleteDir } from '../utils/file-utils.js';
 import type { Card } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
+import { write } from '../utils/rw-lock.js';
 import {
   EMPTY_RANK,
   FIRST_RANK,
@@ -100,6 +101,7 @@ export class Move {
    * @param source source card to move
    * @param destination destination card where source card will be moved to; or to root
    */
+  @write
   public async moveCard(source: string, destination: string) {
     if (source === ROOT) {
       throw new Error('Cannot move "root"');
@@ -238,6 +240,7 @@ export class Move {
    * @param cardKey card key
    * @param index to which position should card be ranked to
    */
+  @write
   public async rankByIndex(cardKey: string, index: number) {
     if (index < 0) {
       throw new Error(`Index must be greater than 0`);
@@ -272,6 +275,7 @@ export class Move {
    * @param cardKey Card to rank
    * @param beforeCardKey Card key after which the card will be ranked
    */
+  @write
   public async rankCard(cardKey: string, beforeCardKey: string) {
     const card = this.project.findCard(cardKey);
     const beforeCard = this.project.findCard(beforeCardKey);
@@ -325,6 +329,7 @@ export class Move {
    * Ranks card first.
    * @param cardKey card key
    */
+  @write
   public async rankFirst(cardKey: string) {
     const card = this.project.findCard(cardKey);
     const children = sortItems(
@@ -370,6 +375,7 @@ export class Move {
    *  Rebalances the ranks of the children of a card.
    * @param parentCardKey parent card key
    */
+  @write
   public async rebalanceChildren(parentCardKey: string) {
     const parentCard = this.project.findCard(parentCardKey);
     if (!parentCard || !parentCard.children) {
@@ -384,6 +390,7 @@ export class Move {
    * Rebalances the ranks of the cards in the whole project, including templates
    * Can be used even if the ranks do not exist
    */
+  @write
   public async rebalanceProject() {
     const cards = this.project.showProjectCards();
 

@@ -17,6 +17,7 @@ import { resolve, sep } from 'node:path';
 import { getChildLogger } from '../utils/log-utils.js';
 import { readJsonFile, writeJsonFile } from '../utils/json.js';
 import { validateJson } from '../utils/validate.js';
+import { write } from '../utils/rw-lock.js';
 
 import type { ModuleSetting } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
@@ -203,6 +204,7 @@ export class Fetch {
   /**
    * Ensures the module list is up to date by fetching if needed.
    */
+  @write
   public async ensureModuleListUpToDate() {
     await this.fetchHubs();
   }
@@ -211,6 +213,7 @@ export class Fetch {
    * Fetches modules from modules hub(s) and writes them to a file.
    * Only fetches if the remote version is newer than the local version.
    */
+  @write
   public async fetchHubs() {
     const needsFetch = await this.fetchModuleList();
     if (!needsFetch) {
