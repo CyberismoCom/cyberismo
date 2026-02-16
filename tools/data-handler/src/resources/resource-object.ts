@@ -782,19 +782,6 @@ export abstract class ResourceObject<
       throw new Error(`Cannot change module resources`);
     }
 
-    // Ensure draft exists before writing (draft-publish model)
-    await this.project.ensureDraftExists();
-
-    // Update resource folder to use writable path (draft if exists)
-    this.resourceFolder = this.project.paths.resourceFolderFor(
-      this.project.configuration.latestVersion,
-      this.type,
-    );
-    this.fileName = join(
-      this.resourceFolder,
-      resourceName(this.content.name).identifier + '.json',
-    );
-
     // Create folder for resources and add correct .schema file.
     await mkdir(this.resourceFolder, { recursive: true });
     await writeJsonFile(
@@ -855,19 +842,6 @@ export abstract class ResourceObject<
         `Cannot delete resource ${resourceNameToString(this.resourceName)}. It is used by: ${usedIn.join(', ')}`,
       );
     }
-
-    // Ensure draft exists before deleting (draft-publish model)
-    await this.project.ensureDraftExists();
-
-    // Update resource folder to use writable path (draft if exists)
-    this.resourceFolder = this.project.paths.resourceFolderFor(
-      this.project.configuration.latestVersion,
-      this.type,
-    );
-    this.fileName = join(
-      this.resourceFolder,
-      resourceName(this.content.name).identifier + '.json',
-    );
 
     await deleteFile(this.fileName);
     this.project.resources.remove(resourceNameToString(this.resourceName));

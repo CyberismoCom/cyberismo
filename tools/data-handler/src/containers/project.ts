@@ -40,7 +40,7 @@ import {
   type ProjectFetchCardDetails,
   type ProjectMetadata,
 } from '../interfaces/project-interfaces.js';
-import { copyDir, pathExists } from '../utils/file-utils.js';
+import { pathExists } from '../utils/file-utils.js';
 import { generateRandomString } from '../utils/random.js';
 import {
   cardPathParts,
@@ -872,52 +872,6 @@ export class Project extends CardContainer {
    */
   public get paths(): ProjectPaths {
     return this.projectPaths;
-  }
-
-  /**
-   * Ensures the latest version folder exists by copying from published version if needed.
-   * The latest version folder is the operating version for all reads and writes.
-   *
-   * @returns true if the folder was created, false if it already existed
-   */
-  public async ensureDraftExists(): Promise<boolean> {
-    const latest = this.configuration.latestVersion;
-    const latestFolder = this.paths.versionedResourcesFolderFor(latest);
-
-    if (existsSync(latestFolder)) {
-      return false;
-    }
-
-    const currentVersion = this.configuration.version;
-    const currentFolder =
-      this.paths.versionedResourcesFolderFor(currentVersion);
-
-    this.logger.info(
-      { currentVersion, latestVersion: latest },
-      'Creating latest version folder from published version',
-    );
-
-    // Copy entire resource folder from published version to latest
-    await mkdir(latestFolder, { recursive: true });
-    await copyDir(currentFolder, latestFolder);
-
-    // Clear migration log — new folder should only track its own changes
-    await writeFile(
-      this.paths.migrationLogFor(latest),
-      '',
-      'utf-8',
-    );
-
-    // Invalidate version cache and refresh resource cache
-    this.configuration.invalidateVersionCache();
-    this.resources.changed();
-
-    this.logger.info(
-      { from: currentVersion, to: latest },
-      'Latest version folder created',
-    );
-
-    return true;
   }
 
   /**
