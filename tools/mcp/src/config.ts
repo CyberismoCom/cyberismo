@@ -14,18 +14,22 @@
 */
 
 import { existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, parse } from 'node:path';
 
 /**
  * Find project root by looking for .cards directory
  */
 function findProjectRoot(startDir: string): string | undefined {
   let currentDir = resolve(startDir);
-  const root = resolve('/');
 
-  while (currentDir !== root) {
+  while (true) {
     if (existsSync(join(currentDir, '.cards'))) {
       return currentDir;
+    }
+
+    const { root } = parse(currentDir);
+    if (currentDir === root) {
+      break;
     }
     currentDir = resolve(currentDir, '..');
   }
