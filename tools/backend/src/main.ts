@@ -54,10 +54,9 @@ function createAuthProvider(): AuthProvider {
   process.exit(1);
 }
 
-const authProvider = createAuthProvider();
-
 if (process.argv.includes('--export')) {
   await exportSite(process.env.npm_config_project_path || '');
 } else {
+  const authProvider = createAuthProvider();
   await startServer(authProvider, process.env.npm_config_project_path || '');
 }
