@@ -108,17 +108,18 @@ describe('MCP Tools via Client', () => {
     expect(content).toHaveProperty('type', 'text');
     const parsed = JSON.parse((content as { text: string }).text);
 
-    expect(parsed.key).toBe('decision_5');
-    expect(parsed.title).toBeDefined();
-    expect(parsed.cardType).toBeDefined();
-    expect(parsed.workflowState).toBeDefined();
-    expect(parsed.rawContent).toBeDefined();
-    expect(parsed.parsedContent).toBeDefined();
-    expect(Array.isArray(parsed.fields)).toBe(true);
-    expect(Array.isArray(parsed.availableTransitions)).toBe(true);
-    expect(Array.isArray(parsed.labels)).toBe(true);
-    expect(Array.isArray(parsed.links)).toBe(true);
-    expect(parsed.deniedOperations).toBeDefined();
+    expect(parsed.success).toBe(true);
+    expect(parsed.card.key).toBe('decision_5');
+    expect(parsed.card.title).toBeDefined();
+    expect(parsed.card.cardType).toBeDefined();
+    expect(parsed.card.workflowState).toBeDefined();
+    expect(parsed.card.rawContent).toBeDefined();
+    expect(parsed.card.parsedContent).toBeDefined();
+    expect(Array.isArray(parsed.card.fields)).toBe(true);
+    expect(Array.isArray(parsed.card.availableTransitions)).toBe(true);
+    expect(Array.isArray(parsed.card.labels)).toBe(true);
+    expect(Array.isArray(parsed.card.links)).toBe(true);
+    expect(parsed.card.deniedOperations).toBeDefined();
   });
 
   test('get_card with raw mode returns basic data', async () => {
@@ -129,7 +130,8 @@ describe('MCP Tools via Client', () => {
 
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content[0] as { text: string }).text);
-    expect(parsed.key).toBe('decision_5');
+    expect(parsed.success).toBe(true);
+    expect(parsed.card.key).toBe('decision_5');
   });
 
   test('get_card returns error for invalid key', async () => {
@@ -151,8 +153,9 @@ describe('MCP Tools via Client', () => {
 
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content[0] as { text: string }).text);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed.success).toBe(true);
+    expect(Array.isArray(parsed.cards)).toBe(true);
+    expect(parsed.cards.length).toBeGreaterThan(0);
   });
 
   test('list_templates returns templates', async () => {
@@ -163,7 +166,8 @@ describe('MCP Tools via Client', () => {
 
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content[0] as { text: string }).text);
-    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed.success).toBe(true);
+    expect(Array.isArray(parsed.templates)).toBe(true);
   });
 
   test('list_labels returns labels array', async () => {
@@ -186,7 +190,8 @@ describe('MCP Tools via Client', () => {
 
     expect(result.isError).toBeFalsy();
     const parsed = JSON.parse((result.content[0] as { text: string }).text);
-    expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.length).toBeGreaterThan(0);
+    expect(parsed.success).toBe(true);
+    expect(Array.isArray(parsed.results)).toBe(true);
+    expect(parsed.results.length).toBeGreaterThan(0);
   });
 });

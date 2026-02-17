@@ -296,25 +296,11 @@ Returns:
       try {
         if (raw) {
           const card = commands.showCmd.showCardDetails(cardKey);
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: JSON.stringify(card, null, 2),
-              },
-            ],
-          };
+          return toolResult({ card });
         }
 
         const rendered = await renderCard(commands, cardKey);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(rendered, null, 2),
-            },
-          ],
-        };
+        return toolResult({ card: rendered });
       } catch (error) {
         return toolError('getting card', error);
       }
@@ -328,14 +314,7 @@ Returns:
     async () => {
       try {
         const tree = await getCardTree(commands);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(tree, null, 2),
-            },
-          ],
-        };
+        return toolResult({ cards: tree });
       } catch (error) {
         return toolError('listing cards', error);
       }
@@ -349,14 +328,7 @@ Returns:
     async () => {
       try {
         const templates = await commands.showCmd.showTemplatesWithDetails();
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(templates, null, 2),
-            },
-          ],
-        };
+        return toolResult({ templates });
       } catch (error) {
         return toolError('listing templates', error);
       }
@@ -715,14 +687,7 @@ Returns:
     async ({ queryName }) => {
       try {
         const results = await commands.calculateCmd.runQuery(queryName);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(results, null, 2),
-            },
-          ],
-        };
+        return toolResult({ results });
       } catch (error) {
         return toolError('running query', error);
       }
@@ -738,14 +703,7 @@ Returns:
     async ({ query }) => {
       try {
         const result = await commands.calculateCmd.runLogicProgram(query);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        return toolResult({ result });
       } catch (error) {
         return toolError('running logic program', error);
       }
