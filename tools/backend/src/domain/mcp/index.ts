@@ -30,13 +30,32 @@ interface McpSession {
 
 const sessions = new Map<string, McpSession>();
 
+/**
+ * Close and remove a session, shutting down both server and transport.
+ * Safe to call multiple times for the same id.
+ * When `skipTransportClose` is true the transport is already closing
+ * (called from onsessionclosed / onclose callbacks).
+ */
+async function destroySession(
+  id: string,
+  skipTransportClose = false,
+): Promise<void> {
+  const session = sessions.get(id);
+  if (!session) return;
+  sessions.delete(id);
+
+  await session.server.close();
+  if (!skipTransportClose) {
+    await session.transport.close?.();
+  }
+}
+
 // Periodic cleanup of expired sessions
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [id, session] of sessions) {
     if (now - session.lastActivity > SESSION_TIMEOUT_MS) {
-      sessions.delete(id);
-      void session.transport.close?.();
+      void destroySession(id);
     }
   }
 }, CLEANUP_INTERVAL_MS);
@@ -52,20 +71,20 @@ router.all('/', async (c) => {
   const commands = c.get('commands');
   const sessionId = c.req.header('mcp-session-id');
 
+  // Handle DELETE before routing to existing session so it always runs cleanup
+  if (c.req.method === 'DELETE') {
+    if (sessionId) {
+      await destroySession(sessionId);
+    }
+    return c.json({ message: 'Session closed' });
+  }
+
   // Handle existing session
   if (sessionId && sessions.has(sessionId)) {
     const session = sessions.get(sessionId)!;
     session.lastActivity = Date.now();
     const response = await session.transport.handleRequest(c.req.raw);
     return response;
-  }
-
-  // Handle DELETE for session cleanup (even without existing session)
-  if (c.req.method === 'DELETE') {
-    if (sessionId) {
-      sessions.delete(sessionId);
-    }
-    return c.json({ message: 'Session closed' });
   }
 
   // Reject new sessions when at capacity
@@ -85,14 +104,14 @@ router.all('/', async (c) => {
       });
     },
     onsessionclosed: (closedSessionId: string) => {
-      sessions.delete(closedSessionId);
+      void destroySession(closedSessionId, true);
     },
   });
 
   transport.onclose = () => {
     const sid = transport.sessionId;
     if (sid) {
-      sessions.delete(sid);
+      void destroySession(sid, true);
     }
   };
 
