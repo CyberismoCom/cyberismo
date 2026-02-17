@@ -13,6 +13,7 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { pathToFileURL } from 'node:url';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CommandManager } from '@cyberismo/data-handler';
 import { getProjectPath } from './config.js';
@@ -59,7 +60,8 @@ export async function startMcpServer(projectPath?: string): Promise<void> {
 }
 
 // Run directly if this is the entry point
-const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isDirectRun) {
   startMcpServer().catch((error) => {
     console.error(
