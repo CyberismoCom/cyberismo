@@ -239,9 +239,14 @@ describe('KeycloakAuthProvider', () => {
       expect(result!.role).toBe(UserRole.Editor);
     });
 
-    it('defaults to Reader for no roles', async () => {
+    it('maps reader role to Reader', async () => {
       const provider = new KeycloakAuthProvider(config);
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(
+        mockVerifyResult({
+          sub: 'u1',
+          realm_access: { roles: ['reader'] },
+        }),
+      );
 
       const result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
@@ -249,7 +254,17 @@ describe('KeycloakAuthProvider', () => {
       expect(result!.role).toBe(UserRole.Reader);
     });
 
-    it('defaults to Reader for unknown roles', async () => {
+    it('errors for no roles', async () => {
+      const provider = new KeycloakAuthProvider(config);
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+
+      const result = await provider.authenticate(
+        makeRequest({ authorization: 'Bearer tok' }),
+      );
+      expect(result).toBeNull();
+    });
+
+    it('errors for unknown roles', async () => {
       const provider = new KeycloakAuthProvider(config);
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
@@ -261,7 +276,7 @@ describe('KeycloakAuthProvider', () => {
       const result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
-      expect(result!.role).toBe(UserRole.Reader);
+      expect(result).toBeNull();
     });
 
     it('admin takes priority over editor', async () => {
