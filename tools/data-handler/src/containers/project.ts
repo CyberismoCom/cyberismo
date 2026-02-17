@@ -56,6 +56,7 @@ import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
+import { RWLock } from '../utils/rw-lock.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
@@ -84,6 +85,7 @@ export interface ProjectOptions {
  * Represents project folder.
  */
 export class Project extends CardContainer {
+  public readonly lock = new RWLock();
   public calculationEngine: CalculationEngine;
   private logger = getChildLogger({ module: 'Project' });
   private projectPaths: ProjectPaths;

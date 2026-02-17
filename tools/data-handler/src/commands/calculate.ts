@@ -14,6 +14,7 @@
 import type { Context } from '../interfaces/project-interfaces.js';
 import type { Project } from '../containers/project.js';
 import type { QueryName, QueryResult } from '../types/queries.js';
+import { read } from '../utils/rw-lock.js';
 
 // Class that calculates with logic program card / project level calculations.
 export class Calculate {
@@ -25,6 +26,7 @@ export class Calculate {
    * @param programs Programs or categories to export
    * @param query Query to export, if not provided, all programs will be exported
    */
+  @read
   public async exportLogicProgram(
     destination: string,
     programs: string[] = ['all'],
@@ -40,6 +42,7 @@ export class Calculate {
   /**
    * Generates a logic program.
    */
+  @read
   public async generate() {
     return this.project.calculationEngine.generate();
   }
@@ -50,6 +53,7 @@ export class Calculate {
    * @param timeout Maximum amount of milliseconds clingraph is allowed to run
    * @returns a base64 encoded image as a string
    */
+  @read
   public async runGraph(model: string, view: string, context: Context) {
     return this.project.calculationEngine.runGraph(model, view, context);
   }
@@ -59,6 +63,7 @@ export class Calculate {
    * @param query Logic program to be run
    * @returns parsed program output
    */
+  @read
   public async runLogicProgram(query: string, context: Context = 'localApp') {
     return this.project.calculationEngine.runLogicProgram(query, context);
   }
@@ -74,6 +79,8 @@ export class Calculate {
     context: Context = 'localApp',
     options?: unknown,
   ): Promise<QueryResult<T>[]> {
-    return this.project.calculationEngine.runQuery(queryName, context, options);
+    return this.project.lock.read(async () =>
+      this.project.calculationEngine.runQuery(queryName, context, options),
+    );
   }
 }

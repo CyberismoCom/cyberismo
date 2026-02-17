@@ -27,9 +27,9 @@ const router = new Hono();
  *       500:
  *         description: Internal server error
  */
-router.get('/', (c) => {
+router.get('/', async (c) => {
   const commands = c.get('commands');
-  const labels = labelsService.getLabels(commands);
+  const labels = await labelsService.getLabels(commands);
   return c.json(labels);
 });
 

@@ -24,6 +24,7 @@ import {
 import { isTemplateCard } from '../utils/card-utils.js';
 import { type Project, ResourcesFrom } from '../containers/project.js';
 import { resourceName } from '../utils/resource-utils.js';
+import { write } from '../utils/rw-lock.js';
 
 const FILE_TYPES_WITH_PREFIX_REFERENCES = ['adoc', 'hbs', 'json', 'lp'];
 
@@ -186,6 +187,7 @@ export class Rename {
    * @throws if trying to rename with current name
    * @param to Card id, or template name
    */
+  @write
   public async rename(to: string) {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);

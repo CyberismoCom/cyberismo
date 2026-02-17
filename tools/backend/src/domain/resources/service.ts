@@ -42,7 +42,7 @@ const resourceTypes: ResourceFolderType[] = [
 
 async function getModules(commands: CommandManager) {
   try {
-    const moduleNames = commands.showCmd.showModules();
+    const moduleNames = await commands.showCmd.showModules();
     return Promise.all(
       moduleNames.map(async (moduleName) => {
         try {
