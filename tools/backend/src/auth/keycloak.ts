@@ -86,7 +86,7 @@ export class KeycloakAuthProvider implements AuthProvider {
 
   private mapRole(roles?: string[]): UserRole {
     if (!roles) {
-      return UserRole.Reader;
+      throw new Error('Token missing realm_access roles');
     }
     if (roles.includes('admin')) {
       return UserRole.Admin;
@@ -94,6 +94,9 @@ export class KeycloakAuthProvider implements AuthProvider {
     if (roles.includes('editor')) {
       return UserRole.Editor;
     }
-    return UserRole.Reader;
+    if (roles.includes('reader')) {
+      return UserRole.Reader;
+    }
+    throw new Error('No recognized role found in token');
   }
 }
