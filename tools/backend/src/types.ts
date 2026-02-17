@@ -26,8 +26,35 @@ export interface TreeOptions {
   cardKey?: string;
 }
 
+/**
+ * User roles - checked directly in middleware
+ * Role hierarchy: Admin > Editor > Reader
+ * - Admin: All operations including configuration
+ * - Editor: Can create, edit, and manage content but not config
+ * - Reader: Can only view content
+ */
+export enum UserRole {
+  Admin = 'admin',
+  Editor = 'editor',
+  Reader = 'reader',
+}
+
+/**
+ * User information returned by the /me endpoint
+ */
+export interface UserInfo {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+}
+
+/**
+ * Extended app variables including authentication info
+ */
 export interface AppVars {
   tree?: TreeOptions;
+  user?: UserInfo;
 }
 
 export type AppContext = Context<{ Variables: AppVars }>;

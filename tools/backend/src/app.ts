@@ -12,7 +12,6 @@
 */
 import { Hono } from 'hono';
 import { staticFrontendDirRelative } from './utils.js';
-import { cors } from 'hono/cors';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { attachCommandManager } from './middleware/commandManager.js';
 import calculationsRouter from './domain/calculations/index.js';
@@ -35,28 +34,32 @@ import { isSSGContext } from 'hono/ssg';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
+import { createAuthRouter } from './domain/auth/index.js';
+import { createAuthMiddleware } from './middleware/auth.js';
+import type { AuthProvider } from './auth/types.js';
 
 /**
  * Create the Hono app for the backend
+ * @param authProvider - Authentication provider
  * @param projectPath - Path to the project
  */
-export function createApp(projectPath?: string, opts?: TreeOptions) {
+export function createApp(
+  authProvider: AuthProvider,
+  projectPath?: string,
+  opts?: TreeOptions,
+) {
   const app = new Hono<{ Variables: AppVars }>();
 
-  app.use('/api', cors());
-
-  app.use(
-    '*',
-    serveStatic({
-      root: staticFrontendDirRelative,
-    }),
-  );
-
   app.use(treeMiddleware(opts));
-  // Attach CommandManager to all requests
-  app.use(attachCommandManager(projectPath));
+  // Apply authentication middleware to all API routes
+  app.use('/api/*', createAuthMiddleware(authProvider));
 
+  // Attach CommandManager to API routes only (after successful auth)
+  app.use('/api/*', attachCommandManager(projectPath));
   // Wire up routes
+  app.route('/api/auth', createAuthRouter());
+
+  // Mount routers
   app.route('/api/calculations', calculationsRouter);
   app.route('/api/cards', cardsRouter);
   app.route('/api/cardTypes', cardTypesRouter);
@@ -72,6 +75,13 @@ export function createApp(projectPath?: string, opts?: TreeOptions) {
   app.route('/api/logicPrograms', logicProgramsRouter);
   app.route('/api/labels', labelsRouter);
   app.route('/api/project', projectRouter);
+
+  app.use(
+    '*',
+    serveStatic({
+      root: staticFrontendDirRelative,
+    }),
+  );
 
   // serve index.html for all other routes
   app.notFound(async (c) => {

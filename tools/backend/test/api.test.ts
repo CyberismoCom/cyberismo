@@ -2,6 +2,7 @@ import { expect, test, beforeAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.js';
+import { MockAuthProvider } from '../src/auth/mock.js';
 import { type QueryResult } from '@cyberismo/data-handler/types/queries';
 import type {
   CardType,
@@ -23,6 +24,7 @@ const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
 
 const app = createApp(
+  new MockAuthProvider(),
   path.resolve(
     dirname,
     '../../data-handler/test/test-data/valid/decision-records',

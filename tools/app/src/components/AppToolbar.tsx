@@ -35,6 +35,7 @@ import {
 import type { ResourceName } from '@/lib/constants';
 import { RESOURCES } from '@/lib/constants';
 import { ThemeModeToggle } from './ThemeModeToggle';
+import UserMenu from './UserMenu';
 
 interface AppToolbarProps {
   onCreate: (resourceType?: ResourceName) => void;
@@ -151,6 +152,7 @@ export default function AppToolbar({ onCreate }: AppToolbarProps) {
       {!config.staticMode && (
         <CreateButton type={inCards ? 'Card' : 'Resource'} onClick={onCreate} />
       )}
+      <UserMenu />
     </Stack>
   );
 }

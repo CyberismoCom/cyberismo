@@ -17,6 +17,8 @@ import { getCardDetails } from './lib.js';
 import * as cardService from './service.js';
 import { isSSGContext, ssgParams } from 'hono/ssg';
 import type { AppContext } from '../../types.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -34,7 +36,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set.
  */
-router.get('/', async (c) => {
+router.get('/', requireRole(UserRole.Reader), async (c) => {
   const commands = c.get('commands');
 
   try {
@@ -75,6 +77,7 @@ router.get('/', async (c) => {
  */
 router.get(
   '/:key',
+  requireRole(UserRole.Reader),
   ssgParams(async (c: AppContext) => {
     const commands = c.get('commands');
     const opts = c.get('tree');
@@ -144,7 +147,7 @@ router.get(
  *       500:
  *         description: project_path not set.
  */
-router.patch('/:key', async (c) => {
+router.patch('/:key', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   if (!key) {
@@ -201,7 +204,7 @@ router.patch('/:key', async (c) => {
  *       500:
  *         description: project_path not set.
  */
-router.delete('/:key', async (c) => {
+router.delete('/:key', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   if (!key) {
@@ -244,7 +247,7 @@ router.delete('/:key', async (c) => {
  *       500:
  *         description: project_path not set
  */
-router.post('/:key', async (c) => {
+router.post('/:key', requireRole(UserRole.Editor), async (c) => {
   const key = c.req.param('key');
   if (!key) {
     return c.text('No search key', 400);
@@ -300,7 +303,7 @@ router.post('/:key', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments', async (c) => {
+router.post('/:key/attachments', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
 
@@ -354,25 +357,33 @@ router.post('/:key/attachments', async (c) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/attachments/:filename', async (c) => {
-  const commands = c.get('commands');
-  const { key, filename } = c.req.param();
+router.delete(
+  '/:key/attachments/:filename',
+  requireRole(UserRole.Editor),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, filename } = c.req.param();
 
-  try {
-    const result = await cardService.removeAttachment(commands, key, filename);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to remove attachment',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.removeAttachment(
+        commands,
+        key,
+        filename,
+      );
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to remove attachment',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -398,23 +409,29 @@ router.delete('/:key/attachments/:filename', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/attachments/:filename/open', async (c) => {
-  const commands = c.get('commands');
-  const { key, filename } = c.req.param();
+router.post(
+  '/:key/attachments/:filename/open',
+  requireRole(UserRole.Reader),
+  async (c) => {
+    const commands = c.get('commands');
+    const { key, filename } = c.req.param();
 
-  try {
-    const result = await cardService.openAttachment(commands, key, filename);
-    return c.json(result);
-  } catch (error) {
-    return c.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to open attachment',
-      },
-      500,
-    );
-  }
-});
+    try {
+      const result = await cardService.openAttachment(commands, key, filename);
+      return c.json(result);
+    } catch (error) {
+      return c.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to open attachment',
+        },
+        500,
+      );
+    }
+  },
+);
 
 /**
  * @swagger
@@ -443,7 +460,7 @@ router.post('/:key/attachments/:filename/open', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/parse', async (c) => {
+router.post('/:key/parse', requireRole(UserRole.Reader), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   const { content } = await c.req.json();
@@ -497,7 +514,7 @@ router.post('/:key/parse', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/:key/links', async (c) => {
+router.post('/:key/links', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   const { toCard, linkType, description } = await c.req.json();
@@ -556,7 +573,7 @@ router.post('/:key/links', async (c) => {
  *       500:
  *         description: Server error
  */
-router.delete('/:key/links', async (c) => {
+router.delete('/:key/links', requireRole(UserRole.Editor), async (c) => {
   const commands = c.get('commands');
   const key = c.req.param('key');
   const { toCard, linkType, description } = await c.req.json();
@@ -610,6 +627,7 @@ router.delete('/:key/links', async (c) => {
  */
 router.get(
   '/:key/a/:attachment',
+  requireRole(UserRole.Reader),
   ssgParams(async (c: Context) => {
     const commands = c.get('commands');
     return await cardService.findRelevantAttachments(commands, c.get('tree'));

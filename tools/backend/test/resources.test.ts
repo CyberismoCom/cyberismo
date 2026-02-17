@@ -1,5 +1,6 @@
 import { expect, test, beforeAll, afterAll } from 'vitest';
 import { createApp } from '../src/app.js';
+import { MockAuthProvider } from '../src/auth/mock.js';
 import { cleanupTempTestData, createTempTestData } from './test-utils.js';
 
 let app: ReturnType<typeof createApp>;
@@ -13,7 +14,7 @@ interface CardTypeResponse {
 
 beforeAll(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
-  app = createApp(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), tempTestDataPath);
 });
 
 afterAll(async () => {

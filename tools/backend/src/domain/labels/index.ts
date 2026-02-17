@@ -13,6 +13,8 @@
 
 import { Hono } from 'hono';
 import * as labelsService from './service.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -27,7 +29,8 @@ const router = new Hono();
  *       500:
  *         description: Internal server error
  */
-router.get('/', async (c) => {
+
+router.get('/', requireRole(UserRole.Reader), async (c) => {
   const commands = c.get('commands');
   const labels = await labelsService.getLabels(commands);
   return c.json(labels);

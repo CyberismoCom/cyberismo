@@ -18,6 +18,10 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { findFreePort } from './utils.js';
 import { createApp } from './app.js';
+import type { AuthProvider } from './auth/types.js';
+export { MockAuthProvider } from './auth/mock.js';
+export type { MockUserConfig } from './auth/mock.js';
+export type { AuthProvider } from './auth/types.js';
 export { exportSite } from './export.js';
 
 const DEFAULT_PORT = 3000;
@@ -47,10 +51,12 @@ export async function previewSite(dir: string, findPort: boolean = true) {
 
 /**
  * Start the server
+ * @param authProvider - Authentication provider
  * @param projectPath - Path to the project
  * @param findPort - If true, find a free port
  */
 export async function startServer(
+  authProvider: AuthProvider,
   projectPath?: string,
   findPort: boolean = true,
 ) {
@@ -59,7 +65,7 @@ export async function startServer(
   if (findPort) {
     port = await findFreePort(port, DEFAULT_MAX_PORT);
   }
-  const app = createApp(projectPath);
+  const app = createApp(authProvider, projectPath);
   startApp(app, port);
 }
 

@@ -131,6 +131,7 @@ export const apiPaths = {
   validateResource: (resourceName: string) =>
     `/api/resources/${resourceName}/validate`,
   project: () => '/api/project',
+  user: () => '/api/auth/me',
   projectModulesUpdate: () => '/api/project/modules/update',
   projectModuleUpdate: (module: string) =>
     `/api/project/modules/${encodeURIComponent(module)}/update`,
