@@ -15,7 +15,7 @@
 import type {
   Migration,
   MigrationContext,
-  MigrationResult,
+  MigrationStepResult,
 } from '../migration-interfaces.js';
 
 /**
@@ -34,7 +34,7 @@ const migration: Migration = {
    * @param context Migration context
    * @returns Migration result
    */
-  async migrate(context: MigrationContext): Promise<MigrationResult> {
+  async migrate(context: MigrationContext): Promise<MigrationStepResult> {
     console.log(
       `Migrating from schema version ${context.fromVersion} to ${context.toVersion}`,
     );
@@ -46,7 +46,6 @@ const migration: Migration = {
       success: true,
       message:
         'Schema updated to version 2: support for "category" and "description" fields in project configuration',
-      stepsExecuted: ['Schema version incremented'],
     };
   },
 };

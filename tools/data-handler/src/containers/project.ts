@@ -21,7 +21,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -56,8 +56,9 @@ import { Validate } from '../commands/validate.js';
 import { ContentWatcher } from './project/project-content-watcher.js';
 import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
+import { MigrationPlayer } from '../utils/migration-player.js';
 
-import type { MigrationResult } from '@cyberismo/migrations';
+import type { MigrationStepResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
 
 import { ROOT } from '../utils/constants.js';
@@ -127,13 +128,16 @@ export class Project extends CardContainer {
     // Watch changes in .cards if there are multiple instances of Project being
     // run concurrently.
     if (this.options.watchResourceChanges) {
+      const watchFolder = this.paths.versionedResourcesFolderFor(
+        this.configuration.latestVersion,
+      );
       this.resourceWatcher = new ContentWatcher(
         ignoreRenameFileChanges,
-        this.paths.resourcesFolder,
+        watchFolder,
         (fileName: string) => {
           void (async () => {
             this.resources.handleFileSystemChange(
-              join(this.paths.resourcesFolder, fileName),
+              join(watchFolder, fileName),
             );
             this.resources.changed();
           })();
@@ -677,6 +681,7 @@ export class Project extends CardContainer {
             private: module.private,
           },
         },
+        this.configuration.latestVersion,
       );
     }
     this.logger.info(`Imported module '${module.name}'`);
@@ -771,6 +776,7 @@ export class Project extends CardContainer {
       return {
         name: moduleConfig.name,
         description: moduleConfig.description || '',
+        version: moduleConfig.version || 1,
         modules: moduleConfig.modules,
         hubs: moduleConfig.hubs,
         path: modulePath,
@@ -975,6 +981,7 @@ export class Project extends CardContainer {
       ConfigurationOperation.MODULE_REMOVE,
       moduleName,
       {},
+      this.configuration.latestVersion,
     );
 
     this.logger.info(`Removed module '${moduleName}'`);
@@ -992,33 +999,20 @@ export class Project extends CardContainer {
    * Run migrations to bring project schema to target version.
    * @param fromVersion Current schema version
    * @param toVersion Target schema version
-   * @param backupDir Optional directory for backups. If undefined, no backup is created.
-   * @param timeoutMilliSeconds Optional timeout in milliseconds. If undefined, uses default (2 minutes).
    * @returns Migration result
    */
   public async runMigrations(
     fromVersion: number,
     toVersion: number,
-    backupDir?: string,
-    timeoutMilliSeconds?: number,
-  ): Promise<MigrationResult> {
+  ): Promise<MigrationStepResult> {
     this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
 
-    const executor = new MigrationExecutor(
-      this,
-      backupDir,
-      timeoutMilliSeconds,
-    );
-    const result = await executor.migrate(
-      fromVersion,
-      toVersion,
-      async (version: number) => {
-        this.settings.schemaVersion = version;
-        await this.settings.save();
-      },
-    );
+    const executor = new MigrationExecutor(this);
+    const result = await executor.migrate(fromVersion, toVersion);
 
     if (result.success) {
+      // Reload settings from disk to reflect changes made by migrations
+      this.settings.reload();
       this.logger.info(
         { fromVersion, toVersion },
         'Migration completed successfully',
@@ -1034,6 +1028,24 @@ export class Project extends CardContainer {
   }
 
   /**
+   * Replay the current version's migration log to apply transient side-effects.
+   * This is useful after module updates where the consumer project needs to
+   * apply transient effects from resource changes.
+   */
+  public async migrate(): Promise<void> {
+    const player = new MigrationPlayer(this);
+    await player.replayVersion(this.configuration.version);
+  }
+
+  /**
+   * Accessor for validator.
+   * @returns Validator instance.
+   */
+  public get projectValidator(): Validate {
+    return this.validator;
+  }
+
+  /**
    * Shows details of a project.
    * @returns details of a project.
    */
@@ -1044,6 +1056,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
+      version: this.configuration.version,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

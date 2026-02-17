@@ -315,6 +315,7 @@ describe('Resource cache', () => {
         testProjectPath,
         '.cards',
         'local',
+        '1',
         'workflows',
         'testWorkflowToDelete.json',
       );
