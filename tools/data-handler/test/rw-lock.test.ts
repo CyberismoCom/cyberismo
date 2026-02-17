@@ -1,15 +1,7 @@
 import { expect } from 'chai';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
-
-// Helper to create a deferred promise latch
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let res!: () => void;
-  const promise = new Promise<void>((resolve) => {
-    res = resolve;
-  });
-  return { promise, resolve: res };
-}
+import { deferred } from './test-utils.js';
 
 describe('RWLock', () => {
   describe('basic read/write', () => {

@@ -12,6 +12,7 @@
 
 import type { Context, MiddlewareHandler } from 'hono';
 import type { CommandManager } from '@cyberismo/data-handler';
+import { getCurrentUser } from './auth.js';
 
 // Extend Hono Context type to include our custom properties
 declare module 'hono' {
@@ -27,6 +28,13 @@ export const attachCommandManager = (
   return async (c: Context, next) => {
     c.set('commands', commands);
     c.set('projectPath', commands.project.basePath);
-    await next();
+    const user = getCurrentUser(c);
+    if (user) {
+      await commands.runAsAuthor({ name: user.name, email: user.email }, () =>
+        next(),
+      );
+    } else {
+      throw new Error('CommandManager expects a user');
+    }
   };
 };

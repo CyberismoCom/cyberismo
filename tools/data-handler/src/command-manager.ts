@@ -25,6 +25,7 @@ import { Transition } from './commands/transition.js';
 import { Update } from './commands/update.js';
 import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
+import { runWithAuthor } from './utils/author-context.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import pino, { type Level, type TransportTargetOptions } from 'pino';
 import { setLogger } from './utils/log-utils.js';
@@ -35,7 +36,6 @@ export interface CommandManagerOptions {
   autoSaveConfiguration?: boolean;
   logLevel?: Level;
   autocommit?: boolean;
-  author?: { name: string; email: string };
 }
 
 // Handles commands and ensures that no extra instances are created.
@@ -65,7 +65,6 @@ export class CommandManager {
       autoSave: options?.autoSaveConfiguration,
       watchResourceChanges: options?.watchResourceChanges,
       autocommit: options?.autocommit,
-      author: options?.author,
     });
     this.validateCmd = Validate.getInstance();
 
@@ -93,6 +92,17 @@ export class CommandManager {
    */
   public checkSchemaVersion(): { isCompatible: boolean; message?: string } {
     return this.project.configuration.checkSchemaVersion();
+  }
+
+  /**
+   * Run a function with the given author set in async-local context.
+   * Git commits made during the function will use this author.
+   */
+  public runAsAuthor<T>(
+    author: { name: string; email: string },
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    return runWithAuthor(author, fn);
   }
 
   /**

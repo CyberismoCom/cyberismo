@@ -14,25 +14,18 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { getChildLogger } from './log-utils.js';
 
-export interface GitManagerOptions {
-  author?: { name: string; email: string };
-}
-
 export class GitManager {
   private git: SimpleGit;
   private logger = getChildLogger({ module: 'GitManager' });
 
-  constructor(
-    projectPath: string,
-    private options: GitManagerOptions = {},
-  ) {
+  constructor(projectPath: string) {
     this.git = simpleGit(projectPath, {
       config: ['user.name=Cyberismo Bot', 'user.email=bot@cyberismo.com'],
     });
   }
 
   /** Ensure the project is a git repo. Idempotent. */
-  async initialize(): Promise<void> {
+  async initialize(author?: { name: string; email: string }): Promise<void> {
     const isRepo = await this.git.checkIsRepo();
     if (!isRepo) {
       await this.git.init();
@@ -41,9 +34,8 @@ export class GitManager {
       const commitOpts: Record<string, string | null> = {
         '--allow-empty': null,
       };
-      if (this.options.author) {
-        commitOpts['--author'] =
-          `${this.options.author.name} <${this.options.author.email}>`;
+      if (author) {
+        commitOpts['--author'] = `${author.name} <${author.email}>`;
       }
       await this.git.commit('Initial commit', undefined, commitOpts);
       this.logger.info('New repo created with baseline commit');
@@ -53,7 +45,10 @@ export class GitManager {
   }
 
   /** Commit current changes (cardRoot + .cards). */
-  async commit(message: string = 'Autocommit'): Promise<void> {
+  async commit(
+    message: string = 'Autocommit',
+    author?: { name: string; email: string },
+  ): Promise<void> {
     // Stage only the directories we care about
     this.logger.debug('Staging changes');
     await this.git.add(['cardRoot', '.cards']);
@@ -70,9 +65,8 @@ export class GitManager {
       'Committing changes',
     );
     const commitOpts: Record<string, string> = {};
-    if (this.options.author) {
-      commitOpts['--author'] =
-        `${this.options.author.name} <${this.options.author.email}>`;
+    if (author) {
+      commitOpts['--author'] = `${author.name} <${author.email}>`;
     }
     await this.git.commit(message, undefined, commitOpts);
   }

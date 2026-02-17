@@ -143,30 +143,32 @@ export async function parseContent(
   key: string,
   content: string,
 ) {
-  let asciidocContent = '';
-  try {
-    asciidocContent = await evaluateMacros(content, {
-      context: 'localApp',
-      mode: 'inject',
-      project: commands.project,
-      cardKey: key,
-    });
-  } catch (error) {
-    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
-  }
+  return commands.consistent(async () => {
+    let asciidocContent = '';
+    try {
+      asciidocContent = await evaluateMacros(content, {
+        context: 'localApp',
+        mode: 'inject',
+        project: commands.project,
+        cardKey: key,
+      });
+    } catch (error) {
+      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
+    }
 
-  const processor = Processor();
-  const parsedContent = processor
-    .convert(asciidocContent, {
-      safe: 'safe',
-      attributes: {
-        imagesdir: `/api/cards/${key}/a`,
-        icons: 'font',
-      },
-    })
-    .toString();
+    const processor = Processor();
+    const parsedContent = processor
+      .convert(asciidocContent, {
+        safe: 'safe',
+        attributes: {
+          imagesdir: `/api/cards/${key}/a`,
+          icons: 'font',
+        },
+      })
+      .toString();
 
-  return { parsedContent };
+    return { parsedContent };
+  });
 }
 
 export async function createLink(

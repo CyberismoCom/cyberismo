@@ -58,6 +58,7 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitManager } from '../utils/git-manager.js';
+import { getAuthor } from '../utils/author-context.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
@@ -81,7 +82,6 @@ export interface ProjectOptions {
   autoSave?: boolean;
   watchResourceChanges?: boolean;
   autocommit?: boolean;
-  author?: { name: string; email: string };
 }
 
 /**
@@ -148,11 +148,12 @@ export class Project extends CardContainer {
     }
 
     if (this.options.autocommit) {
-      this.gitManager = new GitManager(path, { author: options.author });
+      this.gitManager = new GitManager(path);
 
       // Commit after successful writes
       this.lock.onAfterWrite(async () => {
-        await this.gitManager!.commit();
+        const author = getAuthor();
+        await this.gitManager!.commit('Autocommit', author);
       });
 
       // Rollback on failed writes
@@ -897,7 +898,8 @@ export class Project extends CardContainer {
    */
   public async initializeGit(): Promise<void> {
     if (this.gitManager) {
-      await this.gitManager.initialize();
+      const author = getAuthor();
+      await this.gitManager.initialize(author);
     }
   }
 

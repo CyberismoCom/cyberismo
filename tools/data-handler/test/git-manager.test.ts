@@ -82,13 +82,13 @@ describe('GitManager', () => {
       expect(logAfter.total).to.equal(logBefore.total);
     });
 
-    it('should use author when provided', async () => {
+    it('should use per-commit author when provided', async () => {
       const author = { name: 'Test User', email: 'test@example.com' };
-      const gm = new GitManager(dir, { author });
+      const gm = new GitManager(dir);
       await gm.initialize();
 
       await writeFile(join(dir, 'cardRoot', 'file.txt'), 'content');
-      await gm.commit('Authored commit');
+      await gm.commit('Authored commit', author);
 
       const git = simpleGit(dir);
       const log = await git.log();
