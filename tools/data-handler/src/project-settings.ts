@@ -76,6 +76,13 @@ export class ProjectConfiguration implements ProjectSettings {
     }
   }
 
+  /**
+   * Reload settings from disk, discarding in-memory state.
+   */
+  public reload() {
+    this.readSettings();
+  }
+
   // Sets configuration values from file.
   private readSettings() {
     const settings = readJsonFileSync(this.settingPath);

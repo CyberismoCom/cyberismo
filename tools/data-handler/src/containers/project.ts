@@ -1008,16 +1008,11 @@ export class Project extends CardContainer {
     this.logger.info({ fromVersion, toVersion }, 'Starting schema migration');
 
     const executor = new MigrationExecutor(this);
-    const result = await executor.migrate(
-      fromVersion,
-      toVersion,
-      async (version: number) => {
-        this.settings.schemaVersion = version;
-        await this.settings.save();
-      },
-    );
+    const result = await executor.migrate(fromVersion, toVersion);
 
     if (result.success) {
+      // Reload settings from disk to reflect changes made by migrations
+      this.settings.reload();
       this.logger.info(
         { fromVersion, toVersion },
         'Migration completed successfully',

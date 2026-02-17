@@ -13,22 +13,13 @@
 */
 
 import { join } from 'node:path';
-import {
-  access,
-  cp,
-  mkdir,
-  readdir,
-  readFile,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 import type {
   Migration,
   MigrationContext,
   MigrationStepResult,
 } from '../migration-interfaces.js';
-import { validateProjectStructure } from '../migration-interfaces.js';
 
 const RESOURCE_FOLDERS = [
   'calculations',
@@ -49,7 +40,6 @@ const RESOURCE_FOLDERS = [
  * - Moves resources from flat .cards/local/ into versioned .cards/local/1/ structure
  * - Creates empty migrationLog.jsonl in the version folder
  * - Sets version: 0 in cardsConfig.json (folder 1/ is the draft ahead of published version 0)
- * - Removes versioningMode if present
  *
  * Idempotent: if .cards/local/1/ already exists, the migration is skipped.
  */
@@ -103,11 +93,7 @@ const migration: Migration = {
       await cp(oldCurrentLog, join(version1Folder, 'migrationLog.jsonl'));
       console.log('  - Copied existing migration log');
     } catch {
-      await writeFile(
-        join(version1Folder, 'migrationLog.jsonl'),
-        '',
-        'utf-8',
-      );
+      await writeFile(join(version1Folder, 'migrationLog.jsonl'), '', 'utf-8');
     }
 
     // Clean up old migrations folder

@@ -105,7 +105,6 @@ const testMigrationsPath = join(baseDir, 'test-migrations');
 
 describe('MigrationExecutor', () => {
   let project: Project;
-  const defaultCallback = async () => {};
 
   beforeEach(async () => {
     rmSync(testDir, { recursive: true, force: true });
@@ -142,33 +141,22 @@ describe('MigrationExecutor', () => {
 
   it('should execute successful migration', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    let updatedVersion = 0;
-    const updateCallback = async (version: number) => {
-      updatedVersion = version;
-    };
-    const result = await executor.migrate(1, 2, updateCallback);
+    const result = await executor.migrate(1, 2);
 
     expect(result.success).to.equal(true);
-    expect(updatedVersion).to.equal(2);
   });
 
   it('should reject when fromVersion >= toVersion', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    const result = await executor.migrate(2, 2, defaultCallback);
+    const result = await executor.migrate(2, 2);
     expect(result.success).to.equal(false);
     expect(result.message).to.include('not lower than target version');
   });
 
   it('should execute multiple migrations sequentially', async () => {
     const executor = new TestMigrationExecutor(project, testMigrationsPath);
-    const versions: number[] = [];
-    const updateCallback = async (version: number) => {
-      versions.push(version);
-    };
-
-    const result = await executor.migrate(1, 2, updateCallback);
+    const result = await executor.migrate(1, 2);
     expect(result.success).to.equal(true);
-    expect(versions).to.deep.equal([2]);
   });
 
   it('should fail to load a migration module without valid Migration object', async () => {

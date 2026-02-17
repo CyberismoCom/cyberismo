@@ -11,6 +11,9 @@
   License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
 import { availableMigrations, migration } from '@cyberismo/migrations';
 import { getChildLogger } from '../utils/log-utils.js';
 import type {
@@ -33,7 +36,6 @@ export class MigrationExecutor {
     migrationObj: Migration,
     fromVersion: number,
     toVersion: number,
-    updateVersionCallback: (version: number) => Promise<void>,
   ): Promise<MigrationStepResult> {
     this.logger.info(
       { fromVersion, toVersion },
@@ -58,8 +60,20 @@ export class MigrationExecutor {
         };
       }
 
-      // Update schema version in project after successful migration
-      await updateVersionCallback(toVersion);
+      // Update schema version on disk, preserving any changes made by the migration
+      const configPath = join(
+        this.project.paths.internalRootFolder,
+        'local',
+        'cardsConfig.json',
+      );
+      const raw = await readFile(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+      config.schemaVersion = toVersion;
+      await writeFile(
+        configPath,
+        JSON.stringify(config, null, 4) + '\n',
+        'utf-8',
+      );
 
       return {
         success: true,
@@ -155,13 +169,11 @@ export class MigrationExecutor {
    * Execute all necessary migrations to bring project to target version.
    * @param fromVersion Current project version
    * @param toVersion Target version
-   * @param updateVersionCallback Callback to update project schema version after each migration
    * @returns Overall migration result
    */
   public async migrate(
     fromVersion: number,
     toVersion: number,
-    updateVersionCallback: (version: number) => Promise<void>,
   ): Promise<MigrationStepResult> {
     // Step: Validate migration versions
     const versionResult = this.validateMigrationVersions(
@@ -192,7 +204,6 @@ export class MigrationExecutor {
           migrationObj,
           currentVersion,
           targetVersion,
-          updateVersionCallback,
         );
 
         if (!result.success) {
