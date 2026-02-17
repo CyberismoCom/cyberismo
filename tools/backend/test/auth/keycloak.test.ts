@@ -75,7 +75,7 @@ describe('KeycloakAuthProvider', () => {
   describe('JWKS', () => {
     it('constructs correct JWKS URL', async () => {
       const provider = new KeycloakAuthProvider(config);
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
 
       await provider.authenticate(makeRequest({ authorization: 'Bearer tok' }));
 
@@ -91,7 +91,7 @@ describe('KeycloakAuthProvider', () => {
         ...config,
         issuer: 'https://keycloak.example.com/realms/test/',
       });
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
 
       await provider.authenticate(makeRequest({ authorization: 'Bearer tok' }));
 
@@ -104,7 +104,7 @@ describe('KeycloakAuthProvider', () => {
 
     it('caches JWKS instance across calls', async () => {
       const provider = new KeycloakAuthProvider(config);
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
 
       await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok1' }),
@@ -120,7 +120,7 @@ describe('KeycloakAuthProvider', () => {
   describe('JWT verification', () => {
     it('passes correct issuer and audience to jwtVerify', async () => {
       const provider = new KeycloakAuthProvider(config);
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
 
       await provider.authenticate(makeRequest({ authorization: 'Bearer tok' }));
 
@@ -143,10 +143,10 @@ describe('KeycloakAuthProvider', () => {
   });
 
   describe('claims extraction', () => {
-    it('maps sub to id, defaults to "unknown"', async () => {
+    it('maps sub to id, errors if not found', async () => {
       const provider = new KeycloakAuthProvider(config);
 
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'user-123' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'user-123', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
       let result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
@@ -156,14 +156,14 @@ describe('KeycloakAuthProvider', () => {
       result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
-      expect(result!.id).toBe('unknown');
+      expect(result).toBe(null);
     });
 
-    it('maps email, defaults to ""', async () => {
+    it('maps email, errors if not found', async () => {
       const provider = new KeycloakAuthProvider(config);
 
       mockJwtVerify.mockResolvedValue(
-        mockVerifyResult({ sub: 'u1', email: 'test@example.com' }),
+        mockVerifyResult({ sub: 'u1', email: 'test@example.com', realm_access: { roles: ['reader'] } }),
       );
       let result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
@@ -174,7 +174,7 @@ describe('KeycloakAuthProvider', () => {
       result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
-      expect(result!.email).toBe('');
+      expect(result).toBe(null);
     });
 
     it('prefers name over preferred_username, falls back to "Unknown"', async () => {
@@ -183,8 +183,10 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           name: 'Full Name',
           preferred_username: 'username',
+          realm_access: { roles: ['reader'] },
         }),
       );
       let result = await provider.authenticate(
@@ -193,14 +195,14 @@ describe('KeycloakAuthProvider', () => {
       expect(result!.name).toBe('Full Name');
 
       mockJwtVerify.mockResolvedValue(
-        mockVerifyResult({ sub: 'u1', preferred_username: 'username' }),
+        mockVerifyResult({ sub: 'u1', email: 'a@b.c', preferred_username: 'username', realm_access: { roles: ['reader'] } }),
       );
       result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
       expect(result!.name).toBe('username');
 
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c', realm_access: { roles: ['reader'] } }));
       result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
@@ -214,6 +216,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['admin'] },
         }),
       );
@@ -229,6 +232,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['editor'] },
         }),
       );
@@ -244,6 +248,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['reader'] },
         }),
       );
@@ -256,7 +261,7 @@ describe('KeycloakAuthProvider', () => {
 
     it('errors for no roles', async () => {
       const provider = new KeycloakAuthProvider(config);
-      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1' }));
+      mockJwtVerify.mockResolvedValue(mockVerifyResult({ sub: 'u1', email: 'a@b.c' }));
 
       const result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
@@ -269,6 +274,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['viewer'] },
         }),
       );
@@ -284,6 +290,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['editor', 'admin'] },
         }),
       );
@@ -299,6 +306,7 @@ describe('KeycloakAuthProvider', () => {
       mockJwtVerify.mockResolvedValue(
         mockVerifyResult({
           sub: 'u1',
+          email: 'a@b.c',
           realm_access: { roles: ['Admin', 'EDITOR'] },
         }),
       );
@@ -306,7 +314,7 @@ describe('KeycloakAuthProvider', () => {
       const result = await provider.authenticate(
         makeRequest({ authorization: 'Bearer tok' }),
       );
-      expect(result!.role).toBe(UserRole.Reader);
+      expect(result).toBeNull();
     });
   });
 });

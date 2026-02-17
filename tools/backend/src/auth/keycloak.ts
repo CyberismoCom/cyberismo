@@ -72,9 +72,16 @@ export class KeycloakAuthProvider implements AuthProvider {
       const claims = payload as KeycloakJWTPayload;
       const role = this.mapRole(claims.realm_access?.roles);
 
+      if (!claims.sub) {
+        throw new Error('Missing sub');
+      }
+      if (!claims.email) {
+        throw new Error('Missing email');
+      }
+
       return {
-        id: claims.sub ?? 'unknown',
-        email: claims.email ?? '',
+        id: claims.sub,
+        email: claims.email,
         name: claims.name ?? claims.preferred_username ?? 'Unknown',
         role,
       };
