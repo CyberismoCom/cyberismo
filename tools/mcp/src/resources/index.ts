@@ -100,7 +100,7 @@ export function registerResources(
       mimeType: 'application/json',
     },
     async () => {
-      const workflows = commands.showCmd.showWorkflowsWithDetails();
+      const workflows = await commands.showCmd.showWorkflowsWithDetails();
       return {
         contents: [
           {

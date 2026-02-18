@@ -295,7 +295,7 @@ Returns:
     async ({ cardKey, raw }) => {
       try {
         if (raw) {
-          const card = commands.showCmd.showCardDetails(cardKey);
+          const card = await commands.showCmd.showCardDetails(cardKey);
           return toolResult({ card });
         }
 
@@ -360,7 +360,7 @@ Returns:
     {},
     async () => {
       try {
-        const labels = commands.showCmd.showLabels();
+        const labels = await commands.showCmd.showLabels();
         return toolResult({ labels });
       } catch (error) {
         return toolError('listing labels', error);

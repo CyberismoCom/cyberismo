@@ -143,7 +143,7 @@ export async function renderCard(
   options: { raw?: boolean } = {},
 ): Promise<RenderedCard> {
   // showCardDetails throws on invalid keys, so no null-check needed
-  const card = commands.showCmd.showCardDetails(cardKey);
+  const card = await commands.showCmd.showCardDetails(cardKey);
   const rawContent = card.content || '';
   let parsedContent = rawContent;
 
