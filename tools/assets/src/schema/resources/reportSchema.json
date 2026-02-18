@@ -18,11 +18,11 @@
       "type": "string"
     },
     "category": {
-      "description": "The category of the report. For example, 'Architecture'.",
+      "description": "The category of the report. For example, 'KeyPerformanceIndicator'.",
       "type": "string"
     }
   },
-  "required": ["name", "displayName", "category"],
+  "required": ["name", "displayName"],
   "title": "Report",
   "type": "object"
 }

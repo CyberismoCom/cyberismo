@@ -15,6 +15,8 @@ import { Hono } from 'hono';
 import * as calculationService from './service.js';
 import { createCalculationSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -43,12 +45,17 @@ const router = new Hono();
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createCalculationSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier } = c.req.valid('json');
+router.post(
+  '/',
+  requireRole(UserRole.Admin),
+  zValidator('json', createCalculationSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier } = c.req.valid('json');
 
-  await calculationService.createCalculation(commands, identifier);
-  return c.json({ message: 'Calculation created successfully' });
-});
+    await calculationService.createCalculation(commands, identifier);
+    return c.json({ message: 'Calculation created successfully' });
+  },
+);
 
 export default router;

@@ -83,18 +83,14 @@ export interface FieldType extends ResourceBaseMetadata {
 }
 
 // Graph model content.
-export interface GraphModelMetadata extends ResourceBaseMetadata {
-  category?: string;
-}
+export type GraphModelMetadata = ResourceBaseMetadata;
 export interface GraphModel extends GraphModelMetadata {
   content: GraphModelContent;
 }
 export type GraphModelContentPropertyName = 'model';
 
 // Graph view content.
-export interface GraphViewMetadata extends ResourceBaseMetadata {
-  category?: string;
-}
+export type GraphViewMetadata = ResourceBaseMetadata;
 export type GraphViewContentPropertyName = 'viewTemplate';
 export interface GraphView extends GraphViewMetadata {
   content: GraphViewContent;
@@ -128,13 +124,12 @@ export type ReportContentPropertyName =
   | 'schema';
 
 // Metadata for report
-export interface ReportMetadata extends ResourceBaseMetadata {
-  category: string;
-}
+export type ReportMetadata = ResourceBaseMetadata;
 
 // Base interface for all resources.
 export interface ResourceBaseMetadata {
   name: string;
+  category?: string;
   description?: string;
   displayName: string;
   usedIn?: string[];
@@ -173,9 +168,7 @@ export interface TemplateConfiguration extends TemplateMetadata {
 }
 
 // Template configuration content details.
-export interface TemplateMetadata extends ResourceBaseMetadata {
-  category?: string;
-}
+export type TemplateMetadata = ResourceBaseMetadata;
 type ContentUpdateKey = { key: 'content'; subKey: string };
 type PropertyUpdateKey<K extends string = string> = {
   key: Exclude<K, 'content'>;

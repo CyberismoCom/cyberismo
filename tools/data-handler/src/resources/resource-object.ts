@@ -270,7 +270,7 @@ export abstract class ResourceObject<
    * @param newContent Content for resource.
    * @throws when resource already exists in the project.
    */
-  protected async create(newContent?: T) {
+  public async create(newContent?: T) {
     this.validateResourceIdentifier();
 
     if (this.exists()) {
@@ -574,6 +574,25 @@ export abstract class ResourceObject<
       target: oldName,
       to: newNameString,
     } as ChangeOperation<string>);
+  }
+
+  /**
+   * Base properties shared by all resources.
+   */
+  private static readonly BASE_PROPERTIES = [
+    'name',
+    'displayName',
+    'description',
+    'category',
+  ] as const;
+
+  /**
+   * Checks if the given key is a base property shared by all resources.
+   * @param key The property key to check
+   * @returns true if the key is a base property
+   */
+  protected isBaseProperty(key: string): boolean {
+    return (ResourceObject.BASE_PROPERTIES as readonly string[]).includes(key);
   }
 
   /**

@@ -105,6 +105,7 @@
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",
   "cardType": "Card type",
+  "category": "Category",
   "close": "Close",
   "configTree": {
     "files": {
@@ -236,6 +237,7 @@
   "linkTooltip": "Link to another card",
   "linkedCards": "Linked cards",
   "loading": "Loading...",
+  "logOut": "Log out",
   "logicProgram": "Logic program",
   "metadata": "Metadata",
   "metadataNotFound": "Metadata not found",

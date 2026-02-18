@@ -15,6 +15,7 @@ import { ActionGuard } from '../permissions/action-guard.js';
 import { CardMetadataUpdater } from '../card-metadata-updater.js';
 import type { Project } from '../containers/project.js';
 import type { WorkflowState } from '../interfaces/resource-interfaces.js';
+import { write } from '../utils/rw-lock.js';
 
 /**
  * Handles transitions.
@@ -40,6 +41,7 @@ export class Transition {
    * @param cardKey card key
    * @param transition which transition to do
    */
+  @write
   public async cardTransition(cardKey: string, transition: WorkflowState) {
     const card = this.project.findCard(cardKey);
 

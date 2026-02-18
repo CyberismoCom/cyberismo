@@ -62,7 +62,7 @@ describe('shows command', () => {
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const showCommand = new Show(project, fetchCmd);
-      const result = showCommand.showAttachment(
+      const result = await showCommand.showAttachment(
         'decision_1',
         'the-needle.heic',
       );
@@ -76,9 +76,9 @@ describe('shows command', () => {
       await project.populateCaches();
       const fetch = new Fetch(project);
       const showCommand = new Show(project, fetch);
-      expect(() =>
+      await expect(
         showCommand.showAttachment('invalid_key', 'does-not-exist.png'),
-      ).to.throw(`Card 'invalid_key' does not exist in the project`);
+      ).to.be.rejectedWith(`Card 'invalid_key' does not exist in the project`);
     });
     it('show attachment file, file not found', async () => {
       // No commandHandler command for getting attachment files, so using Show directly
@@ -86,9 +86,9 @@ describe('shows command', () => {
       await project.populateCaches();
       const fetchCmd = new Fetch(project);
       const showCommand = new Show(project, fetchCmd);
-      expect(() =>
+      await expect(
         showCommand.showAttachment('decision_1', 'does-not-exist.png'),
-      ).to.throw(
+      ).to.be.rejectedWith(
         `Attachment 'does-not-exist.png' not found for card decision_1`,
       );
     });
@@ -663,44 +663,46 @@ describe('show', () => {
     const results = await showCmd.showAttachments();
     expect(results).to.not.equal(undefined);
   });
-  it('showAttachment (success)', () => {
+  it('showAttachment (success)', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'the-needle.heic';
-    const results = showCmd.showAttachment(cardId, attachmentName);
+    const results = await showCmd.showAttachment(cardId, attachmentName);
     expect(results).to.not.equal(undefined);
   });
-  it('showAttachment - empty card key', () => {
+  it('showAttachment - empty card key', async () => {
     const cardId = '';
     const attachmentName = 'the-needle.heic';
-    expect(() => showCmd.showAttachment(cardId, attachmentName)).to.throw(
-      `Mandatory parameter 'cardKey' missing`,
-    );
+    await expect(
+      showCmd.showAttachment(cardId, attachmentName),
+    ).to.be.rejectedWith(`Mandatory parameter 'cardKey' missing`);
   });
-  it('showAttachment - card does not have particular attachment', () => {
+  it('showAttachment - card does not have particular attachment', async () => {
     const cardId = 'decision_1';
     const attachmentName = 'i-dont-exist';
-    expect(() => showCmd.showAttachment(cardId, attachmentName)).to.throw(
+    await expect(
+      showCmd.showAttachment(cardId, attachmentName),
+    ).to.be.rejectedWith(
       `Attachment 'i-dont-exist' not found for card decision_1`,
     );
   });
-  it('showCardDetails (success)', () => {
+  it('showCardDetails (success)', async () => {
     const cardId = 'decision_1';
-    const result = showCmd.showCardDetails(cardId);
+    const result = await showCmd.showCardDetails(cardId);
     expect(result.key).to.equal('decision_1');
   });
-  it('showCardDetails - empty card key', () => {
+  it('showCardDetails - empty card key', async () => {
     const cardId = '';
-    expect(() => showCmd.showCardDetails(cardId)).to.throw(
+    await expect(showCmd.showCardDetails(cardId)).to.be.rejectedWith(
       `Mandatory parameter 'cardKey' missing`,
     );
   });
-  it('showCardDetails - card not in project', () => {
+  it('showCardDetails - card not in project', async () => {
     const cardId = 'decision_999';
-    expect(() => showCmd.showCardDetails(cardId)).to.throw(
+    await expect(showCmd.showCardDetails(cardId)).to.be.rejectedWith(
       `Card 'decision_999' does not exist in the project`,
     );
   });
-  it('showCardDetails - empty attachment folder', () => {
+  it('showCardDetails - empty attachment folder', async () => {
     // Use existing cards from test data
     // decision_1 (template) has the-needle.heic, decision_2 (template) has no attachments
     // decision_5 (project) has games.jpg, decision_6 (project child) has no attachments
@@ -708,11 +710,14 @@ describe('show', () => {
     const cardWithAttachments = 'decision_1'; // template card with attachment
 
     // Test card with no attachments
-    const noAttachmentResult = showCmd.showCardDetails(cardWithNoAttachments);
+    const noAttachmentResult = await showCmd.showCardDetails(
+      cardWithNoAttachments,
+    );
     expect(noAttachmentResult.attachments.length).equals(0);
 
     // Test card with attachments
-    const withAttachmentResult = showCmd.showCardDetails(cardWithAttachments);
+    const withAttachmentResult =
+      await showCmd.showCardDetails(cardWithAttachments);
     expect(withAttachmentResult.attachments.length).to.be.greaterThan(0);
     const firstAttachment = withAttachmentResult.attachments.at(0);
     expect(firstAttachment?.card).equals(cardWithAttachments);
@@ -721,8 +726,8 @@ describe('show', () => {
     const results = await showCmd.showCards();
     expect(results).to.not.equal(undefined);
   });
-  it('showProjectCards (success)', () => {
-    const results = showCmd.showProjectCards();
+  it('showProjectCards (success)', async () => {
+    const results = await showCmd.showProjectCards();
     expect(results).to.not.equal(undefined);
   });
   it('showResource - card type (success)', async () => {
@@ -794,8 +799,8 @@ describe('show', () => {
         ),
       );
   });
-  it('showModules (success)', () => {
-    const results = showCmd.showModules();
+  it('showModules (success)', async () => {
+    const results = await showCmd.showModules();
     expect(results).to.not.equal(undefined);
   });
   it('showProject (success)', async () => {
@@ -901,6 +906,34 @@ describe('show', () => {
           `Workflow '${workflowName}' does not exist in the project`,
         ),
       );
+  });
+  it('should show existing resources without category', async () => {
+    const cardType = 'decision/cardTypes/decision';
+    const ctResults = await showCmd.showResource(cardType);
+    expect(ctResults).to.not.equal(undefined);
+    expect(ctResults.category).to.equal(undefined);
+
+    const fieldTypeName = 'decision/fieldTypes/obsoletedBy';
+    const ftResults = await showCmd.showResource(fieldTypeName);
+    expect(ftResults).to.not.equal(undefined);
+    expect(ftResults.category).to.equal(undefined);
+
+    const linkTypeName = 'decision/linkTypes/test';
+    const ltResults = await showCmd.showResource(linkTypeName);
+    expect(ltResults).to.not.equal(undefined);
+    expect(ltResults.category).to.equal(undefined);
+
+    // Test data for template has category... skipped!
+
+    const workflowName = 'decision/workflows/decision';
+    const wfResults = await showCmd.showResource(workflowName);
+    expect(wfResults).to.not.equal(undefined);
+    expect(wfResults.category).to.equal(undefined);
+
+    const reportName = 'decision/reports/testReport';
+    const reportResults = await showCmd.showResource(reportName);
+    expect(reportResults).to.not.equal(undefined);
+    expect(reportResults.category).to.equal(undefined);
   });
   it('showWorkflowsWithDetails (success)', async () => {
     const results = await showCmd.showWorkflowsWithDetails();

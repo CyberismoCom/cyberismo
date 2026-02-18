@@ -139,7 +139,6 @@ const resourceConfigs: ResourceConfig[] = [
     expectedData: {
       name: 'decision/reports/newREP',
       displayName: '',
-      category: 'Uncategorised report',
     },
   },
   {
@@ -405,6 +404,548 @@ describe('resources', function () {
       found = after.find((item) => item.data?.name === name);
       expect(found).to.not.equal(undefined);
     });
+    it('calculation category lifecycle', async () => {
+      const existingCalculations = project.resources.calculations();
+      let found;
+
+      // Verify no calculation with the test names exists
+      const withCategoryCalculationsName =
+        'decision/calculations/newCALCWithCategory';
+      found = existingCalculations.find(
+        (item) => item.data?.name === withCategoryCalculationsName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryCalculationsName =
+        'decision/calculations/newCALCWithoutCategory';
+      found = existingCalculations.find(
+        (item) => item.data?.name === withoutCategoryCalculationsName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new calculations
+      const calculationDataWithCategory = {
+        name: withCategoryCalculationsName,
+        displayName: 'Test calculation with category',
+        description: 'A test calculation with category',
+        category: 'Security',
+        calculation: '',
+      } as CalculationMetadata;
+
+      const calculationDataWithoutCategory = {
+        name: withoutCategoryCalculationsName,
+        displayName: 'Test calculation with category',
+        description: 'A test calculation with category',
+        calculation: '',
+      } as CalculationMetadata;
+
+      await project.resources
+        .byType(withCategoryCalculationsName, 'calculations')
+        .create(calculationDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryCalculationsName, 'calculations')
+        .create(calculationDataWithoutCategory);
+
+      // Verify created calculations
+      const afterCreation = project.resources.calculations();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryCalculationsName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Security');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryCalculationsName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created calculations
+      await project.resources
+        .byType(withCategoryCalculationsName, 'calculations')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'calculation1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryCalculationsName, 'calculations')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'calculation2',
+        } as ChangeOperation<string>);
+
+      // Verify updated calculations
+      const afterUpdate = project.resources.calculations();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryCalculationsName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('calculation1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryCalculationsName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal(
+        'calculation2',
+      );
+    });
+    it('cardType category lifecycle', async () => {
+      const existingCardTypes = project.resources.cardTypes();
+      let found;
+
+      // Verify no card type with the test names exists
+      const withCategoryCardTypeName =
+        'decision/cardTypes/newCTWithCategoryLifecycle';
+      found = existingCardTypes.find(
+        (item) => item.data?.name === withCategoryCardTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryCardTypeName =
+        'decision/cardTypes/newCTWithoutCategoryLifecycle';
+      found = existingCardTypes.find(
+        (item) => item.data?.name === withoutCategoryCardTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new card types
+      const cardTypeDataWithCategory = {
+        name: withCategoryCardTypeName,
+        displayName: 'Test card type with category',
+        category: 'Security',
+        workflow: 'decision/workflows/decision',
+        customFields: [],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      } as CardType;
+
+      const cardTypeDataWithoutCategory = {
+        name: withoutCategoryCardTypeName,
+        displayName: 'Test card type without category',
+        workflow: 'decision/workflows/decision',
+        customFields: [],
+        alwaysVisibleFields: [],
+        optionallyVisibleFields: [],
+      } as CardType;
+
+      await project.resources
+        .byType(withCategoryCardTypeName, 'cardTypes')
+        .create(cardTypeDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryCardTypeName, 'cardTypes')
+        .create(cardTypeDataWithoutCategory);
+
+      // Verify created card types
+      const afterCreation = project.resources.cardTypes();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryCardTypeName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Security');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryCardTypeName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created card types
+      await project.resources
+        .byType(withCategoryCardTypeName, 'cardTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'cardType1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryCardTypeName, 'cardTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'cardType2',
+        } as ChangeOperation<string>);
+
+      // Verify updated card types
+      const afterUpdate = project.resources.cardTypes();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryCardTypeName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('cardType1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryCardTypeName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal('cardType2');
+    });
+    it('linkType category lifecycle', async () => {
+      const existingLinkTypes = project.resources.linkTypes();
+      let found;
+
+      // Verify no link type with the test names exists
+      const withCategoryLinkTypeName =
+        'decision/linkTypes/newLTWithCategoryLifecycle';
+      found = existingLinkTypes.find(
+        (item) => item.data?.name === withCategoryLinkTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryLinkTypeName =
+        'decision/linkTypes/newLTWithoutCategoryLifecycle';
+      found = existingLinkTypes.find(
+        (item) => item.data?.name === withoutCategoryLinkTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new link types
+      const linkTypeDataWithCategory = {
+        name: withCategoryLinkTypeName,
+        displayName: 'Test link type with category',
+        category: 'Relationships',
+        inboundDisplayName: 'in',
+        outboundDisplayName: 'out',
+        destinationCardTypes: ['decision/cardTypes/decision'],
+        sourceCardTypes: ['decision/cardTypes/decision'],
+        enableLinkDescription: false,
+      } as LinkType;
+
+      const linkTypeDataWithoutCategory = {
+        name: withoutCategoryLinkTypeName,
+        displayName: 'Test link type without category',
+        inboundDisplayName: 'in',
+        outboundDisplayName: 'out',
+        destinationCardTypes: ['decision/cardTypes/decision'],
+        sourceCardTypes: ['decision/cardTypes/decision'],
+        enableLinkDescription: false,
+      } as LinkType;
+
+      await project.resources
+        .byType(withCategoryLinkTypeName, 'linkTypes')
+        .create(linkTypeDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryLinkTypeName, 'linkTypes')
+        .create(linkTypeDataWithoutCategory);
+
+      // Verify created link types
+      const afterCreation = project.resources.linkTypes();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryLinkTypeName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Relationships');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryLinkTypeName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created link types
+      await project.resources
+        .byType(withCategoryLinkTypeName, 'linkTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'linkType1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryLinkTypeName, 'linkTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'linkType2',
+        } as ChangeOperation<string>);
+
+      // Verify updated link types
+      const afterUpdate = project.resources.linkTypes();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryLinkTypeName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('linkType1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryLinkTypeName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal('linkType2');
+    });
+    it('fieldType category lifecycle', async () => {
+      const existingFieldTypes = project.resources.fieldTypes();
+      let found;
+
+      // Verify no field type with the test names exists
+      const withCategoryFieldTypeName =
+        'decision/fieldTypes/newFTWithCategoryLifecycle';
+      found = existingFieldTypes.find(
+        (item) => item.data?.name === withCategoryFieldTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryFieldTypeName =
+        'decision/fieldTypes/newFTWithoutCategoryLifecycle';
+      found = existingFieldTypes.find(
+        (item) => item.data?.name === withoutCategoryFieldTypeName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new field types
+      const fieldTypeDataWithCategory = {
+        name: withCategoryFieldTypeName,
+        displayName: 'Test field type with category',
+        category: 'Custom',
+        dataType: 'shortText',
+      } as FieldType;
+
+      const fieldTypeDataWithoutCategory = {
+        name: withoutCategoryFieldTypeName,
+        displayName: 'Test field type without category',
+        dataType: 'shortText',
+      } as FieldType;
+
+      await project.resources
+        .byType(withCategoryFieldTypeName, 'fieldTypes')
+        .create(fieldTypeDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryFieldTypeName, 'fieldTypes')
+        .create(fieldTypeDataWithoutCategory);
+
+      // Verify created field types
+      const afterCreation = project.resources.fieldTypes();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryFieldTypeName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Custom');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryFieldTypeName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created field types
+      await project.resources
+        .byType(withCategoryFieldTypeName, 'fieldTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'fieldType1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryFieldTypeName, 'fieldTypes')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'fieldType2',
+        } as ChangeOperation<string>);
+
+      // Verify updated field types
+      const afterUpdate = project.resources.fieldTypes();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryFieldTypeName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('fieldType1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryFieldTypeName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal(
+        'fieldType2',
+      );
+    });
+    it('report category lifecycle', async () => {
+      const existingReports = project.resources.reports();
+      let found;
+
+      // Verify no report with the test names exists
+      const withCategoryReportName =
+        'decision/reports/newREPWithCategoryLifecycle';
+      found = existingReports.find(
+        (item) => item.data?.name === withCategoryReportName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryReportName =
+        'decision/reports/newREPWithoutCategoryLifecycle';
+      found = existingReports.find(
+        (item) => item.data?.name === withoutCategoryReportName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new reports
+      const reportDataWithCategory = {
+        name: withCategoryReportName,
+        displayName: 'Test report with category',
+        category: 'Analytics',
+      } as Report;
+
+      const reportDataWithoutCategory = {
+        name: withoutCategoryReportName,
+        displayName: 'Test report without category',
+      } as Report;
+
+      await project.resources
+        .byType(withCategoryReportName, 'reports')
+        .create(reportDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryReportName, 'reports')
+        .create(reportDataWithoutCategory);
+
+      // Verify created reports
+      const afterCreation = project.resources.reports();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryReportName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Analytics');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryReportName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created reports
+      await project.resources
+        .byType(withCategoryReportName, 'reports')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'report1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryReportName, 'reports')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'report2',
+        } as ChangeOperation<string>);
+
+      // Verify updated reports
+      const afterUpdate = project.resources.reports();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryReportName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('report1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryReportName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal('report2');
+    });
+    it('workflow category lifecycle', async () => {
+      const existingWorkflows = project.resources.workflows();
+      let found;
+
+      // Verify no workflow with the test names exists
+      const withCategoryWorkflowName =
+        'decision/workflows/newWFWithCategoryLifecycle';
+      found = existingWorkflows.find(
+        (item) => item.data?.name === withCategoryWorkflowName,
+      );
+      expect(found).to.equal(undefined);
+
+      const withoutCategoryWorkflowName =
+        'decision/workflows/newWFWithoutCategoryLifecycle';
+      found = existingWorkflows.find(
+        (item) => item.data?.name === withoutCategoryWorkflowName,
+      );
+      expect(found).to.equal(undefined);
+
+      // Create new workflows
+      const workflowDataWithCategory = {
+        name: withCategoryWorkflowName,
+        displayName: 'Test workflow with category',
+        category: 'Process',
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
+        ],
+      } as Workflow;
+
+      const workflowDataWithoutCategory = {
+        name: withoutCategoryWorkflowName,
+        displayName: 'Test workflow without category',
+        states: [
+          { name: 'Draft', category: 'initial' },
+          { name: 'Done', category: 'closed' },
+        ],
+        transitions: [
+          { name: 'Create', fromState: [''], toState: 'Draft' },
+          { name: 'Complete', fromState: ['Draft'], toState: 'Done' },
+        ],
+      } as Workflow;
+
+      await project.resources
+        .byType(withCategoryWorkflowName, 'workflows')
+        .create(workflowDataWithCategory);
+      await project.resources
+        .byType(withoutCategoryWorkflowName, 'workflows')
+        .create(workflowDataWithoutCategory);
+
+      // Verify created workflows
+      const afterCreation = project.resources.workflows();
+
+      const foundWithCategory = afterCreation.find(
+        (item) => item.data?.name === withCategoryWorkflowName,
+      );
+      expect(foundWithCategory).to.not.equal(undefined);
+      expect(foundWithCategory?.data?.category).to.equal('Process');
+
+      const foundWithoutCategory = afterCreation.find(
+        (item) => item.data?.name === withoutCategoryWorkflowName,
+      );
+      expect(foundWithoutCategory).to.not.equal(undefined);
+      expect(foundWithoutCategory?.data?.category).to.equal(undefined);
+
+      // Update created workflows
+      await project.resources
+        .byType(withCategoryWorkflowName, 'workflows')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'workflow1',
+        } as ChangeOperation<string>);
+
+      await project.resources
+        .byType(withoutCategoryWorkflowName, 'workflows')
+        .update({ key: 'category' }, {
+          name: 'change',
+          to: 'workflow2',
+        } as ChangeOperation<string>);
+
+      // Verify updated workflows
+      const afterUpdate = project.resources.workflows();
+
+      const updatedFoundWithCategory = afterUpdate.find(
+        (item) => item.data?.name === withCategoryWorkflowName,
+      );
+      expect(updatedFoundWithCategory).to.not.equal(undefined);
+      expect(updatedFoundWithCategory?.data?.category).to.equal('workflow1');
+
+      const updatedFoundWithoutCategory = afterUpdate.find(
+        (item) => item.data?.name === withoutCategoryWorkflowName,
+      );
+      expect(updatedFoundWithoutCategory).to.not.equal(undefined);
+      expect(updatedFoundWithoutCategory?.data?.category).to.equal('workflow2');
+    });
     it('try to create calculation with invalid provided content', async () => {
       const name = 'decision/calculations/invalidCALCWithContent';
       const before = project.resources.calculations();
@@ -607,7 +1148,6 @@ describe('resources', function () {
           queryTemplate: `select("title"). result(Card) :- parent(Card, {{cardKey}}).`,
         },
         name: 'decision/reports/newREP',
-        category: 'Uncategorised report',
         displayName: '',
       });
     });
@@ -664,7 +1204,6 @@ describe('resources', function () {
         },
         name: 'decision/reports/newREP',
         displayName: '',
-        category: 'Uncategorised report',
       });
     });
     it('show template', async () => {

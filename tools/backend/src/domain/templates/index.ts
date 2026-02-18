@@ -16,6 +16,8 @@ import * as templateService from './service.js';
 import { createTemplateSchema, addTemplateCardSchema } from './schema.js';
 import { zValidator } from '../../middleware/zvalidator.js';
 import { isSSGContext } from 'hono/ssg';
+import { UserRole } from '../../types.js';
+import { requireRole } from '../../middleware/auth.js';
 
 const router = new Hono();
 
@@ -33,7 +35,7 @@ const router = new Hono();
  *       500:
  *         description: project_path not set or other internal error
  */
-router.get('/', async (c) => {
+router.get('/', requireRole(UserRole.Reader), async (c) => {
   // We do not need templates in ssg context
   if (isSSGContext(c)) {
     return c.json([]);
@@ -78,13 +80,18 @@ router.get('/', async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/', zValidator('json', createTemplateSchema), async (c) => {
-  const commands = c.get('commands');
-  const { identifier } = c.req.valid('json');
+router.post(
+  '/',
+  requireRole(UserRole.Admin),
+  zValidator('json', createTemplateSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { identifier } = c.req.valid('json');
 
-  await templateService.createTemplate(commands, identifier);
-  return c.json({ message: 'Template created successfully' });
-});
+    await templateService.createTemplate(commands, identifier);
+    return c.json({ message: 'Template created successfully' });
+  },
+);
 
 /**
  * @swagger
@@ -119,18 +126,23 @@ router.post('/', zValidator('json', createTemplateSchema), async (c) => {
  *       500:
  *         description: Server error
  */
-router.post('/card', zValidator('json', addTemplateCardSchema), async (c) => {
-  const commands = c.get('commands');
-  const { template, cardType, parentKey, count } = c.req.valid('json');
+router.post(
+  '/card',
+  requireRole(UserRole.Admin),
+  zValidator('json', addTemplateCardSchema),
+  async (c) => {
+    const commands = c.get('commands');
+    const { template, cardType, parentKey, count } = c.req.valid('json');
 
-  const added = await templateService.addTemplateCard(
-    commands,
-    template,
-    cardType,
-    parentKey,
-    count,
-  );
-  return c.json({ cards: added });
-});
+    const added = await templateService.addTemplateCard(
+      commands,
+      template,
+      cardType,
+      parentKey,
+      count,
+    );
+    return c.json({ cards: added });
+  },
+);
 
 export default router;

@@ -36,8 +36,15 @@ import {
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
-import { startServer, exportSite, previewSite } from '@cyberismo/backend';
 import { startMcpServer } from '@cyberismo/mcp';
+import {
+  startServer,
+  exportSite,
+  previewSite,
+  MockAuthProvider,
+} from '@cyberismo/backend';
+import type { MockUserConfig } from '@cyberismo/backend';
+import { simpleGit } from 'simple-git';
 
 // How many validation errors are shown when staring app, if any.
 const VALIDATION_ERROR_ROW_LIMIT = 10;
@@ -48,6 +55,13 @@ const DEFAULT_HUB =
 // Importing dynamically allows filtering of warnings in cli/bin/run.
 const packageDef = (await import('../package.json', { with: { type: 'json' } }))
   .default;
+
+async function getGitUserConfig(): Promise<MockUserConfig> {
+  const git = simpleGit();
+  const name = (await git.getConfig('user.name')).value || undefined;
+  const email = (await git.getConfig('user.email')).value || undefined;
+  return { name, email };
+}
 
 // Truncates a multi-row message to an array of items.
 // Logs maximum of 'limit' items to console. If there are more items than
@@ -1442,7 +1456,16 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
       return;
     }
   }
-  await startServer(await commandHandler.getProjectPath(options.projectPath));
+  const gitUser = await getGitUserConfig();
+  if (!gitUser.name || !gitUser.email) {
+    console.warn(
+      'Warning: git user.name or user.email is not configured. Using defaults.',
+    );
+  }
+  await startServer(
+    new MockAuthProvider(gitUser),
+    await commandHandler.getProjectPath(options.projectPath),
+  );
 });
 
 // MCP Server command
