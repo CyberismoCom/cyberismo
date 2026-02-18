@@ -124,11 +124,15 @@ export interface RenderedCard {
 
   // Notifications and policy checks
   notifications: CardNotification[];
-  policyCheckFailures: Array<{
-    category: string;
-    title: string;
-    errorMessage: string;
-  }>;
+  policyChecks: {
+    successes: { category: string; title: string }[];
+    failures: {
+      category: string;
+      title: string;
+      errorMessage: string;
+      fieldName?: string;
+    }[];
+  };
 
   // Calculations (if any)
   calculations?: unknown[];
@@ -238,7 +242,7 @@ export async function renderCard(
     links,
     deniedOperations,
     notifications,
-    policyCheckFailures: cardQueryResult?.policyChecks?.failures || [],
+    policyChecks: cardQueryResult?.policyChecks || { successes: [], failures: [] },
     calculations:
       (cardQueryResult as unknown as { calculations?: unknown[] })
         ?.calculations || [],

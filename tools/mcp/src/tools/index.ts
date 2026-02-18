@@ -282,7 +282,7 @@ Returns:
 - labels, links, children, parent, attachments
 - deniedOperations: What operations are blocked (transitions, move, delete, editFields, editContent)
 - notifications: Warnings or alerts about the card
-- policyCheckFailures: Failed policy checks`,
+- policyChecks: Policy check results with successes and failures`,
     {
       cardKey: z.string().describe('Card key to retrieve'),
       raw: z
