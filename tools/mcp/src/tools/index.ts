@@ -641,6 +641,24 @@ Returns:
     },
     async ({ name, key, subKey, operation }) => {
       try {
+        if (key.includes('/')) {
+          return toolError(
+            'updating resource',
+            `Invalid key "${key}": key must not contain '/'. Use the 'subKey' parameter for content sub-properties.`,
+          );
+        }
+        if (key === 'content' && !subKey) {
+          return toolError(
+            'updating resource',
+            `When key is 'content', a 'subKey' parameter is required to specify which content property to update.`,
+          );
+        }
+        if (key !== 'content' && subKey) {
+          return toolError(
+            'updating resource',
+            `The 'subKey' parameter is only valid when key is 'content'. Got key="${key}" with subKey="${subKey}".`,
+          );
+        }
         const updateKey = subKey
           ? { key: 'content' as const, subKey }
           : { key };
@@ -746,9 +764,7 @@ Returns:
           parameters ?? {},
           'localApp',
         );
-        return {
-          content: [{ type: 'text' as const, text: result }],
-        };
+        return toolResult({ reportName, cardKey, report: result });
       } catch (error) {
         return toolError('running report', error);
       }

@@ -59,11 +59,11 @@ After configuration, reload VS Code. Copilot Chat will have access to Cyberismo 
 
 The HTTP transport uses Server-Sent Events (SSE) for streaming:
 
-| Method | Path   | Description                                      |
-| ------ | ------ | ------------------------------------------------ |
-| POST   | `/mcp` | Send MCP messages (initialize, tool calls, etc.) |
-| GET    | `/mcp` | SSE streaming for server-to-client messages      |
-| DELETE | `/mcp` | Close session                                    |
+| Method | Path       | Description                                      |
+| ------ | ---------- | ------------------------------------------------ |
+| POST   | `/mcp`     | Send MCP messages (initialize, tool calls, etc.) |
+| GET    | `/mcp/sse` | SSE streaming for server-to-client messages      |
+| DELETE | `/mcp`     | Close session                                    |
 
 Sessions are managed via the `mcp-session-id` header returned after initialization.
 
@@ -145,16 +145,16 @@ The MCP server exposes the following tools:
 
 Resources provide read-only access to project data:
 
-| Resource     | URI                    | Description                   |
-| ------------ | ---------------------- | ----------------------------- |
-| Project info | `file:///project`      | Project metadata and settings |
-| Card types   | `file:///card-types`   | All card type definitions     |
-| Workflows    | `file:///workflows`    | All workflow definitions      |
-| Field types  | `file:///field-types`  | All field type definitions    |
-| Link types   | `file:///link-types`   | All link type definitions     |
-| Templates    | `file:///templates`    | All template definitions      |
-| Calculations | `file:///calculations` | All calculation definitions   |
-| Reports      | `file:///reports`      | All report definitions        |
+| Resource     | URI                          | Description                   |
+| ------------ | ---------------------------- | ----------------------------- |
+| Project info | `cyberismo:///project`       | Project metadata and settings |
+| Card types   | `cyberismo:///card-types`    | All card type definitions     |
+| Workflows    | `cyberismo:///workflows`     | All workflow definitions      |
+| Field types  | `cyberismo:///field-types`   | All field type definitions    |
+| Link types   | `cyberismo:///link-types`    | All link type definitions     |
+| Templates    | `cyberismo:///templates`     | All template definitions      |
+| Calculations | `cyberismo:///calculations`  | All calculation definitions   |
+| Reports      | `cyberismo:///reports`       | All report definitions        |
 
 ---
 
