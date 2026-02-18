@@ -54,8 +54,8 @@ export function createApp(
   app.use(treeMiddleware(opts));
   // Apply authentication middleware to all API routes
   app.use('/api/*', createAuthMiddleware(authProvider));
-  // Attach CommandManager to all requests
-  app.use(attachCommandManager(commands));
+  // Attach CommandManager to all API requests
+  app.use('/api/*', attachCommandManager(commands));
   // Wire up routes
   app.route('/api/auth', createAuthRouter());
 
