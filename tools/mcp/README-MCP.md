@@ -145,16 +145,16 @@ The MCP server exposes the following tools:
 
 Resources provide read-only access to project data:
 
-| Resource     | URI                          | Description                   |
-| ------------ | ---------------------------- | ----------------------------- |
-| Project info | `cyberismo:///project`       | Project metadata and settings |
-| Card types   | `cyberismo:///card-types`    | All card type definitions     |
-| Workflows    | `cyberismo:///workflows`     | All workflow definitions      |
-| Field types  | `cyberismo:///field-types`   | All field type definitions    |
-| Link types   | `cyberismo:///link-types`    | All link type definitions     |
-| Templates    | `cyberismo:///templates`     | All template definitions      |
-| Calculations | `cyberismo:///calculations`  | All calculation definitions   |
-| Reports      | `cyberismo:///reports`       | All report definitions        |
+| Resource     | URI                         | Description                   |
+| ------------ | --------------------------- | ----------------------------- |
+| Project info | `cyberismo:///project`      | Project metadata and settings |
+| Card types   | `cyberismo:///card-types`   | All card type definitions     |
+| Workflows    | `cyberismo:///workflows`    | All workflow definitions      |
+| Field types  | `cyberismo:///field-types`  | All field type definitions    |
+| Link types   | `cyberismo:///link-types`   | All link type definitions     |
+| Templates    | `cyberismo:///templates`    | All template definitions      |
+| Calculations | `cyberismo:///calculations` | All calculation definitions   |
+| Reports      | `cyberismo:///reports`      | All report definitions        |
 
 ---
 
