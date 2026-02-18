@@ -25,7 +25,7 @@ import { Transition } from './commands/transition.js';
 import { Update } from './commands/update.js';
 import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
-import { runWithAuthor } from './utils/author-context.js';
+import { runWithCommitContext } from './utils/commit-context.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import pino, { type Level, type TransportTargetOptions } from 'pino';
 import { setLogger } from './utils/log-utils.js';
@@ -102,7 +102,7 @@ export class CommandManager {
     author: { name: string; email: string },
     fn: () => Promise<T>,
   ): Promise<T> {
-    return runWithAuthor(author, fn);
+    return runWithCommitContext({ author }, fn);
   }
 
   /**
@@ -110,8 +110,9 @@ export class CommandManager {
    * All inner @write/@read calls reuse the same lock context.
    * Git commit fires once on success; rollback on any error.
    */
-  public async atomic<T>(fn: () => Promise<T>): Promise<T> {
-    return this.project.lock.write(fn);
+  public async atomic<T>(fn: () => Promise<T>, message: string): Promise<T> {
+    const run = () => this.project.lock.write(fn);
+    return runWithCommitContext({ message }, run);
   }
 
   /**

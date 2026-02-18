@@ -476,9 +476,13 @@ export async function updateResourceWithOperation(
   body: UpdateOperationBody,
 ) {
   const { updateKey, operation } = body;
-  await commands.updateCmd.applyResourceOperation(
-    resourceNameToString(resource),
-    updateKey,
-    operation,
+  await commands.atomic(
+    () =>
+      commands.updateCmd.applyResourceOperation(
+        resourceNameToString(resource),
+        updateKey,
+        operation,
+      ),
+    `Update ${resource.type} ${resource.identifier}`,
   );
 }

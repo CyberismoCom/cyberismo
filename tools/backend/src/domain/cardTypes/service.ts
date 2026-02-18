@@ -91,16 +91,20 @@ export async function updateFieldVisibility(
     }
 
     if (targetIndex !== undefined) {
-      await commands.updateCmd.applyResourceOperation(
-        cardTypeName,
-        {
-          key: groupToKey[targetGroup],
-        },
-        {
-          name: 'rank',
-          target: fieldName,
-          newIndex: targetIndex,
-        },
+      await commands.atomic(
+        () =>
+          commands.updateCmd.applyResourceOperation(
+            cardTypeName,
+            {
+              key: groupToKey[targetGroup],
+            },
+            {
+              name: 'rank',
+              target: fieldName,
+              newIndex: targetIndex,
+            },
+          ),
+        `Reorder field in ${cardTypeName}`,
       );
     }
     return;
@@ -150,5 +154,5 @@ export async function updateFieldVisibility(
         );
       }
     }
-  });
+  }, `Update field visibility for ${cardTypeName}`);
 }

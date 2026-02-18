@@ -71,7 +71,7 @@ export async function updateCard(
     if (body.index != null) {
       await commands.moveCmd.rankByIndex(key, body.index);
     }
-  });
+  }, `Update card ${key}`);
 }
 
 export async function deleteCard(commands: CommandManager, key: string) {
@@ -112,7 +112,7 @@ export async function uploadAttachments(
         succeeded.push(file.name);
       }
     }
-  });
+  }, `Add attachments to ${key}`);
 
   return {
     message: 'Attachments uploaded successfully',

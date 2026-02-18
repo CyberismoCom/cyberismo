@@ -78,7 +78,7 @@ export async function updateProject(
     if (name) {
       await commands.project.configuration.setProjectName(name);
     }
-  });
+  }, 'Update project settings');
 
   return getProject(commands);
 }

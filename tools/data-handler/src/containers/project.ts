@@ -58,7 +58,7 @@ import { getChildLogger } from '../utils/log-utils.js';
 import { MigrationExecutor } from '../migrations/migration-executor.js';
 import { RWLock } from '../utils/rw-lock.js';
 import { GitManager } from '../utils/git-manager.js';
-import { getAuthor } from '../utils/author-context.js';
+import { getCommitContext } from '../utils/commit-context.js';
 
 import type { MigrationResult } from '@cyberismo/migrations';
 import type { Template } from './template.js';
@@ -152,8 +152,11 @@ export class Project extends CardContainer {
 
       // Commit after successful writes
       this.lock.onAfterWrite(async () => {
-        const author = getAuthor();
-        await this.gitManager!.commit('Autocommit', author);
+        const context = getCommitContext();
+        await this.gitManager!.commit(
+          context.message ?? 'Autocommit',
+          context.author,
+        );
       });
 
       // Rollback on failed writes
@@ -898,8 +901,7 @@ export class Project extends CardContainer {
    */
   public async initializeGit(): Promise<void> {
     if (this.gitManager) {
-      const author = getAuthor();
-      await this.gitManager.initialize(author);
+      await this.gitManager.initialize(getCommitContext().author);
     }
   }
 

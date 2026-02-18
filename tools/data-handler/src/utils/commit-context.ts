@@ -1,6 +1,7 @@
 /**
   Cyberismo
   Copyright © Cyberismo Ltd and contributors 2026
+
   This program is free software: you can redistribute it and/or modify it under
   the terms of the GNU Affero General Public License version 3 as published by
   the Free Software Foundation. This program is distributed in the hope that it
@@ -13,20 +14,32 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-export interface Author {
-  name: string;
-  email: string;
+export interface CommitContext {
+  message?: string;
+  author?: { name: string; email: string };
 }
 
-const authorContext = new AsyncLocalStorage<Author>();
+const context = new AsyncLocalStorage<CommitContext>();
 
-export function runWithAuthor<T>(
-  author: Author,
+export function runWithCommitContext<T>(
+  ctx: CommitContext,
   fn: () => Promise<T>,
 ): Promise<T> {
-  return authorContext.run(author, fn);
+  const current = context.getStore();
+  // Merge with any existing context (e.g. author set at middleware level, message set at decorator level)
+  const merged = { ...current, ...ctx };
+  return context.run(merged, fn);
 }
 
-export function getAuthor(): Author | undefined {
-  return authorContext.getStore();
+export function getCommitContext(): CommitContext {
+  return context.getStore() ?? {};
+}
+
+export function runWithDefaultCommitMessage<T>(
+  message: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  return getCommitContext().message !== undefined
+    ? fn()
+    : runWithCommitContext({ message }, fn);
 }

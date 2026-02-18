@@ -12,6 +12,7 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { runWithDefaultCommitMessage } from './commit-context.js';
 
 interface LockContext {
   mode: 'read' | 'write';
@@ -185,7 +186,13 @@ export function read<This extends object, Args extends unknown[], Return>(
 export function write<This extends object, Args extends unknown[], Return>(
   target: (this: This, ...args: Args) => Promise<Return>,
 ): (this: This, ...args: Args) => Promise<Return> {
+  // Convert camelCase method name to human-readable: "createCard" → "Create card"
+  const label = target.name
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
   return function (this: This, ...args: Args): Promise<Return> {
-    return getLock(this).write(() => target.call(this, ...args));
+    const run = () => getLock(this).write(() => target.call(this, ...args));
+    return runWithDefaultCommitMessage(label, run);
   };
 }
