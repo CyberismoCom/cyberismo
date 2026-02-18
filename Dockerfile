@@ -75,6 +75,11 @@ RUN mkdir -p ./tools/assets
 COPY --from=builder /app/tools/assets/package.json ./tools/assets/package.json
 COPY --from=builder /app/tools/assets/dist ./tools/assets/dist
 
+# mcp
+RUN mkdir -p ./tools/mcp
+COPY --from=builder /app/tools/mcp/package.json ./tools/mcp/package.json
+COPY --from=builder /app/tools/mcp/dist ./tools/mcp/dist
+
 # migrations
 RUN mkdir -p ./tools/migrations
 COPY --from=builder /app/tools/migrations/package.json ./tools/migrations/package.json
