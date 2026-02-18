@@ -127,12 +127,7 @@ export class LinkTypeResource extends FileResource<LinkType> {
   ) {
     const { key } = updateKey;
 
-    if (
-      key === 'name' ||
-      key === 'displayName' ||
-      key === 'description' ||
-      key === 'category'
-    ) {
+    if (this.isBaseProperty(key)) {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content);

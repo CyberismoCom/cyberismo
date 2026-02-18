@@ -448,12 +448,7 @@ export class CardTypeResource extends FileResource<CardType> {
   ) {
     const { key } = updateKey;
 
-    if (
-      key === 'name' ||
-      key === 'description' ||
-      key === 'displayName' ||
-      key === 'category'
-    ) {
+    if (this.isBaseProperty(key)) {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content);

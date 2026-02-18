@@ -577,6 +577,25 @@ export abstract class ResourceObject<
   }
 
   /**
+   * Base properties shared by all resources.
+   */
+  private static readonly BASE_PROPERTIES = [
+    'name',
+    'displayName',
+    'description',
+    'category',
+  ] as const;
+
+  /**
+   * Checks if the given key is a base property shared by all resources.
+   * @param key The property key to check
+   * @returns true if the key is a base property
+   */
+  protected isBaseProperty(key: string): boolean {
+    return (ResourceObject.BASE_PROPERTIES as readonly string[]).includes(key);
+  }
+
+  /**
    * Update resource; the base class makes some checks only.
    * @template type Resource type
    * @template K Resource key

@@ -408,21 +408,14 @@ export class FieldTypeResource extends FileResource<FieldType> {
   ) {
     const { key } = updateKey;
 
-    if (
-      key === 'name' ||
-      key === 'description' ||
-      key === 'displayName' ||
-      key === 'category'
-    ) {
+    if (this.isBaseProperty(key)) {
       await super.update(updateKey, op);
     } else {
       const content = structuredClone(this.content);
       const typeChange = key === 'dataType';
       const enumChange = key === 'enumValues';
       const existingType = this.content.dataType;
-      if (key === 'name') {
-        content.name = super.handleScalar(op) as string;
-      } else if (key === 'dataType') {
+      if (key === 'dataType') {
         const toType = op as ChangeOperation<DataType>;
         if (!FieldTypeResource.fieldDataTypes().includes(toType.to)) {
           throw new Error(

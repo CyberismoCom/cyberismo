@@ -105,6 +105,7 @@
   "cardKey": "Card key",
   "cardNotFound": "Could not find card",
   "cardType": "Card type",
+  "category": "Category",
   "close": "Close",
   "configTree": {
     "files": {

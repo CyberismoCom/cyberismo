@@ -46,6 +46,7 @@ const commonFields: FieldConfig[] = [
   { key: 'name', type: 'identifier', label: 'identifier' },
   { key: 'displayName', type: 'text', label: 'displayName' },
   { key: 'description', type: 'textarea', label: 'description' },
+  { key: 'category', type: 'text', label: 'category' },
 ];
 
 const dataTypeOptions = DATA_TYPES.map((dt) => ({ id: dt, displayName: dt }));
