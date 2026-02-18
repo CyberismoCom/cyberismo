@@ -55,8 +55,11 @@ export function createApp(
   // Apply authentication middleware to all API routes
   app.use('/api/*', createAuthMiddleware(authProvider));
 
-  // Attach CommandManager to API routes only (after successful auth)
-  app.use('/api/*', attachCommandManager(projectPath));
+  // Attach CommandManager to API and MCP routes (after successful auth for API)
+  const commandManagerMiddleware = attachCommandManager(projectPath);
+  app.use('/api/*', commandManagerMiddleware);
+  app.use('/mcp', commandManagerMiddleware);
+  app.use('/mcp/*', commandManagerMiddleware);
   // Wire up routes
   app.route('/api/auth', createAuthRouter());
 
