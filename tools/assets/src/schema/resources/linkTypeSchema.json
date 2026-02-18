@@ -3,6 +3,10 @@
   "additionalProperties": false,
   "description": "Link types defined different ways to link cards together.",
   "properties": {
+    "category": {
+      "description": "The category of the link type. For example, 'Connection'.",
+      "type": "string"
+    },
     "description": {
       "description": "A description that describes the link type",
       "type": "string"

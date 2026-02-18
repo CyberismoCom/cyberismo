@@ -20,6 +20,10 @@
     "calculation": {
       "description": "The logic programming content for this calculation",
       "type": "string"
+    },
+    "category": {
+      "description": "The category of the calculation. For example, 'ReportData'.",
+      "type": "string"
     }
   },
   "required": ["name"],
