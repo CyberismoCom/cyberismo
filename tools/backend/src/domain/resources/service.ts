@@ -77,102 +77,104 @@ function sortTemplateCardsByRank(
 }
 
 export async function buildResourceTree(commands: CommandManager) {
-  const project = await commands.showCmd.showProject();
-  const tree: unknown[] = [];
+  return commands.consistent(async () => {
+    const project = await commands.showCmd.showProject();
+    const tree: unknown[] = [];
 
-  const sortByDisplayName = (
-    nodes: { data: { displayName: string; name: string } }[],
-  ) =>
-    nodes.sort((a, b) =>
-      (a.data.displayName || a.data.name.split('/')[2] || '').localeCompare(
-        b.data.displayName || b.data.name.split('/')[2] || '',
-      ),
-    );
+    const sortByDisplayName = (
+      nodes: { data: { displayName: string; name: string } }[],
+    ) =>
+      nodes.sort((a, b) =>
+        (a.data.displayName || a.data.name.split('/')[2] || '').localeCompare(
+          b.data.displayName || b.data.name.split('/')[2] || '',
+        ),
+      );
 
-  const modules = await getModules(commands);
+    const modules = await getModules(commands);
 
-  // General section first (single node with project + modules metadata)
-  tree.push({
-    id: 'general-project',
-    type: 'general',
-    name: 'project',
-    data: {
-      name: project.name,
-      cardKeyPrefix: project.prefix,
-      modules,
-    },
-    readOnly: false,
-  });
+    // General section first (single node with project + modules metadata)
+    tree.push({
+      id: 'general-project',
+      type: 'general',
+      name: 'project',
+      data: {
+        name: project.name,
+        cardKeyPrefix: project.prefix,
+        modules,
+      },
+      readOnly: false,
+    });
 
-  // Process each resource type
-  for (const resourceType of resourceTypes) {
-    let rootResources: unknown[];
-    let moduleResources: { [prefix: string]: unknown[] };
+    // Process each resource type
+    for (const resourceType of resourceTypes) {
+      let rootResources: unknown[];
+      let moduleResources: { [prefix: string]: unknown[] };
 
-    if (resourceType === 'templates') {
-      ({ rootResources, moduleResources } = await processTemplates(
-        commands,
-        project.prefix,
-      ));
-    } else {
-      ({ rootResources, moduleResources } = await groupResourcesByPrefix(
-        commands,
-        resourceType,
-        project.prefix,
-      ));
-    }
+      if (resourceType === 'templates') {
+        ({ rootResources, moduleResources } = await processTemplates(
+          commands,
+          project.prefix,
+        ));
+      } else {
+        ({ rootResources, moduleResources } = await groupResourcesByPrefix(
+          commands,
+          resourceType,
+          project.prefix,
+        ));
+      }
 
-    // Sort resources by display name if present
-    sortByDisplayName(
-      rootResources as { data: { displayName: string; name: string } }[],
-    );
-
-    Object.values(moduleResources).forEach((resources) =>
+      // Sort resources by display name if present
       sortByDisplayName(
-        resources as { data: { displayName: string; name: string } }[],
-      ),
-    );
+        rootResources as { data: { displayName: string; name: string } }[],
+      );
 
-    const projectNode =
-      rootResources.length > 0
-        ? [
-            {
-              id: `${resourceType}-project`,
-              type: 'module',
-              name: 'project',
-              children: rootResources,
-              readOnly: false,
-            },
-          ]
-        : [];
+      Object.values(moduleResources).forEach((resources) =>
+        sortByDisplayName(
+          resources as { data: { displayName: string; name: string } }[],
+        ),
+      );
 
-    const moduleNodes = Object.entries(moduleResources)
-      .map(([prefix, resources]) => ({
-        id: `${resourceType}-module-${prefix}`,
-        type: 'module',
-        name:
-          modules.find((module) => module.cardKeyPrefix === prefix)?.name ||
+      const projectNode =
+        rootResources.length > 0
+          ? [
+              {
+                id: `${resourceType}-project`,
+                type: 'module',
+                name: 'project',
+                children: rootResources,
+                readOnly: false,
+              },
+            ]
+          : [];
+
+      const moduleNodes = Object.entries(moduleResources)
+        .map(([prefix, resources]) => ({
+          id: `${resourceType}-module-${prefix}`,
+          type: 'module',
+          name:
+            modules.find((module) => module.cardKeyPrefix === prefix)?.name ||
+            prefix,
           prefix,
-        prefix,
-        children: resources,
-        readOnly: true,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+          children: resources,
+          readOnly: true,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
-    const allResources = [...projectNode, ...moduleNodes];
+      const allResources = [...projectNode, ...moduleNodes];
 
-    // Add combined resources (project + modules nested under module nodes) under the same group
-    if (allResources.length > 0) {
-      tree.push({
-        id: resourceType,
-        type: 'resourceGroup',
-        name: resourceType,
-        children: allResources,
-      });
+      // Add combined resources (project + modules nested under module nodes) under the same group
+      if (allResources.length > 0) {
+        tree.push({
+          id: resourceType,
+          type: 'resourceGroup',
+          name: resourceType,
+          children: allResources,
+        });
+      }
     }
-  }
 
-  return tree;
+    return tree;
+  });
 }
 
 // Helper function to parse resource prefix
@@ -456,9 +458,8 @@ export async function validateResource(
   commands: CommandManager,
   resource: ValidateResourceParams,
 ) {
-  const errors = await commands.validateCmd.validateResource(
-    resource,
-    commands.project,
+  const errors = await commands.consistent(() =>
+    commands.validateCmd.validateResource(resource, commands.project),
   );
 
   return {

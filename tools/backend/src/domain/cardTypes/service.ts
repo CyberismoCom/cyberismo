@@ -54,75 +54,54 @@ export async function updateFieldVisibility(
 ): Promise<void> {
   const { fieldName, group: targetGroup, index: targetIndex } = body;
 
-  // Get current card type data
-  const cardType = await commands.showCmd.showResource(
-    cardTypeName,
-    'cardTypes',
-  );
-  if (!cardType) {
-    throw new Error(`Card type '${cardTypeName}' not found`);
-  }
-
-  const customFields = cardType.customFields || [];
-  const alwaysVisibleFields = cardType.alwaysVisibleFields || [];
-  const optionallyVisibleFields = cardType.optionallyVisibleFields || [];
-
-  // Validate that the field exists in customFields
-  const fieldExists = customFields.some(
-    (f: { name: string }) => f.name === fieldName,
-  );
-  if (!fieldExists) {
-    throw new Error(
-      `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
+  await commands.atomic(async () => {
+    // Read is now inside the write lock
+    const cardType = await commands.showCmd.showResource(
+      cardTypeName,
+      'cardTypes',
     );
-  }
+    if (!cardType) {
+      throw new Error(`Card type '${cardTypeName}' not found`);
+    }
 
-  const currentGroup = getCurrentGroup(
-    alwaysVisibleFields,
-    optionallyVisibleFields,
-    fieldName,
-  );
+    const customFields = cardType.customFields || [];
+    const alwaysVisibleFields = cardType.alwaysVisibleFields || [];
+    const optionallyVisibleFields = cardType.optionallyVisibleFields || [];
 
-  // If same group, just handle reordering
-  if (currentGroup === targetGroup) {
-    if (targetGroup === 'hidden') {
-      // Nothing to reorder in hidden group
+    // Validate that the field exists in customFields
+    const fieldExists = customFields.some(
+      (f: { name: string }) => f.name === fieldName,
+    );
+    if (!fieldExists) {
+      throw new Error(
+        `Field '${fieldName}' does not exist in card type '${cardTypeName}'. `,
+      );
+    }
+
+    const currentGroup = getCurrentGroup(
+      alwaysVisibleFields,
+      optionallyVisibleFields,
+      fieldName,
+    );
+
+    // If same group, just handle reordering
+    if (currentGroup === targetGroup) {
+      if (targetGroup !== 'hidden' && targetIndex !== undefined) {
+        await commands.updateCmd.applyResourceOperation(
+          cardTypeName,
+          { key: groupToKey[targetGroup] },
+          { name: 'rank', target: fieldName, newIndex: targetIndex },
+        );
+      }
       return;
     }
 
-    if (targetIndex !== undefined) {
-      await commands.atomic(
-        () =>
-          commands.updateCmd.applyResourceOperation(
-            cardTypeName,
-            {
-              key: groupToKey[targetGroup],
-            },
-            {
-              name: 'rank',
-              target: fieldName,
-              newIndex: targetIndex,
-            },
-          ),
-        `Reorder field in ${cardTypeName}`,
-      );
-    }
-    return;
-  }
-
-  // Different group - need to remove from old and add to new
-  await commands.atomic(async () => {
     // Remove from current group (if not hidden)
     if (currentGroup !== 'hidden') {
       await commands.updateCmd.applyResourceOperation(
         cardTypeName,
-        {
-          key: groupToKey[currentGroup],
-        },
-        {
-          name: 'remove',
-          target: fieldName,
-        },
+        { key: groupToKey[currentGroup] },
+        { name: 'remove', target: fieldName },
       );
     }
 
@@ -130,27 +109,15 @@ export async function updateFieldVisibility(
     if (targetGroup !== 'hidden') {
       await commands.updateCmd.applyResourceOperation(
         cardTypeName,
-        {
-          key: groupToKey[targetGroup],
-        },
-        {
-          name: 'add',
-          target: fieldName,
-        },
+        { key: groupToKey[targetGroup] },
+        { name: 'add', target: fieldName },
       );
 
-      // Reorder if index specified
       if (targetIndex !== undefined) {
         await commands.updateCmd.applyResourceOperation(
           cardTypeName,
-          {
-            key: groupToKey[targetGroup],
-          },
-          {
-            name: 'rank',
-            target: fieldName,
-            newIndex: targetIndex,
-          },
+          { key: groupToKey[targetGroup] },
+          { name: 'rank', target: fieldName, newIndex: targetIndex },
         );
       }
     }
