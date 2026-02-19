@@ -323,7 +323,7 @@ describe('Cli BAT test', function () {
     );
   });
   it('Export static site and preview it', function (done) {
-    const outputDir = './out';
+    const outputDir = 'out';
     exec(
       `cd ${cliPath} && cyberismo export site ${outputDir} && cyberismo validate`,
       (error, stdout, _stderr) => {
@@ -336,7 +336,7 @@ describe('Cli BAT test', function () {
           `Run 'cyberismo preview ${outputDir}' to view the site`,
         );
         expect(stdout).to.include('Project structure validated');
-        rmSync(`${cliPath}/out`, { recursive: true, force: true });
+        rmSync(`${cliPath}/${outputDir}`, { recursive: true, force: true });
         done();
       },
     );
