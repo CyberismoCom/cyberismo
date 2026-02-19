@@ -21,7 +21,7 @@ import {
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { existsSync, readdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 
 // base class
 import { CardContainer } from './card-container.js';
@@ -1056,7 +1056,7 @@ export class Project extends CardContainer {
       prefix: this.projectPrefix,
       category: this.configuration.category,
       description: this.configuration.description,
-      version: this.configuration.version,
+      version: this.configuration.latestVersion,
       hubs: this.configuration.hubs,
       modules: this.resources.moduleNames(),
       numberOfCards: (await this.listCards(CardLocation.projectOnly))[0].cards

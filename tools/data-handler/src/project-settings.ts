@@ -14,7 +14,7 @@
 import { writeJsonFile as atomicWrite } from 'write-json-file';
 import { readdirSync, writeFileSync } from 'node:fs';
 
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { URL } from 'node:url';
 
 import type {

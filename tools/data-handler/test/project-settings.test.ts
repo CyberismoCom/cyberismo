@@ -399,7 +399,9 @@ describe('project settings', () => {
     });
 
     it('should initialize version to 0 for new projects', () => {
-      const configPath = createTestConfig('test-config-new-version.json');
+      const configPath = createTestConfig('test-config-new-version.json', {
+        version: undefined as unknown as number,
+      });
       const projectSettings = new ProjectConfiguration(configPath, false);
       expect(projectSettings.version).to.equal(0);
     });

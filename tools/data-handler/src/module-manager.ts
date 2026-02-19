@@ -59,6 +59,11 @@ export class ModuleManager {
     // Copy resource files (modules are imported flat)
     await copyDir(sourcePath, destinationPath);
 
+    // Remove migrationLog.jsonl if it was copied from a versioned source folder —
+    // it belongs in versioned project folders only, not in module imports.
+    const migrationLogInDest = join(destinationPath, 'migrationLog.jsonl');
+    await rm(migrationLogInDest, { force: true });
+
     // Copy cardsConfig.json from the source module
     const sourceConfigPath = join(
       sourceProjectPath,
@@ -70,6 +75,18 @@ export class ModuleManager {
     if (pathExists(sourceConfigPath)) {
       await copyFile(sourceConfigPath, destConfigPath);
     }
+
+    // Copy .schema from the source module
+    const sourceDotSchemaPath = join(
+      sourceProjectPath,
+      '.cards',
+      'local',
+      '.schema',
+    );
+    const destDotSchemaPath = join(destinationPath, '.schema');
+    await copyFile(sourceDotSchemaPath, destDotSchemaPath).catch((error) => {
+      if (error.code !== 'ENOENT') throw error;
+    });
 
     // Update the resources.
     this.project.resources.changedModules();
@@ -620,9 +637,13 @@ export class ModuleManager {
       this.project.paths.modulesFolder,
       modulePrefix,
     );
-    const sourcePath = sourceProject.paths.versionedResourcesFolderFor(
+    const versionedPath = sourceProject.paths.versionedResourcesFolderFor(
       sourceProject.configuration.latestVersion,
     );
+    // Fall back to flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath)
+      ? versionedPath
+      : sourceProject.paths.localFolder;
 
     this.validatePrefix(modulePrefix, skipValidation);
 
@@ -676,7 +697,9 @@ export class ModuleManager {
     } catch {
       // fallback to config version
     }
-    const sourcePath = sourcePaths.versionedResourcesFolderFor(sourceVersion);
+    const versionedPath = sourcePaths.versionedResourcesFolderFor(sourceVersion);
+    // Fall back to the flat local folder for pre-v3 modules that lack numbered subfolders
+    const sourcePath = pathExists(versionedPath) ? versionedPath : sourceLocalFolder;
     const destinationPath = join(
       this.project.paths.modulesFolder,
       modulePrefix,
