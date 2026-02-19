@@ -520,7 +520,7 @@ describe('RWLock', () => {
       class TestCmd {
         project = { lock };
 
-        @write
+        @write()
         async doWrite(): Promise<void> {
           log.push('write');
         }
@@ -541,7 +541,7 @@ describe('RWLock', () => {
       class TestCmd {
         project = { lock };
 
-        @write
+        @write()
         async slowWrite(): Promise<void> {
           log.push('slow-start');
           entered.resolve();
@@ -549,7 +549,7 @@ describe('RWLock', () => {
           log.push('slow-end');
         }
 
-        @write
+        @write()
         async fastWrite(): Promise<void> {
           log.push('fast-start');
           log.push('fast-end');

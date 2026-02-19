@@ -81,7 +81,7 @@ export class Create {
    * @param count How many cards to add. By default one.
    * @returns non-empty string array with ids of added cards
    */
-  @write
+  @write((cardTypeName, templateName) => `Add cards of type ${cardTypeName} to template ${templateName}`)
   public async addCards(
     cardTypeName: string,
     templateName: string,
@@ -142,7 +142,7 @@ export class Create {
    * Adds a new hub location.
    * @param hubUrl URL of the hub
    */
-  @write
+  @write((hubUrl) => `Add hub ${hubUrl}`)
   public async addHubLocation(hubUrl: string) {
     return this.project.configuration.addHub(hubUrl);
   }
@@ -153,7 +153,7 @@ export class Create {
    * @param attachment path to an attachment file or attachment name if buffer is defined
    * @param buffer (Optional) attachment buffer
    */
-  @write
+  @write((cardKey, attachment) => `Add attachment ${attachment} to ${cardKey}`)
   public async createAttachment(
     cardKey: string,
     attachment: string,
@@ -174,7 +174,7 @@ export class Create {
    * Creates a calculation resource.
    * @param calculationName name for the calculation resource
    */
-  @write
+  @write((calculationName) => `Create calculation ${calculationName}`)
   public async createCalculation(calculationName: string) {
     return this.project.resources
       .byType(calculationName, 'calculations')
@@ -187,7 +187,7 @@ export class Create {
    * @param parentCardKey (Optional) card-key of a parent card. If missing, cards are added to the card root.
    * @returns array of card keys that were created. Cards are sorted by their parent key and rank. Template root cards are first but the order between other card groups is not guaranteed. However, the order of cards within a group is guaranteed to be ordered by rank.
    */
-  @write
+  @write((templateName) => `Create card from template ${templateName}`)
   public async createCard(
     templateName: string,
     parentCardKey?: string,
@@ -238,7 +238,7 @@ export class Create {
    * @param cardTypeName name for the card type.
    * @param workflowName workflow name to use in the card type.
    */
-  @write
+  @write((cardTypeName) => `Create card type ${cardTypeName}`)
   public async createCardType(cardTypeName: string, workflowName: string) {
     return this.project.resources
       .byType(cardTypeName, 'cardTypes')
@@ -250,7 +250,7 @@ export class Create {
    * @param fieldTypeName name for the field type.
    * @param dataType data type for the field type
    */
-  @write
+  @write((fieldTypeName) => `Create field type ${fieldTypeName}`)
   public async createFieldType(fieldTypeName: string, dataType: DataType) {
     return this.project.resources
       .byType(fieldTypeName, 'fieldTypes')
@@ -261,7 +261,7 @@ export class Create {
    * Creates a new graph model.
    * @param graphModelName name for the graph model.
    */
-  @write
+  @write((graphModelName) => `Create graph model ${graphModelName}`)
   public async createGraphModel(graphModelName: string) {
     return this.project.resources
       .byType(graphModelName, 'graphModels')
@@ -272,7 +272,7 @@ export class Create {
    * Creates a new graph view.
    * @param graphViewName name for the graph view.
    */
-  @write
+  @write((graphViewName) => `Create graph view ${graphViewName}`)
   public async createGraphView(graphViewName: string) {
     return this.project.resources.byType(graphViewName, 'graphViews').create();
   }
@@ -282,7 +282,7 @@ export class Create {
    * @param cardKey The card to which the label is added to
    * @param label The label being added
    */
-  @write
+  @write((cardKey, label) => `Add label ${label} to ${cardKey}`)
   public async createLabel(cardKey: string, label: string) {
     if (!Validate.isValidLabelName(label)) {
       throw new Error(`Not a valid label name'`);
@@ -303,7 +303,7 @@ export class Create {
    * Creates a new link type.
    * @param linkTypeName name for the link type.
    */
-  @write
+  @write((linkTypeName) => `Create link type ${linkTypeName}`)
   public async createLinkType(linkTypeName: string) {
     return this.project.resources.byType(linkTypeName, 'linkTypes').create();
   }
@@ -315,7 +315,7 @@ export class Create {
    * @param linkType The type of link to add
    * @param linkDescription Optional description of the link
    */
-  @write
+  @write((cardKey, destinationCardKey, linkType) => `Create ${linkType} link from ${cardKey} to ${destinationCardKey}`)
   public async createLink(
     cardKey: string,
     destinationCardKey: string,
@@ -496,7 +496,7 @@ export class Create {
    * Creates a report
    * @param name name of the report
    */
-  @write
+  @write((name) => `Create report ${name}`)
   public async createReport(name: string) {
     return this.project.resources.byType(name, 'reports').createReport();
   }
@@ -506,7 +506,7 @@ export class Create {
    * @param templateName Name of the template.
    * @param templateContent JSON content for the template file.
    */
-  @write
+  @write((templateName) => `Create template ${templateName}`)
   public async createTemplate(templateName: string, templateContent: string) {
     return this.project.resources
       .byType(templateName, 'templates')
@@ -518,7 +518,7 @@ export class Create {
    * @param workflowName workflow name
    * @param workflowContent workflow content JSON
    */
-  @write
+  @write((workflowName) => `Create workflow ${workflowName}`)
   public async createWorkflow(workflowName: string, workflowContent: string) {
     return this.project.resources
       .byType(workflowName, 'workflows')

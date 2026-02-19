@@ -187,7 +187,7 @@ export class Rename {
    * @throws if trying to rename with current name
    * @param to Card id, or template name
    */
-  @write
+  @write((to) => `Rename project prefix to ${to}`)
   public async rename(to: string) {
     if (!to) {
       throw new Error(`Input validation error: empty 'to' is not allowed`);

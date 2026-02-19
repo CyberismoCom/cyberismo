@@ -181,18 +181,34 @@ export function read<This extends object, Args extends unknown[], Return>(
 }
 
 /**
- * A Helper decorator built for commands that automatically handles using a write lock
+ * A Helper decorator built for commands that automatically handles using a write lock.
+ *
+ * Two forms:
+ * - `@write()`: just acquires the write lock, no commit message (for wrapper methods)
+ * - `@write((param) => \`Do ${param}\`)`: acquires the write lock and sets a default commit message
  */
-export function write<This extends object, Args extends unknown[], Return>(
+export function write<This extends object, Args extends unknown[], Return>(): (
   target: (this: This, ...args: Args) => Promise<Return>,
-): (this: This, ...args: Args) => Promise<Return> {
-  // Convert camelCase method name to human-readable: "createCard" → "Create card"
-  const label = target.name
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (c) => c.toUpperCase())
-    .trim();
-  return function (this: This, ...args: Args): Promise<Return> {
-    const run = () => getLock(this).write(() => target.call(this, ...args));
-    return runWithDefaultCommitMessage(label, run);
+) => (this: This, ...args: Args) => Promise<Return>;
+
+export function write<This extends object, Args extends unknown[], Return>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: (...args: any[]) => string,
+): (
+  target: (this: This, ...args: Args) => Promise<Return>,
+) => (this: This, ...args: Args) => Promise<Return>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function write(message?: (...args: any[]) => string): unknown {
+  return function (target: (...args: unknown[]) => Promise<unknown>) {
+    return function (this: object, ...args: unknown[]) {
+      if (!message) {
+        return getLock(this).write(() => target.call(this, ...args));
+      }
+      const label = message(...args);
+      return runWithDefaultCommitMessage(label, () =>
+        getLock(this).write(() => target.call(this, ...args)),
+      );
+    };
   };
 }
