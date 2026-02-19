@@ -833,7 +833,7 @@ exportCmd
             return;
           }
           console.log('Exported site to', output);
-          console.log('Run `cyberismo preview out` to view the site');
+          console.log(`Run 'cyberismo preview ${output}' to view the site`);
           return;
         } catch (e) {
           handleResponse({
