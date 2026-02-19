@@ -93,13 +93,13 @@ export class RWLock {
       const result = await this.context.run(ctx, fn);
       // Fire after-write hooks while still holding the lock
       for (const hook of this.afterWriteHooks) {
-        await hook();
+        await this.context.run(ctx, hook);
       }
       return result;
     } catch (error) {
       // Run rollback hooks on error (outermost write only)
       for (const hook of this.writeErrorHooks) {
-        await hook(error);
+        await this.context.run(ctx, () => hook(error));
       }
       throw error;
     } finally {
