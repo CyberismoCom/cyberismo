@@ -12,6 +12,7 @@
 */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { runWithDefaultCommitMessage } from './commit-context.js';
 
 interface LockContext {
   mode: 'read' | 'write';
@@ -35,6 +36,7 @@ export class RWLock {
   private writerQueue: (() => void)[] = [];
   private context = new AsyncLocalStorage<LockContext>();
   private afterWriteHooks: (() => Promise<void>)[] = [];
+  private writeErrorHooks: ((error: unknown) => Promise<void>)[] = [];
 
   /**
    * Register a callback that fires after the outermost write completes
@@ -42,6 +44,14 @@ export class RWLock {
    */
   onAfterWrite(hook: () => Promise<void>): void {
     this.afterWriteHooks.push(hook);
+  }
+
+  /**
+   * Register a callback that fires when the outermost write fails.
+   * Hooks run while still holding the write lock.
+   */
+  onWriteError(hook: (error: unknown) => Promise<void>): void {
+    this.writeErrorHooks.push(hook);
   }
 
   /**
@@ -86,6 +96,12 @@ export class RWLock {
         await hook();
       }
       return result;
+    } catch (error) {
+      // Run rollback hooks on error (outermost write only)
+      for (const hook of this.writeErrorHooks) {
+        await hook(error);
+      }
+      throw error;
     } finally {
       ctx.active = false;
       this.releaseWrite();
@@ -165,12 +181,34 @@ export function read<This extends object, Args extends unknown[], Return>(
 }
 
 /**
- * A Helper decorator built for commands that automatically handles using a write lock
+ * A Helper decorator built for commands that automatically handles using a write lock.
+ *
+ * Two forms:
+ * - `@write()`: just acquires the write lock, no commit message (for wrapper methods)
+ * - `@write((param) => \`Do ${param}\`)`: acquires the write lock and sets a default commit message
  */
-export function write<This extends object, Args extends unknown[], Return>(
+export function write<This extends object, Args extends unknown[], Return>(): (
   target: (this: This, ...args: Args) => Promise<Return>,
-): (this: This, ...args: Args) => Promise<Return> {
-  return function (this: This, ...args: Args): Promise<Return> {
-    return getLock(this).write(() => target.call(this, ...args));
+) => (this: This, ...args: Args) => Promise<Return>;
+
+export function write<This extends object, Args extends unknown[], Return>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  message: (...args: any[]) => string,
+): (
+  target: (this: This, ...args: Args) => Promise<Return>,
+) => (this: This, ...args: Args) => Promise<Return>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function write(message?: (...args: any[]) => string): unknown {
+  return function (target: (...args: unknown[]) => Promise<unknown>) {
+    return function (this: object, ...args: unknown[]) {
+      if (!message) {
+        return getLock(this).write(() => target.call(this, ...args));
+      }
+      const label = message(...args);
+      return runWithDefaultCommitMessage(label, () =>
+        getLock(this).write(() => target.call(this, ...args)),
+      );
+    };
   };
 }

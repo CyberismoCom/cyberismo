@@ -77,7 +77,7 @@ export class Edit {
    * @param cardKey The card to update.
    * @param changedContent New content for the card.
    */
-  @write
+  @write((cardKey) => `Edit content of ${cardKey}`)
   public async editCardContent(cardKey: string, changedContent: string) {
     if (this.project.hasTemplateCard(cardKey)) {
       return this.project.updateCardContent(cardKey, changedContent);
@@ -95,7 +95,7 @@ export class Edit {
    * @param changedKey Which metadata property was changed
    * @param newValue New value for the metadata property
    */
-  @write
+  @write((cardKey) => `Edit metadata of ${cardKey}`)
   public async editCardMetadata(
     cardKey: string,
     changedKey: string,

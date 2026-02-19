@@ -60,3 +60,6 @@ logs
 prebuilds
 
 tools/backend/static
+
+tools/data-handler/test/tmp**
+.grepai/

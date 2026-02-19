@@ -19,24 +19,26 @@ import { allCards } from './lib.js';
 import type { TreeOptions } from '../../types.js';
 
 export async function getProjectInfo(commands: CommandManager) {
-  const projectResponse = await commands.showCmd.showProject();
+  return commands.consistent(async () => {
+    const projectResponse = await commands.showCmd.showProject();
 
-  const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
-  if (!workflowsResponse) {
-    throw new Error('No workflows found');
-  }
+    const workflowsResponse = await commands.showCmd.showWorkflowsWithDetails();
+    if (!workflowsResponse) {
+      throw new Error('No workflows found');
+    }
 
-  const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
-  if (!cardTypesResponse) {
-    throw new Error('No card types found');
-  }
+    const cardTypesResponse = await commands.showCmd.showCardTypesWithDetails();
+    if (!cardTypesResponse) {
+      throw new Error('No card types found');
+    }
 
-  return {
-    name: projectResponse.name,
-    prefix: projectResponse.prefix,
-    workflows: workflowsResponse,
-    cardTypes: cardTypesResponse,
-  };
+    return {
+      name: projectResponse.name,
+      prefix: projectResponse.prefix,
+      workflows: workflowsResponse,
+      cardTypes: cardTypesResponse,
+    };
+  });
 }
 
 export async function updateCard(
@@ -45,54 +47,31 @@ export async function updateCard(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body: any,
 ) {
-  const errors = [];
-
-  if (body.state) {
-    try {
+  await commands.atomic(async () => {
+    if (body.state) {
       await commands.transitionCmd.cardTransition(key, body.state);
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
     }
-  }
-
-  if (body.content != null) {
-    try {
+    if (body.content != null) {
       await commands.editCmd.editCardContent(key, body.content);
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
     }
-  }
-
-  if (body.metadata) {
-    for (const [metadataKey, metadataValue] of Object.entries(body.metadata)) {
-      const value = metadataValue as MetadataContent;
-
-      try {
-        await commands.editCmd.editCardMetadata(key, metadataKey, value);
-      } catch (error) {
-        if (error instanceof Error) errors.push(error.message);
+    if (body.metadata) {
+      for (const [metadataKey, metadataValue] of Object.entries(
+        body.metadata,
+      )) {
+        await commands.editCmd.editCardMetadata(
+          key,
+          metadataKey,
+          metadataValue as MetadataContent,
+        );
       }
     }
-  }
-
-  if (body.parent) {
-    try {
+    if (body.parent) {
       await commands.moveCmd.moveCard(key, body.parent);
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
     }
-  }
-  if (body.index != null) {
-    try {
+    if (body.index != null) {
       await commands.moveCmd.rankByIndex(key, body.index);
-    } catch (error) {
-      if (error instanceof Error) errors.push(error.message);
     }
-  }
-
-  if (errors.length > 0) {
-    throw new Error(errors.join('\n'));
-  }
+  }, `Update card ${key}`);
 }
 
 export async function deleteCard(commands: CommandManager, key: string) {
@@ -120,18 +99,20 @@ export async function uploadAttachments(
   key: string,
   files: File[],
 ) {
-  const succeeded = [];
-  for (const file of files) {
-    if (file instanceof File) {
-      const buffer = await file.arrayBuffer();
-      await commands.createCmd.createAttachment(
-        key,
-        file.name,
-        Buffer.from(buffer),
-      );
-      succeeded.push(file.name);
+  const succeeded: string[] = [];
+  await commands.atomic(async () => {
+    for (const file of files) {
+      if (file instanceof File) {
+        const buffer = await file.arrayBuffer();
+        await commands.createCmd.createAttachment(
+          key,
+          file.name,
+          Buffer.from(buffer),
+        );
+        succeeded.push(file.name);
+      }
     }
-  }
+  }, `Add attachments to ${key}`);
 
   return {
     message: 'Attachments uploaded successfully',
@@ -162,30 +143,32 @@ export async function parseContent(
   key: string,
   content: string,
 ) {
-  let asciidocContent = '';
-  try {
-    asciidocContent = await evaluateMacros(content, {
-      context: 'localApp',
-      mode: 'inject',
-      project: commands.project,
-      cardKey: key,
-    });
-  } catch (error) {
-    asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
-  }
+  return commands.consistent(async () => {
+    let asciidocContent = '';
+    try {
+      asciidocContent = await evaluateMacros(content, {
+        context: 'localApp',
+        mode: 'inject',
+        project: commands.project,
+        cardKey: key,
+      });
+    } catch (error) {
+      asciidocContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${content}`;
+    }
 
-  const processor = Processor();
-  const parsedContent = processor
-    .convert(asciidocContent, {
-      safe: 'safe',
-      attributes: {
-        imagesdir: `/api/cards/${key}/a`,
-        icons: 'font',
-      },
-    })
-    .toString();
+    const processor = Processor();
+    const parsedContent = processor
+      .convert(asciidocContent, {
+        safe: 'safe',
+        attributes: {
+          imagesdir: `/api/cards/${key}/a`,
+          icons: 'font',
+        },
+      })
+      .toString();
 
-  return { parsedContent };
+    return { parsedContent };
+  });
 }
 
 export async function createLink(

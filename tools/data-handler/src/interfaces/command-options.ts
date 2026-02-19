@@ -92,6 +92,7 @@ export interface ShowCommandOptions extends BaseCommandOptions {
 export interface StartCommandOptions extends BaseCommandOptions {
   forceStart?: boolean;
   watchResourceChanges?: boolean;
+  autocommit?: boolean;
 }
 
 // Options for 'transition' command

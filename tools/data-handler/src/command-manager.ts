@@ -25,14 +25,17 @@ import { Transition } from './commands/transition.js';
 import { Update } from './commands/update.js';
 import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
+import { runWithCommitContext } from './utils/commit-context.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
 import pino, { type Level, type TransportTargetOptions } from 'pino';
 import { setLogger } from './utils/log-utils.js';
+import { join } from 'node:path';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
   autoSaveConfiguration?: boolean;
   logLevel?: Level;
+  autocommit?: boolean;
 }
 
 // Handles commands and ensures that no extra instances are created.
@@ -61,6 +64,7 @@ export class CommandManager {
     this.project = new Project(path, {
       autoSave: options?.autoSaveConfiguration,
       watchResourceChanges: options?.watchResourceChanges,
+      autocommit: options?.autocommit,
     });
     this.validateCmd = Validate.getInstance();
 
@@ -91,12 +95,43 @@ export class CommandManager {
   }
 
   /**
+   * Run a function with the given author set in async-local context.
+   * Git commits made during the function will use this author.
+   */
+  public runAsAuthor<T>(
+    author: { name: string; email: string },
+    fn: () => Promise<T>,
+  ): Promise<T> {
+    return runWithCommitContext({ author }, fn);
+  }
+
+  /**
+   * Execute multiple commands as a single atomic write transaction.
+   * All inner @write/@read calls reuse the same lock context.
+   * Git commit fires once on success; rollback on any error.
+   */
+  public async atomic<T>(fn: () => Promise<T>, message: string): Promise<T> {
+    const run = () => this.project.lock.write(fn);
+    return runWithCommitContext({ message }, run);
+  }
+
+  /**
+   * Execute multiple commands under a consistent read snapshot.
+   * All inner @read calls reuse the same lock context.
+   * Writers are blocked for the duration.
+   */
+  public async consistent<T>(fn: () => Promise<T>): Promise<T> {
+    return this.project.lock.read(fn);
+  }
+
+  /**
    * Some commands needs initialization that cannot be performed inside constructor.
    * Add such calls here.
    */
   public async initialize() {
     this.project.resources.changedModules();
     await this.project.populateCaches();
+    await this.project.initializeGit();
   }
 
   /**
@@ -138,6 +173,30 @@ export class CommandManager {
     path: string,
     options?: CommandManagerOptions,
   ): Promise<CommandManager> {
+    // Set up logger before constructing anything so eager child loggers work
+    if (options?.logLevel) {
+      const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
+      setLogger(
+        pino({
+          level: 'trace',
+          transport: {
+            targets: [
+              {
+                target: 'pino/file',
+                level: 'trace',
+                options: { destination: logPath, mkdir: true },
+              },
+              {
+                target: 'pino/file',
+                level: options.logLevel,
+                options: { destination: 1 },
+              },
+            ],
+          },
+        }),
+      );
+    }
+
     if (
       CommandManager.instance &&
       CommandManager.instance.project.basePath !== path
@@ -151,9 +210,6 @@ export class CommandManager {
       await CommandManager.instance.initialize();
     }
 
-    if (options?.logLevel) {
-      CommandManager.instance.setLogger(options?.logLevel);
-    }
     return CommandManager.instance;
   }
 }

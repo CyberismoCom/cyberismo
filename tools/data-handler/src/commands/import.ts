@@ -49,7 +49,7 @@ export class Import {
    * @param parentCardKey the cards in the csv file will be created under this card
    * @returns card keys of the imported cards
    */
-  @write
+  @write((csvFilePath) => `Import cards from CSV ${csvFilePath}`)
   public async importCsv(
     csvFilePath: string,
     parentCardKey?: string,
@@ -139,7 +139,7 @@ export class Import {
    *        private: If true, uses credentials to clone the repository
    * @param skipMigrationLog If true, skip logging to migration log (used during project creation)
    */
-  @write
+  @write((source) => `Import module ${source}`)
   public async importModule(
     source: string,
     destination?: string,
@@ -198,7 +198,7 @@ export class Import {
    * @param credentials Optional credentials for a private module.
    * @throws if module is not part of the project
    */
-  @write
+  @write((moduleName) => `Update module ${moduleName}`)
   public async updateModule(moduleName: string, credentials?: Credentials) {
     // Ensure module list is up to date before updating
     await this.fetchCmd.ensureModuleListUpToDate();
@@ -216,7 +216,7 @@ export class Import {
    * Updates all imported modules.
    * @param credentials Optional credentials for private modules.
    */
-  @write
+  @write(() => 'Update all modules')
   public async updateAllModules(credentials?: Credentials) {
     // Ensure module list is up to date before updating all modules
     await this.fetchCmd.ensureModuleListUpToDate();

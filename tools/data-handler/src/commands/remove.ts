@@ -164,7 +164,7 @@ export class Remove {
    *         when removing link, some of the mandatory parameters are missing, or
    *         when trying to remove unknown type
    */
-  @write
+  @write((type, targetName) => `Remove ${type} ${targetName}`)
   public async remove(
     type: RemovableResourceTypes,
     targetName: string,

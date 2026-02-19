@@ -27,6 +27,7 @@ interface testObjectNode {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const createMockCommandManager = (overrides: any = {}) => {
   return {
+    consistent: vi.fn().mockImplementation((fn: () => unknown) => fn()),
     showCmd: {
       showProject: vi.fn().mockResolvedValue({ prefix: 'test' }),
       showModules: vi.fn().mockResolvedValue([]),

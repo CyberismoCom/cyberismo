@@ -1,4 +1,5 @@
 import { expect, test, describe, beforeEach, afterEach } from 'vitest';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 import { createTempTestData, cleanupTempTestData } from './test-utils.js';
@@ -16,7 +17,8 @@ interface CardTypeResponse {
 
 beforeEach(async () => {
   tempTestDataPath = await createTempTestData('decision-records');
-  app = createApp(new MockAuthProvider(), tempTestDataPath);
+  const commands = await CommandManager.getInstance(tempTestDataPath);
+  app = createApp(new MockAuthProvider(), commands);
 });
 
 afterEach(async () => {
