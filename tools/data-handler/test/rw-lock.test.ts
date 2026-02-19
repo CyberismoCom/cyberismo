@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
 import { RWLock, read, write } from '../src/utils/rw-lock.js';
+import { getCommitContext } from '../src/utils/commit-context.js';
 import { deferred } from './test-utils.js';
 
 describe('RWLock', () => {
@@ -529,6 +530,71 @@ describe('RWLock', () => {
       const cmd = new TestCmd();
       await cmd.doWrite();
       expect(log).to.deep.equal(['write', 'hook']);
+    });
+
+    it('should set commit message from factory', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write((n: string) => `Create thing ${n}`)
+        async createThing(_name: string): Promise<void> {}
+      }
+
+      const cmd = new TestCmd();
+      await cmd.createThing('foo');
+      expect(capturedMessage).to.equal('Create thing foo');
+    });
+
+    it('should pass all args to the factory', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write((src: string, dst: string) => `Move ${src} to ${dst}`)
+        async move(_src: string, _dst: string): Promise<void> {}
+      }
+
+      const cmd = new TestCmd();
+      await cmd.move('a', 'b');
+      expect(capturedMessage).to.equal('Move a to b');
+    });
+
+    it('should not override an already-set commit message', async () => {
+      const lock = new RWLock();
+      let capturedMessage: string | undefined;
+
+      lock.onAfterWrite(async () => {
+        capturedMessage = getCommitContext().message;
+      });
+
+      class TestCmd {
+        project = { lock };
+
+        @write(() => 'inner message')
+        async inner(): Promise<void> {}
+
+        @write(() => 'outer message')
+        async outer(): Promise<void> {
+          await this.inner();
+        }
+      }
+
+      const cmd = new TestCmd();
+      await cmd.outer();
+      expect(capturedMessage).to.equal('outer message');
     });
 
     it('should serialize decorated writes', async () => {
