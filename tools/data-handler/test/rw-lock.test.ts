@@ -544,7 +544,7 @@ describe('RWLock', () => {
         project = { lock };
 
         @write((n: string) => `Create thing ${n}`)
-        async createThing(_name: string): Promise<void> {}
+        async createThing(name: string): Promise<void> { void name; }
       }
 
       const cmd = new TestCmd();
@@ -564,7 +564,7 @@ describe('RWLock', () => {
         project = { lock };
 
         @write((src: string, dst: string) => `Move ${src} to ${dst}`)
-        async move(_src: string, _dst: string): Promise<void> {}
+        async move(src: string, dst: string): Promise<void> { void src; void dst; }
       }
 
       const cmd = new TestCmd();
