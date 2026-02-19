@@ -81,7 +81,10 @@ export class Create {
    * @param count How many cards to add. By default one.
    * @returns non-empty string array with ids of added cards
    */
-  @write((cardTypeName, templateName) => `Add cards of type ${cardTypeName} to template ${templateName}`)
+  @write(
+    (cardTypeName, templateName) =>
+      `Add cards of type ${cardTypeName} to template ${templateName}`,
+  )
   public async addCards(
     cardTypeName: string,
     templateName: string,
@@ -315,7 +318,10 @@ export class Create {
    * @param linkType The type of link to add
    * @param linkDescription Optional description of the link
    */
-  @write((cardKey, destinationCardKey, linkType) => `Create ${linkType} link from ${cardKey} to ${destinationCardKey}`)
+  @write(
+    (cardKey, destinationCardKey, linkType) =>
+      `Create ${linkType} link from ${cardKey} to ${destinationCardKey}`,
+  )
   public async createLink(
     cardKey: string,
     destinationCardKey: string,
