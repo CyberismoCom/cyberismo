@@ -13,6 +13,7 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { runWithDefaultCommitMessage } from './commit-context.js';
+import { getChildLogger } from './log-utils.js';
 
 interface LockContext {
   mode: 'read' | 'write';
@@ -37,6 +38,11 @@ export class RWLock {
   private context = new AsyncLocalStorage<LockContext>();
   private afterWriteHooks: (() => Promise<void>)[] = [];
   private writeErrorHooks: ((error: unknown) => Promise<void>)[] = [];
+  private readonly logger;
+
+  constructor(private readonly name: string = 'RWLock') {
+    this.logger = getChildLogger({ module: 'RWLock', name });
+  }
 
   /**
    * Register a callback that fires after the outermost write completes
@@ -111,11 +117,25 @@ export class RWLock {
   private acquireRead(): Promise<void> {
     if (!this.writer && this.writerQueue.length === 0) {
       this.readers++;
+      this.logger.trace({ readers: this.readers }, 'read lock acquired');
       return Promise.resolve();
     }
+    this.logger.debug(
+      {
+        readers: this.readers,
+        writer: this.writer,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      'read lock queued (writer active or pending)',
+    );
     return new Promise<void>((resolve) => {
       this.readerQueue.push(() => {
         this.readers++;
+        this.logger.debug(
+          { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+          'read lock acquired after wait',
+        );
         resolve();
       });
     });
@@ -123,6 +143,10 @@ export class RWLock {
 
   private releaseRead(): void {
     this.readers--;
+    this.logger.trace(
+      { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+      'read lock released',
+    );
     if (this.readers === 0 && this.writerQueue.length > 0) {
       const next = this.writerQueue.shift()!;
       next();
@@ -132,11 +156,28 @@ export class RWLock {
   private acquireWrite(): Promise<void> {
     if (!this.writer && this.readers === 0) {
       this.writer = true;
+      this.logger.trace(
+        { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+        'write lock acquired',
+      );
       return Promise.resolve();
     }
+    this.logger.debug(
+      {
+        readers: this.readers,
+        writer: this.writer,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
+      `write lock queued (readers: ${this.readers}, writer active: ${this.writer})`,
+    );
     return new Promise<void>((resolve) => {
       this.writerQueue.push(() => {
         this.writer = true;
+        this.logger.debug(
+          { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+          'write lock acquired after wait',
+        );
         resolve();
       });
     });
@@ -144,6 +185,10 @@ export class RWLock {
 
   private releaseWrite(): void {
     this.writer = false;
+    this.logger.trace(
+      { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+      'write lock released',
+    );
     if (this.writerQueue.length > 0) {
       const next = this.writerQueue.shift()!;
       next();
