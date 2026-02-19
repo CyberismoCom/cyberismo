@@ -492,6 +492,78 @@ describe('RWLock', () => {
     });
   });
 
+  describe('hook deadlock prevention', () => {
+    it('should not deadlock when onAfterWrite hook acquires write lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onAfterWrite(async () => {
+        await lock.write(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      await lock.write(async () => {});
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onAfterWrite hook acquires read lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onAfterWrite(async () => {
+        await lock.read(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      await lock.write(async () => {});
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onWriteError hook acquires write lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onWriteError(async () => {
+        await lock.write(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      await hookDone.promise;
+    });
+
+    it('should not deadlock when onWriteError hook acquires read lock', async () => {
+      const lock = new RWLock();
+      const hookDone = deferred();
+
+      lock.onWriteError(async () => {
+        await lock.read(async () => {
+          hookDone.resolve();
+        });
+      });
+
+      try {
+        await lock.write(async () => {
+          throw new Error('fail');
+        });
+      } catch {
+        // expected
+      }
+
+      await hookDone.promise;
+    });
+  });
+
   describe('@read and @write decorators', () => {
     it('should wrap methods with read lock', async () => {
       const lock = new RWLock();
