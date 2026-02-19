@@ -133,7 +133,11 @@ export class RWLock {
       this.readerQueue.push(() => {
         this.readers++;
         this.logger.debug(
-          { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+          {
+            readers: this.readers,
+            writerQueueDepth: this.writerQueue.length,
+            readerQueueDepth: this.readerQueue.length,
+          },
           'read lock acquired after wait',
         );
         resolve();
@@ -144,7 +148,11 @@ export class RWLock {
   private releaseRead(): void {
     this.readers--;
     this.logger.trace(
-      { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+      {
+        readers: this.readers,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
       'read lock released',
     );
     if (this.readers === 0 && this.writerQueue.length > 0) {
@@ -157,7 +165,11 @@ export class RWLock {
     if (!this.writer && this.readers === 0) {
       this.writer = true;
       this.logger.trace(
-        { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+        {
+          readers: this.readers,
+          writerQueueDepth: this.writerQueue.length,
+          readerQueueDepth: this.readerQueue.length,
+        },
         'write lock acquired',
       );
       return Promise.resolve();
@@ -175,7 +187,11 @@ export class RWLock {
       this.writerQueue.push(() => {
         this.writer = true;
         this.logger.debug(
-          { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+          {
+            readers: this.readers,
+            writerQueueDepth: this.writerQueue.length,
+            readerQueueDepth: this.readerQueue.length,
+          },
           'write lock acquired after wait',
         );
         resolve();
@@ -186,7 +202,11 @@ export class RWLock {
   private releaseWrite(): void {
     this.writer = false;
     this.logger.trace(
-      { readers: this.readers, writerQueueDepth: this.writerQueue.length, readerQueueDepth: this.readerQueue.length },
+      {
+        readers: this.readers,
+        writerQueueDepth: this.writerQueue.length,
+        readerQueueDepth: this.readerQueue.length,
+      },
       'write lock released',
     );
     if (this.writerQueue.length > 0) {
