@@ -16,24 +16,26 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CommandManager } from '@cyberismo/data-handler';
 import { createApp } from '../src/app.js';
 import { MockAuthProvider } from '../src/auth/mock.js';
 
 const fileUrl = fileURLToPath(import.meta.url);
 const dirname = path.dirname(fileUrl);
 
-// Fixes weird issue with asciidoctor
-beforeAll(() => {
-  process.argv = [];
-});
+let app: ReturnType<typeof createApp>;
 
-const app = createApp(
-  new MockAuthProvider(),
-  path.resolve(
-    dirname,
-    '../../data-handler/test/test-data/valid/decision-records',
-  ),
-);
+beforeAll(async () => {
+  // Fixes weird issue with asciidoctor
+  process.argv = [];
+  const commands = await CommandManager.getInstance(
+    path.resolve(
+      dirname,
+      '../../data-handler/test/test-data/valid/decision-records',
+    ),
+  );
+  app = createApp(new MockAuthProvider(), commands);
+});
 
 describe('MCP HTTP Endpoint', () => {
   test('POST /mcp with initialize message returns a response', async () => {

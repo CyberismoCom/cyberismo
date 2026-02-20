@@ -53,16 +53,16 @@ export function createApp(
   const app = new Hono<{ Variables: AppVars }>();
 
   app.use(treeMiddleware(opts));
-  // Apply authentication middleware to all API routes
+  // Apply authentication middleware to all API and MCP routes
   app.use('/api/*', createAuthMiddleware(authProvider));
+  app.use('/mcp', createAuthMiddleware(authProvider));
+  app.use('/mcp/*', createAuthMiddleware(authProvider));
 
-  // Attach CommandManager to API and MCP routes (after successful auth for API)
-  const commandManagerMiddleware = attachCommandManager(projectPath);
+  // Attach CommandManager to API and MCP routes
+  const commandManagerMiddleware = attachCommandManager(commands);
   app.use('/api/*', commandManagerMiddleware);
   app.use('/mcp', commandManagerMiddleware);
   app.use('/mcp/*', commandManagerMiddleware);
-  // Attach CommandManager to all API requests
-  app.use('/api/*', attachCommandManager(commands));
   // Wire up routes
   app.route('/api/auth', createAuthRouter());
 

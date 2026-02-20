@@ -139,117 +139,124 @@ export interface RenderedCard {
 }
 
 /**
- * Render a card with full macro evaluation, HTML conversion, and extended metadata
+ * Render a card with full macro evaluation, HTML conversion, and extended metadata.
+ * Wraps all read operations in a consistent lock to prevent interleaved writes.
  */
 export async function renderCard(
   commands: CommandManager,
   cardKey: string,
   options: { raw?: boolean } = {},
 ): Promise<RenderedCard> {
-  // showCardDetails throws on invalid keys, so no null-check needed
-  const card = await commands.showCmd.showCardDetails(cardKey);
-  const rawContent = card.content || '';
-  let parsedContent = rawContent;
+  return commands.consistent(async () => {
+    // showCardDetails throws on invalid keys, so no null-check needed
+    const card = await commands.showCmd.showCardDetails(cardKey);
+    const rawContent = card.content || '';
+    let parsedContent = rawContent;
 
-  // Generate calculations and run card query
-  let cardQueryResult: QueryResult<'card'> | null = null;
+    // Generate calculations and run card query
+    let cardQueryResult: QueryResult<'card'> | null = null;
 
-  if (!options.raw) {
-    // Generate logic program for calculations
-    await commands.calculateCmd.generate();
+    if (!options.raw) {
+      // Generate logic program for calculations
+      await commands.calculateCmd.generate();
 
-    // Evaluate macros (Clingo, graphs, reports)
-    try {
-      const asciidocContent = await evaluateMacros(rawContent, {
-        context: 'localApp',
-        mode: 'inject',
-        project: commands.project,
-        cardKey: cardKey,
-      });
+      // Evaluate macros (Clingo, graphs, reports)
+      try {
+        const asciidocContent = await evaluateMacros(rawContent, {
+          context: 'localApp',
+          mode: 'inject',
+          project: commands.project,
+          cardKey: cardKey,
+        });
 
-      // Convert AsciiDoc to HTML
-      const processor = Processor();
-      parsedContent = processor
-        .convert(asciidocContent, {
-          safe: 'safe',
-          attributes: {
-            imagesdir: `/api/cards/${cardKey}/a`,
-            icons: 'font',
-          },
-        })
-        .toString();
-    } catch (error) {
-      parsedContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${rawContent}`;
-    }
-
-    // Run the card query to get full details
-    try {
-      const results = await commands.calculateCmd.runQuery('card', 'localApp', {
-        cardKey,
-      });
-      if (results.length > 0) {
-        cardQueryResult = results[0];
+        // Convert AsciiDoc to HTML
+        const processor = Processor();
+        parsedContent = processor
+          .convert(asciidocContent, {
+            safe: 'safe',
+            attributes: {
+              imagesdir: `/api/cards/${cardKey}/a`,
+              icons: 'font',
+            },
+          })
+          .toString();
+      } catch (error) {
+        parsedContent = `Macro error: ${error instanceof Error ? error.message : 'Unknown error'}\n\n${rawContent}`;
       }
-    } catch {
-      // Query may fail, continue without extended data
+
+      // Run the card query to get full details
+      try {
+        const results = await commands.calculateCmd.runQuery(
+          'card',
+          'localApp',
+          {
+            cardKey,
+          },
+        );
+        if (results.length > 0) {
+          cardQueryResult = results[0];
+        }
+      } catch {
+        // Query may fail, continue without extended data
+      }
     }
-  }
 
-  // Compute available transitions (skip in raw mode)
-  const availableTransitions = options.raw
-    ? []
-    : await computeAvailableTransitions(
-        commands,
-        card.metadata?.cardType,
+    // Compute available transitions (skip in raw mode)
+    const availableTransitions = options.raw
+      ? []
+      : await computeAvailableTransitions(
+          commands,
+          card.metadata?.cardType,
+          cardQueryResult?.workflowState || card.metadata?.workflowState || '',
+          cardQueryResult?.deniedOperations?.transition || [],
+        );
+
+    const fields = transformFields(
+      cardQueryResult?.fields || [],
+      cardQueryResult?.deniedOperations?.editField || [],
+    );
+
+    // Transform links
+    const links = transformLinks(cardQueryResult?.links || []);
+
+    // Transform denied operations
+    const deniedOperations = transformDeniedOperations(
+      cardQueryResult?.deniedOperations,
+    );
+
+    // Transform notifications
+    const notifications = transformNotifications(
+      cardQueryResult?.notifications || [],
+    );
+
+    return {
+      key: card.key,
+      title: cardQueryResult?.title || card.metadata?.title || '',
+      cardType: cardQueryResult?.cardType || card.metadata?.cardType || '',
+      cardTypeDisplayName:
+        cardQueryResult?.cardTypeDisplayName || card.metadata?.cardType || '',
+      workflowState:
         cardQueryResult?.workflowState || card.metadata?.workflowState || '',
-        cardQueryResult?.deniedOperations?.transition || [],
-      );
-
-  const fields = transformFields(
-    cardQueryResult?.fields || [],
-    cardQueryResult?.deniedOperations?.editField || [],
-  );
-
-  // Transform links
-  const links = transformLinks(cardQueryResult?.links || []);
-
-  // Transform denied operations
-  const deniedOperations = transformDeniedOperations(
-    cardQueryResult?.deniedOperations,
-  );
-
-  // Transform notifications
-  const notifications = transformNotifications(
-    cardQueryResult?.notifications || [],
-  );
-
-  return {
-    key: card.key,
-    title: cardQueryResult?.title || card.metadata?.title || '',
-    cardType: cardQueryResult?.cardType || card.metadata?.cardType || '',
-    cardTypeDisplayName:
-      cardQueryResult?.cardTypeDisplayName || card.metadata?.cardType || '',
-    workflowState:
-      cardQueryResult?.workflowState || card.metadata?.workflowState || '',
-    availableTransitions,
-    rawContent,
-    parsedContent,
-    fields,
-    children: card.children || [],
-    parent: card.parent,
-    attachments: card.attachments || [],
-    labels: cardQueryResult?.labels || card.metadata?.labels || [],
-    links,
-    deniedOperations,
-    notifications,
-    policyChecks: cardQueryResult?.policyChecks || {
-      successes: [],
-      failures: [],
-    },
-    calculations:
-      (cardQueryResult as unknown as { calculations?: unknown[] })
-        ?.calculations || [],
-  };
+      availableTransitions,
+      rawContent,
+      parsedContent,
+      fields,
+      children: card.children || [],
+      parent: card.parent,
+      attachments: card.attachments || [],
+      labels: cardQueryResult?.labels || card.metadata?.labels || [],
+      links,
+      deniedOperations,
+      notifications,
+      policyChecks: cardQueryResult?.policyChecks || {
+        successes: [],
+        failures: [],
+      },
+      calculations:
+        (cardQueryResult as unknown as { calculations?: unknown[] })
+          ?.calculations || [],
+    };
+  });
 }
 
 /**
@@ -393,10 +400,13 @@ function transformNotifications(
 }
 
 /**
- * Get card tree with basic info (no content rendering)
+ * Get card tree with basic info (no content rendering).
+ * Wraps operations in a consistent lock.
  */
 export async function getCardTree(commands: CommandManager): Promise<unknown> {
-  await commands.calculateCmd.generate();
-  const result = await commands.calculateCmd.runQuery('tree', 'localApp', {});
-  return result;
+  return commands.consistent(async () => {
+    await commands.calculateCmd.generate();
+    const result = await commands.calculateCmd.runQuery('tree', 'localApp', {});
+    return result;
+  });
 }

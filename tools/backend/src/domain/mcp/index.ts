@@ -12,6 +12,7 @@
 */
 
 import { Hono } from 'hono';
+import { randomUUID } from 'node:crypto';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createMcpServer } from '@cyberismo/mcp/server';
 import type { CommandManager } from '@cyberismo/data-handler';
@@ -44,9 +45,18 @@ async function destroySession(
   if (!session) return;
   sessions.delete(id);
 
-  await session.server.close();
-  if (!skipTransportClose) {
-    await session.transport.close?.();
+  try {
+    await session.server.close();
+  } catch {
+    // Ignore close errors during cleanup
+  }
+
+  if (!skipTransportClose && session.transport.close) {
+    try {
+      await session.transport.close();
+    } catch {
+      // Ignore close errors during cleanup
+    }
   }
 }
 
@@ -87,14 +97,22 @@ router.all('/', async (c) => {
     return response;
   }
 
+  // Only allow POST to create new sessions (initialize)
+  if (c.req.method !== 'POST') {
+    return c.json(
+      { error: 'Method not allowed. Use POST to initialize a session.' },
+      405,
+    );
+  }
+
   // Reject new sessions when at capacity
   if (sessions.size >= MAX_SESSIONS) {
     return c.json({ error: 'Too many active sessions' }, 503);
   }
 
-  // Create new session for initialization (POST with initialize message)
+  // Create new session for initialization
   const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
+    sessionIdGenerator: () => randomUUID(),
     onsessioninitialized: (newSessionId: string) => {
       sessions.set(newSessionId, {
         transport,
