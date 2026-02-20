@@ -37,6 +37,7 @@ import {
   validContexts,
 } from '@cyberismo/data-handler';
 import { ResourceTypeParser as Parser } from './resource-type-parser.js';
+import { startMcpServer } from '@cyberismo/mcp';
 import {
   startServer,
   exportSite,
@@ -1475,6 +1476,28 @@ appCmd.action(async (options: CommandOptions<'start'>) => {
     watchResourceChanges: options.watchResourceChanges,
   });
   await startServer(new MockAuthProvider(gitUser), commands);
+});
+
+// MCP Server command
+const mcpCmd = new CommandWithPath('mcp').description(
+  'Starts the MCP (Model Context Protocol) server for AI assistant integration',
+);
+program.addCommand(mcpCmd);
+mcpCmd.action(async (options: CommandOptions<'start'>) => {
+  try {
+    const projectPath = await commandHandler.getProjectPath(
+      options.projectPath,
+    );
+    console.error(`Starting MCP server for project at: ${projectPath}`);
+    console.error(
+      'Connect via stdio transport (e.g., Claude Desktop, Claude Code)',
+    );
+    await startMcpServer(projectPath);
+  } catch (error) {
+    program.error(
+      `Failed to start MCP server: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 });
 
 export default program;

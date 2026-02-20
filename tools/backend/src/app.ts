@@ -35,6 +35,7 @@ import type { CommandManager } from '@cyberismo/data-handler';
 import type { AppVars, TreeOptions } from './types.js';
 import treeMiddleware from './middleware/tree.js';
 import projectRouter from './domain/project/index.js';
+import mcpRouter from './domain/mcp/index.js';
 import { createAuthRouter } from './domain/auth/index.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import type { AuthProvider } from './auth/types.js';
@@ -52,10 +53,16 @@ export function createApp(
   const app = new Hono<{ Variables: AppVars }>();
 
   app.use(treeMiddleware(opts));
-  // Apply authentication middleware to all API routes
+  // Apply authentication middleware to all API and MCP routes
   app.use('/api/*', createAuthMiddleware(authProvider));
-  // Attach CommandManager to all API requests
-  app.use('/api/*', attachCommandManager(commands));
+  app.use('/mcp', createAuthMiddleware(authProvider));
+  app.use('/mcp/*', createAuthMiddleware(authProvider));
+
+  // Attach CommandManager to API and MCP routes
+  const commandManagerMiddleware = attachCommandManager(commands);
+  app.use('/api/*', commandManagerMiddleware);
+  app.use('/mcp', commandManagerMiddleware);
+  app.use('/mcp/*', commandManagerMiddleware);
   // Wire up routes
   app.route('/api/auth', createAuthRouter());
 
@@ -75,6 +82,9 @@ export function createApp(
   app.route('/api/logicPrograms', logicProgramsRouter);
   app.route('/api/labels', labelsRouter);
   app.route('/api/project', projectRouter);
+
+  // MCP endpoint for AI assistant integration
+  app.route('/mcp', mcpRouter);
 
   app.use(
     '*',
