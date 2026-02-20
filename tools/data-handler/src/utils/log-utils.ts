@@ -13,12 +13,11 @@ import pino, { type ChildLoggerOptions, type Logger } from 'pino';
 
 // This could be also a more generic interface, but since we use pino and this is an internal package, let's keep it simple
 // silent logger as default
-let _logger: Logger = pino({ level: 'silent' });
+const _logger: Logger = pino({ level: 'silent' });
 
-export function setLogger(_logger: Logger) {
-  // TEMP: no-op to confirm pino transport workers cause hanging
-  // _logger = logger;
-}
+// TEMP: no-op to confirm pino transport workers cause hanging
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function setLogger(_logger: Logger) {}
 /**
  * Returns the logger instance.
  */
