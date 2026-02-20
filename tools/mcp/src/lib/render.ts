@@ -242,7 +242,10 @@ export async function renderCard(
     links,
     deniedOperations,
     notifications,
-    policyChecks: cardQueryResult?.policyChecks || { successes: [], failures: [] },
+    policyChecks: cardQueryResult?.policyChecks || {
+      successes: [],
+      failures: [],
+    },
     calculations:
       (cardQueryResult as unknown as { calculations?: unknown[] })
         ?.calculations || [],
