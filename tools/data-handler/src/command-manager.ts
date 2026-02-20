@@ -27,9 +27,7 @@ import { Validate } from './commands/validate.js';
 import { Project } from './containers/project.js';
 import { runWithCommitContext } from './utils/commit-context.js';
 import { ProjectPaths } from './containers/project/project-paths.js';
-import pino, { type Level, type TransportTargetOptions } from 'pino';
-import { setLogger } from './utils/log-utils.js';
-import { join } from 'node:path';
+import { type Level } from 'pino';
 
 export interface CommandManagerOptions {
   watchResourceChanges?: boolean;
@@ -138,28 +136,29 @@ export class CommandManager {
    * Sets the logger for the command manager.
    * @param level Log level.
    */
-  public setLogger(level: Level) {
-    const all: TransportTargetOptions[] = [
-      {
-        target: 'pino/file',
-        level: 'trace',
-        options: { destination: this.pathHandler.logPath, mkdir: true },
-      },
-      {
-        target: 'pino/file',
-        level: level,
-        options: { destination: 1 }, // stdout
-      },
-    ];
-
-    setLogger(
-      pino({
-        level: 'trace',
-        transport: {
-          targets: all,
-        },
-      }),
-    );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public setLogger(_level: Level) {
+    // TEMP: commented out to confirm pino transport workers cause hanging
+    // const all: TransportTargetOptions[] = [
+    //   {
+    //     target: 'pino/file',
+    //     level: 'trace',
+    //     options: { destination: this.pathHandler.logPath, mkdir: true },
+    //   },
+    //   {
+    //     target: 'pino/file',
+    //     level: level,
+    //     options: { destination: 1 }, // stdout
+    //   },
+    // ];
+    // setLogger(
+    //   pino({
+    //     level: 'trace',
+    //     transport: {
+    //       targets: all,
+    //     },
+    //   }),
+    // );
   }
 
   /**
@@ -175,26 +174,27 @@ export class CommandManager {
   ): Promise<CommandManager> {
     // Set up logger before constructing anything so eager child loggers work
     if (options?.logLevel) {
-      const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
-      setLogger(
-        pino({
-          level: 'trace',
-          transport: {
-            targets: [
-              {
-                target: 'pino/file',
-                level: 'trace',
-                options: { destination: logPath, mkdir: true },
-              },
-              {
-                target: 'pino/file',
-                level: options.logLevel,
-                options: { destination: 1 },
-              },
-            ],
-          },
-        }),
-      );
+      // TEMP: commented out to confirm pino transport workers cause hanging
+      // const logPath = join(path, '.logs', 'cyberismo_data-handler.log');
+      // setLogger(
+      //   pino({
+      //     level: 'trace',
+      //     transport: {
+      //       targets: [
+      //         {
+      //           target: 'pino/file',
+      //           level: 'trace',
+      //           options: { destination: logPath, mkdir: true },
+      //         },
+      //         {
+      //           target: 'pino/file',
+      //           level: options.logLevel,
+      //           options: { destination: 1 },
+      //         },
+      //       ],
+      //     },
+      //   }),
+      // );
     }
 
     if (
